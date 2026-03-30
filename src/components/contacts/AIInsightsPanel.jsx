@@ -162,8 +162,9 @@ Has 2 kids, needs proximity to school`}
             )}
             {analyzeInsightsMutation.isPending ? 'Analyzing...' : 'Analyze with AI'}
           </Button>
-            </div>
-          ) : (
+        </div>
+        ) : (
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 pb-2 border-b">
             <h4 className="font-semibold text-xs">AI Analysis Results</h4>
             <Button
@@ -302,7 +303,7 @@ Insights: ${insights.insights}
             )}
             </Button>
           </div>
-          )}
+        )}
         </TabsContent>
 
         <TabsContent value="templates" className="flex-1 space-y-3 overflow-y-auto">
