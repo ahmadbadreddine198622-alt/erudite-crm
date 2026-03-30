@@ -4,6 +4,7 @@ import ContactFolders from '@/components/contacts/ContactFolders';
 import ContactList from '@/components/contacts/ContactList';
 import ContactDetail from '@/components/contacts/ContactDetail';
 import AddContactDialog from '@/components/contacts/AddContactDialog';
+import AIInsightsPanel from '@/components/contacts/AIInsightsPanel';
 import { Users } from 'lucide-react';
 
 export default function ContactsPage() {
@@ -19,7 +20,7 @@ export default function ContactsPage() {
         icon={<Users className="w-6 h-6" />}
       />
 
-      <div className="grid grid-cols-4 gap-4 h-[calc(100vh-200px)]">
+      <div className="grid grid-cols-5 gap-4 h-[calc(100vh-200px)]">
         {/* Folders Sidebar */}
         <div className="col-span-1 border rounded-lg bg-card overflow-hidden">
           <ContactFolders selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
@@ -43,6 +44,13 @@ export default function ContactsPage() {
               Select a contact to view details
             </div>
           )}
+        </div>
+
+        {/* AI Insights */}
+        <div className="col-span-1 border rounded-lg bg-card overflow-y-auto">
+          <div className="p-4">
+            <AIInsightsPanel />
+          </div>
         </div>
       </div>
 

@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, X, Plus, Save, Phone, Mail, MapPin, Building2, Calendar, Globe, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import AIInsightsPanel from './AIInsightsPanel';
 
 export default function ContactDetail({ contactId, onClose }) {
   const queryClient = useQueryClient();
@@ -65,9 +64,7 @@ export default function ContactDetail({ contactId, onClose }) {
   const displayContact = editedContact || contact;
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4 max-h-[80vh] overflow-y-auto">
-      {/* Left Column - Contact Details */}
-      <div className="col-span-2 space-y-4">
+    <div className="space-y-4 p-4 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{contact.name}</h2>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -256,12 +253,6 @@ export default function ContactDetail({ contactId, onClose }) {
             </Button>
           </>
         )}
-      </div>
-      </div>
-
-      {/* Right Column - AI Insights */}
-      <div className="col-span-1 sticky top-0 h-fit">
-        <AIInsightsPanel contactName={contact.name} />
       </div>
     </div>
   );
