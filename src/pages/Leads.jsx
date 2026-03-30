@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Filter, Download } from 'lucide-react';
+import { Plus, Search, Filter, Download, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
+import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 
 export default function Leads() {
@@ -26,6 +27,7 @@ export default function Leads() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
+  const [showIngestion, setShowIngestion] = useState(false);
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -45,6 +47,9 @@ export default function Leads() {
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
       <PageHeader title="Leads" subtitle={`${filtered.length} leads total`}>
+        <Button size="sm" variant="outline" onClick={() => setShowIngestion(true)}>
+          <Wand2 className="w-4 h-4 mr-1" /> Import Raw Data
+        </Button>
         <Button size="sm" onClick={() => setShowAddLead(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="w-4 h-4 mr-1" /> Add Lead
         </Button>
@@ -157,6 +162,7 @@ export default function Leads() {
         <LeadDetailSheet lead={selectedLead} open={!!selectedLead} onClose={() => setSelectedLead(null)} />
       )}
       <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
+      <RawDataIngestion open={showIngestion} onClose={() => setShowIngestion(false)} />
     </div>
   );
 }
