@@ -4,19 +4,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 function normalizePhone(phone) {
   if (!phone) return null;
   
-  // Strip everything except digits and leading +
+  // Strip everything except digits and leading +/0
   const cleaned = phone.replace(/[^\d+]/g, '');
   if (cleaned.length < 7) return null;
   
-  // Handle 00 prefix (international format) → convert to +
+  // Keep 00 prefix as-is
   if (cleaned.startsWith('00')) {
-    return '+' + cleaned.slice(2);
+    return cleaned;
   }
   
   // Ensure international format for UAE numbers
-  if (cleaned.startsWith('05') && cleaned.length === 10) return '+971' + cleaned.slice(1);
-  if (cleaned.startsWith('5') && cleaned.length === 9) return '+971' + cleaned;
-  if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+' + cleaned;
+  if (cleaned.startsWith('05') && cleaned.length === 10) return '00971' + cleaned.slice(1);
+  if (cleaned.startsWith('5') && cleaned.length === 9) return '00971' + cleaned;
+  if (cleaned.startsWith('+')) return cleaned;
+  if (cleaned.length >= 10) return '00' + cleaned;
   return cleaned;
 }
 
