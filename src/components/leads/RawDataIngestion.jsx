@@ -200,6 +200,10 @@ export default function RawDataIngestion({ open, onClose }) {
               email: item.email,
               source: item.source,
               tags: item.tags,
+              source_metadata: {
+                project: item.project,
+                unit: item.unit,
+              },
             })
           ])
         )
