@@ -1,0 +1,90 @@
+{
+  "name": "Email",
+  "type": "object",
+  "properties": {
+    "gmail_message_id": {
+      "type": "string",
+      "description": "Gmail message ID for deduplication"
+    },
+    "gmail_thread_id": {
+      "type": "string",
+      "description": "Gmail thread ID for conversation grouping"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Linked Lead ID if sender is a known lead"
+    },
+    "from_email": {
+      "type": "string"
+    },
+    "from_name": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body_text": {
+      "type": "string",
+      "description": "Plain text body"
+    },
+    "body_html": {
+      "type": "string",
+      "description": "HTML body"
+    },
+    "snippet": {
+      "type": "string",
+      "description": "Short preview of the email"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_important": {
+      "type": "boolean",
+      "default": false
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "auto_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-generated tags e.g. sales, support, spam"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Gmail labels"
+    }
+  },
+  "required": [
+    "gmail_message_id",
+    "from_email",
+    "subject"
+  ]
+}

@@ -15,6 +15,7 @@ import MapView from '@/pages/MapView';
 import Commissions from '@/pages/Commissions';
 import Reminders from '@/pages/Reminders';
 import WhatsAppInbox from '@/pages/WhatsAppInbox';
+import Inbox from '@/pages/Inbox';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -50,6 +51,7 @@ const AuthenticatedApp = () => {
         <Route path="/commissions" element={<Commissions />} />
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/whatsapp" element={<WhatsAppInbox />} />
+        <Route path="/inbox" element={<Inbox />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
