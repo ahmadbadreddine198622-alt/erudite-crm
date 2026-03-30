@@ -15,6 +15,12 @@ function parsePhone(raw) {
   // Strip everything except digits and leading +
   const cleaned = raw.replace(/[^\d+]/g, '');
   if (cleaned.length < 7) return null;
+  
+  // Handle 00 prefix (international format) → convert to +
+  if (cleaned.startsWith('00')) {
+    return '+' + cleaned.slice(2);
+  }
+  
   // Ensure international format for UAE numbers
   if (cleaned.startsWith('05') && cleaned.length === 10) return '+971' + cleaned.slice(1);
   if (cleaned.startsWith('5') && cleaned.length === 9) return '+971' + cleaned;

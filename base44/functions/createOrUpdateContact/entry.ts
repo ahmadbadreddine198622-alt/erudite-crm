@@ -3,7 +3,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 // Normalize phone number to standard format
 function normalizePhone(phone) {
   if (!phone) return null;
-  return phone.replace(/\D/g, '').slice(-9) || phone.replace(/\D/g, '');
+  
+  // Strip everything except digits and leading +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.length < 7) return null;
+  
+  // Handle 00 prefix (international format) → convert to +
+  if (cleaned.startsWith('00')) {
+    return '+' + cleaned.slice(2);
+  }
+  
+  // Ensure international format for UAE numbers
+  if (cleaned.startsWith('05') && cleaned.length === 10) return '+971' + cleaned.slice(1);
+  if (cleaned.startsWith('5') && cleaned.length === 9) return '+971' + cleaned;
+  if (!cleaned.startsWith('+') && cleaned.length >= 10) return '+' + cleaned;
+  return cleaned;
 }
 
 // Check for duplicate by phone or email
