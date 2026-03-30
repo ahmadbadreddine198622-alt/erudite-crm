@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2
+  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
@@ -50,6 +50,31 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
       onClose();
     },
   });
+
+  const exportVCF = () => {
+    const nameParts = (lead.name || '').trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const lines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${lead.name || ''}`,
+      `N:${lastName};${firstName};;;`,
+      lead.phone ? `TEL;TYPE=CELL:${lead.phone}` : null,
+      lead.email ? `EMAIL:${lead.email}` : null,
+      lead.nationality ? `NOTE:Nationality: ${lead.nationality}\\nSource: ${lead.source || 'CRM'}\\nType: ${lead.type || ''}\\nBudget: ${lead.budget_aed ? 'AED ' + lead.budget_aed.toLocaleString() : ''}\\nStage: ${lead.stage || ''}` : null,
+      'END:VCARD',
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([lines], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${lead.name || 'contact'}.vcf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleAddNote = () => {
     if (!note.trim()) return;
@@ -192,7 +217,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
         </div>
 
         {/* Actions */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportVCF}
+          >
+            <Download className="w-4 h-4 mr-1" /> Export VCF
+          </Button>
           <Button
             variant="outline"
             size="sm"
