@@ -16,6 +16,7 @@ import Commissions from '@/pages/Commissions';
 import Reminders from '@/pages/Reminders';
 import WhatsAppInbox from '@/pages/WhatsAppInbox';
 import Inbox from '@/pages/Inbox';
+import Analytics from '@/pages/Analytics';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/whatsapp" element={<WhatsAppInbox />} />
         <Route path="/inbox" element={<Inbox />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
