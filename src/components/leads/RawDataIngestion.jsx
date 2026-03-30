@@ -173,18 +173,29 @@ export default function RawDataIngestion({ open, onClose }) {
     mutationFn: async (items) => {
       const results = await Promise.all(
         items.map(item =>
-          base44.entities.Lead.create({
-            name: item.name,
-            phone: item.phone,
-            email: item.email,
-            nationality: item.nationality,
-            notes: item.notes,
-            tags: item.tags,
-            source: item.source,
-            stage: item.stage,
-            type: item.type,
-            lead_score: item.lead_score,
-          })
+          Promise.all([
+            // Save to Lead entity
+            base44.entities.Lead.create({
+              name: item.name,
+              phone: item.phone,
+              email: item.email,
+              nationality: item.nationality,
+              notes: item.notes,
+              tags: item.tags,
+              source: item.source,
+              stage: item.stage,
+              type: item.type,
+              lead_score: item.lead_score,
+            }),
+            // Save to Contact database
+            base44.functions.invoke('createOrUpdateContact', {
+              name: item.name,
+              phone: item.phone,
+              email: item.email,
+              source: item.source,
+              tags: item.tags,
+            })
+          ])
         )
       );
       return results;
@@ -193,6 +204,7 @@ export default function RawDataIngestion({ open, onClose }) {
       setSavedCount(results.length);
       setStep('done');
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 
