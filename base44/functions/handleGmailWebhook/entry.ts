@@ -118,6 +118,7 @@ Return only a JSON array of matching tags.`,
         const newLead = await base44.asServiceRole.entities.Lead.create({
           name: fromName || fromEmail,
           email: fromEmail,
+          phone: 'N/A',
           source: 'other',
           stage: 'new_lead',
           last_contact_date: receivedAt,

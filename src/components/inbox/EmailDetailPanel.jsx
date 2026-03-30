@@ -50,6 +50,7 @@ export default function EmailDetailPanel({ email, onClose, onLeadCreated }) {
     const newLead = await base44.entities.Lead.create({
       name: email.from_name || email.from_email,
       email: email.from_email,
+      phone: 'N/A',
       source: 'other',
       stage: 'new_lead',
       last_contact_date: email.received_at,
