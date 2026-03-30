@@ -17,6 +17,7 @@ import Reminders from '@/pages/Reminders';
 import WhatsAppInbox from '@/pages/WhatsAppInbox';
 import Inbox from '@/pages/Inbox';
 import Analytics from '@/pages/Analytics';
+import Team from '@/pages/Team';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/whatsapp" element={<WhatsAppInbox />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/team" element={<Team />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

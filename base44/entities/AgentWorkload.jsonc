@@ -1,0 +1,66 @@
+{
+  "name": "AgentWorkload",
+  "type": "object",
+  "properties": {
+    "agent_email": {
+      "type": "string",
+      "description": "Agent email address"
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "Agent display name"
+    },
+    "assigned_conversations": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of active conversations"
+    },
+    "total_conversations": {
+      "type": "number",
+      "default": 0,
+      "description": "Total conversations handled"
+    },
+    "avg_response_time_minutes": {
+      "type": "number",
+      "description": "Average response time in minutes"
+    },
+    "conversion_rate": {
+      "type": "number",
+      "description": "Conversion rate as percentage"
+    },
+    "closed_deals": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of closed deals"
+    },
+    "sla_breaches": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of SLA breaches"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "busy",
+        "away",
+        "offline"
+      ],
+      "default": "available",
+      "description": "Agent current status"
+    },
+    "last_activity": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_revenue_aed": {
+      "type": "number",
+      "default": 0,
+      "description": "Total revenue from closed deals in AED"
+    }
+  },
+  "required": [
+    "agent_email",
+    "agent_name"
+  ]
+}
