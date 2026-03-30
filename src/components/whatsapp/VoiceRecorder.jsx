@@ -43,20 +43,14 @@ export default function VoiceRecorder({ onTranscribe }) {
   const transcribeAudio = async (audioBlob) => {
     setIsProcessing(true);
     try {
-      // Upload audio
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.wav');
+      const { base44 } = await import('@/api/base44Client');
       
-      const uploadRes = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      // Upload audio using Base44
+      const { file_url } = await base44.integrations.Core.UploadFile({
+        file: audioBlob,
       });
 
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const { file_url } = await uploadRes.json();
-
-      // Use LLM to transcribe with context
-      const { base44 } = await import('@/api/base44Client');
+      // Use Whisper to transcribe
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Transcribe this WhatsApp voice message accurately and naturally. Return ONLY the transcribed text, no extra formatting.`,
         file_urls: [file_url],
