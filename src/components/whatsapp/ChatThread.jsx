@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import VoiceMessageBubble from './VoiceMessageBubble';
 
 export default function ChatThread({ conversationId }) {
   const bottomRef = useRef(null);
@@ -54,6 +55,21 @@ export default function ChatThread({ conversationId }) {
 
 function MessageBubble({ msg }) {
   const isOutbound = msg.direction === 'outbound';
+  
+  // Handle voice messages
+  if (msg.media_type === 'audio' && msg.transcription) {
+    return (
+      <div className={cn('flex mb-3', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          <VoiceMessageBubble message={msg} />
+          <div className={cn('text-[10px] mt-1 text-gray-400', isOutbound ? 'text-right' : 'text-left')}>
+            {format(new Date(msg.timestamp), 'HH:mm')}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
       <div className={cn(

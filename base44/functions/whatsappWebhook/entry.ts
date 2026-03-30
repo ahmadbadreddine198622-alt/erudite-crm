@@ -47,7 +47,13 @@ Deno.serve(async (req) => {
     const fromNumber = msg.from;
     const waMessageId = msg.id;
     const timestamp = new Date(parseInt(msg.timestamp) * 1000).toISOString();
-    const body_text = msg.text?.body || msg.caption || '[media]';
+    let body_text = msg.text?.body || msg.caption || '[media]';
+    
+    // Handle voice messages
+    const isVoiceMessage = msg.type === 'audio' && msg.audio;
+    if (isVoiceMessage) {
+      body_text = '🎤 Voice message (transcribing...)';
+    }
 
     // Find or create lead by phone
     const leads = await base44.asServiceRole.entities.Lead.filter({ phone: fromNumber });
@@ -89,8 +95,9 @@ Deno.serve(async (req) => {
 
     // Deduplicate messages
     const existing = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId });
+    let messageId;
     if (existing.length === 0) {
-      await base44.asServiceRole.entities.WhatsAppMessage.create({
+      const newMsg = await base44.asServiceRole.entities.WhatsAppMessage.create({
         conversation_id: convId,
         lead_id: leadId,
         wa_message_id: waMessageId,
@@ -102,6 +109,20 @@ Deno.serve(async (req) => {
         to_number: value.metadata?.display_phone_number || '',
         media_type: msg.type !== 'text' ? msg.type : 'none',
       });
+      messageId = newMsg.id;
+    } else {
+      messageId = existing[0].id;
+    }
+
+    // Trigger voice transcription if audio message
+    if (isVoiceMessage && msg.audio?.id) {
+      const audioUrl = `https://graph.instagram.com/v18.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
+      base44.asServiceRole.functions.invoke('processVoiceMessage', {
+        conversation_id: convId,
+        message_id: messageId,
+        audio_url: audioUrl,
+        from_number: fromNumber,
+      }).catch(() => {});
     }
 
     // Log activity

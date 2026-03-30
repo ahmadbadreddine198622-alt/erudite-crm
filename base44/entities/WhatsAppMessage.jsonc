@@ -60,6 +60,18 @@
     },
     "to_number": {
       "type": "string"
+    },
+    "transcription": {
+      "type": "string",
+      "description": "Transcribed text from voice message"
+    },
+    "detected_language": {
+      "type": "string",
+      "description": "Detected language code (e.g., ru, en, ar)"
+    },
+    "translations": {
+      "type": "object",
+      "description": "Object with language codes as keys and translations as values"
     }
   },
   "required": [
