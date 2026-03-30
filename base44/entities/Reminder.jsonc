@@ -1,0 +1,63 @@
+{
+  "name": "Reminder",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "follow_up",
+        "viewing",
+        "contract_renewal",
+        "payment_due",
+        "document_expiry",
+        "custom"
+      ],
+      "description": "Reminder type"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "snoozed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Agent email"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    }
+  },
+  "required": [
+    "title",
+    "type",
+    "due_date"
+  ]
+}

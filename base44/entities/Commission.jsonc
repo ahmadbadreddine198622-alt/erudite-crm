@@ -1,0 +1,56 @@
+{
+  "name": "Commission",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "deal_value_aed": {
+      "type": "number"
+    },
+    "commission_rate": {
+      "type": "number",
+      "description": "Commission rate as percentage"
+    },
+    "commission_amount_aed": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "paid",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ]
+    },
+    "closing_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "deal_value_aed",
+    "commission_amount_aed"
+  ]
+}

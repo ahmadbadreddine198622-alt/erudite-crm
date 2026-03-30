@@ -1,0 +1,134 @@
+{
+  "name": "Property",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Property listing title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full property description"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "apartment",
+        "villa",
+        "townhouse",
+        "penthouse",
+        "studio",
+        "office",
+        "retail",
+        "warehouse",
+        "land"
+      ],
+      "description": "Type of property"
+    },
+    "listing_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ],
+      "description": "Sale or rental"
+    },
+    "price_aed": {
+      "type": "number",
+      "description": "Price in AED"
+    },
+    "area_sqft": {
+      "type": "number",
+      "description": "Area in square feet"
+    },
+    "bedrooms": {
+      "type": "number"
+    },
+    "bathrooms": {
+      "type": "number"
+    },
+    "location": {
+      "type": "string",
+      "description": "Area/community name"
+    },
+    "building_name": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of image URLs"
+    },
+    "amenities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "under_offer",
+        "sold",
+        "rented",
+        "off_market"
+      ],
+      "default": "available"
+    },
+    "permit_number": {
+      "type": "string",
+      "description": "RERA permit number"
+    },
+    "developer": {
+      "type": "string"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "furnishing": {
+      "type": "string",
+      "enum": [
+        "furnished",
+        "semi_furnished",
+        "unfurnished"
+      ]
+    },
+    "portal_listings": {
+      "type": "object",
+      "properties": {
+        "property_finder": {
+          "type": "boolean"
+        },
+        "bayut": {
+          "type": "boolean"
+        }
+      }
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "views_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "title",
+    "property_type",
+    "listing_type",
+    "price_aed"
+  ]
+}

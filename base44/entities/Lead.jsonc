@@ -1,0 +1,134 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the lead"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number with country code"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "property_finder",
+        "bayut",
+        "whatsapp",
+        "referral",
+        "website",
+        "walk_in",
+        "social_media",
+        "other"
+      ],
+      "description": "Lead acquisition source"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "new_lead",
+        "contacted",
+        "viewing_scheduled",
+        "viewing_done",
+        "negotiation",
+        "offer_made",
+        "closed_won",
+        "closed_lost"
+      ],
+      "default": "new_lead",
+      "description": "Current pipeline stage"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "buyer",
+        "seller",
+        "investor",
+        "tenant",
+        "landlord"
+      ],
+      "description": "Lead type"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Smart tags for segmentation"
+    },
+    "lead_score": {
+      "type": "number",
+      "description": "AI-based lead score 0-100"
+    },
+    "assigned_agent": {
+      "type": "string",
+      "description": "Assigned agent email"
+    },
+    "assigned_agent_name": {
+      "type": "string",
+      "description": "Assigned agent display name"
+    },
+    "property_preferences": {
+      "type": "object",
+      "properties": {
+        "property_type": {
+          "type": "string"
+        },
+        "min_budget": {
+          "type": "number"
+        },
+        "max_budget": {
+          "type": "number"
+        },
+        "bedrooms": {
+          "type": "number"
+        },
+        "preferred_areas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "interested_properties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of property IDs"
+    },
+    "notes": {
+      "type": "string",
+      "description": "General notes"
+    },
+    "nationality": {
+      "type": "string"
+    },
+    "budget_aed": {
+      "type": "number",
+      "description": "Budget in AED"
+    },
+    "last_contact_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_follow_up": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stage_order": {
+      "type": "number",
+      "description": "Order within the stage column"
+    }
+  },
+  "required": [
+    "name",
+    "phone"
+  ]
+}
