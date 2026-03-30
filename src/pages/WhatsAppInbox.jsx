@@ -14,6 +14,8 @@ import WhatsAppWebPanel from '@/components/whatsapp/WhatsAppWebPanel';
 import SmartReplies from '@/components/whatsapp/SmartReplies';
 import LeadScoreCard from '@/components/shared/LeadScoreCard';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
+import VoiceRecorder from '@/components/whatsapp/VoiceRecorder';
+import TemplateSelector from '@/components/whatsapp/TemplateSelector';
 
 export default function WhatsAppInbox() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -191,26 +193,32 @@ export default function WhatsAppInbox() {
             </div>
 
             {/* Reply box */}
-            <div className="p-3 border-t flex gap-2 items-end shrink-0">
-              <Textarea
-                value={reply}
-                onChange={e => setReply(e.target.value)}
-                placeholder="Type a message..."
-                className="min-h-[60px] max-h-32 text-sm resize-none"
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                }}
-              />
-              <Button
-                size="icon"
-                onClick={handleSend}
-                disabled={!reply.trim() || sendMutation.isPending}
-                className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-              >
-                {sendMutation.isPending
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <Send className="w-4 h-4" />}
-              </Button>
+            <div className="border-t p-3 space-y-2 shrink-0">
+              <VoiceRecorder onTranscribe={setReply} />
+              <div className="flex gap-2 items-end">
+                <Textarea
+                  value={reply}
+                  onChange={e => setReply(e.target.value)}
+                  placeholder="Type a message or use voice..."
+                  className="min-h-[60px] max-h-32 text-sm resize-none"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                  }}
+                />
+                <Button
+                  size="icon"
+                  onClick={handleSend}
+                  disabled={!reply.trim() || sendMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                >
+                  {sendMutation.isPending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <TemplateSelector onSelectTemplate={setReply} />
+              </div>
             </div>
           </div>
 

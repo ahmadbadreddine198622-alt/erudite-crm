@@ -1,0 +1,52 @@
+{
+  "name": "ReplyTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Template name (e.g., 'Viewing Request Confirmation')"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "greeting",
+        "viewing",
+        "pricing",
+        "property_info",
+        "negotiation",
+        "follow_up",
+        "closing",
+        "custom"
+      ],
+      "description": "Template category"
+    },
+    "body": {
+      "type": "string",
+      "description": "Template text with {variable} placeholders"
+    },
+    "placeholders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Available placeholders: {name}, {property}, {date}, {time}, {price}"
+    },
+    "usage_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_favorite": {
+      "type": "boolean",
+      "default": false
+    },
+    "created_by": {
+      "type": "string",
+      "description": "User email who created template"
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "body"
+  ]
+}
