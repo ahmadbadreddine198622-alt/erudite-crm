@@ -1,0 +1,30 @@
+{
+  "name": "DuplicateMapping",
+  "type": "object",
+  "properties": {
+    "master_lead_id": {
+      "type": "string",
+      "description": "Primary contact ID"
+    },
+    "duplicate_lead_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of merged records"
+    },
+    "merge_reason": {
+      "type": "string",
+      "enum": [
+        "same_phone",
+        "same_email",
+        "manual_merge",
+        "system_detected"
+      ]
+    }
+  },
+  "required": [
+    "master_lead_id",
+    "duplicate_lead_ids"
+  ]
+}

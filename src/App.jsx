@@ -18,6 +18,7 @@ import WhatsAppInbox from '@/pages/WhatsAppInbox';
 import Inbox from '@/pages/Inbox';
 import Analytics from '@/pages/Analytics';
 import Team from '@/pages/Team';
+import Contacts from '@/pages/Contacts';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/leads" element={<Leads />} />
+        <Route path="/contacts" element={<Contacts />} />
         <Route path="/properties" element={<Properties />} />
         <Route path="/map" element={<MapView />} />
         <Route path="/commissions" element={<Commissions />} />

@@ -24,9 +24,15 @@
         "website",
         "walk_in",
         "social_media",
+        "email",
+        "import",
         "other"
       ],
       "description": "Lead acquisition source"
+    },
+    "source_metadata": {
+      "type": "object",
+      "description": "Source-specific data (form_url, utm_params, whatsapp_id, etc.)"
     },
     "stage": {
       "type": "string",
@@ -59,7 +65,14 @@
       "items": {
         "type": "string"
       },
-      "description": "Smart tags for segmentation"
+      "description": "User-defined tags"
+    },
+    "auto_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-generated tags"
     },
     "lead_score": {
       "type": "number",
@@ -125,6 +138,19 @@
     "stage_order": {
       "type": "number",
       "description": "Order within the stage column"
+    },
+    "folder_id": {
+      "type": "string",
+      "description": "Primary folder assignment"
+    },
+    "is_duplicate_of": {
+      "type": "string",
+      "description": "ID of master record if this is a duplicate"
+    },
+    "engagement_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Engagement level 0-100"
     }
   },
   "required": [

@@ -11,6 +11,7 @@ const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Pipeline', icon: KanbanSquare, path: '/pipeline' },
   { label: 'Leads', icon: Users, path: '/leads' },
+  { label: 'Contacts', icon: Users, path: '/contacts' },
   { label: 'Properties', icon: Building2, path: '/properties' },
   { label: 'Map', icon: Map, path: '/map' },
   { label: 'Analytics', icon: BarChart3, path: '/analytics' },

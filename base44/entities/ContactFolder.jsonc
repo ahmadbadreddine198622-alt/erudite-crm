@@ -1,0 +1,45 @@
+{
+  "name": "ContactFolder",
+  "type": "object",
+  "properties": {
+    "folder_name": {
+      "type": "string",
+      "description": "Folder display name"
+    },
+    "folder_type": {
+      "type": "string",
+      "enum": [
+        "source_based",
+        "tag_based",
+        "smart_group",
+        "custom"
+      ],
+      "description": "How folder is organized"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source name if source_based"
+    },
+    "tag": {
+      "type": "string",
+      "description": "Tag name if tag_based"
+    },
+    "criteria": {
+      "type": "object",
+      "description": "Smart group rules"
+    },
+    "contact_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_auto_populated": {
+      "type": "boolean",
+      "default": true,
+      "description": "Auto-add contacts via rules"
+    }
+  },
+  "required": [
+    "folder_name",
+    "folder_type"
+  ]
+}

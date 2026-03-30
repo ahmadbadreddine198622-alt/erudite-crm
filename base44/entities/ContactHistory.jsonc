@@ -1,0 +1,38 @@
+{
+  "name": "ContactHistory",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Associated lead"
+    },
+    "change_type": {
+      "type": "string",
+      "enum": [
+        "created",
+        "updated",
+        "merged",
+        "tagged",
+        "folder_added",
+        "status_changed"
+      ],
+      "description": "Type of change"
+    },
+    "old_value": {
+      "type": "object",
+      "description": "Previous value"
+    },
+    "new_value": {
+      "type": "object",
+      "description": "New value"
+    },
+    "changed_by": {
+      "type": "string",
+      "description": "User email who made change"
+    }
+  },
+  "required": [
+    "lead_id",
+    "change_type"
+  ]
+}
