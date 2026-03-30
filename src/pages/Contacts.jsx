@@ -20,14 +20,14 @@ export default function ContactsPage() {
         icon={<Users className="w-6 h-6" />}
       />
 
-      <div className="grid grid-cols-5 gap-4 h-[calc(100vh-200px)]">
+      <div className="grid grid-cols-4 gap-4 h-[calc(100vh-200px)]">
         {/* Folders Sidebar */}
         <div className="col-span-1 border rounded-lg bg-card overflow-hidden">
           <ContactFolders selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
         </div>
 
         {/* Contact List */}
-        <div className="col-span-2 border rounded-lg bg-card overflow-hidden">
+        <div className="col-span-1 border rounded-lg bg-card overflow-hidden">
           <ContactList
             folderId={selectedFolderId}
             onSelectContact={setSelectedContactId}
@@ -46,10 +46,10 @@ export default function ContactsPage() {
           )}
         </div>
 
-        {/* AI Insights */}
+        {/* AI Insights & Templates */}
         <div className="col-span-1 border rounded-lg bg-card overflow-y-auto">
           <div className="p-4">
-            <AIInsightsPanel />
+            <AIInsightsPanel selectedContactId={selectedContactId} />
           </div>
         </div>
       </div>
