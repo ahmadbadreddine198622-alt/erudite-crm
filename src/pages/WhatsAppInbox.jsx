@@ -11,6 +11,7 @@ import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
 import WhatsAppWebPanel from '@/components/whatsapp/WhatsAppWebPanel';
+import SmartReplies from '@/components/whatsapp/SmartReplies';
 
 export default function WhatsAppInbox() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -174,6 +175,11 @@ export default function WhatsAppInbox() {
             {/* Tags row */}
             <div className="px-4 py-2 border-t bg-muted/20">
               <TagsEditor conv={selectedConv} />
+            </div>
+
+            {/* Smart Replies */}
+            <div className="border-t bg-muted/10 pt-2">
+              <SmartReplies conversationId={selectedConvId} onSelect={setReply} />
             </div>
 
             {/* Reply box */}

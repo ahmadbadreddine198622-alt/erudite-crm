@@ -14,13 +14,26 @@ Deno.serve(async (req) => {
     return new Response('Forbidden', { status: 403 });
   }
 
-  // POST — incoming messages
+  // POST — incoming messages + status updates
   const body = await req.json();
   const base44 = createClientFromRequest(req);
 
+  // Handle message status updates (delivered, read, failed)
   const entry = body?.entry?.[0];
   const change = entry?.changes?.[0];
   const value = change?.value;
+
+  if (value?.statuses?.length) {
+    for (const status of value.statuses) {
+      const waId = status.id;
+      const newStatus = status.status; // sent, delivered, read, failed
+      const msgs = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: waId });
+      if (msgs.length > 0) {
+        await base44.asServiceRole.entities.WhatsAppMessage.update(msgs[0].id, { status: newStatus });
+      }
+    }
+    return Response.json({ status: 'ok' });
+  }
 
   if (!value?.messages?.length) {
     return Response.json({ status: 'no_messages' });
