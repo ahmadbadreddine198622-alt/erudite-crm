@@ -3,13 +3,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
-  // GET — webhook verification
+  // GET — webhook verification (must be handled FIRST, no auth required)
   if (req.method === 'GET') {
     const mode = url.searchParams.get('hub.mode');
     const token = url.searchParams.get('hub.verify_token');
     const challenge = url.searchParams.get('hub.challenge');
-    if (mode === 'subscribe' && token === Deno.env.get('WHATSAPP_VERIFY_TOKEN')) {
-      return new Response(challenge, { status: 200 });
+    const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN');
+    if (mode === 'subscribe' && token === verifyToken && challenge) {
+      return new Response(challenge, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
+      });
     }
     return new Response('Forbidden', { status: 403 });
   }
