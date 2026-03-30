@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -18,9 +19,11 @@ import StatCard from '@/components/shared/StatCard';
 import PageHeader from '@/components/shared/PageHeader';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
+import MobileDashboard from '@/components/mobile/MobileDashboard';
 import { PIPELINE_STAGES, formatAED, SOURCE_LABELS } from '@/lib/constants';
 
 export default function Dashboard() {
+  const isMobile = useIsMobile();
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
@@ -65,6 +68,15 @@ export default function Dashboard() {
 
   const recentLeads = leads.slice(0, 5);
   const upcomingReminders = reminders.slice(0, 5);
+
+  if (isMobile) {
+    return (
+      <div className="p-4 space-y-4">
+        <PageHeader title="Dashboard" subtitle={format(new Date(), 'EEE, MMM d')} />
+        <MobileDashboard />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8">

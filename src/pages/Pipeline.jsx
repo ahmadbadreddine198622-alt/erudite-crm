@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DragDropContext } from '@hello-pangea/dnd';
@@ -10,12 +11,27 @@ import PipelineColumn from '@/components/pipeline/PipelineColumn';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { PIPELINE_STAGES } from '@/lib/constants';
+import MobilePipeline from '@/components/mobile/MobilePipeline';
 
 export default function Pipeline() {
+  const isMobile = useIsMobile();
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
+
+  if (isMobile) {
+    return (
+      <div className="p-4 space-y-4">
+        <PageHeader title="Pipeline" />
+        <Button size="sm" onClick={() => setShowAddLead(true)} className="w-full bg-accent">
+          <Plus className="w-4 h-4 mr-1" /> Add Lead
+        </Button>
+        <MobilePipeline />
+        <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
+      </div>
+    );
+  }
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],

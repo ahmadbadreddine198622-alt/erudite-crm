@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +17,20 @@ import LeadScoreCard from '@/components/shared/LeadScoreCard';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 import VoiceRecorder from '@/components/whatsapp/VoiceRecorder';
 import TemplateSelector from '@/components/whatsapp/TemplateSelector';
+import MobileInbox from '@/components/mobile/MobileInbox';
 
 export default function WhatsAppInbox() {
+  const isMobile = useIsMobile();
   const [selectedConvId, setSelectedConvId] = useState(null);
   const [search, setSearch] = useState('');
   const [reply, setReply] = useState('');
   const [showInsights, setShowInsights] = useState(true);
   const [activeTab, setActiveTab] = useState('crm'); // 'crm' | 'web'
   const queryClient = useQueryClient();
+
+  if (isMobile) {
+    return <MobileInbox />;
+  }
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['wa_conversations'],
