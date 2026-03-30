@@ -1,0 +1,72 @@
+{
+  "name": "WhatsAppMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "WhatsAppConversation ID"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Related Lead ID"
+    },
+    "wa_message_id": {
+      "type": "string",
+      "description": "Meta message ID (dedup)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "description": "Message direction"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "Optional media attachment URL"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "audio",
+        "video",
+        "document",
+        "none"
+      ],
+      "default": "none"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "read",
+        "failed"
+      ],
+      "default": "sent"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "from_number": {
+      "type": "string"
+    },
+    "to_number": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "lead_id",
+    "direction",
+    "body",
+    "timestamp"
+  ]
+}
