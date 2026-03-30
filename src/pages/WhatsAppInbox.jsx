@@ -12,6 +12,8 @@ import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
 import WhatsAppWebPanel from '@/components/whatsapp/WhatsAppWebPanel';
 import SmartReplies from '@/components/whatsapp/SmartReplies';
+import LeadScoreCard from '@/components/shared/LeadScoreCard';
+import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 
 export default function WhatsAppInbox() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -32,8 +34,14 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
   });
 
+  const { data: leadScores = [] } = useQuery({
+    queryKey: ['lead_scores'],
+    queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
+  });
+
   const selectedConv = conversations.find(c => c.id === selectedConvId) || null;
   const selectedLead = leads.find(l => l.id === selectedConv?.lead_id) || null;
+  const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
 
   const filtered = conversations.filter(c => {
     const lead = leads.find(l => l.id === c.lead_id);
@@ -208,8 +216,10 @@ export default function WhatsAppInbox() {
 
           {/* AI Insights sidebar */}
           {showInsights && (
-            <div className="w-72 border-l shrink-0 overflow-y-auto">
+            <div className="w-72 border-l shrink-0 overflow-y-auto p-3 space-y-4">
+              <LeadScoreCard score={selectedScore} conversation={selectedConv} />
               <AIInsightsPanel conv={selectedConv} lead={selectedLead} />
+              <AutomationDashboard />
             </div>
           )}
         </div>

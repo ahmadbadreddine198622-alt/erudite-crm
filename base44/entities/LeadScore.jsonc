@@ -1,0 +1,65 @@
+{
+  "name": "LeadScore",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Associated Lead ID"
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "overall_score": {
+      "type": "number",
+      "description": "0-100 lead score"
+    },
+    "breakdown": {
+      "type": "object",
+      "properties": {
+        "engagement_score": {
+          "type": "number",
+          "description": "Message frequency, response time"
+        },
+        "intent_score": {
+          "type": "number",
+          "description": "Buying signals, urgency"
+        },
+        "sentiment_score": {
+          "type": "number",
+          "description": "Positive interactions"
+        },
+        "budget_alignment_score": {
+          "type": "number",
+          "description": "Matches property criteria"
+        },
+        "property_fit_score": {
+          "type": "number",
+          "description": "Views relevant properties"
+        }
+      }
+    },
+    "trend": {
+      "type": "string",
+      "enum": [
+        "increasing",
+        "stable",
+        "decreasing"
+      ]
+    },
+    "risk_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Warning signs (e.g. 'no activity 5 days', 'negative sentiment')"
+    },
+    "calculated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "lead_id",
+    "overall_score"
+  ]
+}

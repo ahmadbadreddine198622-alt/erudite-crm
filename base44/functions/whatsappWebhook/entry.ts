@@ -114,6 +114,12 @@ Deno.serve(async (req) => {
 
     // Trigger AI analysis in background (fire-and-forget)
     base44.asServiceRole.functions.invoke('analyzeConversation', { conversation_id: convId }).catch(() => {});
+
+    // Calculate lead score (fire-and-forget)
+    base44.asServiceRole.functions.invoke('calculateLeadScore', { conversation_id: convId }).catch(() => {});
+
+    // Execute automation rules (fire-and-forget)
+    base44.asServiceRole.functions.invoke('executeAutomationRules', { conversation_id: convId }).catch(() => {});
   }
 
   return Response.json({ status: 'ok' });

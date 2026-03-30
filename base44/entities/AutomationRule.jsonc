@@ -1,0 +1,75 @@
+{
+  "name": "AutomationRule",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Rule name"
+    },
+    "description": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "trigger_type": {
+      "type": "string",
+      "enum": [
+        "message_received",
+        "sentiment_change",
+        "lead_score_change",
+        "urgency_change",
+        "days_no_activity",
+        "tag_added"
+      ],
+      "description": "What triggers this rule"
+    },
+    "trigger_conditions": {
+      "type": "object",
+      "description": "Condition to match (e.g. {sentiment: 'negative', urgency: 'high'})"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "tag",
+              "assign",
+              "escalate",
+              "schedule_followup",
+              "send_template",
+              "notify"
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Actions to execute when rule matches"
+    },
+    "priority": {
+      "type": "number",
+      "default": 1,
+      "description": "Execution order (1=highest)"
+    },
+    "execution_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_executed": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "name",
+    "trigger_type",
+    "trigger_conditions",
+    "actions"
+  ]
+}
