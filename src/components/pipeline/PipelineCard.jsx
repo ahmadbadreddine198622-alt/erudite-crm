@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
+import StageHealthBadge from '@/components/pipeline/StageHealthBadge';
 import { formatAED } from '@/lib/constants';
 
 export default function PipelineCard({ lead, isDragging, onClick }) {
@@ -34,6 +35,7 @@ export default function PipelineCard({ lead, isDragging, onClick }) {
       <div className="flex flex-wrap items-center gap-1.5 mb-2">
         {lead.source && <SourceBadge source={lead.source} />}
         <LeadScoreBadge score={lead.lead_score} />
+        <StageHealthBadge lead={lead} />
       </div>
 
       {lead.budget_aed && (

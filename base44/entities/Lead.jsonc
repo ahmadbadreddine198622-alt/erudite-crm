@@ -310,6 +310,46 @@
     "is_duplicate_of": {
       "type": "string",
       "description": "ID of master record if this is a duplicate"
+    },
+    "first_contact_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When lead was first contacted (auto-set on stage: contacted)"
+    },
+    "first_response_time_minutes": {
+      "type": "number",
+      "description": "Minutes from creation to first contact"
+    },
+    "qualification_status": {
+      "type": "string",
+      "enum": [
+        "hot",
+        "warm",
+        "cold",
+        "disqualified"
+      ],
+      "description": "Lead quality tier"
+    },
+    "reason_for_disqualification": {
+      "type": "string",
+      "description": "Why lead was disqualified"
+    },
+    "last_activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Latest activity (call, message, note, etc)"
+    },
+    "days_in_current_stage": {
+      "type": "number",
+      "description": "Auto-calculated days in current stage"
+    },
+    "inactivity_days": {
+      "type": "number",
+      "description": "Days since last activity"
+    },
+    "loss_reason": {
+      "type": "string",
+      "description": "Why deal was lost (if closed_lost)"
     }
   },
   "required": [

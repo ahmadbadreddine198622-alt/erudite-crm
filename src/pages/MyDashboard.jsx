@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatAED } from '@/lib/constants';
 import AgentGoalCard from '@/components/dashboard/AgentGoalCard';
+import DailyStandup from '@/components/dashboard/DailyStandup';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function MyDashboard() {
@@ -95,6 +96,9 @@ export default function MyDashboard() {
         </h1>
         <p className="text-sm text-muted-foreground">{format(new Date(), 'EEEE, MMMM d yyyy')} · Your personal performance dashboard</p>
       </div>
+
+      {/* Daily Standup */}
+      <DailyStandup />
 
       {/* This Month's Goal Progress */}
       <AgentGoalCard goal={thisMonthGoal} stats={stats} />
