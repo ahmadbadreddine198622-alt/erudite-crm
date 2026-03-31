@@ -59,7 +59,7 @@ export default function Pipeline() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col" style={{ height: '100dvh' }}>
       <div className="p-4 md:px-8 md:pt-8 md:pb-4">
         <PageHeader title="Pipeline" subtitle="Drag leads between stages">
           <div className="relative">
