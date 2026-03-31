@@ -21,6 +21,7 @@ import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import MobileDashboard from '@/components/mobile/MobileDashboard';
 import DailyBriefing from '@/components/dashboard/DailyBriefing';
+import DailyFocus from '@/components/dashboard/DailyFocus';
 import { PIPELINE_STAGES, formatAED, SOURCE_LABELS } from '@/lib/constants';
 
 export default function Dashboard() {
@@ -95,6 +96,9 @@ export default function Dashboard() {
 
       {/* Daily Briefing */}
       <DailyBriefing />
+
+      {/* Daily Focus */}
+      <DailyFocus />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
