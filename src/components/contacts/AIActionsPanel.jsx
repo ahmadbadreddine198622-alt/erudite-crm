@@ -32,7 +32,7 @@ export default function AIActionsPanel({ selectedContactId }) {
   const generateMutation = useMutation({
     mutationFn: async ({ type, extraInput }) => {
       const contactInfo = contact
-        ? `Name: ${contact.name}, Phone: ${contact.phone}, Email: ${contact.email || 'N/A'}, Source: ${contact.source || 'N/A'}, Stage: ${contact.stage || 'N/A'}, Budget: ${contact.budget_aed ? `AED ${contact.budget_aed.toLocaleString()}` : 'N/A'}, Notes: ${contact.notes || 'None'}, Tags: ${contact.tags?.join(', ') || 'None'}`
+        ? `Name: ${contact.name}, Phone: ${contact.phone}, Email: ${contact.email || 'N/A'}, Source: ${contact.source || 'N/A'}, Stage: ${contact.stage || 'N/A'}, Budget: ${contact.budget_aed ? `AED ${contact.budget_aed.toLocaleString()}` : 'N/A'}, Notes: ${contact.notes || 'None'}, Tags: ${contact.tags?.join(', ') || 'None'}, Property Type: ${contact.property_preferences?.property_type || 'N/A'}, Preferred Areas: ${contact.property_preferences?.preferred_areas?.join(', ') || 'N/A'}, Bedrooms: ${contact.property_preferences?.bedrooms || 'N/A'}, Unit/Project: ${contact.source_metadata?.unit || contact.source_metadata?.project || 'N/A'}, Nationality: ${contact.nationality || 'N/A'}`
         : extraInput || 'No contact context';
 
       if (type === 'email_templates') {
@@ -40,6 +40,12 @@ export default function AIActionsPanel({ selectedContactId }) {
           prompt: `You are a Dubai luxury real estate broker. Generate professional outreach for:
 ${contactInfo}
 ${extraInput ? `Additional context: ${extraInput}` : ''}
+
+IMPORTANT:
+- Always address the contact by their full name (e.g. "Dear ${contact?.name || 'Mr./Ms. [Name]'}") in the email and call script
+- Always reference their specific unit, project, or property details in the message body where available
+- Make it feel personal, not generic — use their name and property context throughout
+- For WhatsApp, start with their first name naturally (e.g. "Hi Ahmed,")
 
 Generate a persuasive email and WhatsApp message using insider positioning.`,
           response_json_schema: {
