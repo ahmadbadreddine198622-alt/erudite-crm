@@ -56,16 +56,16 @@ Deno.serve(async (req) => {
     }
 
     // Find or create lead by phone
-    const leads = await base44.asServiceRole.entities.Lead.filter({ phone: fromNumber });
+    const leads = await base44.asServiceRole.entities.Leads.filter({ phone: fromNumber });
     let leadId;
     if (leads.length > 0) {
       leadId = leads[0].id;
     } else {
-      const newLead = await base44.asServiceRole.entities.Lead.create({
-        name: fromNumber,
+      const newLead = await base44.asServiceRole.entities.Leads.create({
+        full_name: fromNumber,
         phone: fromNumber,
         source: 'whatsapp',
-        stage: 'new_lead',
+        status: 'New',
       });
       leadId = newLead.id;
     }
