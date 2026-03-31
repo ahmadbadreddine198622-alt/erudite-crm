@@ -4,15 +4,134 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Full name of the lead"
+      "description": "Full name of the contact"
     },
-    "email": {
-      "type": "string",
-      "description": "Email address"
+    "phones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "mobile",
+              "whatsapp",
+              "work",
+              "home",
+              "other"
+            ]
+          },
+          "number": {
+            "type": "string"
+          },
+          "is_primary": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Multiple phone numbers with labels"
     },
     "phone": {
       "type": "string",
-      "description": "Phone number with country code"
+      "description": "Primary phone (legacy/quick access)"
+    },
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "work",
+              "other"
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "is_primary": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Multiple email addresses with labels"
+    },
+    "email": {
+      "type": "string",
+      "description": "Primary email (legacy/quick access)"
+    },
+    "nationality": {
+      "type": "string",
+      "description": "Country of nationality"
+    },
+    "language": {
+      "type": "string",
+      "description": "Preferred communication language"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Contact's timezone"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        }
+      },
+      "description": "Contact's location details"
+    },
+    "organization": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Company or tower/building name"
+        },
+        "role": {
+          "type": "string",
+          "description": "Job title or role"
+        },
+        "unit_number": {
+          "type": "string"
+        },
+        "floor": {
+          "type": "string"
+        },
+        "tower": {
+          "type": "string"
+        }
+      },
+      "description": "Linked organization, office, or building"
+    },
+    "relationship_type": {
+      "type": "string",
+      "enum": [
+        "buyer",
+        "seller",
+        "investor",
+        "tenant",
+        "landlord",
+        "agent",
+        "developer",
+        "partner",
+        "other"
+      ],
+      "description": "How this contact relates to the business"
     },
     "source": {
       "type": "string",
@@ -49,17 +168,6 @@
       "default": "new_lead",
       "description": "Current pipeline stage"
     },
-    "type": {
-      "type": "string",
-      "enum": [
-        "buyer",
-        "seller",
-        "investor",
-        "tenant",
-        "landlord"
-      ],
-      "description": "Lead type"
-    },
     "tags": {
       "type": "array",
       "items": {
@@ -74,17 +182,63 @@
       },
       "description": "AI-generated tags"
     },
-    "lead_score": {
-      "type": "number",
-      "description": "AI-based lead score 0-100"
-    },
-    "assigned_agent": {
+    "notes": {
       "type": "string",
-      "description": "Assigned agent email"
+      "description": "General notes"
     },
-    "assigned_agent_name": {
-      "type": "string",
-      "description": "Assigned agent display name"
+    "custom_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "number",
+              "date",
+              "boolean",
+              "url"
+            ]
+          }
+        }
+      },
+      "description": "User-defined custom fields"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "document",
+              "image",
+              "contract",
+              "id",
+              "other"
+            ]
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "File attachments (docs, images, contracts)"
     },
     "property_preferences": {
       "type": "object",
@@ -116,16 +270,26 @@
       },
       "description": "Array of property IDs"
     },
-    "notes": {
-      "type": "string",
-      "description": "General notes"
-    },
-    "nationality": {
-      "type": "string"
-    },
     "budget_aed": {
       "type": "number",
       "description": "Budget in AED"
+    },
+    "lead_score": {
+      "type": "number",
+      "description": "AI-based lead score 0-100"
+    },
+    "engagement_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Engagement level 0-100"
+    },
+    "assigned_agent": {
+      "type": "string",
+      "description": "Assigned agent email"
+    },
+    "assigned_agent_name": {
+      "type": "string",
+      "description": "Assigned agent display name"
     },
     "last_contact_date": {
       "type": "string",
@@ -146,15 +310,9 @@
     "is_duplicate_of": {
       "type": "string",
       "description": "ID of master record if this is a duplicate"
-    },
-    "engagement_score": {
-      "type": "number",
-      "default": 0,
-      "description": "Engagement level 0-100"
     }
   },
   "required": [
-    "name",
-    "phone"
+    "name"
   ]
 }
