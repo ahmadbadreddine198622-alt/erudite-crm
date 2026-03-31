@@ -1,0 +1,68 @@
+{
+  "name": "Leads",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Lead full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project or property name"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "website",
+        "phone",
+        "email",
+        "referral",
+        "social_media",
+        "other"
+      ],
+      "description": "Lead source"
+    },
+    "preferred_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Preferred date for contact"
+    },
+    "preferred_time": {
+      "type": "string",
+      "description": "Preferred time (HH:MM format)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "New",
+        "Contacted",
+        "Call Scheduled",
+        "Viewing Booked",
+        "Qualified",
+        "Converted",
+        "Lost"
+      ],
+      "default": "New",
+      "description": "Lead status"
+    },
+    "calendar_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID to avoid duplicates"
+    }
+  },
+  "required": [
+    "full_name"
+  ]
+}
