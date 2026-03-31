@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, X, Plus, Phone, Mail, MapPin, Building2, Calendar, Globe, User, Paperclip, Edit2, Save, Hash, Languages } from 'lucide-react';
+import { Loader2, X, Plus, Phone, Mail, MapPin, Building2, Calendar, Globe, User, Paperclip, Edit2, Save, Hash, Languages, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 
 const PHONE_LABEL_COLORS = {
   mobile: 'bg-blue-500/10 text-blue-600',
@@ -36,6 +37,7 @@ export default function ContactDetail({ contactId, onClose }) {
   const [editedContact, setEditedContact] = useState(null);
   const [newCustomKey, setNewCustomKey] = useState('');
   const [newCustomVal, setNewCustomVal] = useState('');
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'whatsapp'
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', contactId],
@@ -90,39 +92,66 @@ export default function ContactDetail({ contactId, onClose }) {
   return (
     <div className="flex flex-col h-full max-h-[85vh]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">
-            {contact.name?.charAt(0).toUpperCase()}
+      <div className="flex flex-col border-b shrink-0">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">
+              {contact.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              {isEditing ? (
+                <Input value={c.name} onChange={e => set('name', e.target.value)} className="h-7 text-base font-semibold w-48" />
+              ) : (
+                <h2 className="text-base font-semibold">{contact.name}</h2>
+              )}
+              <p className="text-xs text-muted-foreground capitalize">{contact.relationship_type?.replace(/_/g, ' ') || contact.type || 'Contact'}</p>
+            </div>
           </div>
-          <div>
-            {isEditing ? (
-              <Input value={c.name} onChange={e => set('name', e.target.value)} className="h-7 text-base font-semibold w-48" />
+          <div className="flex items-center gap-2">
+            {!isEditing ? (
+              <Button size="sm" variant="outline" onClick={() => { setIsEditing(true); setEditedContact({ ...contact }); }} className="gap-1.5 h-8">
+                <Edit2 className="w-3.5 h-3.5" /> Edit
+              </Button>
             ) : (
-              <h2 className="text-base font-semibold">{contact.name}</h2>
+              <>
+                <Button size="sm" onClick={() => updateMutation.mutate(editedContact)} disabled={updateMutation.isPending} className="gap-1.5 h-8 bg-accent hover:bg-accent/90 text-accent-foreground">
+                  {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setEditedContact(null); }} className="h-8">Cancel</Button>
+              </>
             )}
-            <p className="text-xs text-muted-foreground capitalize">{contact.relationship_type?.replace(/_/g, ' ') || contact.type || 'Contact'}</p>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-1"><X className="w-5 h-5" /></button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {!isEditing ? (
-            <Button size="sm" variant="outline" onClick={() => { setIsEditing(true); setEditedContact({ ...contact }); }} className="gap-1.5 h-8">
-              <Edit2 className="w-3.5 h-3.5" /> Edit
-            </Button>
-          ) : (
-            <>
-              <Button size="sm" onClick={() => updateMutation.mutate(editedContact)} disabled={updateMutation.isPending} className="gap-1.5 h-8 bg-accent hover:bg-accent/90 text-accent-foreground">
-                {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setEditedContact(null); }} className="h-8">Cancel</Button>
-            </>
-          )}
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-1"><X className="w-5 h-5" /></button>
+        {/* Tabs */}
+        <div className="flex gap-1 px-4 pb-0 border-t">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-accent text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('whatsapp')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'whatsapp'
+                ? 'border-accent text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" /> WhatsApp
+          </button>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'details' ? (
+          <div className="p-4 space-y-4">
 
         {/* Phones */}
         <Section title="Phone Numbers" icon={Phone}>
@@ -306,6 +335,10 @@ export default function ContactDetail({ contactId, onClose }) {
             )}
           </div>
         </Section>
+          </div>
+        ) : (
+          <WhatsAppPanel lead={contact} />
+        )}
       </div>
     </div>
   );

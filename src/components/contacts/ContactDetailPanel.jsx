@@ -17,6 +17,8 @@ import ContactRemindersSection from '@/components/contacts/ContactRemindersSecti
 import QualificationScorecard from '@/components/contacts/QualificationScorecard';
 import ViewingTracker from '@/components/contacts/ViewingTracker';
 import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
+import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
+import { MessageCircle } from 'lucide-react';
 
 const STAGE_COLORS = {
   new_lead: 'bg-slate-100 text-slate-600',
@@ -486,6 +488,19 @@ export default function ContactDetailPanel({ contactId, onClose }) {
 
         {/* Viewing Tracker */}
         <ViewingTracker contactId={contactId} contactName={draft.name} />
+
+        {/* WhatsApp */}
+        <div className="border-b border-[#F3F4F6]">
+          <div className="px-5 py-3 hover:bg-[#FAFAFA] transition-colors">
+            <span className="flex items-center gap-2 text-xs font-semibold text-[#374151] uppercase tracking-wider">
+              <MessageCircle className="w-3.5 h-3.5 text-[#9CA3AF]" />
+              WhatsApp Chat
+            </span>
+          </div>
+          <div className="px-5 pb-4">
+            <WhatsAppPanel lead={draft} />
+          </div>
+        </div>
 
         {/* Reminders */}
         <ContactRemindersSection contactId={contactId} contactName={draft.name} />
