@@ -31,9 +31,40 @@ export default function AIActionsPanel({ selectedContactId }) {
 
   const generateMutation = useMutation({
     mutationFn: async ({ type, extraInput }) => {
-      const contactInfo = contact
-        ? `Name: ${contact.name}, Phone: ${contact.phone}, Email: ${contact.email || 'N/A'}, Source: ${contact.source || 'N/A'}, Stage: ${contact.stage || 'N/A'}, Budget: ${contact.budget_aed ? `AED ${contact.budget_aed.toLocaleString()}` : 'N/A'}, Notes: ${contact.notes || 'None'}, Tags: ${contact.tags?.join(', ') || 'None'}, Property Type: ${contact.property_preferences?.property_type || 'N/A'}, Preferred Areas: ${contact.property_preferences?.preferred_areas?.join(', ') || 'N/A'}, Bedrooms: ${contact.property_preferences?.bedrooms || 'N/A'}, Unit/Project: ${contact.source_metadata?.unit || contact.source_metadata?.project || 'N/A'}, Nationality: ${contact.nationality || 'N/A'}`
-        : extraInput || 'No contact context';
+      // Build rich contact context from new schema
+      const primaryPhone = contact?.phones?.find(p => p.is_primary)?.number
+        || contact?.phones?.[0]?.number
+        || contact?.phone || 'N/A';
+      const allPhones = contact?.phones?.map(p => `${p.number} (${p.label})`).join(', ')
+        || contact?.phone || 'N/A';
+      const primaryEmail = contact?.emails?.find(e => e.is_primary)?.address
+        || contact?.emails?.[0]?.address
+        || contact?.email || 'N/A';
+      const tower = contact?.organization?.tower || contact?.source_metadata?.project || 'N/A';
+      const unit = contact?.organization?.unit_number || contact?.source_metadata?.unit || 'N/A';
+      const company = contact?.organization?.name || 'N/A';
+      const role = contact?.organization?.role || 'N/A';
+      const customFields = contact?.custom_fields?.map(f => `${f.key}: ${f.value}`).join(', ') || 'None';
+
+      const contactInfo = contact ? `
+Contact Name: ${contact.name}
+Phones: ${allPhones}
+Email: ${primaryEmail}
+Nationality: ${contact.nationality || 'N/A'}
+Language: ${contact.language || 'N/A'}
+Tower / Building: ${tower}
+Unit Number: ${unit}
+Company: ${company}
+Role: ${role}
+Relationship Type: ${contact.relationship_type || contact.type || 'N/A'}
+Source: ${contact.source || 'N/A'}
+Stage: ${contact.stage?.replace(/_/g, ' ') || 'N/A'}
+Budget: ${contact.budget_aed ? `AED ${contact.budget_aed.toLocaleString()}` : 'N/A'}
+Property Preferences: ${contact.property_preferences?.property_type || 'N/A'}, ${contact.property_preferences?.bedrooms || '?'} BR, Areas: ${contact.property_preferences?.preferred_areas?.join(', ') || 'N/A'}
+Tags: ${contact.tags?.join(', ') || 'None'}
+Custom Fields: ${customFields}
+Notes: ${contact.notes || 'None'}
+`.trim() : extraInput || 'No contact context';
 
       if (type === 'email_templates') {
         return base44.integrations.Core.InvokeLLM({
