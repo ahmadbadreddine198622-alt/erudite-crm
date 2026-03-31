@@ -38,9 +38,16 @@ export default function Finance() {
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Financial Engine</h1>
-          <p className="text-sm text-muted-foreground">Invoices · VAT · Commissions · Revenue Reporting</p>
+        <div className="flex items-center gap-4">
+          <img
+            src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
+            alt="Erudite Property"
+            className="h-12 w-auto object-contain"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Financial Engine</h1>
+            <p className="text-sm text-muted-foreground">Invoices · VAT · Commissions · Revenue Reporting</p>
+          </div>
         </div>
       </div>
 

@@ -197,7 +197,16 @@ function CreateInvoiceDialog({ open, onClose, leads, properties, existing }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-1">
+            <img
+              src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
+              alt="Erudite Property"
+              className="h-10 w-auto object-contain"
+            />
+          </div>
+          <DialogTitle>Create Invoice</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
