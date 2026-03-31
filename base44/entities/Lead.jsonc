@@ -168,6 +168,16 @@
       "default": "new_lead",
       "description": "Current pipeline stage"
     },
+    "project_layer": {
+      "type": "string",
+      "enum": [
+        "peninsula-three",
+        "jumeirah-living",
+        "six-senses",
+        "peninsula-four"
+      ],
+      "description": "Project layer assignment (determines kanban column)"
+    },
     "tags": {
       "type": "array",
       "items": {
