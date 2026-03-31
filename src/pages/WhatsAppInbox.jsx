@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Search, Send, Loader2, Sparkles, RefreshCw, Tag, X, QrCode } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
+import ConversationListHeader from '@/components/whatsapp/ConversationListHeader';
+import ChatHeader from '@/components/whatsapp/ChatHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
@@ -92,11 +94,11 @@ export default function WhatsAppInbox() {
     <div className="flex h-[calc(100vh-4rem)] bg-background">
       {/* Sidebar — conversation list */}
       <div className="w-80 border-r flex flex-col shrink-0">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-4 border-b bg-card space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-green-500" />
-              <h2 className="font-bold text-base">WhatsApp Inbox</h2>
+              <h2 className="font-bold text-lg">Messages</h2>
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-0.5">
               <button
@@ -114,10 +116,10 @@ export default function WhatsAppInbox() {
             </div>
           </div>
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
-              className="pl-8 h-8 text-sm"
+              className="pl-9 h-9 text-sm bg-muted/50"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -158,33 +160,14 @@ export default function WhatsAppInbox() {
       {activeTab === 'crm' && selectedConv ? (
         <div className="flex flex-1 min-w-0">
           <div className="flex flex-col flex-1 min-w-0">
-            {/* Chat header */}
-            <div className="h-14 px-4 border-b flex items-center justify-between shrink-0">
-              <div>
-                <p className="font-semibold text-sm">{selectedLead?.name || selectedConv.phone_number}</p>
-                <p className="text-xs text-muted-foreground">{selectedConv.phone_number}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm" variant="outline"
-                  onClick={() => analyzeMutation.mutate(selectedConvId)}
-                  disabled={analyzeMutation.isPending}
-                  className="h-7 text-xs gap-1"
-                >
-                  {analyzeMutation.isPending
-                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                    : <Sparkles className="w-3 h-3 text-accent" />}
-                  Re-analyse
-                </Button>
-                <Button
-                  size="sm" variant="ghost"
-                  onClick={() => setShowInsights(v => !v)}
-                  className="h-7 text-xs"
-                >
-                  {showInsights ? 'Hide Insights' : 'Show Insights'}
-                </Button>
-              </div>
-            </div>
+            <ChatHeader
+              lead={selectedLead}
+              conversation={selectedConv}
+              onAnalyze={() => analyzeMutation.mutate(selectedConvId)}
+              onToggleInsights={() => setShowInsights(v => !v)}
+              analyzing={analyzeMutation.isPending}
+              showingInsights={showInsights}
+            />
 
             {/* Messages */}
             <ChatThread conversationId={selectedConvId} />
