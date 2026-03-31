@@ -20,6 +20,7 @@ import Analytics from '@/pages/Analytics';
 import Team from '@/pages/Team';
 import Contacts from '@/pages/Contacts';
 import Offers from '@/pages/Offers';
+import TeamOS from '@/pages/TeamOS';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/team" element={<Team />} />
         <Route path="/offers" element={<Offers />} />
+        <Route path="/team-os" element={<TeamOS />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
