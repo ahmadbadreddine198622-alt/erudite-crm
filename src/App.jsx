@@ -23,6 +23,7 @@ import Offers from '@/pages/Offers';
 import TeamOS from '@/pages/TeamOS';
 import Finance from '@/pages/Finance';
 import TeamDashboard from '@/pages/TeamDashboard';
+import MyDashboard from '@/pages/MyDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
         <Route path="/team-os" element={<TeamOS />} />
         <Route path="/finance" element={<Finance />} />
         <Route path="/team-dashboard" element={<TeamDashboard />} />
+        <Route path="/my-dashboard" element={<MyDashboard />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

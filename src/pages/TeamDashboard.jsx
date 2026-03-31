@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import GoalSetterPanel from '@/components/teamDashboard/GoalSetterPanel';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -328,6 +329,9 @@ export default function TeamDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Goal Setter (admin only) */}
+          <GoalSetterPanel />
 
           {/* Activity Breakdown */}
           {activityTypeData.length > 0 && (

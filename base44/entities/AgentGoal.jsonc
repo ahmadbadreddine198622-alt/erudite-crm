@@ -1,0 +1,46 @@
+{
+  "name": "AgentGoal",
+  "type": "object",
+  "properties": {
+    "agent_email": {
+      "type": "string",
+      "description": "Agent email address"
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "Agent display name"
+    },
+    "month": {
+      "type": "string",
+      "description": "Month in YYYY-MM format e.g. 2026-03"
+    },
+    "target_deals": {
+      "type": "number",
+      "default": 0,
+      "description": "Target number of closed deals"
+    },
+    "target_revenue_aed": {
+      "type": "number",
+      "default": 0,
+      "description": "Target commission revenue in AED"
+    },
+    "target_leads": {
+      "type": "number",
+      "default": 0,
+      "description": "Target number of new leads"
+    },
+    "target_viewings": {
+      "type": "number",
+      "default": 0,
+      "description": "Target number of viewings"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional manager notes"
+    }
+  },
+  "required": [
+    "agent_email",
+    "month"
+  ]
+}
