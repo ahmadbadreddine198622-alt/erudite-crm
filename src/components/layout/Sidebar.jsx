@@ -35,15 +35,17 @@ export default function Sidebar() {
       collapsed ? "w-[72px]" : "w-[260px]"
     )}>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-          <Building2 className="w-4 h-4 text-sidebar-primary-foreground" />
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
-            <h1 className="font-display text-lg font-bold tracking-tight text-sidebar-foreground">PropCRM</h1>
-            <p className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest">Dubai</p>
+      <div className="flex items-center justify-center px-4 h-16 border-b border-sidebar-border shrink-0">
+        {collapsed ? (
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-primary" />
           </div>
+        ) : (
+          <img
+            src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
+            alt="Erudite Property"
+            className="h-10 w-auto object-contain invert"
+          />
         )}
       </div>
 
