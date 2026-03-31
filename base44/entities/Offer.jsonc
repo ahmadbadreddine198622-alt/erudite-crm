@@ -1,0 +1,89 @@
+{
+  "name": "Offer",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Related Lead ID"
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached lead name"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Related Property ID"
+    },
+    "property_title": {
+      "type": "string",
+      "description": "Cached property title"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "offer_amount_aed": {
+      "type": "number",
+      "description": "Offer price in AED"
+    },
+    "asking_price_aed": {
+      "type": "number",
+      "description": "Original asking price"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "countered",
+        "accepted",
+        "rejected",
+        "expired"
+      ],
+      "default": "draft"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ],
+      "default": "sale"
+    },
+    "counter_amount_aed": {
+      "type": "number",
+      "description": "Counter offer amount"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "form_f_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Form F / MOU signed"
+    },
+    "noc_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "lead_id",
+    "offer_amount_aed",
+    "status"
+  ]
+}

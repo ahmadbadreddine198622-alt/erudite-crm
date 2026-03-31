@@ -19,6 +19,7 @@ import Inbox from '@/pages/Inbox';
 import Analytics from '@/pages/Analytics';
 import Team from '@/pages/Team';
 import Contacts from '@/pages/Contacts';
+import Offers from '@/pages/Offers';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/team" element={<Team />} />
+        <Route path="/offers" element={<Offers />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
