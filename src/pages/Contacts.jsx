@@ -132,7 +132,7 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F9FAFB] -m-6 overflow-hidden">
+    <div className="flex flex-col bg-[#F9FAFB] -m-6 overflow-hidden" style={{ height: '100dvh' }}>
 
       {/* ── Top Bar ── */}
       <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-[#E5E7EB] flex-shrink-0">

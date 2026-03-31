@@ -51,7 +51,7 @@ export default function MobileInbox() {
 
   if (selectedConvId && selectedConv) {
     return (
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col bg-background" style={{ height: '100dvh' }}>
         {/* Chat Header */}
         <div className="flex items-center gap-2 p-3 border-b bg-card sticky top-0 z-10">
           <button onClick={() => setSelectedConvId(null)} className="p-1">
