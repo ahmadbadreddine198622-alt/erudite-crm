@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { MapPin, Bed, Bath, Maximize, Building2, Trash2, ExternalLink } from 'lucide-react';
 import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
+import PropertyBrochurePDF from '@/components/properties/PropertyBrochurePDF';
 import { formatAED } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -179,7 +180,7 @@ export default function PropertyDetailSheet({ property, open, onClose }) {
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t flex justify-between">
+          <div className="pt-4 border-t flex justify-between items-center">
             <Button
               variant="outline"
               size="sm"
@@ -188,6 +189,7 @@ export default function PropertyDetailSheet({ property, open, onClose }) {
             >
               <Trash2 className="w-4 h-4 mr-1" /> Delete
             </Button>
+            <PropertyBrochurePDF property={property} />
           </div>
         </div>
       </SheetContent>
