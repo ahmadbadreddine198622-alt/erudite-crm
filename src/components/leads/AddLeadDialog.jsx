@@ -13,9 +13,16 @@ import {
 } from '@/components/ui/select';
 import { SOURCE_LABELS, LEAD_TYPE_LABELS } from '@/lib/constants';
 
+const PROJECT_LAYERS = [
+  { id: 'peninsula-three', label: 'Peninsula Three' },
+  { id: 'jumeirah-living', label: 'Jumeirah Living' },
+  { id: 'six-senses', label: 'Six Senses' },
+  { id: 'peninsula-four', label: 'Peninsula Four' },
+];
+
 const initialForm = {
   name: '', email: '', phone: '', source: 'website',
-  type: 'buyer', budget_aed: '', notes: '', nationality: '',
+  type: 'buyer', budget_aed: '', notes: '', nationality: '', project_layer: '',
 };
 
 export default function AddLeadDialog({ open, onClose }) {
@@ -89,6 +96,17 @@ export default function AddLeadDialog({ open, onClose }) {
             <div>
               <Label>Budget (AED)</Label>
               <Input value={form.budget_aed} onChange={set('budget_aed')} type="number" placeholder="1,500,000" />
+            </div>
+            <div>
+              <Label>Project Layer</Label>
+              <Select value={form.project_layer} onValueChange={set('project_layer')}>
+                <SelectTrigger><SelectValue placeholder="Select layer..." /></SelectTrigger>
+                <SelectContent>
+                  {PROJECT_LAYERS.map(layer => (
+                    <SelectItem key={layer.id} value={layer.id}>{layer.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Nationality</Label>

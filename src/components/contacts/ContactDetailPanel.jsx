@@ -9,8 +9,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Mail, MapPin, Building2, Hash, Paperclip,
   Plus, X, Save, Loader2, User, ChevronDown, ChevronUp, Edit3,
-  Clock, Briefcase
+  Clock, Briefcase, Layers
 } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ContactRemindersSection from '@/components/contacts/ContactRemindersSection';
@@ -19,6 +22,13 @@ import ViewingTracker from '@/components/contacts/ViewingTracker';
 import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 import { MessageCircle } from 'lucide-react';
+
+const PROJECT_LAYERS = [
+  { id: 'peninsula-three', label: 'Peninsula Three' },
+  { id: 'jumeirah-living', label: 'Jumeirah Living' },
+  { id: 'six-senses', label: 'Six Senses' },
+  { id: 'peninsula-four', label: 'Peninsula Four' },
+];
 
 const STAGE_COLORS = {
   new_lead: 'bg-slate-100 text-slate-600',
@@ -343,27 +353,39 @@ export default function ContactDetailPanel({ contactId, onClose }) {
           </div>
         </Section>
 
-        {/* Building / Property */}
-        <Section title="Building & Property" icon={Building2}>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-            {[
-              { label: 'Tower / Project', field: 'tower' },
-              { label: 'Unit Number', field: 'unit_number' },
-              { label: 'Floor', field: 'floor' },
-              { label: 'Company', field: 'name' },
-              { label: 'Role / Title', field: 'role' },
-            ].map(({ label, field }) => (
-              <div key={field}>
-                <p className="text-[10px] text-[#9CA3AF] mb-0.5 font-medium">{label}</p>
-                <InlineField
-                  value={draft.organization?.[field]}
-                  onChange={v => setNested('organization', field, v)}
-                  placeholder="—"
-                />
-              </div>
-            ))}
-          </div>
-        </Section>
+        {/* Project Layer */}
+         <Section title="Project Layer" icon={Layers}>
+           <Select value={draft.project_layer || ''} onValueChange={v => set('project_layer', v)}>
+             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select project layer..." /></SelectTrigger>
+             <SelectContent>
+               {PROJECT_LAYERS.map(layer => (
+                 <SelectItem key={layer.id} value={layer.id}>{layer.label}</SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
+         </Section>
+
+         {/* Building / Property */}
+         <Section title="Building & Property" icon={Building2}>
+           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+             {[
+               { label: 'Tower / Project', field: 'tower' },
+               { label: 'Unit Number', field: 'unit_number' },
+               { label: 'Floor', field: 'floor' },
+               { label: 'Company', field: 'name' },
+               { label: 'Role / Title', field: 'role' },
+             ].map(({ label, field }) => (
+               <div key={field}>
+                 <p className="text-[10px] text-[#9CA3AF] mb-0.5 font-medium">{label}</p>
+                 <InlineField
+                   value={draft.organization?.[field]}
+                   onChange={v => setNested('organization', field, v)}
+                   placeholder="—"
+                 />
+               </div>
+             ))}
+           </div>
+         </Section>
 
         {/* Location */}
         <Section title="Location" icon={MapPin} defaultOpen={false}>
