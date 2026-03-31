@@ -3,13 +3,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineColumn from '@/components/pipeline/PipelineColumn';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
+import BulkImportDialog from '@/components/leads/BulkImportDialog';
 import { PIPELINE_STAGES } from '@/lib/constants';
 import MobilePipeline from '@/components/mobile/MobilePipeline';
 
@@ -24,6 +25,7 @@ export default function Pipeline() {
   const isMobile = useIsMobile();
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [search, setSearch] = useState('');
   const [activeLayer, setActiveLayer] = useState('peninsula-three');
   const queryClient = useQueryClient();
@@ -80,9 +82,14 @@ export default function Pipeline() {
                className="pl-9 w-52 h-9"
              />
            </div>
-           <Button size="sm" onClick={() => setShowAddLead(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-             <Plus className="w-4 h-4 mr-1" /> Add Lead
-           </Button>
+           <div className="flex gap-2">
+             <Button size="sm" onClick={() => setShowAddLead(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+               <Plus className="w-4 h-4 mr-1" /> Add Lead
+             </Button>
+             <Button size="sm" onClick={() => setShowBulkImport(true)} variant="outline">
+               <Upload className="w-4 h-4 mr-1" /> Bulk Import
+             </Button>
+           </div>
          </PageHeader>
 
          {/* Project Layer Tabs */}
@@ -132,6 +139,7 @@ export default function Pipeline() {
       )}
 
       <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
+      <BulkImportDialog open={showBulkImport} onOpenChange={setShowBulkImport} />
     </div>
   );
 }
