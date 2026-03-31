@@ -179,35 +179,52 @@ export default function RawDataIngestion({ open, onClose }) {
   const saveMutation = useMutation({
     mutationFn: async (items) => {
       const results = await Promise.all(
-        items.map(item =>
-          Promise.all([
-            // Save to Lead entity
-            base44.entities.Lead.create({
-              name: item.name,
-              phone: item.phone,
-              email: item.email,
-              nationality: item.nationality,
-              notes: item.notes,
-              tags: item.tags,
-              source: item.source,
-              stage: item.stage,
-              type: item.type,
-              lead_score: item.lead_score,
-            }),
-            // Save to Contact database
-            base44.functions.invoke('createOrUpdateContact', {
-              name: item.name,
-              phone: item.phone,
-              email: item.email,
-              source: item.source,
-              tags: item.tags,
-              source_metadata: {
-                project: item.project,
-                unit: item.unit,
-              },
-            })
-          ])
-        )
+        items.map(item => {
+          // Build rich phones array from all extracted phones
+          const phones = item._phones.map((num, i) => ({
+            label: i === 0 ? 'mobile' : 'other',
+            number: num,
+            is_primary: i === 0,
+          }));
+
+          // Build rich emails array from all extracted emails
+          const emails = item._emails.map((addr, i) => ({
+            label: 'personal',
+            address: addr,
+            is_primary: i === 0,
+          }));
+
+          // Rich lead payload using new schema
+          const leadPayload = {
+            name: item.name,
+            // Legacy flat fields for backward compat
+            phone: item.phone,
+            email: item.email,
+            // New rich fields
+            phones,
+            emails,
+            nationality: item.nationality,
+            language: null,
+            relationship_type: 'landlord',
+            organization: {
+              name: item.project || '',
+              tower: item.project || '',
+              unit_number: item.unit || '',
+              floor: '',
+              role: 'Owner',
+            },
+            notes: item.notes,
+            tags: item.tags,
+            source: item.source,
+            stage: item.stage,
+            lead_score: item.lead_score,
+          };
+
+          return base44.functions.invoke('createOrUpdateContact', {
+            ...leadPayload,
+            source_metadata: { project: item.project, unit: item.unit },
+          });
+        })
       );
       return results;
     },
