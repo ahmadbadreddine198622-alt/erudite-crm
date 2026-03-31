@@ -20,6 +20,7 @@ import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 import LeadWhatsAppTab from '@/components/whatsapp/LeadWhatsAppTab';
+import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -223,6 +224,11 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
         {/* Actions */}
         <div className="border-t p-4 flex gap-2">
+          <ScheduleViewingDialog 
+            lead_id={lead.id} 
+            lead_name={lead.name}
+            property_title={lead.interested_properties?.[0] || 'Property'}
+          />
           <Button
             variant="outline"
             size="sm"
