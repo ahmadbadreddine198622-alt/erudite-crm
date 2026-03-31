@@ -5,10 +5,11 @@ import AddContactDialog from '@/components/contacts/AddContactDialog';
 import ContactChatPanel from '@/components/contacts/ContactChatPanel';
 import AIActionsPanel from '@/components/contacts/AIActionsPanel';
 import ContactDetailPanel from '@/components/contacts/ContactDetailPanel';
+import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User
+  Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User, Wand2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -101,6 +102,7 @@ function ContactItem({ contact, isSelected, onClick }) {
 export default function ContactsPage() {
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showRollImport, setShowRollImport] = useState(false);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [stageFilter, setStageFilter] = useState('all');
@@ -138,12 +140,21 @@ export default function ContactsPage() {
           <h1 className="text-lg font-bold text-[#111827]">Contacts</h1>
           <p className="text-xs text-[#6B7280]">{contacts.length} total · click any contact to view & edit</p>
         </div>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-4 h-8 rounded-lg gap-1.5"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Contact
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowRollImport(true)}
+            variant="outline"
+            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            <Wand2 className="w-3.5 h-3.5" /> Roll Import
+          </Button>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-4 h-8 rounded-lg gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Contact
+          </Button>
+        </div>
       </div>
 
       {/* ── Body ── */}
@@ -297,6 +308,7 @@ export default function ContactsPage() {
       </div>
 
       <AddContactDialog isOpen={showAddDialog} onClose={() => setShowAddDialog(false)} />
+      <RawDataIngestion open={showRollImport} onClose={() => setShowRollImport(false)} />
     </div>
   );
 }

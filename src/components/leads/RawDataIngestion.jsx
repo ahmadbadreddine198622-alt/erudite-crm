@@ -94,53 +94,74 @@ function parseName(text, project, unit, emails, phones) {
   return nameWords.join(' ') || 'Unknown';
 }
 
+function buildContact(text) {
+  const phones = extractPhones(text);
+  const emails = extractEmails(text);
+  const unit = extractUnitNumber(text);
+  const nationality = extractNationality(text);
+  const project = extractProject(text);
+  const name = parseName(text, project, unit, emails, phones);
+
+  const nameParts = name.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  const notes = [
+    project ? `Property: ${project}` : null,
+    unit ? `Unit: ${unit}` : null,
+    'Owner Type: Individual',
+    'Source: Owner Database',
+  ].filter(Boolean).join('\n');
+
+  return {
+    name,
+    firstName,
+    lastName,
+    unit,
+    project,
+    phone: phones[0] || null,
+    email: emails[0] || null,
+    nationality,
+    notes,
+    tags: ['owner_database', ...(project ? [project.toLowerCase().replace(/\s+/g, '_').slice(0, 20)] : [])],
+    source: 'other',
+    stage: 'new_lead',
+    type: 'landlord',
+    lead_score: 60,
+    _raw: text,
+    _phones: phones,
+    _emails: emails,
+  };
+}
+
 export function parseRawOwnerData(rawText) {
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  const results = [];
+  // If there are multiple lines treat each line as a separate contact
+  // If there's only one block (or one line), treat the whole thing as one contact
+  const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length >= 5);
 
-  for (const line of lines) {
-    if (line.length < 5) continue;
+  if (lines.length === 0) return [];
 
-    const phones = extractPhones(line);
-    const emails = extractEmails(line);
-    const unit = extractUnitNumber(line);
-    const nationality = extractNationality(line);
-    const project = extractProject(line);
-    const name = parseName(line, project, unit, emails, phones);
+  // Heuristic: if most lines have phone numbers, each line is a separate contact
+  // Otherwise, treat the whole block as a single contact
+  const linesWithPhones = lines.filter(l => extractPhones(l).length > 0).length;
+  const linesWithEmails = lines.filter(l => extractEmails(l).length > 0).length;
 
-    const nameParts = name.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+  const isSingleBlock = lines.length <= 4 || (linesWithPhones <= 1 && linesWithEmails <= 1);
 
-    const notes = [
-      project ? `Property: ${project}` : null,
-      unit ? `Unit: ${unit}` : null,
-      'Owner Type: Individual',
-      'Source: Owner Database',
-    ].filter(Boolean).join('\n');
-
-    results.push({
-      name,
-      firstName,
-      lastName,
-      unit,
-      project,
-      phone: phones[0] || null,
-      email: emails[0] || null,
-      nationality,
-      notes,
-      tags: ['owner_database', ...(project ? [project.toLowerCase().replace(/\s+/g, '_').slice(0, 20)] : [])],
-      source: 'other',
-      stage: 'new_lead',
-      type: 'landlord',
-      lead_score: 60,
-      _raw: line,
-      _phones: phones,
-      _emails: emails,
-    });
+  if (isSingleBlock) {
+    // Treat entire text as one contact
+    const combined = lines.join(' ');
+    const contact = buildContact(combined);
+    if (contact.name !== 'Unknown' || contact._phones.length > 0 || contact._emails.length > 0) {
+      return [contact];
+    }
+    return [];
   }
 
-  return results;
+  // Multi-contact: one per line
+  return lines.map(line => buildContact(line)).filter(c =>
+    c.name !== 'Unknown' || c._phones.length > 0 || c._emails.length > 0
+  );
 }
 
 // ── UI ───────────────────────────────────────────────────────────────────────
