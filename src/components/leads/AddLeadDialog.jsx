@@ -40,13 +40,17 @@ export default function AddLeadDialog({ open, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.project_layer) {
+      alert('Please select a project layer');
+      return;
+    }
     createMutation.mutate({
       ...form,
       budget_aed: form.budget_aed ? Number(form.budget_aed) : undefined,
       stage: 'new_lead',
       lead_score: Math.floor(Math.random() * 40 + 30),
       tags: [],
-      project_layer: form.project_layer || undefined,
+      project_layer: form.project_layer,
     });
   };
 
@@ -99,7 +103,7 @@ export default function AddLeadDialog({ open, onClose }) {
               <Input value={form.budget_aed} onChange={set('budget_aed')} type="number" placeholder="1,500,000" />
             </div>
             <div>
-              <Label>Project Layer</Label>
+              <Label>Project Layer *</Label>
               <Select value={form.project_layer} onValueChange={set('project_layer')}>
                 <SelectTrigger><SelectValue placeholder="Select layer..." /></SelectTrigger>
                 <SelectContent>
