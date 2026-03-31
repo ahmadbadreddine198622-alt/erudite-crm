@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Target, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 function GoalRow({ agent, month, existingGoal, onSave, isSaving }) {
   const [open, setOpen] = useState(false);
@@ -125,7 +125,6 @@ function GoalRow({ agent, month, existingGoal, onSave, isSaving }) {
 }
 
 export default function GoalSetterPanel() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const currentMonth = format(startOfMonth(new Date()), 'yyyy-MM');
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -156,7 +155,7 @@ export default function GoalSetterPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent_goals'] });
-      toast({ title: 'Goals saved successfully' });
+      toast.success('Goals saved successfully');
     },
   });
 
