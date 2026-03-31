@@ -119,9 +119,11 @@ export default function Team() {
             <CardContent>
               <div className="space-y-2">
                 {unassignedConversations.slice(0, 5).map(conv => {
-                  const leastBusyAgent = agents.reduce((prev, current) =>
-                    (prev.assigned_conversations || 0) < (current.assigned_conversations || 0) ? prev : current
-                  );
+                  const leastBusyAgent = agents.length > 0
+                    ? agents.reduce((prev, current) =>
+                        (prev.assigned_conversations || 0) < (current.assigned_conversations || 0) ? prev : current
+                      )
+                    : null;
 
                   return (
                     <div key={conv.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
