@@ -46,6 +46,7 @@ export default function AddLeadDialog({ open, onClose }) {
       stage: 'new_lead',
       lead_score: Math.floor(Math.random() * 40 + 30),
       tags: [],
+      project_layer: form.project_layer || undefined,
     });
   };
 
