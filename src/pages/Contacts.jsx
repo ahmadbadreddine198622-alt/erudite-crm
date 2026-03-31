@@ -9,8 +9,9 @@ import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User, Wand2
+  Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User, Wand2, Snowflake
 } from 'lucide-react';
+import ColdLeadsPanel from '@/components/contacts/ColdLeadsPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SOURCE_OPTIONS = ['all', 'property_finder', 'bayut', 'whatsapp', 'referral', 'website', 'walk_in', 'social_media', 'email', 'other'];
@@ -33,6 +34,7 @@ const TABS = [
   { id: 'chat', label: 'AI Chat', icon: MessageSquare },
   { id: 'ai', label: 'Actions', icon: Zap },
 ];
+
 
 function ContactItem({ contact, isSelected, onClick }) {
   const initials = contact.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -103,6 +105,7 @@ export default function ContactsPage() {
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showRollImport, setShowRollImport] = useState(false);
+  const [showColdLeads, setShowColdLeads] = useState(false);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [stageFilter, setStageFilter] = useState('all');
@@ -141,6 +144,13 @@ export default function ContactsPage() {
           <p className="text-xs text-[#6B7280]">{contacts.length} total · click any contact to view & edit</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowColdLeads(true)}
+            variant="outline"
+            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-blue-300 text-blue-600 hover:bg-blue-50"
+          >
+            <Snowflake className="w-3.5 h-3.5" /> Cold Leads
+          </Button>
           <Button
             onClick={() => setShowRollImport(true)}
             variant="outline"
@@ -309,6 +319,33 @@ export default function ContactsPage() {
 
       <AddContactDialog isOpen={showAddDialog} onClose={() => setShowAddDialog(false)} />
       <RawDataIngestion open={showRollImport} onClose={() => setShowRollImport(false)} />
+
+      {/* Cold Leads Slide-over */}
+      <AnimatePresence>
+        {showColdLeads && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 z-40"
+              onClick={() => setShowColdLeads(false)}
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-lg z-50 shadow-2xl"
+            >
+              <ColdLeadsPanel
+                onSelectContact={(id) => { setSelectedContactId(id); setActiveTab('detail'); setShowColdLeads(false); }}
+                onClose={() => setShowColdLeads(false)}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
