@@ -25,7 +25,10 @@ export default function AIActionsPanel({ selectedContactId }) {
 
   const { data: contact } = useQuery({
     queryKey: ['contact', selectedContactId],
-    queryFn: () => base44.entities.Lead.read(selectedContactId),
+    queryFn: async () => {
+      const results = await base44.entities.Lead.filter({ id: selectedContactId }, '-created_date', 1);
+      return results?.[0] || null;
+    },
     enabled: !!selectedContactId,
   });
 
@@ -48,22 +51,8 @@ export default function AIActionsPanel({ selectedContactId }) {
 
       const contactInfo = contact ? `
 Contact Name: ${contact.name}
-Phones: ${allPhones}
-Email: ${primaryEmail}
-Nationality: ${contact.nationality || 'N/A'}
-Language: ${contact.language || 'N/A'}
-Tower / Building: ${tower}
 Unit Number: ${unit}
-Company: ${company}
-Role: ${role}
-Relationship Type: ${contact.relationship_type || contact.type || 'N/A'}
-Source: ${contact.source || 'N/A'}
-Stage: ${contact.stage?.replace(/_/g, ' ') || 'N/A'}
-Budget: ${contact.budget_aed ? `AED ${contact.budget_aed.toLocaleString()}` : 'N/A'}
-Property Preferences: ${contact.property_preferences?.property_type || 'N/A'}, ${contact.property_preferences?.bedrooms || '?'} BR, Areas: ${contact.property_preferences?.preferred_areas?.join(', ') || 'N/A'}
-Tags: ${contact.tags?.join(', ') || 'None'}
-Custom Fields: ${customFields}
-Notes: ${contact.notes || 'None'}
+Tower / Building: ${tower}
 `.trim() : extraInput || 'No contact context';
 
       if (type === 'email_templates') {

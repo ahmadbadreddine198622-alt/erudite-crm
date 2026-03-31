@@ -117,7 +117,10 @@ export default function ContactDetailPanel({ contactId, onClose }) {
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', contactId],
-    queryFn: () => base44.entities.Lead.read(contactId),
+    queryFn: async () => {
+      const results = await base44.entities.Lead.filter({ id: contactId }, '-created_date', 1);
+      return results?.[0] || null;
+    },
     enabled: !!contactId,
   });
 
