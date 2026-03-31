@@ -1,0 +1,111 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "Auto-generated: INV-YYYY-MM-XXXXX"
+    },
+    "invoice_type": {
+      "type": "string",
+      "enum": [
+        "commission",
+        "rental",
+        "sale",
+        "service_fee"
+      ],
+      "description": "Type of invoice"
+    },
+    "lead_id": {
+      "type": "string"
+    },
+    "lead_name": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "property_title": {
+      "type": "string"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "commission_id": {
+      "type": "string",
+      "description": "Linked commission record"
+    },
+    "base_amount_aed": {
+      "type": "number",
+      "description": "Amount before VAT"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 5,
+      "description": "VAT percentage (default 5%)"
+    },
+    "vat_amount_aed": {
+      "type": "number",
+      "description": "VAT amount"
+    },
+    "total_amount_aed": {
+      "type": "number",
+      "description": "Base + VAT"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid",
+        "overdue",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "bank_transfer",
+        "cheque",
+        "cash",
+        "card",
+        "crypto",
+        "other"
+      ]
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "amount_paid_aed": {
+      "type": "number",
+      "default": 0
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "sequence_number": {
+      "type": "number",
+      "description": "Auto-increment for invoice number"
+    }
+  },
+  "required": [
+    "invoice_type",
+    "base_amount_aed"
+  ]
+}
