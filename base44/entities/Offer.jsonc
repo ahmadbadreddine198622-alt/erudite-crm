@@ -68,6 +68,13 @@
       "type": "boolean",
       "default": false
     },
+    "contingencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Deal conditions (e.g., 'inspection', 'financing', 'appraisal')"
+    },
     "completion_date": {
       "type": "string",
       "format": "date"
@@ -79,6 +86,11 @@
     "expires_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "expiration_alert_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether agent was alerted about expiration"
     }
   },
   "required": [

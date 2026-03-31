@@ -45,6 +45,22 @@
       "type": "string",
       "format": "date"
     },
+    "payout_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When commission was paid out"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "bank_transfer",
+        "cheque",
+        "cash",
+        "card",
+        "crypto"
+      ],
+      "description": "How commission was paid"
+    },
     "notes": {
       "type": "string"
     }

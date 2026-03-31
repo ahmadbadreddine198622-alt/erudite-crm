@@ -37,6 +37,24 @@
     "agent_name": {
       "type": "string"
     },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "interested",
+        "not_interested",
+        "follow_up_needed",
+        "viewing_scheduled",
+        "offer_made",
+        "no_answer",
+        "postponed",
+        "completed"
+      ],
+      "description": "Result of the activity (for calls, meetings, viewings)"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Call or meeting duration in minutes"
+    },
     "metadata": {
       "type": "object",
       "description": "Additional metadata"
