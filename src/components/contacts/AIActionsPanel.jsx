@@ -42,12 +42,13 @@ ${contactInfo}
 ${extraInput ? `Additional context: ${extraInput}` : ''}
 
 IMPORTANT:
-- Always address the contact by their full name (e.g. "Dear ${contact?.name || 'Mr./Ms. [Name]'}") in the email and call script
-- Always reference their specific unit, project, or property details in the message body where available
-- Make it feel personal, not generic — use their name and property context throughout
-- For WhatsApp, start with their first name naturally (e.g. "Hi Ahmed,")
+- You are the agent writing TO this contact — do NOT include their contact details (phone/email) in the message
+- Always address them by their first name naturally (e.g. "Dear Ahmed," or "Hi Ahmed,")
+- Reference their specific unit number and tower/building name naturally in the message body to show you know their property
+- Frame it as an agent who knows their building well and has relevant market insights for their specific unit
+- Keep it personal, insider, and professional — not generic
 
-Generate a persuasive email and WhatsApp message using insider positioning.`,
+Generate a persuasive email, WhatsApp message, and call script from the agent's perspective.`,
           response_json_schema: {
             type: 'object',
             properties: {
