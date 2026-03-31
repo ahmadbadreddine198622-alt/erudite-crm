@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { MapPin, Bed, Bath, Maximize, Building2, Trash2, ExternalLink } from 'lucide-react';
+import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
 import { formatAED } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -171,6 +172,11 @@ export default function PropertyDetailSheet({ property, open, onClose }) {
               </div>
             </div>
           )}
+
+          {/* Lead Matching */}
+          <div className="border border-[#E5E7EB] rounded-xl overflow-hidden -mx-0">
+            <PropertyLeadMatcher mode="property" entityId={property.id} entityData={property} />
+          </div>
 
           {/* Actions */}
           <div className="pt-4 border-t flex justify-between">
