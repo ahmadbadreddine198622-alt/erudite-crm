@@ -7,9 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Phone, Mail, MapPin, Building2, Globe, Languages, Hash, Paperclip,
+  Phone, Mail, MapPin, Building2, Hash, Paperclip,
   Plus, X, Save, Loader2, User, ChevronDown, ChevronUp, Edit3,
-  MessageCircle, Star, Clock, Tag, Briefcase
+  Clock, Briefcase
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -397,7 +397,7 @@ export default function ContactDetailPanel({ contactId, onClose }) {
         </Section>
 
         {/* Tags */}
-        <Section title="Tags" icon={Tag}>
+        <Section title="Tags" icon={Hash}>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {(draft.tags || []).map(tag => (
               <span
