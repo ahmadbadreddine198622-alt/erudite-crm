@@ -14,6 +14,8 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ContactRemindersSection from '@/components/contacts/ContactRemindersSection';
+import QualificationScorecard from '@/components/contacts/QualificationScorecard';
+import ViewingTracker from '@/components/contacts/ViewingTracker';
 
 const STAGE_COLORS = {
   new_lead: 'bg-slate-100 text-slate-600',
@@ -474,6 +476,12 @@ export default function ContactDetailPanel({ contactId, onClose }) {
             </Button>
           </div>
         </Section>
+
+        {/* Qualification Scorecard */}
+        <QualificationScorecard contactId={contactId} lead={draft} />
+
+        {/* Viewing Tracker */}
+        <ViewingTracker contactId={contactId} contactName={draft.name} />
 
         {/* Reminders */}
         <ContactRemindersSection contactId={contactId} contactName={draft.name} />
