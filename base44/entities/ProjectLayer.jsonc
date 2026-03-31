@@ -1,0 +1,151 @@
+{
+  "name": "ProjectLayer",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "enum": [
+        "peninsula-three",
+        "jumeirah-living",
+        "six-senses",
+        "peninsula-four"
+      ],
+      "description": "Unique layer identifier"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Project display name (e.g., 'Peninsula Three')"
+    },
+    "description": {
+      "type": "string",
+      "description": "Project profile and target buyer description"
+    },
+    "budget_min_aed": {
+      "type": "number",
+      "description": "Minimum budget in AED for this layer"
+    },
+    "budget_max_aed": {
+      "type": "number",
+      "description": "Maximum budget in AED for this layer"
+    },
+    "target_buyer_profile": {
+      "type": "string",
+      "description": "Description of ideal buyer (e.g., 'High-net-worth individuals, investors')"
+    },
+    "assignment_criteria": {
+      "type": "object",
+      "properties": {
+        "required_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags that trigger assignment to this layer"
+        },
+        "preferred_sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Lead sources (property_finder, bayut, referral, etc.)"
+        },
+        "budget_range": {
+          "type": "string",
+          "description": "Budget range text (e.g., 'Dhs 3.5M\u20138M+')"
+        }
+      },
+      "description": "Criteria for assigning leads to this layer"
+    },
+    "lead_scoring": {
+      "type": "object",
+      "properties": {
+        "cold_max_score": {
+          "type": "number",
+          "description": "Maximum score for cold leads"
+        },
+        "warm_min_score": {
+          "type": "number",
+          "description": "Minimum score for warm leads"
+        },
+        "warm_max_score": {
+          "type": "number",
+          "description": "Maximum score for warm leads"
+        },
+        "hot_min_score": {
+          "type": "number",
+          "description": "Minimum score for hot leads"
+        },
+        "cold_definition": {
+          "type": "string",
+          "description": "What defines a cold lead"
+        },
+        "warm_definition": {
+          "type": "string",
+          "description": "What defines a warm lead"
+        },
+        "hot_definition": {
+          "type": "string",
+          "description": "What defines a hot lead"
+        }
+      },
+      "description": "Lead scoring logic and thresholds"
+    },
+    "pipeline_stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage_order": {
+            "type": "number"
+          },
+          "stage_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Recommended pipeline stages for this layer"
+    },
+    "automation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule_name": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string",
+            "description": "What triggers this rule"
+          },
+          "action": {
+            "type": "string",
+            "description": "What action to take"
+          }
+        }
+      },
+      "description": "Suggested automation rules for this layer"
+    },
+    "assigned_agent_role": {
+      "type": "string",
+      "description": "Recommended agent type (e.g., 'Premium agents', 'Mid-tier agents')"
+    },
+    "color_code": {
+      "type": "string",
+      "description": "Hex color for UI display"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this layer is active"
+    }
+  },
+  "required": [
+    "layer_id",
+    "display_name",
+    "budget_min_aed",
+    "budget_max_aed"
+  ]
+}
