@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import ContactRemindersSection from '@/components/contacts/ContactRemindersSection';
 
 const STAGE_COLORS = {
   new_lead: 'bg-slate-100 text-slate-600',
@@ -473,6 +474,9 @@ export default function ContactDetailPanel({ contactId, onClose }) {
             </Button>
           </div>
         </Section>
+
+        {/* Reminders */}
+        <ContactRemindersSection contactId={contactId} contactName={draft.name} />
 
         {/* Activity Log */}
         <Section title="Activity Log" icon={Clock} defaultOpen={false}>

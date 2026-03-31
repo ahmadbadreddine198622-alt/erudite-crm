@@ -2,33 +2,28 @@
   "name": "Reminder",
   "type": "object",
   "properties": {
-    "lead_id": {
-      "type": "string"
-    },
-    "property_id": {
-      "type": "string"
-    },
-    "type": {
-      "type": "string",
-      "enum": [
-        "follow_up",
-        "viewing",
-        "contract_renewal",
-        "payment_due",
-        "document_expiry",
-        "custom"
-      ],
-      "description": "Reminder type"
-    },
     "title": {
-      "type": "string"
+      "type": "string",
+      "description": "Task title"
     },
-    "description": {
-      "type": "string"
+    "notes": {
+      "type": "string",
+      "description": "Detailed notes"
     },
     "due_date": {
       "type": "string",
       "format": "date-time"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "none"
     },
     "status": {
       "type": "string",
@@ -40,24 +35,91 @@
       ],
       "default": "pending"
     },
+    "type": {
+      "type": "string",
+      "enum": [
+        "follow_up",
+        "viewing",
+        "contract_renewal",
+        "payment_due",
+        "document_expiry",
+        "custom"
+      ],
+      "default": "custom"
+    },
+    "list_name": {
+      "type": "string",
+      "description": "List/group name (e.g., 'To Do List', 'Malik List')"
+    },
+    "list_color": {
+      "type": "string",
+      "description": "Hex color for the list"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags like follow-up, urgent"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Linked contact/lead ID"
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached lead name for display"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Linked property ID"
+    },
     "assigned_to": {
       "type": "string",
       "description": "Agent email"
     },
-    "priority": {
+    "subtasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
       "type": "string",
       "enum": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
+        "manual",
+        "imported",
+        "ai_suggested"
       ],
-      "default": "medium"
+      "default": "manual"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "ID from external system (for dedup)"
+    },
+    "is_editable": {
+      "type": "boolean",
+      "default": true,
+      "description": "False for read-only imported tasks"
     }
   },
   "required": [
-    "title",
-    "type",
-    "due_date"
+    "title"
   ]
 }

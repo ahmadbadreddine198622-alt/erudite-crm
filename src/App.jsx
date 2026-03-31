@@ -13,7 +13,7 @@ import Leads from '@/pages/Leads';
 import Properties from '@/pages/Properties';
 import MapView from '@/pages/MapView';
 import Commissions from '@/pages/Commissions';
-import Reminders from '@/pages/Reminders';
+import Reminders from './pages/Reminders';
 import WhatsAppInbox from '@/pages/WhatsAppInbox';
 import Inbox from '@/pages/Inbox';
 import Analytics from '@/pages/Analytics';
