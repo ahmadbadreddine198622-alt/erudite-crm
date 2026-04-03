@@ -149,10 +149,10 @@ export default function WhatsAppInbox() {
         </div>
       </div>
 
-      {/* WhatsApp Web Tab */}
+      {/* WhatsApp Web Tab - opens guide to connect via new tab */}
       {activeTab === 'web' && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <WhatsAppWebPanel />
+          <WhatsAppWebPanel key="wa-web-panel" />
         </div>
       )}
 
