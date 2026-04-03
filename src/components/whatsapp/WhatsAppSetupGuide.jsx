@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Copy, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
-const WEBHOOK_URL = 'https://app.base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/functions/whatsappWebhook';
+const WEBHOOK_URL = 'https://preview-sandbox--69cabceaeeb8bb5e3a62ead3.base44.app/api/functions/whatsappWebhook';
 
 export default function WhatsAppSetupGuide({ onClose }) {
   const [copied, setCopied] = useState(null);
@@ -69,7 +69,7 @@ export default function WhatsAppSetupGuide({ onClose }) {
         </h2>
         <p className="text-sm text-muted-foreground">Follow these steps to link your WhatsApp Business number to the CRM.</p>
       </div>
-
+https://app.base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/functions/whatsappWebhook
       <div className="space-y-3">
         {steps.map((step, i) => (
           <div key={i} className="flex gap-3">
