@@ -2,17 +2,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, QrCode, MonitorSmartphone } from 'lucide-react';
 
-const steps = [
-  { step: '1', text: 'Open WhatsApp on your phone' },
-  { step: '2', text: 'Tap the menu (⋮) or Settings' },
-  { step: '3', text: 'Select "Linked Devices"' },
-  { step: '4', text: 'Tap "Link a Device"' },
-  { step: '5', text: 'Scan the QR code on WhatsApp Web' },
-];
-
 export default function WhatsAppWebPanel() {
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 gap-6 text-center bg-background">
+    <div className="flex flex-col items-center justify-center h-full p-8 gap-6 text-center">
       <div className="w-20 h-20 rounded-2xl bg-green-500/10 flex items-center justify-center">
         <MonitorSmartphone className="w-10 h-10 text-green-600" />
       </div>
@@ -20,17 +12,23 @@ export default function WhatsAppWebPanel() {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Connect WhatsApp Web</h2>
         <p className="text-sm text-muted-foreground max-w-xs">
-          WhatsApp Web must be opened in a separate tab. Follow the steps below to scan your QR code.
+          WhatsApp Web cannot be embedded due to browser security restrictions. Click below to open it in a new tab.
         </p>
       </div>
 
       <div className="w-full max-w-sm space-y-2 text-left">
-        {steps.map(({ step, text }) => (
-          <div key={step} className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
+        {[
+          { n: '1', t: 'Open WhatsApp on your phone' },
+          { n: '2', t: 'Tap the menu (⋮) or Settings' },
+          { n: '3', t: 'Select "Linked Devices"' },
+          { n: '4', t: 'Tap "Link a Device"' },
+          { n: '5', t: 'Scan the QR code on WhatsApp Web' },
+        ].map(({ n, t }) => (
+          <div key={n} className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
             <span className="w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
-              {step}
+              {n}
             </span>
-            <span className="text-sm">{text}</span>
+            <span className="text-sm">{t}</span>
           </div>
         ))}
       </div>
@@ -42,10 +40,6 @@ export default function WhatsAppWebPanel() {
           <ExternalLink className="w-3.5 h-3.5" />
         </Button>
       </a>
-
-      <p className="text-xs text-muted-foreground max-w-xs">
-        WhatsApp Web cannot be embedded due to browser security restrictions. Use the button above to open it in a new tab where the QR code will appear normally.
-      </p>
     </div>
   );
 }
