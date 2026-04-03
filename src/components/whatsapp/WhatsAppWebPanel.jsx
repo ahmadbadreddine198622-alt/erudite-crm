@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, QrCode, Smartphone, MonitorSmartphone } from 'lucide-react';
+import { ExternalLink, QrCode, MonitorSmartphone } from 'lucide-react';
 
 const steps = [
   { step: '1', text: 'Open WhatsApp on your phone' },
@@ -13,12 +13,10 @@ const steps = [
 export default function WhatsAppWebPanel() {
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 gap-6 text-center bg-background">
-      {/* Icon */}
       <div className="w-20 h-20 rounded-2xl bg-green-500/10 flex items-center justify-center">
         <MonitorSmartphone className="w-10 h-10 text-green-600" />
       </div>
 
-      {/* Heading */}
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Connect WhatsApp Web</h2>
         <p className="text-sm text-muted-foreground max-w-xs">
@@ -26,7 +24,6 @@ export default function WhatsAppWebPanel() {
         </p>
       </div>
 
-      {/* Steps */}
       <div className="w-full max-w-sm space-y-2 text-left">
         {steps.map(({ step, text }) => (
           <div key={step} className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
@@ -38,7 +35,6 @@ export default function WhatsAppWebPanel() {
         ))}
       </div>
 
-      {/* CTA */}
       <a href="https://web.whatsapp.com" target="_blank" rel="noopener noreferrer">
         <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
           <QrCode className="w-4 h-4" />
@@ -48,7 +44,7 @@ export default function WhatsAppWebPanel() {
       </a>
 
       <p className="text-xs text-muted-foreground max-w-xs">
-        WhatsApp Web cannot be embedded directly due to browser security restrictions. Use the button above to open it in a new tab.
+        WhatsApp Web cannot be embedded due to browser security restrictions. Use the button above to open it in a new tab where the QR code will appear normally.
       </p>
     </div>
   );
