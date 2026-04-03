@@ -6,14 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Search, Send, Loader2, Sparkles, RefreshCw, Tag, X, QrCode } from 'lucide-react';
+import { MessageCircle, Search, Send, Loader2, ExternalLink } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
 import ConversationListHeader from '@/components/whatsapp/ConversationListHeader';
 import ChatHeader from '@/components/whatsapp/ChatHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
-import WhatsAppWebPanel from '@/components/whatsapp/WhatsAppWebPanel';
 import SmartReplies from '@/components/whatsapp/SmartReplies';
 import LeadScoreCard from '@/components/shared/LeadScoreCard';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
@@ -27,7 +26,6 @@ export default function WhatsAppInbox() {
   const [search, setSearch] = useState('');
   const [reply, setReply] = useState('');
   const [showInsights, setShowInsights] = useState(true);
-  const [activeTab, setActiveTab] = useState('crm'); // 'crm' | 'web'
   const queryClient = useQueryClient();
 
   if (isMobile) {
@@ -100,20 +98,14 @@ export default function WhatsAppInbox() {
               <MessageCircle className="w-5 h-5 text-green-500" />
               <h2 className="font-bold text-lg">Messages</h2>
             </div>
-            <div className="flex gap-1 bg-muted rounded-lg p-0.5">
-              <button
-                onClick={() => setActiveTab('crm')}
-                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors ${activeTab === 'crm' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                CRM
-              </button>
-              <button
-                onClick={() => setActiveTab('web')}
-                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${activeTab === 'web' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <QrCode className="w-3 h-3" /> Web
-              </button>
-            </div>
+            <a
+              href="https://web.whatsapp.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 border border-green-500/30 px-2.5 py-1.5 rounded-lg hover:bg-green-500/5 transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" /> WA Web
+            </a>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
@@ -149,15 +141,8 @@ export default function WhatsAppInbox() {
         </div>
       </div>
 
-      {/* WhatsApp Web Tab - opens guide to connect via new tab */}
-      {activeTab === 'web' && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <WhatsAppWebPanel key="wa-web-panel" />
-        </div>
-      )}
-
       {/* Main chat area */}
-      {activeTab === 'crm' && selectedConv ? (
+      {selectedConv ? (
         <div className="flex flex-1 min-w-0">
           <div className="flex flex-col flex-1 min-w-0">
             <ChatHeader
@@ -221,18 +206,12 @@ export default function WhatsAppInbox() {
             </div>
           )}
         </div>
-      ) : activeTab === 'crm' ? (
+      ) : (
         <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-3">
           <MessageCircle className="w-12 h-12 opacity-20" />
-          <p className="text-sm">Select a conversation</p>
-          <button
-            onClick={() => setActiveTab('web')}
-            className="flex items-center gap-1.5 text-xs text-green-600 hover:text-green-700 border border-green-500/30 px-3 py-1.5 rounded-full hover:bg-green-500/5 transition-colors"
-          >
-            <QrCode className="w-3.5 h-3.5" /> Connect WhatsApp Web
-          </button>
+          <p className="text-sm">Select a conversation to start</p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
