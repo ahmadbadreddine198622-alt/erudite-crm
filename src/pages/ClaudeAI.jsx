@@ -99,17 +99,21 @@ function MessageBubble({ msg }) {
 
 const WELCOME_MSG = {
   role: 'assistant',
-  content: `Hi! I'm **Claude** — your AI with **full read/write access** to your CRM.
+  content: `Hi! I'm **Claude Opus 4.7** — your advanced AI assistant with **complete CRM integration**.
 
-I can:
-- 📊 Analyze all your leads, pipeline and performance
-- 🔔 **Create reminders** and follow-up tasks
-- ✏️ **Update lead stages**, tags and notes
-- 💬 Write WhatsApp and email messages
-- 📋 **Log activities** and call notes
-- 🏆 Rank and score your best opportunities
+**My Capabilities:**
+- 📊 **Deep Analytics**: Pipeline health, conversion rates, performance insights
+- 🔔 **Task Management**: Create reminders, schedule follow-ups, set priorities
+- ✏️ **CRM Updates**: Update lead stages, add tags, modify notes, assign agents
+- 💬 **Communication**: Write personalized WhatsApp & email messages
+- 📋 **Activity Logging**: Log calls, meetings, viewings with outcomes
+- 🏆 **Lead Scoring**: Rank opportunities, identify hot leads, flag stale ones
+- 📈 **Strategic Insights**: Identify bottlenecks, recommend actions, forecast trends
 
-Just tell me what to do — I'll act on it directly in the CRM!`
+**I have full read/write access to:**
+Leads, Properties, Offers, Commissions, Activities, Reminders, WhatsApp Conversations, Invoices
+
+Just tell me what to do — I'll execute it directly in your CRM!`
 };
 
 export default function ClaudeAI() {
@@ -269,7 +273,7 @@ export default function ClaudeAI() {
         <div className="flex items-center gap-3 px-6 py-4 border-b bg-card">
           <Sparkles className="w-4 h-4 text-purple-600" />
           <span className="font-semibold text-sm">Chat with Claude</span>
-          <Badge className="bg-purple-500/10 text-purple-700 border-purple-500/20 text-xs">claude-opus-4-5</Badge>
+          <Badge className="bg-purple-500/10 text-purple-700 border-purple-500/20 text-xs">claude-opus-4-7</Badge>
           <span className="ml-auto text-xs text-muted-foreground">Full CRM context on every message</span>
         </div>
 

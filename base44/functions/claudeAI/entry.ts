@@ -191,8 +191,8 @@ Deno.serve(async (req) => {
       }
 
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
-        max_tokens: 4096,
+        model: 'claude-opus-4-7',
+        max_tokens: 8192,
         system: SYSTEM_PROMPT,
         messages: anthropicMessages,
       });
@@ -237,8 +237,8 @@ Activities: ${JSON.stringify(activities, null, 2)}
 Respond as JSON: {"score": number, "insights": string[], "next_action": string, "suggested_message": string, "risk_factors": string[], "recommended_stage": string}`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
-        max_tokens: 1024,
+        model: 'claude-opus-4-7',
+        max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       });
@@ -320,8 +320,8 @@ Provide: pipeline health score, top 3 priorities, conversion bottlenecks, recomm
 Return JSON: {"health_score": number, "priorities": string[], "bottlenecks": string[], "recommendations": string[], "summary": string}`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
-        max_tokens: 1024,
+        model: 'claude-opus-4-7',
+        max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
       });
