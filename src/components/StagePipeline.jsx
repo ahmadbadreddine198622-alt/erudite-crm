@@ -1,39 +1,32 @@
-import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
-
 const STAGES = [
-  { key: "new", label: "New" },
-  { key: "contacted", label: "Contacted" },
-  { key: "qualified", label: "Qualified" },
-  { key: "viewing_scheduled", label: "Viewing" },
-  { key: "offer_made", label: "Offer" },
-  { key: "negotiating", label: "Negotiating" },
-  { key: "won", label: "Won" },
+  { id: "new", label: "New" },
+  { id: "contacted", label: "Contacted" },
+  { id: "qualified", label: "Qualified" },
+  { id: "viewing_scheduled", label: "Viewing" },
+  { id: "offer_made", label: "Offer" },
+  { id: "negotiating", label: "Negotiating" },
+  { id: "contract_sent", label: "Contract" },
+  { id: "won", label: "Won" }
 ];
 
 export default function StagePipeline({ currentStage, onStageClick }) {
-  const currentIdx = STAGES.findIndex(s => s.key === currentStage);
-
+  const currentIdx = STAGES.findIndex(s => s.id === currentStage);
   return (
-    <div className="flex items-center gap-0 px-3 py-2 overflow-x-auto border-t">
-      {STAGES.map((stage, idx) => {
-        const isPast = idx < currentIdx;
-        const isCurrent = idx === currentIdx;
+    <div className="flex items-center px-3 py-2 border-t bg-white">
+      {STAGES.map((s, i) => {
+        const done = i < currentIdx;
+        const active = i === currentIdx;
         return (
-          <div key={stage.key} className="flex items-center shrink-0">
+          <div key={s.id} className="flex items-center flex-1">
             <button
-              onClick={() => onStageClick?.(stage.key)}
-              className={cn(
-                "text-[10px] font-medium px-2 py-1 rounded transition-all whitespace-nowrap",
-                isCurrent && "bg-green-600 text-white shadow-sm",
-                isPast && "text-green-700 hover:bg-green-50",
-                !isCurrent && !isPast && "text-muted-foreground hover:bg-muted/60",
-              )}
+              onClick={() => onStageClick(s.id)}
+              className={`flex flex-col items-center gap-1 group ${done ? "text-emerald-700" : active ? "text-violet-700" : "text-slate-400"}`}
             >
-              {stage.label}
+              <div className={`w-3 h-3 rounded-full transition ${done ? "bg-emerald-500" : active ? "bg-violet-600 ring-4 ring-violet-200" : "bg-slate-300 group-hover:bg-slate-400"}`} />
+              <span className="text-[10px] font-medium">{s.label}</span>
             </button>
-            {idx < STAGES.length - 1 && (
-              <ChevronRight className={cn("w-3 h-3 shrink-0", isPast ? "text-green-400" : "text-muted-foreground/30")} />
+            {i < STAGES.length - 1 && (
+              <div className={`flex-1 h-0.5 mb-3 mx-1 ${i < currentIdx ? "bg-emerald-500" : "bg-slate-200"}`} />
             )}
           </div>
         );
