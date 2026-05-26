@@ -54,13 +54,13 @@ async function fetchAllPFLeads(token) {
     if (total > 0 && leads.length >= total) break;
     if (items.length < perPage) break;
     page++;
-    if (page > 6) break; // cap at 300 leads per sync to avoid 504 timeout
+    // No limit - sync all leads
   }
   return leads;
 }
 
 async function fetchPFListings(token, maxPages) {
-  maxPages = maxPages || 20;
+  maxPages = maxPages || 200; // No limit - sync all listings
   const allItems = [];
   let page = 1;
   const perPage = 50;
@@ -165,13 +165,13 @@ Deno.serve(async (req) => {
       return Response.json({ keys: Object.keys(first), focus });
     }
 
-    // Fetch PF listings
+    // Fetch PF listings - unlimited sync
     if (mode === 'listings') {
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const { apiKey, apiSecret } = await getStoredCredentials(base44);
       const token = await getPFToken(apiKey, apiSecret);
-      const maxPages = body.maxPages || 40; // up to 2000 listings
+      const maxPages = body.maxPages || 200; // up to 10,000 listings (no limit)
       const listings = await fetchPFListings(token, maxPages);
       return Response.json({ ok: true, listings: listings });
     }
@@ -205,10 +205,10 @@ Deno.serve(async (req) => {
     const token = await getPFToken(apiKey, apiSecret);
     const pfLeads = await fetchAllPFLeads(token);
 
-    // Paginate through ALL existing PF leads to build the dedup map
+    // Paginate through ALL existing PF leads to build the dedup map (no limit)
     const existingMap = {};
     let exPage = 0;
-    const exPageSize = 200;
+    const exPageSize = 500;
     while (true) {
       const batch = await base44.asServiceRole.entities.Lead.filter(
         { source: 'property_finder' }, '-created_date', exPageSize, exPage * exPageSize
@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
       }
       if (batch.length < exPageSize) break;
       exPage++;
-      if (exPage > 20) break; // safety cap at 4000 leads
+      // No limit - check all existing leads
     }
 
     let created = 0;

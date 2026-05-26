@@ -21,8 +21,9 @@ const statusColors = {
 };
 
 function getPFLink(l) {
-  const ref = l.reference || l.id;
-  return ref ? `https://www.propertyfinder.ae/en/search?q=${encodeURIComponent(ref)}` : null;
+  const ref = l.reference;
+  if (!ref) return null;
+  return `https://www.propertyfinder.ae/en/buy/${encodeURIComponent(ref.replace(/\s+/g, '-')).toLowerCase()}.html`;
 }
 function getTitle(l) {
   if (l.title && typeof l.title === 'object') return l.title.en || l.title.ar || '';
