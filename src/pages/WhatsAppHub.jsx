@@ -1,21 +1,105 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  MessageCircle, Settings, Zap, FileText, Bot, Users, TrendingUp,
-  CheckCircle2, AlertCircle, Phone, Wifi, Copy, ExternalLink
+  MessageCircle, Settings, Zap, FileText, Bot, TrendingUp,
+  CheckCircle2, AlertCircle, Phone, Wifi, Copy, ExternalLink,
+  Loader2, RefreshCw, Check, ArrowRight, Send
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import WorkflowBuilder from '@/components/whatsapp/WorkflowBuilder';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 import TemplateManager from '@/components/whatsapp/TemplateManager';
-import TemplateSelector from '@/components/whatsapp/TemplateSelector';
 import WhatsAppSetupGuide from '@/components/whatsapp/WhatsAppSetupGuide';
+
+const SETUP_STEPS = [
+  {
+    number: 1,
+    title: 'Go to Meta for Developers',
+    description: 'Open your app at developers.facebook.com',
+    link: 'https://developers.facebook.com',
+    linkLabel: 'Open Meta Developers →',
+  },
+  {
+    number: 2,
+    title: 'Find Your Access Token',
+    description: 'Left menu → WhatsApp → API Setup → scroll to "Step 2" → copy the Temporary access token. For a permanent token: go to Business Settings → System Users → create one → Generate Token → enable whatsapp_business_messaging.',
+  },
+  {
+    number: 3,
+    title: 'Set a Verify Token',
+    description: 'This is any custom string you choose (like a password). Example: erudite_verify_2024. You\'ll use this same string in Meta\'s webhook settings.',
+  },
+  {
+    number: 4,
+    title: 'Save Both Secrets in Base44',
+    description: 'Go to Base44 Dashboard → Settings → Secrets and add WHATSAPP_ACCESS_TOKEN and WHATSAPP_VERIFY_TOKEN.',
+  },
+  {
+    number: 5,
+    title: 'Configure Webhook in Meta',
+    description: 'Meta Developers → Your App → WhatsApp → Configuration → Webhook. Paste the Callback URL below and your verify token. Subscribe to "messages".',
+  },
+];
 
 export default function WhatsAppHub() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [setupStatus, setSetupStatus] = useState('idle');
+  const [phoneInfo, setPhoneInfo] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
+
+  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
+
+  // Fetch connection status on mount
+  React.useEffect(() => {
+    const fetchConnection = async () => {
+      try {
+        const res = await base44.functions.invoke('whatsappEmbeddedSignup', { action: 'verify_config' });
+        if (res.data?.configured) {
+          setSetupStatus('connected');
+          setPhoneInfo(res.data);
+          setCurrentPhoneNumberId(res.data.phone_number);
+        }
+      } catch (err) {
+        // Silent
+      }
+    };
+    fetchConnection();
+  }, []);
+
+  const verifyConnection = async () => {
+    setSetupStatus('checking');
+    try {
+      const res = await base44.functions.invoke('whatsappEmbeddedSignup', { action: 'verify_config' });
+      const data = res.data;
+      if (data.configured) {
+        setSetupStatus('connected');
+        setPhoneInfo(data);
+        setCurrentPhoneNumberId(data.phone_number);
+        toast.success('WhatsApp connected successfully!');
+      } else {
+        setSetupStatus('failed');
+        toast.error(data.message || 'Connection failed. Check your secrets.');
+      }
+    } catch {
+      setSetupStatus('failed');
+      toast.error('Verification failed. Make sure your secrets are set.');
+    }
+  };
+
+  const copyWebhook = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    toast.success('Copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -128,29 +212,68 @@ export default function WhatsAppHub() {
                 <CardDescription>Your WhatsApp Business API configuration</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Phone Number ID</p>
-                      <p className="text-xs text-muted-foreground">111463521666858</p>
+                {setupStatus === 'connected' && phoneInfo ? (
+                  <>
+                    <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-700">WhatsApp Connected ✅</p>
+                        <p className="text-xs text-green-600">Your number is live and ready</p>
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant="outline">Configured</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Wifi className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">API Status</p>
-                      <p className="text-xs text-muted-foreground">Access token active</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-muted/50 rounded-lg p-2 text-center">
+                        <Phone className="w-3.5 h-3.5 mx-auto mb-1 text-green-600" />
+                        <p className="text-[10px] text-muted-foreground">Phone</p>
+                        <p className="text-xs font-semibold">{phoneInfo.phone_number}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-2 text-center">
+                        <Wifi className="w-3.5 h-3.5 mx-auto mb-1 text-blue-600" />
+                        <p className="text-[10px] text-muted-foreground">Display Name</p>
+                        <p className="text-xs font-semibold truncate">{phoneInfo.display_name}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-2 text-center">
+                        <CheckCircle2 className="w-3.5 h-3.5 mx-auto mb-1 text-emerald-600" />
+                        <p className="text-[10px] text-muted-foreground">Quality</p>
+                        <p className="text-xs font-semibold">{phoneInfo.quality_rating || 'N/A'}</p>
+                      </div>
                     </div>
-                  </div>
-                  <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Connected</Badge>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      {setupStatus === 'checking'
+                        ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                        : setupStatus === 'failed'
+                        ? <AlertCircle className="w-5 h-5 text-red-500" />
+                        : <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                      }
+                      <div>
+                        <p className="text-sm font-medium">
+                          {setupStatus === 'checking' ? 'Checking...'
+                            : setupStatus === 'failed' ? 'Connection failed'
+                            : 'Not verified yet'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {setupStatus === 'failed'
+                            ? 'Check your secrets in Base44 settings'
+                            : 'Complete setup steps then click Verify'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2">
+                  <Button onClick={verifyConnection} disabled={setupStatus === 'checking'} className="flex-1 gap-2">
+                    {setupStatus === 'checking'
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                      : <><CheckCircle2 className="w-4 h-4" /> Verify Connection</>
+                    }
+                  </Button>
+                  <Button onClick={() => setActiveTab('setup')} variant="outline">
+                    Manage Settings
+                  </Button>
                 </div>
-                <Button onClick={() => setActiveTab('setup')} variant="outline" className="w-full">
-                  Manage Settings
-                </Button>
               </CardContent>
             </Card>
 
@@ -187,8 +310,146 @@ export default function WhatsAppHub() {
         </TabsContent>
 
         {/* Setup Tab */}
-        <TabsContent value="setup">
-          <WhatsAppSetupGuide />
+        <TabsContent value="setup" className="space-y-5">
+          {/* Connection Status Card */}
+          {setupStatus === 'connected' && phoneInfo ? (
+            <Card className="border-2 border-green-500/40 bg-green-500/5">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="font-semibold text-green-700">WhatsApp Connected ✅</p>
+                    <p className="text-xs text-green-600">Your number is live and ready to receive messages</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-white border rounded-lg p-3 text-center">
+                    <Phone className="w-4 h-4 mx-auto mb-1 text-green-600" />
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="text-sm font-semibold">{phoneInfo.phone_number}</p>
+                  </div>
+                  <div className="bg-white border rounded-lg p-3 text-center">
+                    <Wifi className="w-4 h-4 mx-auto mb-1 text-blue-600" />
+                    <p className="text-xs text-muted-foreground">Display Name</p>
+                    <p className="text-sm font-semibold truncate">{phoneInfo.display_name}</p>
+                  </div>
+                  <div className="bg-white border rounded-lg p-3 text-center">
+                    <CheckCircle2 className="w-4 h-4 mx-auto mb-1 text-emerald-600" />
+                    <p className="text-xs text-muted-foreground">Quality</p>
+                    <p className="text-sm font-semibold">{phoneInfo.quality_rating || 'N/A'}</p>
+                  </div>
+                </div>
+                <Link to="/whatsapp">
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white gap-2 h-11">
+                    <MessageCircle className="w-4 h-4" />
+                    Open WhatsApp Inbox — View Your Chats
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className={`border-2 ${setupStatus === 'failed' ? 'border-red-400/40 bg-red-500/3' : 'border-border'}`}>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  {setupStatus === 'checking'
+                    ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    : setupStatus === 'failed'
+                    ? <AlertCircle className="w-5 h-5 text-red-500" />
+                    : <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                  }
+                  <div>
+                    <p className="font-medium text-sm">
+                      {setupStatus === 'checking' ? 'Checking connection...'
+                        : setupStatus === 'failed' ? 'Connection failed — check secrets below'
+                        : 'Not verified yet'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {setupStatus === 'failed'
+                        ? 'Make sure WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID are set in Base44 secrets'
+                        : 'Complete the steps below then click Verify'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Phone Number ID */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Badge className="bg-green-500/10 text-green-700 border-green-500/20 text-xs">Already Set</Badge>
+                Your Phone Number ID
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2.5">
+                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                <code className="text-sm font-mono font-semibold flex-1">
+                  {currentPhoneNumberId || 'Loading...'}
+                </code>
+                <Badge variant="outline" className="text-xs shrink-0">WHATSAPP_PHONE_NUMBER_ID</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Setup Steps */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Setup Steps</CardTitle>
+              <CardDescription className="text-xs">Follow these steps to get your access token and complete setup</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {SETUP_STEPS.map((step) => (
+                <div key={step.number} className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+                    {step.number}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{step.description}</p>
+                    {step.link && (
+                      <a href={step.link} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-1">
+                        <ExternalLink className="w-3 h-3" /> {step.linkLabel}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Webhook URL */}
+              <div className="mt-2 border rounded-lg p-3 bg-muted/30 space-y-2">
+                <p className="text-xs font-medium">Your Webhook Callback URL (for Step 5):</p>
+                <div className="flex items-center gap-2 bg-background border rounded-md px-3 py-2">
+                  <code className="text-xs flex-1 break-all text-green-700">{webhookUrl}</code>
+                  <Button size="icon" variant="ghost" className="shrink-0 h-7 w-7" onClick={copyWebhook}>
+                    {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Subscribe to webhook field: <code className="bg-muted px-1 rounded">messages</code></p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Verify Button */}
+          <Button
+            className="w-full h-11 bg-accent text-accent-foreground hover:bg-accent/90 text-base gap-2"
+            onClick={verifyConnection}
+            disabled={setupStatus === 'checking'}
+          >
+            {setupStatus === 'checking'
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+              : <><CheckCircle2 className="w-4 h-4" /> Verify Connection</>
+            }
+          </Button>
+
+          {setupStatus === 'connected' && (
+            <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={verifyConnection}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Re-check status
+            </Button>
+          )}
         </TabsContent>
 
         {/* Workflows Tab */}
@@ -207,14 +468,5 @@ export default function WhatsAppHub() {
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-function Send({ className }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
   );
 }
