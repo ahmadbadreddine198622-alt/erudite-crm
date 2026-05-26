@@ -6,24 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Search, Send, Loader2, ExternalLink, RefreshCw, Filter, CheckCheck } from 'lucide-react';
+import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
 import WhatsAppHeader from '@/components/whatsapp/WhatsAppHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
-import SmartReplies from '@/components/whatsapp/SmartReplies';
 import LeadScoreCard from '@/components/shared/LeadScoreCard';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
-import VoiceRecorder from '@/components/whatsapp/VoiceRecorder';
-import TemplateSelector from '@/components/whatsapp/TemplateSelector';
+import WhatsAppComposer from '@/components/whatsapp/WhatsAppComposer';
 import MobileInbox from '@/components/mobile/MobileInbox';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
   const [selectedConvId, setSelectedConvId] = useState(null);
   const [search, setSearch] = useState('');
-  const [reply, setReply] = useState('');
+
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all'); // all | unread | open | resolved
   const queryClient = useQueryClient();
@@ -107,7 +105,6 @@ export default function WhatsAppInbox() {
     mutationFn: ({ conversation_id, message }) =>
       base44.functions.invoke('sendWhatsAppMessage', { conversation_id, message }),
     onSuccess: () => {
-      setReply('');
       queryClient.invalidateQueries({ queryKey: ['wa_messages', selectedConvId] });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     },
@@ -121,9 +118,19 @@ export default function WhatsAppInbox() {
     },
   });
 
-  const handleSend = () => {
-    if (!reply.trim() || !selectedConvId) return;
-    sendMutation.mutate({ conversation_id: selectedConvId, message: reply.trim() });
+  const handleSend = (text) => {
+    if (!text?.trim() || !selectedConvId) return;
+    sendMutation.mutate({ conversation_id: selectedConvId, message: text.trim() });
+  };
+
+  const handleScheduleSend = (text, _minutes) => {
+    // TODO: schedule support — for now send immediately
+    handleSend(text);
+  };
+
+  const buildPitch = (rec) => {
+    if (rec.suggested_pitch) return rec.suggested_pitch;
+    return `I have a great property that matches your requirements:\n${rec.reasoning || ''}\n\nMatch score: ${rec.match_score}%`;
   };
 
   const handleSelectConv = (convId) => {
@@ -262,60 +269,25 @@ export default function WhatsAppInbox() {
               <TagsEditor conv={selectedConv} />
             </div>
 
-            {/* Smart Replies */}
-            <div className="border-t bg-muted/10 pt-2">
-              <SmartReplies conversationId={selectedConvId} onSelect={setReply} />
-            </div>
-
-            {/* Reply box */}
-            <div className="border-t p-3 space-y-2 shrink-0">
-              <VoiceRecorder onTranscribe={setReply} />
-              <div className="flex gap-2 items-end">
-                <Textarea
-                  value={reply}
-                  onChange={e => setReply(e.target.value)}
-                  placeholder="Type a message or use voice..."
-                  className="min-h-[60px] max-h-32 text-sm resize-none"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                  }}
-                />
-                <div className="flex flex-col gap-1">
-                  <Button
-                    size="icon"
-                    onClick={handleSend}
-                    disabled={!reply.trim() || sendMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                    title="Send (Enter)"
-                  >
-                    {sendMutation.isPending
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Send className="w-4 h-4" />}
-                  </Button>
-                  {selectedConv.status !== 'resolved' && (
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={handleMarkResolved}
-                      className="shrink-0 text-green-600 border-green-500/30 hover:bg-green-500/10"
-                      title="Mark Resolved"
-                    >
-                      <CheckCheck className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <TemplateSelector onSelectTemplate={setReply} />
-              </div>
-            </div>
+            <WhatsAppComposer
+              conversation={selectedConv}
+              suggestions={selectedConv.ai_next_message_suggestions}
+              onSend={handleSend}
+              onSendProperty={() => setShowInsights(true)}
+              onScheduleSend={handleScheduleSend}
+            />
           </div>
 
           {/* AI Insights sidebar */}
           {showInsights && (
             <div className="w-72 border-l shrink-0 overflow-y-auto p-3 space-y-4">
               <LeadScoreCard score={selectedScore} conversation={selectedConv} />
-              <AIInsightsPanel conv={selectedConv} lead={selectedLead} />
+              <AIInsightsPanel
+                conversation={selectedConv}
+                lead={selectedLead}
+                recommendations={selectedConv.ai_recommendations || []}
+                onSendProperty={rec => handleSend(buildPitch(rec))}
+              />
               <AutomationDashboard />
             </div>
           )}
