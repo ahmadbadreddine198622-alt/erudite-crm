@@ -57,13 +57,21 @@ Deno.serve(async (req) => {
     // ── UPDATE listing ──────────────────────────────────────────────────────
     if (action === 'update') {
       if (!listingId || !listing) return Response.json({ error: 'listingId and listing required' }, { status: 400 });
+      // Strip fields that PF API treats as read-only or rejects in PUT
+      const READONLY_FIELDS = ['id', 'reference', 'state', 'portals', 'status', 'createdAt', 'updatedAt',
+        'publicProfile', 'agent', 'assignedAgent', 'permitNumber', 'dld', 'qr'];
+      const cleanPayload = Object.fromEntries(
+        Object.entries(listing).filter(([k]) => !READONLY_FIELDS.includes(k))
+      );
       const res = await fetch(`${PF_BASE}/listings/${listingId}`, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(listing),
+        body: JSON.stringify(cleanPayload),
       });
-      const data = await res.json();
-      if (!res.ok) return Response.json({ error: data.message || 'Update failed: ' + res.status }, { status: 400 });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return Response.json({ error: data.message || data.error || 'Update failed: ' + res.status, details: data }, { status: 400 });
+      }
       return Response.json({ ok: true, listing: data });
     }
 

@@ -65,7 +65,7 @@ async function fetchPFListings(token, maxPages) {
   let page = 1;
   const perPage = 50;
   while (true) {
-    const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}&status=all`, {
+    const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}`, {
       headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
     });
     if (!res.ok) break;
@@ -73,11 +73,14 @@ async function fetchPFListings(token, maxPages) {
     const items = data.results || data.data || data.listings || data.items || [];
     if (items.length === 0) break;
     allItems.push(...items);
-    const pagination = data.pagination || {};
-    const total = pagination.total || data.total || 0;
+    const pagination = data.pagination || data.meta || {};
+    const total = pagination.total || pagination.totalCount || data.total || 0;
     if (total > 0 && allItems.length >= total) break;
-    if (!pagination.nextPage) break;
-    if (items.length < perPage) break;
+    // Check various "has next page" signals
+    const hasNext = pagination.nextPage || pagination.next || (data.links && data.links.next) ||
+      (pagination.currentPage && pagination.totalPages && pagination.currentPage < pagination.totalPages) ||
+      (pagination.page && pagination.pages && pagination.page < pagination.pages);
+    if (!hasNext && items.length < perPage) break;
     if (page >= maxPages) break;
     page++;
   }
@@ -168,7 +171,7 @@ Deno.serve(async (req) => {
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const { apiKey, apiSecret } = await getStoredCredentials(base44);
       const token = await getPFToken(apiKey, apiSecret);
-      const maxPages = body.maxPages || 4; // default: 200 listings
+      const maxPages = body.maxPages || 40; // up to 2000 listings
       const listings = await fetchPFListings(token, maxPages);
       return Response.json({ ok: true, listings: listings });
     }

@@ -222,7 +222,9 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
         onSuccess && onSuccess(res.data.listing);
         onClose();
       } else {
-        setError(res.data.error || 'Failed to save listing');
+        const errMsg = res.data.error || 'Failed to save listing';
+        const details = res.data.details ? JSON.stringify(res.data.details, null, 2) : '';
+        setError(errMsg + (details ? '\n\nDetails: ' + details : ''));
       }
     } catch (err) {
       setError(err.message || 'Failed to save listing');
