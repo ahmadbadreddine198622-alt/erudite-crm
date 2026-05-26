@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,6 +141,14 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Re-initialize form whenever dialog opens or editListing changes
+  useEffect(() => {
+    if (open) {
+      setForm(initForm());
+      setError(null);
+    }
+  }, [open, editListing]);
+
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }));
   }
@@ -157,8 +165,6 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
   function buildPayload() {
     const payload = {
       title: { en: form.title_en.trim(), ...(form.title_ar.trim() ? { ar: form.title_ar.trim() } : {}) },
-      description: { en: form.description_en.trim(), ...(form.description_ar.trim() ? { ar: form.description_ar.trim() } : {}) },
-      reference: form.reference.trim(),
       type: form.type,
       category: form.category,
       price: {
@@ -171,6 +177,11 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
       furnishingType: form.furnishingType,
       completionStatus: form.completionStatus,
     };
+    // Optional fields — only include if non-empty
+    if (form.reference.trim()) payload.reference = form.reference.trim();
+    if (form.description_en.trim()) {
+      payload.description = { en: form.description_en.trim(), ...(form.description_ar.trim() ? { ar: form.description_ar.trim() } : {}) };
+    }
     if (form.bedrooms !== '') payload.bedrooms = Number(form.bedrooms);
     if (form.bathrooms !== '') payload.bathrooms = Number(form.bathrooms);
     if (form.size !== '') payload.size = Number(form.size);
@@ -187,9 +198,9 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
     if (form.amenities.length > 0) payload.amenities = form.amenities;
     if (form.agentEmail || form.agentFirstName) {
       payload.assignedTo = {
-        email: form.agentEmail,
-        firstName: form.agentFirstName,
-        lastName: form.agentLastName,
+        ...(form.agentEmail ? { email: form.agentEmail } : {}),
+        ...(form.agentFirstName ? { firstName: form.agentFirstName } : {}),
+        ...(form.agentLastName ? { lastName: form.agentLastName } : {}),
         ...(form.agentPhone ? { phone: form.agentPhone } : {}),
       };
     }
@@ -198,7 +209,7 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
 
   async function handleSubmit() {
     if (!form.title_en.trim()) { setError('Title (English) is required'); return; }
-    if (!form.price) { setError('Price is required'); return; }
+    if (!form.price || isNaN(Number(form.price))) { setError('A valid price is required'); return; }
     setLoading(true);
     setError(null);
     try {

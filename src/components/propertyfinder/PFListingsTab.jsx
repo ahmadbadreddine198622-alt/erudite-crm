@@ -143,10 +143,8 @@ async function downloadSingleListingPDF(listing) {
 
   // ── Load hero image ─────────────────────────────────────────────────────────
   const allImgs = getAllImages(listing);
-  let heroBase64 = null;
-  if (allImgs[0]) heroBase64 = await loadBase64Image(allImgs[0]);
-  let img2Base64 = null;
-  if (allImgs[1]) img2Base64 = await loadBase64Image(allImgs[1]);
+  const loadedImgs = await Promise.all(allImgs.slice(0, 8).map(url => loadBase64Image(url)));
+  const heroBase64 = loadedImgs[0] || null;
 
   // ── PAGE 1: Cover ──────────────────────────────────────────────────────────
 
@@ -310,10 +308,22 @@ async function downloadSingleListingPDF(listing) {
 
   let y2 = 40;
 
-  // Second image (if available)
-  if (img2Base64) {
-    const h2 = await addImageFitted(doc, img2Base64, M, y2, W - 2 * M, 60);
-    y2 += h2 + 5;
+  // Gallery grid — show up to 6 remaining images in 2-column grid
+  const galleryImgs = loadedImgs.slice(1).filter(Boolean);
+  if (galleryImgs.length > 0) {
+    const cols = 2;
+    const imgW = (W - 2 * M - 4) / cols;
+    const imgH = 45;
+    for (let i = 0; i < Math.min(galleryImgs.length, 6); i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const gx = M + col * (imgW + 4);
+      const gy = y2 + row * (imgH + 4);
+      if (gy + imgH > 260) break; // avoid overflow
+      await addImageFitted(doc, galleryImgs[i], gx, gy, imgW, imgH);
+    }
+    const rows = Math.min(Math.ceil(Math.min(galleryImgs.length, 6) / cols), 3);
+    y2 += rows * (imgH + 4) + 6;
   }
 
   // Description
