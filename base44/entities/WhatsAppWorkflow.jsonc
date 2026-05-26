@@ -1,0 +1,90 @@
+{
+  "name": "WhatsAppWorkflow",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Workflow name"
+    },
+    "description": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false
+    },
+    "trigger": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "new_message",
+            "keyword_match",
+            "new_lead",
+            "no_reply",
+            "sentiment_change",
+            "stage_change"
+          ]
+        },
+        "config": {
+          "type": "object",
+          "description": "Trigger-specific config (keywords, delay_hours, stage, etc.)"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "condition",
+              "send_message",
+              "ai_reply",
+              "assign_agent",
+              "update_stage",
+              "wait",
+              "send_template",
+              "notify_agent",
+              "add_tag"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          },
+          "next_node_id": {
+            "type": "string"
+          },
+          "else_node_id": {
+            "type": "string",
+            "description": "For condition nodes"
+          }
+        }
+      }
+    },
+    "execution_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_triggered": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "trigger"
+  ]
+}

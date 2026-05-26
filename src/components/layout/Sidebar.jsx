@@ -26,6 +26,7 @@ const navItems = [
   { label: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
   { label: 'Inbox', icon: Inbox, path: '/inbox' },
   { label: 'Meta & Google Leads', icon: Zap, path: '/meta-ads-leads' },
+  { label: 'WhatsApp Setup & AI', icon: MessageCircle, path: '/whatsapp-setup' },
 ];
 
 export default function Sidebar() {

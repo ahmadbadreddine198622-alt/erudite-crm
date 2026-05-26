@@ -27,6 +27,7 @@ import MyDashboard from '@/pages/MyDashboard';
 import SalesAnalytics from '@/pages/SalesAnalytics';
 import Calendar from '@/pages/Calendar';
 import MetaAdsLeads from '@/pages/MetaAdsLeads';
+import WhatsAppSetup from '@/pages/WhatsAppSetup';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
         <Route path="/sales-analytics" element={<SalesAnalytics />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
+        <Route path="/whatsapp-setup" element={<WhatsAppSetup />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
