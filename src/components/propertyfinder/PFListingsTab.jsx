@@ -75,7 +75,7 @@ function getAllImages(l) {
   return imgs.map(f => (f.original && f.original.url) || (f.watermarked && f.watermarked.url) || f.url).filter(Boolean);
 }
 
-// ─── Image loader helper (via server-side proxy to avoid CORS) ───────────────
+// ─── Image loader helpers ─────────────────────────────────────────────────────────────────
 
 async function loadBase64Image(url) {
   try {
@@ -84,6 +84,35 @@ async function loadBase64Image(url) {
   } catch {
     return null;
   }
+}
+
+function getImgFormat(base64) {
+  if (!base64) return 'JPEG';
+  if (base64.includes('image/png')) return 'PNG';
+  if (base64.includes('image/webp')) return 'WEBP';
+  return 'JPEG';
+}
+
+function getImageNaturalDimensions(base64) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 16, h: 9 });
+    img.src = base64;
+  });
+}
+
+async function addImageFitted(doc, base64, x, y, maxW, maxH) {
+  if (!base64) return 0;
+  const fmt = getImgFormat(base64);
+  const { w, h } = await getImageNaturalDimensions(base64);
+  const ratio = w / h;
+  let imgW = maxW;
+  let imgH = imgW / ratio;
+  if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio; }
+  const offsetX = x + (maxW - imgW) / 2;
+  doc.addImage(base64, fmt, offsetX, y, imgW, imgH);
+  return imgH;
 }
 
 // ─── Single-listing branded PDF (Erudite Estate style) ───────────────────────
@@ -157,12 +186,10 @@ async function downloadSingleListingPDF(listing) {
 
   // Hero image area
   if (heroBase64) {
-    doc.addImage(heroBase64, 'JPEG', M, 32, W - 2 * M, 100);
-    // Dark gradient overlay at bottom of image
+    const heroH = await addImageFitted(doc, heroBase64, M, 32, W - 2 * M, 100);
+    // Dark overlay at bottom of image
     doc.setFillColor(15, 23, 42);
-    doc.setGState && doc.setGState(new doc.GState({ opacity: 0.55 }));
-    doc.rect(M, 105, W - 2 * M, 27, 'F');
-    doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
+    doc.rect(M, 32 + heroH - 20, W - 2 * M, 20, 'F');
   } else {
     doc.setFillColor(25, 35, 55);
     doc.roundedRect(M, 32, W - 2 * M, 100, 3, 3, 'F');
@@ -285,8 +312,8 @@ async function downloadSingleListingPDF(listing) {
 
   // Second image (if available)
   if (img2Base64) {
-    doc.addImage(img2Base64, 'JPEG', M, y2, W - 2 * M, 55);
-    y2 += 60;
+    const h2 = await addImageFitted(doc, img2Base64, M, y2, W - 2 * M, 60);
+    y2 += h2 + 5;
   }
 
   // Description

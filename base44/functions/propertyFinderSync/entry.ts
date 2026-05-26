@@ -54,18 +54,18 @@ async function fetchAllPFLeads(token) {
     if (total > 0 && leads.length >= total) break;
     if (items.length < perPage) break;
     page++;
-    if (page > 200) break; // safety cap at 10,000 leads
+    if (page > 6) break; // cap at 300 leads per sync to avoid 504 timeout
   }
   return leads;
 }
 
 async function fetchPFListings(token, maxPages) {
-  maxPages = maxPages || 4;
+  maxPages = maxPages || 20;
   const allItems = [];
   let page = 1;
   const perPage = 50;
   while (true) {
-    const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}`, {
+    const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}&status=all`, {
       headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
     });
     if (!res.ok) break;

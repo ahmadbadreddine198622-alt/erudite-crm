@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -18,31 +20,38 @@ Deno.serve(async (req) => {
       if (existing2 && existing2.length > 0 && existing2[0].api_secret) {
         api_secret = existing2[0].api_secret;
       } else {
-        return Response.json({ error: 'API secret is required' }, { status: 400 });
+        // Fall back to env var
+        api_secret = Deno.env.get('PROPERTY_FINDER_API_SECRET') || '';
+        if (!api_secret) return Response.json({ error: 'API secret is required' }, { status: 400 });
       }
     }
 
-    // Test credentials against PF API
+    // Test credentials using the correct PF atlas API
     let isConnected = false;
     let testMessage = '';
     try {
-      const pfRes = await fetch('https://rest.apigee.propertyfinder.ae/leads?limit=1&page=1', {
-        headers: {
-          'Authorization': `Basic ${btoa(`${api_key}:${api_secret}`)}`,
-          'Accept': 'application/json',
-        },
+      const authRes = await fetch(`${PF_BASE}/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ apiKey: api_key, apiSecret: api_secret }),
       });
-      if (pfRes.ok || pfRes.status === 200) {
-        isConnected = true;
-        testMessage = 'Connected successfully';
+      if (authRes.ok) {
+        const tokenData = await authRes.json();
+        if (tokenData.accessToken) {
+          isConnected = true;
+          testMessage = 'Connected successfully';
+        } else {
+          testMessage = 'Auth responded but no token returned';
+        }
       } else {
-        testMessage = `Authentication failed (HTTP ${pfRes.status})`;
+        const errBody = await authRes.text();
+        testMessage = `Authentication failed (HTTP ${authRes.status}): ${errBody.substring(0, 200)}`;
       }
     } catch (e) {
       testMessage = `Connection error: ${e.message}`;
     }
 
-    // Upsert: find existing record or create new
+    // Upsert
     const existing = await base44.asServiceRole.entities.PFCredential.list();
     const now = new Date().toISOString();
 
