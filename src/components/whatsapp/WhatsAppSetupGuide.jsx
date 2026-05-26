@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Copy, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
-const WEBHOOK_URL = 'https://preview-sandbox--69cabceaeeb8bb5e3a62ead3.base44.app/api/functions/whatsappWebhook';
+const WEBHOOK_URL = 'https://your-app.base44.app/functions/whatsappWebhook';
 
 export default function WhatsAppSetupGuide({ onClose }) {
   const [copied, setCopied] = useState(null);

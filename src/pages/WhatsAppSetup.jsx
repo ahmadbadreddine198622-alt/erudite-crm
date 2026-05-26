@@ -47,7 +47,7 @@ export default function WhatsAppSetup() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('setup'); // setup | workflows
 
-  const webhookUrl = `${window.location.origin}/api/functions/whatsappWebhook`;
+  const webhookUrl = `https://your-app.base44.app/functions/whatsappWebhook`;
 
   const verifyConnection = async () => {
     setStatus('checking');
