@@ -9,6 +9,7 @@ import { Loader2, X, Plus, Phone, Mail, MapPin, Building2, Calendar, Globe, User
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
+import WhatsAppPhone from '@/components/WhatsAppPhone';
 
 const PHONE_LABEL_COLORS = {
   mobile: 'bg-blue-500/10 text-blue-600',
@@ -166,7 +167,7 @@ export default function ContactDetail({ contactId, onClose }) {
                     set('phones', updated);
                   }} className="h-7 text-sm flex-1 font-mono" />
                 ) : (
-                  <span className="text-sm font-mono">{p.number}</span>
+                  <WhatsAppPhone phone={p.number} name={contact.name} leadId={contactId} size="xs" doNotContact={c.do_not_contact} />
                 )}
                 {p.is_primary && <span className="text-[10px] text-muted-foreground">primary</span>}
               </div>

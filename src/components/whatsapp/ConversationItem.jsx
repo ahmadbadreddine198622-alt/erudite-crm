@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Star } from 'lucide-react';
+import WhatsAppPhone from '@/components/WhatsAppPhone';
 
 const AVATAR_COLORS = ['bg-purple-500','bg-emerald-500','bg-orange-400','bg-red-500','bg-blue-500','bg-pink-500','bg-teal-500'];
 const avatarColor = (str) => AVATAR_COLORS[(str || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
@@ -63,10 +64,13 @@ export default function ConversationItem({ conv, lead, selected, onClick }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1">
-            <span className="text-sm font-semibold truncate text-gray-900 leading-snug">
-              {name}
-              {conv.is_starred && <Star className="inline w-3 h-3 text-amber-400 fill-amber-400 ml-0.5" />}
-            </span>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-sm font-semibold truncate text-gray-900 leading-snug">
+                {name}
+                {conv.is_starred && <Star className="inline w-3 h-3 text-amber-400 fill-amber-400 ml-0.5" />}
+              </span>
+              {displayPhone && <WhatsAppPhone phone={displayPhone} name={name} leadId={lead?.id} size="xs" showNumber={false} />}
+            </div>
             <span className="text-[11px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
           </div>
           <p className="text-xs text-gray-500 truncate mt-0.5">{conv.last_message || '—'}</p>
