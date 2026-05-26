@@ -79,23 +79,14 @@ export default function PFSettingsPanel() {
 
           <div className="space-y-1.5">
             <Label htmlFor="api-secret">API Secret</Label>
-            <div className="relative">
-              <Input
-                id="api-secret"
-                type={showSecret ? 'text' : 'password'}
-                placeholder="Enter your PF API Secret"
-                value={apiSecret}
-                onChange={e => setApiSecret(e.target.value)}
-                className="pr-10 font-mono text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowSecret(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
+            <Input
+              id="api-secret"
+              type="password"
+              placeholder="Enter your PF API Secret"
+              value={apiSecret}
+              onChange={e => setApiSecret(e.target.value)}
+              className="font-mono text-sm"
+            />
           </div>
 
           <Button
