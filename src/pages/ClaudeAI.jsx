@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,8 @@ import ReactMarkdown from 'react-markdown';
 import {
   Bot, Send, Sparkles, Users, BarChart3, Loader2,
   ChevronRight, Copy, Check, Zap, Brain, TrendingUp, AlertTriangle,
-  PlusCircle, Database, Bell, FileText, UserCheck
+  PlusCircle, Database, Bell, FileText, UserCheck, Home, DollarSign,
+  MessageSquare, ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,13 +22,17 @@ const QUICK_ACTIONS = [
 
 const PROMPT_SUGGESTIONS = [
   "Which leads should I follow up with today?",
-  "Create reminders for my hot leads this week",
+  "Create a reminder for each hot lead to call them this week",
+  "Summarize all active offers and their status",
   "Write a WhatsApp message for a lead after a viewing",
-  "Update all new_lead stage contacts to contacted",
-  "What's my best lead source and why?",
-  "Add a note to all stale leads saying I'll call tomorrow",
-  "Which leads are most likely to close this month?",
-  "Tag my top 5 leads as VIP",
+  "Which commission payments are pending and what's the total?",
+  "List all properties available for sale with their prices",
+  "Which WhatsApp conversations need urgent attention?",
+  "Show me all stale leads and create follow-up reminders",
+  "What's my pipeline conversion rate from viewing to offer?",
+  "Tag my top 5 leads as VIP and schedule callbacks",
+  "Analyze my closed_lost leads and find patterns",
+  "Which agent has the most leads assigned?",
 ];
 
 function MessageBubble({ msg }) {
@@ -112,6 +118,40 @@ export default function ClaudeAI() {
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
   const bottomRef = useRef(null);
+
+  const { data: crmStats } = useQuery({
+    queryKey: ['claude-crm-stats'],
+    queryFn: async () => {
+      const [leads, properties, reminders, commissions, offers, conversations] = await Promise.all([
+        base44.entities.Lead.list('-updated_date', 1, 0).catch(() => []),
+        base44.entities.Property.list('-updated_date', 1, 0).catch(() => []),
+        base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 1, 0).catch(() => []),
+        base44.entities.Commission.filter({ status: 'pending' }, '-created_date', 1, 0).catch(() => []),
+        base44.entities.Offer.list('-created_date', 1, 0).catch(() => []),
+        base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 1, 0).catch(() => []),
+      ]);
+      // get actual counts by fetching more
+      const [allLeads, allProps, allRem, allComm, allOffers, allConvos] = await Promise.all([
+        base44.entities.Lead.list('-updated_date', 200).catch(() => []),
+        base44.entities.Property.list('-updated_date', 100).catch(() => []),
+        base44.entities.Reminder.filter({ status: 'pending' }).catch(() => []),
+        base44.entities.Commission.filter({ status: 'pending' }).catch(() => []),
+        base44.entities.Offer.list('-created_date', 50).catch(() => []),
+        base44.entities.WhatsAppConversation.filter({ status: 'open' }).catch(() => []),
+      ]);
+      return {
+        leads: allLeads.length,
+        properties: allProps.length,
+        reminders: allRem.length,
+        commissions: allComm.length,
+        offers: allOffers.length,
+        conversations: allConvos.length,
+        hot_leads: allLeads.filter(l => l.qualification_status === 'hot').length,
+        stale_leads: allLeads.filter(l => (l.inactivity_days || 0) > 7).length,
+      };
+    },
+    staleTime: 60 * 1000,
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -231,19 +271,41 @@ export default function ClaudeAI() {
           </div>
         </div>
 
-        <div className="p-4 border-t">
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 space-y-1.5">
+        <div className="p-4 border-t space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Live CRM Data</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { icon: Users, label: 'Leads', value: crmStats?.leads, color: 'text-blue-600' },
+              { icon: Home, label: 'Properties', value: crmStats?.properties, color: 'text-green-600' },
+              { icon: Bell, label: 'Reminders', value: crmStats?.reminders, color: 'text-amber-600' },
+              { icon: DollarSign, label: 'Pending $', value: crmStats?.commissions, color: 'text-purple-600' },
+              { icon: FileText, label: 'Offers', value: crmStats?.offers, color: 'text-rose-600' },
+              { icon: MessageSquare, label: 'WA Open', value: crmStats?.conversations, color: 'text-teal-600' },
+            ].map(({ icon: Icon, label, value, color }) => (
+              <div key={label} className="bg-muted/50 rounded-lg p-2 flex items-center gap-2">
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold leading-none">{value ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {crmStats && (
+            <div className="flex gap-2">
+              <div className="flex-1 bg-red-500/10 rounded-lg p-2 text-center">
+                <p className="text-xs font-bold text-red-600">{crmStats.stale_leads}</p>
+                <p className="text-xs text-muted-foreground">Stale</p>
+              </div>
+              <div className="flex-1 bg-green-500/10 rounded-lg p-2 text-center">
+                <p className="text-xs font-bold text-green-600">{crmStats.hot_leads}</p>
+                <p className="text-xs text-muted-foreground">Hot Leads</p>
+              </div>
+            </div>
+          )}
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5">
             <div className="flex items-center gap-1.5 text-xs font-medium text-purple-700">
-              <Database className="w-3 h-3" /> Full CRM read/write access
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Bell className="w-3 h-3" /> Can create reminders
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <UserCheck className="w-3 h-3" /> Can update leads and stages
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <FileText className="w-3 h-3" /> Can log activities and notes
+              <Database className="w-3 h-3" /> Claude sees all data above
             </div>
           </div>
         </div>

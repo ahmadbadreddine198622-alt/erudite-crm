@@ -76,10 +76,13 @@ async function getFullCRMContext(base44) {
     if (batch.length < 100) break;
   }
 
-  const [properties, reminders, commissions] = await Promise.all([
+  const [properties, reminders, commissions, offers, recentActivities, conversations] = await Promise.all([
     base44.asServiceRole.entities.Property.list('-updated_date', 50).catch(() => []),
-    base44.asServiceRole.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20).catch(() => []),
-    base44.asServiceRole.entities.Commission.list('-created_date', 20).catch(() => []),
+    base44.asServiceRole.entities.Reminder.filter({ status: 'pending' }, '-due_date', 30).catch(() => []),
+    base44.asServiceRole.entities.Commission.list('-created_date', 50).catch(() => []),
+    base44.asServiceRole.entities.Offer.list('-created_date', 30).catch(() => []),
+    base44.asServiceRole.entities.Activity.list('-created_date', 50).catch(() => []),
+    base44.asServiceRole.entities.WhatsAppConversation.list('-last_message_at', 20).catch(() => []),
   ]);
 
   const stageMap = leads.reduce((a, l) => { a[l.stage] = (a[l.stage] || 0) + 1; return a; }, {});
@@ -87,35 +90,73 @@ async function getFullCRMContext(base44) {
   const hotLeads = leads.filter(l => l.qualification_status === 'hot' || (l.lead_score || 0) >= 70);
   const staleLeads = leads.filter(l => (l.inactivity_days || 0) > 7);
   const totalRevenue = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
+  const pendingCommission = commissions.filter(c => c.status === 'pending').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
+  const activeOffers = offers.filter(o => ['submitted', 'countered'].includes(o.status));
 
   return {
+    // Summary
     total_leads: leads.length,
-    stage_distribution: stageMap,
-    source_distribution: sourceMap,
     hot_leads_count: hotLeads.length,
     stale_leads_count: staleLeads.length,
     properties_count: properties.length,
-    pending_reminders: reminders.length,
+    pending_reminders_count: reminders.length,
     total_paid_commission_aed: totalRevenue,
+    pending_commission_aed: pendingCommission,
+    active_offers_count: activeOffers.length,
+    total_activities: recentActivities.length,
+    open_whatsapp_conversations: conversations.filter(c => c.status === 'open').length,
+
+    // Distributions
+    stage_distribution: stageMap,
+    source_distribution: sourceMap,
+
+    // All leads (full)
     all_leads: leads.map(l => ({
-      id: l.id,
-      name: l.name,
-      phone: l.phone,
-      email: l.email,
-      stage: l.stage,
-      source: l.source,
-      score: l.lead_score,
-      qualification: l.qualification_status,
-      budget_aed: l.budget_aed,
-      assigned_agent: l.assigned_agent_name,
-      inactivity_days: l.inactivity_days,
-      next_follow_up: l.next_follow_up,
-      tags: l.tags,
-      notes: l.notes,
-      project_layer: l.project_layer,
+      id: l.id, name: l.name, phone: l.phone, email: l.email,
+      stage: l.stage, source: l.source, score: l.lead_score,
+      qualification: l.qualification_status, budget_aed: l.budget_aed,
+      assigned_agent: l.assigned_agent_name, inactivity_days: l.inactivity_days,
+      next_follow_up: l.next_follow_up, tags: l.tags, notes: l.notes,
+      project_layer: l.project_layer, nationality: l.nationality,
     })),
-    pending_reminders_list: reminders.map(r => ({ id: r.id, title: r.title, due_date: r.due_date, lead_name: r.lead_name, priority: r.priority })),
-    recent_properties: properties.slice(0, 10).map(p => ({ id: p.id, title: p.title, type: p.property_type, price: p.price_aed, status: p.status })),
+
+    // Properties
+    properties: properties.map(p => ({
+      id: p.id, title: p.title, type: p.property_type,
+      price: p.price_aed, status: p.status, bedrooms: p.bedrooms,
+      area: p.area_sqft, location: p.location,
+    })),
+
+    // Commissions
+    commissions: commissions.map(c => ({
+      id: c.id, agent: c.agent_name, deal_value: c.deal_value_aed,
+      amount: c.commission_amount_aed, status: c.status, deal_type: c.deal_type, closing_date: c.closing_date,
+    })),
+
+    // Offers
+    active_offers: offers.map(o => ({
+      id: o.id, lead_name: o.lead_name, property_title: o.property_title,
+      amount: o.offer_amount_aed, asking: o.asking_price_aed,
+      status: o.status, agent: o.agent_name,
+    })),
+
+    // Recent activities
+    recent_activities: recentActivities.slice(0, 30).map(a => ({
+      lead_id: a.lead_id, type: a.type, title: a.title,
+      outcome: a.outcome, agent: a.agent_name, created: a.created_date,
+    })),
+
+    // Reminders
+    pending_reminders: reminders.map(r => ({
+      id: r.id, title: r.title, due_date: r.due_date,
+      lead_name: r.lead_name, priority: r.priority, type: r.type,
+    })),
+
+    // WhatsApp
+    whatsapp_conversations: conversations.map(c => ({
+      lead_id: c.lead_id, status: c.status, unread: c.unread_count,
+      last_message: c.last_message, sentiment: c.ai_sentiment, urgency: c.ai_urgency,
+    })),
   };
 }
 
