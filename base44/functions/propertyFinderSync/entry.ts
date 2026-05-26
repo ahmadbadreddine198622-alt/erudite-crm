@@ -34,13 +34,18 @@ async function fetchAllPFLeads(token) {
   const leads = [];
   let page = 1;
   const perPage = 50;
-  while (true) {
+  let consecutiveEmpty = 0;
+  while (consecutiveEmpty < 2) {
     const data = await fetchPFLeadsPage(token, page, perPage);
     const items = data.data || data.leads || data.items || [];
+    if (items.length === 0) { consecutiveEmpty++; break; }
+    consecutiveEmpty = 0;
     leads.push(...items);
-    const total = (data.meta && data.meta.total) ? data.meta.total : (data.total || 0);
-    if (leads.length >= total || items.length < perPage) break;
+    const total = (data.meta && data.meta.total) ? Number(data.meta.total) : (data.total ? Number(data.total) : 0);
+    if (total > 0 && leads.length >= total) break;
+    if (items.length < perPage) break;
     page++;
+    if (page > 200) break; // safety cap at 10,000 leads
   }
   return leads;
 }
@@ -56,10 +61,13 @@ async function fetchPFListings(token) {
     if (!res.ok) break;
     const data = await res.json();
     const items = data.data || data.listings || data.items || [];
+    if (items.length === 0) break;
     leads.push(...items);
-    const total = (data.meta && data.meta.total) ? data.meta.total : (data.total || 0);
-    if (leads.length >= total || items.length < perPage) break;
+    const total = (data.meta && data.meta.total) ? Number(data.meta.total) : (data.total ? Number(data.total) : 0);
+    if (total > 0 && leads.length >= total) break;
+    if (items.length < perPage) break;
     page++;
+    if (page > 100) break;
   }
   return leads;
 }

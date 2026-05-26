@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle2, AlertCircle, Users, Phone, MessageCircle, Mail, Clock, TrendingUp, UserCheck, Home } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, Users, Phone, MessageCircle, Mail, Clock, TrendingUp, UserCheck, Home, List } from 'lucide-react';
+import PFByListingTab from '@/components/propertyfinder/PFByListingTab';
 import PFLeadsTab from '@/components/propertyfinder/PFLeadsTab';
 import PFListingsTab from '@/components/propertyfinder/PFListingsTab';
 
@@ -25,7 +26,7 @@ export default function PropertyFinderSync() {
 
   const { data: pfLeads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pf-leads'],
-    queryFn: () => base44.entities.Lead.filter({ source: 'property_finder' }, '-created_date', 500),
+    queryFn: () => base44.entities.Lead.filter({ source: 'property_finder' }, '-created_date', 2000),
   });
 
   async function handleSync() {
@@ -137,6 +138,9 @@ export default function PropertyFinderSync() {
           <TabsTrigger value="listings" className="gap-2">
             <Home className="w-4 h-4" /> My Listings
           </TabsTrigger>
+          <TabsTrigger value="by-listing" className="gap-2">
+            <List className="w-4 h-4" /> By Listing
+          </TabsTrigger>
           <TabsTrigger value="insights" className="gap-2">
             <TrendingUp className="w-4 h-4" /> Insights
           </TabsTrigger>
@@ -148,6 +152,10 @@ export default function PropertyFinderSync() {
 
         <TabsContent value="listings" className="mt-4">
           <PFListingsTab />
+        </TabsContent>
+
+        <TabsContent value="by-listing" className="mt-4">
+          <PFByListingTab leads={pfLeads} channelConfig={channelConfig} />
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
