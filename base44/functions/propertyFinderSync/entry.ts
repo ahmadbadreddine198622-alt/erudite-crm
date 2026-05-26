@@ -19,19 +19,23 @@ async function getPFToken() {
   return data.accessToken;
 }
 
+async function fetchPFLeadsPage(token, page, perPage) {
+  const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}`, {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('PF leads fetch failed: ' + res.status + ' ' + body);
+  }
+  return await res.json();
+}
+
 async function fetchAllPFLeads(token) {
   const leads = [];
   let page = 1;
   const perPage = 50;
   while (true) {
-    const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}`, {
-      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error('PF leads fetch failed: ' + res.status + ' ' + body);
-    }
-    const data = await res.json();
+    const data = await fetchPFLeadsPage(token, page, perPage);
     const items = data.data || data.leads || data.items || [];
     leads.push(...items);
     const total = (data.meta && data.meta.total) ? data.meta.total : (data.total || 0);
@@ -41,25 +45,73 @@ async function fetchAllPFLeads(token) {
   return leads;
 }
 
+async function fetchPFListings(token) {
+  const leads = [];
+  let page = 1;
+  const perPage = 50;
+  while (true) {
+    const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+    });
+    if (!res.ok) break;
+    const data = await res.json();
+    const items = data.data || data.listings || data.items || [];
+    leads.push(...items);
+    const total = (data.meta && data.meta.total) ? data.meta.total : (data.total || 0);
+    if (leads.length >= total || items.length < perPage) break;
+    page++;
+  }
+  return leads;
+}
+
+function getSenderContact(sender, type) {
+  if (!sender || !sender.contacts) return '';
+  const c = sender.contacts.find(function(x) { return x.type === type; });
+  return c ? c.value : '';
+}
+
 function mapPFLeadToCRM(pfLead) {
-  const firstName = pfLead.firstName || '';
-  const lastName = pfLead.lastName || '';
-  const name = (firstName + ' ' + lastName).trim() || pfLead.name || 'Unknown';
+  // sender holds the real contact info
+  const sender = pfLead.sender || {};
+  const name = sender.name || pfLead.name || pfLead.fullName || 'Unknown';
+  const phone = getSenderContact(sender, 'phone') || pfLead.phone || pfLead.phoneNumber || '';
+  const email = getSenderContact(sender, 'email') || pfLead.email || '';
+  const channel = pfLead.channel || 'unknown';
+
+  const listingId = pfLead.listing ? String(pfLead.listing.id || pfLead.listing.reference || '') : '';
+  const listingRef = pfLead.listing ? String(pfLead.listing.reference || '') : '';
+
+  const agentName = (pfLead.agent && pfLead.agent.name) ? pfLead.agent.name :
+    ((pfLead.agent && pfLead.agent.firstName) ? (pfLead.agent.firstName + ' ' + (pfLead.agent.lastName || '')).trim() : '');
+  const agentEmail = (pfLead.agent && pfLead.agent.email) ? pfLead.agent.email : '';
+
+  const hasCallRecording = pfLead.call && pfLead.call.recordFile ? pfLead.call.recordFile : '';
+
   return {
     name: name,
-    phone: pfLead.phone || pfLead.phoneNumber || '',
-    email: pfLead.email || '',
+    phone: phone,
+    email: email,
     source: 'property_finder',
     source_metadata: {
-      pf_lead_id: String(pfLead.id || pfLead.leadId || ''),
-      listing_id: String((pfLead.listing && pfLead.listing.id) ? pfLead.listing.id : (pfLead.listingId || '')),
-      listing_title: (pfLead.listing && pfLead.listing.title) ? pfLead.listing.title : '',
+      pf_lead_id: String(pfLead.id || ''),
+      listing_id: listingId,
+      listing_reference: listingRef,
+      channel: channel,
       pf_created_at: pfLead.createdAt || '',
-      message: pfLead.message || pfLead.notes || '',
+      pf_status: pfLead.status || '',
+      message: pfLead.message || pfLead.body || '',
+      pf_agent_name: agentName,
+      pf_agent_email: agentEmail,
+      call_recording: hasCallRecording,
+      entity_type: pfLead.entityType || '',
+      public_profile_id: pfLead.publicProfile ? String(pfLead.publicProfile.id || '') : '',
+      response_link: pfLead.responseLink || '',
     },
-    notes: pfLead.message || pfLead.notes || '',
+    notes: pfLead.message || pfLead.body || '',
     stage: 'new_lead',
     relationship_type: 'buyer',
+    assigned_agent: agentEmail || undefined,
+    assigned_agent_name: agentName || undefined,
   };
 }
 
@@ -69,12 +121,22 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || 'sync';
 
+    // Fetch PF listings
+    if (mode === 'listings') {
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const token = await getPFToken();
+      const listings = await fetchPFListings(token);
+      return Response.json({ ok: true, listings: listings });
+    }
+
+    // Webhook mode
     if (mode === 'webhook') {
       const pfLead = body.data || body.lead || body.payload || body;
-      if (!pfLead || (!pfLead.id && !pfLead.leadId)) {
+      if (!pfLead || !pfLead.id) {
         return Response.json({ ok: true, message: 'No lead data in webhook' });
       }
-      const pfLeadId = String(pfLead.id || pfLead.leadId);
+      const pfLeadId = String(pfLead.id);
       const crmData = mapPFLeadToCRM(pfLead);
       const existing = await base44.asServiceRole.entities.Lead.filter({ source: 'property_finder' });
       const match = existing.find(function(l) {
@@ -89,7 +151,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // sync mode
+    // Sync mode (default)
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -110,7 +172,7 @@ Deno.serve(async (req) => {
 
     for (const pfLead of pfLeads) {
       try {
-        const pfLeadId = String(pfLead.id || pfLead.leadId || '');
+        const pfLeadId = String(pfLead.id || '');
         if (!pfLeadId) continue;
         const crmData = mapPFLeadToCRM(pfLead);
         if (existingMap[pfLeadId]) {
