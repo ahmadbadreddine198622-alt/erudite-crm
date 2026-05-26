@@ -75,18 +75,12 @@ function getAllImages(l) {
   return imgs.map(f => (f.original && f.original.url) || (f.watermarked && f.watermarked.url) || f.url).filter(Boolean);
 }
 
-// ─── Image loader helper ─────────────────────────────────────────────────────
+// ─── Image loader helper (via server-side proxy to avoid CORS) ───────────────
 
 async function loadBase64Image(url) {
   try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    const res = await base44.functions.invoke('proxyImage', { url });
+    return res.data && res.data.base64 ? res.data.base64 : null;
   } catch {
     return null;
   }
