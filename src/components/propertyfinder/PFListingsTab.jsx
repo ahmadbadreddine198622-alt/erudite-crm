@@ -23,7 +23,7 @@ const statusColors = {
 function getPFLink(l) {
   const ref = l.reference;
   if (!ref) return null;
-  return `https://www.propertyfinder.ae/en/buy/${encodeURIComponent(ref.replace(/\s+/g, '-')).toLowerCase()}.html`;
+  return `https://www.propertyfinder.ae/property-detail/${ref}`;
 }
 function getTitle(l) {
   if (l.title && typeof l.title === 'object') return l.title.en || l.title.ar || '';
