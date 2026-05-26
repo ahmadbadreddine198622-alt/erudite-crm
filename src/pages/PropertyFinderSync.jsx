@@ -5,7 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CheckCircle2, AlertCircle, Users, Phone, MessageCircle, Mail, Clock, TrendingUp, UserCheck, Home, List } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import PFByListingTab from '@/components/propertyfinder/PFByListingTab';
+import InsightsDashboard from '@/components/propertyfinder/InsightsDashboard';
 import PFLeadsTab from '@/components/propertyfinder/PFLeadsTab';
 import PFListingsTab from '@/components/propertyfinder/PFListingsTab';
 
@@ -159,99 +161,7 @@ export default function PropertyFinderSync() {
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-accent" /> Leads by Channel
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Object.entries(channelCounts).map(([ch, count]) => {
-                  const cfg = channelConfig[ch] || channelConfig.unknown;
-                  const pct = pfLeads.length > 0 ? Math.round((count / pfLeads.length) * 100) : 0;
-                  return (
-                    <div key={ch}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
-                        <span className="font-semibold">{count} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div className="bg-accent h-1.5 rounded-full" style={{ width: pct + '%' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {Object.keys(channelCounts).length === 0 && <p className="text-sm text-muted-foreground">No data yet</p>}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-accent" /> Leads by Agent
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Object.entries(agentCounts).sort((a, b) => b[1] - a[1]).map(([agent, count]) => {
-                  const pct = pfLeads.length > 0 ? Math.round((count / pfLeads.length) * 100) : 0;
-                  return (
-                    <div key={agent}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="font-medium truncate max-w-[200px]">{agent}</span>
-                        <span className="font-semibold shrink-0">{count} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div className="bg-primary h-1.5 rounded-full" style={{ width: pct + '%' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {Object.keys(agentCounts).length === 0 && <p className="text-sm text-muted-foreground">No agent data</p>}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-accent" /> Pipeline Stage Distribution
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {['new_lead','contacted','viewing_scheduled','viewing_done','negotiation','offer_made','closed_won','closed_lost'].map(stage => {
-                  const count = pfLeads.filter(l => l.stage === stage).length;
-                  if (count === 0) return null;
-                  const pct = Math.round((count / pfLeads.length) * 100);
-                  return (
-                    <div key={stage}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="capitalize">{stage.replace(/_/g, ' ')}</span>
-                        <span className="font-semibold">{count} <span className="text-muted-foreground font-normal">({pct}%)</span></span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div className="bg-primary/60 h-1.5 rounded-full" style={{ width: pct + '%' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-primary/5 border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary" /> Auto-Sync Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-700 font-medium">Active — every 1 hour</span>
-                </div>
-                <p className="text-muted-foreground text-xs">New leads are auto-imported. Existing leads stay updated while preserving your CRM pipeline stage.</p>
-              </CardContent>
-            </Card>
-          </div>
+          <InsightsDashboard pfLeads={pfLeads} channelCounts={channelCounts} agentCounts={agentCounts} channelConfig={channelConfig} />
         </TabsContent>
       </Tabs>
     </div>
