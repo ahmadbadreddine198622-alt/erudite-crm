@@ -857,7 +857,7 @@ export default function PFListingsTab() {
                       </button>
                       {pfLink && (
                         <a href={pfLink} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:underline">
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground rounded text-xs font-medium transition-all">
                           <ExternalLink className="w-3 h-3" /> PF
                         </a>
                       )}
