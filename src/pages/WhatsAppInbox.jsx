@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Search, Send, Loader2, ExternalLink, RefreshCw, Filter, CheckCheck } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
-import ChatHeader from '@/components/whatsapp/ChatHeader';
+import WhatsAppHeader from '@/components/whatsapp/WhatsAppHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
 import TagsEditor from '@/components/whatsapp/TagsEditor';
@@ -66,6 +66,25 @@ export default function WhatsAppInbox() {
 
   const selectedConv = conversations.find(c => c.id === selectedConvId) || null;
   const selectedLead = leads.find(l => l.id === selectedConv?.lead_id) || null;
+
+  const handleAction = (action, payload) => {
+    if (!selectedConvId) return;
+    if (action === 'toggle_vip') {
+      base44.entities.WhatsAppConversation.update(selectedConvId, { is_vip: !selectedConv.is_vip });
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    } else if (action === 'toggle_star') {
+      base44.entities.WhatsAppConversation.update(selectedConvId, { is_starred: !selectedConv.is_starred });
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    } else if (action === 'block') {
+      base44.entities.WhatsAppConversation.update(selectedConvId, { status: 'blocked' });
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    } else if (action === 'set_stage' && selectedLead) {
+      base44.entities.Lead.update(selectedLead.id, { stage: payload });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } else if (action === 'schedule_viewing') {
+      // handled by existing schedule viewing dialog
+    }
+  };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
 
   // Filter + search
@@ -211,13 +230,11 @@ export default function WhatsAppInbox() {
       {selectedConv ? (
         <div className="flex flex-1 min-w-0">
           <div className="flex flex-col flex-1 min-w-0">
-            <ChatHeader
-              lead={selectedLead}
+            <WhatsAppHeader
               conversation={selectedConv}
-              onAnalyze={() => analyzeMutation.mutate(selectedConvId)}
-              onToggleInsights={() => setShowInsights(v => !v)}
-              analyzing={analyzeMutation.isPending}
-              showingInsights={showInsights}
+              lead={selectedLead}
+              agent={null}
+              onAction={handleAction}
             />
 
             {/* Resolved banner */}
