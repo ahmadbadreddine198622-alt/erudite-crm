@@ -2,367 +2,731 @@
   "name": "Lead",
   "type": "object",
   "properties": {
-    "name": {
+    "full_name": {
       "type": "string",
-      "description": "Full name of the contact"
+      "description": "Lead's full name"
     },
-    "phones": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "enum": [
-              "mobile",
-              "whatsapp",
-              "work",
-              "home",
-              "other"
-            ]
-          },
-          "number": {
-            "type": "string"
-          },
-          "is_primary": {
-            "type": "boolean"
-          }
-        }
-      },
-      "description": "Multiple phone numbers with labels"
+    "first_name": {
+      "type": "string"
     },
-    "phone": {
-      "type": "string",
-      "description": "Primary phone (legacy/quick access)"
-    },
-    "emails": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "enum": [
-              "personal",
-              "work",
-              "other"
-            ]
-          },
-          "address": {
-            "type": "string"
-          },
-          "is_primary": {
-            "type": "boolean"
-          }
-        }
-      },
-      "description": "Multiple email addresses with labels"
+    "last_name": {
+      "type": "string"
     },
     "email": {
       "type": "string",
-      "description": "Primary email (legacy/quick access)"
+      "format": "email"
     },
-    "nationality": {
+    "phone": {
       "type": "string",
-      "description": "Country of nationality"
+      "description": "Primary phone (E.164 format preferred)"
     },
-    "language": {
+    "whatsapp": {
       "type": "string",
-      "description": "Preferred communication language"
+      "description": "WhatsApp number if different from phone"
     },
-    "timezone": {
-      "type": "string",
-      "description": "Contact's timezone"
-    },
-    "location": {
-      "type": "object",
-      "properties": {
-        "address": {
-          "type": "string"
-        },
-        "city": {
-          "type": "string"
-        },
-        "country": {
-          "type": "string"
-        },
-        "latitude": {
-          "type": "number"
-        },
-        "longitude": {
-          "type": "number"
-        }
-      },
-      "description": "Contact's location details"
-    },
-    "organization": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Company or tower/building name"
-        },
-        "role": {
-          "type": "string",
-          "description": "Job title or role"
-        },
-        "unit_number": {
-          "type": "string"
-        },
-        "floor": {
-          "type": "string"
-        },
-        "tower": {
-          "type": "string"
-        }
-      },
-      "description": "Linked organization, office, or building"
-    },
-    "relationship_type": {
+    "preferred_language": {
       "type": "string",
       "enum": [
-        "buyer",
-        "seller",
-        "investor",
-        "tenant",
-        "landlord",
-        "agent",
-        "developer",
-        "partner",
-        "other"
+        "en",
+        "ar",
+        "fr",
+        "ru",
+        "zh",
+        "hi",
+        "ur",
+        "fa"
       ],
-      "description": "How this contact relates to the business"
+      "default": "en"
+    },
+    "nationality": {
+      "type": "string"
+    },
+    "residence_country": {
+      "type": "string"
+    },
+    "preferred_contact_channel": {
+      "type": "string",
+      "enum": [
+        "phone",
+        "whatsapp",
+        "email",
+        "sms",
+        "in_person"
+      ],
+      "default": "whatsapp"
+    },
+    "preferred_contact_time": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "afternoon",
+        "evening",
+        "weekend",
+        "anytime"
+      ]
     },
     "source": {
       "type": "string",
       "enum": [
+        "website",
         "property_finder",
         "bayut",
-        "whatsapp",
+        "dubizzle",
+        "facebook",
+        "instagram",
+        "tiktok",
+        "google_ads",
         "referral",
-        "website",
         "walk_in",
-        "social_media",
-        "email",
-        "import",
+        "cold_call",
+        "event",
+        "portal_inquiry",
+        "whatsapp_campaign",
         "other"
       ],
-      "description": "Lead acquisition source"
+      "description": "Where the lead came from"
     },
-    "source_metadata": {
-      "type": "object",
-      "description": "Source-specific data (form_url, utm_params, whatsapp_id, etc.)"
+    "source_campaign": {
+      "type": "string",
+      "description": "UTM/campaign tag"
+    },
+    "referrer_lead_id": {
+      "type": "string",
+      "description": "If referred, which lead referred them"
+    },
+    "first_touch_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_touch_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "stage": {
       "type": "string",
       "enum": [
-        "new_lead",
+        "new",
         "contacted",
+        "qualified",
+        "nurturing",
         "viewing_scheduled",
-        "viewing_done",
-        "negotiation",
         "offer_made",
-        "closed_won",
-        "closed_lost"
+        "negotiating",
+        "contract_sent",
+        "won",
+        "lost",
+        "on_hold"
       ],
-      "default": "new_lead",
-      "description": "Current pipeline stage"
+      "default": "new",
+      "description": "Pipeline stage"
     },
-    "project_layer": {
-      "type": "string",
-      "enum": [
-        "peninsula-three",
-        "jumeirah-living",
-        "six-senses",
-        "peninsula-four"
-      ],
-      "description": "Project layer assignment (determines kanban column)"
-    },
-    "tags": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "User-defined tags"
-    },
-    "auto_tags": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "AI-generated tags"
-    },
-    "notes": {
-      "type": "string",
-      "description": "General notes"
-    },
-    "custom_fields": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "number",
-              "date",
-              "boolean",
-              "url"
-            ]
-          }
-        }
-      },
-      "description": "User-defined custom fields"
-    },
-    "attachments": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "document",
-              "image",
-              "contract",
-              "id",
-              "other"
-            ]
-          },
-          "uploaded_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "description": "File attachments (docs, images, contracts)"
-    },
-    "property_preferences": {
-      "type": "object",
-      "properties": {
-        "property_type": {
-          "type": "string"
-        },
-        "min_budget": {
-          "type": "number"
-        },
-        "max_budget": {
-          "type": "number"
-        },
-        "bedrooms": {
-          "type": "number"
-        },
-        "preferred_areas": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "interested_properties": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Array of property IDs"
-    },
-    "budget_aed": {
-      "type": "number",
-      "description": "Budget in AED"
-    },
-    "lead_score": {
-      "type": "number",
-      "description": "AI-based lead score 0-100"
-    },
-    "engagement_score": {
-      "type": "number",
-      "default": 0,
-      "description": "Engagement level 0-100"
-    },
-    "assigned_agent": {
-      "type": "string",
-      "description": "Assigned agent email"
-    },
-    "assigned_agent_name": {
-      "type": "string",
-      "description": "Assigned agent display name"
-    },
-    "last_contact_date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "next_follow_up": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "stage_order": {
-      "type": "number",
-      "description": "Order within the stage column"
-    },
-    "folder_id": {
-      "type": "string",
-      "description": "Primary folder assignment"
-    },
-    "is_duplicate_of": {
-      "type": "string",
-      "description": "ID of master record if this is a duplicate"
-    },
-    "first_contact_date": {
-      "type": "string",
-      "format": "date-time",
-      "description": "When lead was first contacted (auto-set on stage: contacted)"
-    },
-    "first_response_time_minutes": {
-      "type": "number",
-      "description": "Minutes from creation to first contact"
-    },
-    "qualification_status": {
+    "status": {
       "type": "string",
       "enum": [
         "hot",
         "warm",
         "cold",
-        "disqualified"
+        "dead"
       ],
-      "description": "Lead quality tier"
+      "default": "warm"
     },
-    "reason_for_disqualification": {
+    "lost_reason": {
       "type": "string",
-      "description": "Why lead was disqualified"
+      "enum": [
+        "price",
+        "timing",
+        "location",
+        "competitor",
+        "financing",
+        "no_response",
+        "not_qualified",
+        "wrong_inventory",
+        "other"
+      ]
     },
-    "last_activity_date": {
+    "assigned_agent_email": {
       "type": "string",
-      "format": "date-time",
-      "description": "Latest activity (call, message, note, etc)"
+      "format": "email"
     },
-    "days_in_current_stage": {
+    "assigned_agent_name": {
+      "type": "string"
+    },
+    "team": {
+      "type": "string",
+      "description": "Team or branch handling this lead"
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "rent",
+        "sell",
+        "invest",
+        "off_plan",
+        "unknown"
+      ],
+      "default": "unknown"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "primary_residence",
+        "second_home",
+        "investment",
+        "short_term_rental",
+        "commercial"
+      ]
+    },
+    "budget_min": {
       "type": "number",
-      "description": "Auto-calculated days in current stage"
+      "minimum": 0
     },
-    "inactivity_days": {
+    "budget_max": {
       "type": "number",
-      "description": "Days since last activity"
+      "minimum": 0
     },
-    "loss_reason": {
+    "budget_currency": {
       "type": "string",
-      "description": "Why deal was lost (if closed_lost)"
+      "enum": [
+        "AED",
+        "USD",
+        "EUR",
+        "GBP",
+        "SAR",
+        "EGP",
+        "QAR",
+        "KWD",
+        "BHD",
+        "OMR"
+      ],
+      "default": "AED"
+    },
+    "financing_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "mortgage",
+        "installments",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "pre_approved_amount": {
+      "type": "number",
+      "description": "Mortgage pre-approval amount, if any"
+    },
+    "down_payment_ready": {
+      "type": "number"
+    },
+    "move_in_timeline": {
+      "type": "string",
+      "enum": [
+        "immediate",
+        "1_month",
+        "3_months",
+        "6_months",
+        "12_months",
+        "flexible",
+        "investor_no_move_in"
+      ]
+    },
+    "preferred_locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preferred_property_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "apartment",
+          "villa",
+          "townhouse",
+          "penthouse",
+          "studio",
+          "duplex",
+          "land",
+          "office",
+          "retail",
+          "warehouse",
+          "hotel_apartment"
+        ]
+      }
+    },
+    "bedrooms_min": {
+      "type": "number",
+      "minimum": 0
+    },
+    "bedrooms_max": {
+      "type": "number",
+      "minimum": 0
+    },
+    "size_sqft_min": {
+      "type": "number"
+    },
+    "size_sqft_max": {
+      "type": "number"
+    },
+    "must_have_features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deal_breakers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "properties": {
+        "budget_confirmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "authority_confirmed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Is this person the decision maker?"
+        },
+        "need_confirmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "timeline_confirmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "kyc_completed": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "do_not_contact": {
+      "type": "boolean",
+      "default": false
+    },
+    "gdpr_consent": {
+      "type": "boolean",
+      "default": false
+    },
+    "marketing_consent": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "activity_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_activity_type": {
+      "type": "string"
+    },
+    "days_since_last_contact": {
+      "type": "number"
+    },
+    "ai_lead_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Overall AI-computed lead score (0=cold, 100=ready to close)"
+    },
+    "ai_lead_score_breakdown": {
+      "type": "object",
+      "properties": {
+        "budget_fit": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "authority": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "need_clarity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "timeline_urgency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "engagement": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "inventory_match": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "responsiveness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "description": "Per-dimension breakdown of the lead score"
+    },
+    "ai_score_trend": {
+      "type": "string",
+      "enum": [
+        "rising",
+        "stable",
+        "falling"
+      ],
+      "description": "Direction of the score over the last 7 days"
+    },
+    "ai_conversion_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Predicted probability of closing within 90 days"
+    },
+    "ai_estimated_close_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "ai_estimated_deal_value": {
+      "type": "number",
+      "description": "Predicted deal value in budget_currency"
+    },
+    "ai_lifetime_value_estimate": {
+      "type": "number",
+      "description": "Predicted LTV including referrals + repeat deals"
+    },
+    "ai_churn_prediction": {
+      "type": "object",
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "predicted_churn_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "primary_risk_factors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "retention_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Churn prediction with explainability and recommended actions"
+    },
+    "ai_persona": {
+      "type": "object",
+      "properties": {
+        "archetype": {
+          "type": "string",
+          "enum": [
+            "first_time_buyer",
+            "upgrader",
+            "downsizer",
+            "investor_yield",
+            "investor_capital_growth",
+            "international_buyer",
+            "end_user_family",
+            "young_professional",
+            "luxury_buyer",
+            "off_plan_speculator",
+            "relocator",
+            "tire_kicker"
+          ]
+        },
+        "decision_style": {
+          "type": "string",
+          "enum": [
+            "analytical",
+            "emotional",
+            "consensus_seeking",
+            "impulsive",
+            "cautious"
+          ]
+        },
+        "price_sensitivity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "communication_style": {
+          "type": "string",
+          "enum": [
+            "formal",
+            "casual",
+            "direct",
+            "relationship_first",
+            "data_driven"
+          ]
+        },
+        "key_motivators": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "concerns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "persona_summary": {
+          "type": "string",
+          "description": "1-paragraph human-readable persona"
+        }
+      }
+    },
+    "ai_recommended_property_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Property IDs ranked as best matches"
+    },
+    "ai_recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "property_id": {
+            "type": "string"
+          },
+          "match_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "matched_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mismatched_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "suggested_pitch": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Ranked property matches with reasoning and ready-to-send pitches"
+    },
+    "ai_next_best_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "call",
+              "whatsapp",
+              "email",
+              "send_listings",
+              "schedule_viewing",
+              "send_brochure",
+              "negotiate",
+              "send_contract",
+              "request_documents",
+              "escalate_to_manager",
+              "nurture_campaign",
+              "close_as_lost"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          },
+          "suggested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "draft_message": {
+            "type": "string"
+          },
+          "draft_language": {
+            "type": "string"
+          },
+          "expected_outcome": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "ai_engagement_level": {
+      "type": "string",
+      "enum": [
+        "highly_engaged",
+        "engaged",
+        "lukewarm",
+        "disengaged",
+        "silent"
+      ]
+    },
+    "ai_best_contact_time": {
+      "type": "object",
+      "properties": {
+        "day_of_week": {
+          "type": "string"
+        },
+        "hour_range": {
+          "type": "string",
+          "description": "e.g. '18:00-20:00'"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "reasoning": {
+          "type": "string"
+        }
+      }
+    },
+    "ai_buying_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Positive signals detected (asked about financing, requested second viewing, etc.)"
+    },
+    "ai_red_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Warning signs (ghosting pattern, unrealistic budget, repeated price drops requested, etc.)"
+    },
+    "ai_objections_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "objection": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "best_response": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Recurring objections across all activities with this lead"
+    },
+    "ai_journey_stage": {
+      "type": "string",
+      "enum": [
+        "awareness",
+        "consideration",
+        "evaluation",
+        "decision",
+        "post_purchase",
+        "advocacy"
+      ],
+      "description": "Marketing-funnel stage (different from pipeline stage)"
+    },
+    "ai_rolling_summary": {
+      "type": "string",
+      "description": "Continuously updated narrative summary of the lead relationship"
+    },
+    "ai_similar_lead_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Other leads with similar persona/behavior \u2014 useful for cohort analysis"
+    },
+    "ai_coaching_for_agent": {
+      "type": "string",
+      "description": "Agent-specific coaching: tone, pacing, what to emphasize with THIS lead"
+    },
+    "ai_processed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_model_used": {
+      "type": "string"
+    },
+    "ai_processing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "stale"
+      ],
+      "default": "pending"
     }
   },
   "required": [
-    "name"
+    "full_name",
+    "source",
+    "stage"
   ]
 }
