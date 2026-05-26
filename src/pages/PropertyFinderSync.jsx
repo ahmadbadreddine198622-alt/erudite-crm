@@ -4,12 +4,13 @@ import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle2, AlertCircle, Users, Phone, MessageCircle, Mail, Clock, TrendingUp, UserCheck, Home, List } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, Users, Phone, MessageCircle, Mail, Clock, TrendingUp, UserCheck, Home, List, Settings } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import PFByListingTab from '@/components/propertyfinder/PFByListingTab';
 import InsightsDashboard from '@/components/propertyfinder/InsightsDashboard';
 import PFLeadsTab from '@/components/propertyfinder/PFLeadsTab';
 import PFListingsTab from '@/components/propertyfinder/PFListingsTab';
+import PFSettingsPanel from '@/components/propertyfinder/PFSettingsPanel';
 
 const channelConfig = {
   call: { icon: Phone, color: 'bg-blue-100 text-blue-700', label: 'Calls' },
@@ -146,6 +147,9 @@ export default function PropertyFinderSync() {
           <TabsTrigger value="insights" className="gap-2">
             <TrendingUp className="w-4 h-4" /> Insights
           </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="w-4 h-4" /> Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="mt-4">
@@ -162,6 +166,10 @@ export default function PropertyFinderSync() {
 
         <TabsContent value="insights" className="mt-4">
           <InsightsDashboard pfLeads={pfLeads} channelCounts={channelCounts} agentCounts={agentCounts} channelConfig={channelConfig} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-4">
+          <PFSettingsPanel />
         </TabsContent>
       </Tabs>
     </div>

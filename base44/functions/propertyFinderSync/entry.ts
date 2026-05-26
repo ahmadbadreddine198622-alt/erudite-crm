@@ -2,14 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const PF_BASE = 'https://atlas.propertyfinder.com/v1';
 
-async function getPFToken() {
+async function getPFToken(apiKey, apiSecret) {
+  const key = apiKey || Deno.env.get('PROPERTY_FINDER_API_KEY');
+  const secret = apiSecret || Deno.env.get('PROPERTY_FINDER_API_SECRET');
   const res = await fetch(`${PF_BASE}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({
-      apiKey: Deno.env.get('PROPERTY_FINDER_API_KEY'),
-      apiSecret: Deno.env.get('PROPERTY_FINDER_API_SECRET'),
-    }),
+    body: JSON.stringify({ apiKey: key, apiSecret: secret }),
   });
   if (!res.ok) {
     const txt = await res.text();
@@ -17,6 +16,16 @@ async function getPFToken() {
   }
   const data = await res.json();
   return data.accessToken;
+}
+
+async function getStoredCredentials(base44) {
+  try {
+    const creds = await base44.asServiceRole.entities.PFCredential.list();
+    if (creds && creds.length > 0 && creds[0].is_connected) {
+      return { apiKey: creds[0].api_key, apiSecret: creds[0].api_secret };
+    }
+  } catch (e) { /* fallback to env vars */ }
+  return { apiKey: null, apiSecret: null };
 }
 
 async function fetchPFLeadsPage(token, page, perPage) {
@@ -136,7 +145,8 @@ Deno.serve(async (req) => {
     if (mode === 'listing_schema') {
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const token = await getPFToken();
+      const { apiKey, apiSecret } = await getStoredCredentials(base44);
+      const token = await getPFToken(apiKey, apiSecret);
       const res = await fetch(`${PF_BASE}/listings?page=1&perPage=1`, {
         headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
       });
@@ -156,7 +166,8 @@ Deno.serve(async (req) => {
     if (mode === 'listings') {
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      const token = await getPFToken();
+      const { apiKey, apiSecret } = await getStoredCredentials(base44);
+      const token = await getPFToken(apiKey, apiSecret);
       const maxPages = body.maxPages || 4; // default: 200 listings
       const listings = await fetchPFListings(token, maxPages);
       return Response.json({ ok: true, listings: listings });
@@ -187,7 +198,8 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const token = await getPFToken();
+    const { apiKey, apiSecret } = await getStoredCredentials(base44);
+    const token = await getPFToken(apiKey, apiSecret);
     const pfLeads = await fetchAllPFLeads(token);
 
     const allExisting = await base44.asServiceRole.entities.Lead.filter({ source: 'property_finder' });
