@@ -13,7 +13,7 @@ const navItems = [
   { label: 'Pipeline', icon: KanbanSquare, path: '/pipeline' },
   { label: 'Leads', icon: Users, path: '/leads' },
   { label: 'Contacts', icon: Users, path: '/contacts' },
-  { label: 'Properties', icon: Building2, path: '/properties' },
+
 
   { label: 'Analytics', icon: BarChart3, path: '/analytics' },
   { label: 'Team', icon: UserCheck, path: '/team' },

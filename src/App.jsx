@@ -10,7 +10,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import Pipeline from '@/pages/Pipeline';
 import Leads from '@/pages/Leads';
-import Properties from '@/pages/Properties';
+
 import MapView from '@/pages/MapView';
 import Commissions from '@/pages/Commissions';
 import Reminders from './pages/Reminders';
@@ -64,7 +64,7 @@ const AuthenticatedApp = () => {
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/contacts" element={<Contacts />} />
-        <Route path="/properties" element={<Properties />} />
+
         <Route path="/map" element={<MapView />} />
         <Route path="/commissions" element={<Commissions />} />
         <Route path="/reminders" element={<Reminders />} />
