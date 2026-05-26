@@ -1,0 +1,31 @@
+{
+  "name": "WhatsAppNumberCache",
+  "type": "object",
+  "properties": {
+    "phone_e164": {
+      "type": "string",
+      "description": "Phone in E.164 format e.g. +971581806000"
+    },
+    "is_valid_whatsapp": {
+      "type": "boolean"
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "country_code": {
+      "type": "string"
+    },
+    "carrier": {
+      "type": "string"
+    },
+    "spam_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "required": [
+    "phone_e164"
+  ]
+}

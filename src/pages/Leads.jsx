@@ -23,6 +23,7 @@ import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import BulkActionBar from '@/components/leads/BulkActionBar';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
+import WhatsAppPhone from '@/components/WhatsAppPhone';
 
 export default function Leads() {
   const [search, setSearch] = useState('');
@@ -161,8 +162,14 @@ export default function Leads() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-xs">
-                        <p>{lead.phone}</p>
+                      <div className="text-xs space-y-0.5">
+                        <WhatsAppPhone
+                          phone={lead.phone}
+                          name={lead.full_name || lead.name}
+                          leadId={lead.id}
+                          size="xs"
+                          doNotContact={lead.do_not_contact}
+                        />
                         <p className="text-muted-foreground">{lead.email}</p>
                       </div>
                     </TableCell>

@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, Loader2, Phone, Mail, Calendar, Tag } from 'lucide-react';
+import { Search, Plus, Loader2, Mail, Calendar, Tag } from 'lucide-react';
+import WhatsAppPhone from '@/components/WhatsAppPhone';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -130,8 +131,13 @@ export default function ContactList({ folderId, onSelectContact, onAddContact })
                   <h3 className="font-semibold text-sm truncate">{contact.name}</h3>
                   <div className="space-y-1 mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <Phone className="w-3 h-3" />
-                      {contact.phone}
+                      <WhatsAppPhone
+                        phone={contact.phone}
+                        name={contact.name}
+                        leadId={contact.id}
+                        size="xs"
+                        doNotContact={contact.do_not_contact}
+                      />
                     </div>
                     {contact.email && (
                       <div className="flex items-center gap-2">
