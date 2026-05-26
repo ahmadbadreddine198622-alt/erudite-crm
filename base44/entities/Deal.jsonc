@@ -1,0 +1,251 @@
+{
+  "name": "Deal",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "co_property_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "lead_name": {
+      "type": "string"
+    },
+    "lead_source": {
+      "type": "string",
+      "description": "Cached from Lead.source for filtering"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "discovery",
+        "qualified",
+        "viewing",
+        "offer_drafting",
+        "offer_submitted",
+        "negotiating",
+        "agreement",
+        "diligence",
+        "noc_signing",
+        "closing",
+        "won",
+        "lost"
+      ],
+      "default": "discovery"
+    },
+    "sub_stage": {
+      "type": "string"
+    },
+    "stage_entered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "entered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exited_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_hours": {
+            "type": "number"
+          },
+          "moved_by": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "aurora_auto",
+              "aurora_supervised"
+            ]
+          }
+        }
+      }
+    },
+    "lost_reason": {
+      "type": "string"
+    },
+    "deal_value": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "AED"
+    },
+    "commission_value": {
+      "type": "number"
+    },
+    "aurora_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "aurora_velocity": {
+      "type": "number"
+    },
+    "aurora_temperature": {
+      "type": "string",
+      "enum": [
+        "frozen",
+        "cold",
+        "warming",
+        "hot",
+        "blazing"
+      ]
+    },
+    "aurora_risk_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "aurora_risk_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aurora_forecast": {
+      "type": "object",
+      "properties": {
+        "weighted_value": {
+          "type": "number"
+        },
+        "close_probability": {
+          "type": "number"
+        },
+        "predicted_close_date": {
+          "type": "string"
+        },
+        "predicted_close_date_p10": {
+          "type": "string"
+        },
+        "predicted_close_date_p90": {
+          "type": "string"
+        },
+        "drivers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reasoning_trace": {
+          "type": "string"
+        }
+      }
+    },
+    "aurora_dna": {
+      "type": "object",
+      "properties": {
+        "markers": {
+          "type": "object"
+        },
+        "dna_fingerprint": {
+          "type": "string"
+        },
+        "similar_won_deal_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "similar_lost_deal_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "playbook_recommendation": {
+          "type": "string"
+        }
+      }
+    },
+    "autopilot_mode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "supervised",
+        "autonomous"
+      ],
+      "default": "supervised"
+    },
+    "autopilot_allowed_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "send_whatsapp",
+          "send_email",
+          "send_listings",
+          "schedule_followup",
+          "move_stage",
+          "request_documents"
+        ]
+      }
+    },
+    "next_aurora_action": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "scheduled_for": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "draft_payload": {
+          "type": "object"
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "requires_approval": {
+          "type": "boolean"
+        },
+        "approval_deadline": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "last_orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "needs_human_review": {
+      "type": "boolean",
+      "default": false
+    },
+    "review_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lead_id",
+    "stage",
+    "assigned_agent_email"
+  ]
+}

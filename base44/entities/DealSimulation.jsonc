@@ -1,0 +1,67 @@
+{
+  "name": "DealSimulation",
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "horizon_days": {
+      "type": "number"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "action_sequence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "probability_of_close": {
+            "type": "number"
+          },
+          "predicted_close_date": {
+            "type": "string"
+          },
+          "predicted_final_value": {
+            "type": "number"
+          },
+          "predicted_stage_at_horizon": {
+            "type": "string"
+          },
+          "expected_value": {
+            "type": "number"
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "narrative": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommended_scenario_name": {
+      "type": "string"
+    },
+    "recommendation_reasoning": {
+      "type": "string"
+    }
+  },
+  "required": []
+}

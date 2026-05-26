@@ -1,0 +1,59 @@
+{
+  "name": "DealSignal",
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string"
+    },
+    "lead_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "message_received",
+        "message_sent",
+        "viewing_completed",
+        "viewing_cancelled",
+        "offer_made",
+        "counter_received",
+        "objection_raised",
+        "objection_resolved",
+        "document_received",
+        "document_signed",
+        "noc_obtained",
+        "deposit_received",
+        "stakeholder_added",
+        "stakeholder_silence",
+        "stakeholder_engagement",
+        "competitor_mentioned",
+        "ghosting_pattern",
+        "buying_signal",
+        "red_flag",
+        "external_event"
+      ]
+    },
+    "weight": {
+      "type": "number"
+    },
+    "raw_content": {
+      "type": "string"
+    },
+    "claude_interpretation": {
+      "type": "string"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "consumed_by_orchestrator": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "deal_id",
+    "type",
+    "occurred_at"
+  ]
+}

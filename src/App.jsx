@@ -8,7 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
-import Pipeline from '@/pages/Pipeline';
+import AuroraPipeline from '@/pages/AuroraPipeline';
 import Leads from '@/pages/Leads';
 
 import MapView from '@/pages/MapView';
@@ -61,7 +61,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/pipeline" element={<Pipeline />} />
+        <Route path="/pipeline" element={<AuroraPipeline />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/contacts" element={<Contacts />} />
 
