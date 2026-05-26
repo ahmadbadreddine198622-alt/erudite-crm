@@ -4,11 +4,15 @@
   "properties": {
     "lead_id": {
       "type": "string",
-      "description": "Related lead ID"
+      "description": "Related lead ID (foreign key to Lead entity)"
     },
     "property_id": {
       "type": "string",
-      "description": "Related property ID"
+      "description": "Related property ID (foreign key to Property entity, optional)"
+    },
+    "deal_id": {
+      "type": "string",
+      "description": "Related deal/opportunity ID, if this activity is tied to an active deal"
     },
     "type": {
       "type": "string",
@@ -17,47 +21,256 @@
         "call",
         "email",
         "whatsapp",
+        "sms",
         "viewing",
         "meeting",
         "offer",
+        "contract_sent",
+        "contract_signed",
+        "payment_received",
         "stage_change",
+        "task",
+        "follow_up",
+        "document_shared",
         "system"
       ],
       "description": "Activity type"
     },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound",
+        "internal"
+      ],
+      "default": "outbound",
+      "description": "Communication direction: inbound (lead \u2192 agent), outbound (agent \u2192 lead), or internal (team-only)"
+    },
     "title": {
-      "type": "string"
+      "type": "string",
+      "description": "Short summary of the activity (shown in timeline)"
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "description": "Detailed notes or full content of the activity"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "no_show",
+        "rescheduled"
+      ],
+      "default": "completed",
+      "description": "Lifecycle state of the activity"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium",
+      "description": "Priority of this activity (drives sorting and reminders)"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the activity is/was scheduled to occur"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the activity was actually completed"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deadline for follow-up tasks"
     },
     "agent_email": {
-      "type": "string"
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent who performed/owns the activity"
     },
     "agent_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Display name of the agent"
+    },
+    "assigned_to_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent the activity is assigned to (for tasks/follow-ups)"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails or names of other participants (co-agents, clients, etc.)"
     },
     "outcome": {
       "type": "string",
       "enum": [
         "interested",
+        "very_interested",
         "not_interested",
         "follow_up_needed",
         "viewing_scheduled",
         "offer_made",
+        "offer_accepted",
+        "offer_rejected",
+        "negotiation",
         "no_answer",
+        "left_voicemail",
+        "wrong_number",
         "postponed",
-        "completed"
+        "completed",
+        "lost"
       ],
-      "description": "Result of the activity (for calls, meetings, viewings)"
+      "description": "Result of the activity (for calls, meetings, viewings, offers)"
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": [
+        "positive",
+        "neutral",
+        "negative"
+      ],
+      "description": "Overall sentiment captured from the interaction"
     },
     "duration_minutes": {
       "type": "number",
+      "minimum": 0,
       "description": "Call or meeting duration in minutes"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "phone",
+        "mobile",
+        "whatsapp",
+        "email",
+        "sms",
+        "in_person",
+        "video_call",
+        "portal",
+        "website_chat",
+        "social_media",
+        "walk_in"
+      ],
+      "description": "Channel used for this activity"
+    },
+    "location": {
+      "type": "string",
+      "description": "Physical address or meeting link for viewings/meetings"
+    },
+    "offer_amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Offer amount, if type=offer"
+    },
+    "offer_currency": {
+      "type": "string",
+      "enum": [
+        "AED",
+        "USD",
+        "EUR",
+        "GBP",
+        "SAR",
+        "EGP",
+        "QAR",
+        "KWD",
+        "BHD",
+        "OMR"
+      ],
+      "default": "AED",
+      "description": "Currency of the offer"
+    },
+    "previous_stage": {
+      "type": "string",
+      "description": "Pipeline stage before change (if type=stage_change)"
+    },
+    "new_stage": {
+      "type": "string",
+      "description": "Pipeline stage after change (if type=stage_change)"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_type": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Files attached to the activity (contracts, brochures, screenshots)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Custom tags for filtering and reporting"
+    },
+    "reminder_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to send a reminder for this activity"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the reminder has already been dispatched"
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pinned activities appear at the top of the lead timeline"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Private activities are only visible to the owner agent"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "email_sync",
+        "whatsapp_sync",
+        "call_log",
+        "calendar_sync",
+        "automation",
+        "api",
+        "import"
+      ],
+      "default": "manual",
+      "description": "How this activity was created"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "ID from an external system (e.g., email message ID, call SID, calendar event ID)"
     },
     "metadata": {
       "type": "object",
-      "description": "Additional metadata"
+      "description": "Additional metadata (call recording URL, email thread ID, custom fields, etc.)"
     }
   },
   "required": [
