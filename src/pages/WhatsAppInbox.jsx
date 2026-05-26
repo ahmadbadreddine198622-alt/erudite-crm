@@ -20,6 +20,7 @@ import MobileInbox from '@/components/mobile/MobileInbox';
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
   const [selectedConvId, setSelectedConvId] = useState(null);
+  const phoneParam = new URLSearchParams(window.location.search).get('phone');
   const [search, setSearch] = useState('');
 
   const [showInsights, setShowInsights] = useState(true);
@@ -32,6 +33,15 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 100),
     refetchInterval: 10000,
   });
+
+  // Auto-select conversation from ?phone= URL param
+  useEffect(() => {
+    if (!phoneParam || !conversations.length) return;
+    const match = conversations.find(
+      c => c.wa_phone_e164 === phoneParam || c.phone_number === phoneParam
+    );
+    if (match) setSelectedConvId(match.id);
+  }, [phoneParam, conversations]);
 
   // Real-time subscription to conversation changes
   useEffect(() => {
