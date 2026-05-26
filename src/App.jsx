@@ -30,6 +30,7 @@ import MetaAdsLeads from '@/pages/MetaAdsLeads';
 import WhatsAppSetup from '@/pages/WhatsAppSetup';
 import InstagramLeads from '@/pages/InstagramLeads';
 import ClaudeAI from '@/pages/ClaudeAI';
+import PropertyFinderSync from '@/pages/PropertyFinderSync';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
         <Route path="/whatsapp-setup" element={<WhatsAppSetup />} />
         <Route path="/instagram" element={<InstagramLeads />} />
         <Route path="/claude-ai" element={<ClaudeAI />} />
+        <Route path="/property-finder" element={<PropertyFinderSync />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
