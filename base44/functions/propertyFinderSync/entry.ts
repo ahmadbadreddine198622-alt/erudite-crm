@@ -50,8 +50,9 @@ async function fetchAllPFLeads(token) {
   return leads;
 }
 
-async function fetchPFListings(token) {
-  const leads = [];
+async function fetchPFListings(token, maxPages) {
+  maxPages = maxPages || 4;
+  const allItems = [];
   let page = 1;
   const perPage = 50;
   while (true) {
@@ -60,16 +61,18 @@ async function fetchPFListings(token) {
     });
     if (!res.ok) break;
     const data = await res.json();
-    const items = data.data || data.listings || data.items || [];
+    const items = data.results || data.data || data.listings || data.items || [];
     if (items.length === 0) break;
-    leads.push(...items);
-    const total = (data.meta && data.meta.total) ? Number(data.meta.total) : (data.total ? Number(data.total) : 0);
-    if (total > 0 && leads.length >= total) break;
+    allItems.push(...items);
+    const pagination = data.pagination || {};
+    const total = pagination.total || data.total || 0;
+    if (total > 0 && allItems.length >= total) break;
+    if (!pagination.nextPage) break;
     if (items.length < perPage) break;
+    if (page >= maxPages) break;
     page++;
-    if (page > 100) break;
   }
-  return leads;
+  return allItems;
 }
 
 function getSenderContact(sender, type) {
@@ -129,12 +132,33 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || 'sync';
 
+    // Debug: inspect listing structure
+    if (mode === 'listing_schema') {
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      const token = await getPFToken();
+      const res = await fetch(`${PF_BASE}/listings?page=1&perPage=1`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+      });
+      const raw = await res.json();
+      const first = (raw.results || raw.data || [])[0] || {};
+      // Return keys + sample values (strip long strings)
+      const schema = {};
+      for (const [k, v] of Object.entries(first)) {
+        if (typeof v === 'string' && v.length > 100) schema[k] = v.substring(0, 100) + '...';
+        else schema[k] = v;
+      }
+      const focus = { portals: first.portals, reference: first.reference, id: first.id, uaeEmirate: first.uaeEmirate, developer: first.developer, state: first.state };
+      return Response.json({ keys: Object.keys(first), focus });
+    }
+
     // Fetch PF listings
     if (mode === 'listings') {
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       const token = await getPFToken();
-      const listings = await fetchPFListings(token);
+      const maxPages = body.maxPages || 4; // default: 200 listings
+      const listings = await fetchPFListings(token, maxPages);
       return Response.json({ ok: true, listings: listings });
     }
 

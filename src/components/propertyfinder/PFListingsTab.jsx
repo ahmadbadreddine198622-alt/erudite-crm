@@ -16,23 +16,47 @@ const statusColors = {
 };
 
 function getPFLink(listing) {
-  if (listing.url) return listing.url;
-  if (listing.link) return listing.link;
-  if (listing.externalUrl) return listing.externalUrl;
-  const ref = listing.reference || listing.referenceNumber || listing.id;
-  if (ref) return `https://www.propertyfinder.ae/en/listings/${ref}`;
-  return null;
+  const ref = listing.reference || listing.id;
+  if (!ref) return null;
+  return `https://www.propertyfinder.ae/en/search?q=${encodeURIComponent(ref)}`;
+}
+
+function getTitle(listing) {
+  if (listing.title && typeof listing.title === 'object') return listing.title.en || listing.title.ar || '';
+  return listing.title || '';
+}
+
+function getPrice(listing) {
+  if (!listing.price) return null;
+  if (typeof listing.price === 'number') return listing.price;
+  const amounts = listing.price.amounts || {};
+  return amounts.sale || amounts.rent || amounts.monthly || null;
+}
+
+function getStatus(listing) {
+  if (!listing.state) return 'unknown';
+  if (typeof listing.state === 'string') return listing.state;
+  return listing.state.stage || listing.state.type || 'unknown';
 }
 
 function getLocation(listing) {
-  const loc = listing.location;
-  if (!loc) return listing.community || listing.area || listing.district || '';
-  if (typeof loc === 'string') return loc;
-  return [loc.community, loc.area, loc.city, loc.district].filter(Boolean).join(', ');
+  const parts = [];
+  if (listing.uaeEmirate) parts.push(listing.uaeEmirate.charAt(0).toUpperCase() + listing.uaeEmirate.slice(1));
+  return parts.join(', ');
 }
 
 function getProjectName(listing) {
-  return listing.project || listing.projectName || listing.development || listing.buildingName || listing.building || '';
+  if (listing.developer && typeof listing.developer === 'string') return listing.developer;
+  if (listing.developer && listing.developer.name) return listing.developer.name;
+  return listing.project || listing.projectName || listing.development || '';
+}
+
+function getImageUrl(listing) {
+  if (!listing.media) return null;
+  const images = listing.media.images || listing.media;
+  if (!images || !Array.isArray(images) || images.length === 0) return null;
+  const first = images[0];
+  return (first.original && first.original.url) || (first.watermarked && first.watermarked.url) || first.url || null;
 }
 
 function downloadPDF(listings) {
@@ -57,17 +81,17 @@ function downloadPDF(listings) {
   y = 30;
 
   listings.forEach((listing, idx) => {
-    const title = listing.title || listing.headline || 'Untitled Listing';
-    const ref = listing.reference || listing.referenceNumber || listing.id || '—';
-    const price = listing.price || listing.askingPrice;
-    const beds = listing.bedrooms !== undefined ? listing.bedrooms : (listing.beds !== undefined ? listing.beds : null);
-    const baths = listing.bathrooms !== undefined ? listing.bathrooms : (listing.baths !== undefined ? listing.baths : null);
-    const area = listing.area_sqft || listing.size || listing.grossArea || null;
+    const title = getTitle(listing) || 'Untitled Listing';
+    const ref = listing.reference || listing.id || '—';
+    const price = getPrice(listing);
+    const beds = listing.bedrooms !== undefined ? listing.bedrooms : null;
+    const baths = listing.bathrooms !== undefined ? listing.bathrooms : null;
+    const area = listing.size || listing.plotSize || null;
     const location = getLocation(listing);
     const project = getProjectName(listing);
-    const status = listing.status || listing.state || 'active';
-    const type = listing.propertyType || listing.type || '';
-    const category = listing.category || listing.offeringType || '';
+    const status = getStatus(listing);
+    const type = listing.type || listing.category || '';
+    const category = '';
     const pfLink = getPFLink(listing);
 
     const blockH = 34;
@@ -98,7 +122,7 @@ function downloadPDF(listings) {
     doc.text(titleLines[0], margin + 12, y + 7);
 
     // Status badge
-    const isActive = status.toLowerCase() === 'published' || status.toLowerCase() === 'active';
+    const isActive = status === 'published' || status === 'active' || status === 'live';
     doc.setFillColor(isActive ? 220 : 254, isActive ? 252 : 226, isActive ? 231 : 226);
     doc.roundedRect(pageW - margin - 22, y + 2, 20, 6, 1, 1, 'F');
     doc.setTextColor(isActive ? 22 : 120, isActive ? 163 : 100, isActive ? 74 : 0);
@@ -115,7 +139,8 @@ function downloadPDF(listings) {
       doc.setTextColor(245, 158, 11);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text(`AED ${Number(price).toLocaleString()}`, margin + 50, y + 14);
+      const priceNum = typeof price === 'number' ? price : Number(price);
+      doc.text(`AED ${isNaN(priceNum) ? price : priceNum.toLocaleString()}`, margin + 50, y + 14);
     }
 
     // Row 3: Details
@@ -173,20 +198,18 @@ export default function PFListingsTab() {
 
   const listings = data || [];
   const activeListings = listings.filter(l => {
-    const s = (l.status || l.state || '').toLowerCase();
-    return s === 'published' || s === 'active' || s === '';
+    const s = getStatus(l);
+    return s === 'published' || s === 'active' || s === 'live';
   });
 
   const filtered = listings.filter(l => {
     if (!search) return true;
     const q = search.toLowerCase();
-    const location = getLocation(l).toLowerCase();
-    const project = getProjectName(l).toLowerCase();
     return (
-      (l.title || l.headline || '').toLowerCase().includes(q) ||
-      (l.reference || l.referenceNumber || '').toLowerCase().includes(q) ||
-      location.includes(q) ||
-      project.includes(q)
+      getTitle(l).toLowerCase().includes(q) ||
+      (l.reference || '').toLowerCase().includes(q) ||
+      getLocation(l).toLowerCase().includes(q) ||
+      getProjectName(l).toLowerCase().includes(q)
     );
   });
 
@@ -217,19 +240,19 @@ export default function PFListingsTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((listing, i) => {
-            const title = listing.title || listing.headline || 'Untitled Listing';
-            const ref = listing.reference || listing.referenceNumber || listing.id || '';
-            const status = (listing.status || listing.state || '').toLowerCase();
-            const price = listing.price || listing.askingPrice;
-            const beds = listing.bedrooms !== undefined ? listing.bedrooms : (listing.beds !== undefined ? listing.beds : null);
-            const baths = listing.bathrooms !== undefined ? listing.bathrooms : (listing.baths !== undefined ? listing.baths : null);
-            const areaSqft = listing.area_sqft || listing.size || listing.grossArea || null;
+        const title = getTitle(listing) || 'Untitled Listing';
+            const ref = listing.reference || listing.id || '';
+            const status = getStatus(listing);
+            const price = getPrice(listing);
+            const beds = listing.bedrooms !== undefined ? listing.bedrooms : null;
+            const baths = listing.bathrooms !== undefined ? listing.bathrooms : null;
+            const areaSqft = listing.size || listing.plotSize || null;
             const location = getLocation(listing);
             const project = getProjectName(listing);
-            const images = listing.photos || listing.images || listing.media || [];
-            const imgUrl = images.length > 0 ? (images[0].url || images[0].src || images[0]) : null;
-            const type = listing.propertyType || listing.type || '';
+            const imgUrl = getImageUrl(listing);
+            const type = listing.type || listing.category || '';
             const pfLink = getPFLink(listing);
+            const isLive = listing.portals && listing.portals.propertyfinder && listing.portals.propertyfinder.isLive;
 
             return (
               <Card key={listing.id || i} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -279,12 +302,15 @@ export default function PFListingsTab() {
                     {price ? (
                       <p className="font-bold text-sm">AED {Number(price).toLocaleString()}</p>
                     ) : <span />}
-                    {pfLink && (
-                      <a href={pfLink} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:underline">
-                        <ExternalLink className="w-3 h-3" /> View on PF
-                      </a>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isLive && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Live</span>}
+                      {pfLink && (
+                        <a href={pfLink} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:underline">
+                          <ExternalLink className="w-3 h-3" /> View on PF
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
