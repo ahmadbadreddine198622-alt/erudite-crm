@@ -1,19 +1,16 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
-  // GET — webhook verification (must be handled FIRST, no auth required)
+  // GET — webhook verification (no auth required)
   if (req.method === 'GET') {
     const mode = url.searchParams.get('hub.mode');
     const token = url.searchParams.get('hub.verify_token');
     const challenge = url.searchParams.get('hub.challenge');
     const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN');
     if (mode === 'subscribe' && token === verifyToken && challenge) {
-      return new Response(challenge, {
-        status: 200,
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
     return new Response('Forbidden', { status: 403 });
   }
@@ -22,15 +19,15 @@ Deno.serve(async (req) => {
   const body = await req.json();
   const base44 = createClientFromRequest(req);
 
-  // Handle message status updates (delivered, read, failed)
   const entry = body?.entry?.[0];
   const change = entry?.changes?.[0];
   const value = change?.value;
 
+  // Handle message status updates (delivered, read, failed)
   if (value?.statuses?.length) {
     for (const status of value.statuses) {
       const waId = status.id;
-      const newStatus = status.status; // sent, delivered, read, failed
+      const newStatus = status.status;
       const msgs = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: waId });
       if (msgs.length > 0) {
         await base44.asServiceRole.entities.WhatsAppMessage.update(msgs[0].id, { status: newStatus });
@@ -47,36 +44,48 @@ Deno.serve(async (req) => {
     const fromNumber = msg.from;
     const waMessageId = msg.id;
     const timestamp = new Date(parseInt(msg.timestamp) * 1000).toISOString();
-    let body_text = msg.text?.body || msg.caption || '[media]';
-    
+    let bodyText = msg.text?.body || msg.caption || '[media]';
+
     // Handle voice messages
     const isVoiceMessage = msg.type === 'audio' && msg.audio;
     if (isVoiceMessage) {
-      body_text = '🎤 Voice message (transcribing...)';
+      bodyText = '🎤 Voice message (transcribing...)';
     }
 
-    // Find or create lead by phone
-    const leads = await base44.asServiceRole.entities.Leads.filter({ phone: fromNumber });
+    // Normalize phone number (strip leading zeros/spaces)
+    const normalizedPhone = fromNumber.replace(/\s+/g, '').replace(/^00/, '');
+
+    // Find or create lead in the LEAD entity (not Leads)
     let leadId;
+    const leads = await base44.asServiceRole.entities.Lead.filter({ phone: normalizedPhone });
     if (leads.length > 0) {
       leadId = leads[0].id;
+      // Update last touch
+      await base44.asServiceRole.entities.Lead.update(leadId, {
+        last_touch_at: timestamp,
+        last_activity_at: timestamp,
+        last_activity_type: 'whatsapp',
+      });
     } else {
-      const newLead = await base44.asServiceRole.entities.Leads.create({
-        full_name: fromNumber,
-        phone: fromNumber,
-        source: 'whatsapp',
-        status: 'New',
+      const newLead = await base44.asServiceRole.entities.Lead.create({
+        full_name: normalizedPhone,
+        phone: normalizedPhone,
+        source: 'whatsapp_campaign',
+        stage: 'new',
+        preferred_contact_channel: 'whatsapp',
+        first_touch_at: timestamp,
+        last_touch_at: timestamp,
       });
       leadId = newLead.id;
     }
 
-    // Find or create conversation
-    const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ lead_id: leadId });
+    // Find or create WhatsApp conversation
     let convId;
+    const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ lead_id: leadId });
     if (convs.length > 0) {
       convId = convs[0].id;
       await base44.asServiceRole.entities.WhatsAppConversation.update(convId, {
-        last_message: body_text,
+        last_message: bodyText,
         last_message_at: timestamp,
         unread_count: (convs[0].unread_count || 0) + 1,
         status: 'open',
@@ -84,9 +93,9 @@ Deno.serve(async (req) => {
     } else {
       const newConv = await base44.asServiceRole.entities.WhatsAppConversation.create({
         lead_id: leadId,
-        phone_number: fromNumber,
+        phone_number: normalizedPhone,
         status: 'open',
-        last_message: body_text,
+        last_message: bodyText,
         last_message_at: timestamp,
         unread_count: 1,
       });
@@ -102,10 +111,10 @@ Deno.serve(async (req) => {
         lead_id: leadId,
         wa_message_id: waMessageId,
         direction: 'inbound',
-        body: body_text,
+        body: bodyText,
         status: 'delivered',
         timestamp,
-        from_number: fromNumber,
+        from_number: normalizedPhone,
         to_number: value.metadata?.display_phone_number || '',
         media_type: msg.type !== 'text' ? msg.type : 'none',
       });
@@ -114,32 +123,33 @@ Deno.serve(async (req) => {
       messageId = existing[0].id;
     }
 
-    // Trigger voice transcription if audio message
+    // Trigger voice transcription in background
     if (isVoiceMessage && msg.audio?.id) {
-      const audioUrl = `https://graph.instagram.com/v18.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
+      const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
       base44.asServiceRole.functions.invoke('processVoiceMessage', {
         conversation_id: convId,
         message_id: messageId,
         audio_url: audioUrl,
-        from_number: fromNumber,
+        from_number: normalizedPhone,
       }).catch(() => {});
     }
 
-    // Log activity
+    // Log activity on the lead
     await base44.asServiceRole.entities.Activity.create({
       lead_id: leadId,
       type: 'whatsapp',
+      direction: 'inbound',
       title: 'WhatsApp message received',
-      description: body_text,
+      description: bodyText,
+      channel: 'whatsapp',
+      status: 'completed',
+      completed_at: timestamp,
+      source: 'whatsapp_sync',
     });
 
-    // Trigger AI analysis in background (fire-and-forget)
+    // Background tasks (fire-and-forget)
     base44.asServiceRole.functions.invoke('analyzeConversation', { conversation_id: convId }).catch(() => {});
-
-    // Calculate lead score (fire-and-forget)
     base44.asServiceRole.functions.invoke('calculateLeadScore', { conversation_id: convId }).catch(() => {});
-
-    // Execute automation rules (fire-and-forget)
     base44.asServiceRole.functions.invoke('executeAutomationRules', { conversation_id: convId }).catch(() => {});
   }
 
