@@ -1,0 +1,87 @@
+{
+  "name": "DocumentChecklistItem",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "title_deed",
+        "emirates_id_front",
+        "emirates_id_back",
+        "passport",
+        "visa_page",
+        "power_of_attorney",
+        "trade_license",
+        "moa",
+        "developer_noc",
+        "service_charge_clearance",
+        "ejari_certificate",
+        "mortgage_clearance",
+        "trakheesi_permit",
+        "form_a",
+        "form_b",
+        "form_f_mou",
+        "form_i",
+        "form_u",
+        "manager_cheque",
+        "dld_payment_receipt",
+        "passport_signed_form_a",
+        "ownership_proof_in_company_name",
+        "good_conduct_certificate",
+        "tax_residency_certificate",
+        "bank_swift_letter",
+        "kyc_uae_pass"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pending_request",
+        "requested",
+        "received",
+        "verified",
+        "expired",
+        "rejected"
+      ],
+      "default": "pending_request"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "reminder_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_reminder_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "document_type"
+  ]
+}

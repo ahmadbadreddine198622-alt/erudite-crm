@@ -1,0 +1,206 @@
+import { useState } from 'react';
+import { X, Eye, MapPin, Phone, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default function LandlordDetailPanel({ landlord, onClose, onUpdate }) {
+  return (
+    <div className="w-96 border-l border-border bg-card flex flex-col">
+      {/* Header */}
+      <div className="border-b border-border p-4 flex items-center justify-between sticky top-0 z-10 bg-card">
+        <div>
+          <h2 className="font-semibold">{landlord.full_name_en}</h2>
+          <p className="text-xs text-muted-foreground">{landlord.landlord_archetype}</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Quick Info */}
+        <div className="p-4 space-y-3 border-b border-border">
+          <div className="flex items-center gap-2 text-sm">
+            <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <span>{landlord.phone || 'No phone'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <span>{landlord.email || 'No email'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <span>{landlord.residence_country || 'Unknown'}</span>
+          </div>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="p-4 grid grid-cols-2 gap-3 border-b border-border">
+          <Card className="bg-slate-50 dark:bg-slate-900 border-0">
+            <CardContent className="p-2">
+              <p className="text-xs text-muted-foreground mb-1">Trust Score</p>
+              <p className="text-lg font-bold text-accent">{landlord.trust_score || 0}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-50 dark:bg-slate-900 border-0">
+            <CardContent className="p-2">
+              <p className="text-xs text-muted-foreground mb-1">Responsiveness</p>
+              <p className="text-lg font-bold text-accent">{landlord.responsiveness_score || 0}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-50 dark:bg-slate-900 border-0">
+            <CardContent className="p-2">
+              <p className="text-xs text-muted-foreground mb-1">Mandate Win %</p>
+              <p className="text-lg font-bold text-accent">
+                {landlord.mandate_win_probability ? `${(landlord.mandate_win_probability * 100).toFixed(0)}%` : '—'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-50 dark:bg-slate-900 border-0">
+            <CardContent className="p-2">
+              <p className="text-xs text-muted-foreground mb-1">Urgency</p>
+              <p className="text-lg font-bold text-accent">{landlord.urgency_score || 0}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="p-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+            <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
+            <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Mandate Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Badge variant="outline">{landlord.mandate_status || 'none'}</Badge>
+                {landlord.mandate_expires_at && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Expires: {new Date(landlord.mandate_expires_at).toLocaleDateString()}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Red Flags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {landlord.red_flags && landlord.red_flags.length > 0 ? (
+                  <div className="space-y-1">
+                    {landlord.red_flags.map((flag, i) => (
+                      <Badge key={i} variant="destructive" className="text-xs block w-fit">
+                        {flag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No red flags</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Rapport Level</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Badge variant="outline">{landlord.rapport_level || 'cold'}</Badge>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Negotiation Tab */}
+          <TabsContent value="negotiation" className="space-y-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Commission</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg font-bold">
+                  {landlord.commission_pct_negotiated ? `${landlord.commission_pct_negotiated}%` : 'Not negotiated'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Est. Revenue: AED {landlord.estimated_commission_aed?.toLocaleString() || '0'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Asking Price</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {landlord.asking_price_history && landlord.asking_price_history.length > 0 ? (
+                  <>
+                    <p className="text-lg font-bold">
+                      AED {landlord.asking_price_history[0].price?.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {landlord.asking_price_history.length} price update(s)
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No price set</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents" className="space-y-2">
+            <p className="text-xs text-muted-foreground">Document checklist will appear here once stage S8 is entered.</p>
+          </TabsContent>
+
+          {/* AI Tab */}
+          <TabsContent value="ai" className="space-y-3">
+            {landlord.ai_rolling_summary && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs leading-relaxed">{landlord.ai_rolling_summary}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {landlord.ai_next_best_action && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Next Best Action</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm font-semibold">{landlord.ai_next_best_action.action}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{landlord.ai_next_best_action.reasoning}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {landlord.ai_coaching_for_agent && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Agent Coaching</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs leading-relaxed">{landlord.ai_coaching_for_agent}</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

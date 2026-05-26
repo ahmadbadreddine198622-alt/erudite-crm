@@ -13,7 +13,7 @@ const navItems = [
   { label: 'Aurora Pipeline', icon: KanbanSquare, path: '/pipeline' },
   { label: 'Leads', icon: Users, path: '/leads' },
   { label: 'Contacts', icon: Users, path: '/contacts' },
-
+  { label: 'Landlords', icon: Building2, path: '/landlords' },
 
   { label: 'Analytics', icon: BarChart3, path: '/analytics' },
   { label: 'Team', icon: UserCheck, path: '/team' },

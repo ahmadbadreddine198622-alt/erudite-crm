@@ -33,6 +33,7 @@ import InstagramLeads from '@/pages/InstagramLeads';
 import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
+import Landlords from '@/pages/Landlords';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
         <Route path="/my-dashboard" element={<MyDashboard />} />
         <Route path="/sales-analytics" element={<SalesAnalytics />} />
         <Route path="/calendar" element={<Calendar />} />
+        <Route path="/landlords" element={<Landlords />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
         <Route path="/whatsapp-setup" element={<WhatsAppSetup />} />
         <Route path="/whatsapp-hub" element={<WhatsAppHub />} />

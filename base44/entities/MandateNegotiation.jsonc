@@ -1,0 +1,90 @@
+{
+  "name": "MandateNegotiation",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string"
+    },
+    "asking_price_initial": {
+      "type": "number"
+    },
+    "asking_price_current": {
+      "type": "number"
+    },
+    "cma_value_aed": {
+      "type": "number",
+      "description": "Comparative Market Analysis"
+    },
+    "cma_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "comp_property_id": {
+            "type": "string"
+          },
+          "sold_price": {
+            "type": "number"
+          },
+          "sold_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "similarity_pct": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "pricing_gap_pct": {
+      "type": "number",
+      "description": "Asking vs CMA percentage"
+    },
+    "commission_offered_pct": {
+      "type": "number"
+    },
+    "commission_floor_pct": {
+      "type": "number"
+    },
+    "commission_ceiling_pct": {
+      "type": "number"
+    },
+    "exclusivity_offered_days": {
+      "type": "number"
+    },
+    "marketing_budget_offered_aed": {
+      "type": "number"
+    },
+    "competitor_offers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "broker_name": {
+            "type": "string"
+          },
+          "commission_pct": {
+            "type": "number"
+          },
+          "exclusivity": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "winning_pitch_used": {
+      "type": "string",
+      "description": "The line that closed the mandate"
+    },
+    "mandate_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}

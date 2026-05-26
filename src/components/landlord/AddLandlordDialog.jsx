@@ -1,0 +1,152 @@
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+
+export default function AddLandlordDialog({ open, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    full_name_en: '',
+    phone: '',
+    email: '',
+    source: 'warm_intro',
+    landlord_archetype: 'individual_end_user_relocating',
+    assigned_agent_email: '',
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Landlord.create(data),
+    onSuccess: () => {
+      onSuccess();
+      setFormData({
+        full_name_en: '',
+        phone: '',
+        email: '',
+        source: 'warm_intro',
+        landlord_archetype: 'individual_end_user_relocating',
+        assigned_agent_email: '',
+      });
+      toast.success('Landlord created');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create landlord');
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.full_name_en || !formData.phone || !formData.assigned_agent_email) {
+      toast.error('Please fill required fields');
+      return;
+    }
+    createMutation.mutate({
+      ...formData,
+      stage: 'sourced',
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New Landlord</DialogTitle>
+          <DialogDescription>
+            Create a new landlord record to begin the mandate acquisition journey
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Full Name *</label>
+            <Input
+              value={formData.full_name_en}
+              onChange={(e) => setFormData({ ...formData, full_name_en: e.target.value })}
+              placeholder="e.g., Ahmed Al Mansouri"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Phone (E.164) *</label>
+            <Input
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="+971501234567"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Email</label>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="email@example.com"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Assigned Agent *</label>
+            <Input
+              value={formData.assigned_agent_email}
+              onChange={(e) => setFormData({ ...formData, assigned_agent_email: e.target.value })}
+              placeholder="agent@company.com"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Source</label>
+            <select
+              value={formData.source}
+              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+              className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+            >
+              <option value="warm_intro">Warm Intro</option>
+              <option value="dld_lookup">DLD Lookup</option>
+              <option value="linkedin_outreach">LinkedIn Outreach</option>
+              <option value="building_manager">Building Manager</option>
+              <option value="expired_listing">Expired Listing</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Archetype</label>
+            <select
+              value={formData.landlord_archetype}
+              onChange={(e) => setFormData({ ...formData, landlord_archetype: e.target.value })}
+              className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+            >
+              <option value="professional_investor">Professional Investor</option>
+              <option value="individual_end_user_relocating">Individual Relocating</option>
+              <option value="first_time_seller">First Time Seller</option>
+              <option value="portfolio_optimizer">Portfolio Optimizer</option>
+              <option value="distressed_seller">Distressed Seller</option>
+            </select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Creating...' : 'Create Landlord'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

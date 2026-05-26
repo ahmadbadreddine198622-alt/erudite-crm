@@ -1,0 +1,68 @@
+{
+  "name": "ConversationCoach",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string"
+    },
+    "source_activity_id": {
+      "type": "string",
+      "description": "Link to Activity entity (call or WhatsApp)"
+    },
+    "quality_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "rapport_built": {
+      "type": "boolean",
+      "default": false
+    },
+    "key_questions_asked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missed_opportunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "objections_surfaced": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "objections_handled": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_move_recommended": {
+      "type": "string"
+    },
+    "claude_replay_url": {
+      "type": "string",
+      "description": "Link to AI conversation replay"
+    },
+    "things_done_well": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "single_best_line_to_use": {
+      "type": "string"
+    },
+    "conversation_duration_minutes": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "name": "LandlordProperty",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "FK to Property entity"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "sole_owner",
+        "joint_owner",
+        "power_of_attorney",
+        "executor"
+      ],
+      "default": "sole_owner"
+    },
+    "ownership_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ownership_proof_doc_url": {
+      "type": "string"
+    },
+    "title_deed_number": {
+      "type": "string"
+    },
+    "title_deed_url": {
+      "type": "string"
+    },
+    "title_deed_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "dld_record_url": {
+      "type": "string"
+    },
+    "is_off_plan": {
+      "type": "boolean",
+      "default": false
+    },
+    "oqood_number": {
+      "type": "string"
+    },
+    "oqood_url": {
+      "type": "string"
+    },
+    "mortgage_status": {
+      "type": "string",
+      "enum": [
+        "free_hold_no_mortgage",
+        "mortgaged_local_bank",
+        "mortgaged_overseas",
+        "developer_payment_plan",
+        "lease_to_own"
+      ]
+    },
+    "mortgage_balance_aed": {
+      "type": "number"
+    },
+    "mortgage_bank": {
+      "type": "string"
+    },
+    "service_charge_status": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "in_arrears",
+        "unknown"
+      ]
+    },
+    "service_charge_arrears_aed": {
+      "type": "number"
+    },
+    "currently_occupied": {
+      "type": "boolean"
+    },
+    "tenancy_status": {
+      "type": "string",
+      "enum": [
+        "vacant",
+        "tenanted_ejari_valid",
+        "tenanted_ejari_expiring",
+        "tenanted_eviction_notice_served",
+        "owner_occupied"
+      ]
+    },
+    "lease_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "current_rent_aed": {
+      "type": "number"
+    },
+    "vacant_possession_available_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "keys_location": {
+      "type": "string",
+      "enum": [
+        "with_landlord",
+        "with_tenant",
+        "with_us",
+        "with_concierge",
+        "lockbox"
+      ]
+    },
+    "lockbox_code": {
+      "type": "string"
+    },
+    "key_access_instructions": {
+      "type": "string"
+    },
+    "photography_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "phone_quality",
+        "professional_done",
+        "scheduled"
+      ],
+      "default": "none"
+    },
+    "photoshoot_scheduled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "has_360_tour": {
+      "type": "boolean",
+      "default": false
+    },
+    "has_drone_footage": {
+      "type": "boolean",
+      "default": false
+    },
+    "has_video_walkthrough": {
+      "type": "boolean",
+      "default": false
+    },
+    "has_floor_plan": {
+      "type": "boolean",
+      "default": false
+    },
+    "floor_plan_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}

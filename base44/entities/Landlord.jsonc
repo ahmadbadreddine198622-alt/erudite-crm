@@ -1,0 +1,312 @@
+{
+  "name": "Landlord",
+  "type": "object",
+  "properties": {
+    "lead_type": {
+      "type": "string",
+      "enum": [
+        "landlord_sale",
+        "landlord_rent",
+        "landlord_both"
+      ],
+      "default": "landlord_both"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "full_name_en": {
+      "type": "string"
+    },
+    "full_name_ar": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string",
+      "description": "E.164 format"
+    },
+    "whatsapp": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "preferred_language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "ar",
+        "ru",
+        "zh",
+        "hi"
+      ],
+      "default": "en"
+    },
+    "nationality": {
+      "type": "string"
+    },
+    "residence_country": {
+      "type": "string"
+    },
+    "is_resident_uae": {
+      "type": "boolean",
+      "default": false
+    },
+    "landlord_archetype": {
+      "type": "string",
+      "enum": [
+        "professional_investor",
+        "individual_end_user_relocating",
+        "distressed_seller",
+        "inherited_owner",
+        "developer_resale",
+        "overseas_owner",
+        "first_time_seller",
+        "portfolio_optimizer",
+        "accidental_landlord",
+        "speculator_flipping"
+      ],
+      "default": "individual_end_user_relocating"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "website",
+        "phone",
+        "email",
+        "referral",
+        "social_media",
+        "dld_lookup",
+        "concierge",
+        "building_manager",
+        "expired_listing",
+        "fsbo_portal",
+        "linkedin_outreach",
+        "warm_intro",
+        "other"
+      ]
+    },
+    "referrer_landlord_id": {
+      "type": "string"
+    },
+    "referrer_lead_id": {
+      "type": "string"
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "co_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "sourced",
+        "first_contact",
+        "property_discovery",
+        "pricing_alignment",
+        "mandate_negotiation",
+        "form_a_drafting",
+        "form_a_signature",
+        "documents_collection",
+        "marketing_live",
+        "viewings_flow",
+        "offer_negotiation",
+        "form_f_and_deposit",
+        "closing",
+        "post_completion"
+      ],
+      "default": "sourced"
+    },
+    "sub_stage": {
+      "type": "string",
+      "description": "AI-detected micro-stage"
+    },
+    "stage_entered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "days_in_stage": {
+      "type": "number"
+    },
+    "mandate_type": {
+      "type": "string",
+      "enum": [
+        "exclusive",
+        "non_exclusive",
+        "off_market",
+        "open_listing",
+        "pocket"
+      ]
+    },
+    "mandate_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "verbal",
+        "form_a_drafted",
+        "form_a_signed",
+        "expired",
+        "cancelled"
+      ],
+      "default": "none"
+    },
+    "mandate_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "commission_pct_negotiated": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "asking_price_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "price": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "change_reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reserve_price": {
+      "type": "number"
+    },
+    "days_on_market": {
+      "type": "number"
+    },
+    "prior_brokerage_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_currently_listed_with_others": {
+      "type": "boolean",
+      "default": false
+    },
+    "competing_brokers_count": {
+      "type": "number",
+      "default": 0
+    },
+    "trust_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Aurora-computed"
+    },
+    "responsiveness_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "mandate_win_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "estimated_commission_aed": {
+      "type": "number"
+    },
+    "urgency_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Derived from signals"
+    },
+    "red_flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "double_brokering",
+          "title_dispute",
+          "mortgage_arrears",
+          "tenant_dispute",
+          "unrealistic_pricing",
+          "ghost_pattern",
+          "shopping_brokers"
+        ]
+      }
+    },
+    "buying_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rapport_level": {
+      "type": "string",
+      "enum": [
+        "cold",
+        "warming",
+        "rapport_built",
+        "trust_established",
+        "champion"
+      ],
+      "default": "cold"
+    },
+    "ai_rolling_summary": {
+      "type": "string"
+    },
+    "ai_next_best_action": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+          ]
+        },
+        "reasoning": {
+          "type": "string"
+        }
+      }
+    },
+    "ai_coaching_for_agent": {
+      "type": "string"
+    },
+    "ai_objections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_competitive_intel": {
+      "type": "string",
+      "description": "What other agents are pitching"
+    },
+    "ai_processed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "full_name_en",
+    "phone",
+    "source",
+    "stage",
+    "assigned_agent_email"
+  ]
+}
