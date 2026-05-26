@@ -1,13 +1,123 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
-const SYSTEM_PROMPT = `You are an expert real estate CRM assistant for a Dubai property agency called Erudite Property. 
-You have deep knowledge of UAE real estate market, lead management, and sales processes.
-When given CRM data, you analyze it and provide actionable insights, recommendations, and can update records.
-Always respond in a structured, professional manner. When asked to perform CRM actions, return a JSON block in your response like:
-<crm_action>{"type": "update_lead"|"create_reminder"|"add_tag"|"update_stage", "data": {...}}</crm_action>
-You understand lead stages: new_lead, contacted, viewing_scheduled, viewing_done, negotiation, offer_made, closed_won, closed_lost.
-You understand project layers: peninsula-three, jumeirah-living, six-senses, peninsula-four.`;
+const SYSTEM_PROMPT = `You are Claude — a powerful AI assistant with FULL ACCESS to Erudite Property CRM in Dubai.
+You can READ and WRITE to the CRM database. You understand Dubai real estate deeply.
+
+LEAD STAGES: new_lead → contacted → viewing_scheduled → viewing_done → negotiation → offer_made → closed_won / closed_lost
+PROJECTS: peninsula-three, jumeirah-living, six-senses, peninsula-four
+SOURCES: property_finder, bayut, whatsapp, referral, website, walk_in, social_media, email, import, other
+
+== CRM ACTIONS ==
+When the user asks you to DO something in the CRM (create reminder, update lead, add note, assign lead, etc.),
+output ONE or MORE action blocks like this (they will be auto-executed):
+
+<crm_action>{"type": "create_reminder", "data": {"title": "...", "notes": "...", "due_date": "ISO8601", "priority": "high|medium|low", "lead_id": "...", "lead_name": "..."}}</crm_action>
+<crm_action>{"type": "update_lead", "data": {"lead_id": "...", "stage": "...", "notes": "...", "qualification_status": "hot|warm|cold", "assigned_agent": "email", "next_follow_up": "ISO8601"}}</crm_action>
+<crm_action>{"type": "add_activity", "data": {"lead_id": "...", "lead_name": "...", "type": "note|call|viewing|meeting", "title": "...", "description": "...", "outcome": "completed"}}</crm_action>
+<crm_action>{"type": "add_tag", "data": {"lead_id": "...", "tags": ["tag1", "tag2"]}}</crm_action>
+
+Always confirm what you executed. Be proactive about suggesting CRM actions.
+Respond in markdown. Be concise but insightful.`;
+
+async function executeCRMAction(base44, action) {
+  const { type, data } = action;
+  try {
+    if (type === 'create_reminder') {
+      const record = await base44.asServiceRole.entities.Reminder.create({
+        title: data.title,
+        notes: data.notes || '',
+        due_date: data.due_date || null,
+        priority: data.priority || 'medium',
+        status: 'pending',
+        lead_id: data.lead_id || '',
+        lead_name: data.lead_name || '',
+        type: data.reminder_type || 'follow_up',
+        source: 'ai_suggested',
+      });
+      return { ok: true, type, id: record.id, label: `Reminder created: "${data.title}"` };
+    }
+    if (type === 'update_lead') {
+      const { lead_id, ...updates } = data;
+      if (!lead_id) return { ok: false, error: 'No lead_id provided' };
+      await base44.asServiceRole.entities.Lead.update(lead_id, updates);
+      return { ok: true, type, label: `Lead updated: ${lead_id}` };
+    }
+    if (type === 'add_activity') {
+      const record = await base44.asServiceRole.entities.Activity.create({
+        lead_id: data.lead_id,
+        type: data.type || 'note',
+        title: data.title,
+        description: data.description || '',
+        agent_name: data.agent_name || 'Claude AI',
+        outcome: data.outcome || 'completed',
+      });
+      return { ok: true, type, id: record.id, label: `Activity added: "${data.title}"` };
+    }
+    if (type === 'add_tag') {
+      const lead = await base44.asServiceRole.entities.Lead.get(data.lead_id);
+      const existing = lead.tags || [];
+      const merged = [...new Set([...existing, ...(data.tags || [])])];
+      await base44.asServiceRole.entities.Lead.update(data.lead_id, { tags: merged });
+      return { ok: true, type, label: `Tags added to lead` };
+    }
+    return { ok: false, error: 'Unknown action type: ' + type };
+  } catch (e) {
+    return { ok: false, type, error: e.message };
+  }
+}
+
+async function getFullCRMContext(base44) {
+  // Paginate to get up to 500 leads
+  const leads = [];
+  for (let page = 0; page < 5; page++) {
+    const batch = await base44.asServiceRole.entities.Lead.list('-updated_date', 100, page * 100);
+    leads.push(...batch);
+    if (batch.length < 100) break;
+  }
+
+  const [properties, reminders, commissions] = await Promise.all([
+    base44.asServiceRole.entities.Property.list('-updated_date', 50).catch(() => []),
+    base44.asServiceRole.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20).catch(() => []),
+    base44.asServiceRole.entities.Commission.list('-created_date', 20).catch(() => []),
+  ]);
+
+  const stageMap = leads.reduce((a, l) => { a[l.stage] = (a[l.stage] || 0) + 1; return a; }, {});
+  const sourceMap = leads.reduce((a, l) => { a[l.source] = (a[l.source] || 0) + 1; return a; }, {});
+  const hotLeads = leads.filter(l => l.qualification_status === 'hot' || (l.lead_score || 0) >= 70);
+  const staleLeads = leads.filter(l => (l.inactivity_days || 0) > 7);
+  const totalRevenue = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
+
+  return {
+    total_leads: leads.length,
+    stage_distribution: stageMap,
+    source_distribution: sourceMap,
+    hot_leads_count: hotLeads.length,
+    stale_leads_count: staleLeads.length,
+    properties_count: properties.length,
+    pending_reminders: reminders.length,
+    total_paid_commission_aed: totalRevenue,
+    all_leads: leads.map(l => ({
+      id: l.id,
+      name: l.name,
+      phone: l.phone,
+      email: l.email,
+      stage: l.stage,
+      source: l.source,
+      score: l.lead_score,
+      qualification: l.qualification_status,
+      budget_aed: l.budget_aed,
+      assigned_agent: l.assigned_agent_name,
+      inactivity_days: l.inactivity_days,
+      next_follow_up: l.next_follow_up,
+      tags: l.tags,
+      notes: l.notes,
+      project_layer: l.project_layer,
+    })),
+    pending_reminders_list: reminders.map(r => ({ id: r.id, title: r.title, due_date: r.due_date, lead_name: r.lead_name, priority: r.priority })),
+    recent_properties: properties.slice(0, 10).map(p => ({ id: p.id, title: p.title, type: p.property_type, price: p.price_aed, status: p.status })),
+  };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -27,9 +137,11 @@ Deno.serve(async (req) => {
       if (lead_id) {
         const lead = await base44.entities.Lead.get(lead_id);
         const activities = await base44.entities.Activity.filter({ lead_id }, '-created_date', 20);
-        crmContext = `\n\nCurrent lead context:\n${JSON.stringify(lead, null, 2)}\n\nRecent activities:\n${JSON.stringify(activities, null, 2)}`;
-      } else if (context_data) {
-        crmContext = `\n\nCRM Context:\n${JSON.stringify(context_data, null, 2)}`;
+        crmContext = `\n\n## Current Lead\n${JSON.stringify(lead, null, 2)}\n\n## Recent Activities\n${JSON.stringify(activities, null, 2)}`;
+      } else {
+        // Full CRM context for general chat
+        const fullCtx = await getFullCRMContext(base44);
+        crmContext = `\n\n## Full CRM Snapshot\n${JSON.stringify(fullCtx, null, 2)}`;
       }
 
       const anthropicMessages = messages.map(m => ({ role: m.role, content: m.content }));
@@ -39,22 +151,31 @@ Deno.serve(async (req) => {
 
       const response = await anthropic.messages.create({
         model: 'claude-opus-4-5',
-        max_tokens: 2048,
+        max_tokens: 4096,
         system: SYSTEM_PROMPT,
         messages: anthropicMessages,
       });
 
       const text = response.content[0].text;
 
-      // Parse CRM actions from response
+      // Parse and execute CRM actions
       const crmActions = [];
+      const executedActions = [];
       const actionRegex = /<crm_action>([\s\S]*?)<\/crm_action>/g;
       let match;
       while ((match = actionRegex.exec(text)) !== null) {
-        try { crmActions.push(JSON.parse(match[1])); } catch (_) { /* skip */ }
+        try {
+          const action = JSON.parse(match[1]);
+          crmActions.push(action);
+          const result = await executeCRMAction(base44, action);
+          executedActions.push(result);
+        } catch (_) { /* skip malformed */ }
       }
 
-      return Response.json({ reply: text, crm_actions: crmActions });
+      // Clean action tags from reply
+      const cleanReply = text.replace(/<crm_action>[\s\S]*?<\/crm_action>/g, '').trim();
+
+      return Response.json({ reply: cleanReply, crm_actions: crmActions, executed_actions: executedActions });
     }
 
     // ── ANALYZE LEAD ─────────────────────────────────────────────────────────
@@ -93,7 +214,7 @@ Respond as JSON: {"score": number, "insights": string[], "next_action": string, 
       const ids = lead_ids || [];
       const results = [];
 
-      for (const id of ids.slice(0, 10)) { // cap at 10 to avoid timeout
+      for (const id of ids.slice(0, 10)) {
         const lead = await base44.entities.Lead.get(id);
         const prompt = `Quick analysis for real estate lead. Score 0-100, top insight, next action.
 Lead: name=${lead.name}, stage=${lead.stage}, source=${lead.source}, score=${lead.lead_score}, budget=${lead.budget_aed}, last_contact=${lead.last_contact_date}
@@ -142,7 +263,7 @@ Return JSON: {"message": string, "subject": string}`;
 
     // ── PIPELINE INSIGHTS ────────────────────────────────────────────────────
     if (mode === 'pipeline_insights') {
-      const leads = await base44.entities.Lead.list('-updated_date', 100);
+      const leads = await base44.entities.Lead.list('-updated_date', 200);
       const stageCounts = leads.reduce((acc, l) => { acc[l.stage] = (acc[l.stage] || 0) + 1; return acc; }, {});
       const sourceCounts = leads.reduce((acc, l) => { acc[l.source] = (acc[l.source] || 0) + 1; return acc; }, {});
       const staleLeads = leads.filter(l => l.inactivity_days > 7).length;
