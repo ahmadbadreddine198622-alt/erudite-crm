@@ -30,6 +30,7 @@ import MetaAdsLeads from '@/pages/MetaAdsLeads';
 import WhatsAppSetup from '@/pages/WhatsAppSetup';
 import WhatsAppHub from '@/pages/WhatsAppHub';
 import InstagramLeads from '@/pages/InstagramLeads';
+import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
 
@@ -84,6 +85,7 @@ const AuthenticatedApp = () => {
         <Route path="/instagram" element={<InstagramLeads />} />
         <Route path="/claude-ai" element={<ClaudeAI />} />
         <Route path="/property-finder" element={<PropertyFinderSync />} />
+        <Route path="/duplicates" element={<DuplicateDetector />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

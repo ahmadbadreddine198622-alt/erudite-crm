@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Filter, Download, Wand2 } from 'lucide-react';
+import { Plus, Search, Download, Wand2, GitMerge, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -13,12 +14,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import PageHeader from '@/components/shared/PageHeader';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
+import BulkActionBar from '@/components/leads/BulkActionBar';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 
 export default function Leads() {
@@ -28,6 +31,7 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showIngestion, setShowIngestion] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -44,9 +48,33 @@ export default function Leads() {
     return matchSearch && matchStage && matchSource;
   });
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every(l => selectedIds.has(l.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(l => l.id)));
+    }
+  };
+
+  const toggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
       <PageHeader title="Leads" subtitle={`${filtered.length} leads total`}>
+        <Link to="/duplicates">
+          <Button size="sm" variant="outline" className="gap-1">
+            <GitMerge className="w-4 h-4" /> Duplicates
+          </Button>
+        </Link>
         <Button size="sm" variant="outline" onClick={() => setShowIngestion(true)}>
           <Wand2 className="w-4 h-4 mr-1" /> Import Raw Data
         </Button>
@@ -94,6 +122,9 @@ export default function Leads() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
+                <TableHead className="w-10">
+                  <Checkbox checked={allFilteredSelected} onCheckedChange={toggleSelectAll} />
+                </TableHead>
                 <TableHead className="text-xs">Name</TableHead>
                 <TableHead className="text-xs">Contact</TableHead>
                 <TableHead className="text-xs">Source</TableHead>
@@ -107,18 +138,26 @@ export default function Leads() {
             <TableBody>
               {filtered.map(lead => {
                 const stage = PIPELINE_STAGES.find(s => s.id === lead.stage);
+                const isSelected = selectedIds.has(lead.id);
                 return (
                   <TableRow
                     key={lead.id}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    className={`cursor-pointer hover:bg-muted/30 transition-colors ${isSelected ? 'bg-accent/5' : ''}`}
                     onClick={() => setSelectedLead(lead)}
                   >
+                    <TableCell onClick={e => toggleSelect(lead.id, e)}>
+                      <Checkbox checked={isSelected} onCheckedChange={() => {}} />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent shrink-0">
                           {lead.name?.[0]?.toUpperCase()}
                         </div>
-                        <span className="font-medium text-sm">{lead.name}</span>
+                        <div>
+                          <span className="font-medium text-sm">{lead.name}</span>
+                          {lead.tags?.includes('broker') && <Badge className="ml-1.5 bg-purple-500/10 text-purple-700 border-purple-500/20 text-[10px] px-1">broker</Badge>}
+                          {lead.tags?.includes('needs_enrichment') && <Badge className="ml-1.5 bg-red-500/10 text-red-600 border-red-500/20 text-[10px] px-1">⚠ enrich</Badge>}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -163,6 +202,9 @@ export default function Leads() {
       )}
       <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
       <RawDataIngestion open={showIngestion} onClose={() => setShowIngestion(false)} />
+      {selectedIds.size > 0 && (
+        <BulkActionBar selectedIds={selectedIds} onClear={() => setSelectedIds(new Set())} />
+      )}
     </div>
   );
 }
