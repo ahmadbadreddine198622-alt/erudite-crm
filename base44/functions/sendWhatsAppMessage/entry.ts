@@ -75,11 +75,15 @@ Deno.serve(async (req) => {
   });
 
   // Update conversation last message
-  await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {
+  // Backfill wa_phone_e164 from phone_number if missing (required field)
+  const phoneE164 = conv.wa_phone_e164 || conv.phone_number;
+  const updatePayload = {
     last_message: bodyText,
     last_message_at: timestamp,
     last_outbound_at: timestamp,
-  });
+  };
+  if (!conv.wa_phone_e164 && phoneE164) updatePayload.wa_phone_e164 = phoneE164;
+  await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, updatePayload);
 
   // Log activity
   await base44.asServiceRole.entities.Activity.create({
