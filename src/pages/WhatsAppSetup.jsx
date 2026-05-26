@@ -46,6 +46,7 @@ export default function WhatsAppSetup() {
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('setup'); // setup | workflows
+  const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
 
   const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
 
@@ -57,6 +58,7 @@ export default function WhatsAppSetup() {
       if (data.configured) {
         setStatus('connected');
         setPhoneInfo(data);
+        setCurrentPhoneNumberId(data.phone_number);
         toast.success('WhatsApp connected successfully!');
       } else {
         setStatus('failed');
@@ -67,6 +69,21 @@ export default function WhatsAppSetup() {
       toast.error('Verification failed. Make sure your secrets are set.');
     }
   };
+
+  // Fetch current phone number ID on mount
+  React.useEffect(() => {
+    const fetchCurrentId = async () => {
+      try {
+        const res = await base44.functions.invoke('whatsappEmbeddedSignup', { action: 'verify_config' });
+        if (res.data?.phone_number) {
+          setCurrentPhoneNumberId(res.data.phone_number);
+        }
+      } catch (err) {
+        // Silent fail - will show hardcoded ID as fallback
+      }
+    };
+    fetchCurrentId();
+  }, []);
 
   const copyWebhook = () => {
     navigator.clipboard.writeText(webhookUrl);
@@ -184,7 +201,9 @@ export default function WhatsAppSetup() {
             <CardContent>
               <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2.5">
                 <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                <code className="text-sm font-mono font-semibold flex-1">111463521666858</code>
+                <code className="text-sm font-mono font-semibold flex-1">
+                  {currentPhoneNumberId || 'Loading...'}
+                </code>
                 <Badge variant="outline" className="text-xs shrink-0">WHATSAPP_PHONE_NUMBER_ID</Badge>
               </div>
             </CardContent>
