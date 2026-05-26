@@ -122,15 +122,6 @@ export default function ClaudeAI() {
   const { data: crmStats } = useQuery({
     queryKey: ['claude-crm-stats'],
     queryFn: async () => {
-      const [leads, properties, reminders, commissions, offers, conversations] = await Promise.all([
-        base44.entities.Lead.list('-updated_date', 1, 0).catch(() => []),
-        base44.entities.Property.list('-updated_date', 1, 0).catch(() => []),
-        base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 1, 0).catch(() => []),
-        base44.entities.Commission.filter({ status: 'pending' }, '-created_date', 1, 0).catch(() => []),
-        base44.entities.Offer.list('-created_date', 1, 0).catch(() => []),
-        base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 1, 0).catch(() => []),
-      ]);
-      // get actual counts by fetching more
       const [allLeads, allProps, allRem, allComm, allOffers, allConvos] = await Promise.all([
         base44.entities.Lead.list('-updated_date', 200).catch(() => []),
         base44.entities.Property.list('-updated_date', 100).catch(() => []),
@@ -303,9 +294,39 @@ export default function ClaudeAI() {
               </div>
             </div>
           )}
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-purple-700">
-              <Database className="w-3 h-3" /> Claude sees all data above
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Claude Has Access To</p>
+            <div className="flex flex-wrap gap-1">
+              <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20 text-[10px]">Leads</Badge>
+              <Badge className="bg-green-500/10 text-green-700 border-green-500/20 text-[10px]">Properties</Badge>
+              <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-[10px]">Reminders</Badge>
+              <Badge className="bg-purple-500/10 text-purple-700 border-purple-500/20 text-[10px]">Commissions</Badge>
+              <Badge className="bg-rose-500/10 text-rose-700 border-rose-500/20 text-[10px]">Offers</Badge>
+              <Badge className="bg-teal-500/10 text-teal-700 border-teal-500/20 text-[10px]">WhatsApp</Badge>
+              <Badge className="bg-orange-500/10 text-orange-700 border-orange-500/20 text-[10px]">Activities</Badge>
+              <Badge className="bg-cyan-500/10 text-cyan-700 border-cyan-500/20 text-[10px]">Invoices</Badge>
+            </div>
+          </div>
+
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5 space-y-1.5">
+            <p className="text-xs font-semibold text-purple-700">Claude Can Execute</p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="w-3 h-3 text-green-600" /> Create reminders
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="w-3 h-3 text-green-600" /> Update lead stages
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="w-3 h-3 text-green-600" /> Add tags and notes
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="w-3 h-3 text-green-600" /> Log activities
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="w-3 h-3 text-green-600" /> Assign leads
+              </div>
             </div>
           </div>
         </div>
