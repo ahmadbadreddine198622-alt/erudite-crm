@@ -16,12 +16,14 @@ import LeadScoreCard from '@/components/shared/LeadScoreCard';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 import WhatsAppComposer from '@/components/whatsapp/WhatsAppComposer';
 import MobileInbox from '@/components/mobile/MobileInbox';
+import NewConversationDialog from '@/components/whatsapp/NewConversationDialog';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
   const [selectedConvId, setSelectedConvId] = useState(null);
   const phoneParam = new URLSearchParams(window.location.search).get('phone');
   const [search, setSearch] = useState('');
+  const [showNewConv, setShowNewConv] = useState(false);
 
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all'); // all | unread | open | resolved
@@ -158,12 +160,22 @@ export default function WhatsAppInbox() {
     queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
   };
 
+  const handleNewConvCreated = (convId) => {
+    queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    setSelectedConvId(convId);
+  };
+
   if (isMobile) {
     return <MobileInbox />;
   }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background">
+      <NewConversationDialog
+        open={showNewConv}
+        onClose={() => setShowNewConv(false)}
+        onConversationCreated={handleNewConvCreated}
+      />
       {/* Sidebar — conversation list */}
       <div className="w-80 border-r flex flex-col shrink-0">
         {/* Header */}
@@ -177,6 +189,13 @@ export default function WhatsAppInbox() {
               )}
             </div>
             <div className="flex gap-1">
+              <Button
+                size="sm"
+                className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs px-2.5"
+                onClick={() => setShowNewConv(true)}
+              >
+                + New
+              </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => refetch()}>
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
