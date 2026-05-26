@@ -300,6 +300,8 @@ export default function WhatsAppInbox() {
 
             <WhatsAppComposer
               conversation={selectedConv}
+              lead={selectedLead}
+              landlord={null}
               suggestions={selectedConv.ai_next_message_suggestions}
               onSend={handleSend}
               onSendProperty={() => setShowInsights(true)}

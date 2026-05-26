@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, Mic, FileText, Home, MapPin, Clock, Languages, Paperclip } from "lucide-react";
+import { Send, Sparkles, Mic, FileText, Home, MapPin, Clock, Languages, Paperclip, Wand2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { base44 } from "@/api/base44Client";
+import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 
-export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend }) {
+export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord }) {
   const [text, setText] = useState("");
   const [translatedPreview, setTranslatedPreview] = useState("");
+  const [showAssistant, setShowAssistant] = useState(false);
 
   return (
     <div className="border-t bg-white">
@@ -74,8 +76,22 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
       )}
 
+      {/* AI Reply Assistant Panel */}
+      {showAssistant && (
+        <ReplyAssistantPanel
+          conversation={conversation}
+          lead={lead}
+          landlord={landlord}
+          onInsertMessage={(draft) => {
+            setText(draft);
+            setShowAssistant(false);
+          }}
+        />
+      )}
+
       {/* Toolbar */}
       <div className="flex gap-0.5 px-3 pb-2.5 border-t border-gray-100 pt-1.5">
+        <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
         <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
         <ToolButton icon={MapPin} label="Location" />
         <ToolButton icon={FileText} label="Document" />
