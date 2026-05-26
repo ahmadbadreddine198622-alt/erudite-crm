@@ -5,7 +5,8 @@ import { Sparkles, Phone, MoreVertical, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsights, analyzing, showingInsights }) {
-  const name = lead?.name || conversation?.phone_number || '';
+  const displayPhone = conversation?.wa_phone_e164 || conversation?.phone_number || '';
+  const name = lead?.full_name || conversation?.wa_display_name || displayPhone;
 
   const stageColor = {
     new_lead: 'bg-blue-500/10 text-blue-600',
@@ -23,17 +24,17 @@ export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsi
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold text-sm truncate">{name}</h3>
         <div className="flex items-center gap-2 mt-1">
-          <p className="text-xs text-muted-foreground">{conversation?.phone_number}</p>
-          {conversation?.ai_urgency && (
+          <p className="text-xs text-muted-foreground">{displayPhone}</p>
+          {(conversation?.ai_priority || conversation?.ai_urgency) && (
             <Badge 
               variant="outline"
               className={cn(
                 'text-[10px] h-5',
-                conversation.ai_urgency === 'urgent' && 'border-red-300 bg-red-50 text-red-700',
-                conversation.ai_urgency === 'high' && 'border-orange-300 bg-orange-50 text-orange-700',
+                (conversation.ai_priority === 'urgent' || conversation.ai_urgency === 'urgent') && 'border-red-300 bg-red-50 text-red-700',
+                (conversation.ai_priority === 'high' || conversation.ai_urgency === 'high') && 'border-orange-300 bg-orange-50 text-orange-700',
               )}
             >
-              {conversation.ai_urgency.toUpperCase()}
+              {(conversation.ai_priority || conversation.ai_urgency).toUpperCase()}
             </Badge>
           )}
         </div>

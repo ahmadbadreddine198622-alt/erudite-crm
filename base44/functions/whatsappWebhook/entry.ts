@@ -52,8 +52,9 @@ Deno.serve(async (req) => {
       bodyText = '🎤 Voice message (transcribing...)';
     }
 
-    // Normalize phone number (strip leading zeros/spaces)
+    // Normalize phone number to E.164 format
     const normalizedPhone = fromNumber.replace(/\s+/g, '').replace(/^00/, '');
+    const e164Phone = normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`;
 
     // Find or create lead in the LEAD entity (not Leads)
     let leadId;
@@ -85,16 +86,12 @@ Deno.serve(async (req) => {
     if (convs.length > 0) {
       convId = convs[0].id;
       await base44.asServiceRole.entities.WhatsAppConversation.update(convId, {
-        last_message: bodyText,
-        last_message_at: timestamp,
-        unread_count: (convs[0].unread_count || 0) + 1,
-        status: 'open',
-      });
-    } else {
-      const newConv = await base44.asServiceRole.entities.WhatsAppConversation.create({
         lead_id: leadId,
+        wa_phone_e164: e164Phone,
         phone_number: normalizedPhone,
         status: 'open',
+        first_message_at: timestamp,
+        last_inbound_at: timestamp,
         last_message: bodyText,
         last_message_at: timestamp,
         unread_count: 1,

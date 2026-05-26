@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   if (template_name) {
     payload = {
       messaging_product: 'whatsapp',
-      to: conv.phone_number,
+      to: conv.wa_phone_e164 || conv.phone_number,
       type: 'template',
       template: {
         name: template_name,
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   } else {
     payload = {
       messaging_product: 'whatsapp',
-      to: conv.phone_number,
+      to: conv.wa_phone_e164 || conv.phone_number,
       type: 'text',
       text: { body: message, preview_url: false },
     };
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     status: 'sent',
     timestamp,
     from_number: '',
-    to_number: conv.phone_number,
+    to_number: conv.wa_phone_e164 || conv.phone_number,
     media_type: 'none',
   });
 
@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
   await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {
     last_message: bodyText,
     last_message_at: timestamp,
+    last_outbound_at: timestamp,
   });
 
   // Log activity

@@ -2,22 +2,97 @@
   "name": "WhatsAppConversation",
   "type": "object",
   "properties": {
-    "lead_id": {
+    "wa_phone_e164": {
       "type": "string",
-      "description": "Related Lead ID"
+      "description": "Phone in E.164 format e.g. +971581806000"
     },
     "phone_number": {
       "type": "string",
-      "description": "Contact's WhatsApp number"
+      "description": "Legacy alias \u2014 same as wa_phone_e164"
+    },
+    "wa_display_name": {
+      "type": "string",
+      "description": "Name from WhatsApp profile"
+    },
+    "wa_profile_pic_url": {
+      "type": "string"
+    },
+    "wa_about": {
+      "type": "string",
+      "description": "WhatsApp About/status"
+    },
+    "wa_last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "wa_business_account": {
+      "type": "boolean",
+      "default": false
+    },
+    "wa_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "lead_id": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "country_code": {
+      "type": "string"
+    },
+    "carrier": {
+      "type": "string"
+    },
+    "phone_type": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "landline",
+        "voip",
+        "unknown"
+      ]
+    },
+    "is_valid_whatsapp": {
+      "type": "boolean"
+    },
+    "spam_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
     },
     "status": {
       "type": "string",
       "enum": [
+        "new",
         "open",
-        "pending",
-        "resolved"
+        "pending_customer",
+        "pending_agent",
+        "snoozed",
+        "resolved",
+        "spam",
+        "blocked"
       ],
-      "default": "open"
+      "default": "new"
+    },
+    "lead_stage": {
+      "type": "string"
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "snoozed_until": {
+      "type": "string",
+      "format": "date-time"
     },
     "last_message": {
       "type": "string",
@@ -31,9 +106,56 @@
       "type": "number",
       "default": 0
     },
-    "ai_summary": {
+    "first_message_at": {
       "type": "string",
-      "description": "AI-generated conversation summary"
+      "format": "date-time"
+    },
+    "last_inbound_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_outbound_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "first_response_seconds": {
+      "type": "number"
+    },
+    "sla_due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sla_breached": {
+      "type": "boolean",
+      "default": false
+    },
+    "avg_response_seconds": {
+      "type": "number"
+    },
+    "detected_language": {
+      "type": "string"
+    },
+    "auto_translate_to": {
+      "type": "string"
+    },
+    "ai_priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ]
+    },
+    "ai_urgency": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "description": "Legacy alias for ai_priority"
     },
     "ai_sentiment": {
       "type": "string",
@@ -45,45 +167,181 @@
       ],
       "default": "unknown"
     },
-    "ai_intent": {
-      "type": "string",
-      "description": "Detected client intent"
+    "ai_sentiment_current": {
+      "type": "string"
     },
-    "ai_urgency": {
+    "ai_sentiment_trend": {
       "type": "string",
       "enum": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ],
-      "default": "low"
+        "improving",
+        "stable",
+        "deteriorating"
+      ]
+    },
+    "ai_buying_signal_count": {
+      "type": "number",
+      "default": 0
+    },
+    "ai_red_flag_count": {
+      "type": "number",
+      "default": 0
+    },
+    "ai_topics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_mentioned_properties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_mentioned_locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_mentioned_competitors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_rolling_summary": {
+      "type": "string"
+    },
+    "ai_summary": {
+      "type": "string"
+    },
+    "ai_intent": {
+      "type": "string"
     },
     "ai_next_action": {
-      "type": "string",
-      "description": "AI-recommended next action"
+      "type": "string"
+    },
+    "ai_next_message_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "warm",
+              "professional",
+              "urgent",
+              "casual"
+            ]
+          },
+          "intent": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "is_vip": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_starred": {
+      "type": "boolean",
+      "default": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "ai_tags": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "AI-suggested tags"
+      }
     },
     "manual_tags": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Manually added tags"
+      }
     },
-    "assigned_agent": {
-      "type": "string",
-      "description": "Agent email"
+    "internal_notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "properties": {
+        "whatsapp_opt_in": {
+          "type": "boolean",
+          "default": false
+        },
+        "opt_in_source": {
+          "type": "string"
+        },
+        "opt_in_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "marketing_consent": {
+          "type": "boolean",
+          "default": false
+        },
+        "gdpr_acknowledged": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "channel_links": {
+      "type": "object",
+      "properties": {
+        "instagram_handle": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "sms_phone": {
+          "type": "string"
+        },
+        "facebook_id": {
+          "type": "string"
+        }
+      }
     }
   },
   "required": [
-    "lead_id",
-    "phone_number"
+    "wa_phone_e164",
+    "status"
   ]
 }

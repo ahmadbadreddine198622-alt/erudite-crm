@@ -71,12 +71,13 @@ export default function WhatsAppInbox() {
   // Filter + search
   const filtered = conversations.filter(c => {
     const lead = leads.find(l => l.id === c.lead_id);
-    const name = lead?.full_name || c.phone_number || '';
-    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || c.phone_number?.includes(search);
+    const phone = c.wa_phone_e164 || c.phone_number || '';
+    const name = lead?.full_name || c.wa_display_name || phone;
+    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
     const matchesFilter =
       filter === 'all' ? true :
       filter === 'unread' ? (c.unread_count || 0) > 0 :
-      filter === 'open' ? c.status === 'open' :
+      filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
       filter === 'resolved' ? c.status === 'resolved' : true;
     return matchesSearch && matchesFilter;
   });
@@ -117,7 +118,7 @@ export default function WhatsAppInbox() {
 
   const handleMarkResolved = () => {
     if (!selectedConvId) return;
-    base44.entities.WhatsAppConversation.update(selectedConvId, { status: 'resolved' });
+    base44.entities.WhatsAppConversation.update(selectedConvId, { status: 'resolved', unread_count: 0 });
     queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
   };
 
