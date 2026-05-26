@@ -3,16 +3,20 @@ import { Send } from "lucide-react";
 
 export default function RecommendedPropertyCard({ rec, onSend }) {
   return (
-    <div className="flex items-start justify-between gap-2 p-2 rounded border bg-white text-xs">
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{rec.property_id}</div>
-        {rec.reasoning && <div className="text-muted-foreground line-clamp-2 mt-0.5">{rec.reasoning}</div>}
-        {rec.match_score != null && (
-          <div className="mt-1 text-violet-600 font-semibold">{rec.match_score}% match</div>
-        )}
+    <div className="border rounded-lg p-2 bg-white">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold truncate">{rec.title}</div>
+          <div className="text-xs text-muted-foreground">{rec.price?.toLocaleString()} AED · {rec.bedrooms}BR · {rec.location}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs font-bold text-violet-700">{rec.match_score}%</div>
+          <div className="text-[10px] text-muted-foreground">match</div>
+        </div>
       </div>
-      <Button size="sm" variant="outline" className="shrink-0 h-7 px-2 gap-1" onClick={onSend}>
-        <Send className="w-3 h-3" /> Send
+      <p className="text-xs text-slate-600 mt-1 line-clamp-2">{rec.reasoning}</p>
+      <Button size="sm" onClick={onSend} className="w-full mt-2 h-7 text-xs">
+        <Send className="w-3 h-3 mr-1" /> Send with AI pitch
       </Button>
     </div>
   );
