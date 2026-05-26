@@ -93,7 +93,7 @@ export default function WhatsAppHeader({ conversation, lead, agent, onAction }) 
       <StagePipeline currentStage={lead?.stage} onStageClick={s => onAction("set_stage", s)} />
 
       {/* Row 3 — command bar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-t bg-slate-50 overflow-x-auto">
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-t bg-white overflow-x-auto">
         <CommandButton icon={Phone} label="Call" onClick={() => onAction("call")} />
         <CommandButton icon={Video} label="Video" onClick={() => onAction("video")} />
         <CommandButton icon={Home} label="Send property" onClick={() => onAction("send_property")} highlight />
@@ -116,7 +116,7 @@ function CommandButton({ icon: Icon, label, onClick, highlight, active }) {
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs whitespace-nowrap transition ${
         active ? "bg-violet-100 text-violet-800" :
-        highlight ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" :
+        highlight ? "bg-[#00A884]/10 text-[#00A884] hover:bg-[#00A884]/20" :
         "hover:bg-slate-200 text-slate-700"
       }`}
     >

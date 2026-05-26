@@ -1,14 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Sparkles, Home, AlertCircle, Smile, ShieldCheck, ExternalLink } from "lucide-react";
+import { TrendingUp, Sparkles, Home, AlertCircle, Smile, ShieldCheck, ExternalLink, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import ScoreBreakdownChart from "@/components/ScoreBreakdownChart";
 import RecommendedPropertyCard from "@/components/RecommendedPropertyCard";
 
-export default function AIInsightsPanel({ conversation, lead, recommendations, onSendProperty }) {
+export default function AIInsightsPanel({ conversation, lead, recommendations, onSendProperty, onClose }) {
   if (!conversation) return null;
   return (
-    <div className="w-96 border-l overflow-y-auto p-4 space-y-4 bg-slate-50">
+    <div className="w-80 border-l bg-white flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 bg-white">
+        <h3 className="font-semibold text-sm text-gray-900">Lead Profile</h3>
+        {onClose && (
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded p-0.5 hover:bg-gray-100">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
       {/* Lead snapshot */}
       <Card>
         <CardContent className="p-3 space-y-2">
@@ -124,6 +133,7 @@ export default function AIInsightsPanel({ conversation, lead, recommendations, o
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
