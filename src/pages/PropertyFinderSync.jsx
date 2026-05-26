@@ -11,6 +11,7 @@ import InsightsDashboard from '@/components/propertyfinder/InsightsDashboard';
 import PFLeadsTab from '@/components/propertyfinder/PFLeadsTab';
 import PFListingsTab from '@/components/propertyfinder/PFListingsTab';
 import PFSettingsPanel from '@/components/propertyfinder/PFSettingsPanel';
+import PFConnectionBanner from '@/components/propertyfinder/PFConnectionBanner';
 
 const channelConfig = {
   call: { icon: Phone, color: 'bg-blue-100 text-blue-700', label: 'Calls' },
@@ -95,6 +96,8 @@ export default function PropertyFinderSync() {
           </CardContent>
         </Card>
       )}
+
+      <PFConnectionBanner />
 
       {/* Top Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

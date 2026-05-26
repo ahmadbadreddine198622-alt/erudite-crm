@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
+import PFCreateListingDialog from './PFCreateListingDialog';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Home, BedDouble, Bath, MapPin, ExternalLink, RefreshCw, Download, Building2, FileDown } from 'lucide-react';
+import { Search, Home, BedDouble, Bath, MapPin, ExternalLink, RefreshCw, Download, Building2, FileDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -592,6 +593,8 @@ function unique(arr) { return [...new Set(arr.filter(Boolean))].sort(); }
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function PFListingsTab() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editListing, setEditListing] = useState(null);
   const [search, setSearch] = useState('');
   const [filterBeds, setFilterBeds] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -661,6 +664,10 @@ export default function PFListingsTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search title, reference, location..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5 shrink-0 bg-accent text-accent-foreground hover:bg-accent/90">
+          <Plus className="w-3.5 h-3.5" />
+          New Listing
+        </Button>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5 shrink-0">
           <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
@@ -730,6 +737,14 @@ export default function PFListingsTab() {
           ` · ${listings.filter(l => ['published', 'active', 'live'].includes(getStatus(l))).length} live`}
       </p>
 
+      {/* Create / Edit Dialog */}
+      <PFCreateListingDialog
+        open={createOpen || !!editListing}
+        onClose={() => { setCreateOpen(false); setEditListing(null); }}
+        onSuccess={() => { refetch(); }}
+        editListing={editListing || null}
+      />
+
       {filtered.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted-foreground">No listings match your filters.</div>
       ) : (
@@ -794,6 +809,13 @@ export default function PFListingsTab() {
                     ) : <span />}
                     <div className="flex items-center gap-1.5">
                       {isLive && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Live</span>}
+                      <button
+                        onClick={() => setEditListing(listing)}
+                        title="Edit Listing"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary font-medium transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => downloadSingleListingPDF(listing).catch(console.error)}
                         title="Download Brochure PDF"
