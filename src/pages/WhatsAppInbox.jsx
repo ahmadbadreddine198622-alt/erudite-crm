@@ -28,10 +28,6 @@ export default function WhatsAppInbox() {
   const [showInsights, setShowInsights] = useState(true);
   const queryClient = useQueryClient();
 
-  if (isMobile) {
-    return <MobileInbox />;
-  }
-
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['wa_conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 50),
@@ -87,6 +83,10 @@ export default function WhatsAppInbox() {
       base44.entities.WhatsAppConversation.update(selectedConvId, { unread_count: 0 });
     }
   }, [selectedConvId]);
+
+  if (isMobile) {
+    return <MobileInbox />;
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, Map, ChevronLeft, ChevronRight, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle
+  Bell, Map, ChevronLeft, ChevronRight, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ const navItems = [
   { label: 'Reminders', icon: Bell, path: '/reminders' },
   { label: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
   { label: 'Inbox', icon: Inbox, path: '/inbox' },
+  { label: 'Meta & Google Leads', icon: Zap, path: '/meta-ads-leads' },
 ];
 
 export default function Sidebar() {

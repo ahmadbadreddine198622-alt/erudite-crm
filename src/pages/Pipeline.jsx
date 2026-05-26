@@ -30,6 +30,16 @@ export default function Pipeline() {
   const [activeLayer, setActiveLayer] = useState('peninsula-three');
   const queryClient = useQueryClient();
 
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => base44.entities.Lead.list('-created_date', 500),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+  });
+
   if (isMobile) {
     return (
       <div className="p-4 space-y-4">
@@ -42,16 +52,6 @@ export default function Pipeline() {
       </div>
     );
   }
-
-  const { data: leads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 500),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
-  });
 
   const filteredLeads = leads.filter(l =>
     (!search || l.name?.toLowerCase().includes(search.toLowerCase()) ||

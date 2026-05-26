@@ -26,6 +26,7 @@ import TeamDashboard from '@/pages/TeamDashboard';
 import MyDashboard from '@/pages/MyDashboard';
 import SalesAnalytics from '@/pages/SalesAnalytics';
 import Calendar from '@/pages/Calendar';
+import MetaAdsLeads from '@/pages/MetaAdsLeads';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
         <Route path="/my-dashboard" element={<MyDashboard />} />
         <Route path="/sales-analytics" element={<SalesAnalytics />} />
         <Route path="/calendar" element={<Calendar />} />
+        <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

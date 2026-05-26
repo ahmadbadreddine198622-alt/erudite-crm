@@ -124,7 +124,7 @@ export default function DailyStandup() {
             {stats.inactiveLeads > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded text-sm text-amber-700">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span><strong>{stats.inactiveLeads}</strong> leads inactive >3 days — re-engage</span>
+                <span><strong>{stats.inactiveLeads}</strong> leads inactive &gt;3 days — re-engage</span>
               </div>
             )}
           </div>
