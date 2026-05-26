@@ -1,109 +1,133 @@
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, TrendingUp, Brain, Zap, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, Sparkles, Home, AlertCircle, Smile, ShieldCheck, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import ScoreBreakdownChart from "@/components/ScoreBreakdownChart";
+import RecommendedPropertyCard from "@/components/RecommendedPropertyCard";
 
-const sentimentConfig = {
-  positive: { label: 'Positive', color: 'text-green-600 bg-green-50 border-green-200' },
-  neutral:  { label: 'Neutral',  color: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
-  negative: { label: 'Negative', color: 'text-red-600 bg-red-50 border-red-200' },
-  unknown:  { label: 'Unknown',  color: 'text-gray-500 bg-gray-50 border-gray-200' },
-};
-
-const urgencyConfig = {
-  low:    { label: 'Low',    color: 'bg-gray-100 text-gray-600' },
-  medium: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700' },
-  high:   { label: 'High',   color: 'bg-orange-100 text-orange-700' },
-  urgent: { label: 'Urgent', color: 'bg-red-100 text-red-700 font-bold' },
-};
-
-export default function AIInsightsPanel({ conv, lead }) {
-  if (!conv) return null;
-
-  const hasInsights = conv.ai_summary || conv.ai_intent;
-
+export default function AIInsightsPanel({ conversation, lead, recommendations, onSendProperty }) {
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-accent" />
-        <h3 className="font-semibold text-sm">AI Insights</h3>
-      </div>
-
-      {!hasInsights ? (
-        <p className="text-xs text-muted-foreground italic">
-          No analysis yet. Click "Re-analyse" to generate insights.
-        </p>
-      ) : (
-        <>
-          {/* Sentiment + Urgency row */}
-          <div className="flex gap-2 flex-wrap">
-            {conv.ai_sentiment && (
-              <span className={cn('text-xs px-2 py-0.5 rounded border font-medium', sentimentConfig[conv.ai_sentiment]?.color)}>
-                {sentimentConfig[conv.ai_sentiment]?.label}
-              </span>
-            )}
-            {conv.ai_urgency && (
-              <span className={cn('text-xs px-2 py-0.5 rounded font-medium', urgencyConfig[conv.ai_urgency]?.color)}>
-                {urgencyConfig[conv.ai_urgency]?.label} Priority
-              </span>
-            )}
+    <div className="w-96 border-l overflow-y-auto p-4 space-y-4 bg-slate-50">
+      {/* Lead snapshot */}
+      <Card>
+        <CardContent className="p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Lead profile</h3>
+            {lead && <Link to={`/leads/${lead.id}`} className="text-xs text-blue-600 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Open</Link>}
           </div>
-
-          {/* Summary */}
-          {conv.ai_summary && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                <Brain className="w-3 h-3" /> Summary
-              </div>
-              <p className="text-xs leading-relaxed text-foreground">{conv.ai_summary}</p>
-            </div>
+          {lead ? (
+            <dl className="text-xs space-y-1">
+              <Row k="Budget" v={`${fmt(lead.budget_min)}–${fmt(lead.budget_max)} ${lead.budget_currency}`} />
+              <Row k="Locations" v={(lead.preferred_locations || []).join(", ") || "—"} />
+              <Row k="Property type" v={(lead.preferred_property_types || []).join(", ") || "—"} />
+              <Row k="Bedrooms" v={`${lead.bedrooms_min || "?"}–${lead.bedrooms_max || "?"}`} />
+              <Row k="Timeline" v={lead.move_in_timeline || "—"} />
+              <Row k="Financing" v={lead.financing_method || "—"} />
+              <Row k="Nationality" v={lead.nationality || "—"} />
+              <Row k="Persona" v={lead.ai_persona?.archetype || "—"} />
+            </dl>
+          ) : (
+            <button className="w-full text-xs text-blue-600">+ Create lead from this conversation</button>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Intent */}
-          {conv.ai_intent && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                <TrendingUp className="w-3 h-3" /> Intent
-              </div>
-              <p className="text-xs leading-relaxed text-foreground">{conv.ai_intent}</p>
-            </div>
-          )}
-
-          {/* Next action */}
-          {conv.ai_next_action && (
-            <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 space-y-1">
-              <div className="flex items-center gap-1 text-xs font-semibold text-accent uppercase tracking-wide">
-                <Zap className="w-3 h-3" /> Recommended Action
-              </div>
-              <p className="text-xs text-foreground font-medium">{conv.ai_next_action}</p>
-            </div>
-          )}
-
-          {/* AI Tags */}
-          {conv.ai_tags?.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Tags</div>
-              <div className="flex flex-wrap gap-1">
-                {conv.ai_tags.map(t => (
-                  <Badge key={t} className="text-[10px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25">
-                    {t}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+      {/* Score breakdown */}
+      {lead?.ai_lead_score_breakdown && (
+        <Card>
+          <CardContent className="p-3">
+            <h3 className="font-semibold text-sm flex items-center gap-1 mb-2">
+              <Sparkles className="w-4 h-4 text-violet-600" /> Aurora score · {Math.round(lead.ai_lead_score)}
+            </h3>
+            <ScoreBreakdownChart breakdown={lead.ai_lead_score_breakdown} />
+          </CardContent>
+        </Card>
       )}
 
-      {/* Lead info */}
-      {lead && (
-        <div className="border-t pt-4 space-y-1.5">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Lead Info</div>
-          <p className="text-xs font-medium">{lead.name}</p>
-          <p className="text-xs text-muted-foreground">{lead.phone}</p>
-          {lead.stage && <Badge variant="secondary" className="text-[10px]">{lead.stage}</Badge>}
-        </div>
+      {/* Sentiment trend */}
+      <Card>
+        <CardContent className="p-3">
+          <h3 className="font-semibold text-sm flex items-center gap-1">
+            <Smile className="w-4 h-4 text-emerald-600" /> Sentiment trend
+          </h3>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge>{conversation.ai_sentiment_current}</Badge>
+            <TrendIndicator trend={conversation.ai_sentiment_trend} />
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">
+            {conversation.ai_buying_signal_count} buying signal{conversation.ai_buying_signal_count !== 1 ? "s" : ""}
+            {" · "}
+            {conversation.ai_red_flag_count} red flag{conversation.ai_red_flag_count !== 1 ? "s" : ""}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recommended properties to send */}
+      {recommendations?.length > 0 && (
+        <Card>
+          <CardContent className="p-3">
+            <h3 className="font-semibold text-sm flex items-center gap-1 mb-2">
+              <Home className="w-4 h-4 text-blue-600" /> Send these next
+            </h3>
+            <div className="space-y-2">
+              {recommendations.slice(0, 3).map(r => (
+                <RecommendedPropertyCard key={r.property_id} rec={r} onSend={() => onSendProperty(r)} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Topics & objections */}
+      {(conversation.ai_topics?.length > 0 || conversation.ai_mentioned_competitors?.length > 0) && (
+        <Card>
+          <CardContent className="p-3 space-y-2">
+            <h3 className="font-semibold text-sm">Detected topics</h3>
+            <div className="flex flex-wrap gap-1">
+              {conversation.ai_topics?.map(t => <Badge key={t} variant="outline">{t}</Badge>)}
+            </div>
+            {conversation.ai_mentioned_competitors?.length > 0 && (
+              <div className="mt-2 text-xs">
+                <span className="text-red-700 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Competitors mentioned:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {conversation.ai_mentioned_competitors.map(c => <Badge key={c} variant="destructive">{c}</Badge>)}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Multi-channel */}
+      {conversation.channel_links && Object.values(conversation.channel_links).some(Boolean) && (
+        <Card>
+          <CardContent className="p-3">
+            <h3 className="font-semibold text-sm mb-2">Also reached on</h3>
+            <ul className="text-xs space-y-1">
+              {conversation.channel_links.instagram_handle && <li>📷 IG: @{conversation.channel_links.instagram_handle}</li>}
+              {conversation.channel_links.email && <li>✉ {conversation.channel_links.email}</li>}
+              {conversation.channel_links.sms_phone && <li>📱 SMS: {conversation.channel_links.sms_phone}</li>}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Compliance */}
+      <Card>
+        <CardContent className="p-3">
+          <h3 className="font-semibold text-sm flex items-center gap-1 mb-1"><ShieldCheck className="w-4 h-4 text-emerald-600" /> Consent</h3>
+          <div className="text-xs space-y-0.5">
+            <ConsentRow label="WhatsApp opt-in" ok={conversation.consent?.whatsapp_opt_in} />
+            <ConsentRow label="Marketing consent" ok={conversation.consent?.marketing_consent} />
+            <ConsentRow label="GDPR acknowledged" ok={conversation.consent?.gdpr_acknowledged} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+function Row({ k, v }) { return (<div className="flex justify-between"><dt className="text-muted-foreground">{k}</dt><dd className="font-medium text-right">{v}</dd></div>); }
+function ConsentRow({ label, ok }) { return (<div className="flex justify-between"><span>{label}</span><span className={ok ? "text-emerald-600" : "text-amber-600"}>{ok ? "✓" : "missing"}</span></div>); }
+function TrendIndicator({ trend }) { const map = { improving: ["↗", "text-emerald-600"], stable: ["→", "text-slate-500"], deteriorating: ["↘", "text-red-600"] }; const [icon, color] = map[trend] || ["—", "text-slate-400"]; return <span className={`text-sm font-semibold ${color}`}>{icon} {trend}</span>; }
+function fmt(n) { return n != null ? new Intl.NumberFormat().format(n) : "?"; }
