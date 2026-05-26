@@ -7,8 +7,20 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    const { api_key, api_secret } = await req.json();
-    if (!api_key || !api_secret) return Response.json({ error: 'API key and secret are required' }, { status: 400 });
+    const body = await req.json();
+    const { api_key } = body;
+    let { api_secret } = body;
+    if (!api_key) return Response.json({ error: 'API key is required' }, { status: 400 });
+
+    // If no new secret provided, reuse the existing one
+    if (!api_secret) {
+      const existing2 = await base44.asServiceRole.entities.PFCredential.list();
+      if (existing2 && existing2.length > 0 && existing2[0].api_secret) {
+        api_secret = existing2[0].api_secret;
+      } else {
+        return Response.json({ error: 'API secret is required' }, { status: 400 });
+      }
+    }
 
     // Test credentials against PF API
     let isConnected = false;

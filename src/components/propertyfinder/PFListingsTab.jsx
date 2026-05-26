@@ -74,9 +74,26 @@ function getAllImages(l) {
   return imgs.map(f => (f.original && f.original.url) || (f.watermarked && f.watermarked.url) || f.url).filter(Boolean);
 }
 
+// ─── Image loader helper ─────────────────────────────────────────────────────
+
+async function loadBase64Image(url) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ─── Single-listing branded PDF (Erudite Estate style) ───────────────────────
 
-function downloadSingleListingPDF(listing) {
+async function downloadSingleListingPDF(listing) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210, H = 297, M = 15;
 
@@ -99,6 +116,13 @@ function downloadSingleListingPDF(listing) {
   const parking = listing.parkingSlots ? `${listing.parkingSlots} parking` : '';
   const furnishing = listing.furnishingType || '';
   const amenities = listing.amenities || [];
+
+  // ── Load hero image ─────────────────────────────────────────────────────────
+  const allImgs = getAllImages(listing);
+  let heroBase64 = null;
+  if (allImgs[0]) heroBase64 = await loadBase64Image(allImgs[0]);
+  let img2Base64 = null;
+  if (allImgs[1]) img2Base64 = await loadBase64Image(allImgs[1]);
 
   // ── PAGE 1: Cover ──────────────────────────────────────────────────────────
 
@@ -136,14 +160,22 @@ function downloadSingleListingPDF(listing) {
   doc.setLineWidth(0.3);
   doc.line(M, 27, W - M, 27);
 
-  // Hero image area placeholder (large dark block)
-  doc.setFillColor(25, 35, 55);
-  doc.roundedRect(M, 32, W - 2 * M, 100, 3, 3, 'F');
-  // Image label
-  doc.setTextColor(60, 75, 95);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.text('Property Photography', W / 2 - 20, 83);
+  // Hero image area
+  if (heroBase64) {
+    doc.addImage(heroBase64, 'JPEG', M, 32, W - 2 * M, 100);
+    // Dark gradient overlay at bottom of image
+    doc.setFillColor(15, 23, 42);
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 0.55 }));
+    doc.rect(M, 105, W - 2 * M, 27, 'F');
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
+  } else {
+    doc.setFillColor(25, 35, 55);
+    doc.roundedRect(M, 32, W - 2 * M, 100, 3, 3, 'F');
+    doc.setTextColor(60, 75, 95);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Property Photography', W / 2 - 20, 83);
+  }
 
   // Location tag over image area
   doc.setFillColor(15, 23, 42);
@@ -254,8 +286,15 @@ function downloadSingleListingPDF(listing) {
   const shortTitle = doc.splitTextToSize(title, W - 2 * M - 20);
   doc.text(shortTitle[0], M, 23);
 
-  // Description
   let y2 = 40;
+
+  // Second image (if available)
+  if (img2Base64) {
+    doc.addImage(img2Base64, 'JPEG', M, y2, W - 2 * M, 55);
+    y2 += 60;
+  }
+
+  // Description
   if (description) {
     doc.setTextColor(40, 50, 70);
     doc.setFontSize(9);
@@ -756,7 +795,7 @@ export default function PFListingsTab() {
                     <div className="flex items-center gap-1.5">
                       {isLive && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Live</span>}
                       <button
-                        onClick={() => downloadSingleListingPDF(listing)}
+                        onClick={() => downloadSingleListingPDF(listing).catch(console.error)}
                         title="Download Brochure PDF"
                         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-accent font-medium transition-colors"
                       >
