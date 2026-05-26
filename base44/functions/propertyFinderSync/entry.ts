@@ -205,12 +205,22 @@ Deno.serve(async (req) => {
     const token = await getPFToken(apiKey, apiSecret);
     const pfLeads = await fetchAllPFLeads(token);
 
-    const allExisting = await base44.asServiceRole.entities.Lead.filter({ source: 'property_finder' });
+    // Paginate through ALL existing PF leads to build the dedup map
     const existingMap = {};
-    for (const l of allExisting) {
-      if (l.source_metadata && l.source_metadata.pf_lead_id) {
-        existingMap[l.source_metadata.pf_lead_id] = l;
+    let exPage = 0;
+    const exPageSize = 200;
+    while (true) {
+      const batch = await base44.asServiceRole.entities.Lead.filter(
+        { source: 'property_finder' }, '-created_date', exPageSize, exPage * exPageSize
+      );
+      for (const l of batch) {
+        if (l.source_metadata && l.source_metadata.pf_lead_id) {
+          existingMap[l.source_metadata.pf_lead_id] = l;
+        }
       }
+      if (batch.length < exPageSize) break;
+      exPage++;
+      if (exPage > 20) break; // safety cap at 4000 leads
     }
 
     let created = 0;
@@ -222,6 +232,11 @@ Deno.serve(async (req) => {
         const pfLeadId = String(pfLead.id || '');
         if (!pfLeadId) continue;
         const crmData = mapPFLeadToCRM(pfLead);
+        // Remove undefined values to avoid entity validation errors
+        Object.keys(crmData).forEach(k => crmData[k] === undefined && delete crmData[k]);
+        if (crmData.source_metadata) {
+          Object.keys(crmData.source_metadata).forEach(k => crmData.source_metadata[k] === undefined && delete crmData.source_metadata[k]);
+        }
         if (existingMap[pfLeadId]) {
           await base44.asServiceRole.entities.Lead.update(existingMap[pfLeadId].id, Object.assign({}, crmData, { stage: existingMap[pfLeadId].stage }));
           updated++;
@@ -231,6 +246,7 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         errors++;
+        console.error('Lead sync error for', pfLeadId, err.message);
       }
     }
 
