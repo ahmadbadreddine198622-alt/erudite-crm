@@ -6,6 +6,7 @@ import ScoreBreakdownChart from "@/components/ScoreBreakdownChart";
 import RecommendedPropertyCard from "@/components/RecommendedPropertyCard";
 
 export default function AIInsightsPanel({ conversation, lead, recommendations, onSendProperty }) {
+  if (!conversation) return null;
   return (
     <div className="w-96 border-l overflow-y-auto p-4 space-y-4 bg-slate-50">
       {/* Lead snapshot */}
