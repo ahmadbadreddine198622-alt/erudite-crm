@@ -28,6 +28,7 @@ import SalesAnalytics from '@/pages/SalesAnalytics';
 import Calendar from '@/pages/Calendar';
 import MetaAdsLeads from '@/pages/MetaAdsLeads';
 import WhatsAppSetup from '@/pages/WhatsAppSetup';
+import InstagramLeads from '@/pages/InstagramLeads';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -76,6 +77,7 @@ const AuthenticatedApp = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
         <Route path="/whatsapp-setup" element={<WhatsAppSetup />} />
+        <Route path="/instagram" element={<InstagramLeads />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
