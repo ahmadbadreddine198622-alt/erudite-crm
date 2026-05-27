@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'My Dashboard', icon: UserCircle, path: '/my-dashboard' },
-  { label: 'Aurora Pipeline', icon: KanbanSquare, path: '/pipeline' },
+  { label: 'Pipeline', icon: KanbanSquare, path: '/pipeline' },
   { label: 'Leads', icon: Users, path: '/leads' },
   { label: 'Contacts', icon: Users, path: '/contacts' },
   { label: 'Landlords', icon: Building2, path: '/landlords' },

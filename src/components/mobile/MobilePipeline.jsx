@@ -41,6 +41,9 @@ export default function MobilePipeline() {
 
   return (
     <div className="space-y-3 pb-4">
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[11px] text-amber-700 leading-snug">
+        Mobile pipeline view is being upgraded — desktop has the new two-track experience.
+      </div>
       {stages.map(stage => {
         const stageLeads = leads.filter(l => l.stage === stage);
         return (
