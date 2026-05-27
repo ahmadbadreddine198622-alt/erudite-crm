@@ -34,6 +34,7 @@ import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
 import Landlords from '@/pages/Landlords';
+import EmailAutomations from '@/pages/EmailAutomations';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -88,6 +89,7 @@ const AuthenticatedApp = () => {
         <Route path="/claude-ai" element={<ClaudeAI />} />
         <Route path="/property-finder" element={<PropertyFinderSync />} />
         <Route path="/duplicates" element={<DuplicateDetector />} />
+        <Route path="/email-automations" element={<EmailAutomations />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

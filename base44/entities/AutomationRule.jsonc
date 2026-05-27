@@ -16,18 +16,23 @@
     "trigger_type": {
       "type": "string",
       "enum": [
-        "message_received",
-        "sentiment_change",
-        "lead_score_change",
-        "urgency_change",
+        "lead_status_change",
+        "pipeline_stage_change",
+        "lead_created",
         "days_no_activity",
+        "lead_score_change",
         "tag_added"
       ],
       "description": "What triggers this rule"
     },
     "trigger_conditions": {
       "type": "object",
-      "description": "Condition to match (e.g. {sentiment: 'negative', urgency: 'high'})"
+      "description": "Condition to match e.g. { stage: 'qualified', status: 'hot' }"
+    },
+    "delay_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Hours to wait before executing actions"
     },
     "actions": {
       "type": "array",
@@ -37,12 +42,11 @@
           "type": {
             "type": "string",
             "enum": [
+              "send_email",
               "tag",
               "assign",
-              "escalate",
-              "schedule_followup",
-              "send_template",
-              "notify"
+              "notify",
+              "schedule_followup"
             ]
           },
           "payload": {
@@ -69,7 +73,6 @@
   "required": [
     "name",
     "trigger_type",
-    "trigger_conditions",
     "actions"
   ]
 }
