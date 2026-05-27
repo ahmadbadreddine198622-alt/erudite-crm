@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, RefreshCw, Mail } from 'lucide-react';
 import EmailListItem from '@/components/inbox/EmailListItem';
 import EmailDetailPanel from '@/components/inbox/EmailDetailPanel';
+import GmailConnectionBanner from '@/components/inbox/GmailConnectionBanner';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -56,6 +57,12 @@ export default function Inbox() {
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
       {/* Left Panel - Email List */}
       <div className={`flex flex-col border-r border-border ${selectedEmail ? 'hidden md:flex w-[380px] shrink-0' : 'flex-1 md:w-[380px] md:shrink-0'}`}>
+        {/* Gmail Connection Banner */}
+        <GmailConnectionBanner
+          emailCount={emails.length}
+          onSynced={() => refetch()}
+        />
+
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
