@@ -39,7 +39,9 @@ function mostRecentSync(credRow) {
 export default function Pipeline() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-  const [selectedLead, setSelectedLead] = useState(null);
+  // Store only the ID; derive the live lead object from the leads cache so
+  // mutations made inside LeadDetailSheet are reflected immediately.
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [activeTab, setActiveTab] = useState('sale');
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
@@ -82,6 +84,13 @@ export default function Pipeline() {
   const activeLeads = useMemo(
     () => leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold'),
     [leads],
+  );
+
+  // Live lead for the open detail drawer — re-derived whenever the cache
+  // updates, so Select inputs reflect saved changes immediately.
+  const selectedLead = useMemo(
+    () => (selectedLeadId ? leads.find((l) => l.id === selectedLeadId) : null),
+    [leads, selectedLeadId],
   );
 
   // Bucket into tracks. Lead routes to a track only when intent AND stage agree.
@@ -178,7 +187,7 @@ export default function Pipeline() {
               track="buyer"
               leads={buckets.sale}
               getListing={getListing}
-              onLeadClick={setSelectedLead}
+              onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
             />
           )}
@@ -192,7 +201,7 @@ export default function Pipeline() {
               track="tenant"
               leads={buckets.rent}
               getListing={getListing}
-              onLeadClick={setSelectedLead}
+              onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
             />
           )}
@@ -206,7 +215,7 @@ export default function Pipeline() {
               track="unknown"
               leads={buckets.intake}
               getListing={getListing}
-              onLeadClick={setSelectedLead}
+              onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
             />
           )}
@@ -217,7 +226,7 @@ export default function Pipeline() {
         <LeadDetailSheet
           lead={selectedLead}
           open={!!selectedLead}
-          onClose={() => setSelectedLead(null)}
+          onClose={() => setSelectedLeadId(null)}
         />
       )}
     </div>

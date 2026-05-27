@@ -36,7 +36,27 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
-    onSuccess: () => {
+    // Optimistic update: patch the cached leads array immediately so Select
+    // inputs reflect the change before the server round-trip completes.
+    onMutate: async (data) => {
+      const keys = [['leads'], ['pipeline-leads']];
+      await Promise.all(keys.map((k) => queryClient.cancelQueries({ queryKey: k })));
+      const snapshots = keys.map((k) => [k, queryClient.getQueryData(k)]);
+      for (const [key] of snapshots) {
+        queryClient.setQueryData(key, (old) =>
+          Array.isArray(old) ? old.map((l) => (l.id === lead.id ? { ...l, ...data } : l)) : old,
+        );
+      }
+      return { snapshots };
+    },
+    onError: (_err, _vars, context) => {
+      if (context && context.snapshots) {
+        for (const [key, prev] of context.snapshots) {
+          queryClient.setQueryData(key, prev);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
     },
