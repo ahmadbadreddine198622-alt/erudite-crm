@@ -77,9 +77,10 @@ export default function Pipeline() {
     return null;
   }, [listingsMap]);
 
-  // Active leads (defensive: include unset status so leads from older code paths still render)
+  // Active leads — permissive: only EXCLUDE explicit lost/on_hold so legacy
+  // status values (warm/hot/cold) and unset status still render.
   const activeLeads = useMemo(
-    () => leads.filter((l) => !l.status || l.status === 'active'),
+    () => leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold'),
     [leads],
   );
 

@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 
 export default function PipelineColumn({ stage, leads, getListing, onLeadClick }) {
   return (
-    <div className="flex flex-col w-[300px] shrink-0">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-3">
+    <div className="flex flex-col w-[300px] shrink-0 h-full min-h-0">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 bg-background flex items-center gap-2 px-3 py-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
           {stage.label}
         </h3>
@@ -16,14 +16,14 @@ export default function PipelineColumn({ stage, leads, getListing, onLeadClick }
         </span>
       </div>
 
-      {/* Droppable area */}
+      {/* Droppable area — column-internal scroll */}
       <Droppable droppableId={stage.key}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              'flex-1 space-y-2 p-2 rounded-xl min-h-[200px] transition-colors',
+              'flex-1 overflow-y-auto space-y-2 p-2 rounded-xl transition-colors',
               snapshot.isDraggingOver ? 'bg-accent/5' : 'bg-transparent',
             )}
           >

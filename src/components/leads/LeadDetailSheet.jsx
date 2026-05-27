@@ -19,7 +19,8 @@ import { format } from 'date-fns';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
-import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
+import { formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
+import { getStagesForIntent } from '@/lib/pipeline';
 import LeadWhatsAppTab from '@/components/whatsapp/LeadWhatsAppTab';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 
@@ -35,8 +36,32 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
+    },
   });
+
+  // Intent change resets the lead to the first stage of the new track,
+  // refreshes stage_entered_at so it appears as a brand-new entry.
+  const handleIntentChange = (newIntent) => {
+    const resetStage =
+      newIntent === 'buyer' ? 'new_buyer_lead'
+      : newIntent === 'tenant' ? 'new_tenant_lead'
+      : 'intake_clarify';
+    updateMutation.mutate({
+      intent: newIntent,
+      stage: resetStage,
+      stage_entered_at: new Date().toISOString(),
+    });
+  };
+
+  // Stages available in the lead's current track. Used to drive the Stage select
+  // AND to detect when the lead's persisted stage is outside the current track
+  // (legacy pre-backfill leads), so we can render a defensive fallback label.
+  const stagesForIntent = getStagesForIntent(lead.intent || 'unknown');
+  const stageInTrack = stagesForIntent.find((s) => s.key === lead.stage);
+  const stageLabel = stageInTrack ? stageInTrack.label : (lead.stage || 'Select stage');
 
   const addNoteMutation = useMutation({
     mutationFn: (data) => base44.entities.Activity.create(data),
@@ -155,12 +180,44 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Stage</label>
-                <Select value={lead.stage} onValueChange={(v) => updateMutation.mutate({ stage: v })}>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Intent</label>
+                <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>
                   <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PIPELINE_STAGES.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="tenant">Tenant</SelectItem>
+                    <SelectItem value="unknown">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                <Select value={lead.status || 'active'} onValueChange={(v) => updateMutation.mutate({ status: v })}>
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
+                    <SelectItem value="on_hold">On hold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Stage</label>
+                <Select
+                  value={stageInTrack ? lead.stage : ''}
+                  onValueChange={(v) =>
+                    updateMutation.mutate({ stage: v, stage_entered_at: new Date().toISOString() })
+                  }
+                >
+                  <SelectTrigger className="mt-1 h-9">
+                    {/* Defensive fallback: render raw stage if it's not in the current track's stage list */}
+                    <SelectValue placeholder={stageLabel}>{stageLabel}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stagesForIntent.map((s) => (
+                      <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
