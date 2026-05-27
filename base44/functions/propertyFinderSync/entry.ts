@@ -39,20 +39,60 @@ async function fetchPFLeadsPage(token, page, perPage) {
   return await res.json();
 }
 
-async function fetchAllPFLeads(token) {
+async function fetchAllPFLeads(token, diagnostics, deadlineMs) {
   const leads = [];
   let page = 1;
   const perPage = 50;
   let consecutiveEmpty = 0;
   while (consecutiveEmpty < 2) {
-    const data = await fetchPFLeadsPage(token, page, perPage);
+    if (deadlineMs && Date.now() > deadlineMs) {
+      diagnostics.terminated_reason = 'soft_timeout';
+      console.log('PF_SYNC_PAGE: soft_timeout during pagination at page=' + page);
+      return leads;
+    }
+    const pageStart = Date.now();
+    let data;
+    try {
+      data = await fetchPFLeadsPage(token, page, perPage);
+    } catch (err) {
+      const msg = String((err && err.message) || err);
+      if (diagnostics && !diagnostics.first_error_message) {
+        diagnostics.first_error_message = 'fetch page=' + page + ': ' + msg;
+      }
+      if (diagnostics) {
+        const lower = msg.toLowerCase();
+        if (msg.includes(' 401') || lower.includes('unauthorized') || lower.includes('expired') || lower.includes('token')) {
+          diagnostics.terminated_reason = 'token_expired';
+        } else {
+          diagnostics.terminated_reason = 'fetch_error';
+        }
+      }
+      console.error('PF_SYNC_PAGE: fetch failed page=' + page + ' ' + msg);
+      return leads;
+    }
+    const pageMs = Date.now() - pageStart;
+    if (diagnostics) diagnostics.time_ms_fetch_total += pageMs;
     const items = data.data || data.leads || data.items || [];
-    if (items.length === 0) { consecutiveEmpty++; break; }
+    console.log('PF_SYNC_PAGE: page=' + page + ', leads_returned=' + items.length + ', time_ms=' + pageMs + ', cumulative_leads=' + (leads.length + items.length));
+    if (items.length === 0) {
+      if (diagnostics && !diagnostics.terminated_reason) diagnostics.terminated_reason = 'empty_page_break';
+      consecutiveEmpty++;
+      break;
+    }
     consecutiveEmpty = 0;
+    // Tag each lead with its source page for write-side accounting
+    for (const item of items) item.__pf_page = page;
     leads.push(...items);
+    if (diagnostics) diagnostics.pages_fetched = page;
     const total = (data.meta && data.meta.total) ? Number(data.meta.total) : (data.total ? Number(data.total) : 0);
-    if (total > 0 && leads.length >= total) break;
-    if (items.length < perPage) break;
+    if (total > 0 && leads.length >= total) {
+      if (diagnostics && !diagnostics.terminated_reason) diagnostics.terminated_reason = 'completed_all_pages';
+      break;
+    }
+    if (items.length < perPage) {
+      if (diagnostics && !diagnostics.terminated_reason) diagnostics.terminated_reason = 'completed_all_pages';
+      break;
+    }
     page++;
     // No limit - sync all leads
   }
@@ -198,18 +238,66 @@ Deno.serve(async (req) => {
     }
 
     // Sync mode (default)
+    const syncStart = Date.now();
+    const SOFT_TIMEOUT_MS = 25000; // 25s soft cap, well below Base44's edge function ceiling
+    const deadlineMs = syncStart + SOFT_TIMEOUT_MS;
+    const diagnostics: any = {
+      pages_fetched: 0,
+      total_leads_received_from_pf: 0,
+      total_leads_written: 0,
+      created_count: 0,
+      updated_count: 0,
+      error_count: 0,
+      time_ms_fetch_total: 0,
+      time_ms_write_total: 0,
+      time_ms_total: 0,
+      token_age_at_end_ms: 0,
+      first_error_message: null,
+      terminated_reason: 'unknown',
+      last_successful_page: 0,
+    };
+
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { apiKey, apiSecret } = await getStoredCredentials(base44);
-    const token = await getPFToken(apiKey, apiSecret);
-    const pfLeads = await fetchAllPFLeads(token);
+
+    let token: string;
+    let tokenAcquiredAt = Date.now();
+    try {
+      const tokenStart = Date.now();
+      token = await getPFToken(apiKey, apiSecret);
+      tokenAcquiredAt = Date.now();
+      diagnostics.time_ms_fetch_total += (tokenAcquiredAt - tokenStart);
+      console.log('PF_SYNC_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart));
+    } catch (err) {
+      diagnostics.terminated_reason = 'token_expired';
+      diagnostics.first_error_message = 'token: ' + String((err && err.message) || err);
+      diagnostics.time_ms_total = Date.now() - syncStart;
+      return Response.json({
+        ok: false,
+        total: 0,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        ...diagnostics,
+      });
+    }
+
+    const pfLeads = await fetchAllPFLeads(token, diagnostics, deadlineMs);
+    diagnostics.total_leads_received_from_pf = pfLeads.length;
 
     // Paginate through ALL existing PF leads to build the dedup map (no limit)
     const existingMap = {};
     let exPage = 0;
     const exPageSize = 500;
+    let dedupTimedOut = false;
     while (true) {
+      if (Date.now() > deadlineMs) {
+        diagnostics.terminated_reason = 'soft_timeout';
+        dedupTimedOut = true;
+        break;
+      }
       const batch = await base44.asServiceRole.entities.Lead.filter(
         { source: 'property_finder' }, '-created_date', exPageSize, exPage * exPageSize
       );
@@ -226,31 +314,97 @@ Deno.serve(async (req) => {
     let created = 0;
     let updated = 0;
     let errors = 0;
+    let lastFullySuccessfulPage = 0;
+    let currentPage = 0;
+    let currentPageErrors = 0;
+    let writeTimedOut = false;
+    const writeStartTime = Date.now();
 
-    for (const pfLead of pfLeads) {
-      try {
-        const pfLeadId = String(pfLead.id || '');
-        if (!pfLeadId) continue;
-        const crmData = mapPFLeadToCRM(pfLead);
-        // Remove undefined values to avoid entity validation errors
-        Object.keys(crmData).forEach(k => crmData[k] === undefined && delete crmData[k]);
-        if (crmData.source_metadata) {
-          Object.keys(crmData.source_metadata).forEach(k => crmData.source_metadata[k] === undefined && delete crmData.source_metadata[k]);
+    if (!dedupTimedOut) {
+      for (const pfLead of pfLeads) {
+        if (Date.now() > deadlineMs) {
+          // Soft timeout wins over success-ish reasons; preserve specific upstream errors.
+          if (
+            diagnostics.terminated_reason === 'unknown' ||
+            diagnostics.terminated_reason === 'completed_all_pages' ||
+            diagnostics.terminated_reason === 'empty_page_break'
+          ) {
+            diagnostics.terminated_reason = 'soft_timeout';
+          }
+          writeTimedOut = true;
+          break;
         }
-        if (existingMap[pfLeadId]) {
-          await base44.asServiceRole.entities.Lead.update(existingMap[pfLeadId].id, Object.assign({}, crmData, { stage: existingMap[pfLeadId].stage }));
-          updated++;
-        } else {
-          await base44.asServiceRole.entities.Lead.create(crmData);
-          created++;
+
+        const leadPage = pfLead.__pf_page || 0;
+        if (leadPage !== currentPage) {
+          if (currentPage > 0 && currentPageErrors === 0) {
+            lastFullySuccessfulPage = currentPage;
+          }
+          currentPage = leadPage;
+          currentPageErrors = 0;
         }
-      } catch (err) {
-        errors++;
-        console.error('Lead sync error for', pfLeadId, err.message);
+
+        const pfLeadIdOuter = String((pfLead && pfLead.id) || '');
+        try {
+          const pfLeadId = String(pfLead.id || '');
+          if (!pfLeadId) continue;
+          const crmData = mapPFLeadToCRM(pfLead);
+          // Remove undefined values to avoid entity validation errors
+          Object.keys(crmData).forEach(k => crmData[k] === undefined && delete crmData[k]);
+          if (crmData.source_metadata) {
+            Object.keys(crmData.source_metadata).forEach(k => crmData.source_metadata[k] === undefined && delete crmData.source_metadata[k]);
+          }
+          if (existingMap[pfLeadId]) {
+            await base44.asServiceRole.entities.Lead.update(existingMap[pfLeadId].id, Object.assign({}, crmData, { stage: existingMap[pfLeadId].stage }));
+            updated++;
+          } else {
+            await base44.asServiceRole.entities.Lead.create(crmData);
+            created++;
+          }
+        } catch (err) {
+          errors++;
+          currentPageErrors++;
+          const msg = String((err && err.message) || err);
+          if (!diagnostics.first_error_message) {
+            diagnostics.first_error_message = 'write pf_lead_id=' + pfLeadIdOuter + ': ' + msg;
+          }
+          console.error('Lead sync error for', pfLeadIdOuter, msg);
+        }
+
+        const writtenSoFar = created + updated;
+        if (writtenSoFar > 0 && writtenSoFar % 100 === 0) {
+          console.log('PF_SYNC_WRITE: written=' + writtenSoFar + ', errors=' + errors + ', elapsed_ms=' + (Date.now() - writeStartTime));
+        }
       }
     }
 
-    return Response.json({ ok: true, total: pfLeads.length, created: created, updated: updated, errors: errors });
+    // Mark the final page complete if no errors on it and we didn't bail mid-page
+    if (!writeTimedOut && currentPage > 0 && currentPageErrors === 0) {
+      lastFullySuccessfulPage = currentPage;
+    }
+
+    diagnostics.time_ms_write_total = Date.now() - writeStartTime;
+    diagnostics.created_count = created;
+    diagnostics.updated_count = updated;
+    diagnostics.error_count = errors;
+    diagnostics.total_leads_written = created + updated;
+    diagnostics.last_successful_page = lastFullySuccessfulPage;
+    diagnostics.time_ms_total = Date.now() - syncStart;
+    diagnostics.token_age_at_end_ms = Date.now() - tokenAcquiredAt;
+    if (!diagnostics.terminated_reason || diagnostics.terminated_reason === 'unknown') {
+      diagnostics.terminated_reason = 'completed_all_pages';
+    }
+
+    console.log('PF_SYNC_DONE: ' + JSON.stringify(diagnostics));
+
+    return Response.json({
+      ok: true,
+      total: pfLeads.length,
+      created: created,
+      updated: updated,
+      errors: errors,
+      ...diagnostics,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
