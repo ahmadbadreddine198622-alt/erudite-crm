@@ -16,6 +16,7 @@ import {
   Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
@@ -49,12 +50,15 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
       }
       return { snapshots };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, vars, context) => {
       if (context && context.snapshots) {
         for (const [key, prev] of context.snapshots) {
           queryClient.setQueryData(key, prev);
         }
       }
+      const detail = (err && (err.response?.data?.message || err.response?.data?.error || err.message)) || String(err);
+      console.error('LeadDetailSheet update failed:', { error: err, attempted: vars, response: err?.response?.data });
+      toast.error('Update failed: ' + detail);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
