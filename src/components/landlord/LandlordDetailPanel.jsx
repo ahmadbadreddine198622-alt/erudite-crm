@@ -1,23 +1,72 @@
 import { useState } from 'react';
-import { X, Eye, MapPin, Phone, Mail } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import PricingPressureMeter from './PricingPressureMeter';
+import PortfolioRadar from './PortfolioRadar';
+import CoalitionMap from './CoalitionMap';
+import WhisperPanel from './WhisperPanel';
 
 export default function LandlordDetailPanel({ landlord, onClose, onUpdate }) {
+  const queryClient = useQueryClient();
+  const [whisperOpen, setWhisperOpen] = useState(false);
+
+  const orchestrateMutation = useMutation({
+    mutationFn: () => base44.functions.landlordOrchestrator({ landlord_id: landlord.id, force: true }),
+    onSuccess: () => {
+      toast.success('Aurora updated this landlord');
+      onUpdate?.();
+      queryClient.invalidateQueries({ queryKey: ['landlord', landlord.id] });
+    },
+    onError: (e) => toast.error(`Aurora failed: ${e.message}`)
+  });
+
   return (
-    <div className="w-96 border-l border-border bg-card flex flex-col">
+    <div className="w-[28rem] border-l border-border bg-card flex flex-col">
       {/* Header */}
       <div className="border-b border-border p-4 flex items-center justify-between sticky top-0 z-10 bg-card">
-        <div>
-          <h2 className="font-semibold">{landlord.full_name_en}</h2>
-          <p className="text-xs text-muted-foreground">{landlord.landlord_archetype}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          {landlord.ai_strike_now && (
+            <Badge className="bg-red-500 text-white border-0 animate-pulse">
+              <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
+            </Badge>
+          )}
+          <div className="min-w-0">
+            <h2 className="font-semibold truncate">{landlord.full_name_en || landlord.full_name}</h2>
+            <p className="text-xs text-muted-foreground truncate">
+              {landlord.landlord_archetype?.replace(/_/g, ' ')}
+              {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
+            </p>
+          </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
+            <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
+            <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-600' : ''}`} />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Whisper Panel (toggle) */}
+      {whisperOpen && (
+        <div className="p-3 border-b border-border">
+          <WhisperPanel
+            landlord={landlord}
+            recentMessages={[]}
+            onClose={() => setWhisperOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
@@ -119,10 +168,15 @@ export default function LandlordDetailPanel({ landlord, onClose, onUpdate }) {
                 <Badge variant="outline">{landlord.rapport_level || 'cold'}</Badge>
               </CardContent>
             </Card>
+
+            <CoalitionMap landlord={landlord} />
+            <PortfolioRadar landlord={landlord} />
           </TabsContent>
 
           {/* Negotiation Tab */}
           <TabsContent value="negotiation" className="space-y-3">
+            <PricingPressureMeter landlord={landlord} />
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Commission</CardTitle>
