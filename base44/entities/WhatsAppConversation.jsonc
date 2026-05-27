@@ -39,8 +39,17 @@
     "lead_id": {
       "type": "string"
     },
+    "landlord_id": {
+      "type": "string",
+      "description": "Set when routeWhatsAppMessage classifies this conversation as a landlord inquiry"
+    },
     "deal_id": {
       "type": "string"
+    },
+    "routed_entity_type": {
+      "type": "string",
+      "enum": ["lead", "landlord", "contact", "spam", "unrouted"],
+      "description": "Which pipeline this conversation was auto-routed into by Aurora"
     },
     "country_code": {
       "type": "string"

@@ -1,32 +1,33 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Phone, MoreVertical, Loader2 } from 'lucide-react';
+import { Sparkles, Phone, MoreVertical, Loader2, Building2, User, ExternalLink, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsights, analyzing, showingInsights }) {
   const displayPhone = conversation?.wa_phone_e164 || conversation?.phone_number || '';
   const name = lead?.full_name || conversation?.wa_display_name || displayPhone;
 
-  const stageColor = {
-    new_lead: 'bg-blue-500/10 text-blue-600',
-    contacted: 'bg-yellow-500/10 text-yellow-600',
-    viewing_scheduled: 'bg-purple-500/10 text-purple-600',
-    viewing_done: 'bg-indigo-500/10 text-indigo-600',
-    negotiation: 'bg-orange-500/10 text-orange-600',
-    offer_made: 'bg-cyan-500/10 text-cyan-600',
-    closed_won: 'bg-green-500/10 text-green-600',
-    closed_lost: 'bg-red-500/10 text-red-600',
-  };
+  // If conversation is routed to a Landlord, fetch them so we can show name + stage
+  const { data: landlord } = useQuery({
+    queryKey: ['landlord', conversation?.landlord_id],
+    queryFn: () => base44.entities.Landlord.get(conversation.landlord_id),
+    enabled: !!conversation?.landlord_id
+  });
 
   return (
-    <div className="h-16 px-4 border-b flex items-center justify-between shrink-0 bg-card">
+    <div className="px-4 py-3 border-b flex items-center justify-between shrink-0 bg-card">
       <div className="min-w-0 flex-1">
-        <h3 className="font-semibold text-sm truncate">{name}</h3>
-        <div className="flex items-center gap-2 mt-1">
+        <h3 className="font-semibold text-sm truncate">{landlord?.full_name_en || landlord?.full_name || name}</h3>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           <p className="text-xs text-muted-foreground">{displayPhone}</p>
+
+          {/* AI Priority badge */}
           {(conversation?.ai_priority || conversation?.ai_urgency) && (
-            <Badge 
+            <Badge
               variant="outline"
               className={cn(
                 'text-[10px] h-5',
@@ -35,6 +36,16 @@ export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsi
               )}
             >
               {(conversation.ai_priority || conversation.ai_urgency).toUpperCase()}
+            </Badge>
+          )}
+
+          {/* Pipeline link badge */}
+          <PipelineLinkBadge conversation={conversation} lead={lead} landlord={landlord} />
+
+          {/* Intent badge */}
+          {conversation?.ai_intent && (
+            <Badge variant="outline" className="text-[10px] h-5 capitalize">
+              {conversation.ai_intent.replace(/_/g, ' ')}
             </Badge>
           )}
         </div>
@@ -74,5 +85,50 @@ export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsi
         </Button>
       </div>
     </div>
+  );
+}
+
+function PipelineLinkBadge({ conversation, lead, landlord }) {
+  // Landlord routing has highest priority
+  if (conversation?.landlord_id) {
+    return (
+      <Link
+        to={`/landlords?selected=${conversation.landlord_id}`}
+        className="inline-flex items-center gap-1 text-[10px] h-5 px-1.5 rounded border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 transition"
+        title="View in Landlord Pipeline"
+      >
+        <Building2 className="w-2.5 h-2.5" />
+        <span className="font-medium">Landlord</span>
+        {landlord?.stage && <span className="opacity-70">· {landlord.stage.replace(/_/g, ' ')}</span>}
+        <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+      </Link>
+    );
+  }
+
+  if (conversation?.lead_id) {
+    return (
+      <Link
+        to={`/leads?selected=${conversation.lead_id}`}
+        className="inline-flex items-center gap-1 text-[10px] h-5 px-1.5 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+        title="View in Lead Pipeline"
+      >
+        <User className="w-2.5 h-2.5" />
+        <span className="font-medium">Lead</span>
+        {lead?.stage && <span className="opacity-70">· {lead.stage.replace(/_/g, ' ')}</span>}
+        <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+      </Link>
+    );
+  }
+
+  // Unrouted — show convert button
+  return (
+    <Badge
+      variant="outline"
+      className="text-[10px] h-5 border-amber-300 bg-amber-50 text-amber-700"
+      title="No pipeline entity linked yet"
+    >
+      <AlertCircle className="w-2.5 h-2.5 mr-1" />
+      Unrouted
+    </Badge>
   );
 }
