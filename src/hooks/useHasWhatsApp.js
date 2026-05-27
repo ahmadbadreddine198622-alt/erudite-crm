@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+export { normalizePhone } from '@/lib/phone';
 import { normalizePhone } from '@/lib/phone';
 
 /**
