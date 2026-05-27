@@ -1,31 +1,75 @@
 {
   "name": "WhatsAppNumberCache",
   "type": "object",
+  "description": "Cached WhatsApp verification results so we don't hammer the Graph API on every list render. Entries expire based on status (30d for yes, 7d for no, 1d for unknown).",
   "properties": {
     "phone_e164": {
       "type": "string",
-      "description": "Phone in E.164 format e.g. +971581806000"
+      "description": "Phone in E.164 format (with leading +). Unique key."
     },
     "is_valid_whatsapp": {
-      "type": "boolean"
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "true=number is on WhatsApp, false=not on WhatsApp, null=unknown/check failed"
     },
     "checked_at": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "When this entry was last verified against the API"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this entry should be re-checked"
     },
     "country_code": {
-      "type": "string"
+      "type": "string",
+      "description": "ISO 3166-1 alpha-2 inferred from phone prefix"
     },
     "carrier": {
       "type": "string"
     },
+    "phone_type": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "landline",
+        "voip",
+        "tollFree",
+        "unknown"
+      ]
+    },
     "spam_score": {
       "type": "number",
       "minimum": 0,
-      "maximum": 100
+      "maximum": 100,
+      "default": 0
+    },
+    "caller_name": {
+      "type": "string"
+    },
+    "wa_display_name": {
+      "type": "string",
+      "description": "Cached WhatsApp display name if available"
+    },
+    "wa_profile_pic_url": {
+      "type": "string"
+    },
+    "check_source": {
+      "type": "string",
+      "enum": [
+        "graph_api",
+        "twilio_lookup",
+        "manual",
+        "heuristic"
+      ],
+      "default": "graph_api"
     }
   },
   "required": [
-    "phone_e164"
+    "phone_e164",
+    "checked_at"
   ]
 }

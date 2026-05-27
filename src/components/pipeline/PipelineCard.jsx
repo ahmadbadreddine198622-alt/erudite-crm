@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import StageHealthBadge from '@/components/pipeline/StageHealthBadge';
 import { formatAED } from '@/lib/constants';
 
@@ -24,9 +25,15 @@ export default function PipelineCard({ lead, isDragging, onClick }) {
           <div>
             <p className="text-sm font-semibold leading-tight">{lead.name}</p>
             {lead.phone && (
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Phone className="w-2.5 h-2.5" /> {lead.phone}
-              </p>
+              <div className="mt-0.5" onClick={e => e.stopPropagation()}>
+                <WhatsAppPhone
+                  phone={lead.phone}
+                  name={lead.name}
+                  leadId={lead.id}
+                  size="xs"
+                  disabled={lead.do_not_contact}
+                />
+              </div>
             )}
           </div>
         </div>

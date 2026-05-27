@@ -18,10 +18,10 @@ import {
 import { format } from 'date-fns';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 import LeadWhatsAppTab from '@/components/whatsapp/LeadWhatsAppTab';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
-import WhatsAppPhone from '@/components/WhatsAppPhone';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -133,11 +133,19 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           <TabsContent value="details" className="p-6 space-y-4 mt-0">
             {/* Contact Info */}
             <div className="grid grid-cols-2 gap-3">
-             {lead.phone && (
-               <div className="flex items-center gap-2 text-sm p-3 rounded-lg bg-muted/50">
-                 <WhatsAppPhone phone={lead.phone} name={lead.name} leadId={lead.id} size="sm" doNotContact={lead.do_not_contact} />
-               </div>
-             )}
+              {lead.phone && (
+                <div className="flex items-center gap-2 text-sm p-3 rounded-lg bg-muted/50">
+                  <Phone className="w-4 h-4 text-accent shrink-0" />
+                  <WhatsAppPhone
+                    phone={lead.phone}
+                    name={lead.name}
+                    leadId={lead.id}
+                    size="sm"
+                    disabled={lead.do_not_contact}
+                    disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
+                  />
+                </div>
+              )}
               {lead.email && (
                 <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <Mail className="w-4 h-4 text-accent" />

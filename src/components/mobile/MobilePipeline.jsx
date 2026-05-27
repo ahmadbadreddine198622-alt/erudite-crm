@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
+import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 
 export default function MobilePipeline() {
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
   });
+
+  useEffect(() => {
+    const phones = leads.map(l => l.phone).filter(Boolean);
+    if (phones.length > 0) primeWhatsAppCache(phones);
+  }, [leads]);
 
   const stages = [
     'new_lead',
@@ -46,7 +53,15 @@ export default function MobilePipeline() {
               {stageLeads.slice(0, 3).map(lead => (
                 <Card key={lead.id} className="p-3">
                   <p className="font-semibold text-sm truncate">{lead.name}</p>
-                  <p className="text-xs text-muted-foreground">{lead.phone}</p>
+                  {lead.phone && (
+                    <WhatsAppPhone
+                      phone={lead.phone}
+                      name={lead.name}
+                      leadId={lead.id}
+                      size="xs"
+                      disabled={lead.do_not_contact}
+                    />
+                  )}
                   <div className="flex items-center justify-between mt-2">
                     {lead.assigned_agent_name && (
                       <span className="text-xs bg-muted px-2 py-1 rounded">{lead.assigned_agent_name.split('@')[0]}</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, Loader2, Mail, Calendar, Tag } from 'lucide-react';
-import WhatsAppPhone from '@/components/WhatsAppPhone';
+import { Search, Plus, Loader2, Phone, Mail, Calendar, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
+import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 
 export default function ContactList({ folderId, onSelectContact, onAddContact }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +56,12 @@ export default function ContactList({ folderId, onSelectContact, onAddContact })
     queryFn: () => base44.entities.ContactFolder.read(folderId),
     enabled: !!folderId,
   });
+
+  // Bulk-prime WhatsApp verification cache for every visible contact.
+  useEffect(() => {
+    const phones = contacts.map(c => c.phone).filter(Boolean);
+    if (phones.length > 0) primeWhatsAppCache(phones);
+  }, [contacts]);
 
   if (isLoading) {
     return (
@@ -130,13 +137,12 @@ export default function ContactList({ folderId, onSelectContact, onAddContact })
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-sm truncate">{contact.name}</h3>
                   <div className="space-y-1 mt-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
+                    <div onClick={e => e.stopPropagation()}>
                       <WhatsAppPhone
                         phone={contact.phone}
                         name={contact.name}
-                        leadId={contact.id}
                         size="xs"
-                        doNotContact={contact.do_not_contact}
+                        disabled={contact.do_not_contact}
                       />
                     </div>
                     {contact.email && (

@@ -1,0 +1,51 @@
+{
+  "name": "KYCRecord",
+  "type": "object",
+  "description": "Per-lead KYC verification record. Sources: UAE Pass (preferred for UAE residents), Emirates ID OCR, manual.",
+  "properties": {
+    "lead_id": { "type": "string" },
+    "method": {
+      "type": "string",
+      "enum": ["uae_pass", "emirates_id_scan", "passport_scan", "manual"],
+      "default": "uae_pass"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["initiated", "pending_user", "verified", "failed", "expired"],
+      "default": "initiated"
+    },
+    "full_name_en": { "type": "string" },
+    "full_name_ar": { "type": "string" },
+    "emirates_id": { "type": "string" },
+    "passport_number": { "type": "string" },
+    "nationality": { "type": "string" },
+    "date_of_birth": { "type": "string", "format": "date" },
+    "gender": { "type": "string", "enum": ["male", "female"] },
+    "title": { "type": "string" },
+    "mobile": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "verified_at": { "type": "string", "format": "date-time" },
+    "verified_via": { "type": "string", "description": "Specific identity assurance level returned by provider" },
+    "session_token": { "type": "string", "description": "Opaque token saved for the in-progress OAuth flow" },
+    "sanctions_check_status": {
+      "type": "string",
+      "enum": ["not_checked", "clear", "match_found", "review_needed"],
+      "default": "not_checked"
+    },
+    "pep_match": { "type": "boolean", "default": false },
+    "risk_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["emirates_id_front", "emirates_id_back", "passport", "visa", "selfie", "uae_pass_certificate"] },
+          "url": { "type": "string" },
+          "uploaded_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "raw_profile": { "type": "object", "description": "Full UAE Pass profile payload, kept for audit" }
+  },
+  "required": ["lead_id", "method", "status"]
+}

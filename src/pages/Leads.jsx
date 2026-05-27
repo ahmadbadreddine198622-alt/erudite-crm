@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Download, Wand2, GitMerge, CheckSquare } from 'lucide-react';
@@ -18,12 +18,13 @@ import { Link } from 'react-router-dom';
 import PageHeader from '@/components/shared/PageHeader';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import BulkActionBar from '@/components/leads/BulkActionBar';
 import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
-import WhatsAppPhone from '@/components/WhatsAppPhone';
+import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 
 export default function Leads() {
   const [search, setSearch] = useState('');
@@ -38,6 +39,13 @@ export default function Leads() {
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 500),
   });
+
+  // Prime the WhatsApp verification cache for every visible lead phone in one
+  // bulk request so per-row icons render instantly with no per-row flicker.
+  useEffect(() => {
+    const phones = leads.map(l => l.phone).filter(Boolean);
+    if (phones.length > 0) primeWhatsAppCache(phones);
+  }, [leads]);
 
   const filtered = leads.filter(l => {
     const matchSearch = !search ||
@@ -161,16 +169,21 @@ export default function Leads() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
                       <div className="text-xs space-y-0.5">
-                        <WhatsAppPhone
-                          phone={lead.phone}
-                          name={lead.full_name || lead.name}
-                          leadId={lead.id}
-                          size="xs"
-                          doNotContact={lead.do_not_contact}
-                        />
-                        <p className="text-muted-foreground">{lead.email}</p>
+                        {lead.phone && (
+                          <WhatsAppPhone
+                            phone={lead.phone}
+                            name={lead.name}
+                            leadId={lead.id}
+                            size="xs"
+                            disabled={lead.do_not_contact}
+                            disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
+                          />
+                        )}
+                        {lead.email && (
+                          <p className="text-muted-foreground">{lead.email}</p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell><SourceBadge source={lead.source} /></TableCell>

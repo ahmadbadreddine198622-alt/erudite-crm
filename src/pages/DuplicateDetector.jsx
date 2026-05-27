@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, GitMerge, Loader2, Phone, User, RefreshCw, Trash2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 
 export default function DuplicateDetector() {
   const queryClient = useQueryClient();
@@ -129,9 +130,18 @@ export default function DuplicateDetector() {
                               <p className="font-semibold text-sm">{lead.name}</p>
                               {i === 0 && <Badge className="bg-blue-500/10 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0">Master</Badge>}
                             </div>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              <span>{lead.phone || '—'}</span>
+                            <div className="text-xs text-muted-foreground">
+                              {lead.phone ? (
+                                <WhatsAppPhone
+                                  phone={lead.phone}
+                                  name={lead.name}
+                                  leadId={lead.id}
+                                  size="xs"
+                                  disabled={lead.do_not_contact}
+                                />
+                              ) : (
+                                <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> —</span>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">{lead.email || '—'}</p>
                             <p className="text-xs text-muted-foreground capitalize">{lead.stage?.replace('_', ' ')}</p>
