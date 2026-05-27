@@ -105,30 +105,37 @@
     "stage": {
       "type": "string",
       "enum": [
-        "new",
-        "contacted",
-        "qualified",
-        "nurturing",
-        "viewing_scheduled",
-        "offer_made",
-        "negotiating",
-        "contract_sent",
-        "won",
-        "lost",
-        "on_hold"
+        "intake_clarify",
+        "new_buyer_lead",
+        "qualified_buyer",
+        "property_matching",
+        "viewing_engagement",
+        "offer_negotiation",
+        "mou_dld_processing",
+        "transfer_closure",
+        "new_tenant_lead",
+        "qualified_tenant",
+        "viewing_decision",
+        "contract_cheques",
+        "ejari_movein"
       ],
-      "default": "new",
-      "description": "Pipeline stage"
+      "default": "intake_clarify",
+      "description": "Pipeline stage — values depend on intent. See src/lib/pipeline.js."
+    },
+    "stage_entered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the lead entered its current stage. Used for stalling/SLA calculations and as the backfill-completed marker."
     },
     "status": {
       "type": "string",
       "enum": [
-        "hot",
-        "warm",
-        "cold",
-        "dead"
+        "active",
+        "lost",
+        "on_hold"
       ],
-      "default": "warm"
+      "default": "active",
+      "description": "Lifecycle state (separate dimension from stage)."
     },
     "lost_reason": {
       "type": "string",
@@ -158,14 +165,12 @@
     "intent": {
       "type": "string",
       "enum": [
-        "buy",
-        "rent",
-        "sell",
-        "invest",
-        "off_plan",
+        "buyer",
+        "tenant",
         "unknown"
       ],
-      "default": "unknown"
+      "default": "unknown",
+      "description": "Which pipeline track this lead is on."
     },
     "transaction_type": {
       "type": "string",
