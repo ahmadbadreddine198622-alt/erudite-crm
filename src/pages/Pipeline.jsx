@@ -148,7 +148,7 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: '100dvh' }}>
+    <div className="flex flex-col">
       <div className="px-8 pt-8 pb-2">
         <PageHeader
           title="Pipeline"
