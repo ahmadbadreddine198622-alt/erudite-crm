@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/shared/PageHeader';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
@@ -27,6 +27,7 @@ import { PIPELINE_STAGES, formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 
 export default function Leads() {
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -46,6 +47,15 @@ export default function Leads() {
     const phones = leads.map(l => l.phone).filter(Boolean);
     if (phones.length > 0) primeWhatsAppCache(phones);
   }, [leads]);
+
+  // Auto-open lead detail from ?selected=<id> URL param (deep-link from WhatsApp inbox etc.)
+  useEffect(() => {
+    const id = searchParams.get('selected');
+    if (id && leads.length > 0 && (!selectedLead || selectedLead.id !== id)) {
+      const found = leads.find(l => l.id === id);
+      if (found) setSelectedLead(found);
+    }
+  }, [searchParams, leads]);
 
   const filtered = leads.filter(l => {
     const matchSearch = !search ||

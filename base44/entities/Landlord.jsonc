@@ -300,13 +300,68 @@
     "ai_processed_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "ai_momentum": {
+      "type": "string",
+      "enum": ["accelerating", "steady", "slowing", "stalled"],
+      "description": "AI-predicted momentum for next 7 days"
+    },
+    "ai_strike_now": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when high momentum + urgency — agent should act NOW"
+    },
+    "needs_human_review": {
+      "type": "boolean",
+      "default": false
+    },
+    "review_reason": { "type": "string" },
+    "last_orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_model_used": { "type": "string" },
+    "ai_processing_status": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed", "stale"],
+      "default": "pending"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Display name (used by UI when full_name_en not set)"
+    },
+    "first_touch_at": { "type": "string", "format": "date-time" },
+    "last_touch_at": { "type": "string", "format": "date-time" },
+    "last_activity_at": { "type": "string", "format": "date-time" },
+    "last_activity_type": { "type": "string" },
+    "days_since_last_contact": { "type": "number" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "do_not_contact": { "type": "boolean", "default": false },
+    "is_vip": { "type": "boolean", "default": false },
+    "notes": { "type": "string" },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": { "type": "string" },
+          "entered_at": { "type": "string", "format": "date-time" },
+          "exited_at": { "type": "string", "format": "date-time" },
+          "duration_hours": { "type": "number" }
+        }
+      }
+    },
+    "ai_next_best_action_full": {
+      "type": "object",
+      "description": "Extended next_best_action (action, priority, scheduled_for, draft_message, draft_language, reasoning, confidence)"
     }
   },
   "required": [
-    "full_name_en",
     "phone",
     "source",
-    "stage",
-    "assigned_agent_email"
+    "stage"
   ]
 }

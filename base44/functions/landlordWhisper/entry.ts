@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
 /**
  * Whisper Mode — real-time AI suggestions during a live conversation.
@@ -49,38 +50,16 @@ ${recent_messages.slice(-20).map((m: any) => `[${m.direction}] ${m.text}`).join(
 
 Emit whispers.`;
 
-    const aiRes = await base44.functions.invoke('claudeAI', {
-      action: 'generate',
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const aiResponse = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 512,
       system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-haiku-4-5', // fast model — whisper mode is high-frequency
-      response_format: {
-        type: 'object',
-        properties: {
-          whispers: {
-            type: 'array',
-            maxItems: 3,
-            items: {
-              type: 'object',
-              properties: {
-                tier: { type: 'string', enum: ['info', 'warn', 'critical'] },
-                text: { type: 'string' },
-                action: { type: ['string', 'null'] }
-              },
-              required: ['tier', 'text']
-            }
-          },
-          detected_signals: {
-            type: 'array',
-            maxItems: 5,
-            items: { type: 'string' }
-          }
-        },
-        required: ['whispers']
-      }
+      messages: [{ role: 'user', content: userPrompt + '\n\nRespond ONLY with valid JSON. No prose, no markdown.' }]
     });
-
-    const result = aiRes?.data || aiRes;
+    const text = aiResponse.content[0].text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     return Response.json(result || { whispers: [], detected_signals: [] });
   } catch (error: any) {
     console.error('landlordWhisper error:', error);

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
 /**
  * Classifies an inbound WhatsApp message from an unknown sender.
@@ -91,41 +92,17 @@ ${recent_thread.slice(-10).map((m, i) => `[${i+1}] ${m}`).join('\n')}` : '(no pr
 
 Classify and return JSON.`;
 
-    const res = await base44.functions.invoke('claudeAI', {
-      action: 'generate',
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const aiResponse = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
       system: systemPrompt,
-      prompt: userPrompt,
-      model: 'claude-haiku-4-5', // fast for high-volume webhook
-      response_format: {
-        type: 'object',
-        properties: {
-          intent: { type: 'string', enum: ['buyer', 'tenant', 'landlord_sale', 'landlord_rent', 'agent_other_brokerage', 'investor', 'general_inquiry', 'spam'] },
-          confidence: { type: 'number' },
-          language: { type: 'string' },
-          urgency: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
-          first_message_strength: { type: 'string', enum: ['weak', 'medium', 'strong', 'exceptional'] },
-          entities: {
-            type: 'object',
-            properties: {
-              budget_min: { type: ['number', 'null'] },
-              budget_max: { type: ['number', 'null'] },
-              currency: { type: ['string', 'null'] },
-              preferred_locations: { type: 'array', items: { type: 'string' } },
-              bedrooms_min: { type: ['number', 'null'] },
-              bedrooms_max: { type: ['number', 'null'] },
-              property_types: { type: 'array', items: { type: 'string' } },
-              move_in_timeline: { type: ['string', 'null'] }
-            }
-          },
-          suggested_name: { type: ['string', 'null'] },
-          suggested_first_reply: { type: 'string' },
-          reasoning: { type: 'string' }
-        },
-        required: ['intent', 'confidence', 'language', 'urgency', 'first_message_strength', 'suggested_first_reply']
-      }
+      messages: [{ role: 'user', content: userPrompt + '\n\nRespond ONLY with valid JSON. No prose, no markdown.' }]
     });
-
-    const result = res?.data || res;
+    const text = aiResponse.content[0].text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI returned non-JSON: ' + text.slice(0, 200));
+    const result = JSON.parse(jsonMatch[0]);
     return Response.json(result);
   } catch (error: any) {
     console.error('classifyInboundMessage error:', error);

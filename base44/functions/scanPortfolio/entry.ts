@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
 /**
  * Portfolio Radar — for a landlord, scans public DLD records (and our own
@@ -86,15 +87,20 @@ Deno.serve(async (req) => {
     // Generate a pitch
     let pitch = '';
     if (portfolio.length > 0) {
-      const aiRes = await base44.functions.invoke('claudeAI', {
-        action: 'generate',
-        model: 'claude-haiku-4-5',
-        system: `You are AURORA — generate a short (2-3 sentences) portfolio pitch the agent can use with the landlord. Mention the specific properties and propose a preferential commission for a portfolio mandate.`,
-        prompt: `Landlord: ${landlord.full_name_en}, archetype: ${landlord.landlord_archetype}, language: ${landlord.preferred_language || 'en'}
-Properties detected: ${portfolio.map(p => `${p.bedrooms}BR ${p.type} in ${p.community} (~${p.estimated_value_aed} AED)`).join(', ')}
-Total portfolio value: ${totalEstValue} AED`
-      });
-      pitch = aiRes?.data?.text || aiRes?.text || '';
+      try {
+        const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+        const aiResponse = await anthropic.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 512,
+          system: 'You are AURORA — generate a short (2-3 sentences) portfolio pitch the agent can use with the landlord. Mention the specific properties and propose a preferential commission for a portfolio mandate. Respond in the landlord\'s language. Just the pitch text, no preamble.',
+          messages: [{ role: 'user', content: `Landlord: ${landlord.full_name_en || landlord.full_name}, archetype: ${landlord.landlord_archetype}, language: ${landlord.preferred_language || 'en'}
+Properties detected: ${portfolio.map((p: any) => `${p.bedrooms}BR ${p.type} in ${p.community} (~${p.estimated_value_aed} AED)`).join(', ')}
+Total portfolio value: ${totalEstValue} AED` }]
+        });
+        pitch = aiResponse.content[0].text.trim();
+      } catch (err) {
+        console.warn('pitch generation failed', err);
+      }
     }
 
     return Response.json({

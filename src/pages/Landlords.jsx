@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Building2, Plus, Filter } from 'lucide-react';
@@ -46,11 +47,30 @@ const STAGE_LABELS = {
 };
 
 export default function Landlords() {
-  const [selectedLandlordId, setSelectedLandlordId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const queryClient = useQueryClient();
+
+  // Sync URL ?selected=<id> with state, both ways
+  useEffect(() => {
+    const urlSelected = searchParams.get('selected');
+    if (urlSelected && urlSelected !== selectedLandlordId) {
+      setSelectedLandlordId(urlSelected);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (selectedLandlordId && searchParams.get('selected') !== selectedLandlordId) {
+      setSearchParams({ selected: selectedLandlordId }, { replace: true });
+    } else if (!selectedLandlordId && searchParams.get('selected')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('selected');
+      setSearchParams(next, { replace: true });
+    }
+  }, [selectedLandlordId]);
 
   // Fetch all landlords
   const { data: landlords = [], isLoading } = useQuery({

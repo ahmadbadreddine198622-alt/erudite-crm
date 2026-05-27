@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
 /**
  * Landlord Orchestrator — the heartbeat. Runs hourly per active landlord.
@@ -33,16 +34,18 @@ const STAGES = [
   'offer_negotiation', 'form_f_and_deposit', 'closing', 'post_completion'
 ];
 
-async function callClaude(base44: any, system: string, prompt: string, schema: any) {
+async function callClaude(system: string, prompt: string, model = 'claude-opus-4-7') {
   try {
-    const res = await base44.functions.invoke('claudeAI', {
-      action: 'generate',
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const response = await anthropic.messages.create({
+      model,
+      max_tokens: 4096,
       system,
-      prompt,
-      response_format: schema,
-      model: 'claude-opus-4-7'
+      messages: [{ role: 'user', content: prompt + '\n\nRespond ONLY with valid JSON. No prose, no markdown fences, no commentary.' }]
     });
-    return res?.data || res;
+    const text = response.content[0].text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
   } catch (err) {
     console.error('Claude call failed:', err);
     return null;
@@ -143,7 +146,7 @@ ${landlord.ai_rolling_summary || '(none)'}
 
 Analyze and emit orchestrator JSON.`;
 
-    const result = await callClaude(base44, systemPrompt, userPrompt, ORCHESTRATOR_SCHEMA);
+    const result = await callClaude(systemPrompt, userPrompt);
 
     if (!result) {
       return Response.json({ error: 'Claude call failed', last_run: new Date().toISOString() }, { status: 500 });

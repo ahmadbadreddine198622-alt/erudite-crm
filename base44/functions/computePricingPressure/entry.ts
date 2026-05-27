@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
 /**
  * Pricing Pressure Meter — for a landlord's property, computes:
@@ -102,37 +103,17 @@ ${compsText}
 
 Compute and return pricing analysis JSON.`;
 
-    const aiRes = await base44.functions.invoke('claudeAI', {
-      action: 'generate',
-      system: systemPrompt,
-      prompt: userPrompt,
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const aiResponse = await anthropic.messages.create({
       model: 'claude-opus-4-7',
-      response_format: {
-        type: 'object',
-        properties: {
-          cma_value_aed: { type: 'number' },
-          cma_evidence: { type: 'array', items: { type: 'string' } },
-          pricing_gap_pct: { type: 'number' },
-          predicted_days_on_market: { type: 'number' },
-          recommended_price: { type: 'number' },
-          confidence: { type: 'number' },
-          negotiation_scripts: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                tone: { type: 'string' },
-                script: { type: 'string' }
-              }
-            }
-          }
-        },
-        required: ['cma_value_aed', 'pricing_gap_pct', 'recommended_price']
-      }
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt + '\n\nRespond ONLY with valid JSON. No prose, no markdown.' }]
     });
-
-    const result = aiRes?.data || aiRes;
-    if (!result) return Response.json({ error: 'AI call failed' }, { status: 500 });
+    const aiText = aiResponse.content[0].text;
+    const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    if (!result) return Response.json({ error: 'AI returned non-JSON' }, { status: 500 });
 
     const color = pressureColor(result.pricing_gap_pct);
 
