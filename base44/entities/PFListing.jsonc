@@ -1,0 +1,80 @@
+{
+  "name": "PFListing",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "PF's unique listing identifier. Matches Lead.source_metadata.listing_id."
+    },
+    "listing_reference": {
+      "type": "string",
+      "description": "PF's reference code (e.g., '01K88KEW1DA8ZDQYGS6C96WT4J'). Matches Lead.source_metadata.listing_reference."
+    },
+    "title": {
+      "type": "string",
+      "description": "Listing title, e.g., 'Full Marina View / Spacious / Luxury Living'."
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Primary thumbnail URL — media.images[0].original.url (or watermarked / url fallback)."
+    },
+    "offering_type": {
+      "type": "string",
+      "enum": ["sale", "rent", "unknown"],
+      "default": "unknown",
+      "description": "Sale or rent. 'unknown' if PF didn't classify."
+    },
+    "price": {
+      "type": "number",
+      "description": "Numeric price value (AED unless currency overridden). UI handles formatting."
+    },
+    "price_period": {
+      "type": ["string", "null"],
+      "description": "For rentals: 'year' or 'month'. For sales: null."
+    },
+    "currency": {
+      "type": "string",
+      "default": "AED"
+    },
+    "location": {
+      "type": "string",
+      "description": "Best-effort human-readable location (emirate / city / area)."
+    },
+    "bedrooms": {
+      "type": "string",
+      "description": "'studio' | '1' | '2' | '3' | '4' | '5+'. String to handle 'studio' cleanly."
+    },
+    "bathrooms": {
+      "type": "integer"
+    },
+    "size_sqft": {
+      "type": "number"
+    },
+    "property_type": {
+      "type": "string",
+      "description": "e.g., 'Apartment', 'Villa', 'Townhouse'."
+    },
+    "status": {
+      "type": "string",
+      "description": "e.g., 'live', 'archived', 'pending'."
+    },
+    "pf_url": {
+      "type": "string",
+      "description": "Direct link to the PF listing page."
+    },
+    "raw_data": {
+      "type": "object",
+      "description": "Full PF API response, stored for future field extraction without re-syncing."
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the most recent successful sync of this listing."
+    }
+  },
+  "required": [
+    "listing_id",
+    "listing_reference",
+    "last_synced_at"
+  ]
+}
