@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -6,8 +6,60 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2, MapPin, Phone, Mail, User, Building } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2, MapPin, Phone, Mail, Building } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Simple column matching by header name
+function fallbackColumnMapping(columns) {
+  const mappings = {
+    owner_name: null,
+    phone_primary: null,
+    phone_secondary: [],
+    email: null,
+    unit_reference: null,
+    project_name: null,
+    location: null,
+    bedrooms: null,
+    size: null,
+    country: null,
+    notes: [],
+  };
+
+  const namePatterns = /^(owner\s*name|full\s*name|name|contact\s*name|owner)$/i;
+  const phonePatterns = /^(mobile1|mobile|phone|phone1|tel|telephone|contact\s*number|phone\s*primary)$/i;
+  const phone2Patterns = /^(mobile2|phone2|alt\s*phone|alternate\s*phone)$/i;
+  const phone3Patterns = /^(mobile3|phone3)$/i;
+  const emailPatterns = /^(email|e-mail|email\s*address)$/i;
+  const unitPatterns = /^(unit\s*number|unit|apt|apartment|flat|room\s*number)$/i;
+  const projectPatterns = /^(project\s*name|project|building|development|community)$/i;
+  const locationPatterns = /^(location|area|community|location\s*name)$/i;
+  const bedroomPatterns = /^(rooms|bedrooms|beds|br|unit\s*type)$/i;
+  const sizePatterns = /^(size|area|sqft|sqm|square\s*feet|square\s*meters)$/i;
+  const countryPatterns = /^(owner\s*country|nationality|country|residence\s*country)$/i;
+
+  columns.forEach((col) => {
+    const lower = col.toLowerCase().trim();
+    
+    if (namePatterns.test(lower)) mappings.owner_name = col;
+    else if (phonePatterns.test(lower)) mappings.phone_primary = col;
+    else if (phone2Patterns.test(lower)) mappings.phone_secondary.push(col);
+    else if (phone3Patterns.test(lower)) mappings.phone_secondary.push(col);
+    else if (emailPatterns.test(lower)) mappings.email = col;
+    else if (unitPatterns.test(lower)) mappings.unit_reference = col;
+    else if (projectPatterns.test(lower)) mappings.project_name = col;
+    else if (locationPatterns.test(lower)) mappings.location = col;
+    else if (bedroomPatterns.test(lower)) mappings.bedrooms = col;
+    else if (sizePatterns.test(lower)) mappings.size = col;
+    else if (countryPatterns.test(lower)) mappings.country = col;
+    else mappings.notes.push(col);
+  });
+
+  return {
+    mappings,
+    confidence: 'high',
+    notes: 'Detected using header name matching (AI fallback).',
+  };
+}
 
 // Phone cleaning: handle various formats
 function cleanPhone(raw) {
@@ -33,22 +85,30 @@ export default function ImportOwnersDialog({ open, onClose }) {
   const [rawData, setRawData] = useState(null);
   const [aiMapping, setAiMapping] = useState(null);
   const [preview, setPreview] = useState([]);
-  const [step, setStep] = useState('upload'); // upload | analyzing | preview | processing | done
+  const [step, setStep] = useState('upload'); // upload | analyzing | preview | processing | done | error
   const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Step 1: Upload and read file
   const handleFileChange = async (uploadedFile) => {
     if (!uploadedFile) return;
     setFile(uploadedFile);
     setStep('analyzing');
     
+    let analysisResult = null;
+    const TIMEOUT_MS = 15000; // 15 second timeout
+    
     try {
       // Upload file to get URL
-      const fileUrl = await base44.integrations.Core.UploadFile({ file: uploadedFile });
+      let fileUrl;
+      try {
+        fileUrl = await base44.integrations.Core.UploadFile({ file: uploadedFile });
+      } catch (err) {
+        throw new Error('Failed to upload file: ' + err.message);
+      }
       
-      // Extract ALL data from file using AI
+      // Extract ALL data from file
       const jsonSchema = {
         type: 'object',
         properties: {
@@ -69,20 +129,31 @@ export default function ImportOwnersDialog({ open, onClose }) {
         required: ['rows', 'columns'],
       };
 
-      const extractionResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url: fileUrl.file_url,
-        json_schema: jsonSchema,
-      });
+      let extractionResult;
+      try {
+        extractionResult = await Promise.race([
+          base44.integrations.Core.ExtractDataFromUploadedFile({
+            file_url: fileUrl.file_url,
+            json_schema: jsonSchema,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('File extraction timed out after 15s')), TIMEOUT_MS)
+          ),
+        ]);
+      } catch (err) {
+        throw new Error('Failed to extract data from file: ' + err.message);
+      }
 
       if (extractionResult.status !== 'success' || !extractionResult.output?.rows) {
-        throw new Error('Failed to extract data from file');
+        throw new Error('File extraction returned no data');
       }
 
       const { rows, columns } = extractionResult.output;
       setRawData({ rows, columns, fileUrl: fileUrl.file_url });
 
-      // Step 2: AI Column Analysis
-      const analysisPrompt = `I have a spreadsheet with owner/contact data. The columns are: ${columns.join(', ')}
+      // Step 2: Try AI Column Analysis (with fallback)
+      try {
+        const analysisPrompt = `I have a spreadsheet with owner/contact data. The columns are: ${columns.join(', ')}
 
 Analyze these column names and tell me which column maps to each of these target fields:
 - owner_name (full name of owner/contact)
@@ -120,33 +191,43 @@ Respond with a JSON object in this exact format:
 
 If a field cannot be mapped, set it to null. Be intelligent about column name variations.`;
 
-      const analysisResult = await base44.integrations.Core.InvokeLLM({
-        prompt: analysisPrompt,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            mappings: {
+        analysisResult = await Promise.race([
+          base44.integrations.Core.InvokeLLM({
+            prompt: analysisPrompt,
+            response_json_schema: {
               type: 'object',
               properties: {
-                owner_name: { type: 'string' },
-                phone_primary: { type: 'string' },
-                phone_secondary: { type: 'array', items: { type: 'string' } },
-                email: { type: 'string' },
-                unit_reference: { type: 'string' },
-                project_name: { type: 'string' },
-                location: { type: 'string' },
-                bedrooms: { type: 'string' },
-                size: { type: 'string' },
-                country: { type: 'string' },
-                notes: { type: 'array', items: { type: 'string' } },
+                mappings: {
+                  type: 'object',
+                  properties: {
+                    owner_name: { type: 'string' },
+                    phone_primary: { type: 'string' },
+                    phone_secondary: { type: 'array', items: { type: 'string' } },
+                    email: { type: 'string' },
+                    unit_reference: { type: 'string' },
+                    project_name: { type: 'string' },
+                    location: { type: 'string' },
+                    bedrooms: { type: 'string' },
+                    size: { type: 'string' },
+                    country: { type: 'string' },
+                    notes: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+                notes: { type: 'string' },
               },
+              required: ['mappings', 'confidence'],
             },
-            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-            notes: { type: 'string' },
-          },
-          required: ['mappings', 'confidence'],
-        },
-      });
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('AI analysis timed out after 15s')), TIMEOUT_MS)
+          ),
+        ]);
+      } catch (aiErr) {
+        // AI failed or timed out - use fallback
+        console.warn('AI analysis failed, using fallback:', aiErr.message);
+        analysisResult = fallbackColumnMapping(columns);
+      }
 
       setAiMapping(analysisResult);
 
@@ -198,8 +279,9 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
       setStep('preview');
     } catch (err) {
       console.error('Import error:', err);
-      toast.error('Failed to process file: ' + err.message);
-      setStep('upload');
+      const errorMsg = err.message || 'Unknown error occurred';
+      setError(errorMsg);
+      setStep('error');
     }
   };
 
@@ -346,6 +428,7 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
     setAiMapping(null);
     setPreview([]);
     setResults(null);
+    setError(null);
     setStep('upload');
     onClose();
   };
@@ -524,6 +607,25 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
                     Import All {rawData?.rows?.length || 0} Rows
                   </>
                 )}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === 'error' && (
+          <div className="py-6">
+            <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-800 dark:text-red-200">Import Failed</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-2">{error}</p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setStep('upload')}>
+                Try Again
               </Button>
             </DialogFooter>
           </div>
