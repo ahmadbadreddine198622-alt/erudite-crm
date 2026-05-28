@@ -93,6 +93,10 @@
     "referrer_lead_id": {
       "type": "string"
     },
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project entity"
+    },
     "first_touch_at": {
       "type": "string",
       "format": "date-time"

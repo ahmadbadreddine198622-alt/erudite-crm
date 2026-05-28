@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,12 @@ export default function BulkActionBar({ selectedIds, onClear }) {
   const [agentEmail, setAgentEmail] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [stageValue, setStageValue] = useState('');
+  const [projectId, setProjectId] = useState('');
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries(['leads']);
@@ -64,6 +71,11 @@ export default function BulkActionBar({ selectedIds, onClear }) {
   const handleStageChange = () => {
     if (!stageValue) return;
     bulkUpdate.mutate({ stage: stageValue });
+  };
+
+  const handleProjectTag = () => {
+    if (!projectId) return;
+    bulkUpdate.mutate({ project_id: projectId });
   };
 
   return (
@@ -125,6 +137,25 @@ export default function BulkActionBar({ selectedIds, onClear }) {
             <X className="w-3 h-3" />
           </Button>
         </div>
+      ) : activeAction === 'project' ? (
+        <div className="flex items-center gap-2">
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger className="h-7 text-xs bg-white/10 border-white/20 text-white w-48">
+              <SelectValue placeholder="Select project..." />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 text-xs" onClick={handleProjectTag}>
+            Apply
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-white/60" onClick={() => setActiveAction(null)}>
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
       ) : (
         <>
           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 hover:bg-white/10 text-white" onClick={() => setActiveAction('assign')}>
@@ -135,6 +166,9 @@ export default function BulkActionBar({ selectedIds, onClear }) {
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 hover:bg-white/10 text-white" onClick={() => setActiveAction('stage')}>
             <ArrowRight className="w-3 h-3" /> Change Stage
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 hover:bg-white/10 text-white" onClick={() => setActiveAction('project')}>
+            <Tag className="w-3 h-3" /> Set Project
           </Button>
           <Button
             size="sm"

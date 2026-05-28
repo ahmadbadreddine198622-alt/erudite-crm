@@ -83,6 +83,7 @@ export default function Leads() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [agentFilter, setAgentFilter] = useState('all');
   const [apptFilter, setApptFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [dealMin, setDealMin] = useState('');
   const [dealMax, setDealMax] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -103,6 +104,11 @@ export default function Leads() {
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 2000),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
   });
 
   useEffect(() => {
@@ -135,7 +141,7 @@ export default function Leads() {
   }, []);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [search, intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, dealMin, dealMax]);
+  useEffect(() => { setPage(1); }, [search, intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, projectFilter, dealMin, dealMax]);
 
   const now = new Date();
   const filtered = useMemo(() => {
@@ -156,11 +162,12 @@ export default function Leads() {
     if (agentFilter !== 'all') result = result.filter(l => l.assigned_agent_name === agentFilter);
     if (apptFilter === 'yes') result = result.filter(l => l.next_appointment_at && !isPast(parseISO(l.next_appointment_at)));
     if (apptFilter === 'no') result = result.filter(l => !l.next_appointment_at || isPast(parseISO(l.next_appointment_at)));
+    if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
     const min = Number(dealMin) || 0;
     const max = Number(dealMax) || Infinity;
     if (min > 0 || max < Infinity) result = result.filter(l => (l.deal_value_aed || 0) >= min && (l.deal_value_aed || 0) <= max);
     return result;
-  }, [leads, search, intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, dealMin, dealMax]);
+  }, [leads, search, intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, projectFilter, dealMin, dealMax]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -180,13 +187,13 @@ export default function Leads() {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = useMemo(() => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [sorted, page]);
 
-  const activeFilterCount = [intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter].filter(v => v !== 'all').length
+  const activeFilterCount = [intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, projectFilter].filter(v => v !== 'all').length
     + (dealMin ? 1 : 0) + (dealMax ? 1 : 0);
 
   const clearFilters = () => {
     setIntentFilter('all'); setStageFilter('all'); setStatusFilter('all');
     setSourceFilter('all'); setAgentFilter('all'); setApptFilter('all');
-    setDealMin(''); setDealMax('');
+    setProjectFilter('all'); setDealMin(''); setDealMax('');
   };
 
   return (
@@ -293,6 +300,17 @@ export default function Leads() {
                 <SelectItem value="no">No Upcoming Appt</SelectItem>
               </SelectContent>
             </Select>
+            {projects.length > 0 && (
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-48 h-8 text-xs"><SelectValue placeholder="Project" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex items-center gap-1.5">
               <Input
                 type="number"
@@ -320,6 +338,17 @@ export default function Leads() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    className="rounded border-border"
+                    checked={paginated.length > 0 && paginated.every(l => selectedIds.has(l.id))}
+                    onChange={e => {
+                      if (e.target.checked) setSelectedIds(new Set([...selectedIds, ...paginated.map(l => l.id)]));
+                      else setSelectedIds(new Set([...selectedIds].filter(id => !paginated.some(l => l.id === id))));
+                    }}
+                  />
+                </TableHead>
                 <SortableHead label="Name" col="name" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[160px]" />
                 <TableHead className="text-xs">Phone</TableHead>
                 <TableHead className="text-xs">Source</TableHead>
@@ -340,9 +369,21 @@ export default function Leads() {
                 return (
                   <TableRow
                     key={lead.id}
-                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    className={`cursor-pointer hover:bg-muted/30 transition-colors ${selectedIds.has(lead.id) ? 'bg-accent/5' : ''}`}
                     onClick={() => setSelectedLead(lead)}
                   >
+                    <TableCell onClick={e => e.stopPropagation()} className="w-8">
+                      <input
+                        type="checkbox"
+                        className="rounded border-border"
+                        checked={selectedIds.has(lead.id)}
+                        onChange={e => {
+                          const next = new Set(selectedIds);
+                          e.target.checked ? next.add(lead.id) : next.delete(lead.id);
+                          setSelectedIds(next);
+                        }}
+                      />
+                    </TableCell>
                     {/* Name */}
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -1,0 +1,41 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Development / project name"
+    },
+    "location": {
+      "type": "string",
+      "description": "Community or area e.g. Business Bay, Palm Jumeirah"
+    },
+    "developer": {
+      "type": "string",
+      "description": "Developer name (optional)"
+    },
+    "project_type": {
+      "type": "string",
+      "enum": [
+        "off_plan",
+        "ready",
+        "mixed"
+      ],
+      "description": "Off-plan, ready, or mixed"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "closed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

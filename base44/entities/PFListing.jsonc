@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Agent/agency reference number"
     },
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project entity"
+    },
     "title": {
       "type": "string",
       "description": "Listing title"

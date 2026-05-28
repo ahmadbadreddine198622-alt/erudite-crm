@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -43,10 +44,16 @@ export default function Pipeline() {
   // mutations made inside LeadDetailSheet are reflected immediately.
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [activeTab, setActiveTab] = useState('sale');
+  const [projectFilter, setProjectFilter] = useState('all');
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pipeline-leads'],
     queryFn: () => base44.entities.Lead.list('-stage_entered_at', 5000),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
   });
 
   const { data: listings = [] } = useQuery({
@@ -82,8 +89,12 @@ export default function Pipeline() {
   // Active leads — permissive: only EXCLUDE explicit lost/on_hold so legacy
   // status values (warm/hot/cold) and unset status still render.
   const activeLeads = useMemo(
-    () => leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold'),
-    [leads],
+    () => {
+      let result = leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold');
+      if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
+      return result;
+    },
+    [leads, projectFilter],
   );
 
   // Live lead for the open detail drawer — re-derived whenever the cache
@@ -160,9 +171,19 @@ export default function Pipeline() {
               Last synced: {formatRelativeShort(lastSyncedAt) || 'never'}
             </div>
           )}
-          <Button size="sm" variant="outline" disabled title="Filters coming soon">
-            <Filter className="w-4 h-4 mr-1" /> Filters
-          </Button>
+          {projects.length > 0 && (
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-44 h-8 text-xs">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projects.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </PageHeader>
       </div>
 

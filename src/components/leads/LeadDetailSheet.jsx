@@ -30,6 +30,11 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
   const [tagInput, setTagInput] = useState('');
   const queryClient = useQueryClient();
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
+  });
+
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', lead.id],
     queryFn: () => base44.entities.Activity.filter({ lead_id: lead.id }, '-created_date', 50),
@@ -283,7 +288,26 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                 <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pipeline</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              {projects.length > 0 && (
+                <div className="mb-3">
+                  <label className="text-[10px] font-medium text-muted-foreground">Project</label>
+                  <Select
+                    value={lead.project_id || ''}
+                    onValueChange={(v) => updateMutation.mutate({ project_id: v || null })}
+                  >
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue placeholder="— No project —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>— No project —</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+                <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground">Intent</label>
                   <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>

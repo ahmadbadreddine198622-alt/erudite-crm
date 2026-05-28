@@ -109,7 +109,11 @@
     },
     "project_name": {
       "type": "string",
-      "description": "Development/project name"
+      "description": "Development/project name (free text)"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "FK to Project entity"
     },
     "asking_price_aed": {
       "type": "number",
