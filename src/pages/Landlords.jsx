@@ -82,12 +82,13 @@ export default function Landlords() {
     queryFn: () => base44.entities.Project.list(),
   });
 
-  // Fetch selected landlord details
-  const { data: selectedLandlord } = useQuery({
-    queryKey: ['landlord', selectedLandlordId],
-    queryFn: () => base44.entities.Landlord.get(selectedLandlordId),
-    enabled: !!selectedLandlordId,
-  });
+  // Find the selected landlord directly from the already-loaded list for instant open.
+  // No separate async fetch needed — avoids the race where the Sheet never mounts
+  // because selectedLandlord is undefined until the query resolves.
+  const selectedLandlord = useMemo(
+    () => landlords.find((l) => l.id === selectedLandlordId) || null,
+    [landlords, selectedLandlordId],
+  );
 
   // Group by stage
   const stageGroups = useMemo(() => {
