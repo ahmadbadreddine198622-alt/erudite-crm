@@ -259,6 +259,7 @@ export default function Landlords() {
       {selectedLandlord && (
         <LandlordDetailPanel
           landlord={selectedLandlord}
+          open={!!selectedLandlord}
           onClose={() => setSelectedLandlordId(null)}
           onUpdate={() => {
             queryClient.invalidateQueries({ queryKey: ['landlord', selectedLandlordId] });
