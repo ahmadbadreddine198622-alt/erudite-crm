@@ -11,7 +11,7 @@ export default function KanbanBoard({
   onSelectLandlord,
 }) {
   return (
-    <div className="flex gap-4 min-w-min pb-4">
+    <div className="flex gap-4 min-w-max h-full pb-4">
       {stages.map((stage) => {
         const landlords = stageGroups[stage] || [];
         const totalCommission = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -19,10 +19,10 @@ export default function KanbanBoard({
         return (
           <div
             key={stage}
-            className="flex-shrink-0 w-80 bg-slate-50 dark:bg-slate-900 rounded-lg border border-border overflow-hidden flex flex-col"
+            className="flex-shrink-0 w-80 bg-slate-50 dark:bg-slate-900 rounded-lg border border-border overflow-hidden flex flex-col h-full"
           >
             {/* Column Header */}
-            <div className="bg-card border-b border-border p-3 sticky top-0 z-10">
+            <div className="bg-card border-b border-border p-3 shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-sm">{stageLabels[stage]}</h3>
                 <Badge variant="outline" className="text-xs">
@@ -34,7 +34,7 @@ export default function KanbanBoard({
               </p>
             </div>
 
-            {/* Cards Container */}
+            {/* Cards Container - Internal scroll */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {landlords.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-muted-foreground text-xs text-center p-2">

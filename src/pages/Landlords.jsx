@@ -129,8 +129,8 @@ export default function Landlords() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-border bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="border-b border-border bg-card p-4 shrink-0">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-accent" />
@@ -153,7 +153,7 @@ export default function Landlords() {
           </div>
 
           {/* Metrics Bar */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-4 mb-4">
             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Total Active</p>
               <p className="text-lg font-semibold">{landlords.length}</p>
@@ -194,8 +194,8 @@ export default function Landlords() {
           </div>
         </div>
 
-        {/* Kanban Board */}
-        <div className="flex-1 overflow-x-auto p-4">
+        {/* Kanban Board - Bounded scrolling container */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4" style={{ height: 'calc(100dvh - 280px)', minHeight: '420px' }}>
           <KanbanBoard
             stages={STAGES}
             stageLabels={STAGE_LABELS}
