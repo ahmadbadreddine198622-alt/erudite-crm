@@ -124,6 +124,8 @@ export default function ImportOwnersDialog({ open, onClose }) {
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [availableSheets, setAvailableSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (uploadedFile) => {
@@ -154,6 +156,15 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
       if (!rows.length) {
         throw new Error('No data rows found in the first sheet');
+      }
+
+      const buf = await uploadedFile.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      if (wb.SheetNames.length > 1) {
+        setAvailableSheets(wb.SheetNames);
+        setSelectedSheet(wb.SheetNames[0]);
+        setStep('sheet_selection');
+        return;
       }
 
       setRawData({ rows, columns, fileUrl: null });
@@ -198,6 +209,28 @@ export default function ImportOwnersDialog({ open, onClose }) {
     const uploadedFile = e.dataTransfer.files[0];
     if (uploadedFile && (uploadedFile.name.endsWith('.xlsx') || uploadedFile.name.endsWith('.csv'))) {
       handleFileChange(uploadedFile);
+    }
+  };
+
+  const handleSheetSelect = async () => {
+    if (!selectedSheet || !file) return;
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[selectedSheet];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const columns = rows.length ? Object.keys(rows[0]) : [];
+      if (!rows.length) throw new Error('No data rows found in the selected sheet');
+      setRawData({ rows, columns, fileUrl: null });
+      const analysisResult = fallbackColumnMapping(columns);
+      setAiMapping(analysisResult);
+      const cleanedPreview = rows.slice(0, 10).map((row) => buildCleanedRow(row, analysisResult.mappings));
+      setPreview(cleanedPreview);
+      setStep('preview');
+    } catch (err) {
+      console.error('Sheet selection error:', err);
+      setError(err.message || 'Error processing sheet');
+      setStep('error');
     }
   };
 
@@ -324,6 +357,8 @@ export default function ImportOwnersDialog({ open, onClose }) {
     setPreview([]);
     setResults(null);
     setError(null);
+    setAvailableSheets([]);
+    setSelectedSheet(null);
     setStep('upload');
     onClose();
   };
@@ -388,6 +423,31 @@ export default function ImportOwnersDialog({ open, onClose }) {
           </div>
         )}
 
+        {step === 'sheet_selection' && availableSheets.length > 0 && (
+          <div className="py-6">
+            <p className="text-sm font-medium mb-4">Select which sheet to import:</p>
+            <div className="space-y-2 mb-6">
+              {availableSheets.map((sheetName) => (
+                <label key={sheetName} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors">
+                  <input
+                    type="radio"
+                    name="sheet"
+                    value={sheetName}
+                    checked={selectedSheet === sheetName}
+                    onChange={(e) => setSelectedSheet(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium">{sheetName}</span>
+                </label>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setStep('upload'); setAvailableSheets([]); setSelectedSheet(null); }}>Back</Button>
+              <Button onClick={handleSheetSelect}>Continue</Button>
+            </DialogFooter>
+          </div>
+        )}
+
         {step === 'preview' && aiMapping && (
           <div>
             <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -425,10 +485,11 @@ export default function ImportOwnersDialog({ open, onClose }) {
               Showing first {preview.length} rows for preview. All {rawData?.rows?.length || 0} rows will be imported.
             </div>
 
-            <div className="max-h-80 overflow-y-auto border rounded-lg">
+            <div className="border rounded-lg bg-card overflow-hidden">
+              <div className="max-h-96 overflow-y-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
+                <TableHeader className="sticky top-0 bg-muted/50">
+                  <TableRow>
                     <TableHead className="text-xs">Owner</TableHead>
                     <TableHead className="text-xs">Phone</TableHead>
                     <TableHead className="text-xs">Unit</TableHead>
@@ -482,10 +543,11 @@ export default function ImportOwnersDialog({ open, onClose }) {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
 
             <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => setStep('upload')}>Back</Button>
+              <Button variant="outline" onClick={() => { setStep('upload'); setAvailableSheets([]); setSelectedSheet(null); }}>Back</Button>
               <Button 
                 onClick={handleImport} 
                 disabled={importMutation.isPending}
