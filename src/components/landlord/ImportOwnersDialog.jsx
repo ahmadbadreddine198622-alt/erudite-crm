@@ -4,7 +4,6 @@ import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
@@ -51,6 +50,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
   const [preview, setPreview] = useState([]);
   const [step, setStep] = useState('upload'); // upload | preview | processing | done
   const [results, setResults] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const parseFile = useCallback(async (uploadedFile) => {
     const fileUrl = await base44.integrations.Core.UploadFile({ file: uploadedFile });
@@ -118,6 +118,26 @@ export default function ImportOwnersDialog({ open, onClose }) {
       setStep('preview');
     } catch (err) {
       toast.error('Failed to parse file: ' + err.message);
+    }
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const uploadedFile = e.dataTransfer.files[0];
+    if (uploadedFile) {
+      handleFileChange({ target: { files: [uploadedFile] } });
     }
   };
 
@@ -246,19 +266,28 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
         {step === 'upload' && (
           <div className="py-8">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                dragActive
+                  ? 'border-accent bg-accent/5'
+                  : 'border-border hover:border-accent/50'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('owner-file').click()}
+            >
               <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <Label htmlFor="owner-file" className="cursor-pointer">
-                <span className="text-sm font-medium">Click to upload or drag and drop</span>
-                <p className="text-xs text-muted-foreground mt-1">Excel (.xlsx) or CSV files</p>
-                <Input
-                  id="owner-file"
-                  type="file"
-                  accept=".xlsx,.csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </Label>
+              <p className="text-sm font-medium">Click to upload or drag and drop</p>
+              <p className="text-xs text-muted-foreground mt-1">Excel (.xlsx) or CSV files</p>
+              <Input
+                id="owner-file"
+                type="file"
+                accept=".xlsx,.csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
             <div className="mt-4 text-xs text-muted-foreground">
               <p className="font-medium">Expected columns:</p>
