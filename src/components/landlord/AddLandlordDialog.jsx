@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,12 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
     source: 'warm_intro',
     landlord_archetype: 'individual_end_user_relocating',
     assigned_agent_email: '',
+    project_id: '',
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
   });
 
   const createMutation = useMutation({
@@ -33,6 +40,7 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
         source: 'warm_intro',
         landlord_archetype: 'individual_end_user_relocating',
         assigned_agent_email: '',
+        project_id: '',
       });
       toast.success('Landlord created');
     },
@@ -43,8 +51,8 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.full_name_en || !formData.phone || !formData.assigned_agent_email) {
-      toast.error('Please fill required fields');
+    if (!formData.full_name_en || !formData.phone || !formData.assigned_agent_email || !formData.project_id) {
+      toast.error('Name, phone, agent email and project are required');
       return;
     }
     createMutation.mutate({
@@ -118,6 +126,20 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
               <option value="building_manager">Building Manager</option>
               <option value="expired_listing">Expired Listing</option>
               <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Project *</label>
+            <select
+              value={formData.project_id}
+              onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+              className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+            >
+              <option value="">— Select a project —</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
           </div>
 
