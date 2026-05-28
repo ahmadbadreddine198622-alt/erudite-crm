@@ -1,10 +1,9 @@
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, TrendingUp, Trash2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Phone, MessageCircle, Trash2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { normalizePhone, waMeUrl } from '@/lib/phone';
 
 const ARCHETYPE_COLORS = {
   professional_investor: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
@@ -32,9 +31,27 @@ const ARCHETYPE_LABELS = {
   speculator_flipping: 'Speculator',
 };
 
-export default function LandlordCard({ landlord, isSelected, onClick }) {
+function getTrustColor(score) {
+  if (!score) return 'text-muted-foreground';
+  if (score >= 80) return 'text-emerald-600';
+  if (score >= 60) return 'text-amber-600';
+  return 'text-red-600';
+}
+
+function getUrgencyDot(score) {
+  if (!score) return 'bg-slate-300';
+  if (score >= 80) return 'bg-red-500 animate-pulse';
+  if (score >= 60) return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+export default function LandlordCard({ landlord, isSelected, isDragging, onClick }) {
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
+
+  const e164 = normalizePhone(landlord.phone);
+  const askingPrice = landlord.asking_price_history?.[0]?.price;
+  const commission = landlord.estimated_commission_aed;
 
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
@@ -46,6 +63,24 @@ export default function LandlordCard({ landlord, isSelected, onClick }) {
     onError: (err) => toast.error('Delete failed: ' + (err?.message || 'unknown error')),
   });
 
+  const handleCall = (e) => {
+    e.stopPropagation();
+    if (!e164) {
+      toast.error('No valid phone number');
+      return;
+    }
+    window.location.href = `tel:${e164}`;
+  };
+
+  const handleWhatsApp = (e) => {
+    e.stopPropagation();
+    if (!e164) {
+      toast.error('No valid phone number');
+      return;
+    }
+    window.open(waMeUrl(e164), '_blank', 'noopener,noreferrer');
+  };
+
   const handleDelete = (e) => {
     e.stopPropagation();
     if (window.confirm(`Delete ${landlord.full_name_en || 'this landlord'}? This can't be undone.`)) {
@@ -53,109 +88,91 @@ export default function LandlordCard({ landlord, isSelected, onClick }) {
     }
   };
 
-  const getTrustColor = (score) => {
-    if (!score) return 'text-muted-foreground';
-    if (score >= 80) return 'text-emerald-600';
-    if (score >= 60) return 'text-amber-600';
-    return 'text-red-600';
-  };
-
-  const getUrgencyDot = (score) => {
-    if (!score) return 'bg-slate-300';
-    if (score >= 80) return 'bg-red-500 animate-pulse';
-    if (score >= 60) return 'bg-amber-500';
-    return 'bg-emerald-500';
-  };
-
   return (
     <div
       onClick={onClick}
       className={cn(
-        'p-3 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md',
-        isSelected
-          ? 'bg-accent/10 border-accent shadow-md'
-          : 'bg-card border-border hover:border-accent/50',
+        'bg-card rounded-xl p-3 border cursor-pointer transition-all duration-200',
+        isDragging
+          ? 'shadow-xl ring-2 ring-accent/30 rotate-1'
+          : 'hover:shadow-md hover:border-accent/30',
+        isSelected ? 'border-accent ring-1 ring-accent/40' : 'border-border',
       )}
     >
-      {/* Header: Name + Urgency Dot */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1">
-          <h4 className="font-semibold text-sm line-clamp-1">{landlord.full_name_en}</h4>
-          <p className="text-xs text-muted-foreground">
-            {landlord.phone || 'No phone'}
-          </p>
+      {/* Top row: avatar + name/phone + urgency dot */}
+      <div className="flex items-start gap-2">
+        <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent shrink-0">
+          {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
-        <div className={cn('w-3 h-3 rounded-full flex-shrink-0 mt-1', getUrgencyDot(landlord.urgency_score))} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-semibold leading-tight truncate">{landlord.full_name_en || 'Unknown'}</p>
+            <span
+              className={cn(
+                'shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border',
+                archetypeColor,
+              )}
+            >
+              {archetypeLabel}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{landlord.phone || 'No phone'}</p>
+        </div>
+        <span
+          className={cn('w-2 h-2 rounded-full shrink-0 mt-1', getUrgencyDot(landlord.urgency_score))}
+          title="Urgency"
+        />
       </div>
 
-      {/* Archetype Badge */}
-      <div className="mb-2">
-        <Badge
-          variant="outline"
-          className={cn('text-xs border', archetypeColor)}
-        >
-          {archetypeLabel}
-        </Badge>
-      </div>
-
-      {/* Price & Commission */}
-      <div className="grid grid-cols-2 gap-1 text-xs mb-2">
-        <div className="bg-slate-100 dark:bg-slate-800 rounded p-1.5">
-          <p className="text-muted-foreground">Price</p>
-          <p className="font-semibold">
-            {landlord.asking_price_history?.[0]?.price
-              ? `AED ${(landlord.asking_price_history[0].price / 1000000).toFixed(1)}M`
-              : '—'}
-          </p>
-        </div>
-        <div className="bg-slate-100 dark:bg-slate-800 rounded p-1.5">
-          <p className="text-muted-foreground">Est. Commission</p>
-          <p className="font-semibold">
-            {landlord.estimated_commission_aed
-              ? `AED ${(landlord.estimated_commission_aed / 1000).toFixed(0)}K`
-              : '—'}
-          </p>
-        </div>
-      </div>
-
-      {/* Days in Stage */}
-      <p className="text-xs text-muted-foreground mb-2">
-        {landlord.days_in_stage ? `${landlord.days_in_stage}d in stage` : 'Just added'}
-      </p>
-
-      {/* Trust Score */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-muted-foreground">Trust</span>
-        <span className={cn('text-xs font-bold', getTrustColor(landlord.trust_score))}>
-          {landlord.trust_score || 0} / 100
+      {/* Metrics: price + commission + trust as compact badges */}
+      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+        {askingPrice > 0 && (
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-500/10 text-foreground border border-slate-500/20">
+            AED {(askingPrice / 1000000).toFixed(1)}M
+          </span>
+        )}
+        {commission > 0 && (
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
+            {(commission / 1000).toFixed(0)}K comm.
+          </span>
+        )}
+        <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border', getTrustColor(landlord.trust_score))}>
+          Trust {landlord.trust_score || 0}
         </span>
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-1 pt-2 border-t border-border">
-        <button
-          type="button"
-          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs hover:bg-accent/20 rounded transition-colors"
-          title="Call"
-        >
-          <Phone className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs hover:bg-accent/20 rounded transition-colors"
-          title="WhatsApp"
-        >
-          <MessageCircle className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-          className="flex items-center justify-center px-2 py-1.5 text-xs text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-          title="Delete landlord"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
+      {/* Bottom row: time in stage + actions */}
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <span className="text-[10px] text-muted-foreground">
+          {landlord.days_in_stage ? `In stage · ${landlord.days_in_stage}d` : 'Just added'}
+        </span>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={handleCall}
+            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
+            title="Call"
+          >
+            <Phone className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleWhatsApp}
+            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
+            title="WhatsApp"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="flex items-center justify-center p-1.5 rounded text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+            title="Delete landlord"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

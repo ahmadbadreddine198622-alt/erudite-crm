@@ -120,6 +120,38 @@ export default function Landlords() {
     toast.success('Landlord added successfully');
   };
 
+  // Persist drag-and-drop stage moves with an optimistic cache update.
+  const updateStageMutation = useMutation({
+    mutationFn: ({ id, newStage }) =>
+      base44.entities.Landlord.update(id, {
+        stage: newStage,
+        stage_entered_at: new Date().toISOString(),
+      }),
+    onMutate: async ({ id, newStage }) => {
+      await queryClient.cancelQueries({ queryKey: ['landlords'] });
+      const previous = queryClient.getQueryData(['landlords']);
+      queryClient.setQueryData(['landlords'], (old) =>
+        (old || []).map((l) =>
+          l.id === id
+            ? { ...l, stage: newStage, stage_entered_at: new Date().toISOString() }
+            : l,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['landlords'], context.previous);
+      }
+      toast.error('Failed to move landlord — reverting.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+    },
+  });
+
+  const handleStageChange = (payload) => updateStageMutation.mutate(payload);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -219,6 +251,7 @@ export default function Landlords() {
           stageGroups={filteredGroups}
           selectedLandlordId={selectedLandlordId}
           onSelectLandlord={setSelectedLandlordId}
+          onStageChange={handleStageChange}
         />
       </div>
 
