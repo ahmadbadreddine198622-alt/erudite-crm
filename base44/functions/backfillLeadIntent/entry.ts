@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
           }
 
           try {
-            await new Promise(r => setTimeout(r, 60)); // avoid 429 rate limit
+            await new Promise(r => setTimeout(r, 400)); // avoid 429 rate limit
             await base44.asServiceRole.entities.Lead.update(lead.id, update);
             diagnostics.leads_migrated_this_run += 1;
             if (intent === 'buyer') diagnostics.routed_buyer += 1;
