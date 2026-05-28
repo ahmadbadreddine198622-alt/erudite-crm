@@ -117,19 +117,19 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
 
           {/* Metrics Grid */}
           <div className="p-4 grid grid-cols-2 gap-3 border-b border-border">
-            <Card className="bg-muted border-0">
+            <Card className="bg-secondary/50 border-border">
               <CardContent className="p-2">
                 <p className="text-xs text-muted-foreground mb-1">Trust Score</p>
                 <p className="text-lg font-bold text-accent">{landlord.trust_score || 0}</p>
               </CardContent>
             </Card>
-            <Card className="bg-muted border-0">
+            <Card className="bg-secondary/50 border-border">
               <CardContent className="p-2">
                 <p className="text-xs text-muted-foreground mb-1">Responsiveness</p>
                 <p className="text-lg font-bold text-accent">{landlord.responsiveness_score || 0}</p>
               </CardContent>
             </Card>
-            <Card className="bg-muted border-0">
+            <Card className="bg-secondary/50 border-border">
               <CardContent className="p-2">
                 <p className="text-xs text-muted-foreground mb-1">Mandate Win %</p>
                 <p className="text-lg font-bold text-accent">
@@ -137,7 +137,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-muted border-0">
+            <Card className="bg-secondary/50 border-border">
               <CardContent className="p-2">
                 <p className="text-xs text-muted-foreground mb-1">Urgency</p>
                 <p className="text-lg font-bold text-accent">{landlord.urgency_score || 0}</p>
