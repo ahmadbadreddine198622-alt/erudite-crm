@@ -1,0 +1,74 @@
+{
+  "name": "LeadActivity",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Links to the Lead entity"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "note",
+        "task",
+        "booking",
+        "stage_change",
+        "field_change",
+        "assignment_change",
+        "whatsapp",
+        "system"
+      ],
+      "description": "Type of activity"
+    },
+    "title": {
+      "type": "string",
+      "description": "Short summary, e.g. 'Follow-up call' or 'Moved to Financial Qualification'"
+    },
+    "body": {
+      "type": "string",
+      "description": "Details / note content / task description"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Agent name who logged the activity"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "For tasks/bookings: scheduled date/time"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether task/booking is completed"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When it was completed"
+    },
+    "result": {
+      "type": "string",
+      "description": "Outcome recorded when completing a task/booking"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Agent assigned to this task/booking"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Extra data e.g. old_stage, new_stage for stage_change"
+    }
+  },
+  "required": [
+    "lead_id",
+    "activity_type",
+    "title"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {}
+  }
+}
