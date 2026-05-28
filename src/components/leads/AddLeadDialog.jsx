@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
@@ -14,16 +14,11 @@ import {
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { SOURCE_LABELS, LEAD_TYPE_LABELS } from '@/lib/constants';
 
-const PROJECT_LAYERS = [
-  { id: 'peninsula-three', label: 'Peninsula Three' },
-  { id: 'jumeirah-living', label: 'Jumeirah Living' },
-  { id: 'six-senses', label: 'Six Senses' },
-  { id: 'peninsula-four', label: 'Peninsula Four' },
-];
+
 
 const initialForm = {
   name: '', email: '', phone: '', source: 'website',
-  type: 'buyer', budget_aed: '', notes: '', nationality: '', project_layer: '',
+  type: 'buyer', budget_aed: '', notes: '', nationality: '', project_id: '',
 };
 
 export default function AddLeadDialog({ open, onClose }) {
@@ -32,6 +27,11 @@ export default function AddLeadDialog({ open, onClose }) {
   const [validationErrors, setValidationErrors] = useState({});
   const [autoTagSuggestion, setAutoTagSuggestion] = useState(null);
   const queryClient = useQueryClient();
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
+  });
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.create(data),
@@ -79,7 +79,7 @@ export default function AddLeadDialog({ open, onClose }) {
     e.preventDefault();
     const errors = validate();
     if (Object.keys(errors).length > 0) { setValidationErrors(errors); return; }
-    if (!form.project_layer) { setValidationErrors({ project_layer: 'Please select a project layer' }); return; }
+    if (!form.project_id) { setValidationErrors({ project_id: 'Please select a project' }); return; }
     const tags = autoTagSuggestion?.suggested_tags || [];
     createMutation.mutate({
       ...form,
@@ -89,7 +89,7 @@ export default function AddLeadDialog({ open, onClose }) {
       tags,
       nationality: form.nationality || autoTagSuggestion?.suggested_nationality || undefined,
       relationship_type: autoTagSuggestion?.suggested_type || undefined,
-      project_layer: form.project_layer,
+      project_id: form.project_id || undefined,
     });
   };
 
@@ -176,15 +176,18 @@ export default function AddLeadDialog({ open, onClose }) {
               <Input value={form.budget_aed} onChange={set('budget_aed')} type="number" placeholder="1,500,000" />
             </div>
             <div>
-              <Label>Project Layer *</Label>
-              <Select value={form.project_layer} onValueChange={set('project_layer')}>
-                <SelectTrigger><SelectValue placeholder="Select layer..." /></SelectTrigger>
+              <Label>Project *</Label>
+              <Select value={form.project_id} onValueChange={set('project_id')}>
+                <SelectTrigger className={validationErrors.project_id ? 'border-red-400' : ''}>
+                  <SelectValue placeholder="Select project..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {PROJECT_LAYERS.map(layer => (
-                    <SelectItem key={layer.id} value={layer.id}>{layer.label}</SelectItem>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {validationErrors.project_id && <p className="text-xs text-red-500 mt-1">{validationErrors.project_id}</p>}
             </div>
             <div>
               <Label>Nationality</Label>

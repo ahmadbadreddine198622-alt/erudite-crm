@@ -225,8 +225,14 @@ export default function ImportOwnersDialog({ open, onClose }) {
     queryFn: () => base44.auth.me(),
     staleTime: 5 * 60 * 1000,
   });
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list('name', 200),
+  });
+  const [selectedTrack, setSelectedTrack] = useState('landlord');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [file, setFile] = useState(null);
-  const [step, setStep] = useState('upload'); // upload | analyzing | sheet_selection | preview | done | error
+  const [step, setStep] = useState('track_project'); // track_project | upload | analyzing | sheet_selection | preview | done | error
   const [rawData, setRawData] = useState(null); // { rows, columns }
   const [columnMap, setColumnMap] = useState({}); // { sourceColumn: targetField }
   const [existingPhones, setExistingPhones] = useState([]);
@@ -399,32 +405,54 @@ export default function ImportOwnersDialog({ open, onClose }) {
         let projectId = null;
         if (row.projectRaw) projectId = projectMap.get(row.projectRaw.toLowerCase().trim()) || null;
 
-        const landlordData = {
-          // Required fields: full_name_en, phone, source, stage, assigned_agent_email
-          full_name_en: row.fullName,
-          full_name: row.fullName,
-          phone: row.primaryPhone,
-          whatsapp: row.primaryPhone,
-          source: 'other',                 // 'owner_import' is NOT in the Landlord source enum; tag below preserves provenance
-          stage: 'initial_contact',
-          assigned_agent_email: agentEmail, // required — set on every record
-          lead_type: 'landlord_both',
-          notes: row.notes || 'Imported from spreadsheet',
-          tags: isDuplicate ? ['imported_owner', 'possible_duplicate'] : ['imported_owner'],
-        };
-        if (row.altPhones.length) landlordData.additional_phones = row.altPhones;
-        if (row.email) landlordData.email = row.email;
-        if (row.unit) landlordData.unit_reference = row.unit;
-        if (row.projectRaw) landlordData.project_name = row.projectRaw;
-        if (projectId) landlordData.project_id = projectId;
-        if (row.location) landlordData.location = row.location;
-        if (row.country) landlordData.residence_country = row.country;
+        const selectedProject = projects.find(p => p.id === selectedProjectId);
 
         try {
-          const created = await base44.entities.Landlord.create(landlordData);
+          let created;
+          if (selectedTrack === 'landlord') {
+            const landlordData = {
+              full_name_en: row.fullName,
+              full_name: row.fullName,
+              phone: row.primaryPhone,
+              whatsapp: row.primaryPhone,
+              source: 'other',
+              stage: 'initial_contact',
+              assigned_agent_email: agentEmail,
+              lead_type: 'landlord_both',
+              notes: row.notes || 'Imported from spreadsheet',
+              tags: isDuplicate ? ['imported_owner', 'possible_duplicate'] : ['imported_owner'],
+            };
+            if (row.altPhones.length) landlordData.additional_phones = row.altPhones;
+            if (row.email) landlordData.email = row.email;
+            if (row.unit) landlordData.unit_reference = row.unit;
+            if (row.projectRaw) landlordData.project_name = row.projectRaw;
+            const resolvedProjectId = projectId || selectedProjectId || null;
+            if (resolvedProjectId) landlordData.project_id = resolvedProjectId;
+            if (selectedProject && !row.projectRaw) landlordData.project_name = selectedProject.name;
+            if (row.location) landlordData.location = row.location;
+            if (row.country) landlordData.residence_country = row.country;
+            created = await base44.entities.Landlord.create(landlordData);
+          } else {
+            const intent = selectedTrack === 'buyer' ? 'buyer' : 'tenant';
+            const stage = selectedTrack === 'buyer' ? 'contact_identity' : 'new_tenant_lead';
+            const leadData = {
+              full_name: row.fullName,
+              phone: row.primaryPhone,
+              email: row.email || undefined,
+              source: 'other',
+              stage,
+              intent,
+              assigned_agent_email: agentEmail,
+              notes: row.notes || 'Imported from spreadsheet',
+              tags: isDuplicate ? ['imported', 'possible_duplicate'] : ['imported'],
+              project_id: projectId || selectedProjectId || undefined,
+              nationality: row.country || undefined,
+            };
+            created = await base44.entities.Lead.create(leadData);
+          }
           stats.created++;
           if (isDuplicate) stats.duplicates++;
-          stats.createdIds.push(created.id);
+          if (created?.id) stats.createdIds.push(created.id);
         } catch (err) {
           stats.errored++;
           stats.errors.push({ row: row.fullName || 'Unknown', reason: err.message });
@@ -448,7 +476,9 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
   const handleClose = () => {
     setFile(null);
-    setStep('upload');
+    setStep('track_project');
+    setSelectedTrack('landlord');
+    setSelectedProjectId('');
     setRawData(null);
     setColumnMap({});
     setExistingPhones([]);
@@ -464,6 +494,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
     setStep('upload');
     setAvailableSheets([]);
     setSelectedSheet(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const totalRows = rawData?.rows?.length || 0;
@@ -480,9 +511,48 @@ export default function ImportOwnersDialog({ open, onClose }) {
             <FileSpreadsheet className="w-4 h-4 text-accent" /> Smart Import Owners
           </SheetTitle>
           <SheetDescription className="text-xs">
-            Upload an .xlsx/CSV. Parsed instantly in your browser; columns auto-detected and editable below.
+            {step === 'track_project'
+              ? 'Choose the pipeline track and project before uploading your file.'
+              : `Importing as: ${selectedTrack.charAt(0).toUpperCase() + selectedTrack.slice(1)} · ${projects.find(p => p.id === selectedProjectId)?.name || 'No project'}`}
           </SheetDescription>
         </SheetHeader>
+
+        {step === 'track_project' && (
+          <div className="py-6 space-y-5">
+            <div>
+              <label className="text-sm font-medium block mb-1.5">Track *</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[{id:'landlord',label:'🏠 Landlord'},{id:'buyer',label:'🛒 Buyer'},{id:'rent',label:'🔑 Rent'}].map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedTrack(t.id)}
+                    className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                      selectedTrack === t.id
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border hover:border-accent/50'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1.5">Project *</label>
+              <select
+                value={selectedProjectId}
+                onChange={e => setSelectedProjectId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+              >
+                <option value="">— Select a project —</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {step === 'upload' && (
           <div className="py-4">
@@ -651,6 +721,18 @@ export default function ImportOwnersDialog({ open, onClose }) {
         )}
 
         <div className="mt-2 shrink-0 flex justify-end gap-2">
+          {step === 'track_project' && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleClose}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={!selectedProjectId}
+                onClick={() => setStep('upload')}
+              >
+                Continue
+              </Button>
+            </>
+          )}
           {step === 'sheet_selection' && (
             <>
               <Button variant="outline" size="sm" onClick={resetToUpload}>Back</Button>
@@ -659,13 +741,16 @@ export default function ImportOwnersDialog({ open, onClose }) {
           )}
           {step === 'preview' && (
             <>
-              <Button variant="outline" size="sm" onClick={resetToUpload}>Back</Button>
+              <Button variant="outline" size="sm" onClick={resetToUpload}>← Change file</Button>
               <Button size="sm" onClick={() => importMutation.mutate()} disabled={importMutation.isPending} className="gap-1.5">
                 {importMutation.isPending
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Importing…</>
                   : <><CheckCircle2 className="w-4 h-4" /> Import all {totalRows} rows</>}
               </Button>
             </>
+          )}
+          {step === 'upload' && (
+            <Button variant="outline" size="sm" onClick={() => setStep('track_project')}>← Back</Button>
           )}
           {step === 'error' && <Button variant="outline" size="sm" onClick={resetToUpload}>Try again</Button>}
           {step === 'done' && <Button size="sm" onClick={handleClose}>Done</Button>}
