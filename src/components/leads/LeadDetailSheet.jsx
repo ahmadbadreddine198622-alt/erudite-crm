@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download
+  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download, UserCheck, Briefcase
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const queryClient = useQueryClient();
 
   const { data: activities = [] } = useQuery({
@@ -179,64 +180,140 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <TabsTrigger value="activity" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">Activity</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details" className="p-6 space-y-4 mt-0">
-            {/* Contact Info */}
-            <div className="grid grid-cols-2 gap-3">
-              {lead.phone && (
-                <div className="flex items-center gap-2 text-sm p-3 rounded-lg bg-muted/50">
-                  <Phone className="w-4 h-4 text-accent shrink-0" />
-                  <WhatsAppPhone
-                    phone={lead.phone}
-                    name={lead.name}
-                    leadId={lead.id}
-                    size="sm"
-                    disabled={lead.do_not_contact}
-                    disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
+          <TabsContent value="details" className="p-6 space-y-5 mt-0" key={lead.id}>
+
+            {/* Ownership & Value */}
+            <section>
+              <div className="flex items-center gap-1.5 mb-3">
+                <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ownership {'&'} Value</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground">Assigned Agent</label>
+                  <Input
+                    defaultValue={lead.assigned_agent_name || ''}
+                    placeholder="Agent name"
+                    className="mt-1 h-9 text-sm"
+                    onBlur={(e) => { if (e.target.value !== (lead.assigned_agent_name || '')) updateMutation.mutate({ assigned_agent_name: e.target.value }); }}
                   />
                 </div>
-              )}
-              {lead.email && (
-                <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <Mail className="w-4 h-4 text-accent" />
-                  <span className="truncate">{lead.email}</span>
-                </a>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Intent</label>
-                <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>
-                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="buyer">Buyer</SelectItem>
-                    <SelectItem value="tenant">Tenant</SelectItem>
-                    <SelectItem value="unknown">Unknown</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Deal Value (AED)</label>
+                    <Input
+                      type="number"
+                      defaultValue={lead.deal_value_aed || ''}
+                      placeholder="0"
+                      className="mt-1 h-9 text-sm"
+                      onBlur={(e) => { const v = Number(e.target.value) || 0; if (v !== (lead.deal_value_aed || 0)) updateMutation.mutate({ deal_value_aed: v }); }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Next Appointment</label>
+                    <input
+                      type="datetime-local"
+                      defaultValue={lead.next_appointment_at ? lead.next_appointment_at.slice(0, 16) : ''}
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      onBlur={(e) => {
+                        const v = e.target.value ? new Date(e.target.value).toISOString() : null;
+                        if (v !== (lead.next_appointment_at || null)) updateMutation.mutate({ next_appointment_at: v });
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-                <Select value={lead.status || 'active'} onValueChange={(v) => updateMutation.mutate({ status: v })}>
-                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="lost">Lost</SelectItem>
-                    <SelectItem value="on_hold">On hold</SelectItem>
-                  </SelectContent>
-                </Select>
+            </section>
+
+            {/* Contact */}
+            <section>
+              <div className="flex items-center gap-1.5 mb-3">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Contact</span>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Stage</label>
+              <div className="space-y-3">
+                {lead.phone && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
+                    <Phone className="w-4 h-4 text-accent shrink-0" />
+                    <WhatsAppPhone
+                      phone={lead.phone}
+                      name={lead.full_name || lead.name}
+                      leadId={lead.id}
+                      size="sm"
+                      disabled={lead.do_not_contact}
+                      disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground">Email</label>
+                  <Input
+                    defaultValue={lead.email || ''}
+                    placeholder="email@example.com"
+                    className="mt-1 h-9 text-sm"
+                    onBlur={(e) => { if (e.target.value !== (lead.email || '')) updateMutation.mutate({ email: e.target.value }); }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Company</label>
+                    <Input
+                      defaultValue={lead.company || ''}
+                      placeholder="Company name"
+                      className="mt-1 h-9 text-sm"
+                      onBlur={(e) => { if (e.target.value !== (lead.company || '')) updateMutation.mutate({ company: e.target.value }); }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Position</label>
+                    <Input
+                      defaultValue={lead.position || ''}
+                      placeholder="Job title"
+                      className="mt-1 h-9 text-sm"
+                      onBlur={(e) => { if (e.target.value !== (lead.position || '')) updateMutation.mutate({ position: e.target.value }); }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Pipeline */}
+            <section>
+              <div className="flex items-center gap-1.5 mb-3">
+                <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pipeline</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground">Intent</label>
+                  <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>
+                    <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="buyer">Buyer</SelectItem>
+                      <SelectItem value="tenant">Tenant</SelectItem>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground">Status</label>
+                  <Select value={lead.status || 'active'} onValueChange={(v) => updateMutation.mutate({ status: v })}>
+                    <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                      <SelectItem value="on_hold">On hold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="text-[10px] font-medium text-muted-foreground">Stage</label>
                 <Select
                   value={stageInTrack ? lead.stage : ''}
-                  onValueChange={(v) =>
-                    updateMutation.mutate({ stage: v, stage_entered_at: new Date().toISOString() })
-                  }
+                  onValueChange={(v) => updateMutation.mutate({ stage: v, stage_entered_at: new Date().toISOString() })}
                 >
                   <SelectTrigger className="mt-1 h-9">
-                    {/* Defensive fallback: render raw stage if it's not in the current track's stage list */}
                     <SelectValue placeholder={stageLabel}>{stageLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -246,27 +323,50 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Budget</label>
-                <p className="text-sm font-semibold mt-2">{formatAED(lead.budget_aed)}</p>
+            </section>
+
+            {/* Tags */}
+            <section>
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tags</label>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(lead.tags || []).map((tag) => (
+                  <span key={tag} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                    {tag}
+                    <button
+                      onClick={() => updateMutation.mutate({ tags: (lead.tags || []).filter((t) => t !== tag) })}
+                      className="hover:text-destructive leading-none"
+                    >{String.fromCharCode(215)}</button>
+                  </span>
+                ))}
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                      e.preventDefault();
+                      const newTag = tagInput.trim().replace(/,/g, '');
+                      if (!lead.tags?.includes(newTag)) updateMutation.mutate({ tags: [...(lead.tags || []), newTag] });
+                      setTagInput('');
+                    }
+                  }}
+                  placeholder="+ Add tag"
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-border bg-transparent focus:outline-none focus:border-accent w-20"
+                />
               </div>
-            </div>
-            {lead.tags?.length > 0 && (
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Tags</label>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {lead.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {lead.notes && (
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Notes</label>
-                <p className="text-sm text-muted-foreground mt-1">{lead.notes}</p>
-              </div>
-            )}
+            </section>
+
+            {/* Notes */}
+            <section>
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Notes</label>
+              <Textarea
+                defaultValue={lead.notes || ''}
+                placeholder="Add notes about this lead..."
+                className="mt-2 text-sm resize-none"
+                rows={4}
+                onBlur={(e) => { if (e.target.value !== (lead.notes || '')) updateMutation.mutate({ notes: e.target.value }); }}
+              />
+            </section>
+
           </TabsContent>
 
           <TabsContent value="whatsapp" className="p-4 mt-0">

@@ -91,8 +91,7 @@
       "description": "UTM/campaign tag"
     },
     "referrer_lead_id": {
-      "type": "string",
-      "description": "If referred, which lead referred them"
+      "type": "string"
     },
     "first_touch_at": {
       "type": "string",
@@ -124,8 +123,7 @@
     },
     "stage_entered_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "When the lead entered the current stage"
+      "format": "date-time"
     },
     "status": {
       "type": "string",
@@ -158,8 +156,7 @@
       "type": "string"
     },
     "team": {
-      "type": "string",
-      "description": "Team or branch handling this lead"
+      "type": "string"
     },
     "intent": {
       "type": "string",
@@ -215,8 +212,7 @@
       ]
     },
     "pre_approved_amount": {
-      "type": "number",
-      "description": "Mortgage pre-approval amount, if any"
+      "type": "number"
     },
     "down_payment_ready": {
       "type": "number"
@@ -293,8 +289,7 @@
         },
         "authority_confirmed": {
           "type": "boolean",
-          "default": false,
-          "description": "Is this person the decision maker?"
+          "default": false
         },
         "need_confirmed": {
           "type": "boolean",
@@ -330,6 +325,24 @@
     },
     "notes": {
       "type": "string"
+    },
+    "deal_value_aed": {
+      "type": "number",
+      "default": 0,
+      "description": "Potential or agreed deal value in AED"
+    },
+    "next_appointment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Next scheduled meeting or follow-up with this lead"
+    },
+    "company": {
+      "type": "string",
+      "description": "Lead's company or employer"
+    },
+    "position": {
+      "type": "string",
+      "description": "Lead's job title or position"
     },
     "activity_count": {
       "type": "number",

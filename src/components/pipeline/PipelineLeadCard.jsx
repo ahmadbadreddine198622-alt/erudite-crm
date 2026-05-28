@@ -3,6 +3,8 @@ import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import { STAGES, DEFAULT_HEALTH_THRESHOLDS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
+import { Calendar } from 'lucide-react';
+import { format } from 'date-fns';
 
 function formatTimeInStage(stageEnteredAt) {
   if (!stageEnteredAt) return '';
@@ -46,6 +48,16 @@ function formatCompactPrice(price, offeringType, period) {
     else suffix = '/yr';
   }
   return `${num} AED${suffix}`;
+}
+
+function formatDealValue(val) {
+  if (!val || val <= 0) return '';
+  if (val >= 1_000_000) {
+    const m = val / 1_000_000;
+    return `AED ${m >= 10 ? Math.round(m) : m.toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (val >= 1_000) return `AED ${Math.round(val / 1_000)}K`;
+  return `AED ${val}`;
 }
 
 const HEALTH_DOT_COLORS = {
@@ -141,17 +153,40 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
         </div>
       )}
 
-      {/* Bottom row: time in stage + health dot */}
-      <div className="mt-2.5 flex items-center justify-between">
+      {/* Deal value + appointment signals */}
+      {(lead.deal_value_aed > 0 || lead.next_appointment_at) && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          {lead.deal_value_aed > 0 && (
+            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
+              {formatDealValue(lead.deal_value_aed)}
+            </span>
+          )}
+          {lead.next_appointment_at && (
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20 inline-flex items-center gap-0.5">
+              <Calendar className="w-2.5 h-2.5" />
+              {format(new Date(lead.next_appointment_at), 'MMM d')}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Bottom row: time in stage + health dot + docs */}
+      <div className="mt-2.5 flex items-center justify-between gap-2">
         <span className="text-[10px] text-muted-foreground">
           {timeInStage ? `In stage · ${timeInStage}` : ''}
         </span>
-        {healthDot && (
-          <span
-            className={cn('w-2 h-2 rounded-full shrink-0', HEALTH_DOT_COLORS[healthDot])}
-            title={`Stage health: ${healthDot}`}
-          />
-        )}
+        <div className="flex items-center gap-1.5">
+          {STAGES[lead.stage]?.required_documents?.length > 0 && (
+            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 shrink-0">
+              {STAGES[lead.stage].required_documents.length} docs
+            </span>
+          )}
+          {healthDot && (
+            <span
+              className={cn('w-2 h-2 rounded-full shrink-0', HEALTH_DOT_COLORS[healthDot])}
+              title={`Stage health: ${healthDot}`}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
