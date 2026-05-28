@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -473,16 +473,16 @@ export default function ImportOwnersDialog({ open, onClose }) {
   );
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col p-4">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="flex items-center gap-2 text-base">
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent className="w-[640px] sm:max-w-[640px] flex flex-col overflow-hidden p-4">
+        <SheetHeader className="space-y-1 shrink-0">
+          <SheetTitle className="flex items-center gap-2 text-base">
             <FileSpreadsheet className="w-4 h-4 text-accent" /> Smart Import Owners
-          </DialogTitle>
-          <DialogDescription className="text-xs">
+          </SheetTitle>
+          <SheetDescription className="text-xs">
             Upload an .xlsx/CSV. Parsed instantly in your browser; columns auto-detected and editable below.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {step === 'upload' && (
           <div className="py-4">
@@ -650,7 +650,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
           </div>
         )}
 
-        <DialogFooter className="mt-2 shrink-0">
+        <div className="mt-2 shrink-0 flex justify-end gap-2">
           {step === 'sheet_selection' && (
             <>
               <Button variant="outline" size="sm" onClick={resetToUpload}>Back</Button>
@@ -669,8 +669,8 @@ export default function ImportOwnersDialog({ open, onClose }) {
           )}
           {step === 'error' && <Button variant="outline" size="sm" onClick={resetToUpload}>Try again</Button>}
           {step === 'done' && <Button size="sm" onClick={handleClose}>Done</Button>}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

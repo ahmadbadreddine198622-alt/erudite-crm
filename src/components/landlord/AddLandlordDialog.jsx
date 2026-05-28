@@ -4,13 +4,12 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { toast } from 'sonner';
 
 export default function AddLandlordDialog({ open, onClose, onSuccess }) {
@@ -55,14 +54,14 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New Landlord</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle>Add New Landlord</SheetTitle>
+          <SheetDescription>
             Create a new landlord record to begin the mandate acquisition journey
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -137,16 +136,16 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
             </select>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" type="button" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? 'Creating...' : 'Create Landlord'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
