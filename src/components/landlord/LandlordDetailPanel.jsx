@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -76,6 +76,30 @@ export default function LandlordDetailPanel({ landlord, onClose, onUpdate }) {
             <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <span>{landlord.phone || 'No phone'}</span>
           </div>
+          {landlord.additional_phones && landlord.additional_phones.length > 0 && (
+            <div className="space-y-2 pl-6">
+              {landlord.additional_phones.map((altPhone, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <a 
+                    href={`tel:${altPhone}`}
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    <Phone className="w-3 h-3" />
+                    {altPhone}
+                  </a>
+                  <a 
+                    href={`https://wa.me/${altPhone.startsWith('+') ? altPhone.slice(1) : altPhone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-green-600 hover:underline"
+                    title="Open WhatsApp"
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-2 text-sm">
             <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <span>{landlord.email || 'No email'}</span>

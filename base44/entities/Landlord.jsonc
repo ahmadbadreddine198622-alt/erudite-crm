@@ -30,6 +30,13 @@
     "whatsapp": {
       "type": "string"
     },
+    "additional_phones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Secondary UAE mobile numbers beyond primary phone"
+    },
     "email": {
       "type": "string",
       "format": "email"
