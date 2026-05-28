@@ -9,45 +9,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { code, action } = body;
-
-    if (action === 'exchange_token') {
-      if (!code) {
-        return Response.json({ error: 'Missing code parameter' }, { status: 400 });
-      }
-
-      const appId = Deno.env.get('META_APP_ID');
-      const appSecret = Deno.env.get('META_APP_SECRET');
-
-      if (!appId || !appSecret) {
-        return Response.json({
-          error: 'META_APP_ID and META_APP_SECRET secrets are not configured. Please set them in your app settings.',
-          missing_secrets: true
-        }, { status: 400 });
-      }
-
-      // Exchange short-lived code for long-lived access token
-      const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${code}`;
-      const tokenRes = await fetch(tokenUrl);
-      const tokenData = await tokenRes.json();
-
-      if (tokenData.error) {
-        return Response.json({ error: tokenData.error.message }, { status: 400 });
-      }
-
-      // Fetch connected WABA and phone number info
-      const accessToken = tokenData.access_token;
-      const wabaRes = await fetch(
-        `https://graph.facebook.com/v19.0/me/businesses?fields=whatsapp_business_accounts{name,id,phone_numbers{display_phone_number,id,verified_name}}&access_token=${accessToken}`
-      );
-      const wabaData = await wabaRes.json();
-
-      return Response.json({
-        success: true,
-        access_token: accessToken,
-        waba_data: wabaData
-      });
-    }
+    const { action } = body;
 
     if (action === 'verify_config') {
       const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
@@ -55,7 +17,10 @@ Deno.serve(async (req) => {
       const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN');
 
       if (!phoneNumberId || !accessToken) {
-        return Response.json({ configured: false, message: 'WhatsApp credentials not configured' });
+        return Response.json({ 
+          configured: false, 
+          message: 'WhatsApp credentials not configured. Please set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN in Base44 secrets.' 
+        });
       }
 
       // Test the credentials
@@ -65,7 +30,11 @@ Deno.serve(async (req) => {
       const testData = await testRes.json();
 
       if (testData.error) {
-        return Response.json({ configured: false, message: testData.error.message, error: testData.error });
+        return Response.json({ 
+          configured: false, 
+          message: testData.error.message, 
+          error: testData.error 
+        });
       }
 
       return Response.json({
