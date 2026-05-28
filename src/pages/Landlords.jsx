@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter } from 'lucide-react';
+import { Building2, Plus, Filter, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
 import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
+import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 
 const STAGES = [
   'initial_contact',
@@ -46,6 +47,7 @@ export default function Landlords() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const queryClient = useQueryClient();
@@ -138,10 +140,16 @@ export default function Landlords() {
                 <p className="text-xs text-muted-foreground">Agent's A-to-Z Mandate Acquisition Engine</p>
               </div>
             </div>
-            <Button onClick={() => setShowNewDialog(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              New Landlord
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2">
+                <Upload className="w-4 h-4" />
+                Import Owners
+              </Button>
+              <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Landlord
+              </Button>
+            </div>
           </div>
 
           {/* Metrics Bar */}
@@ -215,6 +223,12 @@ export default function Landlords() {
         open={showNewDialog}
         onClose={() => setShowNewDialog(false)}
         onSuccess={handleLandlordCreated}
+      />
+
+      {/* Import Owners Dialog */}
+      <ImportOwnersDialog
+        open={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
       />
     </div>
   );
