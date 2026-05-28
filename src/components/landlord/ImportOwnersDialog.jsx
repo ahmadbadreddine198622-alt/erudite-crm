@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -57,7 +58,7 @@ function fallbackColumnMapping(columns) {
   return {
     mappings,
     confidence: 'high',
-    notes: 'Detected using header name matching (AI fallback).',
+    notes: 'Columns detected by header-name matching.',
   };
 }
 
@@ -80,6 +81,40 @@ function cleanPhone(raw) {
   return cleaned;
 }
 
+// Convert one raw spreadsheet row into a cleaned/mapped record. Single source of
+// truth used by BOTH the preview sample and the actual import, so what you see
+// in the preview is exactly what gets created (no 10-row vs all-rows drift).
+function buildCleanedRow(row, mappings) {
+  const rawPhone = mappings.phone_primary ? row[mappings.phone_primary] : null;
+  const rawSecondaryPhones = mappings.phone_secondary
+    ? mappings.phone_secondary.map((col) => row[col]).filter(Boolean)
+    : [];
+  const cleanedPhone = cleanPhone(rawPhone);
+  const cleanedSecondaryPhones = rawSecondaryPhones.map(cleanPhone).filter(Boolean);
+
+  const notesParts = [];
+  if (mappings.bedrooms && row[mappings.bedrooms]) notesParts.push(`Rooms: ${row[mappings.bedrooms]}`);
+  if (mappings.size && row[mappings.size]) notesParts.push(`Size: ${row[mappings.size]}`);
+  if (mappings.notes) {
+    mappings.notes.forEach((col) => {
+      if (row[col]) notesParts.push(`${col}: ${row[col]}`);
+    });
+  }
+
+  return {
+    fullName: mappings.owner_name ? row[mappings.owner_name] : 'Unknown',
+    phone: cleanedPhone,
+    altPhones: cleanedSecondaryPhones,
+    email: mappings.email ? row[mappings.email] : null,
+    unitReference: mappings.unit_reference ? row[mappings.unit_reference] : null,
+    projectRaw: mappings.project_name ? row[mappings.project_name] : null,
+    location: mappings.location ? row[mappings.location] : null,
+    country: mappings.country ? row[mappings.country] : null,
+    notes: notesParts.join(' | '),
+    raw: row,
+  };
+}
+
 export default function ImportOwnersDialog({ open, onClose }) {
   const [file, setFile] = useState(null);
   const [rawData, setRawData] = useState(null);
@@ -97,183 +132,39 @@ export default function ImportOwnersDialog({ open, onClose }) {
     setStep('analyzing');
     
     let analysisResult = null;
-    const TIMEOUT_MS = 15000; // 15 second timeout
-    
+
     try {
-      // Upload file to get URL
-      let fileUrl;
+      // Parse the spreadsheet directly in-browser with SheetJS. Synchronous and
+      // fast (milliseconds for thousands of rows) — no upload, no AI extraction,
+      // no 15s timeout. Replaces the old UploadFile + ExtractDataFromUploadedFile
+      // + InvokeLLM pipeline that was timing out.
+      let rows;
+      let columns;
       try {
-        fileUrl = await base44.integrations.Core.UploadFile({ file: uploadedFile });
+        const buf = await uploadedFile.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheetName = wb.SheetNames[0];
+        if (!sheetName) throw new Error('the file has no sheets');
+        const ws = wb.Sheets[sheetName];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        columns = rows.length ? Object.keys(rows[0]) : [];
       } catch (err) {
-        throw new Error('Failed to upload file: ' + err.message);
-      }
-      
-      // Extract ALL data from file
-      const jsonSchema = {
-        type: 'object',
-        properties: {
-          rows: {
-            type: 'array',
-            items: {
-              type: 'object',
-              description: 'Each row represents one owner/contact record',
-              additionalProperties: true,
-            },
-          },
-          columns: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'List of all column headers found in the file',
-          },
-        },
-        required: ['rows', 'columns'],
-      };
-
-      let extractionResult;
-      try {
-        extractionResult = await Promise.race([
-          base44.integrations.Core.ExtractDataFromUploadedFile({
-            file_url: fileUrl.file_url,
-            json_schema: jsonSchema,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('File extraction timed out after 15s')), TIMEOUT_MS)
-          ),
-        ]);
-      } catch (err) {
-        throw new Error('Failed to extract data from file: ' + err.message);
+        throw new Error('Failed to read the spreadsheet: ' + err.message);
       }
 
-      if (extractionResult.status !== 'success' || !extractionResult.output?.rows) {
-        throw new Error('File extraction returned no data');
+      if (!rows.length) {
+        throw new Error('No data rows found in the first sheet');
       }
 
-      const { rows, columns } = extractionResult.output;
-      setRawData({ rows, columns, fileUrl: fileUrl.file_url });
+      setRawData({ rows, columns, fileUrl: null });
 
-      // Step 2: Try AI Column Analysis (with fallback)
-      try {
-        const analysisPrompt = `I have a spreadsheet with owner/contact data. The columns are: ${columns.join(', ')}
-
-Analyze these column names and tell me which column maps to each of these target fields:
-- owner_name (full name of owner/contact)
-- phone_primary (main phone number)
-- phone_secondary (additional phone numbers if any)
-- email
-- unit_reference (unit/apartment number)
-- project_name (building/development name)
-- location (area/community)
-- bedrooms (number of rooms/bedrooms)
-- size (area in sqft or sqm)
-- country (nationality/residence)
-- notes (any other useful info)
-
-For phone_secondary, if there are multiple phone columns, list them as an array.
-
-Respond with a JSON object in this exact format:
-{
-  "mappings": {
-    "owner_name": "exact_column_name_from_file",
-    "phone_primary": "exact_column_name_from_file",
-    "phone_secondary": ["column1", "column2"],
-    "email": "exact_column_name_from_file",
-    "unit_reference": "exact_column_name_from_file",
-    "project_name": "exact_column_name_from_file",
-    "location": "exact_column_name_from_file",
-    "bedrooms": "exact_column_name_from_file",
-    "size": "exact_column_name_from_file",
-    "country": "exact_column_name_from_file",
-    "notes": ["any_other_relevant_columns"]
-  },
-  "confidence": "high|medium|low",
-  "notes": "any observations about the data structure"
-}
-
-If a field cannot be mapped, set it to null. Be intelligent about column name variations.`;
-
-        analysisResult = await Promise.race([
-          base44.integrations.Core.InvokeLLM({
-            prompt: analysisPrompt,
-            response_json_schema: {
-              type: 'object',
-              properties: {
-                mappings: {
-                  type: 'object',
-                  properties: {
-                    owner_name: { type: 'string' },
-                    phone_primary: { type: 'string' },
-                    phone_secondary: { type: 'array', items: { type: 'string' } },
-                    email: { type: 'string' },
-                    unit_reference: { type: 'string' },
-                    project_name: { type: 'string' },
-                    location: { type: 'string' },
-                    bedrooms: { type: 'string' },
-                    size: { type: 'string' },
-                    country: { type: 'string' },
-                    notes: { type: 'array', items: { type: 'string' } },
-                  },
-                },
-                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-                notes: { type: 'string' },
-              },
-              required: ['mappings', 'confidence'],
-            },
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('AI analysis timed out after 15s')), TIMEOUT_MS)
-          ),
-        ]);
-      } catch (aiErr) {
-        // AI failed or timed out - use fallback
-        console.warn('AI analysis failed, using fallback:', aiErr.message);
-        analysisResult = fallbackColumnMapping(columns);
-      }
-
+      // Deterministic column mapping (no AI) — instant, no timeout risk.
+      analysisResult = fallbackColumnMapping(columns);
       setAiMapping(analysisResult);
 
-      // Step 3: Clean and prepare preview data
-      const sampleRows = rows.slice(0, 10);
-      const cleanedPreview = sampleRows.map((row, idx) => {
-        const mappings = analysisResult.mappings;
-        
-        // Get raw values
-        const rawPhone = mappings.phone_primary ? row[mappings.phone_primary] : null;
-        const rawSecondaryPhones = mappings.phone_secondary 
-          ? mappings.phone_secondary.map(col => row[col]).filter(Boolean)
-          : [];
-        
-        // Clean phone
-        const cleanedPhone = cleanPhone(rawPhone);
-        const cleanedSecondaryPhones = rawSecondaryPhones.map(cleanPhone).filter(Boolean);
-
-        // Build notes from unmapped columns
-        const notesParts = [];
-        if (mappings.bedrooms && row[mappings.bedrooms]) {
-          notesParts.push(`Rooms: ${row[mappings.bedrooms]}`);
-        }
-        if (mappings.size && row[mappings.size]) {
-          notesParts.push(`Size: ${row[mappings.size]}`);
-        }
-        if (mappings.notes) {
-          mappings.notes.forEach(col => {
-            if (row[col]) notesParts.push(`${col}: ${row[col]}`);
-          });
-        }
-
-        return {
-          rowIdx: idx,
-          fullName: mappings.owner_name ? row[mappings.owner_name] : 'Unknown',
-          phone: cleanedPhone,
-          altPhones: cleanedSecondaryPhones,
-          email: mappings.email ? row[mappings.email] : null,
-          unitReference: mappings.unit_reference ? row[mappings.unit_reference] : null,
-          projectRaw: mappings.project_name ? row[mappings.project_name] : null,
-          location: mappings.location ? row[mappings.location] : null,
-          country: mappings.country ? row[mappings.country] : null,
-          notes: notesParts.join(' | '),
-          raw: row,
-        };
-      });
+      // Step 3: Build a preview SAMPLE (first 10 rows) for display only.
+      // The actual import re-derives records from ALL rows at commit time.
+      const cleanedPreview = rows.slice(0, 10).map((row) => buildCleanedRow(row, analysisResult.mappings));
 
       setPreview(cleanedPreview);
       setStep('preview');
@@ -350,7 +241,11 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
 
       const currentUser = await base44.auth.me();
 
-      for (const row of preview) {
+      // Re-derive cleaned records from ALL rows (not just the 10-row preview) so
+      // the full file is imported, not a sample.
+      const allRows = (rawData?.rows || []).map((row) => buildCleanedRow(row, aiMapping.mappings));
+
+      for (const row of allRows) {
         try {
           if (!row.phone || !row.fullName) {
             stats.errored++;
@@ -442,7 +337,7 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
             Smart Import Owners
           </DialogTitle>
           <DialogDescription>
-            AI-powered importer that works with ANY spreadsheet format. Upload your file and AI will automatically detect columns.
+            Upload an .xlsx or CSV owner list. It's parsed instantly in your browser and columns are auto-detected.
           </DialogDescription>
         </DialogHeader>
 
@@ -463,7 +358,7 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
               <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <p className="text-lg font-medium">Click to upload or drag and drop</p>
               <p className="text-sm text-muted-foreground mt-2">Excel (.xlsx) or CSV files</p>
-              <p className="text-xs text-muted-foreground mt-1">Works with ANY column layout - AI will auto-detect</p>
+              <p className="text-xs text-muted-foreground mt-1">Columns are auto-detected by header name</p>
               <Input
                 ref={fileInputRef}
                 id="owner-file"
@@ -476,8 +371,8 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">How it works:</p>
               <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-                <li>Upload your spreadsheet (any format)</li>
-                <li>AI analyzes columns and maps them to fields</li>
+                <li>Upload your spreadsheet (.xlsx or CSV)</li>
+                <li>Columns are auto-detected and mapped to fields</li>
                 <li>Review the preview with cleaned data</li>
                 <li>Confirm to import as Landlord leads</li>
               </ol>
@@ -488,8 +383,8 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
         {step === 'analyzing' && (
           <div className="py-12 text-center">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-accent" />
-            <p className="text-lg font-medium">Analyzing your file...</p>
-            <p className="text-sm text-muted-foreground mt-2">AI is detecting columns and cleaning data</p>
+            <p className="text-lg font-medium">Reading your file...</p>
+            <p className="text-sm text-muted-foreground mt-2">Parsing rows and detecting columns</p>
           </div>
         )}
 
@@ -500,7 +395,7 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
                 <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    AI detected {rawData?.columns?.length} columns with {aiMapping.confidence} confidence
+                    Detected {rawData?.columns?.length} columns
                   </p>
                   {aiMapping.notes && (
                     <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">{aiMapping.notes}</p>
@@ -510,7 +405,7 @@ If a field cannot be mapped, set it to null. Be intelligent about column name va
             </div>
 
             <div className="mb-4">
-              <p className="text-sm font-medium mb-2">AI Column Mapping:</p>
+              <p className="text-sm font-medium mb-2">Column Mapping:</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {Object.entries(aiMapping.mappings).map(([field, column]) => (
                   column && (
