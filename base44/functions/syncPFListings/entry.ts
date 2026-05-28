@@ -141,35 +141,63 @@ function mapPFListingToCRM(pfListing) {
   const listingId = String(rawId);
   const listingRef = String(rawRef);
 
-  const { price, offering_type, price_period } = pickPrice(pfListing.price);
+  const { price, offering_type } = pickPrice(pfListing.price);
   const imageUrl = pickFirstImage(pfListing.media);
   const title = pickTitle(pfListing.title);
   const location = pickLocation(pfListing);
   const propertyType = pickPropertyType(pfListing);
-  const status = pickStatus(pfListing.state);
-  const bedrooms = pickBedrooms(pfListing.bedrooms);
+  const pfStatus = pickStatus(pfListing.state);
+  const bedroomsRaw = pickBedrooms(pfListing.bedrooms);
   const sizeSqft = pickSize(pfListing);
 
   const pfUrl = pfListing.url || pfListing.web_url ||
     (listingRef ? `https://www.propertyfinder.ae/property-detail/${listingRef}` : undefined);
 
+  // Map offering_type → listing_type enum (sale | rent)
+  const listing_type = (offering_type === 'rent') ? 'rent' : 'sale';
+
+  // Map bedrooms string → number (studio = 0)
+  let bedrooms;
+  if (bedroomsRaw !== undefined && bedroomsRaw !== null) {
+    if (String(bedroomsRaw).toLowerCase() === 'studio') {
+      bedrooms = 0;
+    } else {
+      const n = Number(bedroomsRaw);
+      if (!isNaN(n)) bedrooms = n;
+    }
+  }
+
+  // Map bathrooms string → number
+  let bathrooms;
+  if (pfListing.bathrooms !== undefined && pfListing.bathrooms !== null) {
+    const n = Number(pfListing.bathrooms);
+    if (!isNaN(n)) bathrooms = n;
+  }
+
+  // Map PF status → entity enum
+  const statusMap = {
+    'published': 'active', 'live': 'active', 'active': 'active',
+    'takendown': 'inactive', 'taken_down': 'inactive',
+    'draft': 'draft', 'expired': 'expired',
+    'under_offer': 'under_offer', 'sold': 'sold', 'rented': 'rented',
+    'inactive': 'inactive',
+  };
+  const status = statusMap[(pfStatus || '').toLowerCase()] || 'inactive';
+
   return {
-    listing_id: listingId,
-    listing_reference: listingRef,
+    pf_listing_id: listingId,
+    reference_number: listingRef || undefined,
     title: title || undefined,
-    image_url: imageUrl || undefined,
-    offering_type: offering_type,
+    images: imageUrl ? [imageUrl] : undefined,
+    listing_type,
     price: (typeof price === 'number') ? price : undefined,
-    price_period: price_period,
-    currency: 'AED',
     location: location || undefined,
-    bedrooms: bedrooms,
-    bathrooms: (typeof pfListing.bathrooms === 'number') ? pfListing.bathrooms : undefined,
-    size_sqft: sizeSqft,
+    bedrooms,
+    bathrooms,
+    area_sqft: sizeSqft,
     property_type: propertyType || undefined,
-    status: status || undefined,
+    status,
     pf_url: pfUrl || undefined,
-    raw_data: pfListing,
     last_synced_at: new Date().toISOString(),
   };
 }
@@ -268,7 +296,7 @@ Deno.serve(async (req) => {
         {}, '-updated_date', exPageSize, exPage * exPageSize
       );
       for (const l of batch) {
-        if (l.listing_id) existingMap[l.listing_id] = l;
+        if (l.pf_listing_id) existingMap[l.pf_listing_id] = l;
       }
       if (batch.length < exPageSize) break;
       exPage++;
@@ -349,7 +377,7 @@ Deno.serve(async (req) => {
           const listingIdOuter = String((pfListing && (pfListing.id || pfListing.reference)) || '');
           try {
             const mapped = mapPFListingToCRM(pfListing);
-            if (!mapped.listing_id) {
+            if (!mapped.pf_listing_id) {
               errors++;
               if (!diagnostics.first_error_message) {
                 diagnostics.first_error_message = 'listing missing id and reference; skipped';
@@ -358,12 +386,12 @@ Deno.serve(async (req) => {
             }
             Object.keys(mapped).forEach((k) => mapped[k] === undefined && delete mapped[k]);
 
-            if (existingMap[mapped.listing_id]) {
-              await base44.asServiceRole.entities.PFListing.update(existingMap[mapped.listing_id].id, mapped);
+            if (existingMap[mapped.pf_listing_id]) {
+              await base44.asServiceRole.entities.PFListing.update(existingMap[mapped.pf_listing_id].id, mapped);
               updated++;
             } else {
               const newRow = await base44.asServiceRole.entities.PFListing.create(mapped);
-              existingMap[mapped.listing_id] = newRow || { id: undefined };
+              existingMap[mapped.pf_listing_id] = newRow || { id: undefined };
               created++;
             }
           } catch (err) {
