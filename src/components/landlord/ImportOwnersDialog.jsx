@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,54 @@ function deterministicMatch(columns) {
     }
   }
   return map;
+}
+
+// ─── Header-row detection (owner files often have title/subtitle preamble) ─────
+// Score a row by how many cells match the known field-variant dictionary.
+function headerScore(cells) {
+  let score = 0;
+  for (const cell of cells || []) {
+    const norm = normalizeHeader(cell);
+    if (!norm) continue;
+    for (const field of Object.keys(VARIANTS)) {
+      if (VARIANTS[field].includes(norm)) { score++; break; }
+    }
+  }
+  return score;
+}
+
+// Scan the first ~10 rows of the raw matrix and pick the best-matching header row.
+function detectHeaderRow(matrix) {
+  const limit = Math.min(10, matrix.length);
+  let bestIdx = 0;
+  let bestScore = -1;
+  for (let i = 0; i < limit; i++) {
+    const score = headerScore(matrix[i]);
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+// Build { rows, columns } from a raw matrix using the detected header row.
+// Empty header cells get a placeholder; duplicate headers are de-duped; rows
+// above the header and fully-empty rows are skipped.
+function rowsFromMatrix(matrix, headerIdx) {
+  const headerCells = matrix[headerIdx] || [];
+  const seen = {};
+  const columns = headerCells.map((c, i) => {
+    let h = String(c == null ? '' : c).trim() || `Column ${i + 1}`;
+    if (seen[h] === undefined) { seen[h] = 0; } else { seen[h] += 1; h = `${h} (${seen[h]})`; }
+    return h;
+  });
+  const rows = [];
+  for (let r = headerIdx + 1; r < matrix.length; r++) {
+    const cells = matrix[r] || [];
+    if (!cells.some((c) => c !== '' && c != null)) continue; // skip fully-empty rows
+    const obj = {};
+    columns.forEach((col, i) => { obj[col] = cells[i] == null ? '' : cells[i]; });
+    rows.push(obj);
+  }
+  return { rows, columns };
 }
 
 // ─── Layer 2: AI fallback for columns Layer 1 couldn't map ─────────────────────
@@ -89,9 +137,10 @@ export function cleanPhone(raw) {
   if (raw === null || raw === undefined) return null;
   const s = String(raw).trim();
   if (!s) return null;
+  if (s.includes('@')) return null;            // an email is never a phone (guards misaligned/short rows)
   const hadPlus = s.includes('+');
   const digits = s.replace(/[^\d]/g, '');
-  if (!digits) return null;
+  if (digits.length < 7) return null;          // too few digits to be a real phone number
   if (digits.startsWith('00')) return '+' + digits.slice(2);            // intl 00 prefix
   if (hadPlus) return '+' + digits;                                      // explicit country code (+86, +44…)
   if (digits.startsWith('971')) return '+' + digits;                     // UAE code, no +
@@ -157,6 +206,13 @@ function buildCleanedRow(row, columnMap, columns) {
 export default function ImportOwnersDialog({ open, onClose }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
+  // Preload the logged-in user as soon as the dialog mounts, so the import never
+  // races ahead of an unresolved user lookup (assigned_agent_email is required).
+  const { data: loadedUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000,
+  });
   const [file, setFile] = useState(null);
   const [step, setStep] = useState('upload'); // upload | analyzing | sheet_selection | preview | done | error
   const [rawData, setRawData] = useState(null); // { rows, columns }
@@ -184,7 +240,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
   }, [rawData, columnMap, existingPhoneSet]);
 
   // Shared pipeline: rows+columns → Layer1 + Layer2 + existing phones → preview.
-  async function runMappingPipeline(rows, columns) {
+  async function runMappingPipeline(rows, columns, headerRowIndex = 0) {
     const layer1 = deterministicMatch(columns);
     const unmapped = columns.filter((c) => !layer1[c]);
     let layer2 = {};
@@ -204,7 +260,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
       console.warn('Could not load existing landlords for dupe check:', e.message);
     }
 
-    setRawData({ rows, columns });
+    setRawData({ rows, columns, headerRowIndex });
     setColumnMap(merged);
     setExistingPhones(existing);
     setStep('preview');
@@ -212,9 +268,13 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
   function parseSheet(workbook, sheetName) {
     const ws = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    const columns = rows.length ? Object.keys(rows[0]) : [];
-    return { rows, columns };
+    // Read as a raw matrix so we can find the real header row (files often have
+    // title/subtitle preamble rows above the actual column headers).
+    const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!matrix.length) return { rows: [], columns: [], headerRowIndex: 0 };
+    const headerRowIndex = detectHeaderRow(matrix);
+    const { rows, columns } = rowsFromMatrix(matrix, headerRowIndex);
+    return { rows, columns, headerRowIndex };
   }
 
   async function handleFileChange(uploadedFile) {
@@ -235,9 +295,9 @@ export default function ImportOwnersDialog({ open, onClose }) {
         return;
       }
 
-      const { rows, columns } = parseSheet(wb, wb.SheetNames[0]);
+      const { rows, columns, headerRowIndex } = parseSheet(wb, wb.SheetNames[0]);
       if (!rows.length) throw new Error('No data rows found in the sheet');
-      await runMappingPipeline(rows, columns);
+      await runMappingPipeline(rows, columns, headerRowIndex);
     } catch (err) {
       console.error('Import parse error:', err);
       setError(err.message || 'Unknown error reading the file');
@@ -251,9 +311,9 @@ export default function ImportOwnersDialog({ open, onClose }) {
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
-      const { rows, columns } = parseSheet(wb, selectedSheet);
+      const { rows, columns, headerRowIndex } = parseSheet(wb, selectedSheet);
       if (!rows.length) throw new Error('No data rows found in the selected sheet');
-      await runMappingPipeline(rows, columns);
+      await runMappingPipeline(rows, columns, headerRowIndex);
     } catch (err) {
       console.error('Sheet selection error:', err);
       setError(err.message || 'Error processing sheet');
@@ -302,8 +362,15 @@ export default function ImportOwnersDialog({ open, onClose }) {
         }
       });
 
-      let currentUser = null;
-      try { currentUser = await base44.auth.me(); } catch (_) { /* non-fatal */ }
+      // assigned_agent_email is REQUIRED on Landlord. Resolve it robustly so it
+      // is NEVER omitted: prefer the value preloaded when the dialog opened
+      // (avoids racing an unresolved user), re-fetch as a backup, and finally
+      // fall back to a placeholder so the import never fails on this field.
+      let agentEmail = loadedUser?.email;
+      if (!agentEmail) {
+        try { agentEmail = (await base44.auth.me())?.email; } catch (_) { /* fall through to default */ }
+      }
+      if (!agentEmail) agentEmail = 'unassigned@erudite.ae';
 
       const allRows = rawData.rows.map((r) => buildCleanedRow(r, columnMap, rawData.columns));
       const seenInFile = new Set();
@@ -321,12 +388,14 @@ export default function ImportOwnersDialog({ open, onClose }) {
         if (row.projectRaw) projectId = projectMap.get(row.projectRaw.toLowerCase().trim()) || null;
 
         const landlordData = {
+          // Required fields: full_name_en, phone, source, stage, assigned_agent_email
           full_name_en: row.fullName,
           full_name: row.fullName,
           phone: row.primaryPhone,
           whatsapp: row.primaryPhone,
-          source: 'owner_import',
+          source: 'other',                 // 'owner_import' is NOT in the Landlord source enum; tag below preserves provenance
           stage: 'initial_contact',
+          assigned_agent_email: agentEmail, // required — set on every record
           lead_type: 'landlord_both',
           notes: row.notes || 'Imported from spreadsheet',
           tags: isDuplicate ? ['imported_owner', 'possible_duplicate'] : ['imported_owner'],
@@ -337,7 +406,6 @@ export default function ImportOwnersDialog({ open, onClose }) {
         if (projectId) landlordData.project_id = projectId;
         if (row.location) landlordData.location = row.location;
         if (row.country) landlordData.residence_country = row.country;
-        if (currentUser?.email) landlordData.assigned_agent_email = currentUser.email;
 
         try {
           const created = await base44.entities.Landlord.create(landlordData);
@@ -467,6 +535,14 @@ export default function ImportOwnersDialog({ open, onClose }) {
                 ))}
               </div>
             </div>
+
+            {/* Detected header row (confirm preamble was skipped correctly) */}
+            <p className="text-[11px] text-muted-foreground">
+              Header row detected at row {(rawData.headerRowIndex ?? 0) + 1}
+              {rawData.headerRowIndex > 0
+                ? ` — ${rawData.headerRowIndex} preamble row${rawData.headerRowIndex > 1 ? 's' : ''} skipped above it.`
+                : '.'}
+            </p>
 
             {/* Counts */}
             <div className="flex items-center gap-2 flex-wrap text-[11px]">
