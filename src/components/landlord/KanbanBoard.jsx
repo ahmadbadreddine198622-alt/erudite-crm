@@ -28,7 +28,7 @@ export default function KanbanBoard({
           return (
             <div
               key={stage}
-              className="flex-shrink-0 w-80 bg-slate-50 dark:bg-slate-900 rounded-lg border border-border overflow-hidden flex flex-col h-full"
+              className="flex-shrink-0 w-80 bg-card rounded-lg border border-border overflow-hidden flex flex-col h-full"
             >
               {/* Column Header */}
               <div className="bg-card border-b border-border p-3 shrink-0">
