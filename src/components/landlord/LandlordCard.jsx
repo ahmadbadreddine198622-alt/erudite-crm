@@ -7,13 +7,13 @@ import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 
 const ARCHETYPE_COLORS = {
-  professional_investor: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  individual_end_user_relocating: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  professional_investor: 'bg-accent/10 text-accent border-accent/20',
+  individual_end_user_relocating: 'bg-accent/10 text-accent border-accent/20',
   distressed_seller: 'bg-red-500/10 text-red-600 border-red-500/20',
   inherited_owner: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   developer_resale: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
   overseas_owner: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
-  first_time_seller: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  first_time_seller: 'bg-accent/10 text-accent border-accent/20',
   portfolio_optimizer: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   accidental_landlord: 'bg-sky-500/10 text-sky-600 border-sky-500/20',
   speculator_flipping: 'bg-pink-500/10 text-pink-600 border-pink-500/20',

@@ -193,19 +193,19 @@ export default function Landlords() {
 
         {/* Metrics Bar */}
         <div className="grid grid-cols-4 gap-4 mb-4">
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
             <p className="text-xs text-muted-foreground">Total Active</p>
             <p className="text-lg font-semibold">{landlords.length}</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
             <p className="text-xs text-muted-foreground">Pipeline Value</p>
             <p className="text-lg font-semibold">AED {(totalPipeline / 1000000).toFixed(1)}M</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
             <p className="text-xs text-muted-foreground">Mandates Signed</p>
             <p className="text-lg font-semibold">{mandateCount}</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
             <p className="text-xs text-muted-foreground">SLA Breaches</p>
             <p className="text-lg font-semibold text-destructive">0</p>
           </div>
