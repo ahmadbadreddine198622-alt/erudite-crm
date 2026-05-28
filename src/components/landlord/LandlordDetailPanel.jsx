@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -107,6 +109,11 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span>{landlord.residence_country || 'Unknown'}</span>
             </div>
+            {landlord.project_name && (
+              <div className="flex items-center gap-2">
+                <ProjectBadge name={landlord.project_name} />
+              </div>
+            )}
           </div>
 
           {/* Metrics Grid */}

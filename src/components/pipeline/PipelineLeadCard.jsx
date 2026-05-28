@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ProjectBadge } from '@/lib/projectColors.jsx';
 import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import { STAGES, DEFAULT_HEALTH_THRESHOLDS } from '@/lib/pipeline';
@@ -72,6 +74,10 @@ const OFFERING_BADGE_COLORS = {
 };
 
 export default function PipelineLeadCard({ lead, listing, isDragging, onClick }) {
+  const queryClient = useQueryClient();
+  const projects = queryClient.getQueryData(['projects']) || [];
+  const project = projects.find((p) => p.id === lead.project_id);
+  const projectName = project?.name;
   const timeInStage = formatTimeInStage(lead.stage_entered_at || lead.created_date);
   const healthDot = getHealthDot(lead.stage, lead.stage_entered_at || lead.created_date);
   const offering = listing && listing.offering_type;
@@ -150,6 +156,13 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
               <p className="text-[10px] text-muted-foreground truncate">{listing.title}</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Project badge */}
+      {projectName && (
+        <div className="mt-1.5">
+          <ProjectBadge name={projectName} />
         </div>
       )}
 

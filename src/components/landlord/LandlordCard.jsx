@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
+import { ProjectBadge } from '@/lib/projectColors.jsx';
 
 const ARCHETYPE_COLORS = {
   professional_investor: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
@@ -123,6 +124,13 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           title="Urgency"
         />
       </div>
+
+      {/* Project badge */}
+      {landlord.project_name && (
+        <div className="mt-1.5">
+          <ProjectBadge name={landlord.project_name} />
+        </div>
+      )}
 
       {/* Metrics: price + commission + trust as compact badges */}
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
