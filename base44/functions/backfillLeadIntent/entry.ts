@@ -127,8 +127,8 @@ Deno.serve(async (req) => {
         {}, '-updated_date', lpageSize, lpage * lpageSize
       );
       for (const L of batch) {
-        if (L.listing_id) pfListingsById[L.listing_id] = L;
-        if (L.listing_reference) pfListingsByRef[L.listing_reference] = L;
+        if (L.pf_listing_id) pfListingsById[L.pf_listing_id] = L;
+        if (L.reference_number) pfListingsByRef[L.reference_number] = L;
       }
       if (batch.length < lpageSize) break;
       lpage++;
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Determine intent via PFListing lookup
+          // Determine intent via PFListing lookup, then fall back to relationship_type
           const meta = lead.source_metadata || {};
           const listingId = meta.listing_id;
           const listingRef = meta.listing_reference;
@@ -200,17 +200,26 @@ Deno.serve(async (req) => {
           let intent = 'unknown';
           if (match) {
             diagnostics.matched_to_listing += 1;
-            if (match.offering_type === 'sale') intent = 'buyer';
-            else if (match.offering_type === 'rent') intent = 'tenant';
+            if (match.listing_type === 'sale') intent = 'buyer';
+            else if (match.listing_type === 'rent') intent = 'tenant';
           } else {
-            diagnostics.leads_skipped_no_listing_match += 1;
+            // Fall back: use existing relationship_type or intent field on the lead
+            const rt = (lead.relationship_type || lead.intent || '').toLowerCase();
+            if (rt === 'buyer' || rt === 'buy' || rt === 'sale' || rt === 'purchase') intent = 'buyer';
+            else if (rt === 'tenant' || rt === 'rent' || rt === 'rental') intent = 'tenant';
+            if (intent === 'unknown') diagnostics.leads_skipped_no_listing_match += 1;
+            else diagnostics.matched_to_listing += 1;
           }
 
           const oldStage = lead.stage || 'new_lead';
           const newStage = computeNewStage(intent, oldStage);
           const newStatus = STAGE_STATUS_OVERRIDE[oldStage] || 'active';
 
+          // Resolve full_name — legacy leads store name in 'name' field
+          const fullName = lead.full_name || lead.name || '';
+
           const update: any = {
+            full_name: fullName || 'Unknown',
             intent,
             stage: newStage,
             status: newStatus,
@@ -221,6 +230,7 @@ Deno.serve(async (req) => {
           }
 
           try {
+            await new Promise(r => setTimeout(r, 60)); // avoid 429 rate limit
             await base44.asServiceRole.entities.Lead.update(lead.id, update);
             diagnostics.leads_migrated_this_run += 1;
             if (intent === 'buyer') diagnostics.routed_buyer += 1;
