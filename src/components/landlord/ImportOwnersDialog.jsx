@@ -130,29 +130,34 @@ async function aiMapColumns(unmappedCols, sampleRows) {
   return clean;
 }
 
-// ─── Universal phone cleaner ───────────────────────────────────────────────────
-// +(861) 581-1488066, 971|52-3828133, 0526535251, spaces/dashes/parens/pipes…
-// Preserves an explicit country code; defaults bare UAE locals to +971.
+// ─── UAE phone cleaner ─────────────────────────────────────────────────────────
+// Each source cell holds ONE number. Strip everything except digits (| - spaces
+// parentheses dots), normalize to E.164, and validate as a UAE mobile: +971 then
+// exactly 9 digits. Anything that doesn't match after cleaning is DISCARDED
+// (returns null) so we never store garbage (e.g. fused multi-number strings).
+//   "971|52-3828133" → "+971523828133"
+//   "0523828133"     → "+971523828133"   (drop leading 0)
+//   "523828133"      → "+971523828133"   (bare 9-digit mobile)
 export function cleanPhone(raw) {
   if (raw === null || raw === undefined) return null;
-  const s = String(raw).trim();
-  if (!s) return null;
-  if (s.includes('@')) return null;            // an email is never a phone (guards misaligned/short rows)
-  const hadPlus = s.includes('+');
-  const digits = s.replace(/[^\d]/g, '');
-  if (digits.length < 7) return null;          // too few digits to be a real phone number
-  if (digits.startsWith('00')) return '+' + digits.slice(2);            // intl 00 prefix
-  if (hadPlus) return '+' + digits;                                      // explicit country code (+86, +44…)
-  if (digits.startsWith('971')) return '+' + digits;                     // UAE code, no +
-  if (digits.startsWith('0')) return '+971' + digits.replace(/^0+/, ''); // UAE local, leading 0
-  if (digits.length === 9 && digits.startsWith('5')) return '+971' + digits; // bare UAE mobile
-  if (digits.length >= 11) return '+' + digits;                          // long → assume includes country code
-  return '+971' + digits;                                                // fallback: assume UAE
+  let digits = String(raw).replace(/\D/g, ''); // keep digits only — drops +, |, -, spaces, parens, dots
+  if (!digits) return null;
+  if (digits.startsWith('00')) digits = digits.slice(2); // intl 00 dialing prefix → bare country code
+
+  let national;
+  if (digits.startsWith('971')) national = digits.slice(3);              // explicit UAE country code
+  else if (digits.startsWith('0')) national = digits.replace(/^0+/, ''); // local format, leading 0
+  else national = digits;                                                // bare national number
+
+  // Valid UAE mobile = exactly 9 national digits. Discard anything else.
+  if (national.length !== 9) return null;
+  return '+971' + national;
 }
 
 // ─── Row → cleaned record, driven by the (editable) column map ─────────────────
 function buildCleanedRow(row, columnMap, columns) {
   const phones = [];
+  const seenPhones = new Set(); // dedupe identical numbers across Mobile1/2/3
   const emails = [];
   let fullName = '';
   let unit = '';
@@ -170,7 +175,13 @@ function buildCleanedRow(row, columnMap, columns) {
     if (!str) continue;
     switch (target) {
       case 'name': if (!fullName) fullName = str; break;
-      case 'phone': { const p = cleanPhone(str); if (p) phones.push(p); break; }
+      // Each phone column is cleaned on its own — never joined. Dedupe identical
+      // numbers that appear across Mobile1/Mobile2/Mobile3.
+      case 'phone': {
+        const p = cleanPhone(str);
+        if (p && !seenPhones.has(p)) { seenPhones.add(p); phones.push(p); }
+        break;
+      }
       case 'email': emails.push(str); break;
       case 'unit': if (!unit) unit = str; break;
       case 'project': if (!projectRaw) projectRaw = str; break;
@@ -183,9 +194,10 @@ function buildCleanedRow(row, columnMap, columns) {
     }
   }
 
+  // First valid number → primary phone. Extra valid numbers (deduped above) are
+  // returned as altPhones and stored on the Landlord's additional_phones array.
   const primaryPhone = phones[0] || null;
   const altPhones = phones.slice(1);
-  if (altPhones.length) notesParts.push(`Alt phones: ${altPhones.join(', ')}`);
   const email = emails[0] || null;
   if (emails.length > 1) notesParts.push(`Alt emails: ${emails.slice(1).join(', ')}`);
 
@@ -400,6 +412,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
           notes: row.notes || 'Imported from spreadsheet',
           tags: isDuplicate ? ['imported_owner', 'possible_duplicate'] : ['imported_owner'],
         };
+        if (row.altPhones.length) landlordData.additional_phones = row.altPhones;
         if (row.email) landlordData.email = row.email;
         if (row.unit) landlordData.unit_reference = row.unit;
         if (row.projectRaw) landlordData.project_name = row.projectRaw;
