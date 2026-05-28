@@ -6,7 +6,6 @@ import ContactChatPanel from '@/components/contacts/ContactChatPanel';
 import AIActionsPanel from '@/components/contacts/AIActionsPanel';
 import ContactDetailPanel from '@/components/contacts/ContactDetailPanel';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User, Wand2, Snowflake
@@ -18,23 +17,21 @@ const SOURCE_OPTIONS = ['all', 'property_finder', 'bayut', 'whatsapp', 'referral
 const STAGE_OPTIONS = ['all', 'new_lead', 'contacted', 'viewing_scheduled', 'viewing_done', 'negotiation', 'offer_made', 'closed_won', 'closed_lost'];
 
 const STAGE_COLORS = {
-  new_lead: 'bg-slate-100 text-slate-600',
-  contacted: 'bg-blue-100 text-blue-600',
-  viewing_scheduled: 'bg-indigo-100 text-indigo-600',
-  viewing_done: 'bg-purple-100 text-purple-600',
-  negotiation: 'bg-amber-100 text-amber-600',
-  offer_made: 'bg-orange-100 text-orange-600',
-  closed_won: 'bg-green-100 text-green-600',
-  closed_lost: 'bg-red-100 text-red-600',
+  new_lead: 'bg-slate-500/10 text-slate-400',
+  contacted: 'bg-blue-500/10 text-blue-400',
+  viewing_scheduled: 'bg-indigo-500/10 text-indigo-400',
+  viewing_done: 'bg-purple-500/10 text-purple-400',
+  negotiation: 'bg-accent/10 text-accent',
+  offer_made: 'bg-accent/10 text-accent',
+  closed_won: 'bg-emerald-500/10 text-emerald-400',
+  closed_lost: 'bg-red-500/10 text-red-400',
 };
 
-// RIGHT PANEL TABS: 'detail' | 'chat' | 'ai'
 const TABS = [
   { id: 'detail', label: 'Profile', icon: User },
   { id: 'chat', label: 'AI Chat', icon: MessageSquare },
   { id: 'ai', label: 'Actions', icon: Zap },
 ];
-
 
 function ContactItem({ contact, isSelected, onClick }) {
   const initials = contact.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -50,48 +47,48 @@ function ContactItem({ contact, isSelected, onClick }) {
       onClick={onClick}
       className={`w-full text-left px-3 py-3 rounded-xl transition-all duration-150 ${
         isSelected
-          ? 'bg-indigo-50 border border-indigo-200 shadow-sm'
-          : 'hover:bg-[#F9FAFB] border border-transparent'
+          ? 'bg-accent/10 border border-accent/30 shadow-sm'
+          : 'hover:bg-secondary border border-transparent'
       }`}
     >
       <div className="flex items-start gap-2.5">
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-[11px]"
-          style={{ background: `hsl(${hue}, 60%, 55%)` }}
+          style={{ background: `hsl(${hue}, 50%, 45%)` }}
         >
           {initials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
-            <p className={`text-sm font-semibold truncate ${isSelected ? 'text-indigo-700' : 'text-[#111827]'}`}>
+            <p className={`text-sm font-semibold truncate ${isSelected ? 'text-accent' : 'text-foreground'}`}>
               {contact.name}
             </p>
             {contact.stage && (
-              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[contact.stage] || 'bg-slate-100 text-slate-500'}`}>
+              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[contact.stage] || 'bg-muted text-muted-foreground'}`}>
                 {contact.stage.replace(/_/g, ' ')}
               </span>
             )}
           </div>
           {primaryPhone && (
-            <p className="text-xs text-[#9CA3AF] mt-0.5 flex items-center gap-1 font-mono">
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 font-mono">
               <Phone className="w-2.5 h-2.5 shrink-0" /> {primaryPhone}
             </p>
           )}
           {primaryEmail && (
-            <p className="text-xs text-[#9CA3AF] truncate flex items-center gap-1 mt-0.5">
+            <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
               <Mail className="w-2.5 h-2.5 shrink-0" /> {primaryEmail}
             </p>
           )}
           {contact.organization?.tower && (
-            <p className="text-[10px] text-[#9CA3AF] mt-0.5 truncate">{contact.organization.tower}{contact.organization.unit_number ? ` · ${contact.organization.unit_number}` : ''}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{contact.organization.tower}{contact.organization.unit_number ? ` · ${contact.organization.unit_number}` : ''}</p>
           )}
           {contact.tags?.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-1.5">
               {contact.tags.slice(0, 2).map(tag => (
-                <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280]">{tag}</span>
+                <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{tag}</span>
               ))}
               {contact.tags.length > 2 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#9CA3AF]">+{contact.tags.length - 2}</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">+{contact.tags.length - 2}</span>
               )}
             </div>
           )}
@@ -135,62 +132,62 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="flex flex-col bg-[#F9FAFB] -m-6 overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="flex flex-col bg-background -m-6 overflow-hidden" style={{ height: '100dvh' }}>
 
-      {/* ── Top Bar ── */}
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-[#E5E7EB] flex-shrink-0">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between px-6 py-3 bg-card border-b border-border flex-shrink-0">
         <div>
-          <h1 className="text-lg font-bold text-[#111827]">Contacts</h1>
-          <p className="text-xs text-[#6B7280]">{contacts.length} total · click any contact to view & edit</p>
+          <h1 className="text-lg font-bold text-foreground">Contacts</h1>
+          <p className="text-xs text-muted-foreground">{contacts.length} total · click any contact to view and edit</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowColdLeads(true)}
             variant="outline"
-            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-blue-300 text-blue-600 hover:bg-blue-50"
+            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
           >
             <Snowflake className="w-3.5 h-3.5" /> Cold Leads
           </Button>
           <Button
             onClick={() => setShowRollImport(true)}
             variant="outline"
-            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+            className="text-xs px-3 h-8 rounded-lg gap-1.5 border-accent/30 text-accent hover:bg-accent/5"
           >
             <Wand2 className="w-3.5 h-3.5" /> Roll Import
           </Button>
           <Button
             onClick={() => setShowAddDialog(true)}
-            className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-4 h-8 rounded-lg gap-1.5"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs px-4 h-8 rounded-lg gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" /> Add Contact
           </Button>
         </div>
       </div>
 
-      {/* ── Body ── */}
+      {/* Body */}
       <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT: Contact List */}
-        <div className={`flex-shrink-0 flex flex-col bg-white border-r border-[#E5E7EB] transition-all duration-300 ${selectedContactId ? 'w-64' : 'w-80'}`}>
+        <div className={`flex-shrink-0 flex flex-col bg-card border-r border-border transition-all duration-300 ${selectedContactId ? 'w-64' : 'w-80'}`}>
           {/* Search + Filter */}
           <div className="px-3 pt-3 pb-2 space-y-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9CA3AF]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search contacts…"
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                placeholder="Search contacts..."
+                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
               />
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition-colors ${showFilters ? 'bg-indigo-50 text-indigo-600' : 'text-[#6B7280] hover:text-[#111827]'}`}
+              className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition-colors ${showFilters ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <SlidersHorizontal className="w-3 h-3" /> Filters
               {(sourceFilter !== 'all' || stageFilter !== 'all') && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               )}
             </button>
             <AnimatePresence>
@@ -202,11 +199,11 @@ export default function ContactsPage() {
                   className="overflow-hidden space-y-1.5"
                 >
                   <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
-                    className="w-full text-xs px-2 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#374151] focus:outline-none focus:border-indigo-400">
+                    className="w-full text-xs px-2 py-1.5 rounded-lg border border-border bg-secondary text-foreground focus:outline-none focus:border-accent/50">
                     {SOURCE_OPTIONS.map(s => <option key={s} value={s}>{s === 'all' ? 'All Sources' : s.replace(/_/g, ' ')}</option>)}
                   </select>
                   <select value={stageFilter} onChange={e => setStageFilter(e.target.value)}
-                    className="w-full text-xs px-2 py-1.5 rounded-lg border border-[#E5E7EB] bg-white text-[#374151] focus:outline-none focus:border-indigo-400">
+                    className="w-full text-xs px-2 py-1.5 rounded-lg border border-border bg-secondary text-foreground focus:outline-none focus:border-accent/50">
                     {STAGE_OPTIONS.map(s => <option key={s} value={s}>{s === 'all' ? 'All Stages' : s.replace(/_/g, ' ')}</option>)}
                   </select>
                 </motion.div>
@@ -215,17 +212,17 @@ export default function ContactsPage() {
           </div>
 
           <div className="px-3 py-1 flex items-center justify-between">
-            <span className="text-[10px] text-[#9CA3AF] font-medium">{filtered.length} contacts</span>
+            <span className="text-[10px] text-muted-foreground font-medium">{filtered.length} contacts</span>
           </div>
 
           <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-500 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <p className="text-xs text-[#9CA3AF]">No contacts found</p>
+                <p className="text-xs text-muted-foreground">No contacts found</p>
               </div>
             ) : (
               filtered.map(c => (
@@ -251,7 +248,7 @@ export default function ContactsPage() {
               className="flex-1 flex flex-col overflow-hidden"
             >
               {/* Tab Bar */}
-              <div className="flex-shrink-0 flex items-center bg-white border-b border-[#E5E7EB] px-4 gap-1">
+              <div className="flex-shrink-0 flex items-center bg-card border-b border-border px-4 gap-1">
                 {TABS.map(tab => {
                   const Icon = tab.icon;
                   return (
@@ -260,8 +257,8 @@ export default function ContactsPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
                         activeTab === tab.id
-                          ? 'border-indigo-500 text-indigo-600'
-                          : 'border-transparent text-[#6B7280] hover:text-[#374151]'
+                          ? 'border-accent text-accent'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -283,12 +280,12 @@ export default function ContactsPage() {
                     </motion.div>
                   )}
                   {activeTab === 'chat' && (
-                    <motion.div key="chat" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="h-full bg-white">
+                    <motion.div key="chat" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="h-full bg-card">
                       <ContactChatPanel contactId={selectedContactId} />
                     </motion.div>
                   )}
                   {activeTab === 'ai' && (
-                    <motion.div key="ai" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="h-full bg-[#F9FAFB]">
+                    <motion.div key="ai" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }} className="h-full bg-background">
                       <AIActionsPanel selectedContactId={selectedContactId} />
                     </motion.div>
                   )}
@@ -304,12 +301,12 @@ export default function ContactsPage() {
               className="flex-1 flex items-center justify-center"
             >
               <div className="text-center space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto">
-                  <User className="w-6 h-6 text-indigo-400" />
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto">
+                  <User className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#374151]">Select a contact</p>
-                  <p className="text-xs text-[#9CA3AF] mt-1">Click any contact to view & edit their full profile</p>
+                  <p className="text-sm font-semibold text-foreground">Select a contact</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click any contact to view and edit their full profile</p>
                 </div>
               </div>
             </motion.div>
@@ -328,7 +325,7 @@ export default function ContactsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-40"
+              className="fixed inset-0 bg-black/40 z-40"
               onClick={() => setShowColdLeads(false)}
             />
             <motion.div
