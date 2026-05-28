@@ -50,6 +50,7 @@ export default function Landlords() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
+  const [filterProject, setFilterProject] = useState('');
   const queryClient = useQueryClient();
 
   // Sync URL ?selected=<id> with state, both ways
@@ -70,10 +71,15 @@ export default function Landlords() {
     }
   }, [selectedLandlordId]);
 
-  // Fetch all landlords
+  // Fetch all landlords and projects
   const { data: landlords = [], isLoading } = useQuery({
     queryKey: ['landlords'],
     queryFn: () => base44.entities.Landlord.list('-updated_date', 500),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list(),
   });
 
   // Fetch selected landlord details
@@ -98,10 +104,11 @@ export default function Landlords() {
     STAGES.forEach(stage => {
       result[stage] = stageGroups[stage]
         .filter(l => !filterAgent || l.assigned_agent_email === filterAgent)
-        .filter(l => !filterArchetype || l.landlord_archetype === filterArchetype);
+        .filter(l => !filterArchetype || l.landlord_archetype === filterArchetype)
+        .filter(l => !filterProject || l.project_id === filterProject || (filterProject === 'unassigned' && !l.project_id));
     });
     return result;
-  }, [stageGroups, filterAgent, filterArchetype]);
+  }, [stageGroups, filterAgent, filterArchetype, filterProject]);
 
   // Calculate metrics
   const totalPipeline = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -172,7 +179,7 @@ export default function Landlords() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Input
             placeholder="Filter by agent..."
             value={filterAgent}
@@ -189,6 +196,17 @@ export default function Landlords() {
             <option value="individual_end_user_relocating">Individual Relocating</option>
             <option value="first_time_seller">First Time Seller</option>
             <option value="portfolio_optimizer">Portfolio Optimizer</option>
+          </select>
+          <select
+            value={filterProject}
+            onChange={(e) => setFilterProject(e.target.value)}
+            className="px-3 py-2 text-xs border border-input rounded-md"
+          >
+            <option value="">All Projects</option>
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+            <option value="unassigned">Unassigned</option>
           </select>
         </div>
       </div>
