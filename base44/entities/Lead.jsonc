@@ -120,12 +120,12 @@
         "ejari_movein"
       ],
       "default": "intake_clarify",
-      "description": "Pipeline stage — values depend on intent. See src/lib/pipeline.js."
+      "description": "Pipeline stage"
     },
     "stage_entered_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the lead entered its current stage. Used for stalling/SLA calculations and as the backfill-completed marker."
+      "description": "When the lead entered the current stage"
     },
     "status": {
       "type": "string",
@@ -134,8 +134,7 @@
         "lost",
         "on_hold"
       ],
-      "default": "active",
-      "description": "Lifecycle state (separate dimension from stage)."
+      "default": "active"
     },
     "lost_reason": {
       "type": "string",
@@ -169,8 +168,7 @@
         "tenant",
         "unknown"
       ],
-      "default": "unknown",
-      "description": "Which pipeline track this lead is on."
+      "default": "unknown"
     },
     "transaction_type": {
       "type": "string",
@@ -350,8 +348,7 @@
     "ai_lead_score": {
       "type": "number",
       "minimum": 0,
-      "maximum": 100,
-      "description": "Overall AI-computed lead score (0=cold, 100=ready to close)"
+      "maximum": 100
     },
     "ai_lead_score_breakdown": {
       "type": "object",
@@ -391,8 +388,7 @@
           "minimum": 0,
           "maximum": 100
         }
-      },
-      "description": "Per-dimension breakdown of the lead score"
+      }
     },
     "ai_score_trend": {
       "type": "string",
@@ -400,26 +396,22 @@
         "rising",
         "stable",
         "falling"
-      ],
-      "description": "Direction of the score over the last 7 days"
+      ]
     },
     "ai_conversion_probability": {
       "type": "number",
       "minimum": 0,
-      "maximum": 1,
-      "description": "Predicted probability of closing within 90 days"
+      "maximum": 1
     },
     "ai_estimated_close_date": {
       "type": "string",
       "format": "date"
     },
     "ai_estimated_deal_value": {
-      "type": "number",
-      "description": "Predicted deal value in budget_currency"
+      "type": "number"
     },
     "ai_lifetime_value_estimate": {
-      "type": "number",
-      "description": "Predicted LTV including referrals + repeat deals"
+      "type": "number"
     },
     "ai_churn_prediction": {
       "type": "object",
@@ -454,8 +446,7 @@
             "type": "string"
           }
         }
-      },
-      "description": "Churn prediction with explainability and recommended actions"
+      }
     },
     "ai_persona": {
       "type": "object",
@@ -518,8 +509,7 @@
           }
         },
         "persona_summary": {
-          "type": "string",
-          "description": "1-paragraph human-readable persona"
+          "type": "string"
         }
       }
     },
@@ -527,8 +517,7 @@
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Property IDs ranked as best matches"
+      }
     },
     "ai_recommendations": {
       "type": "array",
@@ -562,8 +551,7 @@
             "type": "string"
           }
         }
-      },
-      "description": "Ranked property matches with reasoning and ready-to-send pitches"
+      }
     },
     "ai_next_best_actions": {
       "type": "array",
@@ -637,8 +625,7 @@
           "type": "string"
         },
         "hour_range": {
-          "type": "string",
-          "description": "e.g. '18:00-20:00'"
+          "type": "string"
         },
         "timezone": {
           "type": "string"
@@ -652,15 +639,13 @@
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Positive signals detected (asked about financing, requested second viewing, etc.)"
+      }
     },
     "ai_red_flags": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Warning signs (ghosting pattern, unrealistic budget, repeated price drops requested, etc.)"
+      }
     },
     "ai_objections_summary": {
       "type": "array",
@@ -680,8 +665,7 @@
             "type": "string"
           }
         }
-      },
-      "description": "Recurring objections across all activities with this lead"
+      }
     },
     "ai_journey_stage": {
       "type": "string",
@@ -692,23 +676,19 @@
         "decision",
         "post_purchase",
         "advocacy"
-      ],
-      "description": "Marketing-funnel stage (different from pipeline stage)"
+      ]
     },
     "ai_rolling_summary": {
-      "type": "string",
-      "description": "Continuously updated narrative summary of the lead relationship"
+      "type": "string"
     },
     "ai_similar_lead_ids": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Other leads with similar persona/behavior \u2014 useful for cohort analysis"
+      }
     },
     "ai_coaching_for_agent": {
-      "type": "string",
-      "description": "Agent-specific coaching: tone, pacing, what to emphasize with THIS lead"
+      "type": "string"
     },
     "ai_processed_at": {
       "type": "string",
