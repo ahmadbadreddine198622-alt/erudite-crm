@@ -286,8 +286,8 @@ export default function ImportOwnersDialog({ open, onClose }) {
             continue;
           }
 
-          // Check phone duplicate
-          if (phoneMap.has(row.phone)) {
+          // Check phone duplicate (only if phone exists)
+          if (row.phone && phoneMap.has(row.phone)) {
             stats.skipped++;
             continue;
           }
