@@ -125,22 +125,20 @@ export default function Landlords() {
   }
 
   return (
-    <div className="flex h-full bg-background">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="border-b border-border bg-card p-4 shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold">Landlord Pipeline</h1>
-                <p className="text-xs text-muted-foreground">Agent's A-to-Z Mandate Acquisition Engine</p>
-              </div>
+    <div className="flex flex-col h-full">
+      {/* Header - always visible */}
+      <div className="px-8 pt-8 pb-2 shrink-0">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-accent" />
             </div>
-            <div className="flex gap-2">
+            <div>
+              <h1 className="text-xl font-semibold">Landlord Pipeline</h1>
+              <p className="text-xs text-muted-foreground">Agent's A-to-Z Mandate Acquisition Engine</p>
+            </div>
+            {/* Action buttons next to title - always visible */}
+            <div className="flex gap-2 ml-6">
               <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2">
                 <Upload className="w-4 h-4" />
                 Import Owners
@@ -151,59 +149,59 @@ export default function Landlords() {
               </Button>
             </div>
           </div>
+        </div>
 
-          {/* Metrics Bar */}
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Total Active</p>
-              <p className="text-lg font-semibold">{landlords.length}</p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Pipeline Value</p>
-              <p className="text-lg font-semibold">AED {(totalPipeline / 1000000).toFixed(1)}M</p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Mandates Signed</p>
-              <p className="text-lg font-semibold">{mandateCount}</p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">SLA Breaches</p>
-              <p className="text-lg font-semibold text-destructive">0</p>
-            </div>
+        {/* Metrics Bar */}
+        <div className="grid grid-cols-4 gap-4 mb-4">
+          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">Total Active</p>
+            <p className="text-lg font-semibold">{landlords.length}</p>
           </div>
-
-          {/* Filters */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Filter by agent..."
-              value={filterAgent}
-              onChange={(e) => setFilterAgent(e.target.value)}
-              className="max-w-xs text-xs"
-            />
-            <select
-              value={filterArchetype}
-              onChange={(e) => setFilterArchetype(e.target.value)}
-              className="px-3 py-2 text-xs border border-input rounded-md"
-            >
-              <option value="">All Archetypes</option>
-              <option value="professional_investor">Professional Investor</option>
-              <option value="individual_end_user_relocating">Individual Relocating</option>
-              <option value="first_time_seller">First Time Seller</option>
-              <option value="portfolio_optimizer">Portfolio Optimizer</option>
-            </select>
+          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">Pipeline Value</p>
+            <p className="text-lg font-semibold">AED {(totalPipeline / 1000000).toFixed(1)}M</p>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">Mandates Signed</p>
+            <p className="text-lg font-semibold">{mandateCount}</p>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">SLA Breaches</p>
+            <p className="text-lg font-semibold text-destructive">0</p>
           </div>
         </div>
 
-        {/* Kanban Board - Bounded scrolling container */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4" style={{ height: 'calc(100dvh - 280px)', minHeight: '420px' }}>
-          <KanbanBoard
-            stages={STAGES}
-            stageLabels={STAGE_LABELS}
-            stageGroups={filteredGroups}
-            selectedLandlordId={selectedLandlordId}
-            onSelectLandlord={setSelectedLandlordId}
+        {/* Filters */}
+        <div className="flex gap-2">
+          <Input
+            placeholder="Filter by agent..."
+            value={filterAgent}
+            onChange={(e) => setFilterAgent(e.target.value)}
+            className="max-w-xs text-xs"
           />
+          <select
+            value={filterArchetype}
+            onChange={(e) => setFilterArchetype(e.target.value)}
+            className="px-3 py-2 text-xs border border-input rounded-md"
+          >
+            <option value="">All Archetypes</option>
+            <option value="professional_investor">Professional Investor</option>
+            <option value="individual_end_user_relocating">Individual Relocating</option>
+            <option value="first_time_seller">First Time Seller</option>
+            <option value="portfolio_optimizer">Portfolio Optimizer</option>
+          </select>
         </div>
+      </div>
+
+      {/* Kanban Board - scrolls horizontally within bounded container */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-4" style={{ minHeight: '420px' }}>
+        <KanbanBoard
+          stages={STAGES}
+          stageLabels={STAGE_LABELS}
+          stageGroups={filteredGroups}
+          selectedLandlordId={selectedLandlordId}
+          onSelectLandlord={setSelectedLandlordId}
+        />
       </div>
 
       {/* Detail Panel */}
@@ -218,14 +216,12 @@ export default function Landlords() {
         />
       )}
 
-      {/* Add Landlord Dialog */}
+      {/* Dialogs */}
       <AddLandlordDialog
         open={showNewDialog}
         onClose={() => setShowNewDialog(false)}
         onSuccess={handleLandlordCreated}
       />
-
-      {/* Import Owners Dialog */}
       <ImportOwnersDialog
         open={showImportDialog}
         onClose={() => setShowImportDialog(false)}
