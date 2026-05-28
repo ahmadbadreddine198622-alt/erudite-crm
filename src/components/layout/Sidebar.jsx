@@ -84,6 +84,13 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
+        <Link
+          to="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-primary bg-sidebar-accent/50 hover:bg-sidebar-accent w-full transition-all"
+        >
+          <LayoutDashboard className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Dashboard</span>}
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent w-full transition-all"
