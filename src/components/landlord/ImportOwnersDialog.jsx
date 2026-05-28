@@ -1,165 +1,233 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2, MapPin, Phone, Mail, Building } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Simple column matching by header name
-function fallbackColumnMapping(columns) {
-  const mappings = {
-    owner_name: null,
-    phone_primary: null,
-    phone_secondary: [],
-    email: null,
-    unit_reference: null,
-    project_name: null,
-    location: null,
-    bedrooms: null,
-    size: null,
-    country: null,
-    notes: [],
-  };
+// ─── Target fields a source column can map to ─────────────────────────────────
+const TARGET_FIELDS = ['name', 'phone', 'email', 'unit', 'project', 'country', 'size', 'rooms', 'location', 'notes', 'ignore'];
+const TARGET_LABELS = {
+  name: 'Name', phone: 'Phone', email: 'Email', unit: 'Unit', project: 'Project',
+  country: 'Country', size: 'Size', rooms: 'Rooms', location: 'Location', notes: 'Notes', ignore: 'Ignore',
+};
 
-  const namePatterns = /^(owner\s*name|full\s*name|name|contact\s*name|owner)$/i;
-  const phonePatterns = /^(mobile1|mobile|phone|phone1|tel|telephone|contact\s*number|phone\s*primary)$/i;
-  const phone2Patterns = /^(mobile2|phone2|alt\s*phone|alternate\s*phone)$/i;
-  const phone3Patterns = /^(mobile3|phone3)$/i;
-  const emailPatterns = /^(email|e-mail|email\s*address)$/i;
-  const unitPatterns = /^(unit\s*number|unit|apt|apartment|flat|room\s*number)$/i;
-  const projectPatterns = /^(project\s*name|project|building|development|community)$/i;
-  const locationPatterns = /^(location|area|community|location\s*name)$/i;
-  const bedroomPatterns = /^(rooms|bedrooms|beds|br|unit\s*type)$/i;
-  const sizePatterns = /^(size|area|sqft|sqm|square\s*feet|square\s*meters)$/i;
-  const countryPatterns = /^(owner\s*country|nationality|country|residence\s*country)$/i;
+// ─── Layer 1: deterministic header dictionary (case/punctuation-insensitive) ───
+const VARIANTS = {
+  name: ['ownername', 'name', 'fullname', 'contactname', 'owner'],
+  phone: ['mobileno', 'mobilenumber', 'mobile', 'mobile1', 'mobile2', 'mobile3', 'phone', 'phone1', 'phone2', 'phone3', 'contactno', 'contactnumber', 'cell', 'officeno', 'homeno', 'tel', 'telephone', 'phoneprimary'],
+  email: ['email', 'owneremail', 'alternateemail', 'altemail', 'emailaddress', 'mail'],
+  unit: ['unitcode', 'unitno', 'unitnumber', 'unit', 'apt', 'apartment', 'flat'],
+  project: ['projectname', 'propertyname', 'development', 'project', 'building'],
+  country: ['ownercountry', 'nationality', 'country', 'residencecountry'],
+  size: ['size', 'area', 'bua', 'sqft', 'sqm', 'builtuparea'],
+  rooms: ['rooms', 'bedrooms', 'beds', 'br', 'bed'],
+  location: ['location', 'community', 'district', 'tower'],
+};
 
-  columns.forEach((col) => {
-    const lower = col.toLowerCase().trim();
-    
-    if (namePatterns.test(lower)) mappings.owner_name = col;
-    else if (phonePatterns.test(lower)) mappings.phone_primary = col;
-    else if (phone2Patterns.test(lower)) mappings.phone_secondary.push(col);
-    else if (phone3Patterns.test(lower)) mappings.phone_secondary.push(col);
-    else if (emailPatterns.test(lower)) mappings.email = col;
-    else if (unitPatterns.test(lower)) mappings.unit_reference = col;
-    else if (projectPatterns.test(lower)) mappings.project_name = col;
-    else if (locationPatterns.test(lower)) mappings.location = col;
-    else if (bedroomPatterns.test(lower)) mappings.bedrooms = col;
-    else if (sizePatterns.test(lower)) mappings.size = col;
-    else if (countryPatterns.test(lower)) mappings.country = col;
-    else mappings.notes.push(col);
-  });
-
-  return {
-    mappings,
-    confidence: 'high',
-    notes: 'Columns detected by header-name matching.',
-  };
+function normalizeHeader(h) {
+  return String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// Phone cleaning: handle various formats
-function cleanPhone(raw) {
-  if (!raw) return null;
-  let cleaned = raw.toString().trim();
-  // Remove separators
-  cleaned = cleaned.replace(/[|\-.\s()]/g, '');
-  // Handle UAE numbers
-  if (cleaned.startsWith('971')) {
-    cleaned = cleaned.replace(/^9710+/, '971');
-  } else if (cleaned.startsWith('00971')) {
-    cleaned = cleaned.replace(/^009710+/, '971');
-  } else if (cleaned.startsWith('0') && cleaned.length === 10) {
-    // Local UAE number like 0501234567
-    cleaned = '971' + cleaned.substring(1);
+function deterministicMatch(columns) {
+  const map = {};
+  for (const col of columns) {
+    const norm = normalizeHeader(col);
+    for (const field of Object.keys(VARIANTS)) {
+      if (VARIANTS[field].includes(norm)) { map[col] = field; break; }
+    }
   }
-  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
-  return cleaned;
+  return map;
 }
 
-// Convert one raw spreadsheet row into a cleaned/mapped record. Single source of
-// truth used by BOTH the preview sample and the actual import, so what you see
-// in the preview is exactly what gets created (no 10-row vs all-rows drift).
-function buildCleanedRow(row, mappings) {
-  const rawPhone = mappings.phone_primary ? row[mappings.phone_primary] : null;
-  const rawSecondaryPhones = mappings.phone_secondary
-    ? mappings.phone_secondary.map((col) => row[col]).filter(Boolean)
-    : [];
-  const cleanedPhone = cleanPhone(rawPhone);
-  const cleanedSecondaryPhones = rawSecondaryPhones.map(cleanPhone).filter(Boolean);
+// ─── Layer 2: AI fallback for columns Layer 1 couldn't map ─────────────────────
+// Tiny payload (unmapped headers + up to 2 sample values), 10s timeout, optional.
+async function aiMapColumns(unmappedCols, sampleRows) {
+  if (!unmappedCols.length) return {};
+  const payload = unmappedCols.map((col) => ({
+    column: col,
+    samples: sampleRows.slice(0, 2).map((r) => r[col]).filter((v) => v !== '' && v != null),
+  }));
+  const prompt =
+    'You are mapping spreadsheet columns for a Dubai real-estate owner import.\n' +
+    'For each column, choose the single best target field from this EXACT list:\n' +
+    'name, phone, email, unit, project, country, size, rooms, location, notes, ignore.\n' +
+    'Use "notes" if useful but fits none; "ignore" if junk/empty.\n\n' +
+    'Columns (with up to 2 sample values):\n' + JSON.stringify(payload) + '\n\n' +
+    'Respond ONLY as JSON: { "mappings": { "<exact column name>": "<target>" } }';
 
+  const result = await Promise.race([
+    base44.integrations.Core.InvokeLLM({
+      prompt,
+      response_json_schema: {
+        type: 'object',
+        properties: { mappings: { type: 'object', additionalProperties: { type: 'string' } } },
+        required: ['mappings'],
+      },
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('AI mapping timed out after 10s')), 10000)),
+  ]);
+
+  const raw = (result && result.mappings) || {};
+  const clean = {};
+  for (const col of unmappedCols) {
+    const t = raw[col];
+    if (t && TARGET_FIELDS.includes(t)) clean[col] = t;
+  }
+  return clean;
+}
+
+// ─── Universal phone cleaner ───────────────────────────────────────────────────
+// +(861) 581-1488066, 971|52-3828133, 0526535251, spaces/dashes/parens/pipes…
+// Preserves an explicit country code; defaults bare UAE locals to +971.
+export function cleanPhone(raw) {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const hadPlus = s.includes('+');
+  const digits = s.replace(/[^\d]/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('00')) return '+' + digits.slice(2);            // intl 00 prefix
+  if (hadPlus) return '+' + digits;                                      // explicit country code (+86, +44…)
+  if (digits.startsWith('971')) return '+' + digits;                     // UAE code, no +
+  if (digits.startsWith('0')) return '+971' + digits.replace(/^0+/, ''); // UAE local, leading 0
+  if (digits.length === 9 && digits.startsWith('5')) return '+971' + digits; // bare UAE mobile
+  if (digits.length >= 11) return '+' + digits;                          // long → assume includes country code
+  return '+971' + digits;                                                // fallback: assume UAE
+}
+
+// ─── Row → cleaned record, driven by the (editable) column map ─────────────────
+function buildCleanedRow(row, columnMap, columns) {
+  const phones = [];
+  const emails = [];
+  let fullName = '';
+  let unit = '';
+  let projectRaw = '';
+  let country = '';
+  let location = '';
   const notesParts = [];
-  if (mappings.bedrooms && row[mappings.bedrooms]) notesParts.push(`Rooms: ${row[mappings.bedrooms]}`);
-  if (mappings.size && row[mappings.size]) notesParts.push(`Size: ${row[mappings.size]}`);
-  if (mappings.notes) {
-    mappings.notes.forEach((col) => {
-      if (row[col]) notesParts.push(`${col}: ${row[col]}`);
-    });
+
+  for (const col of columns) {
+    const target = columnMap[col];
+    if (!target || target === 'ignore') continue;
+    const val = row[col];
+    if (val === '' || val === null || val === undefined) continue;
+    const str = String(val).trim();
+    if (!str) continue;
+    switch (target) {
+      case 'name': if (!fullName) fullName = str; break;
+      case 'phone': { const p = cleanPhone(str); if (p) phones.push(p); break; }
+      case 'email': emails.push(str); break;
+      case 'unit': if (!unit) unit = str; break;
+      case 'project': if (!projectRaw) projectRaw = str; break;
+      case 'country': if (!country) country = str; break;
+      case 'location': if (!location) location = str; break;
+      case 'size': notesParts.push(`Size: ${str}`); break;
+      case 'rooms': notesParts.push(`Rooms: ${str}`); break;
+      case 'notes': notesParts.push(`${col}: ${str}`); break;
+      default: break;
+    }
   }
 
+  const primaryPhone = phones[0] || null;
+  const altPhones = phones.slice(1);
+  if (altPhones.length) notesParts.push(`Alt phones: ${altPhones.join(', ')}`);
+  const email = emails[0] || null;
+  if (emails.length > 1) notesParts.push(`Alt emails: ${emails.slice(1).join(', ')}`);
+
   return {
-    fullName: mappings.owner_name ? row[mappings.owner_name] : 'Unknown',
-    phone: cleanedPhone,
-    altPhones: cleanedSecondaryPhones,
-    email: mappings.email ? row[mappings.email] : null,
-    unitReference: mappings.unit_reference ? row[mappings.unit_reference] : null,
-    projectRaw: mappings.project_name ? row[mappings.project_name] : null,
-    location: mappings.location ? row[mappings.location] : null,
-    country: mappings.country ? row[mappings.country] : null,
+    fullName: fullName || 'Unknown',
+    primaryPhone,
+    altPhones,
+    email,
+    unit,
+    projectRaw,
+    country,
+    location,
     notes: notesParts.join(' | '),
     raw: row,
   };
 }
 
 export default function ImportOwnersDialog({ open, onClose }) {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [rawData, setRawData] = useState(null);
-  const [aiMapping, setAiMapping] = useState(null);
-  const [preview, setPreview] = useState([]);
-  const [step, setStep] = useState('upload'); // upload | analyzing | preview | processing | done | error
+  const [step, setStep] = useState('upload'); // upload | analyzing | sheet_selection | preview | done | error
+  const [rawData, setRawData] = useState(null); // { rows, columns }
+  const [columnMap, setColumnMap] = useState({}); // { sourceColumn: targetField }
+  const [existingPhones, setExistingPhones] = useState([]);
+  const [availableSheets, setAvailableSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState(null);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
-  const [availableSheets, setAvailableSheets] = useState([]);
-  const [selectedSheet, setSelectedSheet] = useState(null);
-  const fileInputRef = useRef(null);
 
-  const handleFileChange = async (uploadedFile) => {
+  const existingPhoneSet = useMemo(() => new Set(existingPhones), [existingPhones]);
+
+  const previewRows = useMemo(() => {
+    if (!rawData) return [];
+    const seen = new Set();
+    return rawData.rows.slice(0, 10).map((r) => {
+      const c = buildCleanedRow(r, columnMap, rawData.columns);
+      let status = 'new';
+      if (!c.primaryPhone) status = 'no_phone';
+      else if (existingPhoneSet.has(c.primaryPhone) || seen.has(c.primaryPhone)) status = 'duplicate';
+      if (c.primaryPhone) seen.add(c.primaryPhone);
+      return { ...c, status };
+    });
+  }, [rawData, columnMap, existingPhoneSet]);
+
+  // Shared pipeline: rows+columns → Layer1 + Layer2 + existing phones → preview.
+  async function runMappingPipeline(rows, columns) {
+    const layer1 = deterministicMatch(columns);
+    const unmapped = columns.filter((c) => !layer1[c]);
+    let layer2 = {};
+    try {
+      layer2 = await aiMapColumns(unmapped, rows.slice(0, 2));
+    } catch (aiErr) {
+      console.warn('AI column mapping skipped:', aiErr.message);
+    }
+    const merged = {};
+    for (const col of columns) merged[col] = layer1[col] || layer2[col] || 'notes';
+
+    let existing = [];
+    try {
+      const landlords = await base44.entities.Landlord.list('-created_date', 5000);
+      existing = landlords.map((l) => cleanPhone(l.phone)).filter(Boolean);
+    } catch (e) {
+      console.warn('Could not load existing landlords for dupe check:', e.message);
+    }
+
+    setRawData({ rows, columns });
+    setColumnMap(merged);
+    setExistingPhones(existing);
+    setStep('preview');
+  }
+
+  function parseSheet(workbook, sheetName) {
+    const ws = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const columns = rows.length ? Object.keys(rows[0]) : [];
+    return { rows, columns };
+  }
+
+  async function handleFileChange(uploadedFile) {
     if (!uploadedFile) return;
     setFile(uploadedFile);
+    setError(null);
     setStep('analyzing');
-    
-    let analysisResult = null;
-
     try {
-      // Parse the spreadsheet directly in-browser with SheetJS. Synchronous and
-      // fast (milliseconds for thousands of rows) — no upload, no AI extraction,
-      // no 15s timeout. Replaces the old UploadFile + ExtractDataFromUploadedFile
-      // + InvokeLLM pipeline that was timing out.
-      let rows;
-      let columns;
-      try {
-        const buf = await uploadedFile.arrayBuffer();
-        const wb = XLSX.read(buf, { type: 'array' });
-        const sheetName = wb.SheetNames[0];
-        if (!sheetName) throw new Error('the file has no sheets');
-        const ws = wb.Sheets[sheetName];
-        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        columns = rows.length ? Object.keys(rows[0]) : [];
-      } catch (err) {
-        throw new Error('Failed to read the spreadsheet: ' + err.message);
-      }
-
-      if (!rows.length) {
-        throw new Error('No data rows found in the first sheet');
-      }
-
       const buf = await uploadedFile.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
+      if (!wb.SheetNames.length) throw new Error('the file has no sheets');
+
+      // Multiple sheets → let the user pick which one.
       if (wb.SheetNames.length > 1) {
         setAvailableSheets(wb.SheetNames);
         setSelectedSheet(wb.SheetNames[0]);
@@ -167,170 +235,114 @@ export default function ImportOwnersDialog({ open, onClose }) {
         return;
       }
 
-      setRawData({ rows, columns, fileUrl: null });
-
-      // Deterministic column mapping (no AI) — instant, no timeout risk.
-      analysisResult = fallbackColumnMapping(columns);
-      setAiMapping(analysisResult);
-
-      // Step 3: Build a preview SAMPLE (first 10 rows) for display only.
-      // The actual import re-derives records from ALL rows at commit time.
-      const cleanedPreview = rows.slice(0, 10).map((row) => buildCleanedRow(row, analysisResult.mappings));
-
-      setPreview(cleanedPreview);
-      setStep('preview');
+      const { rows, columns } = parseSheet(wb, wb.SheetNames[0]);
+      if (!rows.length) throw new Error('No data rows found in the sheet');
+      await runMappingPipeline(rows, columns);
     } catch (err) {
-      console.error('Import error:', err);
-      const errorMsg = err.message || 'Unknown error occurred';
-      setError(errorMsg);
+      console.error('Import parse error:', err);
+      setError(err.message || 'Unknown error reading the file');
       setStep('error');
     }
-  };
+  }
 
-  const handleFileSelect = (e) => {
-    const uploadedFile = e.target.files[0];
-    if (uploadedFile) handleFileChange(uploadedFile);
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const uploadedFile = e.dataTransfer.files[0];
-    if (uploadedFile && (uploadedFile.name.endsWith('.xlsx') || uploadedFile.name.endsWith('.csv'))) {
-      handleFileChange(uploadedFile);
-    }
-  };
-
-  const handleSheetSelect = async () => {
+  async function handleSheetSelect() {
     if (!selectedSheet || !file) return;
+    setStep('analyzing');
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
-      const ws = wb.Sheets[selectedSheet];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      const columns = rows.length ? Object.keys(rows[0]) : [];
+      const { rows, columns } = parseSheet(wb, selectedSheet);
       if (!rows.length) throw new Error('No data rows found in the selected sheet');
-      setRawData({ rows, columns, fileUrl: null });
-      const analysisResult = fallbackColumnMapping(columns);
-      setAiMapping(analysisResult);
-      const cleanedPreview = rows.slice(0, 10).map((row) => buildCleanedRow(row, analysisResult.mappings));
-      setPreview(cleanedPreview);
-      setStep('preview');
+      await runMappingPipeline(rows, columns);
     } catch (err) {
       console.error('Sheet selection error:', err);
       setError(err.message || 'Error processing sheet');
       setStep('error');
     }
+  }
+
+  const handleFileSelect = (e) => {
+    const f = e.target.files?.[0];
+    if (f) handleFileChange(f);
+  };
+  const handleDrag = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
+  };
+  const handleDrop = (e) => {
+    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.csv'))) handleFileChange(f);
   };
 
-  // Step 5: Import on confirm
+  const setColumnTarget = (col, target) => setColumnMap((m) => ({ ...m, [col]: target }));
+
+  // ─── Import ALL rows (duplicates create too, just badged) ────────────────────
   const importMutation = useMutation({
     mutationFn: async () => {
-      const stats = { created: 0, skipped: 0, errored: 0, errors: [], createdIds: [] };
-      
-      // Fetch existing landlords for duplicate check
-      const existingLandlords = await base44.entities.Landlord.list();
-      const existingProjects = await base44.entities.Project.list();
-      
-      // Build lookup maps
-      const phoneMap = new Map();
-      const unitProjectMap = new Map();
-      existingLandlords.forEach(l => {
-        if (l.phone) phoneMap.set(l.phone, l.id);
-        if (l.unit_reference && l.project_id) {
-          unitProjectMap.set(`${l.unit_reference}|${l.project_id}`, l.id);
-        }
-      });
-      
-      // Project name to ID map (with fuzzy matching)
+      const stats = { created: 0, duplicates: 0, errored: 0, errors: [], createdIds: [] };
+      const existingLandlords = await base44.entities.Landlord.list('-created_date', 5000);
+      const existingProjects = await base44.entities.Project.list().catch(() => []);
+
+      const phoneSet = new Set(existingLandlords.map((l) => cleanPhone(l.phone)).filter(Boolean));
+
       const projectMap = new Map();
-      existingProjects.forEach(p => {
-        const normalizedName = p.name.toLowerCase().trim();
-        projectMap.set(normalizedName, p.id);
-        // Add common variations
+      existingProjects.forEach((p) => {
+        if (!p.name) return;
+        projectMap.set(p.name.toLowerCase().trim(), p.id);
         if (p.name.includes('Peninsula')) {
           const num = p.name.match(/\d+/);
           if (num) {
             projectMap.set(`peninsula ${num[0]}`, p.id);
-            const words = ['one','two','three','four','five','six','seven','eight','nine','ten'];
-            const wordIdx = parseInt(num[0]) - 1;
-            if (wordIdx >= 0 && wordIdx < words.length) {
-              projectMap.set(`peninsula ${words[wordIdx]}`, p.id);
-            }
+            const words = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+            const wi = parseInt(num[0], 10) - 1;
+            if (wi >= 0 && wi < words.length) projectMap.set(`peninsula ${words[wi]}`, p.id);
           }
         }
       });
 
-      const currentUser = await base44.auth.me();
+      let currentUser = null;
+      try { currentUser = await base44.auth.me(); } catch (_) { /* non-fatal */ }
 
-      // Re-derive cleaned records from ALL rows (not just the 10-row preview) so
-      // the full file is imported, not a sample.
-      const allRows = (rawData?.rows || []).map((row) => buildCleanedRow(row, aiMapping.mappings));
+      const allRows = rawData.rows.map((r) => buildCleanedRow(r, columnMap, rawData.columns));
+      const seenInFile = new Set();
 
       for (const row of allRows) {
+        if (!row.primaryPhone) {
+          stats.errored++;
+          stats.errors.push({ row: row.fullName || 'Unknown', reason: 'No usable phone number' });
+          continue;
+        }
+        const isDuplicate = phoneSet.has(row.primaryPhone) || seenInFile.has(row.primaryPhone);
+        seenInFile.add(row.primaryPhone);
+
+        let projectId = null;
+        if (row.projectRaw) projectId = projectMap.get(row.projectRaw.toLowerCase().trim()) || null;
+
+        const landlordData = {
+          full_name_en: row.fullName,
+          full_name: row.fullName,
+          phone: row.primaryPhone,
+          whatsapp: row.primaryPhone,
+          source: 'owner_import',
+          stage: 'initial_contact',
+          lead_type: 'landlord_both',
+          notes: row.notes || 'Imported from spreadsheet',
+          tags: isDuplicate ? ['imported_owner', 'possible_duplicate'] : ['imported_owner'],
+        };
+        if (row.email) landlordData.email = row.email;
+        if (row.unit) landlordData.unit_reference = row.unit;
+        if (row.projectRaw) landlordData.project_name = row.projectRaw;
+        if (projectId) landlordData.project_id = projectId;
+        if (row.location) landlordData.location = row.location;
+        if (row.country) landlordData.residence_country = row.country;
+        if (currentUser?.email) landlordData.assigned_agent_email = currentUser.email;
+
         try {
-          if (!row.fullName) {
-            stats.errored++;
-            stats.errors.push({ row: 'Unknown', reason: 'Missing name' });
-            continue;
-          }
-
-          // Check phone duplicate (only if phone exists)
-          if (row.phone && phoneMap.has(row.phone)) {
-            stats.skipped++;
-            continue;
-          }
-
-          // Match project name
-          let projectId = null;
-          if (row.projectRaw) {
-            const normalizedProject = row.projectRaw.toLowerCase().trim();
-            projectId = projectMap.get(normalizedProject);
-          }
-
-          // Check unit+project duplicate
-          if (projectId && row.unitReference) {
-            const key = `${row.unitReference}|${projectId}`;
-            if (unitProjectMap.has(key)) {
-              stats.skipped++;
-              continue;
-            }
-          }
-
-          // Create landlord
-          const landlordData = {
-            full_name_en: row.fullName,
-            source: 'owner_import',
-            stage: 'initial_contact',
-            assigned_agent_email: currentUser.email,
-            lead_type: 'landlord_both',
-          };
-          if (row.phone) {
-            landlordData.phone = row.phone;
-            landlordData.whatsapp = row.phone;
-          }
-          if (row.email) landlordData.email = row.email;
-          if (row.unitReference) landlordData.unit_reference = row.unitReference;
-          if (row.projectRaw) landlordData.project_name = row.projectRaw;
-          if (projectId) landlordData.project_id = projectId;
-          if (row.location) landlordData.location = row.location;
-          if (row.country) landlordData.residence_country = row.country;
-          if (row.notes) landlordData.notes = row.notes;
-          else landlordData.notes = 'Imported from spreadsheet';
-
           const created = await base44.entities.Landlord.create(landlordData);
           stats.created++;
+          if (isDuplicate) stats.duplicates++;
           stats.createdIds.push(created.id);
         } catch (err) {
           stats.errored++;
@@ -342,304 +354,233 @@ export default function ImportOwnersDialog({ open, onClose }) {
     onSuccess: (stats) => {
       setResults(stats);
       setStep('done');
-      toast.success(`Import complete: ${stats.created} created, ${stats.skipped} skipped, ${stats.errored} errors`);
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      if (stats.errored > 0) toast.warning(`Imported ${stats.created}, ${stats.errored} failed.`);
+      else toast.success(`Imported ${stats.created} owner${stats.created !== 1 ? 's' : ''}.`);
     },
     onError: (err) => {
-      toast.error('Import failed: ' + err.message);
+      // Surface the failure; keep the dialog open so it's visible.
+      toast.error('Import failed: ' + (err?.message || 'unknown error'));
+      console.error('Import failed:', err);
     },
   });
 
-  const handleImport = () => {
-    importMutation.mutate();
-  };
-
   const handleClose = () => {
     setFile(null);
+    setStep('upload');
     setRawData(null);
-    setAiMapping(null);
-    setPreview([]);
-    setResults(null);
-    setError(null);
+    setColumnMap({});
+    setExistingPhones([]);
     setAvailableSheets([]);
     setSelectedSheet(null);
-    setStep('upload');
+    setResults(null);
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     onClose();
   };
 
+  const resetToUpload = () => {
+    setStep('upload');
+    setAvailableSheets([]);
+    setSelectedSheet(null);
+  };
+
+  const totalRows = rawData?.rows?.length || 0;
+  const counts = previewRows.reduce(
+    (a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; },
+    { new: 0, duplicate: 0, no_phone: 0 },
+  );
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-accent" />
-            Smart Import Owners
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col p-4">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <FileSpreadsheet className="w-4 h-4 text-accent" /> Smart Import Owners
           </DialogTitle>
-          <DialogDescription>
-            Upload an .xlsx or CSV owner list. It's parsed instantly in your browser and columns are auto-detected.
+          <DialogDescription className="text-xs">
+            Upload an .xlsx/CSV. Parsed instantly in your browser; columns auto-detected and editable below.
           </DialogDescription>
         </DialogHeader>
 
         {step === 'upload' && (
-          <div className="py-8">
+          <div className="py-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                dragActive
-                  ? 'border-accent bg-accent/5'
-                  : 'border-border hover:border-accent/50'
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                dragActive ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'
               }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
+              onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg font-medium">Click to upload or drag and drop</p>
-              <p className="text-sm text-muted-foreground mt-2">Excel (.xlsx) or CSV files</p>
-              <p className="text-xs text-muted-foreground mt-1">Columns are auto-detected by header name</p>
-              <Input
-                ref={fileInputRef}
-                id="owner-file"
-                type="file"
-                accept=".xlsx,.csv"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">How it works:</p>
-              <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
-                <li>Upload your spreadsheet (.xlsx or CSV)</li>
-                <li>Columns are auto-detected and mapped to fields</li>
-                <li>Review the preview with cleaned data</li>
-                <li>Confirm to import as Landlord leads</li>
-              </ol>
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm font-medium">Click to upload or drag and drop</p>
+              <p className="text-xs text-muted-foreground mt-1">Excel (.xlsx) or CSV — any column layout</p>
+              <Input ref={fileInputRef} type="file" accept=".xlsx,.csv" onChange={handleFileSelect} className="hidden" />
             </div>
           </div>
         )}
 
         {step === 'analyzing' && (
-          <div className="py-12 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-accent" />
-            <p className="text-lg font-medium">Reading your file...</p>
-            <p className="text-sm text-muted-foreground mt-2">Parsing rows and detecting columns</p>
+          <div className="py-10 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-accent" />
+            <p className="text-sm font-medium">Reading {file?.name || 'file'}…</p>
+            <p className="text-xs text-muted-foreground mt-1">Parsing rows and detecting columns</p>
           </div>
         )}
 
         {step === 'sheet_selection' && availableSheets.length > 0 && (
-          <div className="py-6">
-            <p className="text-sm font-medium mb-4">Select which sheet to import:</p>
-            <div className="space-y-2 mb-6">
-              {availableSheets.map((sheetName) => (
-                <label key={sheetName} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors">
+          <div className="py-4">
+            <p className="text-sm font-medium mb-3">This file has multiple sheets — pick one to import:</p>
+            <div className="space-y-1.5 mb-2 max-h-60 overflow-y-auto">
+              {availableSheets.map((name) => (
+                <label key={name} className="flex items-center gap-3 p-2.5 border rounded-md cursor-pointer hover:bg-muted transition-colors">
                   <input
-                    type="radio"
-                    name="sheet"
-                    value={sheetName}
-                    checked={selectedSheet === sheetName}
+                    type="radio" name="sheet" value={name}
+                    checked={selectedSheet === name}
                     onChange={(e) => setSelectedSheet(e.target.value)}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm font-medium">{sheetName}</span>
+                  <span className="text-sm">{name}</span>
                 </label>
               ))}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setStep('upload'); setAvailableSheets([]); setSelectedSheet(null); }}>Back</Button>
-              <Button onClick={handleSheetSelect}>Continue</Button>
-            </DialogFooter>
           </div>
         )}
 
-        {step === 'preview' && aiMapping && (
-          <div>
-            <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Detected {rawData?.columns?.length} columns
-                  </p>
-                  {aiMapping.notes && (
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">{aiMapping.notes}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm font-medium mb-2">Column Mapping:</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {Object.entries(aiMapping.mappings).map(([field, column]) => (
-                  column && (
-                    <div key={field} className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] w-32 justify-start">
-                        {field.replace('_', ' ')}
-                      </Badge>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-mono">{Array.isArray(column) ? column.join(', ') : column}</span>
-                    </div>
-                  )
+        {step === 'preview' && rawData && (
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {/* Layer 3: editable column mapping */}
+            <div>
+              <p className="text-xs font-medium mb-1.5">Column mapping ({rawData.columns.length}) — adjust any if auto-detect is wrong:</p>
+              <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto border rounded-md p-2">
+                {rawData.columns.map((col) => (
+                  <div key={col} className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-mono truncate flex-1" title={col}>{col}</span>
+                    <select
+                      value={columnMap[col] || 'ignore'}
+                      onChange={(e) => setColumnTarget(col, e.target.value)}
+                      className="text-[11px] border border-input rounded px-1 py-0.5 bg-background"
+                    >
+                      {TARGET_FIELDS.map((t) => <option key={t} value={t}>{TARGET_LABELS[t]}</option>)}
+                    </select>
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className="mb-3 text-xs text-muted-foreground">
-              Showing first {preview.length} rows for preview. All {rawData?.rows?.length || 0} rows will be imported.
+            {/* Counts */}
+            <div className="flex items-center gap-2 flex-wrap text-[11px]">
+              <span className="text-muted-foreground">Preview (first {previewRows.length} of {totalRows}):</span>
+              <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">{counts.new} new</Badge>
+              <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20">{counts.duplicate} duplicate</Badge>
+              <Badge className="bg-red-500/10 text-red-700 border-red-500/20">{counts.no_phone} no phone</Badge>
             </div>
 
-            <div className="border rounded-lg bg-card overflow-hidden">
-              <div className="max-h-96 overflow-y-auto">
+            {/* Preview table — tight padding */}
+            <div className="border rounded-md overflow-x-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-muted/50">
-                  <TableRow>
-                    <TableHead className="text-xs">Owner</TableHead>
-                    <TableHead className="text-xs">Phone</TableHead>
-                    <TableHead className="text-xs">Unit</TableHead>
-                    <TableHead className="text-xs">Project</TableHead>
-                    <TableHead className="text-xs">Location</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-[11px] py-1.5">Owner</TableHead>
+                    <TableHead className="text-[11px] py-1.5">Phone</TableHead>
+                    <TableHead className="text-[11px] py-1.5">Project / Unit</TableHead>
+                    <TableHead className="text-[11px] py-1.5">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {preview.map((row, idx) => (
+                  {previewRows.map((row, idx) => (
                     <TableRow key={idx}>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{row.fullName}</p>
-                          {row.email && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Mail className="w-3 h-3" />
-                              {row.email}
-                            </div>
-                          )}
-                        </div>
+                      <TableCell className="py-1">
+                        <p className="text-xs font-medium leading-tight">{row.fullName}</p>
+                        {row.email && <p className="text-[10px] text-muted-foreground leading-tight">{row.email}</p>}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs font-mono">{row.phone || '—'}</p>
-                        </div>
-                        {row.altPhones.length > 0 && (
-                          <p className="text-[10px] text-muted-foreground">+{row.altPhones.length} alt</p>
-                        )}
+                      <TableCell className="py-1">
+                        <p className="text-[11px] font-mono">{row.primaryPhone || '—'}</p>
+                        {row.altPhones.length > 0 && <p className="text-[10px] text-muted-foreground">+{row.altPhones.length} alt</p>}
                       </TableCell>
-                      <TableCell>
-                        <p className="text-xs">{row.unitReference || '—'}</p>
+                      <TableCell className="py-1 text-[11px]">
+                        {row.projectRaw || '—'}{row.unit ? ` · ${row.unit}` : ''}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Building className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs">{row.projectRaw || '—'}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs">{row.location || '—'}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-[10px]">New</Badge>
+                      <TableCell className="py-1">
+                        {row.status === 'new' && <span className="text-[10px] text-emerald-600 font-medium">New</span>}
+                        {row.status === 'duplicate' && <span className="text-[10px] text-amber-600 font-medium">Duplicate</span>}
+                        {row.status === 'no_phone' && <span className="text-[10px] text-red-600 font-medium">No phone</span>}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-              </div>
             </div>
-
-            <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => { setStep('upload'); setAvailableSheets([]); setSelectedSheet(null); }}>Back</Button>
-              <Button 
-                onClick={handleImport} 
-                disabled={importMutation.isPending}
-                className="gap-2"
-              >
-                {importMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Import All {rawData?.rows?.length || 0} Rows
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
+            <p className="text-[10px] text-muted-foreground">
+              Duplicates are imported too (badged "possible_duplicate") — nothing is skipped. Rows with no phone can't be created.
+            </p>
           </div>
         )}
 
         {step === 'error' && (
           <div className="py-6">
-            <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium text-red-800 dark:text-red-200">Import Failed</p>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-2">{error}</p>
-                </div>
+            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+              <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800 dark:text-red-200">Couldn't read the file</p>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
-            <DialogFooter className="mt-6">
-              <Button variant="outline" onClick={() => setStep('upload')}>
-                Try Again
-              </Button>
-            </DialogFooter>
           </div>
         )}
 
         {step === 'done' && results && (
-          <div className="py-4">
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 text-center">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{results.created}</p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">Created</p>
+          <div className="py-3 space-y-3 overflow-y-auto">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 text-center">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{results.created}</p>
+                <p className="text-[10px] text-emerald-600">Created</p>
               </div>
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-center">
-                <AlertCircle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{results.skipped}</p>
-                <p className="text-xs text-amber-600 dark:text-amber-400">Skipped (duplicates)</p>
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center">
+                <AlertCircle className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+                <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{results.duplicates}</p>
+                <p className="text-[10px] text-amber-600">Created as duplicates</p>
               </div>
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
-                <XCircle className="w-6 h-6 text-red-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">{results.errored}</p>
-                <p className="text-xs text-red-600 dark:text-red-400">Errors</p>
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-center">
+                <XCircle className="w-5 h-5 text-red-600 mx-auto mb-1" />
+                <p className="text-xl font-bold text-red-700 dark:text-red-300">{results.errored}</p>
+                <p className="text-[10px] text-red-600">Errors</p>
               </div>
             </div>
-
             {results.errors.length > 0 && (
-              <div className="max-h-48 overflow-y-auto border rounded-lg p-3 mb-4">
-                <p className="text-sm font-medium mb-2">Errors:</p>
-                <ul className="text-xs space-y-1">
-                  {results.errors.map((err, idx) => (
-                    <li key={idx} className="text-red-600 dark:text-red-400">
-                      <span className="font-medium">{err.row}:</span> {err.reason}
-                    </li>
+              <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                <p className="text-xs font-medium mb-1">Errors:</p>
+                <ul className="text-[11px] space-y-0.5">
+                  {results.errors.slice(0, 100).map((e, i) => (
+                    <li key={i} className="text-red-600"><span className="font-medium">{e.row}:</span> {e.reason}</li>
                   ))}
                 </ul>
               </div>
             )}
-
-            {results.createdIds.length > 0 && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg mb-4">
-                <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200 mb-2">
-                  ✓ {results.createdIds.length} landlords created successfully
-                </p>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                  All records are in "Initial Contact" stage with source = "owner_import"
-                </p>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button onClick={handleClose}>Done</Button>
-            </DialogFooter>
           </div>
         )}
+
+        <DialogFooter className="mt-2 shrink-0">
+          {step === 'sheet_selection' && (
+            <>
+              <Button variant="outline" size="sm" onClick={resetToUpload}>Back</Button>
+              <Button size="sm" onClick={handleSheetSelect} disabled={!selectedSheet}>Continue</Button>
+            </>
+          )}
+          {step === 'preview' && (
+            <>
+              <Button variant="outline" size="sm" onClick={resetToUpload}>Back</Button>
+              <Button size="sm" onClick={() => importMutation.mutate()} disabled={importMutation.isPending} className="gap-1.5">
+                {importMutation.isPending
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Importing…</>
+                  : <><CheckCircle2 className="w-4 h-4" /> Import all {totalRows} rows</>}
+              </Button>
+            </>
+          )}
+          {step === 'error' && <Button variant="outline" size="sm" onClick={resetToUpload}>Try again</Button>}
+          {step === 'done' && <Button size="sm" onClick={handleClose}>Done</Button>}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

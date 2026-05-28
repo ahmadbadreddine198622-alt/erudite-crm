@@ -1,7 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, TrendingUp } from 'lucide-react';
+import { Phone, MessageCircle, TrendingUp, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 
 const ARCHETYPE_COLORS = {
   professional_investor: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
@@ -32,7 +35,24 @@ const ARCHETYPE_LABELS = {
 export default function LandlordCard({ landlord, isSelected, onClick }) {
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
-  
+
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: () => base44.entities.Landlord.delete(landlord.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Landlord deleted');
+    },
+    onError: (err) => toast.error('Delete failed: ' + (err?.message || 'unknown error')),
+  });
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Delete ${landlord.full_name_en || 'this landlord'}? This can't be undone.`)) {
+      deleteMutation.mutate();
+    }
+  };
+
   const getTrustColor = (score) => {
     if (!score) return 'text-muted-foreground';
     if (score >= 80) return 'text-emerald-600';
@@ -126,6 +146,15 @@ export default function LandlordCard({ landlord, isSelected, onClick }) {
           title="WhatsApp"
         >
           <MessageCircle className="w-3 h-3" />
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+          className="flex items-center justify-center px-2 py-1.5 text-xs text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+          title="Delete landlord"
+        >
+          <Trash2 className="w-3 h-3" />
         </button>
       </div>
     </div>
