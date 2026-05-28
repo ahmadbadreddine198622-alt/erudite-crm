@@ -104,19 +104,21 @@
     "stage": {
       "type": "string",
       "enum": [
-        "intake_clarify",
-        "new_buyer_lead",
-        "qualified_buyer",
-        "property_matching",
-        "viewing_engagement",
-        "offer_negotiation",
-        "mou_dld_processing",
-        "transfer_closure",
+        "contact_identity",
+        "financial_qualification",
+        "intent_lock",
+        "unit_matching",
+        "viewing",
+        "objection_offer",
+        "negotiation_deal_lock",
+        "closing_dld",
+        "closed",
         "new_tenant_lead",
         "qualified_tenant",
         "viewing_decision",
         "contract_cheques",
-        "ejari_movein"
+        "ejari_movein",
+        "intake_clarify"
       ],
       "default": "intake_clarify",
       "description": "Pipeline stage"
@@ -334,7 +336,7 @@
     "next_appointment_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Next scheduled meeting or follow-up with this lead"
+      "description": "Next scheduled meeting or follow-up"
     },
     "company": {
       "type": "string",
