@@ -280,9 +280,9 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
       for (const row of allRows) {
         try {
-          if (!row.phone || !row.fullName) {
+          if (!row.fullName) {
             stats.errored++;
-            stats.errors.push({ row: row.fullName || 'Unknown', reason: 'Missing name or phone' });
+            stats.errors.push({ row: 'Unknown', reason: 'Missing name' });
             continue;
           }
 
@@ -311,20 +311,23 @@ export default function ImportOwnersDialog({ open, onClose }) {
           // Create landlord
           const landlordData = {
             full_name_en: row.fullName,
-            phone: row.phone,
-            whatsapp: row.phone,
-            email: row.email,
             source: 'owner_import',
             stage: 'initial_contact',
             assigned_agent_email: currentUser.email,
-            unit_reference: row.unitReference,
-            project_name: row.projectRaw,
-            project_id: projectId,
-            location: row.location,
-            residence_country: row.country,
-            notes: row.notes || `Imported from spreadsheet`,
             lead_type: 'landlord_both',
           };
+          if (row.phone) {
+            landlordData.phone = row.phone;
+            landlordData.whatsapp = row.phone;
+          }
+          if (row.email) landlordData.email = row.email;
+          if (row.unitReference) landlordData.unit_reference = row.unitReference;
+          if (row.projectRaw) landlordData.project_name = row.projectRaw;
+          if (projectId) landlordData.project_id = projectId;
+          if (row.location) landlordData.location = row.location;
+          if (row.country) landlordData.residence_country = row.country;
+          if (row.notes) landlordData.notes = row.notes;
+          else landlordData.notes = 'Imported from spreadsheet';
 
           const created = await base44.entities.Landlord.create(landlordData);
           stats.created++;
