@@ -120,7 +120,7 @@ export default function Reminders() {
   };
 
   return (
-    <div className="flex h-screen -m-6 overflow-hidden bg-[#F2F2F7]">
+    <div className="flex h-screen -m-6 overflow-hidden bg-background">
       {/* Sidebar */}
       <ReminderSidebar
         activeList={activeList}
@@ -131,21 +131,21 @@ export default function Reminders() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
+      <div className="flex-1 flex flex-col min-w-0 bg-card">
         {/* Top bar */}
         <div className="flex-shrink-0 px-6 pt-6 pb-3">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-[#1C1C1E]">{listTitle}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{listTitle}</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowImport(true)}
-                className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 font-medium transition-all"
+                className="flex items-center gap-1.5 text-xs text-accent hover:text-accent px-3 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 font-medium transition-all"
               >
                 <Download className="w-3.5 h-3.5" /> Import
               </button>
               <button
                 onClick={() => setShowAdd(true)}
-                className="flex items-center gap-1.5 text-xs text-white px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 font-medium transition-all"
+                className="flex items-center gap-1.5 text-xs text-accent-foreground px-3 py-1.5 rounded-lg bg-accent hover:bg-accent/90 font-medium transition-all"
               >
                 <Plus className="w-3.5 h-3.5" /> New Reminder
               </button>
@@ -154,14 +154,14 @@ export default function Reminders() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8E8E93]" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search reminders…"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[#F2F2F7] rounded-xl border-0 outline-none placeholder:text-[#8E8E93] text-[#1C1C1E] focus:bg-[#E5E5EA] transition-colors"
-            />
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+           <input
+             type="text"
+             value={search}
+             onChange={e => setSearch(e.target.value)}
+             placeholder="Search reminders..."
+             className="w-full pl-9 pr-3 py-2 text-sm bg-secondary rounded-xl border-0 outline-none placeholder:text-muted-foreground text-foreground focus:bg-secondary/80 transition-colors"
+           />
           </div>
         </div>
 
@@ -174,7 +174,7 @@ export default function Reminders() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden border-b border-[#F2F2F7]"
+                className="overflow-hidden border-b border-border"
               >
                 <AddReminderInline
                   defaultListName={activeList.startsWith('list:') ? activeList.replace('list:', '') : ''}
@@ -187,7 +187,7 @@ export default function Reminders() {
           {grouped.map((group, gi) => (
             <div key={gi}>
               {group.label && (
-                <div className="px-6 py-2 bg-[#F9F9FB]">
+                <div className="px-6 py-2 bg-secondary">
                   <p className={`text-xs font-semibold uppercase tracking-wider ${group.labelColor}`}>
                     {group.label}
                   </p>
@@ -195,13 +195,13 @@ export default function Reminders() {
               )}
               {group.items.length === 0 && gi === 0 && (
                 <div className="text-center py-16 space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-[#F2F2F7] flex items-center justify-center mx-auto">
-                    <Sparkles className="w-6 h-6 text-[#C7C7CC]" />
+                  <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center mx-auto">
+                    <Sparkles className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm font-semibold text-[#8E8E93]">No reminders</p>
+                  <p className="text-sm font-semibold text-muted-foreground">No reminders</p>
                   <button
                     onClick={() => setShowAdd(true)}
-                    className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                    className="text-sm text-accent hover:text-accent font-medium"
                   >
                     + Add a reminder
                   </button>
@@ -249,8 +249,8 @@ export default function Reminders() {
       {/* Add List Dialog */}
       {showAddListDialog && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setShowAddListDialog(false)}>
-          <div className="bg-white rounded-2xl shadow-xl p-5 w-72 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold text-[#1C1C1E] text-sm">New List</h3>
+          <div className="bg-card rounded-2xl shadow-xl p-5 w-72 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-foreground text-sm">New List</h3>
             <div className="flex gap-2 flex-wrap">
               {LIST_COLORS.map(c => (
                 <button
@@ -267,11 +267,11 @@ export default function Reminders() {
               onChange={e => setNewListName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddList()}
               placeholder="List name"
-              className="w-full border border-[#E5E7EB] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full border border-border rounded-xl px-3 py-2 text-sm text-foreground bg-secondary focus:outline-none focus:border-accent/50"
             />
             <div className="flex gap-2">
-              <button onClick={() => setShowAddListDialog(false)} className="flex-1 py-2 text-sm text-[#8E8E93] border border-[#E5E7EB] rounded-xl hover:bg-[#F2F2F7]">Cancel</button>
-              <button onClick={handleAddList} className="flex-1 py-2 text-sm text-white bg-blue-500 rounded-xl hover:bg-blue-600">OK</button>
+              <button onClick={() => setShowAddListDialog(false)} className="flex-1 py-2 text-sm text-muted-foreground border border-border rounded-xl hover:bg-secondary">Cancel</button>
+              <button onClick={handleAddList} className="flex-1 py-2 text-sm text-accent-foreground bg-accent rounded-xl hover:bg-accent/90">OK</button>
             </div>
           </div>
         </div>
