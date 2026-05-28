@@ -2,79 +2,207 @@
   "name": "PFListing",
   "type": "object",
   "properties": {
-    "listing_id": {
+    "pf_listing_id": {
       "type": "string",
-      "description": "PF's unique listing identifier. Matches Lead.source_metadata.listing_id."
+      "description": "Property Finder listing ID (external)"
     },
-    "listing_reference": {
+    "reference_number": {
       "type": "string",
-      "description": "PF's reference code (e.g., '01K88KEW1DA8ZDQYGS6C96WT4J'). Matches Lead.source_metadata.listing_reference."
+      "description": "Agent/agency reference number"
     },
     "title": {
       "type": "string",
-      "description": "Listing title, e.g., 'Full Marina View / Spacious / Luxury Living'."
+      "description": "Listing title"
     },
-    "image_url": {
-      "type": "string",
-      "description": "Primary thumbnail URL — media.images[0].original.url (or watermarked / url fallback)."
-    },
-    "offering_type": {
-      "type": "string",
-      "enum": ["sale", "rent", "unknown"],
-      "default": "unknown",
-      "description": "Sale or rent. 'unknown' if PF didn't classify."
-    },
-    "price": {
-      "type": "number",
-      "description": "Numeric price value (AED unless currency overridden). UI handles formatting."
-    },
-    "price_period": {
-      "type": ["string", "null"],
-      "description": "For rentals: 'year' or 'month'. For sales: null."
-    },
-    "currency": {
-      "type": "string",
-      "default": "AED"
-    },
-    "location": {
-      "type": "string",
-      "description": "Best-effort human-readable location (emirate / city / area)."
-    },
-    "bedrooms": {
-      "type": "string",
-      "description": "'studio' | '1' | '2' | '3' | '4' | '5+'. String to handle 'studio' cleanly."
-    },
-    "bathrooms": {
-      "type": "integer"
-    },
-    "size_sqft": {
-      "type": "number"
+    "description": {
+      "type": "string"
     },
     "property_type": {
       "type": "string",
-      "description": "e.g., 'Apartment', 'Villa', 'Townhouse'."
+      "enum": [
+        "apartment",
+        "villa",
+        "townhouse",
+        "penthouse",
+        "studio",
+        "duplex",
+        "land",
+        "office",
+        "retail",
+        "warehouse",
+        "hotel_apartment"
+      ]
+    },
+    "listing_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ],
+      "description": "Sale or rental"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price in AED"
+    },
+    "price_per_sqft": {
+      "type": "number"
+    },
+    "area_sqft": {
+      "type": "number"
+    },
+    "bedrooms": {
+      "type": "number"
+    },
+    "bathrooms": {
+      "type": "number"
+    },
+    "location": {
+      "type": "string",
+      "description": "Community/area name"
+    },
+    "city": {
+      "type": "string",
+      "default": "Dubai"
+    },
+    "building_name": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of image URLs"
+    },
+    "amenities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "furnishing": {
+      "type": "string",
+      "enum": [
+        "furnished",
+        "semi_furnished",
+        "unfurnished"
+      ]
+    },
+    "completion_status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "off_plan"
+      ]
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date"
     },
     "status": {
       "type": "string",
-      "description": "e.g., 'live', 'archived', 'pending'."
+      "enum": [
+        "active",
+        "inactive",
+        "under_offer",
+        "sold",
+        "rented",
+        "draft",
+        "expired"
+      ],
+      "default": "active"
     },
-    "pf_url": {
+    "permit_number": {
       "type": "string",
-      "description": "Direct link to the PF listing page."
+      "description": "RERA/Trakheesi permit number"
     },
-    "raw_data": {
-      "type": "object",
-      "description": "Full PF API response, stored for future field extraction without re-syncing."
+    "developer": {
+      "type": "string"
+    },
+    "agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "agency_name": {
+      "type": "string"
+    },
+    "views_count": {
+      "type": "number",
+      "default": 0
+    },
+    "leads_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of leads generated from this listing"
+    },
+    "inquiries_count": {
+      "type": "number",
+      "default": 0
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expired_at": {
+      "type": "string",
+      "format": "date-time"
     },
     "last_synced_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp of the most recent successful sync of this listing."
+      "description": "Last time this record was synced from Property Finder"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "pending",
+        "error"
+      ],
+      "default": "synced"
+    },
+    "sync_error": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "FK to internal Property entity"
+    },
+    "pf_url": {
+      "type": "string",
+      "description": "Public URL on Property Finder portal"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
-    "listing_id",
-    "listing_reference",
-    "last_synced_at"
+    "pf_listing_id",
+    "listing_type",
+    "status"
   ]
 }
