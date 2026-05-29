@@ -38,6 +38,7 @@ const ALL_APPS = [
   { label: 'Claude AI',         icon: Sparkles,       path: '/claude-ai',           gradient: 'from-violet-400 to-purple-600',       shadow: 'shadow-violet-500/30' },
   { label: 'WhatsApp Setup',    icon: MessageCircle,  path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700',         shadow: 'shadow-slate-500/30' },
   { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30',  href: 'https://claude.ai/project/019e74b5-d3a4-75d9-865e-2dccae455384' },
+  { label: 'Find Property',      icon: Search,         path: '/find-property',       gradient: 'from-cyan-500 to-teal-600',           shadow: 'shadow-cyan-500/30',   href: 'https://aiboostmarketing.com/lookup/?token=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
 ];
 
 export default function Dashboard() {
