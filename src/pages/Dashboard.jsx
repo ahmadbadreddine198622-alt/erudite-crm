@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -43,9 +44,38 @@ const ALL_APPS = [
   { label: 'Transfer Numbers',    icon: Calculator,     path: '/transfer-breakdown',  gradient: 'from-green-500 to-teal-600',        shadow: 'shadow-green-500/30',   href: 'https://claude.ai/project/019e7460-ea5f-74e0-8efb-c3a58527c3bd' },
 ];
 
+const STORAGE_KEY = 'dashboard_app_order';
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [apps, setApps] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const savedOrder = JSON.parse(saved);
+        // Merge saved order with ALL_APPS to handle new tiles added later
+        const savedLabels = savedOrder.map(a => a.label);
+        const newApps = ALL_APPS.filter(a => !savedLabels.includes(a.label));
+        return [...savedOrder.map(s => ALL_APPS.find(a => a.label === s.label) || s), ...newApps];
+      }
+    } catch {}
+    return ALL_APPS;
+  });
+
+  const saveOrder = (newApps) => {
+    setApps(newApps);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newApps.map(a => ({ label: a.label }))));
+  };
+
+  const onDragEnd = ({ source, destination }) => {
+    if (!destination) return;
+    const next = [...apps];
+    const [moved] = next.splice(source.index, 1);
+    next.splice(destination.index, 0, moved);
+    saveOrder(next);
+  };
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
@@ -69,12 +99,12 @@ export default function Dashboard() {
   };
 
   const filtered = search.trim()
-    ? ALL_APPS.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
-    : ALL_APPS;
+    ? apps.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
+    : apps;
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center py-10 px-6"
+      className="relative min-h-screen flex flex-col items-center py-10 px-6"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
@@ -87,6 +117,18 @@ export default function Dashboard() {
         </p>
         <p className="text-sm text-white/40 mt-1">{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
+
+      {/* Edit toggle */}
+      <button
+        onClick={() => setEditMode(e => !e)}
+        className={`absolute top-5 right-6 text-xs px-3 py-1.5 rounded-full border transition-all ${
+          editMode
+            ? 'bg-accent text-accent-foreground border-accent'
+            : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20 hover:text-white'
+        }`}
+      >
+        {editMode ? 'Done' : 'Edit'}
+      </button>
 
       {/* Search */}
       <div className="relative mb-10 w-full max-w-xs">
@@ -101,40 +143,77 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid */}
-      <div className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7">
-        {filtered.map((app) => {
-          const Icon = app.icon;
-          const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
-
-          return (
-            <button
-              key={app.path}
-              onClick={() => app.href ? window.open(app.href, '_blank') : navigate(app.path)}
-              className="flex flex-col items-center gap-2 group focus:outline-none"
-            >
-              {/* Icon */}
-              <div className="relative">
-                <div
-                  className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow}
-                    group-hover:scale-110 group-active:scale-95 transition-transform duration-150`}
-                >
-                  <Icon className="w-8 h-8 text-white drop-shadow" />
-                </div>
-                {/* Badge */}
-                {badgeCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md z-10">
-                    {badgeCount > 99 ? '99+' : badgeCount}
-                  </span>
-                )}
+      {editMode && !search.trim() ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="dashboard" direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
+              >
+                {filtered.map((app, idx) => {
+                  const Icon = app.icon;
+                  return (
+                    <Draggable key={app.path} draggableId={app.path} index={idx}>
+                      {(p, snapshot) => (
+                        <div
+                          ref={p.innerRef}
+                          {...p.draggableProps}
+                          {...p.dragHandleProps}
+                          className={`flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing select-none ${
+                            snapshot.isDragging ? 'opacity-80 scale-105' : ''
+                          }`}
+                        >
+                          <div className="relative">
+                            <div className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} transition-transform`}>
+                              <Icon className="w-8 h-8 text-white drop-shadow" />
+                            </div>
+                            {/* Edit indicator */}
+                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                              <span className="text-white text-[8px]">⠿</span>
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-white/70 text-center leading-tight max-w-[72px]">{app.label}</span>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
               </div>
-              {/* Label */}
-              <span className="text-[11px] text-white/70 text-center leading-tight max-w-[72px] group-hover:text-white transition-colors">
-                {app.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      ) : (
+        <div className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7">
+          {filtered.map((app) => {
+            const Icon = app.icon;
+            const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+            return (
+              <button
+                key={app.path}
+                onClick={() => app.href ? window.open(app.href, '_blank') : navigate(app.path)}
+                className="flex flex-col items-center gap-2 group focus:outline-none"
+              >
+                <div className="relative">
+                  <div className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} group-hover:scale-110 group-active:scale-95 transition-transform duration-150`}>
+                    <Icon className="w-8 h-8 text-white drop-shadow" />
+                  </div>
+                  {badgeCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md z-10">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-white/70 text-center leading-tight max-w-[72px] group-hover:text-white transition-colors">
+                  {app.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* No results */}
       {filtered.length === 0 && (
