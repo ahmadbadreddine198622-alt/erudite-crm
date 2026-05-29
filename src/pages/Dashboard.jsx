@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
-  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake
+  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone
 } from 'lucide-react';
 
 const ALL_APPS = [
@@ -39,6 +39,7 @@ const ALL_APPS = [
   { label: 'WhatsApp Setup',    icon: MessageCircle,  path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700',         shadow: 'shadow-slate-500/30' },
   { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30',  href: 'https://claude.ai/project/019e74b5-d3a4-75d9-865e-2dccae455384' },
   { label: 'Find Property',      icon: Search,         path: '/find-property',       gradient: 'from-cyan-500 to-teal-600',           shadow: 'shadow-cyan-500/30',   href: 'https://aiboostmarketing.com/lookup/?token=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
+  { label: 'DLD Lookup',         icon: Phone,          path: '/dld-lookup',          gradient: 'from-purple-500 to-pink-600',         shadow: 'shadow-purple-500/30',  href: 'https://aiboostmarketing.com/smart-bot/?user=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
 ];
 
 export default function Dashboard() {
