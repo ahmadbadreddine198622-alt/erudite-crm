@@ -45,7 +45,7 @@ const ALL_APPS = [
 ];
 
 const STORAGE_KEY = 'dashboard_app_order';
-const LONG_PRESS_MS = 500;
+const LONG_PRESS_MS = 2000;
 
 export default function Dashboard() {
   const navigate = useNavigate();
