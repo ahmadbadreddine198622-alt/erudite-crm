@@ -40,6 +40,7 @@ const ALL_APPS = [
   { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30',  href: 'https://claude.ai/project/019e74b5-d3a4-75d9-865e-2dccae455384' },
   { label: 'Find Property',      icon: Search,         path: '/find-property',       gradient: 'from-cyan-500 to-teal-600',           shadow: 'shadow-cyan-500/30',   href: 'https://aiboostmarketing.com/lookup/?token=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
   { label: 'DLD Lookup',         icon: Phone,          path: '/dld-lookup',          gradient: 'from-purple-500 to-pink-600',         shadow: 'shadow-purple-500/30',  href: 'https://aiboostmarketing.com/smart-bot/?user=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
+  { label: 'Transfer Numbers',    icon: Calculator,     path: '/transfer-breakdown',  gradient: 'from-green-500 to-teal-600',        shadow: 'shadow-green-500/30',   href: 'https://claude.ai/project/019e7460-ea5f-74e0-8efb-c3a58527c3bd' },
 ];
 
 export default function Dashboard() {
