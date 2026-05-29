@@ -1,0 +1,100 @@
+{
+  "name": "FormAReferral",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "accepted",
+        "completed",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "referring_agent_name": {
+      "type": "string"
+    },
+    "referring_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "referring_agent_phone": {
+      "type": "string"
+    },
+    "referring_agency_name": {
+      "type": "string"
+    },
+    "receiving_agent_name": {
+      "type": "string"
+    },
+    "receiving_agent_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "receiving_agent_phone": {
+      "type": "string"
+    },
+    "receiving_agency_name": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "client_phone": {
+      "type": "string"
+    },
+    "property_community": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "apartment",
+        "villa",
+        "townhouse",
+        "penthouse",
+        "studio",
+        "duplex",
+        "office",
+        "retail",
+        "land"
+      ]
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ],
+      "default": "sale"
+    },
+    "listing_price_aed": {
+      "type": "number"
+    },
+    "referral_commission_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "referral_fee_aed": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "referring_agent_name",
+    "receiving_agent_name",
+    "client_name"
+  ]
+}

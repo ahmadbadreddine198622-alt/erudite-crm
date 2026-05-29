@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
-  GitMerge, Mail, FolderOpen, Brain, MapPin, Search
+  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake
 } from 'lucide-react';
 
 const ALL_APPS = [
@@ -37,6 +37,7 @@ const ALL_APPS = [
   { label: 'Email Automations', icon: Mail,           path: '/email-automations',   gradient: 'from-indigo-500 to-blue-600',         shadow: 'shadow-indigo-500/30' },
   { label: 'Claude AI',         icon: Sparkles,       path: '/claude-ai',           gradient: 'from-violet-400 to-purple-600',       shadow: 'shadow-violet-500/30' },
   { label: 'WhatsApp Setup',    icon: MessageCircle,  path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700',         shadow: 'shadow-slate-500/30' },
+  { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30' },
 ];
 
 export default function Dashboard() {

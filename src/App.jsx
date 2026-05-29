@@ -37,6 +37,7 @@ import PropertyFinderSync from '@/pages/PropertyFinderSync';
 import Landlords from '@/pages/Landlords';
 import EmailAutomations from '@/pages/EmailAutomations';
 import Projects from '@/pages/Projects';
+import FormAReferral from '@/pages/FormAReferral';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -94,6 +95,7 @@ const AuthenticatedApp = () => {
         <Route path="/duplicates" element={<DuplicateDetector />} />
         <Route path="/email-automations" element={<EmailAutomations />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/form-a-referral" element={<FormAReferral />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
