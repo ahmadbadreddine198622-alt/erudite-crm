@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -45,11 +45,21 @@ const ALL_APPS = [
 ];
 
 const STORAGE_KEY = 'dashboard_app_order';
+const LONG_PRESS_MS = 500;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const pressTimer = useRef(null);
+
+  const startPress = useCallback(() => {
+    pressTimer.current = setTimeout(() => setEditMode(true), LONG_PRESS_MS);
+  }, []);
+
+  const cancelPress = useCallback(() => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+  }, []);
   const [apps, setApps] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -118,17 +128,15 @@ export default function Dashboard() {
         <p className="text-sm text-white/40 mt-1">{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
-      {/* Edit toggle */}
-      <button
-        onClick={() => setEditMode(e => !e)}
-        className={`absolute top-5 right-6 text-xs px-3 py-1.5 rounded-full border transition-all ${
-          editMode
-            ? 'bg-accent text-accent-foreground border-accent'
-            : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20 hover:text-white'
-        }`}
-      >
-        {editMode ? 'Done' : 'Edit'}
-      </button>
+      {/* Done button — only visible in edit mode */}
+      {editMode && (
+        <button
+          onClick={() => setEditMode(false)}
+          className="absolute top-5 right-6 text-sm font-semibold text-accent z-20"
+        >
+          Done
+        </button>
+      )}
 
       {/* Search */}
       <div className="relative mb-10 w-full max-w-xs">
@@ -143,77 +151,70 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid */}
-      {editMode && !search.trim() ? (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="dashboard" direction="horizontal">
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
-              >
-                {filtered.map((app, idx) => {
-                  const Icon = app.icon;
-                  return (
-                    <Draggable key={app.path} draggableId={app.path} index={idx}>
-                      {(p, snapshot) => (
-                        <div
-                          ref={p.innerRef}
-                          {...p.draggableProps}
-                          {...p.dragHandleProps}
-                          className={`flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing select-none ${
-                            snapshot.isDragging ? 'opacity-80 scale-105' : ''
-                          }`}
-                        >
-                          <div className="relative">
-                            <div className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} transition-transform`}>
-                              <Icon className="w-8 h-8 text-white drop-shadow" />
-                            </div>
-                            {/* Edit indicator */}
-                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                              <span className="text-white text-[8px]">⠿</span>
-                            </span>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
+            >
+              {filtered.map((app, idx) => {
+                const Icon = app.icon;
+                const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+                return (
+                  <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
+                    {(p, snapshot) => (
+                      <div
+                        ref={p.innerRef}
+                        {...p.draggableProps}
+                        {...p.dragHandleProps}
+                        onMouseDown={!editMode ? startPress : undefined}
+                        onMouseUp={!editMode ? cancelPress : undefined}
+                        onMouseLeave={!editMode ? cancelPress : undefined}
+                        onTouchStart={!editMode ? startPress : undefined}
+                        onTouchEnd={!editMode ? cancelPress : undefined}
+                        onClick={() => {
+                          if (editMode) return;
+                          app.href ? window.open(app.href, '_blank') : navigate(app.path);
+                        }}
+                        className={`flex flex-col items-center gap-2 select-none focus:outline-none ${
+                          editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                        }`}
+                      >
+                        <div className="relative">
+                          <div
+                            className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} ${
+                              editMode && !snapshot.isDragging ? 'animate-wiggle' : ''
+                            } ${
+                              snapshot.isDragging ? 'scale-110 opacity-80' : ''
+                            } ${
+                              !editMode ? 'transition-transform duration-150 active:scale-95' : ''
+                            }`}
+                          >
+                            <Icon className="w-8 h-8 text-white drop-shadow" />
                           </div>
-                          <span className="text-[11px] text-white/70 text-center leading-tight max-w-[72px]">{app.label}</span>
+                          {badgeCount > 0 && !editMode && (
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md z-10">
+                              {badgeCount > 99 ? '99+' : badgeCount}
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      ) : (
-        <div className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7">
-          {filtered.map((app) => {
-            const Icon = app.icon;
-            const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
-            return (
-              <button
-                key={app.path}
-                onClick={() => app.href ? window.open(app.href, '_blank') : navigate(app.path)}
-                className="flex flex-col items-center gap-2 group focus:outline-none"
-              >
-                <div className="relative">
-                  <div className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} group-hover:scale-110 group-active:scale-95 transition-transform duration-150`}>
-                    <Icon className="w-8 h-8 text-white drop-shadow" />
-                  </div>
-                  {badgeCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md z-10">
-                      {badgeCount > 99 ? '99+' : badgeCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] text-white/70 text-center leading-tight max-w-[72px] group-hover:text-white transition-colors">
-                  {app.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                        <span className={`text-[11px] text-center leading-tight max-w-[72px] ${
+                          editMode ? 'text-white/50' : 'text-white/70'
+                        }`}>
+                          {app.label}
+                        </span>
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {/* No results */}
       {filtered.length === 0 && (
