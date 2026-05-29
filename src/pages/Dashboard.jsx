@@ -37,7 +37,7 @@ const ALL_APPS = [
   { label: 'Email Automations', icon: Mail,           path: '/email-automations',   gradient: 'from-indigo-500 to-blue-600',         shadow: 'shadow-indigo-500/30' },
   { label: 'Claude AI',         icon: Sparkles,       path: '/claude-ai',           gradient: 'from-violet-400 to-purple-600',       shadow: 'shadow-violet-500/30' },
   { label: 'WhatsApp Setup',    icon: MessageCircle,  path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700',         shadow: 'shadow-slate-500/30' },
-  { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30' },
+  { label: 'Form A Referral',   icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-400 to-orange-500',        shadow: 'shadow-amber-500/30',  href: 'https://claude.ai/project/019e74b5-d3a4-75d9-865e-2dccae455384' },
 ];
 
 export default function Dashboard() {
@@ -106,7 +106,7 @@ export default function Dashboard() {
           return (
             <button
               key={app.path}
-              onClick={() => navigate(app.path)}
+              onClick={() => app.href ? window.open(app.href, '_blank') : navigate(app.path)}
               className="flex flex-col items-center gap-2 group focus:outline-none"
             >
               {/* Icon */}
