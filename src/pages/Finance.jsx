@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { FileText, TrendingUp, Users, BarChart3, AlertCircle } from 'lucide-react';
+import { FileText, TrendingUp, Users, BarChart3, AlertCircle, CreditCard, BookOpen } from 'lucide-react';
 import InvoiceList from '@/components/finance/InvoiceList';
 import AgentCommissionReport from '@/components/finance/AgentCommissionReport';
 import FinancialOverview from '@/components/finance/FinancialOverview';
 import FinanceAlerts from '@/components/finance/FinanceAlerts';
+import InvoiceManager from '@/components/finance/InvoiceManager';
+import PaymentManager from '@/components/finance/PaymentManager';
+import IncomeRecordTable from '@/components/finance/IncomeRecordTable';
 
 const TABS = [
-  { id: 'overview',     label: 'Overview',    icon: BarChart3 },
-  { id: 'invoices',     label: 'Invoices',    icon: FileText },
-  { id: 'commissions',  label: 'Commissions', icon: TrendingUp },
-  { id: 'alerts',       label: 'Alerts',      icon: AlertCircle },
+  { id: 'overview',      label: 'Overview',       icon: BarChart3 },
+  { id: 'invoices',      label: 'Invoices',       icon: FileText },
+  { id: 'payments',      label: 'Payments',       icon: CreditCard },
+  { id: 'income',        label: 'Income Records', icon: BookOpen },
+  { id: 'commissions',   label: 'Commissions',    icon: TrendingUp },
+  { id: 'alerts',        label: 'Alerts',         icon: AlertCircle },
 ];
 
 export default function Finance() {
@@ -77,7 +82,13 @@ export default function Finance() {
         <FinancialOverview invoices={invoices} commissions={commissions} />
       )}
       {activeTab === 'invoices' && (
-        <InvoiceList invoices={invoices} leads={leads} properties={properties} commissions={commissions} />
+        <InvoiceManager />
+      )}
+      {activeTab === 'payments' && (
+        <PaymentManager />
+      )}
+      {activeTab === 'income' && (
+        <IncomeRecordTable />
       )}
       {activeTab === 'commissions' && (
         <AgentCommissionReport commissions={commissions} invoices={invoices} />
