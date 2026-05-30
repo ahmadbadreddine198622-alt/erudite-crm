@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import QuickActionsPanel from '@/components/shared/QuickActionsPanel';
 import HeroDock from '@/components/ui/HeroDock';
 import { Menu } from 'lucide-react';
 
@@ -34,6 +35,7 @@ export default function AppLayout() {
       </main>
       <MobileNav />
       <HeroDock />
+      <QuickActionsPanel />
     </div>
   );
 }

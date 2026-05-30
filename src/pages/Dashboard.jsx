@@ -13,6 +13,7 @@ import {
   Calendar, TrendingUp, Activity
 } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
+import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -336,6 +337,11 @@ export default function Dashboard() {
         </Droppable>
       </DragDropContext>
 
+      </div>
+
+      {/* AI Insights */}
+      <div className="w-full max-w-3xl mt-8">
+        <AIInsightsDashboard />
       </div>
 
       {/* No results */}
