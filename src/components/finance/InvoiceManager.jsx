@@ -95,12 +95,14 @@ export default function InvoiceManager() {
     const vat = Math.round(commission * 0.05 * 100) / 100;
     const total = Math.round((commission + vat) * 100) / 100;
     const cleanPD = Object.fromEntries(Object.entries(form.property_details).filter(([, v]) => v));
+    // eslint-disable-next-line no-unused-vars
+    const { property_source, property_details: _pd, ...rest } = form;
     const payload = {
-      ...form,
+      ...rest,
       commission_amount: commission,
       vat_amount: vat,
       total_amount: total,
-      property_details: Object.keys(cleanPD).length ? cleanPD : undefined,
+      ...(Object.keys(cleanPD).length ? { property_details: cleanPD } : {}),
     };
     createInvoice.mutate(payload);
   };
