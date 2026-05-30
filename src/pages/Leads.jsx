@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Plus, Search, Download, Wand2, GitMerge, ChevronUp, ChevronDown,
-  ChevronsUpDown, X, CalendarDays, SlidersHorizontal
+  ChevronsUpDown, X, CalendarDays, SlidersHorizontal, Clock, TrendingUp, DollarSign, UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -144,6 +144,29 @@ export default function Leads() {
   useEffect(() => { setPage(1); }, [search, intentFilter, stageFilter, statusFilter, sourceFilter, agentFilter, apptFilter, projectFilter, dealMin, dealMax]);
 
   const now = new Date();
+  
+  // Management intelligence calculations
+  const totalPipelineValue = leads.reduce((sum, l) => sum + (l.deal_value_aed || 0), 0);
+  const followUpsToday = leads.filter(l => {
+    if (!l.next_appointment_at) return false;
+    const apptDate = new Date(l.next_appointment_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return apptDate >= today && apptDate < tomorrow;
+  }).length;
+  const stalledLeads = leads.filter(l => {
+    if (!l.created_date) return false;
+    const daysSinceCreation = (now - new Date(l.created_date).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceCreation > 14 && l.status === 'active';
+  }).length;
+  const newThisWeek = leads.filter(l => {
+    if (!l.created_date) return false;
+    const daysSinceCreation = (now - new Date(l.created_date).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceCreation <= 7;
+  }).length;
+
   const filtered = useMemo(() => {
     let result = leads;
     if (search) {
@@ -203,6 +226,68 @@ export default function Leads() {
         background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
       }}
     >
+      {/* Management Intelligence Strip */}
+      <div className="grid grid-cols-4 gap-3 mb-6">
+        <div
+          className="rounded-xl p-3"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Pipeline Value</span>
+          </div>
+          <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
+            {totalPipelineValue >= 1_000_000 ? `AED ${(totalPipelineValue / 1_000_000).toFixed(1)}M` : totalPipelineValue >= 1_000 ? `AED ${(totalPipelineValue / 1_000).toFixed(0)}K` : `AED ${totalPipelineValue}`}
+          </p>
+        </div>
+        <div
+          className="rounded-xl p-3"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Due Today</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{followUpsToday}</p>
+        </div>
+        <div
+          className="rounded-xl p-3"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;14d</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
+        </div>
+        <div
+          className="rounded-xl p-3"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>New This Week</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{newThisWeek}</p>
+        </div>
+      </div>
+
       <PageHeader title="Leads" subtitle={`${sorted.length.toLocaleString()} leads${filtered.length < leads.length ? ` of ${leads.length.toLocaleString()}` : ''}`}>
         <Button size="sm" variant="outline" onClick={() => setFiltersOpen(v => !v)} className="gap-1.5 relative">
           <SlidersHorizontal className="w-4 h-4" /> Filters
@@ -265,10 +350,10 @@ export default function Leads() {
           <div
             className="flex flex-wrap gap-2 p-3 rounded-xl"
             style={{
-              background: 'rgba(255,255,255,0.04)',
+              background: 'rgba(255,255,255,0.07)',
               backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.09)',
-              borderTopColor: 'rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderTopColor: 'rgba(255,255,255,0.18)',
             }}
           >
             <Select value={stageFilter} onValueChange={setStageFilter}>
@@ -347,20 +432,20 @@ export default function Leads() {
 
       {/* Table */}
       <div
-        className="overflow-hidden rounded-xl"
+        className="overflow-hidden rounded-2xl"
         style={{
-          background: 'rgba(255,255,255,0.025)',
+          background: 'rgba(255,255,255,0.07)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderTopColor: 'rgba(255,255,255,0.14)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderTopColor: 'rgba(255,255,255,0.18)',
+          boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
         }}
       >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow style={{ background: 'rgba(8,11,18,0.7)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <TableRow style={{ background: 'rgba(8,11,18,0.7)', borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
                 <TableHead className="w-8">
                   <input
                     type="checkbox"
@@ -372,16 +457,12 @@ export default function Leads() {
                     }}
                   />
                 </TableHead>
-                <SortableHead label="Name" col="name" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[160px]" />
+                <SortableHead label="Name" col="name" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[180px]" />
                 <TableHead className="text-xs">Phone</TableHead>
-                <TableHead className="text-xs">Source</TableHead>
-                <TableHead className="text-xs">Intent</TableHead>
-                <TableHead className="text-xs min-w-[160px]">Stage</TableHead>
+                <SortableHead label="Deal (AED)" col="deal_value_aed" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[120px]" />
+                <TableHead className="text-xs min-w-[140px]">Stage</TableHead>
+                <SortableHead label="Next Appt" col="next_appointment_at" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[120px]" />
                 <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">Agent</TableHead>
-                <SortableHead label="Deal (AED)" col="deal_value_aed" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Next Appt" col="next_appointment_at" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Created" col="created_date" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,11 +475,11 @@ export default function Leads() {
                     key={lead.id}
                     className="cursor-pointer transition-all duration-150"
                     style={{
-                      background: selectedIds.has(lead.id) ? 'rgba(245,159,10,0.07)' : 'transparent',
-                      borderLeft: selectedIds.has(lead.id) ? '2px solid rgba(245,159,10,0.5)' : '2px solid transparent',
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      background: selectedIds.has(lead.id) ? 'rgba(245,159,10,0.08)' : 'transparent',
+                      borderLeft: selectedIds.has(lead.id) ? '3px solid rgba(245,159,10,0.6)' : '3px solid transparent',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
-                    onMouseEnter={e => { if (!selectedIds.has(lead.id)) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                    onMouseEnter={e => { if (!selectedIds.has(lead.id)) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                     onMouseLeave={e => { if (!selectedIds.has(lead.id)) e.currentTarget.style.background = 'transparent'; }}
                     onClick={() => setSelectedLead(lead)}
                   >
@@ -416,11 +497,16 @@ export default function Leads() {
                     </TableCell>
                     {/* Name */}
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent shrink-0">
                           {name[0]?.toUpperCase() || '?'}
                         </div>
-                        <span className="font-medium text-sm truncate max-w-[120px]">{name}</span>
+                        <div>
+                          <span className="font-bold text-sm truncate block max-w-[160px]" style={{ color: 'rgba(255,255,255,0.95)' }}>{name}</span>
+                          {lead.deal_value_aed > 0 && (
+                            <span className="text-xs font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{formatDealValue(lead.deal_value_aed)}</span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     {/* Phone */}
@@ -430,55 +516,31 @@ export default function Leads() {
                           phone={lead.phone}
                           name={name}
                           leadId={lead.id}
-                          size="xs"
+                          size="sm"
                           disabled={lead.do_not_contact}
                         />
                       )}
                     </TableCell>
-                    {/* Source */}
-                    <TableCell><SourceBadge source={lead.source} /></TableCell>
-                    {/* Intent */}
-                    <TableCell>
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${INTENT_COLORS[lead.intent] || INTENT_COLORS.unknown}`}>
-                        {INTENT_LABELS[lead.intent] || 'Unknown'}
-                      </span>
-                    </TableCell>
                     {/* Stage */}
                     <TableCell>
-                      <span className="text-xs text-muted-foreground truncate max-w-[150px] block">
+                      <span className="text-xs font-medium truncate max-w-[160px] block" style={{ color: 'rgba(255,255,255,0.75)' }}>
                         {stageMeta?.label || lead.stage || '—'}
                       </span>
-                    </TableCell>
-                    {/* Status */}
-                    <TableCell>
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLORS[lead.status] || ''}`}>
-                        {STATUS_LABELS[lead.status] || lead.status || '—'}
-                      </span>
-                    </TableCell>
-                    {/* Agent */}
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground truncate max-w-[100px] block">
-                        {lead.assigned_agent_name || '—'}
-                      </span>
-                    </TableCell>
-                    {/* Deal value */}
-                    <TableCell>
-                      {lead.deal_value_aed > 0
-                        ? <span className="text-xs font-semibold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatDealValue(lead.deal_value_aed)}</span>
-                        : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
                     </TableCell>
                     {/* Next appt */}
                     <TableCell>
                       {lead.next_appointment_at ? (
-                        <span className={`text-xs inline-flex items-center gap-1 ${hasUpcomingAppt ? 'text-purple-600' : 'text-muted-foreground'}`}>
+                        <span className={`text-xs font-medium inline-flex items-center gap-1 ${hasUpcomingAppt ? 'text-purple-400' : 'text-muted-foreground'}`}>
                           <CalendarDays className="w-3 h-3 shrink-0" />
                           {format(parseISO(lead.next_appointment_at), 'MMM d')}
                         </span>
-                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                      ) : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>—</span>}
                     </TableCell>
-                    {/* Created */}
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {lead.created_date ? format(new Date(lead.created_date), 'MMM d, yy') : '—'}
+                    {/* Status */}
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border ${STATUS_COLORS[lead.status] || ''}`}>
+                        {STATUS_LABELS[lead.status] || lead.status || '—'}
+                      </span>
                     </TableCell>
                   </TableRow>
                 );

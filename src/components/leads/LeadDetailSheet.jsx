@@ -156,9 +156,9 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
-        <SheetHeader className="p-6 pb-4 border-b">
+        <SheetHeader className="p-6 pb-4" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-lg font-bold text-accent">
+            <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent">
               {lead.name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">

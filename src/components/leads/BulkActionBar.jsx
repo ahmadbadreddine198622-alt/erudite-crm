@@ -79,7 +79,16 @@ export default function BulkActionBar({ selectedIds, onClear }) {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 flex-wrap max-w-[90vw]">
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 flex-wrap max-w-[90vw]"
+      style={{
+        background: 'rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderTopColor: 'rgba(255,255,255,0.25)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      }}
+    >
       <div className="flex items-center gap-2 shrink-0">
         <CheckSquare className="w-4 h-4 text-accent" />
         <span className="font-semibold text-sm">{selectedIds.size} selected</span>
