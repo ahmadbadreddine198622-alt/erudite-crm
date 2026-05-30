@@ -165,8 +165,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* App Grid */}
-      <div className="ios-grid-enter w-full flex flex-col items-center pb-32">
+      {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
+      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
           {(provided) => (

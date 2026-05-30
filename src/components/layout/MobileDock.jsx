@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, LayoutDashboard, Users, Building2, KanbanSquare, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -73,6 +73,15 @@ function MobileDockIcon({ icon: Icon, gradient, active, label, onClick }) {
 
 export default function MobileDock() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Explicit nav handler — bulletproof against any overlay swallowing the click
+  // and against nested <Link><button> click-bubbling quirks.
+  const goHome = React.useCallback((e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    navigate('/');
+  }, [navigate]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -100,32 +109,7 @@ export default function MobileDock() {
             gap: '2px',
           }}
         >
-          <div style={{ position: 'relative', top: '-14px', zIndex: 10 }}>
-            <Link to="/">
-              <button
-                className="transition-transform duration-150 hover:scale-105 active:scale-95"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '22%',
-                  background: 'rgba(245, 159, 10, 0.15)',
-                  backdropFilter: 'blur(28px) saturate(200%)',
-                  WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                  border: '2px solid rgba(245, 159, 10, 0.45)',
-                  borderTopColor: 'rgba(255, 255, 255, 0.45)',
-                  boxShadow: '0 10px 32px rgba(245, 159, 10, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-700 opacity-30" style={{ borderRadius: '22%' }} />
-                <div className="absolute inset-0" style={{ borderRadius: '22%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 55%)', pointerEvents: 'none' }} />
-                <Home className="relative z-10" style={{ width: 24, height: 24, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))' }} />
-              </button>
-            </Link>
-          </div>
+          {/* LEFT side (before elevated home) */}
           {navItems.slice(0, 2).map((item) => (
             <Link key={item.path} to={item.path}>
               <MobileDockIcon
@@ -136,6 +120,43 @@ export default function MobileDock() {
               />
             </Link>
           ))}
+
+          {/* ELEVATED CENTER HOME BUTTON — sits between left and right items so it's actually centered.
+              Uses explicit onClick + onTouchEnd so a stray overlay or nested-Link quirk can't swallow the tap. */}
+          <button
+            type="button"
+            onClick={goHome}
+            onTouchEnd={goHome}
+            aria-label="Home"
+            aria-current={location.pathname === '/' ? 'page' : undefined}
+            className="transition-transform duration-150 hover:scale-105 active:scale-95 relative"
+            style={{
+              position: 'relative',
+              top: '-14px',
+              zIndex: 10,
+              width: 56,
+              height: 56,
+              borderRadius: '22%',
+              background: 'rgba(245, 159, 10, 0.15)',
+              backdropFilter: 'blur(28px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+              border: '2px solid rgba(245, 159, 10, 0.45)',
+              borderTopColor: 'rgba(255, 255, 255, 0.45)',
+              boxShadow: '0 10px 32px rgba(245, 159, 10, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              margin: '0 4px',
+            }}
+          >
+            {/* Overlays are pointer-events:none so the underlying button always gets the click */}
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-700 opacity-30 pointer-events-none" style={{ borderRadius: '22%' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: '22%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 55%)' }} />
+            <Home className="relative z-10 pointer-events-none" style={{ width: 24, height: 24, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))' }} />
+          </button>
+
+          {/* RIGHT side (after elevated home) */}
           {navItems.slice(2).map((item) => (
             <Link key={item.path} to={item.path}>
               <MobileDockIcon

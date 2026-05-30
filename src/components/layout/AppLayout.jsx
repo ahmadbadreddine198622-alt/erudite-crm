@@ -21,7 +21,7 @@ export default function AppLayout() {
         />
       )}
 
-      <main className="flex-1 overflow-x-hidden pb-20 md:pb-0 relative">
+      <main className="flex-1 overflow-x-hidden pb-28 md:pb-0 relative">
         {/* Hamburger button */}
         <button
           onClick={() => setSidebarOpen(true)}
