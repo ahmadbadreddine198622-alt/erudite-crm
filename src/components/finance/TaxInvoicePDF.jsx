@@ -273,6 +273,47 @@ export async function buildInvoicePDF(invoice, opts = {}) {
     y += 2;
   }
 
+  // ── Property Details block ────────────────────────────────────────────────
+  const pd = opts.propertyDetails || {};
+  const pdRows = [
+    ['Building / Tower',      pd.building_name],
+    ['Project / Community',   pd.location],
+    ['Property Type',         pd.property_type],
+    ['Permit / Ref No',       pd.permit_number],
+    ['Address',               pd.address],
+  ].filter(([, v]) => v);
+
+  if (pdRows.length) {
+    doc.setFillColor(...BRAND.navy);
+    doc.rect(tableX, y, tableW, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('PROPERTY DETAILS', tableX + 3, y + 5.5);
+    y += 8;
+
+    pdRows.forEach(([label, val], i) => {
+      if (i % 2 === 0) {
+        doc.setFillColor(...BRAND.light);
+        doc.rect(tableX, y, tableW, 7, 'F');
+      }
+      doc.setTextColor(...BRAND.muted);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text(label, tableX + 3, y + 5);
+      doc.setTextColor(...BRAND.text);
+      doc.setFont('helvetica', 'bold');
+      const valStr = doc.splitTextToSize(String(val), tableW - 64)[0] || '';
+      doc.text(valStr, tableX + 62, y + 5);
+      y += 7;
+    });
+
+    doc.setDrawColor(...BRAND.hairline);
+    doc.setLineWidth(0.2);
+    doc.line(tableX, y, tableX + tableW, y);
+    y += 8;
+  }
+
   const blockStartY = y;
   doc.setTextColor(...BRAND.muted);
   doc.setFont('helvetica', 'bold');
@@ -408,24 +449,28 @@ export function GeneratePDFButton({ invoice }) {
   const handleClick = async () => {
     setLoading(true);
     try {
-      // Resolve property label from linked Deal → Property
+      // Resolve property details from linked Deal → Property
       let propertyLabel = '';
+      let propertyDetails = {};
       if (invoice.deal_id) {
         try {
           const deal = await base44.entities.Deal.get(invoice.deal_id);
           if (deal?.property_id) {
             const prop = await base44.entities.Property.get(deal.property_id);
             if (prop) {
-              const parts = [
-                prop.building_name || prop.title,
-                prop.address || prop.location,
-              ].filter(Boolean);
-              propertyLabel = parts.join(', ');
+              propertyLabel = [prop.building_name, prop.location].filter(Boolean).join(' — ');
+              propertyDetails = {
+                building_name: prop.building_name || '',
+                location: prop.location || '',
+                property_type: prop.property_type ? prop.property_type.replace(/_/g, ' ') : '',
+                permit_number: prop.permit_number || '',
+                address: prop.address || '',
+              };
             }
           }
         } catch { /* non-fatal — leave blank */ }
       }
-      const doc = await buildInvoicePDF(invoice, { propertyLabel });
+      const doc = await buildInvoicePDF(invoice, { propertyLabel, propertyDetails });
       const blob = doc.output('blob');
       const fileName = `${invoice.invoice_number || 'INV'}_${sanitizeFileSegment(invoice.payer_name)}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
