@@ -16,11 +16,11 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const STATUS_STYLES = {
-  pending:   'bg-amber-500/10 text-amber-600',
-  partial:   'bg-blue-500/10 text-blue-600',
-  paid:      'bg-emerald-500/10 text-emerald-600',
-  overdue:   'bg-red-500/10 text-red-600',
-  cancelled: 'bg-gray-200 text-gray-500',
+  pending:   'bg-amber-500/15 text-amber-400 border border-amber-500/25',
+  partial:   'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+  paid:      'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25',
+  overdue:   'bg-red-500/15 text-red-400 border border-red-500/25',
+  cancelled: 'bg-white/5 text-white/30 border border-white/10',
 };
 
 function generateInvoiceNumber(existing) {
@@ -78,11 +78,21 @@ export default function InvoiceList({ invoices, leads, properties, commissions }
       </div>
 
       {/* Table */}
-      <Card className="overflow-hidden">
+      <div
+        className="overflow-hidden rounded-xl"
+        style={{
+          background: 'rgba(255,255,255,0.025)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderTopColor: 'rgba(255,255,255,0.14)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
+              <TableRow style={{ background: 'rgba(8,11,18,0.7)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 {['Invoice #', 'Type', 'Lead', 'Agent', 'Base', 'VAT (5%)', 'Total', 'Status', 'Due Date', 'Action'].map(h => (
                   <TableHead key={h} className="text-xs whitespace-nowrap">{h}</TableHead>
                 ))}
@@ -90,14 +100,20 @@ export default function InvoiceList({ invoices, leads, properties, commissions }
             </TableHeader>
             <TableBody>
               {filtered.map(inv => (
-                <TableRow key={inv.id} className="hover:bg-muted/30">
-                  <TableCell className="text-xs font-mono font-semibold text-primary">{inv.invoice_number}</TableCell>
+                <TableRow
+                  key={inv.id}
+                  className="transition-colors duration-150"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <TableCell className="text-xs font-mono font-semibold" style={{ color: 'hsl(38 92% 50%)' }}>{inv.invoice_number}</TableCell>
                   <TableCell><Badge variant="outline" className="text-[10px] capitalize">{inv.invoice_type?.replace(/_/g, ' ')}</Badge></TableCell>
                   <TableCell className="text-xs">{inv.lead_name || '—'}</TableCell>
                   <TableCell className="text-xs">{inv.agent_name || '—'}</TableCell>
-                  <TableCell className="text-xs font-medium">{formatAED(inv.base_amount_aed)}</TableCell>
-                  <TableCell className="text-xs text-blue-600">{formatAED(inv.vat_amount_aed)}</TableCell>
-                  <TableCell className="text-sm font-bold text-accent">{formatAED(inv.total_amount_aed)}</TableCell>
+                  <TableCell className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.75)', fontVariantNumeric: 'tabular-nums' }}>{formatAED(inv.base_amount_aed)}</TableCell>
+                  <TableCell className="text-xs text-blue-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAED(inv.vat_amount_aed)}</TableCell>
+                  <TableCell className="text-sm font-bold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatAED(inv.total_amount_aed)}</TableCell>
                   <TableCell>
                     <Badge className={cn("text-[10px] capitalize", STATUS_STYLES[inv.payment_status])}>
                       {inv.payment_status}
@@ -131,7 +147,7 @@ export default function InvoiceList({ invoices, leads, properties, commissions }
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </div>
 
       <CreateInvoiceDialog
         open={showCreate}

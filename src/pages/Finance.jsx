@@ -40,7 +40,12 @@ export default function Finance() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+    <div
+      className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 min-h-screen"
+      style={{
+        background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
+      }}
+    >
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -57,18 +62,21 @@ export default function Finance() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
+      <div
+        className="flex gap-1"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+      >
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
-                activeTab === tab.id
-                  ? 'border-accent text-accent'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-all -mb-px"
+              style={{
+                borderBottom: activeTab === tab.id ? '2px solid hsl(38 92% 50%)' : '2px solid transparent',
+                color: activeTab === tab.id ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.45)',
+              }}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
