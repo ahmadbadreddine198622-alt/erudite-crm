@@ -5,26 +5,27 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, LayoutDashboard, Users, Building2, KanbanSquare, Bell } from 'lucide-react';
+import { Home, Users, Building2, KanbanSquare, Bell, MessageCircle, Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: 'Home',      icon: LayoutDashboard, path: '/',          gradient: 'from-blue-900 to-blue-950' },
   { label: 'Pipeline',  icon: KanbanSquare,    path: '/pipeline',  gradient: 'from-violet-900 to-purple-950' },
   { label: 'Leads',     icon: Users,           path: '/leads',     gradient: 'from-emerald-800 to-emerald-950' },
-  { label: 'Property',  icon: Building2,       path: '/landlords', gradient: 'from-sky-900 to-cyan-950' },
+  { label: 'Landlords', icon: Building2,       path: '/landlords', gradient: 'from-amber-900 to-orange-950' },
+  { label: 'WhatsApp',  icon: MessageCircle,   path: '/whatsapp',  gradient: 'from-green-900 to-green-950' },
+  { label: 'Finance',   icon: Calculator,      path: '/finance',   gradient: 'from-green-900 to-teal-950' },
   { label: 'More',      icon: Bell,            path: '/reminders', gradient: 'from-rose-900 to-red-950' },
 ];
 
 function MobileDockIcon({ icon: Icon, gradient, active, label }) {
   const [pressed, setPressed] = React.useState(false);
-  const size = 46;
+  const size = 40;
   const radius = `${Math.round(size * 0.22)}px`;
 
   return (
     <div
       className={cn(
-        'relative flex flex-col items-center gap-1.5 px-2.5 py-1.5 select-none cursor-pointer transition-all duration-200',
+        'relative flex flex-col items-center gap-1 px-1.5 py-1 select-none cursor-pointer transition-all duration-200',
         pressed ? 'scale-[0.96]' : active ? 'scale-105' : 'scale-100'
       )}
       onMouseDown={() => setPressed(true)}
@@ -110,7 +111,7 @@ export default function MobileDock() {
           {/* Fine gold hairline */}
           <div className="absolute inset-0" style={{ borderRadius: '26px', border: '1px solid rgba(245,159,10,0.13)', pointerEvents: 'none' }} />
 
-          {navItems.slice(0, 2).map((item) => (
+          {navItems.slice(0, 3).map((item) => (
             <Link key={item.path} to={item.path}>
               <MobileDockIcon icon={item.icon} gradient={item.gradient} active={location.pathname === item.path} label={item.label} />
             </Link>
@@ -144,7 +145,7 @@ export default function MobileDock() {
             <Home className="relative z-10 pointer-events-none" style={{ width: 26, height: 26, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.65))' }} />
           </button>
 
-          {navItems.slice(2).map((item) => (
+          {navItems.slice(3).map((item) => (
             <Link key={item.path} to={item.path}>
               <MobileDockIcon icon={item.icon} gradient={item.gradient} active={location.pathname === item.path} label={item.label} />
             </Link>
