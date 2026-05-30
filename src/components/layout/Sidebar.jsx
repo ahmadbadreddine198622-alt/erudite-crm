@@ -3,7 +3,7 @@ import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent
+  Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -37,6 +37,7 @@ const navItems = [
   { label: 'Email Automations', icon: Mail,            path: '/email-automations', gradient: 'from-indigo-900 to-blue-950' },
   { label: 'Claude AI',         icon: Sparkles,        path: '/claude-ai',       gradient: 'from-violet-900 to-purple-950' },
   { label: 'Property Finder',   icon: Link2,           path: '/property-finder', gradient: 'from-red-900 to-rose-950' },
+  { label: 'Dubai Intelligence', icon: TrendingUp,      path: '/dubai-intelligence', gradient: 'from-amber-900 to-orange-950' },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
