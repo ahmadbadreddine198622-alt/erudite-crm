@@ -47,33 +47,40 @@ export default function LiquidGlassIcon({
         style={{ borderRadius: radius }}
       />
 
-      {/* Liquid Glass frosted overlay */}
+      {/* Heavy frosted glass overlay */}
       <div
-        className="absolute inset-0 liquid-glass"
+        className="absolute inset-0"
         style={{
           borderRadius: radius,
           background: active
             ? 'rgba(255, 255, 255, 0.12)'
             : 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(24px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          borderTopColor: active ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.25)',
+          boxShadow: active
+            ? '0 12px 32px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+            : '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
         }}
       />
 
-      {/* Top rim highlight */}
+      {/* Luminous top rim highlight */}
       <div
         className="absolute inset-0"
         style={{
           borderRadius: radius,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 55%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)',
           pointerEvents: 'none',
         }}
       />
 
-      {/* Soft outer glow/rim */}
+      {/* Inner specular highlight */}
       <div
         className="absolute inset-0"
         style={{
           borderRadius: radius,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 24px rgba(0,0,0,0.35)',
+          boxShadow: 'inset 0 2px 10px rgba(255, 255, 255, 0.1)',
           pointerEvents: 'none',
         }}
       />
