@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import { Menu } from 'lucide-react';
+import HomeButton from '@/components/ui/HomeButton';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,6 +33,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
       <MobileNav />
+      <HomeButton />
     </div>
   );
 }
