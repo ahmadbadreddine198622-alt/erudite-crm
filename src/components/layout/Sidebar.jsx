@@ -1,5 +1,5 @@
 import React from 'react';
-import IOSIcon from '@/components/ui/IOSIcon';
+import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
@@ -78,17 +78,12 @@ export default function Sidebar({ open = false, onClose }) {
                   : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/40'
               )}
             >
-              <IOSIcon
+              <LiquidGlassIcon
                 icon={item.icon}
                 gradient={item.gradient}
                 size={32}
                 active={isActive}
-                style={{
-                  boxShadow: isActive
-                    ? '0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
-                    : '0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
-                  flexShrink: 0,
-                }}
+                className="flex-shrink-0"
               />
               <span>{item.label}</span>
             </Link>
@@ -103,16 +98,14 @@ export default function Sidebar({ open = false, onClose }) {
           onClick={onClose}
           className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/40 w-full transition-all"
         >
-          <IOSIcon icon={LayoutDashboard} gradient="from-blue-500 to-blue-700" size={32}
-            style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }} />
+          <LiquidGlassIcon icon={LayoutDashboard} gradient="from-blue-500 to-blue-700" size={32} className="flex-shrink-0" />
           <span>Dashboard</span>
         </Link>
         <button
           onClick={() => base44.auth.logout()}
           className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-red-400 hover:bg-sidebar-accent/40 w-full transition-all"
         >
-          <IOSIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={32}
-            style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }} />
+          <LiquidGlassIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={32} className="flex-shrink-0" />
           <span>Logout</span>
         </button>
       </div>
