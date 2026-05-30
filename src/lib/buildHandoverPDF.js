@@ -240,6 +240,20 @@ export async function buildHandoverPDF(data, assets = {}) {
   );
   y += 10;
 
+  // ── Page break if the SIGNATURES section won't fit on the current page ──
+  // The section needs roughly 45mm (band header + image band + three sub-lines).
+  // If the items checklist + notes have pushed the cursor too low, paint the
+  // footer on the current page, start a new page, and continue. The footer at
+  // the end of this function then paints on the new page. Without this guard,
+  // long-list handovers (e.g. 16-row item checklist) silently clip the entire
+  // signatures section behind the fixed-position footer band.
+  const SIG_SECTION_H = 45;
+  if (y + SIG_SECTION_H > footerTop) {
+    drawCompanyFooter(doc, footerTop, W, pad);
+    doc.addPage();
+    y = 20;
+  }
+
   // ── Signatures (3 evenly spaced blocks) ──────────────────────────────────
   // Block 1: HANDED OVER BY (label from scenario fromLabel). Conditionally
   //          stamped with Erudite signature + stamp when handoverType is in
