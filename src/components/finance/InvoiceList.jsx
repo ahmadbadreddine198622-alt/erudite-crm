@@ -79,20 +79,20 @@ export default function InvoiceList({ invoices, leads, properties, commissions }
 
       {/* Table */}
       <div
-        className="overflow-hidden rounded-xl"
+        className="overflow-hidden rounded-2xl"
         style={{
-          background: 'rgba(255,255,255,0.025)',
+          background: 'rgba(255,255,255,0.07)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderTopColor: 'rgba(255,255,255,0.14)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderTopColor: 'rgba(255,255,255,0.18)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.45)',
         }}
       >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow style={{ background: 'rgba(8,11,18,0.7)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <TableRow style={{ background: 'rgba(8,11,18,0.75)', borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
                 {['Invoice #', 'Type', 'Lead', 'Agent', 'Base', 'VAT (5%)', 'Total', 'Status', 'Due Date', 'Action'].map(h => (
                   <TableHead key={h} className="text-xs whitespace-nowrap">{h}</TableHead>
                 ))}

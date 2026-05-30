@@ -6,12 +6,12 @@ import { formatAED } from '@/lib/constants';
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444'];
 
 const GLASS = {
-  background: 'rgba(255,255,255,0.035)',
+  background: 'rgba(255,255,255,0.07)',
   backdropFilter: 'blur(16px)',
   WebkitBackdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderTopColor: 'rgba(255,255,255,0.14)',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderTopColor: 'rgba(255,255,255,0.18)',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
 };
 
 const TOOLTIP_STYLE = {
@@ -128,29 +128,29 @@ export default function FinancialOverview({ invoices, commissions }) {
       <div
         className="rounded-xl p-5"
         style={{
-          background: 'rgba(59,130,246,0.08)',
+          background: 'rgba(245,159,10,0.08)',
           backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(59,130,246,0.20)',
-          borderTopColor: 'rgba(59,130,246,0.30)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(245,159,10,0.25)',
+          borderTopColor: 'rgba(245,159,10,0.35)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
         }}
       >
         <div className="flex items-center gap-2 mb-3">
-          <Percent className="w-4 h-4 text-blue-400" />
-          <h3 className="text-sm font-semibold text-blue-300">VAT Compliance Summary</h3>
+          <Percent className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <h3 className="text-sm font-semibold" style={{ color: 'hsl(38 92% 50%)' }}>VAT Compliance Summary</h3>
         </div>
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Taxable Base</p>
-            <p className="font-bold text-blue-300" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalBase)}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Taxable Base</p>
+            <p className="font-bold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalBase)}</p>
           </div>
           <div>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>VAT Due (5%)</p>
-            <p className="font-bold text-blue-300" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalVAT)}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>VAT Due (5%)</p>
+            <p className="font-bold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalVAT)}</p>
           </div>
           <div>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Total Incl. VAT</p>
-            <p className="font-bold text-blue-300" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalRevenue)}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Total Incl. VAT</p>
+            <p className="font-bold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatAED(metrics.totalRevenue)}</p>
           </div>
         </div>
       </div>
