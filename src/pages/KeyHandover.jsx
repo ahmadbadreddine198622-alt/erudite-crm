@@ -7,6 +7,7 @@ import { FileText, Loader2, Settings, ChevronDown, ChevronUp, Upload } from 'luc
 import { toast } from 'sonner';
 import HandoverItems from '@/components/handover/HandoverItems';
 import { buildHandoverPDF } from '@/lib/buildHandoverPDF';
+import { LOGO_URL, SIGNATURE_URL, STAMP_URL } from '@/lib/pdfBrand';
 
 const HANDOVER_TYPES = {
   owner_to_buyer_sale:              { label: 'Owner → Buyer (Sale)',                 fromLabel: 'OWNER / SELLER',             toLabel: 'BUYER',                   toPreset: null },
@@ -36,8 +37,13 @@ function genRef() {
   return `EH-${d}-${n}`;
 }
 
-function useLocalAsset(key) {
-  const [url, setUrl] = useState(() => localStorage.getItem(key) || '');
+// Resolves an asset URL in this precedence:
+//   1. user-uploaded data URI in localStorage (per-browser AssetUpload), if set
+//   2. fallback URL (pdfBrand repo asset), if provided
+//   3. '' (skipped by the PDF renderer's loadImage)
+// Uploading via save() always wins thereafter — fallback never overrides a real upload.
+function useLocalAsset(key, fallback = '') {
+  const [url, setUrl] = useState(() => localStorage.getItem(key) || fallback || '');
   const save = (dataUrl) => {
     localStorage.setItem(key, dataUrl);
     setUrl(dataUrl);
@@ -88,9 +94,9 @@ export default function KeyHandover() {
   const [generating, setGenerating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const [logoUrl]  = useLocalAsset('erudite_logo');
-  const [sigUrl]   = useLocalAsset('erudite_signature');
-  const [stampUrl] = useLocalAsset('erudite_stamp');
+  const [logoUrl]  = useLocalAsset('erudite_logo',     LOGO_URL);
+  const [sigUrl]   = useLocalAsset('erudite_signature', SIGNATURE_URL);
+  const [stampUrl] = useLocalAsset('erudite_stamp',    STAMP_URL);
 
   const setP = (k, v) => setProperty(p => ({ ...p, [k]: v }));
 
