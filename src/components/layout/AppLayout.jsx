@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import HeroDock from '@/components/ui/HeroDock';
 import { Menu } from 'lucide-react';
-import HomeButton from '@/components/ui/HomeButton';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,7 +33,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
       <MobileNav />
-      <HomeButton />
+      <HeroDock />
     </div>
   );
 }

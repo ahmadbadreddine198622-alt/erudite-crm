@@ -11,7 +11,7 @@ import {
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key
 } from 'lucide-react';
-import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
+import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 
 const ALL_APPS = [
   { label: 'My Dashboard',      icon: UserCircle,     path: '/my-dashboard',       gradient: 'from-blue-500 to-blue-700',          shadow: 'shadow-blue-500/30' },
@@ -166,7 +166,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid */}
-      <div className="ios-grid-enter w-full flex flex-col items-center">
+      <div className="ios-grid-enter w-full flex flex-col items-center pb-32">
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
           {(provided) => (
@@ -194,27 +194,22 @@ export default function Dashboard() {
                           if (editMode) return;
                           app.href ? window.open(app.href, '_blank') : navigate(app.path);
                         }}
-                        className={`flex flex-col items-center gap-2 select-none focus:outline-none transition-transform duration-75 ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer active:scale-95'}`}
+                        className="flex flex-col items-center gap-2 select-none focus:outline-none"
                       >
-                        <div className="relative">
-                          <LiquidGlassIcon
-                            icon={Icon}
-                            gradient={app.gradient}
-                            size={62}
-                            iconSize={24}
-                            active={editMode && !snapshot.isDragging}
-                            className={cn(
-                              editMode && !snapshot.isDragging ? 'animate-wiggle' : '',
-                              snapshot.isDragging ? 'opacity-80' : ''
-                            )}
-                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
-                            style={{
-                              transform: snapshot.isDragging
-                                ? 'scale(0.95)'
-                                : undefined,
-                            }}
-                          />
-                        </div>
+                        <ExtremeLiquidIcon
+                          icon={Icon}
+                          gradient={app.gradient}
+                          size={62}
+                          iconSize={24}
+                          active={editMode && !snapshot.isDragging}
+                          badge={!editMode && badgeCount > 0 ? badgeCount : 0}
+                          index={idx}
+                          isDragging={snapshot.isDragging}
+                          onClick={() => {
+                            if (editMode) return;
+                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
+                          }}
+                        />
                         <span className={`text-[11px] text-center leading-tight max-w-[72px] ${
                           editMode ? 'text-white/50' : 'text-white/70'
                         }`}>

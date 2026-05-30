@@ -74,6 +74,14 @@
   transform-origin: center;
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(-25deg); }
+  100% { transform: translateX(100%) rotate(-25deg); }
+}
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
 /* Liquid Glass material — iOS 26 / macOS Tahoe frosted glass */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.08);
