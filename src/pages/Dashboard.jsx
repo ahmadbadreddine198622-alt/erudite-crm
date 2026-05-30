@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
+import ActivityFeed from '@/components/shared/ActivityFeed';
+import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -339,9 +341,15 @@ export default function Dashboard() {
 
       </div>
 
-      {/* AI Insights */}
-      <div className="w-full max-w-3xl mt-8">
-        <AIInsightsDashboard />
+      {/* AI Insights + Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
+        <div className="space-y-6">
+          <AIInsightsDashboard />
+          <PerformanceStreaks />
+        </div>
+        <div>
+          <ActivityFeed />
+        </div>
       </div>
 
       {/* No results */}

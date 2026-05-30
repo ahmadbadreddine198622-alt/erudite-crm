@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import QuickActionsPanel from '@/components/shared/QuickActionsPanel';
+import CommandCenter from '@/components/shared/CommandCenter';
 import HeroDock from '@/components/ui/HeroDock';
 import { Menu } from 'lucide-react';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  // Global keyboard shortcut (Cmd/Ctrl + K)
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="flex bg-background" style={{ minHeight: '100dvh' }}>
@@ -36,6 +50,7 @@ export default function AppLayout() {
       <MobileNav />
       <HeroDock />
       <QuickActionsPanel />
+      {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
     </div>
   );
 }
