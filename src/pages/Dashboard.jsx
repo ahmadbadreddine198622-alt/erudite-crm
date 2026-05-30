@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
-  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone
+  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, KeySquare
 } from 'lucide-react';
 
 const ALL_APPS = [
@@ -28,6 +28,7 @@ const ALL_APPS = [
   { label: 'Team Performance',  icon: Trophy,         path: '/team-dashboard',      gradient: 'from-yellow-400 to-amber-500',        shadow: 'shadow-yellow-500/30' },
   { label: 'Offers',            icon: FileSignature,  path: '/offers',              gradient: 'from-cyan-400 to-blue-500',           shadow: 'shadow-cyan-500/30' },
   { label: 'Finance',           icon: Calculator,     path: '/finance',             gradient: 'from-lime-400 to-green-500',          shadow: 'shadow-lime-500/30' },
+  { label: 'Key Handover',      icon: KeySquare,      path: '/key-handover',        gradient: 'from-orange-400 to-red-500',         shadow: 'shadow-orange-500/30' },
   { label: 'Commissions',       icon: DollarSign,     path: '/commissions',         gradient: 'from-yellow-500 to-orange-500',       shadow: 'shadow-orange-500/30' },
   { label: 'Map View',          icon: MapPin,         path: '/map',                 gradient: 'from-teal-500 to-cyan-600',           shadow: 'shadow-teal-500/30' },
   { label: 'WhatsApp Hub',      icon: Zap,            path: '/whatsapp-hub',        gradient: 'from-green-500 to-emerald-700',       shadow: 'shadow-green-500/30' },
