@@ -22,12 +22,6 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Auth — match the rest of the function suite. Falls through if SDK already
-    // gates by createClientFromRequest, but explicit is safer.
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await req.json().catch(() => ({}));
     const invoice_id = body?.invoice_id;
