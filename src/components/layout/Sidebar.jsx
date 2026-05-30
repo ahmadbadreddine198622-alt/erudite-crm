@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, ChevronLeft, ChevronRight, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent
+  Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -38,28 +38,27 @@ const navItems = [
   { label: 'Property Finder', icon: Link2, path: '/property-finder' },
 ];
 
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ open = false, onClose }) {
   const location = useLocation();
 
   return (
     <aside className={cn(
-      "h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all duration-300 sticky top-0",
-      collapsed ? "w-[72px]" : "w-[260px]"
+      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
+      open ? "translate-x-0" : "-translate-x-full"
     )}>
-      {/* Logo */}
-      <div className="flex items-center justify-center px-4 h-16 border-b border-sidebar-border shrink-0">
-        {collapsed ? (
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-primary" />
-          </div>
-        ) : (
-          <img
-            src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
-            alt="Erudite Property"
-            className="h-10 w-auto object-contain invert"
-          />
-        )}
+      {/* Logo + close */}
+      <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
+        <img
+          src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
+          alt="Erudite Property"
+          className="h-10 w-auto object-contain invert"
+        />
+        <button
+          onClick={onClose}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -70,6 +69,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive
@@ -78,7 +78,7 @@ export default function Sidebar() {
               )}
             >
               <item.icon className="w-5 h-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <span>{item.label}</span>
             </Link>
           );
         })}
@@ -88,24 +88,18 @@ export default function Sidebar() {
       <div className="p-3 border-t border-sidebar-border space-y-1">
         <Link
           to="/"
+          onClick={onClose}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-primary bg-sidebar-accent/50 hover:bg-sidebar-accent w-full transition-all"
         >
           <LayoutDashboard className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Dashboard</span>}
+          <span>Dashboard</span>
         </Link>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent w-full transition-all"
-        >
-          {collapsed ? <ChevronRight className="w-5 h-5 shrink-0" /> : <ChevronLeft className="w-5 h-5 shrink-0" />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
         <button
           onClick={() => base44.auth.logout()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/60 hover:text-red-400 hover:bg-sidebar-accent w-full transition-all"
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          <span>Logout</span>
         </button>
       </div>
     </aside>
