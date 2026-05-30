@@ -218,12 +218,13 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.text('AMOUNT (AED)', colAmtX + colAmtW - 2, y + 5.5, { align: 'right' });
   y += headerRowH;
 
+  const propertyLabel = opts.propertyLabel || '';
   const items =
     Array.isArray(invoice.line_items) && invoice.line_items.length
       ? invoice.line_items
       : [{
           description: 'Brokerage commission',
-          unit_property: '',
+          unit_property: propertyLabel,
           sell_price: null,
           amount: Number(invoice.commission_amount) || 0,
         }];
@@ -249,7 +250,28 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.setDrawColor(...BRAND.hairline);
   doc.setLineWidth(0.2);
   doc.line(tableX, y, tableX + tableW, y);
-  y += 8;
+  y += 6;
+
+  // ── Notes / Remarks ───────────────────────────────────────────────────────
+  const notesText = opts.notes || invoice.notes || '';
+  if (notesText) {
+    doc.setTextColor(...BRAND.muted);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('NOTES / REMARKS', tableX, y);
+    doc.setDrawColor(...BRAND.gold);
+    doc.setLineWidth(0.4);
+    doc.line(tableX, y + 1, tableX + 30, y + 1);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND.text);
+    const noteLines = doc.splitTextToSize(notesText, tableW);
+    doc.text(noteLines, tableX, y);
+    y += noteLines.length * 4.5 + 4;
+  } else {
+    y += 2;
+  }
 
   const blockStartY = y;
   doc.setTextColor(...BRAND.muted);
@@ -386,7 +408,24 @@ export function GeneratePDFButton({ invoice }) {
   const handleClick = async () => {
     setLoading(true);
     try {
-      const doc = await buildInvoicePDF(invoice);
+      // Resolve property label from linked Deal → Property
+      let propertyLabel = '';
+      if (invoice.deal_id) {
+        try {
+          const deal = await base44.entities.Deal.get(invoice.deal_id);
+          if (deal?.property_id) {
+            const prop = await base44.entities.Property.get(deal.property_id);
+            if (prop) {
+              const parts = [
+                prop.building_name || prop.title,
+                prop.address || prop.location,
+              ].filter(Boolean);
+              propertyLabel = parts.join(', ');
+            }
+          }
+        } catch { /* non-fatal — leave blank */ }
+      }
+      const doc = await buildInvoicePDF(invoice, { propertyLabel });
       const blob = doc.output('blob');
       const fileName = `${invoice.invoice_number || 'INV'}_${sanitizeFileSegment(invoice.payer_name)}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });

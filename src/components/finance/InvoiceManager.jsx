@@ -21,7 +21,7 @@ const STATUS_COLORS = {
 
 const EMPTY_FORM = {
   deal_id: '', agent_id: '', payer_name: '', commission_amount: '',
-  issue_date: '', due_date: '', status: 'draft'
+  issue_date: '', due_date: '', status: 'draft', notes: ''
 };
 
 export default function InvoiceManager() {
@@ -180,6 +180,15 @@ export default function InvoiceManager() {
                 <Label>Due Date *</Label>
                 <Input type="date" required value={form.due_date} onChange={e => set('due_date', e.target.value)} />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Notes / Remarks <span className="text-muted-foreground">(optional)</span></Label>
+              <textarea
+                className="w-full min-h-[72px] rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-none"
+                placeholder="Any remarks to appear on the invoice PDF…"
+                value={form.notes}
+                onChange={e => set('notes', e.target.value)}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
