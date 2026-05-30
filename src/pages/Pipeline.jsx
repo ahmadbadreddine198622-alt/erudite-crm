@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, RefreshCw } from 'lucide-react';
+import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineBoard from '@/components/pipeline/PipelineBoard';
@@ -158,6 +158,28 @@ export default function Pipeline() {
     );
   }
 
+  // Management intelligence strip calculations
+  const stalledLeads = activeLeads.filter(l => {
+    if (!l.stage_entered_at) return false;
+    const daysInStage = (Date.now() - new Date(l.stage_entered_at).getTime()) / (1000 * 60 * 60 * 24);
+    return daysInStage > 14;
+  }).length;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const followUpsDueToday = activeLeads.filter(l => {
+    if (!l.next_appointment_at) return false;
+    const apptDate = new Date(l.next_appointment_at);
+    return apptDate >= today && apptDate < tomorrow;
+  }).length;
+
+  const appointmentsScheduled = activeLeads.filter(l => l.next_appointment_at && new Date(l.next_appointment_at) >= tomorrow).length;
+
+  const totalPipelineValue = activeLeads.reduce((sum, l) => sum + (l.deal_value_aed || 0), 0);
+
   return (
     <div
       className="flex flex-col min-h-screen"
@@ -165,20 +187,84 @@ export default function Pipeline() {
         background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
       }}
     >
-      <div className="px-8 pt-8 pb-2">
+      {/* Management Intelligence Strip */}
+      <div className="px-8 pt-6 pb-4">
+        <div className="grid grid-cols-4 gap-3">
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-4 h-4 text-amber-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;14d</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
+          </div>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-purple-400" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Due Today</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{followUpsDueToday}</p>
+          </div>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Scheduled</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{appointmentsScheduled}</p>
+          </div>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Pipeline Value</span>
+            </div>
+            <p className="text-xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
+              {totalPipelineValue >= 1_000_000 ? `AED ${(totalPipelineValue / 1_000_000).toFixed(1)}M` : totalPipelineValue >= 1_000 ? `AED ${(totalPipelineValue / 1_000).toFixed(0)}K` : `AED ${totalPipelineValue}`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-8 pt-2 pb-2">
         <PageHeader
           title="Pipeline"
-          subtitle="Two-track flow — drag leads between stages"
+          subtitle="Command center — drag leads between stages"
         >
           {lastSyncedAt && (
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="hidden md:flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
               <RefreshCw className="w-3 h-3" />
               Last synced: {formatRelativeShort(lastSyncedAt) || 'never'}
             </div>
           )}
           {projects.length > 0 && (
             <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="w-44 h-8 text-xs">
+              <SelectTrigger className="w-44 h-8 text-xs" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
@@ -196,20 +282,20 @@ export default function Pipeline() {
         <TabsList
           className="self-start"
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: '12px',
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '16px',
           }}
         >
-          <TabsTrigger value="sale" className="gap-1.5">
-            Sale <span className="text-xs text-muted-foreground">({buckets.sale.length})</span>
+          <TabsTrigger value="sale" className="gap-1.5 text-xs font-semibold">
+            Sale <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.sale.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="rent" className="gap-1.5">
-            Rent <span className="text-xs text-muted-foreground">({buckets.rent.length})</span>
+          <TabsTrigger value="rent" className="gap-1.5 text-xs font-semibold">
+            Rent <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.rent.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="intake" className="gap-1.5">
-            Intake <span className="text-xs text-muted-foreground">({buckets.intake.length})</span>
+          <TabsTrigger value="intake" className="gap-1.5 text-xs font-semibold">
+            Intake <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.intake.length})</span>
           </TabsTrigger>
         </TabsList>
 

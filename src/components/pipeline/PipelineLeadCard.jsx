@@ -22,7 +22,7 @@ function formatTimeInStage(stageEnteredAt) {
   return 'just now';
 }
 
-function getHealthDot(stageKey, stageEnteredAt) {
+function getHealthColor(stageKey, stageEnteredAt) {
   if (!stageEnteredAt) return null;
   const meta = STAGES[stageKey];
   const thresholds = (meta && meta.health_thresholds) || DEFAULT_HEALTH_THRESHOLDS;
@@ -62,15 +62,9 @@ function formatDealValue(val) {
   return `AED ${val}`;
 }
 
-const HEALTH_DOT_COLORS = {
-  green: 'bg-emerald-500',
-  yellow: 'bg-amber-500',
-  red: 'bg-red-500',
-};
-
 const OFFERING_BADGE_COLORS = {
-  sale: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
-  rent: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
+  sale: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  rent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
 export default function PipelineLeadCard({ lead, listing, isDragging, onClick }) {
@@ -79,41 +73,45 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
   const project = projects.find((p) => p.id === lead.project_id);
   const projectName = project?.name;
   const timeInStage = formatTimeInStage(lead.stage_entered_at || lead.created_date);
-  const healthDot = getHealthDot(lead.stage, lead.stage_entered_at || lead.created_date);
+  const healthColor = getHealthColor(lead.stage, lead.stage_entered_at || lead.created_date);
   const offering = listing && listing.offering_type;
   const showOfferingBadge = offering === 'sale' || offering === 'rent';
   const price = listing && formatCompactPrice(listing.price, offering, listing.price_period);
   const hasListingBlock = listing && (listing.image_url || showOfferingBadge || price);
 
+  // Health status mapping
+  const healthStatus = healthColor === 'green' ? 'active' : healthColor === 'yellow' ? 'attention' : healthColor === 'red' ? 'stalled' : null;
+  const healthColors = { active: 'bg-emerald-500', attention: 'bg-amber-500', stalled: 'bg-red-500' };
+
   return (
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl p-3 cursor-pointer transition-all duration-200',
+        'rounded-2xl p-4 cursor-pointer transition-all duration-200',
       )}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: isDragging ? '1px solid rgba(245,159,10,0.45)' : '1px solid rgba(255,255,255,0.09)',
-        borderTopColor: isDragging ? 'rgba(245,159,10,0.6)' : 'rgba(255,255,255,0.16)',
+        background: isDragging ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
+        borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
         boxShadow: isDragging
-          ? '0 16px 40px rgba(0,0,0,0.55), 0 0 20px rgba(245,159,10,0.12)'
-          : '0 2px 10px rgba(0,0,0,0.3)',
-        transform: isDragging ? 'scale(1.02) rotate(0.5deg)' : 'scale(1)',
+          ? '0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(245,159,10,0.15)'
+          : '0 4px 16px rgba(0,0,0,0.4)',
+        transform: isDragging ? 'scale(1.03)' : 'scale(1)',
       }}
     >
-      {/* Top row: avatar + name + source */}
-      <div className="flex items-start gap-2">
-        <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent shrink-0">
+      {/* Top row: health status + avatar + name */}
+      <div className="flex items-start gap-2.5 mb-2">
+        <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent shrink-0">
           {lead.name?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{lead.name || 'Unknown'}</p>
-            {lead.source && (
-              <span className="shrink-0">
-                <SourceBadge source={lead.source} />
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-base font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.name || 'Unknown'}</p>
+            {healthStatus && (
+              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${healthColors[healthStatus]} text-white`}>
+                {healthStatus}
               </span>
             )}
           </div>
@@ -132,82 +130,84 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
         </div>
       </div>
 
-      {/* Listing enrichment block (only if PFListing matched) */}
+      {/* LEVEL 2: Deal Value (dominant business metric) */}
+      {lead.deal_value_aed > 0 && (
+        <div className="mb-2">
+          <p className="text-lg font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+            {formatDealValue(lead.deal_value_aed)}
+          </p>
+        </div>
+      )}
+
+      {/* LEVEL 3: Property / Project */}
+      {projectName && (
+        <div className="mb-2">
+          <ProjectBadge name={projectName} />
+        </div>
+      )}
+
+      {/* Listing enrichment (only if PFListing matched) */}
       {hasListingBlock && (
-        <div className="mt-2.5 flex items-center gap-2">
+        <div className="mb-2 flex items-center gap-2">
           {listing.image_url && (
             <img
               src={listing.image_url}
               alt=""
               loading="lazy"
-              className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0"
+              className="w-12 h-12 rounded-xl object-cover bg-muted shrink-0 border border-white/10"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
           )}
-          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex-1 min-w-0">
+            {listing.title && (
+              <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{listing.title}</p>
+            )}
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
               {showOfferingBadge && (
                 <span
                   className={cn(
-                    'inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border uppercase tracking-wider',
+                    'inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider',
                     OFFERING_BADGE_COLORS[offering],
                   )}
                 >
                   {offering}
                 </span>
               )}
-              {price && <span className="text-xs font-semibold text-foreground truncate">{price}</span>}
+              {price && <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{price}</span>}
             </div>
-            {listing.title && (
-              <p className="text-[10px] text-muted-foreground truncate">{listing.title}</p>
-            )}
           </div>
         </div>
       )}
 
-      {/* Project badge */}
-      {projectName && (
-        <div className="mt-1.5">
-          <ProjectBadge name={projectName} />
+      {/* LEVEL 4: Next Appointment + Days in Stage */}
+      {(lead.next_appointment_at || timeInStage) && (
+        <div className="mb-2 flex items-center gap-2 flex-wrap">
+          {lead.next_appointment_at && (
+            <span className="text-xs font-medium px-2 py-1 rounded-lg bg-purple-500/15 text-purple-400 border border-purple-500/25 inline-flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {format(new Date(lead.next_appointment_at), 'MMM d, h:mm a')}
+            </span>
+          )}
+          {timeInStage && (
+            <span className="text-xs font-medium px-2 py-1 rounded-lg bg-white/5 text-white/60 border border-white/10">
+              {timeInStage} in stage
+            </span>
+          )}
         </div>
       )}
 
-      {/* Deal value + appointment signals */}
-      {(lead.deal_value_aed > 0 || lead.next_appointment_at) && (
-        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          {lead.deal_value_aed > 0 && (
-            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
-              {formatDealValue(lead.deal_value_aed)}
-            </span>
-          )}
-          {lead.next_appointment_at && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20 inline-flex items-center gap-0.5">
-              <Calendar className="w-2.5 h-2.5" />
-              {format(new Date(lead.next_appointment_at), 'MMM d')}
-            </span>
-          )}
-        </div>
-      )}
-      {/* Bottom row: time in stage + health dot + docs */}
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.01em' }}>
-          {timeInStage ? `In stage · ${timeInStage}` : ''}
-        </span>
-        <div className="flex items-center gap-1.5">
-          {STAGES[lead.stage]?.required_documents?.length > 0 && (
-            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 shrink-0">
-              {STAGES[lead.stage].required_documents.length} docs
-            </span>
-          )}
-          {healthDot && (
-            <span
-              className={cn('w-2 h-2 rounded-full shrink-0', HEALTH_DOT_COLORS[healthDot])}
-              title={`Stage health: ${healthDot}`}
-            />
-          )}
-        </div>
+      {/* LEVEL 5: Source + Tags */}
+      <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-white/8">
+        {lead.source && (
+          <SourceBadge source={lead.source} />
+        )}
+        {STAGES[lead.stage]?.required_documents?.length > 0 && (
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 shrink-0">
+            {STAGES[lead.stage].required_documents.length} docs
+          </span>
+        )}
       </div>
     </div>
   );

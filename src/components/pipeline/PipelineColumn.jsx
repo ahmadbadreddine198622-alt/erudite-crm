@@ -6,35 +6,34 @@ import { cn } from '@/lib/utils';
 export default function PipelineColumn({ stage, leads, getListing, onLeadClick }) {
   return (
     <div
-      className="flex flex-col w-[280px] shrink-0 h-full min-h-0 rounded-2xl"
+      className="flex flex-col w-[300px] shrink-0 h-full min-h-0 rounded-2xl"
       style={{
-        background: 'rgba(255,255,255,0.025)',
+        background: 'rgba(255,255,255,0.04)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderTopColor: 'rgba(255,255,255,0.14)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderTopColor: 'rgba(255,255,255,0.16)',
+        boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
       }}
     >
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-10 flex items-center gap-2 px-3 py-3"
+        className="sticky top-0 z-10 flex items-center gap-2 px-4 py-3"
         style={{
-          background: 'rgba(8,11,18,0.6)',
+          background: 'rgba(8,11,18,0.7)',
           backdropFilter: 'blur(20px)',
-          borderRadius: '16px 16px 0 0',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          borderBottom: '1px solid rgba(245,159,10,0.2)',
         }}
       >
         <h3
-          className="text-[11px] font-semibold uppercase truncate"
-          style={{ fontFamily: 'var(--font-sans)', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.1em' }}
+          className="text-[10px] font-bold uppercase truncate"
+          style={{ fontFamily: 'var(--font-sans)', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.12em' }}
         >
           {stage.label}
         </h3>
         <span
-          className="ml-auto text-[10px] font-semibold rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center"
-          style={{ background: 'rgba(245,159,10,0.12)', color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.22)' }}
+          className="ml-auto text-[11px] font-bold rounded-full min-w-[26px] h-[26px] px-2 flex items-center justify-center"
+          style={{ background: 'rgba(245,159,10,0.15)', color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
         >
           {leads.length}
         </span>
@@ -48,10 +47,10 @@ export default function PipelineColumn({ stage, leads, getListing, onLeadClick }
             {...provided.droppableProps}
             className="flex-1 overflow-y-auto space-y-2 p-2 transition-all duration-200"
             style={{
-              outline: snapshot.isDraggingOver ? '1px solid rgba(245,159,10,0.35)' : '1px solid transparent',
+              outline: snapshot.isDraggingOver ? '2px solid rgba(245,159,10,0.4)' : '2px solid transparent',
               outlineOffset: '-4px',
               borderRadius: '0 0 16px 16px',
-              background: snapshot.isDraggingOver ? 'rgba(245,159,10,0.04)' : 'transparent',
+              background: snapshot.isDraggingOver ? 'rgba(245,159,10,0.06)' : 'transparent',
             }}
           >
             {leads.map((lead, index) => (
@@ -78,9 +77,9 @@ export default function PipelineColumn({ stage, leads, getListing, onLeadClick }
             {leads.length === 0 && !snapshot.isDraggingOver && (
               <div
                 className="rounded-xl p-6 flex items-center justify-center"
-                style={{ border: '1px dashed rgba(255,255,255,0.10)' }}
+                style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
               >
-                <p className="text-[11px] italic" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <p className="text-[11px] italic" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   No leads in this stage
                 </p>
               </div>
