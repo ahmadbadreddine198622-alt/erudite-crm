@@ -123,6 +123,7 @@ export default function MobileNav() {
                 border: '2px solid rgba(245, 159, 10, 0.5)',
                 borderTopColor: 'rgba(255,255,255,0.5)',
                 boxShadow: '0 12px 36px rgba(245,159,10,0.45), inset 0 1px 0 rgba(255,255,255,0.28), 0 0 24px rgba(245,159,10,0.2)',
+                animation: 'breathe 3s ease-in-out infinite',
                 position: 'relative',
               }}
             >

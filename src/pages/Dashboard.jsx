@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +12,10 @@ import {
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key
 } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
+
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const ALL_APPS = [
   { label: 'My Dashboard',      icon: UserCircle,     path: '/my-dashboard',       gradient: 'from-blue-500 to-blue-700',          shadow: 'shadow-blue-500/30' },
@@ -57,7 +61,38 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const pressTimer = useRef(null);
+
+  // Pointer / orientation tracking for tilt specular
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    let rafId;
+    const handlePointer = (e) => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+        const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+        setTilt({ x: nx, y: ny });
+      });
+    };
+    const handleOrientation = (e) => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setTilt({
+          x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
+          y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+        });
+      });
+    };
+    window.addEventListener('pointermove', handlePointer, { passive: true });
+    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', handlePointer);
+      window.removeEventListener('deviceorientation', handleOrientation);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   const startPress = useCallback(() => {
     pressTimer.current = setTimeout(() => setEditMode(true), LONG_PRESS_MS);
@@ -197,18 +232,14 @@ export default function Dashboard() {
                         className="flex flex-col items-center gap-2 select-none focus:outline-none"
                       >
                         <ExtremeLiquidIcon
-                          icon={Icon}
-                          gradient={app.gradient}
-                          size={62}
-                          iconSize={24}
-                          active={editMode && !snapshot.isDragging}
-                          badge={!editMode && badgeCount > 0 ? badgeCount : 0}
-                          index={idx}
-                          isDragging={snapshot.isDragging}
-                          onClick={() => {
-                            if (editMode) return;
-                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
-                          }}
+                         icon={Icon}
+                         gradient={app.gradient}
+                         tiltX={tilt.x}
+                         tiltY={tilt.y}
+                         index={idx}
+                         isDragging={snapshot.isDragging}
+                         active={editMode && !snapshot.isDragging}
+                         badge={!editMode && badgeCount > 0 ? badgeCount : 0}
                         />
                         <span className={`text-[11px] text-center leading-tight max-w-[72px] ${
                           editMode ? 'text-white/50' : 'text-white/70'

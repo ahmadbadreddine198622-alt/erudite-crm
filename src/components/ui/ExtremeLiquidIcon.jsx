@@ -1,20 +1,17 @@
 /**
- * ExtremeLiquidIcon — beyond Apple: ultra-refractive glass with parallax tilt, animated sheen, and wet-glass press.
- * Features: heavy blur, luminous rim, inner glow, specular highlight, staggered entrance, tactile feedback.
- *
- * Props:
- *   icon        — Lucide icon component
- *   gradient    — Tailwind gradient for tint
- *   size        — px dimension (default 62)
- *   iconSize    — icon px (default size * 0.38)
- *   active      — edit mode / brighter state
- *   badge       — badge count (>0 shows)
- *   onClick     — click handler
- *   index       — for staggered entrance
+ * ExtremeLiquidIcon — living glass tile with:
+ * - Tilt-responsive specular highlight (pointer on desktop, deviceorientation on mobile)
+ * - Staggered cascade entrance (blur-in + rise + fade, once per mount)
+ * - Wet-glass tactile press (scale + brightness flash)
+ * - prefers-reduced-motion safe
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function ExtremeLiquidIcon({
   icon: Icon,
@@ -26,120 +23,161 @@ export default function ExtremeLiquidIcon({
   onClick,
   index = 0,
   isDragging = false,
+  // tiltX/tiltY: normalized -1..1 from parent (pointer or orientation)
+  tiltX = 0,
+  tiltY = 0,
 }) {
   const [pressed, setPressed] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const timerRef = useRef(null);
+
   const glyphSize = iconSize ?? Math.round(size * 0.38);
   const radius = `${Math.round(size * 0.22)}px`;
-  const sheenRef = useRef(null);
 
-  const handlePress = () => {
-    setPressed(true);
-    setTimeout(() => setPressed(false), 150);
-  };
+  // Staggered entrance
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setEntered(true), prefersReducedMotion ? 0 : index * 38);
+    return () => clearTimeout(timerRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePressStart = useCallback(() => {
+    if (!active) setPressed(true);
+  }, [active]);
+
+  const handlePressEnd = useCallback(() => {
+    setTimeout(() => setPressed(false), 160);
+  }, []);
+
+  // Specular position driven by tilt (0 = top-left, shifts with tilt)
+  const specX = prefersReducedMotion ? 30 : 30 + tiltX * 35;
+  const specY = prefersReducedMotion ? 15 : 15 + tiltY * 25;
+
+  const entranceStyle = prefersReducedMotion
+    ? { opacity: 1, transform: 'translateY(0)' }
+    : {
+        opacity: entered ? 1 : 0,
+        transform: entered ? 'translateY(0px)' : 'translateY(14px)',
+        filter: entered ? 'blur(0px)' : 'blur(6px)',
+        transition: `opacity 0.4s ease ${index * 0.035}s, transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) ${index * 0.035}s, filter 0.35s ease ${index * 0.035}s`,
+      };
 
   return (
     <div
       className={cn(
-        'relative flex flex-col items-center gap-2 select-none transition-transform duration-100',
+        'relative select-none',
         active ? 'animate-wiggle cursor-grab' : 'cursor-pointer',
-        isDragging ? 'opacity-80' : '',
+        isDragging && 'opacity-80',
         !active && !isDragging && 'hover:scale-105'
       )}
       style={{
-        animationDelay: `${index * 30}ms`,
+        transition: 'transform 0.15s ease',
+        ...entranceStyle,
       }}
-      onMouseDown={!active ? handlePress : undefined}
-      onTouchStart={!active ? handlePress : undefined}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
       onClick={!active ? onClick : undefined}
     >
-      {/* Icon container with parallax tilt */}
       <div
-        className={cn('relative transition-all duration-150', pressed ? 'scale-95' : 'scale-100')}
         style={{
           width: size,
           height: size,
           borderRadius: radius,
+          position: 'relative',
+          transform: pressed ? 'scale(0.93)' : 'scale(1)',
+          transition: 'transform 0.12s cubic-bezier(0.34, 1.5, 0.64, 1)',
         }}
       >
-        {/* Gradient base tint */}
+        {/* Gradient base — inner luminescence, not opaque block */}
         <div
-          className={cn('absolute inset-0 bg-gradient-to-br opacity-50', gradient)}
+          className={cn('absolute inset-0 bg-gradient-to-br opacity-55', gradient)}
           style={{ borderRadius: radius }}
         />
 
-        {/* Ultra-frosted glass */}
+        {/* Ultra-frosted glass shell */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
             background: pressed
-              ? 'rgba(255, 255, 255, 0.18)'
+              ? 'rgba(255,255,255,0.2)'
               : active
-              ? 'rgba(255, 255, 255, 0.12)'
-              : 'rgba(255, 255, 255, 0.07)',
-            backdropFilter: 'blur(32px) saturate(220%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(220%)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderTopColor: 'rgba(255, 255, 255, 0.35)',
+              ? 'rgba(255,255,255,0.13)'
+              : 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(28px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            borderTopColor: 'rgba(255,255,255,0.38)',
             boxShadow: pressed
-              ? '0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-              : '0 10px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-            transition: 'all 0.15s ease',
+              ? '0 4px 18px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)'
+              : '0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)',
+            transition: 'background 0.15s ease, box-shadow 0.15s ease',
           }}
         />
 
-        {/* Animated sheen layer */}
+        {/* Tilt-driven specular highlight — feels like light catching real glass */}
         <div
-          ref={sheenRef}
           className="absolute inset-0 overflow-hidden"
-          style={{
-            borderRadius: radius,
-            pointerEvents: 'none',
-          }}
+          style={{ borderRadius: radius, pointerEvents: 'none' }}
         >
           <div
-            className={cn(
-              'absolute w-[200%] h-[200%] opacity-30',
-              pressed ? 'animate-none' : 'animate-shimmer'
-            )}
             style={{
-              background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%)',
-              transform: 'rotate(-25deg)',
+              position: 'absolute',
+              width: '90%',
+              height: '60%',
+              top: `${specY}%`,
+              left: `${specX - 25}%`,
+              background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 70%)',
+              transition: prefersReducedMotion ? 'none' : 'top 0.35s ease, left 0.35s ease',
+              pointerEvents: 'none',
             }}
           />
         </div>
 
-        {/* Luminous top rim */}
+        {/* Fixed top rim light */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 55%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 52%)',
             pointerEvents: 'none',
           }}
         />
 
-        {/* Inner specular glow */}
+        {/* Press brightness ripple overlay */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            boxShadow: 'inset 0 2px 12px rgba(255, 255, 255, 0.12), inset 0 -2px 8px rgba(0, 0, 0, 0.1)',
+            background: pressed ? 'rgba(255,255,255,0.12)' : 'transparent',
+            transition: 'background 0.15s ease',
             pointerEvents: 'none',
           }}
         />
 
-        {/* Icon glyph */}
+        {/* Inner deep glow */}
+        <div
+          className="absolute inset-0"
+          style={{
+            borderRadius: radius,
+            boxShadow: 'inset 0 2px 10px rgba(255,255,255,0.1), inset 0 -2px 8px rgba(0,0,0,0.08)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Icon glyph — always crisp white */}
         <Icon
-          className="absolute text-white transition-transform duration-150"
+          className="absolute text-white"
           style={{
             width: glyphSize,
             height: glyphSize,
             top: '50%',
             left: '50%',
-            transform: `translate(-50%, -50%) ${pressed ? 'scale(0.95)' : 'scale(1)'}`,
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+            transform: `translate(-50%, -50%) ${pressed ? 'scale(0.92)' : 'scale(1)'}`,
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
             zIndex: 2,
+            transition: 'transform 0.12s ease',
           }}
         />
 
