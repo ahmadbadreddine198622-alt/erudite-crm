@@ -24,7 +24,7 @@ import jsPDF from 'jspdf';
 
 import {
   BRAND, BANK, SIGNATURE_URL, STAMP_URL,
-  fmtAED, fmtDate, loadImage, sanitizeFileSegment, drawCompanyFooter,
+  fmtAED, fmtDate, loadImage, sanitizeFileSegment, drawCompanyFooter, placeLogo,
 } from '@/lib/pdfBrand';
 
 // ─── Renderer ────────────────────────────────────────────────────────────────
@@ -70,6 +70,11 @@ export async function buildInvoicePDF(invoice, opts = {}) {
 
   doc.setFillColor(...BRAND.gold);
   doc.rect(0, headerH, W, 1.2, 'F');
+
+  // Logo: centered in the open space between the brand text (left) and the
+  // gold TAX INVOICE box (right). Aspect-fitted, vertically centered in the
+  // navy header band. Silently skipped if src/assets/logo.png is missing.
+  await placeLogo(doc, { x: 80, y: 6, maxW: 48, maxH: 24 });
 
   let y = headerH + 10;
 

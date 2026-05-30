@@ -5,6 +5,7 @@ import { FileText, Loader2, Download, Sparkles, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatAED } from '@/lib/constants';
 import jsPDF from 'jspdf';
+import { placeLogo } from '@/lib/pdfBrand';
 
 const BRAND = {
   name: 'PropCRM Real Estate',
@@ -73,6 +74,10 @@ async function buildPDF(property, aiContent) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.text(BRAND.website, W - pad, 7.5, { align: 'right' });
+
+  // Erudite logo — small, top-left in the brand banner. Aspect-fitted, skipped
+  // gracefully if src/assets/logo.png is missing.
+  await placeLogo(doc, { x: pad + 32, y: 2, maxW: 24, maxH: 9 });
 
   // Price tag
   doc.setFillColor(...BRAND.accentColor);

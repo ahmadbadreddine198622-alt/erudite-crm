@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Home, BedDouble, Bath, MapPin, ExternalLink, RefreshCw, Download, Building2, FileDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { placeLogo } from '@/lib/pdfBrand';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -168,6 +169,10 @@ async function downloadSingleListingPDF(listing) {
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.text('DUBAI PROPERTY SPECIALISTS', M, 22);
+
+  // Erudite logo — centered in the open header space between the brand text
+  // (left) and the offering badge (right).
+  await placeLogo(doc, { x: 90, y: 4, maxW: 36, maxH: 18 });
 
   // For Sale / For Rent badge top-right
   const badgeLabel = offering === 'rent' ? 'FOR RENT' : 'FOR SALE';
@@ -521,7 +526,7 @@ async function downloadSingleListingPDF(listing) {
 
 // ─── Bulk PDF (all listings report) ─────────────────────────────────────────
 
-function downloadBulkPDF(listings) {
+async function downloadBulkPDF(listings) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210, M = 15, colW = W - M * 2;
   let y = M;
@@ -536,6 +541,9 @@ function downloadBulkPDF(listings) {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.text(`${new Date().toLocaleDateString('en-AE', { day: '2-digit', month: 'long', year: 'numeric' })}  |  ${listings.length} listings`, M, 20);
+
+  // Erudite logo — top-right of the navy header band.
+  await placeLogo(doc, { x: W - M - 28, y: 3, maxW: 28, maxH: 16 });
   y = 30;
 
   listings.forEach((l, idx) => {

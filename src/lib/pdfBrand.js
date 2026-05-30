@@ -48,6 +48,7 @@ const _ASSETS = import.meta.glob('/src/assets/*.png', {
 
 export const SIGNATURE_URL = _ASSETS['/src/assets/signature.png'] || null;
 export const STAMP_URL     = _ASSETS['/src/assets/stamp.png']     || null;
+export const LOGO_URL      = _ASSETS['/src/assets/logo.png']      || null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -96,6 +97,26 @@ export function loadImage(url) {
 /** Sanitise a string for use as a filename segment. */
 export function sanitizeFileSegment(s) {
   return String(s || '').replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 60) || 'document';
+}
+
+/**
+ * Place the Erudite logo on a jsPDF page (mm units), aspect-fitted into a
+ * box, anchored top-left. Wraps load + scale + addImage with try/catch so a
+ * missing/bad asset never crashes PDF generation. Each generator passes its
+ * own layout because the header bands differ per template.
+ *
+ * @param {jsPDF} doc
+ * @param {{x:number,y:number,maxW:number,maxH:number}} layout - mm units
+ * @param {string} [url=LOGO_URL] - override (e.g. localStorage data URI)
+ */
+export async function placeLogo(doc, layout = { x: 14, y: 8, maxW: 32, maxH: 16 }, url = LOGO_URL) {
+  const logo = await loadImage(url);
+  if (!logo) return;
+  const aspect = logo.width / logo.height;
+  let w = layout.maxW;
+  let h = w / aspect;
+  if (h > layout.maxH) { h = layout.maxH; w = h * aspect; }
+  try { doc.addImage(logo.dataUrl, 'PNG', layout.x, layout.y, w, h); } catch { /* ignore bad image */ }
 }
 
 /**
