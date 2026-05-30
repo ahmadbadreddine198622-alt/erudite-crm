@@ -1,13 +1,18 @@
-// ─── Tax Invoice PDF — navy/gold A4 layout, mirrors PropertyBrochurePDF idiom ──
+// ─── Tax Invoice PDF — Erudite Real Estate ────────────────────────────────────
 //
-// Renders the invoice client-side with jsPDF, uploads the resulting blob via
-// Base44 file storage, then calls the `generateInvoicePDF` Deno function which
-// writes `pdf_url` back onto the Invoice (asServiceRole).
+// Renders the styled A4 TAX INVOICE client-side with jsPDF, uploads the
+// resulting blob to Base44 file storage via Core.UploadFile, then calls the
+// `generateInvoicePDF` Deno function — which writes `pdf_url` back onto the
+// Invoice (asServiceRole).
 //
-// The upload step is a deliberate seam: today it goes to Base44 storage via
-// `Core.UploadFile`. Once the Google Drive service-account credentials are
-// provisioned, the Drive re-upload step moves inside the `generateInvoicePDF`
-// function — this button stays unchanged.
+// Architecture note: the user-facing flow conceptually is
+// "fetch → build → upload → save". In this codebase rendering happens in the
+// browser because jsPDF + image embedding via Image/canvas require a DOM. The
+// Deno function owns the canonical pdf_url write (idempotency seam) and is the
+// place where a future Google Drive re-upload step lives (DRIVE SWAP SEAM
+// comment in entry.ts). When that swap happens the button stays unchanged.
+//
+// Brand palette (per spec): navy #1a2744, gold #c9a84a.
 
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,26 +22,38 @@ import { FileText, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
-// Brand palette mirrors PropertyBrochurePDF for visual consistency across docs.
 const BRAND = {
-  name: 'Erudite Real Estate',
-  tagline: 'Premium Dubai Properties',
-  trn: '100123456700003', // TODO: replace with the real TRN once provided
-  primary: [30, 41, 59],   // navy
-  accent: [217, 119, 6],   // gold
+  name: 'ERUDITE REAL ESTATE',
+  addressLines: ['Office, Dubai, U.A.E.'], // TODO: replace with real registered address
+  vatRegNo: '104029757200003',
+  navy: [26, 39, 68],     // #1a2744
+  gold: [201, 168, 74],   // #c9a84a
   light: [248, 250, 252],
   text: [30, 41, 59],
-  muted: [100, 116, 139],
+  muted: [110, 120, 140],
+  hairline: [220, 225, 235],
 };
 
-// Drop the combined signature + stamp PNG at /public/assets/invoice/signoff.png
-// (Vite serves /public at the URL root). The renderer respects the image's
-// natural aspect ratio, so cropping the source PNG to taste is fine. If the
-// file is missing, the loader returns null and the sign-off band is skipped —
-// the PDF still renders cleanly.
-const ASSETS = {
-  signoffUrl: '/assets/invoice/signoff.png',
+const BANK = {
+  name: 'ADCB',
+  account: '12366874920001',
+  iban: 'AE780030012366874920001',
+  swift: 'ADCBAEAAXXX',
+  branch: '261 / Khaled Bin Waleed St',
 };
+
+// ── Asset loading ─────────────────────────────────────────────────────────────
+// import.meta.glob enumerates files at build time, so missing assets don't
+// break the build — they just resolve to `undefined` and the renderer skips
+// the draw. Drop the real files at src/assets/signature.png and
+// src/assets/stamp.png and they'll be embedded on the next build.
+const ASSETS = import.meta.glob('/src/assets/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+const SIGNATURE_URL = ASSETS['/src/assets/signature.png'] || null;
+const STAMP_URL = ASSETS['/src/assets/stamp.png'] || null;
 
 function fmtAED(n) {
   const num = Number(n);
@@ -53,9 +70,8 @@ function fmtDate(s) {
   }
 }
 
-// Browser-only: load a URL into a canvas and return { dataUrl, width, height },
-// or null on any failure (404, CORS, decode error). Returning the natural
-// dimensions lets the renderer respect the source aspect ratio.
+// Browser-only: load a URL into a canvas, returning {dataUrl, width, height}
+// or null. Natural dimensions let the renderer respect the source aspect ratio.
 function loadImage(url) {
   return new Promise((resolve) => {
     if (!url) return resolve(null);
@@ -82,170 +98,348 @@ function sanitizeFileSegment(s) {
   return String(s || '').replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 60) || 'invoice';
 }
 
+// Draw an image scaled to fit inside a box, anchored bottom-left, preserving
+// aspect ratio. Returns the drawn rect for chaining.
+function drawImageFit(doc, loaded, x, y, maxW, maxH) {
+  if (!loaded) return null;
+  const aspect = loaded.width / loaded.height;
+  let w = maxW;
+  let h = w / aspect;
+  if (h > maxH) {
+    h = maxH;
+    w = h * aspect;
+  }
+  try {
+    doc.addImage(loaded.dataUrl, 'PNG', x, y, w, h);
+    return { x, y, w, h };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Renderer ────────────────────────────────────────────────────────────────
-// Returns a jsPDF document. Callers do `.output('blob')` or `.save()`.
 export async function buildInvoicePDF(invoice, opts = {}) {
-  const signoffUrl = opts.signoffUrl ?? ASSETS.signoffUrl;
+  const signatureUrl = opts.signatureUrl ?? SIGNATURE_URL;
+  const stampUrl = opts.stampUrl ?? STAMP_URL;
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210;
   const H = 297;
-  const pad = 16;
+  const pad = 14;
 
-  // ── Header band (navy) + gold accent stripe ───────────────────────────────
-  doc.setFillColor(...BRAND.primary);
-  doc.rect(0, 0, W, 30, 'F');
-  doc.setFillColor(...BRAND.accent);
-  doc.rect(0, 30, W, 1.5, 'F');
+  // ── Header band (navy) ────────────────────────────────────────────────────
+  const headerH = 36;
+  doc.setFillColor(...BRAND.navy);
+  doc.rect(0, 0, W, headerH, 'F');
 
-  // Brand block — left
+  // Brand block (left)
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(BRAND.name.toUpperCase(), pad, 13);
+  doc.setFontSize(15);
+  doc.text(BRAND.name, pad, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(BRAND.tagline, pad, 19);
-  doc.text(`TRN: ${BRAND.trn}`, pad, 24);
-
-  // TAX INVOICE title — right, gold
-  doc.setTextColor(...BRAND.accent);
+  let addrY = 18;
+  for (const line of BRAND.addressLines) {
+    doc.text(line, pad, addrY);
+    addrY += 4;
+  }
+  doc.setTextColor(...BRAND.gold);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.text('TAX INVOICE', W - pad, 18, { align: 'right' });
+  doc.setFontSize(7.5);
+  doc.text(`VAT Reg No: ${BRAND.vatRegNo}`, pad, headerH - 5);
 
-  let y = 42;
+  // "TAX INVOICE" box (gold, right)
+  const boxW = 56;
+  const boxH = 18;
+  const boxX = W - pad - boxW;
+  const boxY = 9;
+  doc.setFillColor(...BRAND.gold);
+  doc.rect(boxX, boxY, boxW, boxH, 'F');
+  doc.setTextColor(...BRAND.navy);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('TAX INVOICE', boxX + boxW / 2, boxY + boxH / 2 + 2, { align: 'center' });
 
-  // ── Meta block: invoice # / issue / due ───────────────────────────────────
+  // Gold accent stripe under header
+  doc.setFillColor(...BRAND.gold);
+  doc.rect(0, headerH, W, 1.2, 'F');
+
+  let y = headerH + 10;
+
+  // ── Bill To (left) + Invoice Details (right) ──────────────────────────────
+  const colGap = 10;
+  const colW = (W - 2 * pad - colGap) / 2;
+  const leftX = pad;
+  const rightX = pad + colW + colGap;
+
+  // Section headers
   doc.setTextColor(...BRAND.muted);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('INVOICE #', pad, y);
-  doc.text('ISSUE DATE', pad + 65, y);
-  doc.text('DUE DATE', pad + 125, y);
+  doc.text('BILL TO', leftX, y);
+  doc.text('INVOICE DETAILS', rightX, y);
+  y += 1;
+
+  // Underlines for section headers (gold)
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.4);
+  doc.line(leftX, y + 0.5, leftX + 16, y + 0.5);
+  doc.line(rightX, y + 0.5, rightX + 26, y + 0.5);
   y += 5;
+
+  const billToStartY = y;
+
+  // Bill To body
   doc.setTextColor(...BRAND.text);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text(invoice.invoice_number || '—', pad, y);
-  doc.text(fmtDate(invoice.issue_date), pad + 65, y);
-  doc.text(fmtDate(invoice.due_date), pad + 125, y);
-  y += 12;
-
-  // ── Bill To block ─────────────────────────────────────────────────────────
-  doc.setTextColor(...BRAND.muted);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('BILL TO', pad, y);
+  doc.text(invoice.payer_name || '—', leftX, y);
   y += 5;
-  doc.setTextColor(...BRAND.text);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(invoice.payer_name || '—', pad, y);
-  y += 12;
-
-  // ── Line items table ─────────────────────────────────────────────────────
-  // Header band (navy)
-  doc.setFillColor(...BRAND.primary);
-  doc.rect(pad, y, W - 2 * pad, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('DESCRIPTION', pad + 3, y + 5.5);
-  doc.text('AMOUNT (AED)', W - pad - 3, y + 5.5, { align: 'right' });
-  y += 8;
+  doc.setTextColor(...BRAND.muted);
+  // Email / phone / TRN — not yet on the Invoice entity. Rendered if Base44
+  // adds them later (payer_email / payer_phone / payer_trn); '—' otherwise.
+  const billLines = [
+    ['Email', invoice.payer_email || '—'],
+    ['Phone', invoice.payer_phone || '—'],
+    ['TRN',   invoice.payer_trn   || '—'],
+  ];
+  for (const [label, val] of billLines) {
+    doc.setTextColor(...BRAND.muted);
+    doc.text(`${label}:`, leftX, y);
+    doc.setTextColor(...BRAND.text);
+    doc.text(String(val), leftX + 14, y);
+    y += 4.5;
+  }
 
-  // Rows — fall back to a single commission line if line_items is empty/unset.
+  // Invoice Details body (right column) — render at billToStartY so columns
+  // line up regardless of how tall the Bill To block ends up.
+  let ry = billToStartY;
+  const detailRow = (label, val) => {
+    doc.setTextColor(...BRAND.muted);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(label, rightX, ry);
+    doc.setTextColor(...BRAND.text);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(val), rightX + 32, ry);
+    ry += 5;
+  };
+  detailRow('Invoice #:', invoice.invoice_number || '—');
+  detailRow('Issue Date:', fmtDate(invoice.issue_date));
+  detailRow('Due Date:', fmtDate(invoice.due_date));
+  detailRow('P.O.:', invoice.po_number || '—');
+
+  y = Math.max(y, ry) + 6;
+
+  // ── Line items table ──────────────────────────────────────────────────────
+  // 4 columns: Description | Unit/Property | Sell Price (AED) | Amount (AED)
+  const tableX = pad;
+  const tableW = W - 2 * pad;
+  const colDescW   = tableW * 0.42;
+  const colUnitW   = tableW * 0.22;
+  const colPriceW  = tableW * 0.18;
+  const colAmtW    = tableW * 0.18;
+  const colDescX   = tableX;
+  const colUnitX   = colDescX + colDescW;
+  const colPriceX  = colUnitX + colUnitW;
+  const colAmtX    = colPriceX + colPriceW;
+
+  // Header band
+  const headerRowH = 8;
+  doc.setFillColor(...BRAND.navy);
+  doc.rect(tableX, y, tableW, headerRowH, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('DESCRIPTION', colDescX + 2, y + 5.5);
+  doc.text('UNIT / PROPERTY', colUnitX + 2, y + 5.5);
+  doc.text('SELL PRICE (AED)', colPriceX + colPriceW - 2, y + 5.5, { align: 'right' });
+  doc.text('AMOUNT (AED)', colAmtX + colAmtW - 2, y + 5.5, { align: 'right' });
+  y += headerRowH;
+
+  // Rows — fall back to a single Brokerage-commission row when line_items is empty.
   const items =
     Array.isArray(invoice.line_items) && invoice.line_items.length
       ? invoice.line_items
-      : [{ description: 'Brokerage commission', amount: Number(invoice.commission_amount) || 0 }];
+      : [{
+          description: 'Brokerage commission',
+          unit_property: '',
+          sell_price: null,
+          amount: Number(invoice.commission_amount) || 0,
+        }];
 
-  doc.setTextColor(...BRAND.text);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
   const rowH = 9;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
   items.forEach((it, i) => {
     if (i % 2 === 0) {
       doc.setFillColor(...BRAND.light);
-      doc.rect(pad, y, W - 2 * pad, rowH, 'F');
+      doc.rect(tableX, y, tableW, rowH, 'F');
     }
-    const descLines = doc.splitTextToSize(String(it.description || ''), W - 2 * pad - 60);
-    doc.text(descLines[0] || '', pad + 3, y + 6);
-    doc.text(fmtAED(it.amount), W - pad - 3, y + 6, { align: 'right' });
+    doc.setTextColor(...BRAND.text);
+    const desc = doc.splitTextToSize(String(it.description || ''), colDescW - 4)[0] || '';
+    const unit = doc.splitTextToSize(String(it.unit_property || ''), colUnitW - 4)[0] || '';
+    doc.text(desc, colDescX + 2, y + 6);
+    doc.text(unit, colUnitX + 2, y + 6);
+    doc.text(it.sell_price != null ? fmtAED(it.sell_price) : '—', colPriceX + colPriceW - 2, y + 6, { align: 'right' });
+    doc.text(it.amount != null ? fmtAED(it.amount) : '—', colAmtX + colAmtW - 2, y + 6, { align: 'right' });
     y += rowH;
   });
 
-  y += 4;
-
-  // ── Totals block (right-aligned) ─────────────────────────────────────────
-  const totalsLabelX = W - pad - 70;
-  const drawTotalRow = (label, value, bold = false) => {
-    doc.setTextColor(...(bold ? BRAND.primary : BRAND.muted));
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.setFontSize(bold ? 11 : 9);
-    doc.text(label, totalsLabelX, y);
-    doc.setTextColor(...BRAND.text);
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.text(`AED ${fmtAED(value)}`, W - pad, y, { align: 'right' });
-    y += bold ? 8 : 6;
-  };
-
-  drawTotalRow('Subtotal', invoice.commission_amount || 0);
-  drawTotalRow('VAT (5%)', invoice.vat_amount || 0);
-
-  // Separator line above Total
-  doc.setDrawColor(...BRAND.muted);
+  // Bottom hairline under the table
+  doc.setDrawColor(...BRAND.hairline);
   doc.setLineWidth(0.2);
-  doc.line(totalsLabelX, y - 2, W - pad, y - 2);
-  y += 1;
-  drawTotalRow('Total', invoice.total_amount || 0, true);
+  doc.line(tableX, y, tableX + tableW, y);
+  y += 8;
 
-  // ── Sign-off band (combined signature + stamp PNG) ───────────────────────
-  // One image, centered above the footer, scaled to its natural aspect ratio.
-  // Bounded by maxW/maxH so an oddly-proportioned source still fits cleanly.
-  // Skipped entirely if the asset is missing — the rest of the PDF is unaffected.
-  const signoff = await loadImage(signoffUrl);
-  if (signoff) {
-    const footerTop = H - 18;
-    const maxW = 130; // mm
-    const maxH = 55;  // mm
-    const aspect = signoff.width / signoff.height;
-    let drawW = maxW;
-    let drawH = drawW / aspect;
-    if (drawH > maxH) {
-      drawH = maxH;
-      drawW = drawH * aspect;
-    }
-    const x = (W - drawW) / 2;
-    const yImg = footerTop - drawH - 6; // 6mm gap above the footer band
+  // ── Payment Method (left) + Amount Summary (right) ────────────────────────
+  const blockStartY = y;
+  // Payment Method
+  doc.setTextColor(...BRAND.muted);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('PAYMENT METHOD', leftX, blockStartY);
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.4);
+  doc.line(leftX, blockStartY + 1, leftX + 32, blockStartY + 1);
 
-    // Small muted caption above the band
+  let py = blockStartY + 6;
+  const bankRow = (label, val) => {
     doc.setTextColor(...BRAND.muted);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('Authorized Signature & Stamp', W / 2, yImg - 3, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(label, leftX, py);
+    doc.setTextColor(...BRAND.text);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(val), leftX + 18, py);
+    py += 4.8;
+  };
+  bankRow('Bank:', BANK.name);
+  bankRow('Account:', BANK.account);
+  bankRow('IBAN:', BANK.iban);
+  bankRow('SWIFT:', BANK.swift);
+  bankRow('Branch:', BANK.branch);
 
-    try { doc.addImage(signoff.dataUrl, 'PNG', x, yImg, drawW, drawH); } catch { /* ignore bad image */ }
+  // Amount Summary (right column, totals)
+  doc.setTextColor(...BRAND.muted);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('AMOUNT SUMMARY', rightX, blockStartY);
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.4);
+  doc.line(rightX, blockStartY + 1, rightX + 30, blockStartY + 1);
+
+  let sy = blockStartY + 6;
+  const totalsLabelX = rightX;
+  const totalsValueX = rightX + colW; // right edge of the right column
+  const totalRow = (label, value, opts = {}) => {
+    doc.setTextColor(...(opts.emphasis ? BRAND.navy : BRAND.muted));
+    doc.setFont('helvetica', opts.emphasis ? 'bold' : 'normal');
+    doc.setFontSize(opts.emphasis ? 10.5 : 9.5);
+    doc.text(label, totalsLabelX, sy);
+    doc.setTextColor(...(opts.emphasis ? BRAND.navy : BRAND.text));
+    doc.text(`AED ${fmtAED(value)}`, totalsValueX, sy, { align: 'right' });
+    sy += opts.emphasis ? 8 : 6;
+  };
+  totalRow('Subtotal', invoice.commission_amount || 0);
+  totalRow('VAT (5%)', invoice.vat_amount || 0);
+  // Separator
+  doc.setDrawColor(...BRAND.hairline);
+  doc.setLineWidth(0.3);
+  doc.line(totalsLabelX, sy - 2, totalsValueX, sy - 2);
+  sy += 1;
+  // TOTAL DUE — gold band behind it
+  const dueH = 9;
+  doc.setFillColor(...BRAND.gold);
+  doc.rect(totalsLabelX - 2, sy - 5.5, colW + 2, dueH, 'F');
+  doc.setTextColor(...BRAND.navy);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TOTAL DUE', totalsLabelX, sy);
+  doc.text(`AED ${fmtAED(invoice.total_amount || 0)}`, totalsValueX, sy, { align: 'right' });
+
+  y = Math.max(py, sy + 4) + 6;
+
+  // ── Authorized Signature area ─────────────────────────────────────────────
+  // Pin to a fixed band near the footer so layout stays stable across row
+  // counts. Signature sits on the line; stamp overlaps to the right of it.
+  const footerTop = H - 18;
+  const sigBandY = footerTop - 38;
+
+  doc.setTextColor(...BRAND.muted);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('AUTHORIZED SIGNATURE', leftX, sigBandY);
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.4);
+  doc.line(leftX, sigBandY + 1, leftX + 40, sigBandY + 1);
+
+  // Signature line (full width across the signature area)
+  const lineY = sigBandY + 26;
+  const lineEnd = leftX + 70;
+  doc.setDrawColor(...BRAND.text);
+  doc.setLineWidth(0.3);
+  doc.line(leftX, lineY, lineEnd, lineY);
+
+  // Caption under the line
+  doc.setTextColor(...BRAND.muted);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('For Erudite Real Estate', leftX, lineY + 4);
+
+  // Embed signature.png (sits on the line) — graceful if file missing.
+  const [signature, stamp] = await Promise.all([loadImage(signatureUrl), loadImage(stampUrl)]);
+
+  if (signature) {
+    // Anchor so the signature baseline sits on the line, slightly above it.
+    const sigMaxW = 55;
+    const sigMaxH = 22;
+    const aspect = signature.width / signature.height;
+    let sw = sigMaxW;
+    let sh = sw / aspect;
+    if (sh > sigMaxH) { sh = sigMaxH; sw = sh * aspect; }
+    const sx = leftX + 2;
+    const sy0 = lineY - sh + 4; // overlap the line slightly (4mm below baseline)
+    try { doc.addImage(signature.dataUrl, 'PNG', sx, sy0, sw, sh); } catch { /* ignore */ }
   }
 
-  // ── Footer band ───────────────────────────────────────────────────────────
-  doc.setFillColor(...BRAND.primary);
-  doc.rect(0, H - 18, W, 18, 'F');
-  doc.setFillColor(...BRAND.accent);
-  doc.rect(0, H - 18, W, 1.2, 'F');
+  if (stamp) {
+    // Stamp beside / overlapping the signature on the right — square-ish, larger.
+    const stampMax = 30;
+    const aspect = stamp.width / stamp.height;
+    let stW = stampMax;
+    let stH = stW / aspect;
+    if (stH > stampMax) { stH = stampMax; stW = stH * aspect; }
+    // Position: starts after the signature area but overlaps the line; slight
+    // rotation could be added but jsPDF rotation on images is finicky — keep
+    // upright for legibility.
+    const stX = lineEnd - 20;
+    const stY = lineY - stH + 10; // sit below the line, overlapping it
+    try { doc.addImage(stamp.dataUrl, 'PNG', stX, stY, stW, stH); } catch { /* ignore */ }
+  }
+
+  // ── Footer band (navy) ───────────────────────────────────────────────────
+  doc.setFillColor(...BRAND.navy);
+  doc.rect(0, footerTop, W, 18, 'F');
+  doc.setFillColor(...BRAND.gold);
+  doc.rect(0, footerTop, W, 1.2, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${BRAND.name} · Generated ${new Date().toLocaleDateString('en-GB')}`, pad, H - 9);
-  doc.setTextColor(...BRAND.accent);
+  doc.setFontSize(7.5);
+  doc.text(`${BRAND.name} · ${BRAND.addressLines[0]}`, pad, footerTop + 8);
+  doc.text(`Generated ${new Date().toLocaleDateString('en-GB')}`, pad, footerTop + 13);
+  doc.setTextColor(...BRAND.gold);
   doc.setFont('helvetica', 'bolditalic');
-  doc.text('Thank you for your business', W - pad, H - 9, { align: 'right' });
+  doc.setFontSize(8);
+  doc.text('Thank you for your business', W - pad, footerTop + 11, { align: 'right' });
 
   return doc;
 }
 
-// ─── Action buttons (Generate + View) ───────────────────────────────────────
+// ─── Action buttons ──────────────────────────────────────────────────────────
 export function GeneratePDFButton({ invoice }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -258,12 +452,11 @@ export function GeneratePDFButton({ invoice }) {
       const fileName = `${invoice.invoice_number || 'INV'}_${sanitizeFileSegment(invoice.payer_name)}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      // Today: upload via Base44 storage. Tomorrow (Drive): this whole upload
-      // step moves inside the `generateInvoicePDF` function — the button is
-      // unchanged.
+      // Today: upload via Base44 storage. Tomorrow (Drive): the upload step
+      // moves inside `generateInvoicePDF` — the button doesn't change.
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // Save pdf_url back via the function (asServiceRole + idempotency seam).
+      // Save pdf_url via the function (asServiceRole + idempotency seam).
       const result = await base44.functions.generateInvoicePDF({
         invoice_id: invoice.id,
         file_url,

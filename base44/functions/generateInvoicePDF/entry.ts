@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (!invoice_id) {
       return Response.json({ error: 'invoice_id is required' }, { status: 400 });
     }
-    if (!file_url || typeof file_url !== 'string') {
+    if (!file_url || typeof file_url !== 'string' || !file_url.trim()) {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
     }
 

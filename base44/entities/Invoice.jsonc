@@ -47,15 +47,24 @@
     },
     "line_items": {
       "type": "array",
-      "description": "Optional itemised breakdown; if empty, PDF falls back to a single Brokerage commission row",
+      "description": "Optional itemised breakdown rendered in the PDF service table. If empty, the PDF falls back to a single Brokerage-commission row derived from commission_amount.",
       "items": {
         "type": "object",
         "properties": {
           "description": {
             "type": "string"
           },
+          "unit_property": {
+            "type": "string",
+            "description": "Unit number or property reference for this line"
+          },
+          "sell_price": {
+            "type": "number",
+            "description": "Sale price of the unit/property in AED (informational; not summed into totals)"
+          },
           "amount": {
-            "type": "number"
+            "type": "number",
+            "description": "Line amount in AED (commission charged on this line)"
           }
         }
       }
