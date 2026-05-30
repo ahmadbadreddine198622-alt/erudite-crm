@@ -146,7 +146,7 @@ export default function InvoiceManager() {
                   readOnly
                   tabIndex={-1}
                   className="bg-secondary/50 cursor-not-allowed text-muted-foreground"
-                  value={form.commission_amount ? (Math.round(parseFloat(form.commission_amount) * 0.05 * 100) / 100).toLocaleString() : ''}
+                  value={form.commission_amount ? (Math.round(parseFloat(form.commission_amount) * 0.05 * 100) / 100).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}
                   placeholder="auto"
                 />
               </div>
@@ -156,7 +156,7 @@ export default function InvoiceManager() {
                   readOnly
                   tabIndex={-1}
                   className="bg-secondary/50 cursor-not-allowed font-semibold"
-                  value={form.commission_amount ? (() => { const c = parseFloat(form.commission_amount); const v = Math.round(c * 0.05 * 100) / 100; return (Math.round((c + v) * 100) / 100).toLocaleString(); })() : ''}
+                  value={form.commission_amount ? (() => { const c = parseFloat(form.commission_amount); const v = Math.round(c * 0.05 * 100) / 100; return (Math.round((c + v) * 100) / 100).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); })() : ''}
                   placeholder="auto"
                 />
               </div>
