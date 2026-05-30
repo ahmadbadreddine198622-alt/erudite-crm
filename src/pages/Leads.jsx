@@ -34,14 +34,14 @@ const ALL_STAGES = Object.values(STAGES);
 const INTENT_LABELS = { buyer: 'Buyer', tenant: 'Tenant', unknown: 'Unknown' };
 const STATUS_LABELS = { active: 'Active', lost: 'Lost', on_hold: 'On Hold' };
 const STATUS_COLORS = {
-  active: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  lost: 'bg-red-500/10 text-red-700 border-red-500/20',
-  on_hold: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  active: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+  lost: 'bg-red-500/15 text-red-400 border-red-500/25',
+  on_hold: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
 };
 const INTENT_COLORS = {
-  buyer: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
-  tenant: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
-  unknown: 'bg-muted text-muted-foreground border-border',
+  buyer: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
+  tenant: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
+  unknown: 'bg-white/5 text-white/35 border-white/10',
 };
 
 function formatDealValue(val) {
@@ -197,7 +197,12 @@ export default function Leads() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-[1700px] mx-auto">
+    <div
+      className="p-4 md:p-6 max-w-[1700px] mx-auto min-h-screen"
+      style={{
+        background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
+      }}
+    >
       <PageHeader title="Leads" subtitle={`${sorted.length.toLocaleString()} leads${filtered.length < leads.length ? ` of ${leads.length.toLocaleString()}` : ''}`}>
         <Button size="sm" variant="outline" onClick={() => setFiltersOpen(v => !v)} className="gap-1.5 relative">
           <SlidersHorizontal className="w-4 h-4" /> Filters
@@ -257,7 +262,15 @@ export default function Leads() {
 
         {/* Expanded filter panel */}
         {filtersOpen && (
-          <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-xl border border-border">
+          <div
+            className="flex flex-wrap gap-2 p-3 rounded-xl"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderTopColor: 'rgba(255,255,255,0.14)',
+            }}
+          >
             <Select value={stageFilter} onValueChange={setStageFilter}>
               <SelectTrigger className="w-48 h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
               <SelectContent>
@@ -333,11 +346,21 @@ export default function Leads() {
       </div>
 
       {/* Table */}
-      <Card className="overflow-hidden">
+      <div
+        className="overflow-hidden rounded-xl"
+        style={{
+          background: 'rgba(255,255,255,0.025)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderTopColor: 'rgba(255,255,255,0.14)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
+              <TableRow style={{ background: 'rgba(8,11,18,0.7)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 <TableHead className="w-8">
                   <input
                     type="checkbox"
@@ -369,7 +392,14 @@ export default function Leads() {
                 return (
                   <TableRow
                     key={lead.id}
-                    className={`cursor-pointer hover:bg-muted/30 transition-colors ${selectedIds.has(lead.id) ? 'bg-accent/5' : ''}`}
+                    className="cursor-pointer transition-all duration-150"
+                    style={{
+                      background: selectedIds.has(lead.id) ? 'rgba(245,159,10,0.07)' : 'transparent',
+                      borderLeft: selectedIds.has(lead.id) ? '2px solid rgba(245,159,10,0.5)' : '2px solid transparent',
+                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    }}
+                    onMouseEnter={e => { if (!selectedIds.has(lead.id)) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                    onMouseLeave={e => { if (!selectedIds.has(lead.id)) e.currentTarget.style.background = 'transparent'; }}
                     onClick={() => setSelectedLead(lead)}
                   >
                     <TableCell onClick={e => e.stopPropagation()} className="w-8">
@@ -434,8 +464,8 @@ export default function Leads() {
                     {/* Deal value */}
                     <TableCell>
                       {lead.deal_value_aed > 0
-                        ? <span className="text-xs font-semibold text-blue-600">{formatDealValue(lead.deal_value_aed)}</span>
-                        : <span className="text-xs text-muted-foreground">—</span>}
+                        ? <span className="text-xs font-semibold" style={{ color: 'hsl(38 92% 50%)', fontVariantNumeric: 'tabular-nums' }}>{formatDealValue(lead.deal_value_aed)}</span>
+                        : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
                     </TableCell>
                     {/* Next appt */}
                     <TableCell>
@@ -466,7 +496,7 @@ export default function Leads() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <span className="text-xs text-muted-foreground">
               {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} of {sorted.length.toLocaleString()}
             </span>
@@ -479,7 +509,7 @@ export default function Leads() {
             </div>
           </div>
         )}
-      </Card>
+      </div>
 
       {selectedLead && (
         <LeadDetailSheet lead={selectedLead} open={!!selectedLead} onClose={() => setSelectedLead(null)} />
