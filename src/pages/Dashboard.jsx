@@ -9,7 +9,8 @@ import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
-  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key
+  GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
+  Calendar, TrendingUp, Activity
 } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 
@@ -150,6 +151,10 @@ export default function Dashboard() {
     reminders: reminders.length,
     whatsapp:  conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
   };
+  
+  // Management intelligence
+  const todayDeals = leads.filter(l => l.stage === 'negotiation_deal_lock' || l.stage === 'closing_dld').length;
+  const hotLeads = leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
 
   const filtered = search.trim()
     ? apps.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
@@ -169,13 +174,73 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Management Intelligence Strip */}
+      <div className="grid grid-cols-4 gap-3 mb-8 w-full max-w-3xl">
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Users className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Active Leads</p>
+          <p className="text-xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Bell className="w-3.5 h-3.5 text-amber-500" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Reminders</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Unread</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Hot Leads</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{hotLeads}</p>
+        </div>
+      </div>
+
       {/* Date & greeting */}
       <div className="text-center mb-8">
-        <p className="text-4xl font-light text-white/90 tracking-tight">
+        <p className="text-4xl font-light tracking-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
           {format(new Date(), 'h:mm')}
-          <span className="text-xl ml-1 text-white/50">{format(new Date(), 'a')}</span>
+          <span className="text-xl ml-1" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'a')}</span>
         </p>
-        <p className="text-sm text-white/40 mt-1">{format(new Date(), 'EEEE, MMMM d')}</p>
+        <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
       {/* Done button — only visible in edit mode */}
@@ -190,13 +255,27 @@ export default function Dashboard() {
 
       {/* Search */}
       <div className="relative mb-10 w-full max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search"
-          className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/10 backdrop-blur-md text-white placeholder-white/40 text-sm border border-white/10 focus:outline-none focus:border-white/30 focus:bg-white/15 transition-all"
+          placeholder="Search apps"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.95)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'hsl(38 92% 50%)';
+            e.target.style.background = 'rgba(255,255,255,0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.target.style.background = 'rgba(255,255,255,0.07)';
+          }}
         />
       </div>
 
@@ -241,8 +320,8 @@ export default function Dashboard() {
                          active={editMode && !snapshot.isDragging}
                          badge={!editMode && badgeCount > 0 ? badgeCount : 0}
                         />
-                        <span className={`text-[11px] text-center leading-tight max-w-[72px] ${
-                          editMode ? 'text-white/50' : 'text-white/70'
+                        <span className={`text-[11px] text-center leading-tight max-w-[72px] font-medium ${
+                          editMode ? 'text-white/50' : 'text-white/75'
                         }`}>
                           {app.label}
                         </span>
