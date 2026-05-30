@@ -37,11 +37,11 @@ export default function ChatThread({ conversationId }) {
   }, {});
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-[#ECE5DD]">
+    <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
       {Object.entries(grouped).map(([day, msgs]) => (
         <div key={day}>
           <div className="flex justify-center my-3">
-            <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{day}</span>
+            <span className="text-[10px] font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>{day}</span>
           </div>
           {msgs.map(msg => (
             <MessageBubble key={msg.id} msg={msg} />
@@ -72,14 +72,21 @@ function MessageBubble({ msg }) {
 
   return (
     <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div className={cn(
-        'max-w-[72%] rounded-xl px-3 py-2 text-sm shadow-sm',
-        isOutbound
-          ? 'bg-[#00A884] text-white rounded-br-none'
-          : 'bg-white text-gray-800 rounded-bl-none border border-gray-100',
-      )}>
-        <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-        <div className={cn('text-[10px] mt-0.5', isOutbound ? 'text-right text-white/70' : 'text-left text-gray-400')}>
+      <div
+        className={cn(
+          'max-w-[72%] rounded-2xl px-3.5 py-2.5 text-sm shadow-md backdrop-blur-xl',
+          isOutbound ? 'rounded-br-none' : 'rounded-bl-none',
+        )}
+        style={{
+          background: isOutbound ? 'rgba(245,159,10,0.15)' : 'rgba(255,255,255,0.08)',
+          border: isOutbound ? '1px solid rgba(245,159,10,0.3)' : '1px solid rgba(255,255,255,0.12)',
+          borderTop: isOutbound ? '1px solid rgba(245,159,10,0.4)' : '1px solid rgba(255,255,255,0.15)',
+        }}
+      >
+        <p className="leading-relaxed whitespace-pre-wrap" style={{ color: isOutbound ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.9)' }}>
+          {msg.body}
+        </p>
+        <div className={cn('text-[9px] mt-1 font-medium', isOutbound ? 'text-right' : 'text-left')} style={{ color: isOutbound ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.45)' }}>
           {format(new Date(msg.timestamp), 'HH:mm')}
           {isOutbound && (
             <span className="ml-1">{msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck } from 'lucide-react';
+import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
 import WhatsAppHeader from '@/components/whatsapp/WhatsAppHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
@@ -112,6 +112,22 @@ export default function WhatsAppInbox() {
   });
 
   const unreadTotal = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const now = new Date();
+  const conversationsToday = conversations.filter(c => {
+    if (!c.first_message_at) return false;
+    const msgDate = new Date(c.first_message_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return msgDate >= today;
+  }).length;
+  const avgResponseTime = (() => {
+    const withResponse = conversations.filter(c => c.first_response_seconds && c.first_response_seconds > 0);
+    if (withResponse.length === 0) return 0;
+    const totalSeconds = withResponse.reduce((sum, c) => sum + c.first_response_seconds, 0);
+    return Math.round(totalSeconds / withResponse.length / 60); // minutes
+  })();
+  const slaBreaches = conversations.filter(c => c.sla_breached === true).length;
+  const unresolvedCount = conversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
     mutationFn: ({ conversation_id, message }) =>
@@ -178,20 +194,53 @@ export default function WhatsAppInbox() {
       />
       {/* Sidebar — conversation list */}
       <div className="w-80 border-r flex flex-col shrink-0">
+        {/* Management Intelligence Strip */}
+        <div className="grid grid-cols-4 gap-2 p-3" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <MessageSquare className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Today</span>
+            </div>
+            <p className="text-lg font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{conversationsToday}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <Clock className="w-3 h-3 text-purple-400" />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Response</span>
+            </div>
+            <p className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{avgResponseTime}m</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <AlertCircle className="w-3 h-3 text-amber-500" />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>SLA Breaches</span>
+            </div>
+            <p className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{slaBreaches}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <TrendingUp className="w-3 h-3 text-emerald-500" />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Unresolved</span>
+            </div>
+            <p className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{unresolvedCount}</p>
+          </div>
+        </div>
+
         {/* Header */}
-        <div className="p-4 border-b bg-card space-y-3">
+        <div className="p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-green-500" />
+              <MessageCircle className="w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
               <h2 className="font-bold text-lg">Messages</h2>
               {unreadTotal > 0 && (
-                <Badge className="bg-green-600 text-white text-xs px-1.5 py-0">{unreadTotal}</Badge>
+                <Badge className="text-xs px-1.5 py-0" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}>{unreadTotal}</Badge>
               )}
             </div>
             <div className="flex gap-1">
               <Button
                 size="sm"
-                className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs px-2.5"
+                className="h-8 text-xs px-2.5"
+                style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}
                 onClick={() => setShowNewConv(true)}
               >
                 + New
@@ -203,7 +252,8 @@ export default function WhatsAppInbox() {
                 href="https://web.whatsapp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 border border-green-500/30 px-2.5 py-1.5 rounded-lg hover:bg-green-500/5 transition-colors"
+                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+                style={{ color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
               >
                 <ExternalLink className="w-3 h-3" /> WA Web
               </a>
@@ -213,7 +263,8 @@ export default function WhatsAppInbox() {
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
-              className="pl-9 h-9 text-sm bg-muted/50"
+              className="pl-9 h-9 text-sm"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -224,11 +275,12 @@ export default function WhatsAppInbox() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                  filter === f
-                    ? 'bg-green-600 text-white'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
+                className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
+                  color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.7)',
+                  border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid rgba(255,255,255,0.1)',
+                }}
               >
                 {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
