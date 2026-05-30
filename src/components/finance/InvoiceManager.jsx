@@ -21,7 +21,9 @@ const STATUS_COLORS = {
 
 const EMPTY_FORM = {
   deal_id: '', agent_id: '', payer_name: '', commission_amount: '',
-  issue_date: '', due_date: '', status: 'draft', notes: ''
+  issue_date: '', due_date: '', status: 'draft', notes: '',
+  property_source: 'manual',
+  property_details: { unit_number: '', building_name: '', community: '', property_type: '', reference_no: '', address: '' },
 };
 
 export default function InvoiceManager() {
@@ -39,6 +41,43 @@ export default function InvoiceManager() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: deals = [] } = useQuery({
+    queryKey: ['deals-for-invoice'],
+    queryFn: () => base44.entities.Deal.list('-created_date', 200),
+  });
+
+  const [dealSearch, setDealSearch] = useState('');
+  const [loadingDealProps, setLoadingDealProps] = useState(false);
+
+  const handleDealSelect = async (dealId) => {
+    setForm(f => ({ ...f, deal_id: dealId, property_details: { ...f.property_details } }));
+    if (!dealId) return;
+    setLoadingDealProps(true);
+    try {
+      const deal = await base44.entities.Deal.get(dealId);
+      if (deal?.property_id) {
+        const prop = await base44.entities.Property.get(deal.property_id);
+        if (prop) {
+          setForm(f => ({
+            ...f,
+            deal_id: dealId,
+            property_details: {
+              unit_number: f.property_details.unit_number || '',
+              building_name: prop.building_name || '',
+              community: prop.location || '',
+              property_type: prop.property_type ? prop.property_type.replace(/_/g, ' ') : '',
+              reference_no: prop.permit_number || '',
+              address: prop.address || '',
+            },
+          }));
+        }
+      }
+    } catch { /* non-fatal */ }
+    setLoadingDealProps(false);
+  };
+
+  const setPD = (k, v) => setForm(f => ({ ...f, property_details: { ...f.property_details, [k]: v } }));
+
   const createInvoice = useMutation({
     mutationFn: (data) => base44.entities.Invoice.create(data),
     onSuccess: () => {
@@ -55,11 +94,13 @@ export default function InvoiceManager() {
     const commission = parseFloat(form.commission_amount) || 0;
     const vat = Math.round(commission * 0.05 * 100) / 100;
     const total = Math.round((commission + vat) * 100) / 100;
+    const cleanPD = Object.fromEntries(Object.entries(form.property_details).filter(([, v]) => v));
     const payload = {
       ...form,
       commission_amount: commission,
       vat_amount: vat,
       total_amount: total,
+      property_details: Object.keys(cleanPD).length ? cleanPD : undefined,
     };
     createInvoice.mutate(payload);
   };
@@ -243,6 +284,89 @@ export default function InvoiceManager() {
                 <Input type="date" required value={form.due_date} onChange={e => set('due_date', e.target.value)} />
               </div>
             </div>
+            {/* ── Property Details ── */}
+            <div className="col-span-2 border-t border-border pt-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Label className="shrink-0">Property Source</Label>
+                <div className="flex gap-1">
+                  {[['manual', 'Manual Entry'], ['crm', 'From Deal (CRM)']].map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => set('property_source', val)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border ${
+                        form.property_source === val
+                          ? 'bg-accent text-accent-foreground border-accent'
+                          : 'border-border text-muted-foreground hover:bg-secondary'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {form.property_source === 'crm' && (
+                <div className="space-y-2">
+                  <Label>Select Deal</Label>
+                  <Input
+                    placeholder="Search deals by lead name…"
+                    value={dealSearch}
+                    onChange={e => setDealSearch(e.target.value)}
+                  />
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={form.deal_id}
+                    onChange={e => { setDealSearch(''); handleDealSelect(e.target.value); }}
+                  >
+                    <option value="">— pick a deal —</option>
+                    {deals
+                      .filter(d => !dealSearch || (d.lead_name || '').toLowerCase().includes(dealSearch.toLowerCase()))
+                      .map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.lead_name || d.id} · {d.stage} {d.deal_value ? `· AED ${d.deal_value.toLocaleString()}` : ''}
+                        </option>
+                      ))}
+                  </select>
+                  {loadingDealProps && <p className="text-xs text-muted-foreground">Loading property data…</p>}
+                  {form.deal_id && !loadingDealProps && (
+                    <div className="grid grid-cols-2 gap-2 rounded-md border border-border bg-secondary/30 p-3">
+                      {[['Unit No.', 'unit_number'], ['Building/Tower', 'building_name'], ['Community', 'community'], ['Type', 'property_type'], ['Permit/Ref', 'reference_no'], ['Address', 'address']].map(([label, key]) => (
+                        <div key={key} className="space-y-0.5">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                          {key === 'unit_number' ? (
+                            <Input
+                              className="h-7 text-xs"
+                              placeholder="Enter manually"
+                              value={form.property_details.unit_number}
+                              onChange={e => setPD('unit_number', e.target.value)}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium">{form.property_details[key] || <span className="text-muted-foreground">—</span>}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {form.property_source === 'manual' && (
+                <div className="grid grid-cols-2 gap-2">
+                  {[['Unit No.', 'unit_number'], ['Building/Tower', 'building_name'], ['Community', 'community'], ['Property Type', 'property_type'], ['Permit/Ref No.', 'reference_no'], ['Address', 'address']].map(([label, key]) => (
+                    <div key={key} className={`space-y-1 ${key === 'address' ? 'col-span-2' : ''}`}>
+                      <Label>{label} <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                      <Input
+                        placeholder={label}
+                        value={form.property_details[key]}
+                        onChange={e => setPD(key, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <Label>Notes / Remarks <span className="text-muted-foreground">(optional)</span></Label>
               <textarea

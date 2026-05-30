@@ -73,9 +73,33 @@
       "type": "string",
       "description": "Optional notes or remarks to display on the invoice PDF"
     },
+    "property_details": {
+      "type": "object",
+      "description": "Property details to display on the invoice PDF (CRM-pulled or manually entered)",
+      "properties": {
+        "unit_number": {
+          "type": "string"
+        },
+        "building_name": {
+          "type": "string"
+        },
+        "community": {
+          "type": "string"
+        },
+        "property_type": {
+          "type": "string"
+        },
+        "reference_no": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        }
+      }
+    },
     "pdf_url": {
       "type": "string",
-      "description": "URL of the latest generated TAX INVOICE PDF (Base44 storage or Drive link)"
+      "description": "URL of the latest generated TAX INVOICE PDF"
     }
   },
   "required": [

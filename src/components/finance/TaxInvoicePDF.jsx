@@ -276,6 +276,7 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   // ── Property Details block ────────────────────────────────────────────────
   const pd = opts.propertyDetails || {};
   const pdRows = [
+    ['Unit No.',              pd.unit_number],
     ['Building / Tower',      pd.building_name],
     ['Project / Community',   pd.location],
     ['Property Type',         pd.property_type],
@@ -449,10 +450,22 @@ export function GeneratePDFButton({ invoice }) {
   const handleClick = async () => {
     setLoading(true);
     try {
-      // Resolve property details from linked Deal → Property
+      // Use stored property_details if available, otherwise resolve from linked Deal → Property
       let propertyLabel = '';
       let propertyDetails = {};
-      if (invoice.deal_id) {
+
+      if (invoice.property_details && Object.values(invoice.property_details).some(Boolean)) {
+        const pd = invoice.property_details;
+        propertyDetails = {
+          unit_number: pd.unit_number || '',
+          building_name: pd.building_name || '',
+          location: pd.community || '',
+          property_type: pd.property_type || '',
+          permit_number: pd.reference_no || '',
+          address: pd.address || '',
+        };
+        propertyLabel = [pd.building_name, pd.community].filter(Boolean).join(' — ');
+      } else if (invoice.deal_id) {
         try {
           const deal = await base44.entities.Deal.get(invoice.deal_id);
           if (deal?.property_id) {
@@ -470,6 +483,7 @@ export function GeneratePDFButton({ invoice }) {
           }
         } catch { /* non-fatal — leave blank */ }
       }
+
       const doc = await buildInvoicePDF(invoice, { propertyLabel, propertyDetails });
       const blob = doc.output('blob');
       const fileName = `${invoice.invoice_number || 'INV'}_${sanitizeFileSegment(invoice.payer_name)}.pdf`;
