@@ -28,17 +28,24 @@ export default function KanbanBoard({
           return (
             <div
               key={stage}
-              className="flex-shrink-0 w-80 bg-card rounded-lg border border-border overflow-hidden flex flex-col h-full"
+              className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden flex flex-col h-full"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderTopColor: 'rgba(255,255,255,0.15)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+              }}
             >
               {/* Column Header */}
-              <div className="bg-card border-b border-border p-3 shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">{stageLabels[stage]}</h3>
-                  <Badge variant="outline" className="text-xs">
+              <div className="p-3 shrink-0" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)', background: 'rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="font-bold text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>{stageLabels[stage]}</h3>
+                  <Badge variant="outline" className="text-xs" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}>
                     {landlords.length}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
                   AED {(totalCommission / 1000000).toFixed(1)}M
                 </p>
               </div>
@@ -50,8 +57,8 @@ export default function KanbanBoard({
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      'flex-1 overflow-y-auto p-3 space-y-2 transition-colors',
-                      snapshot.isDraggingOver ? 'bg-accent/5' : '',
+                      'flex-1 overflow-y-auto p-2.5 space-y-2 transition-colors',
+                      snapshot.isDraggingOver ? 'bg-white/5' : '',
                     )}
                   >
                     {landlords.map((landlord, index) => (

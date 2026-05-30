@@ -93,36 +93,50 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     <div
       onClick={onClick}
       className={cn(
-        'bg-card rounded-xl p-3 border cursor-pointer transition-all duration-200',
+        'rounded-2xl p-3.5 cursor-pointer transition-all duration-200',
         isDragging
-          ? 'shadow-xl ring-2 ring-accent/30 rotate-1'
-          : 'hover:shadow-md hover:border-accent/30',
-        isSelected ? 'border-accent ring-1 ring-accent/40' : 'border-border',
+          ? 'shadow-2xl rotate-1'
+          : 'hover:shadow-lg',
+        isSelected ? 'ring-2 ring-accent/50' : '',
       )}
+      style={{
+        background: isDragging ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
+        borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+      }}
     >
-      {/* Top row: avatar + name/phone + urgency dot */}
-      <div className="flex items-start gap-2">
-        <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent shrink-0">
+      {/* Top row: avatar + name + urgency badge */}
+      <div className="flex items-start gap-2.5">
+        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0">
           {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{landlord.full_name_en || 'Unknown'}</p>
+          </div>
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold leading-tight truncate">{landlord.full_name_en || 'Unknown'}</p>
             <span
               className={cn(
-                'shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border',
+                'shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border',
                 archetypeColor,
               )}
             >
               {archetypeLabel}
             </span>
+            {landlord.urgency_score >= 80 ? (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+                URGENT
+              </span>
+            ) : landlord.urgency_score >= 60 ? (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
+                ATTENTION
+              </span>
+            ) : null}
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">{landlord.phone || 'No phone'}</p>
         </div>
-        <span
-          className={cn('w-2 h-2 rounded-full shrink-0 mt-1', getUrgencyDot(landlord.urgency_score))}
-          title="Urgency"
-        />
       </div>
 
       {/* Project badge */}
@@ -132,33 +146,39 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </div>
       )}
 
-      {/* Metrics: price + commission + trust as compact badges */}
-      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        {askingPrice > 0 && (
-          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-500/10 text-foreground border border-slate-500/20">
-            AED {(askingPrice / 1000000).toFixed(1)}M
-          </span>
-        )}
+      {/* Commission (prominent) + Trust */}
+      <div className="mt-2.5 flex items-center gap-2">
         {commission > 0 && (
-          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
-            {(commission / 1000).toFixed(0)}K comm.
-          </span>
+          <div className="flex-1">
+            <p className="text-xs font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+              {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
+            </p>
+            <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Commission</p>
+          </div>
         )}
-        <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border', getTrustColor(landlord.trust_score))}>
+        {askingPrice > 0 && (
+          <div className="text-right">
+            <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              AED {(askingPrice / 1000000).toFixed(1)}M
+            </p>
+            <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Asking</p>
+          </div>
+        )}
+        <span className={cn('text-[9px] font-bold px-2 py-1 rounded-lg border', getTrustColor(landlord.trust_score))}>
           Trust {landlord.trust_score || 0}
         </span>
       </div>
 
       {/* Bottom row: time in stage + actions */}
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <span className="text-[10px] text-muted-foreground">
-          {landlord.days_in_stage ? `In stage · ${landlord.days_in_stage}d` : 'Just added'}
+      <div className="mt-2.5 pt-2.5 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>
+          {landlord.days_in_stage ? `${landlord.days_in_stage}d in stage` : 'Just added'}
         </span>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handleCall}
-            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
             title="Call"
           >
             <Phone className="w-3.5 h-3.5" />
@@ -166,7 +186,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           <button
             type="button"
             onClick={handleWhatsApp}
-            className="flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors"
             title="WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5" />
@@ -175,7 +195,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             type="button"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
-            className="flex items-center justify-center p-1.5 rounded text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-50"
             title="Delete landlord"
           >
             <Trash2 className="w-3.5 h-3.5" />

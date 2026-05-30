@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -114,6 +114,29 @@ export default function Landlords() {
   // Calculate metrics
   const totalPipeline = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
   const mandateCount = landlords.filter(l => l.mandate_status === 'form_a_signed').length;
+  const now = new Date();
+  const mandatesThisMonth = landlords.filter(l => {
+    if (!l.mandate_signed_at) return false;
+    const signedDate = new Date(l.mandate_signed_at);
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    return signedDate >= monthAgo;
+  }).length;
+  const avgDaysToFormA = (() => {
+    const withFormA = landlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
+    if (withFormA.length === 0) return 0;
+    const totalDays = withFormA.reduce((sum, l) => {
+      const created = new Date(l.created_date).getTime();
+      const signed = new Date(l.mandate_signed_at).getTime();
+      return sum + ((signed - created) / (1000 * 60 * 60 * 24));
+    }, 0);
+    return Math.round(totalDays / withFormA.length);
+  })();
+  const stalledLeads = landlords.filter(l => {
+    if (!l.created_date) return false;
+    const daysSinceCreation = (now - new Date(l.created_date).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceCreation > 21 && l.stage !== 'listing_publication';
+  }).length;
 
   const handleLandlordCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['landlords'] });
@@ -191,23 +214,65 @@ export default function Landlords() {
           </div>
         </div>
 
-        {/* Metrics Bar */}
-        <div className="grid grid-cols-4 gap-4 mb-4">
-          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
-            <p className="text-xs text-muted-foreground">Total Active</p>
-            <p className="text-lg font-semibold">{landlords.length}</p>
+        {/* Management Intelligence Strip */}
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
+            </div>
+            <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
+              {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
+            </p>
           </div>
-          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
-            <p className="text-xs text-muted-foreground">Pipeline Value</p>
-            <p className="text-lg font-semibold">AED {(totalPipeline / 1000000).toFixed(1)}M</p>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <FileCheck className="w-4 h-4 text-emerald-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Mandates (30d)</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandatesThisMonth}</p>
           </div>
-          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
-            <p className="text-xs text-muted-foreground">Mandates Signed</p>
-            <p className="text-lg font-semibold">{mandateCount}</p>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-4 h-4 text-purple-400" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Days to Form A</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{avgDaysToFormA}d</p>
           </div>
-          <div className="bg-accent/5 rounded-lg p-3 border border-accent/10">
-            <p className="text-xs text-muted-foreground">SLA Breaches</p>
-            <p className="text-lg font-semibold text-destructive">0</p>
+          <div
+            className="rounded-xl p-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;21d</span>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
           </div>
         </div>
 
@@ -218,11 +283,20 @@ export default function Landlords() {
             value={filterAgent}
             onChange={(e) => setFilterAgent(e.target.value)}
             className="max-w-xs text-xs"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
           />
           <select
             value={filterArchetype}
             onChange={(e) => setFilterArchetype(e.target.value)}
-            className="px-3 py-2 text-xs border border-input rounded-md"
+            className="px-3 py-2 text-xs rounded-md"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.9)',
+            }}
           >
             <option value="">All Archetypes</option>
             <option value="professional_investor">Professional Investor</option>
@@ -233,7 +307,12 @@ export default function Landlords() {
           <select
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
-            className="px-3 py-2 text-xs border border-input rounded-md"
+            className="px-3 py-2 text-xs rounded-md"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.9)',
+            }}
           >
             <option value="">All Projects</option>
             {projects.map(p => (
