@@ -39,6 +39,7 @@ const navItems = [
   { label: 'Property Finder',   icon: Link2,           path: '/property-finder', gradient: 'from-red-900 to-rose-950' },
   { label: 'Dubai Intelligence', icon: TrendingUp,      path: '/dubai-intelligence', gradient: 'from-amber-900 to-orange-950' },
   { label: 'Elite Desk',         icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-800 to-yellow-950' },
+  { label: 'Leaderboard',        icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-800 to-amber-950' },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
