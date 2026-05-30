@@ -1,583 +1,644 @@
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Calculator, Download, FileText, ChevronDown, ChevronUp } from 'lucide-react';
-import jsPDF from 'jspdf';
-import { BRAND, LOGO_URL, loadImage, fmtAED } from '@/lib/pdfBrand';
+import React, { useState, useMemo, useRef } from 'react';
+import { calcTransfer, getScenarioName, sumLines } from '@/lib/transferCalc';
+import { BRAND, BANK, LOGO_URL, loadImage, fmtAED, fmtDate } from '@/lib/pdfBrand';
+import { jsPDF } from 'jspdf';
+import { Building2, RefreshCw, Plus, FileText, Loader2, RotateCcw } from 'lucide-react';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const fmt = (n) => new Intl.NumberFormat('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
-const pct = (n, p) => (Number(n) || 0) * (Number(p) || 0) / 100;
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-function numField(val, set, placeholder = '0') {
+function fmt(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return new Intl.NumberFormat('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+}
+
+function Toggle({ label, value, onChange }) {
   return (
-    <Input
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-gray-700 font-medium">{label}</span>
+      <button
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-navy' : 'bg-gray-300'}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+      <span className={`text-xs font-semibold ${value ? 'text-navy' : 'text-gray-400'}`}>{value ? 'Yes' : 'No'}</span>
+    </div>
+  );
+}
+
+function NumInput({ value, onChange, className = '' }) {
+  return (
+    <input
       type="number"
-      min="0"
-      step="any"
-      placeholder={placeholder}
-      value={val}
-      onChange={e => set(e.target.value)}
-      className="bg-secondary border-border text-foreground"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={`border rounded px-2 py-1 text-right text-sm w-full focus:outline-none focus:ring-2 focus:ring-navy/30 ${className}`}
     />
   );
 }
 
-// ── calculation core (pure, no AI) ───────────────────────────────────────────
-function calculate({ price, buyerFinancing, loanAmount, sellerMortgage, outstanding,
-  buyerCommPct, sellerCommPct, processingFee, valuationFee, blockingFee,
-  earlySettlement, nocFee }) {
-  const P = Number(price) || 0;
-  const L = Number(loanAmount) || 0;
-  const OUT = Number(outstanding) || 0;
-  const BCP = Number(buyerCommPct) || 2;
-  const SCP = Number(sellerCommPct) || 2;
+// ── Fee Table ─────────────────────────────────────────────────────────────────
 
-  const buyerItems = [];
-  const sellerItems = [];
+function FeeTable({ title, lines, overrides, setOverrides, customLines, setCustomLines, color, commPct, commDisplay }) {
+  const [adding, setAdding] = useState(false);
+  const [newLine, setNewLine] = useState({ label: '', basis: '', amount: '', est: false });
 
-  // ── BUYER always ──
-  buyerItems.push({ label: 'DLD Transfer Fee (4%)',  basis: `AED ${fmt(P)} × 4%`, amount: P * 0.04, est: false });
-  const trustee = P >= 500000 ? 4200 : 4000;
-  buyerItems.push({ label: 'Trustee Office Fee',     basis: P >= 500000 ? '(price ≥ 500K)' : '(price < 500K)', amount: trustee, est: false });
-  buyerItems.push({ label: 'DLD Admin Fee',           basis: 'Fixed',   amount: 580,  est: false });
-  buyerItems.push({ label: 'Title Deed Issuance',     basis: 'Fixed',   amount: 250,  est: false });
-  buyerItems.push({ label: 'Map / Site Plan Fee',     basis: 'Fixed',   amount: 250,  est: false });
-  buyerItems.push({ label: 'Knowledge & Innovation Fee', basis: 'Fixed', amount: 20,  est: false });
-  const buyerComm = pct(P, BCP);
-  buyerItems.push({ label: `Agency Commission (Buyer ${BCP}%)`, basis: `AED ${fmt(P)} × ${BCP}%`, amount: buyerComm, est: false });
-  buyerItems.push({ label: 'VAT on Buyer Commission (5%)', basis: `AED ${fmt(buyerComm)} × 5%`, amount: buyerComm * 0.05, est: false });
+  const getAmt = (l) => overrides[l.id] !== undefined ? overrides[l.id] : l.amount;
+  const isOverridden = (id) => overrides[id] !== undefined;
+  const reset = (id) => setOverrides(o => { const n = { ...o }; delete n[id]; return n; });
+  const resetAll = () => setOverrides({});
 
-  // ── BUYER if financing ──
-  if (buyerFinancing && L > 0) {
-    const mortReg = L * 0.0025 + 290;
-    buyerItems.push({ label: 'Mortgage Registration', basis: `(Loan × 0.25%) + AED 290`, amount: mortReg, est: false });
+  const total = lines.reduce((s, l) => s + Number(getAmt(l) || 0), 0)
+    + customLines.reduce((s, l) => s + Number(l.amount || 0), 0);
 
-    const proc = processingFee !== '' ? Number(processingFee) : L * 0.005;
-    const procEst = processingFee === '';
-    buyerItems.push({ label: 'Bank Processing Fee', basis: procEst ? `Loan × 0.5% (est.)` : 'User figure', amount: proc, est: procEst });
+  const addCustom = () => {
+    if (!newLine.label) return;
+    setCustomLines(c => [...c, { ...newLine, id: `custom_${Date.now()}` }]);
+    setNewLine({ label: '', basis: '', amount: '', est: false });
+    setAdding(false);
+  };
 
-    const val = valuationFee !== '' ? Number(valuationFee) : 3000;
-    const valEst = valuationFee === '';
-    buyerItems.push({ label: 'Bank Valuation Fee', basis: valEst ? 'Standard (est.)' : 'User figure', amount: val, est: valEst });
-  }
+  const removeCustom = (id) => setCustomLines(c => c.filter(l => l.id !== id));
 
-  // ── BUYER if seller has mortgage (blocking) ──
-  if (sellerMortgage) {
-    const block = blockingFee !== '' ? Number(blockingFee) : 1500;
-    const blockEst = blockingFee === '';
-    buyerItems.push({ label: 'Bank Blocking Fee', basis: blockEst ? 'Standard (est.)' : 'User figure', amount: block, est: blockEst });
-  }
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#1F3864' }}>
+        <h3 className="text-white font-bold text-base tracking-wide">{title}</h3>
+        <button onClick={resetAll} className="text-white/60 hover:text-white text-xs flex items-center gap-1 transition">
+          <RotateCcw className="w-3 h-3" /> Reset all
+        </button>
+      </div>
 
-  // ── SELLER always ──
-  const sellerComm = pct(P, SCP);
-  sellerItems.push({ label: `Agency Commission (Seller ${SCP}%)`, basis: `AED ${fmt(P)} × ${SCP}%`, amount: sellerComm, est: false });
-  sellerItems.push({ label: 'VAT on Seller Commission (5%)', basis: `AED ${fmt(sellerComm)} × 5%`, amount: sellerComm * 0.05, est: false });
-  const noc = Number(nocFee) || 525;
-  sellerItems.push({ label: 'Developer NOC Fee', basis: 'Standard', amount: noc, est: false });
+      {/* Rows */}
+      <div className="divide-y divide-gray-100">
+        {lines.map(l => {
+          const hidden = l.id.includes('comm') && commPct === 0 && commDisplay === 'hide';
+          if (hidden) return null;
+          const amt = getAmt(l);
+          const over = isOverridden(l.id);
+          return (
+            <div key={l.id} className={`flex items-center gap-2 px-4 py-2.5 text-sm ${over ? 'bg-amber-50' : ''}`}>
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-gray-800">{l.label}</span>
+                {l.est && <span className="text-xs text-orange-500 ml-1">(est.)</span>}
+              </div>
+              <div className="text-gray-400 text-xs hidden sm:block w-48 shrink-0 text-right pr-3">{l.basis}</div>
+              <div className="flex items-center gap-1 shrink-0">
+                <div className={`w-28 ${over ? 'ring-2 ring-amber-400 rounded' : ''}`}>
+                  <NumInput
+                    value={amt}
+                    onChange={v => setOverrides(o => ({ ...o, [l.id]: v }))}
+                  />
+                </div>
+                {over && (
+                  <button onClick={() => reset(l.id)} className="text-gray-400 hover:text-navy" title="Reset to calculated">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
 
-  // ── SELLER if mortgage ──
-  let earlySettlementEntry = null;
-  if (sellerMortgage) {
-    sellerItems.push({ label: 'Mortgage Release Procedure', basis: 'Fixed', amount: 1290, est: false });
-    sellerItems.push({ label: 'Registrar Release Fee',       basis: 'Fixed', amount: 315,  est: false });
-    sellerItems.push({ label: 'Service Partner / Title Clear', basis: 'Fixed', amount: 315, est: false });
+        {/* Custom lines */}
+        {customLines.map(l => (
+          <div key={l.id} className="flex items-center gap-2 px-4 py-2.5 text-sm bg-blue-50">
+            <div className="flex-1 font-medium text-gray-800">
+              {l.label} {l.est && <span className="text-xs text-orange-500">(est.)</span>}
+            </div>
+            <div className="text-gray-400 text-xs hidden sm:block w-48 shrink-0 text-right pr-3">{l.basis}</div>
+            <div className="w-28">
+              <NumInput value={l.amount} onChange={v => setCustomLines(c => c.map(x => x.id === l.id ? { ...x, amount: v } : x))} />
+            </div>
+            <button onClick={() => removeCustom(l.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+          </div>
+        ))}
+      </div>
 
-    if (earlySettlement !== '') {
-      const es = Number(earlySettlement);
-      sellerItems.push({ label: 'Early Settlement Fee', basis: 'User figure', amount: es, est: false });
-    } else if (OUT > 0) {
-      const es = OUT * 0.01;
-      sellerItems.push({ label: 'Early Settlement Fee', basis: `Outstanding × 1% (est./varies)`, amount: es, est: true });
-      earlySettlementEntry = es;
-    } else {
-      sellerItems.push({ label: 'Early Settlement Fee', basis: 'Varies — not included in total', amount: null, est: true });
-    }
-  }
+      {/* Total row */}
+      <div className="px-4 py-3 flex items-center justify-between border-t-2 border-gray-200 bg-gray-50">
+        <span className="font-bold text-gray-900 text-sm">{title} TOTAL</span>
+        <span className="font-bold text-navy text-base">AED {fmt(total)}</span>
+      </div>
 
-  const buyerTotal  = buyerItems.reduce((s, i) => s + (i.amount || 0), 0);
-  const sellerTotal = sellerItems.reduce((s, i) => s + (i.amount ?? 0), 0) - (earlySettlementEntry && OUT === 0 ? 0 : 0);
-  const grandTotal  = buyerTotal + sellerTotal;
-
-  // scenario label
-  let scenario = 'Cash Buyer / Cash Seller';
-  if (buyerFinancing && sellerMortgage)    scenario = 'Financed Buyer / Mortgaged Seller';
-  else if (buyerFinancing)                 scenario = 'Financed Buyer / Cash Seller';
-  else if (sellerMortgage)                 scenario = 'Cash Buyer / Mortgaged Seller';
-
-  return { buyerItems, sellerItems, buyerTotal, sellerTotal, grandTotal, scenario };
+      {/* Add custom */}
+      <div className="px-4 py-3 border-t border-gray-100">
+        {!adding ? (
+          <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 text-navy text-xs font-medium hover:underline">
+            <Plus className="w-3.5 h-3.5" /> Add custom line item
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <input placeholder="Label" value={newLine.label} onChange={e => setNewLine(n => ({ ...n, label: e.target.value }))} className="border rounded px-2 py-1 text-sm" />
+              <input placeholder="Basis (optional)" value={newLine.basis} onChange={e => setNewLine(n => ({ ...n, basis: e.target.value }))} className="border rounded px-2 py-1 text-sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="number" placeholder="Amount" value={newLine.amount} onChange={e => setNewLine(n => ({ ...n, amount: e.target.value }))} className="border rounded px-2 py-1 text-sm w-32" />
+              <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                <input type="checkbox" checked={newLine.est} onChange={e => setNewLine(n => ({ ...n, est: e.target.checked }))} /> Estimate
+              </label>
+              <button onClick={addCustom} className="bg-navy text-white px-3 py-1 rounded text-xs font-medium">Add</button>
+              <button onClick={() => setAdding(false)} className="text-gray-400 text-xs">Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-// ── PDF generation ────────────────────────────────────────────────────────────
-async function generatePDF({ result, price, loanAmount, buyerFinancing, ltvPct }) {
-  const doc  = new jsPDF({ unit: 'mm', format: 'a4' });
-  const W    = 210;
-  const pad  = 14;
+// ── PDF Generator ─────────────────────────────────────────────────────────────
+
+async function generatePDF({
+  scenarioName, price, loanAmount, outstandingBalance, buyerFinancing, sellerMortgage,
+  buyerLines, buyerOverrides, buyerCustom, dewaDeposit,
+  sellerLines, sellerOverrides, sellerCustom,
+  showSides, commDisplay, buyerCommPct, sellerCommPct,
+}) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, pad = 14;
   const navy = [31, 56, 100];
   const gold = [201, 168, 74];
-  const grey = [245, 246, 248];
-  const text = [30, 41, 59];
-  const mut  = [110, 120, 140];
-
-  let y = 12;
+  const gray = [100, 110, 130];
 
   // Logo
   const logo = await loadImage(LOGO_URL);
   if (logo) {
-    const maxH = 16; const maxW = 60;
     const aspect = logo.width / logo.height;
-    let lw = maxW; let lh = lw / aspect;
-    if (lh > maxH) { lh = maxH; lw = lh * aspect; }
-    try { doc.addImage(logo.dataUrl, 'PNG', (W - lw) / 2, y, lw, lh); } catch {}
-    y += lh + 6;
-  } else {
-    doc.setTextColor(...navy);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('ERUDITE REAL ESTATE', W / 2, y + 6, { align: 'center' });
-    y += 14;
+    const lh = 14, lw = lh * aspect;
+    doc.addImage(logo.dataUrl, 'PNG', (W - lw) / 2, 8, lw, lh);
   }
 
+  let y = 27;
+
   // Title
-  doc.setTextColor(...navy);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
+  doc.setTextColor(...navy);
   doc.text('Property Transfer – Cost Estimate', W / 2, y, { align: 'center' });
-  y += 7;
-
-  // Sub-line
-  const ltv = buyerFinancing && loanAmount ? ` · Loan AED ${fmt(loanAmount)} (${Number(ltvPct || 0).toFixed(1)}% LTV)` : '';
-  const subLine = `Scenario: ${result.scenario}  ·  Price AED ${fmt(price)}${ltv}`;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...mut);
-  doc.text(subLine, W / 2, y, { align: 'center' });
-  y += 8;
-
-  // divider
-  doc.setDrawColor(...navy);
-  doc.setLineWidth(0.4);
-  doc.line(pad, y, W - pad, y);
   y += 6;
 
-  const drawTable = (title, items, total) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(...navy);
-    doc.text(title, pad, y);
-    y += 5;
+  // Sub-line
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...gray);
+  let subLine = `${scenarioName} · AED ${fmt(price)}`;
+  if (buyerFinancing) subLine += ` · Loan AED ${fmt(loanAmount)}`;
+  if (sellerMortgage) subLine += ` · Outstanding AED ${fmt(outstandingBalance)}`;
+  doc.text(subLine, W / 2, y, { align: 'center' });
+  y += 2;
 
-    // Header row
-    const colFee = 78; const colBasis = 58; const colAmt = W - 2*pad - colFee - colBasis;
+  // Gold rule
+  doc.setFillColor(...gold);
+  doc.rect(pad, y, W - pad * 2, 0.6, 'F');
+  y += 5;
+
+  const drawTable = (title, lines, overrides, customLines, commPct) => {
+    // Table header
     doc.setFillColor(...navy);
-    doc.rect(pad, y, W - 2*pad, 7, 'F');
-    doc.setTextColor(255,255,255);
+    doc.rect(pad, y, W - pad * 2, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.text('Fee Item',     pad + 2,            y + 5);
-    doc.text('Basis',        pad + colFee + 2,   y + 5);
-    doc.text('Amount (AED)', W - pad - 2,        y + 5, { align: 'right' });
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(title, pad + 3, y + 4.8);
+    doc.text('Basis', pad + 80, y + 4.8);
+    doc.text('Amount (AED)', W - pad, y + 4.8, { align: 'right' });
     y += 7;
 
-    items.forEach((item, i) => {
-      if (i % 2 === 1) {
-        doc.setFillColor(...grey);
-        doc.rect(pad, y, W - 2*pad, 7, 'F');
-      }
+    // Rows
+    let rowTotal = 0;
+    const allLines = [...lines, ...customLines.map(l => ({ ...l, custom: true }))];
+
+    allLines.forEach((l, i) => {
+      const isComm = l.id && l.id.includes('comm');
+      if (isComm && commPct === 0 && commDisplay === 'hide') return;
+
+      const amt = overrides[l.id] !== undefined ? Number(overrides[l.id]) : l.amount;
+      rowTotal += Number(amt) || 0;
+
+      if (y > 260) { doc.addPage(); y = 14; }
+
+      doc.setFillColor(i % 2 === 0 ? 248 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 252 : 255);
+      doc.rect(pad, y, W - pad * 2, 6.5, 'F');
+
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...text);
-      const label = item.est ? `${item.label} (est.)` : item.label;
-      doc.text(label, pad + 2, y + 5);
-      doc.setTextColor(...mut);
-      doc.text(item.basis, pad + colFee + 2, y + 5);
-      doc.setTextColor(...text);
-      if (item.amount !== null && item.amount !== undefined) {
-        doc.text(`AED ${fmt(item.amount)}`, W - pad - 2, y + 5, { align: 'right' });
-      } else {
-        doc.setTextColor(...mut);
-        doc.text('—  varies', W - pad - 2, y + 5, { align: 'right' });
-      }
-      y += 7;
+      doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59);
+      let label = l.label;
+      if (l.est) label += ' (est.)';
+      doc.text(label, pad + 3, y + 4.5, { maxWidth: 73 });
+      doc.setTextColor(...gray);
+      doc.text(l.basis || '', pad + 80, y + 4.5, { maxWidth: 65 });
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('helvetica', amt === 0 && l.est ? 'italic' : 'normal');
+      doc.text(amt === 0 && l.est ? 'Confirm w/ bank' : `AED ${fmt(amt)}`, W - pad, y + 4.5, { align: 'right' });
+      y += 6.5;
     });
+
+    // Zero-comm note
+    if (commPct === 0 && commDisplay === 'note') {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...gray);
+      doc.text('* Commission waived', pad + 3, y + 4);
+      y += 6;
+    }
 
     // Total row
     doc.setFillColor(...navy);
-    doc.rect(pad, y, W - 2*pad, 8, 'F');
-    doc.setTextColor(255,255,255);
+    doc.rect(pad, y, W - pad * 2, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.text(title.includes('Buyer') ? 'BUYER TOTAL' : 'SELLER TOTAL', pad + 2, y + 5.5);
-    doc.text(`AED ${fmt(total)}`, W - pad - 2, y + 5.5, { align: 'right' });
-    y += 12;
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${title} TOTAL`, pad + 3, y + 4.8);
+    doc.text(`AED ${fmt(rowTotal)}`, W - pad, y + 4.8, { align: 'right' });
+    y += 10;
+
+    return rowTotal;
   };
 
-  drawTable('Buyer — Estimated Costs', result.buyerItems, result.buyerTotal);
-  drawTable('Seller — Estimated Costs', result.sellerItems, result.sellerTotal);
+  let buyerTotal = 0, sellerTotal = 0;
 
-  // Grand total banner
-  doc.setFillColor(...gold);
-  doc.rect(pad, y, W - 2*pad, 10, 'F');
-  doc.setTextColor(...navy);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(`Combined Transaction Costs:  AED ${fmt(result.grandTotal)}`, W / 2, y + 7, { align: 'center' });
-  y += 16;
+  if (showSides !== 'seller') {
+    buyerTotal = drawTable('BUYER', buyerLines, buyerOverrides, buyerCustom, buyerCommPct);
 
-  // Disclaimer
+    // DEWA deposit
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...gray);
+    doc.text(`+ DEWA Security Deposit (refundable): AED ${fmt(dewaDeposit)} — not included in buyer total above`, pad + 3, y);
+    y += 4.5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...navy);
+    doc.text(`Buyer cash needed on day (incl. refundable deposit): AED ${fmt(buyerTotal + dewaDeposit)}`, pad + 3, y);
+    y += 8;
+  }
+
+  if (showSides !== 'buyer') {
+    sellerTotal = drawTable('SELLER', sellerLines, sellerOverrides, sellerCustom, sellerCommPct);
+  }
+
+  // Grand total
+  if (showSides === 'both') {
+    doc.setFillColor(...gold);
+    doc.rect(pad, y, W - pad * 2, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...navy);
+    doc.text('GRAND TOTAL (Buyer + Seller, excl. refundable deposit)', pad + 3, y + 5.5);
+    doc.text(`AED ${fmt(buyerTotal + sellerTotal)}`, W - pad, y + 5.5, { align: 'right' });
+    y += 12;
+  }
+
+  // Notes
+  y += 2;
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
-  doc.setTextColor(...mut);
-  const disc = 'Figures marked (est.) — including bank processing, valuation and mortgage-related charges — are estimates and vary by lender. DLD government fees are fixed but subject to change by circular. Final amounts are confirmed at the trustee office on the day of transfer. Under 2026 regulations, transaction costs must be paid in cash and cannot be added to the mortgage. This estimate is provided for guidance only and does not constitute a binding quotation.';
-  const discLines = doc.splitTextToSize(disc, W - 2*pad);
-  doc.text(discLines, pad, y);
-  y += discLines.length * 4 + 6;
+  doc.setTextColor(...gray);
+  doc.text('Note: Under 2026 regulations, transaction closing costs cannot be financed into the mortgage and must be paid in cash upfront.', pad, y, { maxWidth: W - pad * 2 });
+  y += 5;
+  doc.text('Bank processing fees, valuation, and mortgage-related charges vary by lender — confirm per deal.', pad, y, { maxWidth: W - pad * 2 });
+  y += 7;
+
+  // Disclaimer
+  doc.setFontSize(6.5);
+  doc.text(
+    'Disclaimer: Figures marked (est.) are estimates and vary by lender. DLD government fees are fixed but subject to change by circular. Final amounts are confirmed at the trustee office on the day of transfer. Under 2026 regulations, transaction costs must be paid in cash and cannot be added to the mortgage. This estimate is provided for guidance only and does not constitute a binding quotation.',
+    pad, y, { maxWidth: W - pad * 2 }
+  );
 
   // Footer
-  const footerY = 285;
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(0.3);
-  doc.line(pad, footerY - 4, W - pad, footerY - 4);
+  const footerY = 272;
+  doc.setFillColor(...navy);
+  doc.rect(0, footerY, W, 25, 'F');
+  doc.setFillColor(...gold);
+  doc.rect(0, footerY, W, 0.8, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text('Erudite Property · 058 180 6000 · ahmad@erudite-estate.com', W / 2, footerY + 7, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...mut);
-  doc.text('Erudite Property  ·  058 180 6000  ·  ahmad@erudite-estate.com', W / 2, footerY, { align: 'center' });
-  doc.text('Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE', W / 2, footerY + 4.5, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(200, 210, 225);
+  doc.text('Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE', W / 2, footerY + 13, { align: 'center' });
+  doc.setFont('helvetica', 'italic');
   doc.setTextColor(...gold);
-  doc.setFont('helvetica', 'bolditalic');
-  doc.text('A major key for your home', W / 2, footerY + 9, { align: 'center' });
+  doc.text('A major key for your home', W / 2, footerY + 19, { align: 'center' });
 
-  return doc;
+  doc.save('Erudite_Transfer_Cost_Estimate.pdf');
 }
 
-// ── main component ────────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
+
 export default function TransferFeeCalculator() {
-  // form state
-  const [price, setPrice]             = useState('');
-  const [buyerFinancing, setBuyerFin] = useState(false);
-  const [ltvMode, setLtvMode]         = useState('loan'); // 'loan' | 'ltv'
-  const [loanAmount, setLoanAmount]   = useState('');
-  const [ltvPct, setLtvPct]           = useState('');
-  const [sellerMortgage, setSellerMort] = useState(false);
-  const [outstanding, setOutstanding] = useState('');
-  const [buyerCommPct, setBuyerComm]  = useState('2');
-  const [sellerCommPct, setSellerComm] = useState('2');
-  const [processingFee, setProcessing] = useState('');
-  const [valuationFee, setValuation]  = useState('');
-  const [blockingFee, setBlocking]    = useState('');
-  const [earlySettlement, setEarlySet] = useState('');
-  const [nocFee, setNocFee]           = useState('525');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Inputs
+  const [price, setPrice] = useState(2000000);
+  const [propertyType, setPropertyType] = useState('apartment');
+  const [buyerFinancing, setBuyerFinancing] = useState(true);
+  const [loanAmount, setLoanAmount] = useState(1600000);
+  const [ltvMode, setLtvMode] = useState('amount'); // 'amount' | 'ltv'
+  const [ltvPct, setLtvPct] = useState(80);
+  const [sellerMortgage, setSellerMortgage] = useState(true);
+  const [outstandingBalance, setOutstandingBalance] = useState(1000000);
+  const [rateType, setRateType] = useState('Fixed');
+  const [buyerCommPct, setBuyerCommPct] = useState(2);
+  const [sellerCommPct, setSellerCommPct] = useState(2);
+  const [nocSide, setNocSide] = useState('seller');
+  const [coAgencyNote, setCoAgencyNote] = useState('');
 
-  const [result, setResult]     = useState(null);
-  const [pdfUrl, setPdfUrl]     = useState(null);
-  const [generating, setGen]    = useState(false);
-  const [error, setError]       = useState('');
+  // PDF options
+  const [showSides, setShowSides] = useState('both');
+  const [commDisplay, setCommDisplay] = useState('show');
+  const [generating, setGenerating] = useState(false);
 
-  const iframeRef = useRef();
+  // Overrides & custom lines
+  const [buyerOverrides, setBuyerOverrides] = useState({});
+  const [sellerOverrides, setSellerOverrides] = useState({});
+  const [buyerCustom, setBuyerCustom] = useState([]);
+  const [sellerCustom, setSellerCustom] = useState([]);
 
-  const resolvedLoan = () => {
-    if (!buyerFinancing) return '';
-    if (ltvMode === 'ltv') return String(pct(price, ltvPct));
-    return loanAmount;
-  };
+  // Sync loan from LTV
+  const resolvedLoan = ltvMode === 'ltv' ? Math.round(price * ltvPct / 100) : Number(loanAmount);
 
-  const handleCalculate = async () => {
-    if (!price || Number(price) <= 0) { setError('Please enter a valid sale price.'); return; }
-    setError('');
-    setGen(true);
-    const loan = resolvedLoan();
-    const computedLtv = ltvMode === 'ltv' ? ltvPct : (price && loan ? ((Number(loan)/Number(price))*100).toFixed(1) : '0');
+  const { buyerLines, sellerLines, dewaDeposit } = useMemo(() => calcTransfer({
+    price, propertyType, buyerFinancing,
+    loanAmount: resolvedLoan,
+    sellerMortgage, outstandingBalance, rateType,
+    buyerCommPct, sellerCommPct, nocSide,
+  }), [price, propertyType, buyerFinancing, resolvedLoan, sellerMortgage, outstandingBalance, rateType, buyerCommPct, sellerCommPct, nocSide]);
 
-    const res = calculate({
-      price, buyerFinancing, loanAmount: loan, sellerMortgage, outstanding,
-      buyerCommPct, sellerCommPct, processingFee, valuationFee, blockingFee,
-      earlySettlement, nocFee,
-    });
-    setResult(res);
+  const buyerTotal = sumLines(buyerLines, buyerOverrides) + buyerCustom.reduce((s, l) => s + Number(l.amount || 0), 0);
+  const sellerTotal = sumLines(sellerLines, sellerOverrides) + sellerCustom.reduce((s, l) => s + Number(l.amount || 0), 0);
+  const grandTotal = buyerTotal + sellerTotal;
+  const scenarioName = getScenarioName(buyerFinancing, sellerMortgage);
 
+  const handleGeneratePDF = async () => {
+    setGenerating(true);
     try {
-      const doc = await generatePDF({ result: res, price, loanAmount: loan, buyerFinancing, ltvPct: computedLtv });
-      const blob = doc.output('blob');
-      const url  = URL.createObjectURL(blob);
-      setPdfUrl(url);
-    } catch (e) {
-      console.error(e);
+      await generatePDF({
+        scenarioName, price, loanAmount: resolvedLoan, outstandingBalance, buyerFinancing, sellerMortgage,
+        buyerLines, buyerOverrides, buyerCustom, dewaDeposit,
+        sellerLines, sellerOverrides, sellerCustom,
+        showSides, commDisplay, buyerCommPct, sellerCommPct,
+      });
+    } finally {
+      setGenerating(false);
     }
-    setGen(false);
   };
-
-  const handleDownload = async () => {
-    const loan = resolvedLoan();
-    const computedLtv = ltvMode === 'ltv' ? ltvPct : (price && loan ? ((Number(loan)/Number(price))*100).toFixed(1) : '0');
-    const res = result || calculate({ price, buyerFinancing, loanAmount: loan, sellerMortgage, outstanding, buyerCommPct, sellerCommPct, processingFee, valuationFee, blockingFee, earlySettlement, nocFee });
-    const doc = await generatePDF({ result: res, price, loanAmount: loan, buyerFinancing, ltvPct: computedLtv });
-    doc.save(`Erudite_Transfer_Estimate_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const Toggle = ({ value, onChange, label }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${value ? 'bg-accent text-accent-foreground border-accent' : 'bg-secondary text-muted-foreground border-border hover:border-accent/50'}`}
-    >
-      <span className={`w-8 h-4 rounded-full transition-all relative ${value ? 'bg-accent-foreground/30' : 'bg-muted-foreground/30'}`}>
-        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-current transition-all ${value ? 'left-4' : 'left-0.5'}`} />
-      </span>
-      {label}
-    </button>
-  );
-
-  const Section = ({ title, children }) => (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="bg-[#1F3864] px-5 py-3">
-        <h3 className="text-white text-sm font-bold uppercase tracking-wider">{title}</h3>
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Page header */}
-      <div className="bg-card border-b border-border px-4 sm:px-8 py-4 flex items-center gap-4">
-        <div className="w-9 h-9 rounded-lg bg-accent/20 flex items-center justify-center">
-          <Calculator className="w-5 h-5 text-accent" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Transfer-Fee Calculator</h1>
-          <p className="text-xs text-muted-foreground">Dubai DLD costs · 2026 regulations</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top bar */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Erudite Property · Internal Tool</p>
+            <h1 className="text-lg font-bold text-navy leading-tight">Transfer Cost Calculator</h1>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+            <span className="font-semibold text-navy">{scenarioName}</span>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 grid lg:grid-cols-2 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
-        {/* ── LEFT: FORM ── */}
-        <div className="space-y-6">
+        {/* ── Inputs Panel ── */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="px-5 py-3 border-b border-gray-100" style={{ background: '#1F3864' }}>
+            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Transaction Inputs</h2>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-          {/* Sale Price */}
-          <Section title="1. Sale Price">
+            {/* Price */}
             <div className="space-y-1">
-              <Label>Agreed Sale Price (AED) *</Label>
-              {numField(price, setPrice, 'e.g. 2,500,000')}
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Agreed Sale Price (AED)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={e => setPrice(Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-right font-semibold text-lg text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+              />
+              <p className="text-xs text-gray-400 text-right">= AED {fmt(price)}</p>
             </div>
-          </Section>
 
-          {/* Buyer Financing */}
-          <Section title="2. Buyer Financing">
-            <div className="space-y-4">
-              <Toggle value={buyerFinancing} onChange={setBuyerFin} label={buyerFinancing ? 'Buyer is financing' : 'Buyer pays cash'} />
+            {/* Property type */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Property Type</label>
+              <div className="flex gap-2">
+                {['apartment', 'villa'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setPropertyType(t)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-all border ${propertyType === t ? 'bg-navy text-white border-navy' : 'bg-white text-gray-600 border-gray-200 hover:border-navy/40'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400">DEWA deposit: AED {fmt(dewaDeposit)} (refundable)</p>
+            </div>
+
+            {/* Commission */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Agency Commission</label>
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">Buyer</label>
+                  <select value={buyerCommPct} onChange={e => setBuyerCommPct(Number(e.target.value))} className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none">
+                    <option value={2}>2%</option>
+                    <option value={1}>1%</option>
+                    <option value={0}>0%</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">Seller</label>
+                  <select value={sellerCommPct} onChange={e => setSellerCommPct(Number(e.target.value))} className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none">
+                    <option value={2}>2%</option>
+                    <option value={1}>1%</option>
+                    <option value={0}>0%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Buyer financing toggle */}
+            <div className="space-y-3">
+              <Toggle label="Buyer is financing (mortgage)?" value={buyerFinancing} onChange={setBuyerFinancing} />
               {buyerFinancing && (
-                <div className="space-y-3 pl-2 border-l-2 border-accent/30">
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setLtvMode('loan')}
-                      className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${ltvMode==='loan' ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
-                      Enter Loan Amount
-                    </button>
-                    <button type="button" onClick={() => setLtvMode('ltv')}
-                      className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${ltvMode==='ltv' ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>
-                      Enter LTV %
-                    </button>
+                <div className="pl-2 space-y-2">
+                  <div className="flex gap-2 text-xs">
+                    {['amount', 'ltv'].map(m => (
+                      <button key={m} onClick={() => setLtvMode(m)} className={`px-2 py-1 rounded border text-xs font-medium transition ${ltvMode === m ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200'}`}>
+                        {m === 'amount' ? 'Loan AED' : 'LTV %'}
+                      </button>
+                    ))}
                   </div>
-                  {ltvMode === 'loan' ? (
-                    <div className="space-y-1">
-                      <Label>Loan Amount (AED)</Label>
-                      {numField(loanAmount, setLoanAmount, 'e.g. 1,875,000')}
+                  {ltvMode === 'amount' ? (
+                    <div>
+                      <input type="number" value={loanAmount} onChange={e => setLoanAmount(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30" placeholder="Loan amount" />
+                      <p className="text-xs text-gray-400 mt-1">LTV: {price > 0 ? ((resolvedLoan / price) * 100).toFixed(1) : 0}%</p>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <Label>LTV %</Label>
-                      {numField(ltvPct, setLtvPct, 'e.g. 75')}
-                      {price && ltvPct && <p className="text-xs text-muted-foreground">= AED {fmt(pct(price, ltvPct))}</p>}
+                    <div>
+                      <input type="number" value={ltvPct} onChange={e => setLtvPct(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30" placeholder="LTV %" />
+                      <p className="text-xs text-gray-400 mt-1">Loan: AED {fmt(resolvedLoan)}</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
-          </Section>
 
-          {/* Seller Mortgage */}
-          <Section title="3. Seller Mortgage">
-            <div className="space-y-4">
-              <Toggle value={sellerMortgage} onChange={setSellerMort} label={sellerMortgage ? 'Seller has mortgage to clear' : 'Seller owns outright'} />
+            {/* Seller mortgage toggle */}
+            <div className="space-y-3">
+              <Toggle label="Seller has existing mortgage?" value={sellerMortgage} onChange={setSellerMortgage} />
               {sellerMortgage && (
-                <div className="space-y-1 pl-2 border-l-2 border-accent/30">
-                  <Label>Outstanding Balance (AED) — optional</Label>
-                  {numField(outstanding, setOutstanding, 'Approx. outstanding mortgage')}
-                  <p className="text-xs text-muted-foreground">Used to estimate early settlement (1%). Leave blank to show "varies".</p>
+                <div className="pl-2 space-y-2">
+                  <input type="number" value={outstandingBalance} onChange={e => setOutstandingBalance(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30" placeholder="Outstanding balance (AED)" />
+                  <div className="flex gap-2">
+                    {['Fixed', 'Variable'].map(r => (
+                      <button key={r} onClick={() => setRateType(r)} className={`flex-1 py-1.5 rounded border text-xs font-medium transition ${rateType === r ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200'}`}>{r}</button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </Section>
 
-          {/* Commission */}
-          <Section title="4. Agency Commission">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Buyer Commission (%)</Label>
-                {numField(buyerCommPct, setBuyerComm, '2')}
+            {/* NOC + co-agency */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Developer NOC (AED 525)</label>
+                <div className="flex gap-2 mt-1">
+                  {['seller', 'buyer'].map(s => (
+                    <button key={s} onClick={() => setNocSide(s)} className={`flex-1 py-1.5 rounded border text-xs font-medium capitalize transition ${nocSide === s ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200'}`}>{s} pays</button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Seller Commission (%)</Label>
-                {numField(sellerCommPct, setSellerComm, '2')}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Co-Agency Note (optional)</label>
+                <input type="text" value={coAgencyNote} onChange={e => setCoAgencyNote(e.target.value)} placeholder="e.g. co-broker: XYZ Realty" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 focus:outline-none" />
               </div>
             </div>
-          </Section>
+          </div>
+        </div>
 
-          {/* Advanced / bank fees */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(o => !o)}
-              className="w-full bg-[#1F3864] px-5 py-3 flex items-center justify-between"
-            >
-              <h3 className="text-white text-sm font-bold uppercase tracking-wider">5. Advanced — Override Estimates</h3>
-              {showAdvanced ? <ChevronUp className="w-4 h-4 text-white/70" /> : <ChevronDown className="w-4 h-4 text-white/70" />}
-            </button>
-            {showAdvanced && (
-              <div className="p-5 grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Bank Processing Fee (AED)</Label>
-                  {numField(processingFee, setProcessing, 'Default: loan × 0.5% (est.)')}
-                </div>
-                <div className="space-y-1">
-                  <Label>Valuation Fee (AED)</Label>
-                  {numField(valuationFee, setValuation, 'Default: AED 3,000 (est.)')}
-                </div>
-                <div className="space-y-1">
-                  <Label>Bank Blocking Fee (AED)</Label>
-                  {numField(blockingFee, setBlocking, 'Default: AED 1,500 (est.)')}
-                </div>
-                <div className="space-y-1">
-                  <Label>Early Settlement Fee (AED)</Label>
-                  {numField(earlySettlement, setEarlySet, 'Default: outstanding × 1% (est.)')}
-                </div>
-                <div className="space-y-1">
-                  <Label>Developer NOC Fee (AED)</Label>
-                  {numField(nocFee, setNocFee, '525')}
-                </div>
+        {/* ── Summary Banner ── */}
+        <div className="rounded-xl p-4 text-white grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ background: '#1F3864' }}>
+          <div className="text-center">
+            <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Buyer Total</p>
+            <p className="font-bold text-xl">AED {fmt(buyerTotal)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Seller Total</p>
+            <p className="font-bold text-xl">AED {fmt(sellerTotal)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Grand Total</p>
+            <p className="font-bold text-xl text-amber-300">AED {fmt(grandTotal)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Cash Needed (Buyer)</p>
+            <p className="font-bold text-xl">AED {fmt(buyerTotal + dewaDeposit)}</p>
+            <p className="text-white/50 text-xs">incl. DEWA refundable</p>
+          </div>
+        </div>
+
+        {/* ── Fee Tables ── */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <FeeTable
+              title="BUYER"
+              lines={buyerLines}
+              overrides={buyerOverrides}
+              setOverrides={setBuyerOverrides}
+              customLines={buyerCustom}
+              setCustomLines={setBuyerCustom}
+              commPct={buyerCommPct}
+              commDisplay={commDisplay}
+            />
+            {/* DEWA info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+              <p className="font-semibold">+ DEWA Security Deposit (refundable)</p>
+              <div className="flex justify-between mt-1">
+                <span className="text-xs text-blue-600">Not included in buyer total — refunded on exit</span>
+                <span className="font-bold">AED {fmt(dewaDeposit)}</span>
               </div>
-            )}
+              <div className="flex justify-between mt-2 pt-2 border-t border-blue-200">
+                <span className="font-semibold text-xs">Buyer cash needed on day</span>
+                <span className="font-bold text-navy">AED {fmt(buyerTotal + dewaDeposit)}</span>
+              </div>
+            </div>
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-
-          <Button
-            size="lg"
-            onClick={handleCalculate}
-            disabled={generating}
-            className="w-full gap-2 bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-base h-12"
-          >
-            <Calculator className="w-5 h-5" />
-            {generating ? 'Calculating...' : 'Calculate & Preview PDF'}
-          </Button>
+          <FeeTable
+            title="SELLER"
+            lines={sellerLines}
+            overrides={sellerOverrides}
+            setOverrides={setSellerOverrides}
+            customLines={sellerCustom}
+            setCustomLines={setSellerCustom}
+            commPct={sellerCommPct}
+            commDisplay={commDisplay}
+          />
         </div>
 
-        {/* ── RIGHT: RESULTS + PDF ── */}
-        <div className="space-y-6">
-          {result && (
-            <>
-              {/* Quick summary cards */}
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: 'Buyer Total', amount: result.buyerTotal, color: 'border-blue-500/30 bg-blue-500/10' },
-                  { label: 'Seller Total', amount: result.sellerTotal, color: 'border-emerald-500/30 bg-emerald-500/10' },
-                  { label: 'Grand Total', amount: result.grandTotal, color: 'border-accent/30 bg-accent/10' },
-                ].map(c => (
-                  <div key={c.label} className={`rounded-xl border p-3 ${c.color}`}>
-                    <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
-                    <p className="text-sm font-bold text-foreground">AED {fmt(c.amount)}</p>
-                  </div>
-                ))}
-              </div>
-
-              <Badge className="bg-[#1F3864] text-white border-0 text-xs px-3 py-1">
-                {result.scenario}
-              </Badge>
-
-              {/* Inline tables */}
-              {[
-                { title: 'Buyer — Estimated Costs', items: result.buyerItems, total: result.buyerTotal },
-                { title: 'Seller — Estimated Costs', items: result.sellerItems, total: result.sellerTotal },
-              ].map(({ title, items, total }) => (
-                <div key={title} className="bg-card border border-border rounded-xl overflow-hidden">
-                  <div className="bg-[#1F3864] px-4 py-2.5">
-                    <h3 className="text-white text-xs font-bold uppercase tracking-wider">{title}</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Fee Item</th>
-                          <th className="text-right px-4 py-2.5 text-xs text-muted-foreground font-medium">Amount (AED)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item, i) => (
-                          <tr key={i} className={i % 2 === 1 ? 'bg-secondary/30' : ''}>
-                            <td className="px-4 py-2 text-xs text-foreground">
-                              {item.label}{item.est ? <span className="text-amber-400 ml-1">(est.)</span> : ''}
-                            </td>
-                            <td className="px-4 py-2 text-xs text-right font-mono font-medium text-foreground">
-                              {item.amount !== null && item.amount !== undefined ? `AED ${fmt(item.amount)}` : <span className="text-muted-foreground">— varies</span>}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-[#1F3864]">
-                          <td className="px-4 py-3 text-xs font-bold text-white">{title.includes('Buyer') ? 'BUYER TOTAL' : 'SELLER TOTAL'}</td>
-                          <td className="px-4 py-3 text-xs font-bold text-white text-right font-mono">AED {fmt(total)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              ))}
-
-              {/* Grand total */}
-              <div className="rounded-xl bg-accent/20 border border-accent/30 px-5 py-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-foreground">Combined Transaction Costs</span>
-                <span className="text-base font-bold text-accent font-mono">AED {fmt(result.grandTotal)}</span>
-              </div>
-            </>
-          )}
-
-          {/* PDF Preview */}
-          {pdfUrl && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <FileText className="w-4 h-4 text-accent" />
-                  PDF Preview
-                </div>
-                <Button size="sm" onClick={handleDownload} className="gap-1.5 bg-accent hover:bg-accent/90 text-accent-foreground">
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </Button>
-              </div>
-              <div className="rounded-xl border border-border overflow-hidden bg-white">
-                <iframe
-                  ref={iframeRef}
-                  src={pdfUrl}
-                  className="w-full"
-                  style={{ height: '700px' }}
-                  title="Transfer Fee Estimate PDF"
-                />
-              </div>
-            </div>
-          )}
-
-          {!result && (
-            <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-border rounded-xl text-muted-foreground gap-3">
-              <Calculator className="w-10 h-10 opacity-30" />
-              <p className="text-sm">Fill in the form and click Calculate<br/>to see the cost breakdown and PDF preview.</p>
-            </div>
-          )}
+        {/* ── Grand Total ── */}
+        <div className="bg-white border-2 border-navy rounded-xl px-6 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Grand Total (Buyer + Seller, excl. refundable deposit)</p>
+            <p className="text-xs text-gray-400 mt-0.5">Overridden cells are highlighted in amber</p>
+          </div>
+          <p className="text-2xl font-bold text-navy">AED {fmt(grandTotal)}</p>
         </div>
+
+        {/* ── Notes ── */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-1.5 text-xs text-amber-800">
+          <p><span className="font-semibold">⚠ 2026 Regulation:</span> Closing costs cannot be financed into the mortgage — all transfer costs must be paid in cash upfront.</p>
+          <p><span className="font-semibold">⚠ Bank fees:</span> Processing fees, valuation, and mortgage-related charges vary by bank — confirm per deal.</p>
+        </div>
+
+        {/* ── PDF Export ── */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="px-5 py-3 border-b border-gray-100" style={{ background: '#1F3864' }}>
+            <h2 className="text-white font-bold text-sm uppercase tracking-wider">Generate Client PDF</h2>
+          </div>
+          <div className="p-5 flex flex-wrap items-end gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Show sides</label>
+              <select value={showSides} onChange={e => setShowSides(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                <option value="both">Both (Buyer + Seller)</option>
+                <option value="buyer">Buyer only</option>
+                <option value="seller">Seller only</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Zero-commission display</label>
+              <select value={commDisplay} onChange={e => setCommDisplay(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                <option value="hide">Hide the line entirely</option>
+                <option value="show">Show row with AED 0</option>
+                <option value="note">Hide row but add "commission waived" note</option>
+              </select>
+            </div>
+            <button
+              onClick={handleGeneratePDF}
+              disabled={generating}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all text-white"
+              style={{ background: generating ? '#9ca3af' : '#1F3864' }}
+            >
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              {generating ? 'Generating...' : 'Download PDF'}
+            </button>
+          </div>
+        </div>
+
+        <div className="h-8" />
       </div>
+
+      <style>{`.text-navy { color: #1F3864; } .bg-navy { background-color: #1F3864; } .border-navy { border-color: #1F3864; } .focus\\:ring-navy\\/30:focus { --tw-ring-color: rgba(31,56,100,0.3); }`}</style>
     </div>
   );
 }
