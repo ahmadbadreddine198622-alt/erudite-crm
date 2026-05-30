@@ -191,21 +191,47 @@ export default function Dashboard() {
                           if (editMode) return;
                           app.href ? window.open(app.href, '_blank') : navigate(app.path);
                         }}
-                        className={`flex flex-col items-center gap-2 select-none focus:outline-none ${
-                          editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-                        }`}
+                        className={`flex flex-col items-center gap-2 select-none focus:outline-none transition-transform duration-75 ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer active:scale-95'}`}
                       >
                         <div className="relative">
                           <div
-                            className={`w-16 h-16 rounded-[22px] bg-gradient-to-br ${app.gradient} flex items-center justify-center shadow-lg ${app.shadow} ${
+                            className={`w-[62px] h-[62px] relative flex items-center justify-center overflow-hidden ${
                               editMode && !snapshot.isDragging ? 'animate-wiggle' : ''
-                            } ${
-                              snapshot.isDragging ? 'scale-110 opacity-80' : ''
-                            } ${
-                              !editMode ? 'transition-transform duration-150 active:scale-95' : ''
-                            }`}
+                            } ${snapshot.isDragging ? 'opacity-80' : ''}`}
+                            style={{
+                              borderRadius: '22%',
+                              background: `var(--icon-bg)`,
+                              boxShadow: snapshot.isDragging
+                                ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4)'
+                                : '0 6px 18px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                              transform: !editMode && !snapshot.isDragging ? undefined : undefined,
+                            }}
                           >
-                            <Icon className="w-8 h-8 text-white drop-shadow" />
+                            {/* Gradient base layer */}
+                            <div className={`absolute inset-0 bg-gradient-to-br ${app.gradient}`} style={{ borderRadius: '22%' }} />
+                            {/* Inner top rim light */}
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                borderRadius: '22%',
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)',
+                              }}
+                            />
+                            {/* Classic iOS gloss highlight (curved top bubble) */}
+                            <div
+                              className="absolute"
+                              style={{
+                                top: '3%',
+                                left: '8%',
+                                width: '84%',
+                                height: '52%',
+                                borderRadius: '50% 50% 40% 40% / 60% 60% 40% 40%',
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.08) 100%)',
+                                pointerEvents: 'none',
+                              }}
+                            />
+                            {/* Icon glyph */}
+                            <Icon className="w-8 h-8 text-white relative z-10" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))' }} />
                           </div>
                           {badgeCount > 0 && !editMode && (
                             <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md z-10">
