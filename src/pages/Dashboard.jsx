@@ -120,7 +120,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center py-10 px-6"
+      className="relative min-h-screen flex flex-col items-center justify-center px-6 py-8"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
@@ -164,6 +164,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid */}
+      <div className="ios-grid-enter w-full flex flex-col items-center">
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
           {(provided) => (
@@ -254,6 +255,8 @@ export default function Dashboard() {
           )}
         </Droppable>
       </DragDropContext>
+
+      </div>
 
       {/* No results */}
       {filtered.length === 0 && (
