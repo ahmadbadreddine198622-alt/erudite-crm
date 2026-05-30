@@ -38,6 +38,7 @@ import Landlords from '@/pages/Landlords';
 import EmailAutomations from '@/pages/EmailAutomations';
 import Projects from '@/pages/Projects';
 import FormAReferral from '@/pages/FormAReferral';
+import KeyHandover from '@/pages/KeyHandover';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
         <Route path="/email-automations" element={<EmailAutomations />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/form-a-referral" element={<FormAReferral />} />
+        <Route path="/key-handover" element={<KeyHandover />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
