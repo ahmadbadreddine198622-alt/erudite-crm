@@ -40,6 +40,7 @@ import Projects from '@/pages/Projects';
 import FormAReferral from '@/pages/FormAReferral';
 import KeyHandover from '@/pages/KeyHandover';
 import TransferFeeCalculator from '@/pages/TransferFeeCalculator';
+import FormIGenerator from '@/pages/FormIGenerator';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -100,6 +101,7 @@ const AuthenticatedApp = () => {
         <Route path="/form-a-referral" element={<FormAReferral />} />
         <Route path="/key-handover" element={<KeyHandover />} />
         <Route path="/transfer-calculator" element={<TransferFeeCalculator />} />
+        <Route path="/form-i-generator" element={<FormIGenerator />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

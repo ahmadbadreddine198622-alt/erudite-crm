@@ -44,6 +44,7 @@ const ALL_APPS = [
   { label: 'DLD Lookup',         icon: Phone,          path: '/dld-lookup',          gradient: 'from-purple-500 to-pink-600',         shadow: 'shadow-purple-500/30',  href: 'https://aiboostmarketing.com/smart-bot/?user=971581806000-4e32601555d5aa4902807dfe6c1368&sheetId=1Qu3xT9jrEW_xSVoRDk9cmeBGQVeMdyVId0LcN5v6NyE' },
   { label: 'Transfer Numbers',    icon: Calculator,     path: '/transfer-breakdown',  gradient: 'from-green-500 to-teal-600',        shadow: 'shadow-green-500/30',   href: 'https://claude.ai/project/019e7460-ea5f-74e0-8efb-c3a58527c3bd' },
   { label: 'Transfer Calculator', icon: Calculator,     path: '/transfer-calculator', gradient: 'from-amber-500 to-yellow-600',       shadow: 'shadow-amber-500/30' },
+  { label: 'Form I Generator',     icon: FileSignature,  path: '/form-i-generator',    gradient: 'from-indigo-500 to-blue-700',         shadow: 'shadow-indigo-500/30' },
 ];
 
 const STORAGE_KEY = 'dashboard_app_order';
