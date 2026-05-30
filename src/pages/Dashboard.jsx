@@ -51,6 +51,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const pressTimer = useRef(null);
 
   const startPress = useCallback(() => {
@@ -119,6 +120,13 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
+      {/* Logo */}
+      {logoUrl && (
+        <div className="mb-6">
+          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
+        </div>
+      )}
+
       {/* Date & greeting */}
       <div className="text-center mb-8">
         <p className="text-4xl font-light text-white/90 tracking-tight">
