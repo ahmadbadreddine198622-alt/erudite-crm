@@ -17,17 +17,6 @@
     "payer_name": {
       "type": "string"
     },
-    "line_items": {
-      "type": "array",
-      "description": "Billed services rendered on the invoice — each line has a description and amount in AED.",
-      "items": {
-        "type": "object",
-        "properties": {
-          "description": { "type": "string" },
-          "amount": { "type": "number" }
-        }
-      }
-    },
     "commission_amount": {
       "type": "number"
     },
@@ -56,9 +45,24 @@
       ],
       "default": "draft"
     },
+    "line_items": {
+      "type": "array",
+      "description": "Optional itemised breakdown; if empty, PDF falls back to a single Brokerage commission row",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      }
+    },
     "pdf_url": {
       "type": "string",
-      "description": "URL to the generated invoice PDF. Backed by Base44 file storage today; designed to swap to Google Drive once the service-account credentials are provisioned."
+      "description": "URL of the latest generated TAX INVOICE PDF (Base44 storage today; Drive link after swap)"
     }
   },
   "required": [
