@@ -67,10 +67,12 @@ export default function Dashboard() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const savedOrder = JSON.parse(saved);
-        // Merge saved order with ALL_APPS to handle new tiles added later
-        const savedLabels = savedOrder.map(a => a.label);
-        const newApps = ALL_APPS.filter(a => !savedLabels.includes(a.label));
-        return [...savedOrder.map(s => ALL_APPS.find(a => a.label === s.label) || s), ...newApps];
+        // If ALL_APPS has changed size, reset to default order
+        if (savedOrder.length !== ALL_APPS.length) {
+          localStorage.removeItem(STORAGE_KEY);
+          return ALL_APPS;
+        }
+        return savedOrder.map(s => ALL_APPS.find(a => a.label === s.label) || s).filter(Boolean);
       }
     } catch {}
     return ALL_APPS;
