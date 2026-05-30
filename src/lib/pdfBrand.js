@@ -120,6 +120,49 @@ export async function placeLogo(doc, layout = { x: 14, y: 8, maxW: 32, maxH: 16 
 }
 
 /**
+ * Place the Erudite signature + stamp on a jsPDF page (mm units). Signature
+ * is anchored top-left of the layout box; the round stamp overlaps slightly
+ * to the right, mimicking a real wet seal beside the signature.
+ *
+ * Sources default to pdfBrand's SIGNATURE_URL / STAMP_URL (repo assets)
+ * but can be overridden via opts (e.g. KeyHandover's localStorage data URIs).
+ * Missing/bad assets are silently skipped — generation never crashes.
+ *
+ * @param {jsPDF} doc
+ * @param {{x:number, y:number, sigMaxW?:number, sigMaxH?:number, stampMax?:number}} layout
+ * @param {{signatureUrl?:string, stampUrl?:string}} [opts]
+ */
+export async function applyEruditeBranding(doc, layout, opts = {}) {
+  const sigMaxW  = layout.sigMaxW  ?? 48;
+  const sigMaxH  = layout.sigMaxH  ?? 18;
+  const stampMax = layout.stampMax ?? 26;
+  const signatureUrl = opts.signatureUrl ?? SIGNATURE_URL;
+  const stampUrl     = opts.stampUrl     ?? STAMP_URL;
+
+  const [signature, stamp] = await Promise.all([
+    loadImage(signatureUrl),
+    loadImage(stampUrl),
+  ]);
+
+  if (signature) {
+    const aspect = signature.width / signature.height;
+    let sw = sigMaxW;
+    let sh = sw / aspect;
+    if (sh > sigMaxH) { sh = sigMaxH; sw = sh * aspect; }
+    try { doc.addImage(signature.dataUrl, 'PNG', layout.x, layout.y, sw, sh); } catch { /* ignore */ }
+  }
+  if (stamp) {
+    const aspect = stamp.width / stamp.height;
+    let stW = stampMax;
+    let stH = stW / aspect;
+    // Stamp just past the signature with a 2mm overlap — real wet-seal look.
+    const stX = layout.x + sigMaxW - 2;
+    const stY = layout.y - 2;
+    try { doc.addImage(stamp.dataUrl, 'PNG', stX, stY, stW, stH); } catch { /* ignore */ }
+  }
+}
+
+/**
  * Draw the standard Erudite company footer band onto a jsPDF document.
  *
  * @param {jsPDF} doc

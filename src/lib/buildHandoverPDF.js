@@ -4,7 +4,19 @@
  * Uses lib/pdfBrand.js for all Erudite branding constants.
  */
 import jsPDF from 'jspdf';
-import { BRAND, loadImage, drawCompanyFooter } from '@/lib/pdfBrand';
+import { BRAND, loadImage, drawCompanyFooter, applyEruditeBranding } from '@/lib/pdfBrand';
+
+// Scenarios where Erudite/agent is the handing-over party (Block 1 = us).
+// In every other scenario the handing-over party signs physically — no stamp.
+// Hardcoded set so future scenarios don't auto-stamp by accident.
+const ERUDITE_HANDING_OVER = new Set([
+  'agent_to_buyer_sale',
+  'agent_to_tenant_movein',
+  'agent_to_agent_transfer',
+  'agent_to_owner_return',
+  'agent_to_tenant_commercial',
+  'agent_to_buyer_commercial_sale',
+]);
 
 const NAVY = BRAND.navy;   // [26,39,68]
 const GOLD = BRAND.gold;   // [201,168,74]
@@ -57,12 +69,8 @@ export async function buildHandoverPDF(data, assets = {}) {
   const footerH = 44;
   const footerTop = 297 - footerH;
 
-  // ── Load images in parallel ──────────────────────────────────────────────
-  const [logo, signature, stamp] = await Promise.all([
-    loadImage(logoUrl),
-    loadImage(signatureUrl),
-    loadImage(stampUrl),
-  ]);
+  // ── Load logo (signature + stamp are loaded inside applyEruditeBranding) ──
+  const logo = await loadImage(logoUrl);
 
   // ── Header: logo + title ──────────────────────────────────────────────────
   let y = 10;
@@ -232,69 +240,79 @@ export async function buildHandoverPDF(data, assets = {}) {
   );
   y += 10;
 
-  // ── Signatures ────────────────────────────────────────────────────────────
+  // ── Signatures (3 evenly spaced blocks) ──────────────────────────────────
+  // Block 1: HANDED OVER BY (label from scenario fromLabel). Conditionally
+  //          stamped with Erudite signature + stamp when handoverType is in
+  //          ERUDITE_HANDING_OVER. Otherwise blank for physical signing.
+  // Block 2: RECEIVED BY (label from scenario toLabel). Always blank.
+  // Block 3: WITNESS / AGENT. Always blank.
   y = bandHeader(doc, 'SIGNATURES', y, W, pad);
   y += 5;
 
-  const sigColW = halfW;
+  const eruditeIsHandingOver = ERUDITE_HANDING_OVER.has(data.handoverType);
 
-  // Erudite side (left)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
-  doc.text('ERUDITE REAL ESTATE', col1X, y);
-  doc.setFillColor(...GOLD);
-  doc.rect(col1X, y + 1, 36, 0.4, 'F');
-  y += 5;
+  const sigGap = 4;
+  const sigBlockW = (W - 2 * pad - 2 * sigGap) / 3;
+  const c1X = pad;
+  const c2X = c1X + sigBlockW + sigGap;
+  const c3X = c2X + sigBlockW + sigGap;
 
-  // Place signature image
-  if (signature) {
-    const sigMaxW = 48;
-    const sigMaxH = 18;
-    const aspect = signature.width / signature.height;
-    let sw = sigMaxW;
-    let sh = sw / aspect;
-    if (sh > sigMaxH) { sh = sigMaxH; sw = sh * aspect; }
-    try { doc.addImage(signature.dataUrl, 'PNG', col1X, y, sw, sh); } catch { /* ignore */ }
+  const blockTopY  = y;
+  const imageBandH = 22;          // reserved vertical space for sig/stamp image
+  const lineY      = blockTopY + imageBandH;
+
+  // Title + auto-width gold underline, anchored at the block's top edge.
+  const drawBlockTitle = (label, x) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...BRAND.muted);
+    doc.text(String(label), x, blockTopY);
+    const titleW = doc.getTextWidth(String(label)) + 2;
+    doc.setFillColor(...GOLD);
+    doc.rect(x, blockTopY + 1, titleW, 0.4, 'F');
+  };
+
+  const drawSignatureLine = (x) => {
+    doc.setDrawColor(...BRAND.text);
+    doc.setLineWidth(0.3);
+    doc.line(x, lineY, x + sigBlockW, lineY);
+  };
+
+  const drawSubLine = (text, x, dy, color = BRAND.text) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...color);
+    doc.text(String(text || ''), x, lineY + dy);
+  };
+
+  // ─── Block 1: HANDED OVER BY ──────────────────────────────────────────────
+  drawBlockTitle(data.fromLabel || 'HANDED OVER BY', c1X);
+  if (eruditeIsHandingOver) {
+    await applyEruditeBranding(
+      doc,
+      { x: c1X, y: blockTopY + 5, sigMaxW: 34, sigMaxH: 14, stampMax: 18 },
+      { signatureUrl, stampUrl },
+    );
+    drawSignatureLine(c1X);
+    drawSubLine(eruditeAgent, c1X, 4);
+    drawSubLine('Erudite Real Estate — ORN 29322', c1X, 8, BRAND.muted);
+  } else {
+    drawSignatureLine(c1X);
+    drawSubLine(fromParty.name || '', c1X, 4);
+    drawSubLine('Date: ___________________', c1X, 8, BRAND.muted);
   }
 
-  // Place stamp (circular) — overlay to the right of sig
-  if (stamp) {
-    const stMax = 26;
-    const aspect = stamp.width / stamp.height;
-    let stW = stMax;
-    let stH = stW / aspect;
-    try { doc.addImage(stamp.dataUrl, 'PNG', col1X + 46, y - 2, stW, stH); } catch { /* ignore */ }
-  }
+  // ─── Block 2: RECEIVED BY (always blank) ──────────────────────────────────
+  drawBlockTitle(data.toLabel || 'RECEIVED BY', c2X);
+  drawSignatureLine(c2X);
+  drawSubLine(toParty.name || '', c2X, 4);
+  drawSubLine('Date: ___________________', c2X, 8, BRAND.muted);
 
-  const lineY = y + 22;
-  doc.setDrawColor(...BRAND.text);
-  doc.setLineWidth(0.3);
-  doc.line(col1X, lineY, col1X + sigColW, lineY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.text);
-  doc.text(eruditeAgent, col1X, lineY + 4);
-  doc.setTextColor(...BRAND.muted);
-  doc.text('Erudite Real Estate — ORN 29322', col1X, lineY + 8);
-
-  // Other party side (right)
-  const sigY0 = y - 5;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
-  doc.text(data.toLabel || 'RECEIVED BY', col2X, sigY0);
-  doc.setFillColor(...GOLD);
-  doc.rect(col2X, sigY0 + 1, 22, 0.4, 'F');
-  doc.setDrawColor(...BRAND.text);
-  doc.setLineWidth(0.3);
-  doc.line(col2X, lineY, col2X + sigColW - 4, lineY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.text);
-  doc.text(toParty.name || '', col2X, lineY + 4);
-  doc.setTextColor(...BRAND.muted);
-  doc.text('Date: ___________________', col2X, lineY + 8);
+  // ─── Block 3: WITNESS / AGENT (always blank) ──────────────────────────────
+  drawBlockTitle('WITNESS / AGENT', c3X);
+  drawSignatureLine(c3X);
+  drawSubLine('', c3X, 4);
+  drawSubLine('Date: ___________________', c3X, 8, BRAND.muted);
 
   // ── Footer ────────────────────────────────────────────────────────────────
   drawCompanyFooter(doc, footerTop, W, pad);
