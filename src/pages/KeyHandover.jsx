@@ -9,30 +9,21 @@ import HandoverItems from '@/components/handover/HandoverItems';
 import { buildHandoverPDF } from '@/lib/buildHandoverPDF';
 
 const HANDOVER_TYPES = {
-  tenant_landlord: {
-    label: 'Tenant to Landlord',
-    fromLabel: 'HANDED OVER BY (LANDLORD)',
-    toLabel: 'RECEIVED BY (TENANT)',
-    toPreset: null,
-  },
-  tenant_agent: {
-    label: 'Tenant to Erudite Agent',
-    fromLabel: 'HANDED OVER BY (TENANT)',
-    toLabel: 'RECEIVED BY (ERUDITE AGENT)',
-    toPreset: { name: 'Ahmad Badreddine', contact: 'ahmad@erudite-estate.com' },
-  },
-  buyer_seller: {
-    label: 'Buyer to Seller',
-    fromLabel: 'SELLER / HANDED OVER BY',
-    toLabel: 'BUYER / RECEIVED BY',
-    toPreset: null,
-  },
-  generic: {
-    label: 'Generic',
-    fromLabel: 'HANDED OVER BY',
-    toLabel: 'RECEIVED BY',
-    toPreset: null,
-  },
+  owner_to_buyer_sale:              { label: 'Owner → Buyer (Sale)',                 fromLabel: 'OWNER / SELLER',             toLabel: 'BUYER',                   toPreset: null },
+  agent_to_buyer_sale:              { label: 'Agent → Buyer (Sale)',                 fromLabel: 'ERUDITE AGENT (SELLER SIDE)', toLabel: 'BUYER',                   toPreset: null },
+  developer_to_buyer_handover:      { label: 'Developer → Buyer (Handover)',         fromLabel: 'DEVELOPER',                  toLabel: 'BUYER',                   toPreset: null },
+  owner_to_tenant_movein:           { label: 'Owner → Tenant (Move-In)',             fromLabel: 'OWNER / LANDLORD',           toLabel: 'TENANT',                  toPreset: null },
+  agent_to_tenant_movein:           { label: 'Agent → Tenant (Move-In)',             fromLabel: 'ERUDITE AGENT',              toLabel: 'TENANT',                  toPreset: null },
+  tenant_to_owner_moveout:          { label: 'Tenant → Owner (Move-Out)',            fromLabel: 'TENANT',                     toLabel: 'OWNER / LANDLORD',        toPreset: null },
+  tenant_to_tenant_takeover:        { label: 'Tenant → Tenant (Takeover)',           fromLabel: 'OUTGOING TENANT',            toLabel: 'INCOMING TENANT',         toPreset: null },
+  owner_to_agent_custody:           { label: 'Owner → Agent (Custody)',              fromLabel: 'OWNER / LANDLORD',           toLabel: 'ERUDITE AGENT',           toPreset: null },
+  agent_to_agent_transfer:          { label: 'Agent → Agent (Transfer)',             fromLabel: 'OUTGOING AGENT',             toLabel: 'RECEIVING AGENT',         toPreset: null },
+  agent_to_owner_return:            { label: 'Agent → Owner (Return)',               fromLabel: 'ERUDITE AGENT',              toLabel: 'OWNER / LANDLORD',        toPreset: null },
+  owner_to_tenant_commercial:       { label: 'Owner → Tenant (Commercial)',          fromLabel: 'OWNER / LESSOR',             toLabel: 'TENANT / LESSEE',         toPreset: null },
+  agent_to_tenant_commercial:       { label: 'Agent → Tenant (Commercial)',          fromLabel: 'ERUDITE AGENT',              toLabel: 'TENANT / LESSEE',         toPreset: null },
+  owner_to_buyer_commercial_sale:   { label: 'Owner → Buyer (Commercial Sale)',      fromLabel: 'OWNER / SELLER',             toLabel: 'BUYER',                   toPreset: null },
+  agent_to_buyer_commercial_sale:   { label: 'Agent → Buyer (Commercial Sale)',      fromLabel: 'ERUDITE AGENT (SELLER SIDE)', toLabel: 'BUYER',                  toPreset: null },
+  tenant_to_owner_commercial_moveout: { label: 'Tenant → Owner (Commercial Move-Out)', fromLabel: 'TENANT / LESSEE',           toLabel: 'OWNER / LESSOR',          toPreset: null },
 };
 
 function today() {
@@ -83,7 +74,7 @@ function AssetUpload({ label, storageKey }) {
 }
 
 export default function KeyHandover() {
-  const [handoverType, setHandoverType] = useState('generic');
+  const [handoverType, setHandoverType] = useState('owner_to_tenant_movein');
   const typeConfig = HANDOVER_TYPES[handoverType];
 
   const [property, setProperty] = useState({
@@ -188,6 +179,30 @@ export default function KeyHandover() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8 space-y-8">
 
+        {/* Handover Scenario */}
+        <section>
+          <div className="bg-[#2E4374] rounded-t-lg px-4 py-2.5">
+            <h2 className="text-white text-sm font-bold uppercase tracking-wider">Handover Scenario</h2>
+          </div>
+          <div className="bg-card border border-t-0 border-border rounded-b-lg p-5">
+            <div className="space-y-1">
+              <Label>Scenario Type</Label>
+              <select
+                className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                value={handoverType}
+                onChange={e => handleTypeChange(e.target.value)}
+              >
+                {Object.entries(HANDOVER_TYPES).map(([k, v]) => (
+                  <option key={k} value={k} className="bg-background text-foreground">{v.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground pt-1">
+                Determines the party labels on the document. Current: <span className="font-medium text-foreground">{typeConfig.label}</span>
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Property Details */}
         <section>
           <div className="bg-[#2E4374] rounded-t-lg px-4 py-2.5">
@@ -233,15 +248,7 @@ export default function KeyHandover() {
         <section>
           <div className="bg-[#2E4374] rounded-t-lg px-4 py-2.5 flex items-center gap-4">
             <h2 className="text-white text-sm font-bold uppercase tracking-wider">Parties</h2>
-            <select
-              className="ml-auto text-xs rounded border border-white/20 bg-white/10 text-white px-2 py-1 focus:outline-none"
-              value={handoverType}
-              onChange={e => handleTypeChange(e.target.value)}
-            >
-              {Object.entries(HANDOVER_TYPES).map(([k, v]) => (
-                <option key={k} value={k} className="text-foreground bg-background">{v.label}</option>
-              ))}
-            </select>
+            <span className="ml-auto text-xs text-white/70">{typeConfig.label}</span>
           </div>
           <div className="bg-card border border-t-0 border-border rounded-b-lg p-5 grid sm:grid-cols-2 gap-6">
             <div className="space-y-3">
