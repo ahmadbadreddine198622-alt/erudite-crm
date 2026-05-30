@@ -378,7 +378,7 @@ export async function buildInvoicePDF(invoice, opts = {}) {
 
   y = Math.max(py, sy + 4) + 6;
 
-  const footerTop = H - 18;
+  const footerTop = H - 44;
   const sigBandY = footerTop - 38;
 
   doc.setTextColor(...BRAND.muted);
@@ -425,19 +425,55 @@ export async function buildInvoicePDF(invoice, opts = {}) {
     try { doc.addImage(stamp.dataUrl, 'PNG', stX, stY, stW, stH); } catch { /* ignore */ }
   }
 
+  // ── Company footer band ─────────────────────────────────────────────────
   doc.setFillColor(...BRAND.navy);
-  doc.rect(0, footerTop, W, 18, 'F');
+  doc.rect(0, footerTop, W, 44, 'F');
   doc.setFillColor(...BRAND.gold);
-  doc.rect(0, footerTop, W, 1.2, 'F');
+  doc.rect(0, footerTop, W, 1.4, 'F');
+
+  // Company name — prominent
   doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('ERUDITE PROPERTY REAL ESTATE', W / 2, footerTop + 9, { align: 'center' });
+
+  // Address
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text(`${BRAND.name} · ${BRAND.addressLines[0]}`, pad, footerTop + 8);
-  doc.text(`Generated ${new Date().toLocaleDateString('en-GB')}`, pad, footerTop + 13);
+  doc.setFontSize(7);
+  doc.setTextColor(210, 215, 225);
+  doc.text(
+    'Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, United Arab Emirates',
+    W / 2, footerTop + 15, { align: 'center' }
+  );
+
+  // Contact line
+  doc.setTextColor(...BRAND.gold);
+  doc.setFontSize(7);
+  doc.text(
+    'T: +971 58 180 6000  |  E: info@erudite-estate.com  |  W: www.eruditeproperty.com',
+    W / 2, footerTop + 21, { align: 'center' }
+  );
+
+  // Tagline — small italic
+  doc.setTextColor(180, 190, 205);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(6.5);
+  doc.text(
+    'A Premier Real Estate Advisory Firm Specializing in Luxury Residential, Commercial, Investment, and Off-Plan Properties Across Dubai.',
+    W / 2, footerTop + 28, { align: 'center' }
+  );
+
+  // Bottom micro-line: generated date | thank you
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.2);
+  doc.line(pad, footerTop + 32, W - pad, footerTop + 32);
+  doc.setTextColor(160, 170, 185);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.text(`Generated ${new Date().toLocaleDateString('en-GB')}`, pad, footerTop + 37);
   doc.setTextColor(...BRAND.gold);
   doc.setFont('helvetica', 'bolditalic');
-  doc.setFontSize(8);
-  doc.text('Thank you for your business', W - pad, footerTop + 11, { align: 'right' });
+  doc.text('Thank you for your business', W - pad, footerTop + 37, { align: 'right' });
 
   return doc;
 }
