@@ -8,6 +8,9 @@ import MortgageCalculator from '@/components/finance/MortgageCalculator';
 import DealRoom from '@/components/deals/DealRoom';
 import AINegotiator from '@/components/ai/AINegotiator';
 import Leaderboard from '@/components/team/Leaderboard';
+import RevenueForecaster from '@/components/finance/RevenueForecaster';
+import MarketIntelligence from '@/components/analytics/MarketIntelligence';
+import AIDealPredictor from '@/components/ai/AIDealPredictor';
 
 export default function EliteDesk() {
   const [activeTab, setActiveTab] = useState('closer');
@@ -29,13 +32,16 @@ export default function EliteDesk() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 w-full max-w-3xl">
+          <TabsList className="grid grid-cols-4 w-full max-w-4xl">
             <TabsTrigger value="closer">AI Closer</TabsTrigger>
             <TabsTrigger value="vip">VIP Concierge</TabsTrigger>
             <TabsTrigger value="offmarket">Off-Market</TabsTrigger>
             <TabsTrigger value="mortgage">Mortgage</TabsTrigger>
             <TabsTrigger value="dealroom">Deal Room</TabsTrigger>
             <TabsTrigger value="negotiator">AI Negotiator</TabsTrigger>
+            <TabsTrigger value="forecast">Revenue</TabsTrigger>
+            <TabsTrigger value="market">Market</TabsTrigger>
+            <TabsTrigger value="predictor">AI Predictor</TabsTrigger>
           </TabsList>
 
           <TabsContent value="closer" className="mt-6">
@@ -113,6 +119,45 @@ export default function EliteDesk() {
               }}
             >
               <AINegotiator />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="forecast" className="mt-6">
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <RevenueForecaster />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="market" className="mt-6">
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <MarketIntelligence />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="predictor" className="mt-6">
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <AIDealPredictor />
             </div>
           </TabsContent>
         </Tabs>
