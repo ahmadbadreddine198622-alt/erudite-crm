@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, DollarSign, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, Clock, CheckCircle2, Wallet, PiggyBank, Coins } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,8 @@ export default function Commissions() {
   const totalPaid = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
   const totalApproved = commissions.filter(c => c.status === 'approved').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
   const totalDeals = commissions.filter(c => c.status !== 'cancelled').length;
+  const totalPipeline = commissions.filter(c => ['pending', 'approved'].includes(c.status)).reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
+  const avgDealSize = totalDeals > 0 ? (totalPending + totalApproved + totalPaid) / totalDeals : 0;
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }) => base44.entities.Commission.update(id, { status }),
@@ -55,53 +57,164 @@ export default function Commissions() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
-      <PageHeader title="Commissions" subtitle="Track deals and earnings">
-        <Button size="sm" onClick={() => setShowAdd(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+      <PageHeader title="Commissions" subtitle="Deal tracking and earnings intelligence">
+        <Button size="sm" onClick={() => setShowAdd(true)} style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)', border: 'none' }}>
           <Plus className="w-4 h-4 mr-1" /> Add Commission
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Deals" value={totalDeals} icon={TrendingUp} />
-        <StatCard title="Pending" value={formatAED(totalPending)} icon={Clock} />
-        <StatCard title="Approved" value={formatAED(totalApproved)} icon={CheckCircle2} />
-        <StatCard title="Paid Out" value={formatAED(totalPaid)} icon={DollarSign} />
+      {/* Management Intelligence Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Deals</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{totalDeals}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Active commissions</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Pending</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{formatAED(totalPending)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Awaiting approval</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Approved</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{formatAED(totalApproved)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Ready for payment</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Paid Out</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{formatAED(totalPaid)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Total earnings</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <PiggyBank className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Pipeline</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{formatAED(totalPipeline)}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Pending + Approved</p>
+        </div>
       </div>
 
-      <Card className="overflow-hidden">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: 'rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+        }}
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="text-xs">Agent</TableHead>
-                <TableHead className="text-xs">Deal Value</TableHead>
-                <TableHead className="text-xs">Rate</TableHead>
-                <TableHead className="text-xs">Commission</TableHead>
-                <TableHead className="text-xs">Type</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">Date</TableHead>
-                <TableHead className="text-xs">Actions</TableHead>
+              <TableRow style={{ background: 'rgba(8,11,18,0.75)', borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Agent</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Deal Value</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Rate</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Commission</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Type</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Status</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Date</TableHead>
+                <TableHead className="text-xs" style={{ color: 'hsl(38 92% 50%)' }}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {commissions.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="text-sm font-medium">{c.agent_name || 'Unassigned'}</TableCell>
-                  <TableCell className="text-sm">{formatAED(c.deal_value_aed)}</TableCell>
-                  <TableCell className="text-sm">{c.commission_rate}%</TableCell>
-                  <TableCell className="text-sm font-semibold text-accent">{formatAED(c.commission_amount_aed)}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-[10px] capitalize">{c.deal_type}</Badge></TableCell>
+                <TableRow key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <TableCell className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.95)' }}>{c.agent_name || 'Unassigned'}</TableCell>
+                  <TableCell className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>{formatAED(c.deal_value_aed)}</TableCell>
+                  <TableCell className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>{c.commission_rate}%</TableCell>
+                  <TableCell className="text-sm font-semibold" style={{ color: 'hsl(38 92% 50%)' }}>{formatAED(c.commission_amount_aed)}</TableCell>
                   <TableCell>
-                    <Badge className={cn("text-[10px] capitalize", statusStyles[c.status])}>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] capitalize"
+                      style={{
+                        background: c.deal_type === 'sale' ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.15)',
+                        border: `1px solid ${c.deal_type === 'sale' ? 'rgba(16,185,129,0.3)' : 'rgba(59,130,246,0.3)'}`,
+                        color: c.deal_type === 'sale' ? 'rgba(16,185,129,0.95)' : 'rgba(59,130,246,0.95)',
+                      }}
+                    >
+                      {c.deal_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className="text-[10px] capitalize"
+                      style={{
+                        background: statusStyles[c.status]?.split(' ')[0] || 'rgba(255,255,255,0.1)',
+                        color: statusStyles[c.status]?.split(' ')[1] || 'rgba(255,255,255,0.7)',
+                        border: '1px solid transparent',
+                      }}
+                    >
                       {c.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
                     {c.closing_date && format(new Date(c.closing_date), 'MMM d, yyyy')}
                   </TableCell>
                   <TableCell>
                     <Select value={c.status} onValueChange={(v) => updateStatus.mutate({ id: c.id, status: v })}>
-                      <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger
+                        className="h-7 w-28 text-xs"
+                        style={{
+                          background: 'rgba(255,255,255,0.07)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'rgba(255,255,255,0.95)',
+                        }}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="approved">Approved</SelectItem>
@@ -114,7 +227,7 @@ export default function Commissions() {
               ))}
               {commissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     No commissions recorded yet
                   </TableCell>
                 </TableRow>
@@ -122,7 +235,7 @@ export default function Commissions() {
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </div>
 
       <AddCommissionDialog
         open={showAdd}
