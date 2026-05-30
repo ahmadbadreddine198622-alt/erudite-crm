@@ -1,0 +1,37 @@
+{
+  "name": "IncomeRecord",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "Reference to Invoice entity"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Reference to Agent (User) entity"
+    },
+    "recognized_amount": {
+      "type": "number"
+    },
+    "period": {
+      "type": "string",
+      "description": "Accounting period in YYYY-MM format"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "recognized",
+        "reconciled"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "agent_id",
+    "recognized_amount",
+    "period",
+    "status"
+  ]
+}

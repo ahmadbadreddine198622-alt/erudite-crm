@@ -1,0 +1,36 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "Reference to Invoice entity"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "date_received": {
+      "type": "string",
+      "format": "date"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "bank_transfer",
+        "cheque",
+        "cash"
+      ],
+      "default": "bank_transfer"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Optional payment reference / transaction ID"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "amount",
+    "date_received",
+    "method"
+  ]
+}

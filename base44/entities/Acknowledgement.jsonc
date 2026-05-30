@@ -1,0 +1,34 @@
+{
+  "name": "Acknowledgement",
+  "type": "object",
+  "properties": {
+    "payment_id": {
+      "type": "string",
+      "description": "Reference to Payment entity"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "internal_confirmation",
+        "client_receipt"
+      ]
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "document_reference": {
+      "type": "string",
+      "description": "Optional document reference"
+    }
+  },
+  "required": [
+    "payment_id",
+    "type",
+    "confirmed_by",
+    "date"
+  ]
+}

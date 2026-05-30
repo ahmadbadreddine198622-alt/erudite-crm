@@ -4,80 +4,29 @@
   "properties": {
     "invoice_number": {
       "type": "string",
-      "description": "Auto-generated: INV-YYYY-MM-XXXXX"
+      "description": "Unique sequential invoice number \u2014 generation handled externally"
     },
-    "invoice_type": {
+    "deal_id": {
       "type": "string",
-      "enum": [
-        "commission",
-        "rental",
-        "sale",
-        "service_fee"
-      ],
-      "description": "Type of invoice"
+      "description": "Reference to Deal entity"
     },
-    "lead_id": {
-      "type": "string"
-    },
-    "lead_name": {
-      "type": "string"
-    },
-    "property_id": {
-      "type": "string"
-    },
-    "property_title": {
-      "type": "string"
-    },
-    "agent_email": {
-      "type": "string"
-    },
-    "agent_name": {
-      "type": "string"
-    },
-    "commission_id": {
+    "agent_id": {
       "type": "string",
-      "description": "Linked commission record"
+      "description": "Reference to Agent (User) entity"
     },
-    "base_amount_aed": {
-      "type": "number",
-      "description": "Amount before VAT"
+    "payer_name": {
+      "type": "string"
     },
-    "vat_rate": {
-      "type": "number",
-      "default": 5,
-      "description": "VAT percentage (default 5%)"
+    "commission_amount": {
+      "type": "number"
     },
-    "vat_amount_aed": {
-      "type": "number",
-      "description": "VAT amount"
+    "vat_amount": {
+      "type": "number"
     },
-    "total_amount_aed": {
-      "type": "number",
-      "description": "Base + VAT"
+    "total_amount": {
+      "type": "number"
     },
-    "payment_status": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "partial",
-        "paid",
-        "overdue",
-        "cancelled"
-      ],
-      "default": "pending"
-    },
-    "payment_method": {
-      "type": "string",
-      "enum": [
-        "bank_transfer",
-        "cheque",
-        "cash",
-        "card",
-        "crypto",
-        "other"
-      ]
-    },
-    "payment_date": {
+    "issue_date": {
       "type": "string",
       "format": "date"
     },
@@ -85,27 +34,24 @@
       "type": "string",
       "format": "date"
     },
-    "amount_paid_aed": {
-      "type": "number",
-      "default": 0
-    },
-    "deal_type": {
+    "status": {
       "type": "string",
       "enum": [
-        "sale",
-        "rent"
-      ]
-    },
-    "notes": {
-      "type": "string"
-    },
-    "sequence_number": {
-      "type": "number",
-      "description": "Auto-increment for invoice number"
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "cancelled"
+      ],
+      "default": "draft"
     }
   },
   "required": [
-    "invoice_type",
-    "base_amount_aed"
+    "invoice_number",
+    "commission_amount",
+    "total_amount",
+    "issue_date",
+    "due_date",
+    "status"
   ]
 }
