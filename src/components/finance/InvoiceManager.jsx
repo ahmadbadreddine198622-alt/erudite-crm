@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -66,6 +66,31 @@ export default function InvoiceManager() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const [deleteTarget, setDeleteTarget] = useState(null); // { invoice, payments, incomeRecords }
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteClick = async (inv) => {
+    const [payments, incomeRecords] = await Promise.all([
+      base44.entities.Payment.filter({ invoice_id: inv.id }),
+      base44.entities.IncomeRecord.filter({ invoice_id: inv.id }),
+    ]);
+    setDeleteTarget({ invoice: inv, payments, incomeRecords });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { invoice, payments, incomeRecords } = deleteTarget;
+    await Promise.all([
+      ...payments.map(p => base44.entities.Payment.delete(p.id)),
+      ...incomeRecords.map(r => base44.entities.IncomeRecord.delete(r.id)),
+    ]);
+    await base44.entities.Invoice.delete(invoice.id);
+    queryClient.invalidateQueries({ queryKey: ['invoices-live'] });
+    setDeleteTarget(null);
+    setDeleting(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -87,7 +112,7 @@ export default function InvoiceManager() {
           <table className="w-full text-sm">
             <thead className="bg-secondary/50">
               <tr>
-                {['Invoice #', 'Payer', 'Agent', 'Total (AED)', 'Status', 'PDF'].map(h => (
+                {['Invoice #', 'Payer', 'Agent', 'Total (AED)', 'Status', 'PDF', ''].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -110,11 +135,48 @@ export default function InvoiceManager() {
                       <ViewPDFLink invoice={inv} />
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleDeleteClick(inv)}
+                      className="text-muted-foreground hover:text-red-400 transition-colors p-1 rounded"
+                      title="Delete invoice"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {deleteTarget && (
+        <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Invoice?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                This will permanently delete invoice <span className="font-semibold text-foreground">{deleteTarget.invoice.invoice_number || deleteTarget.invoice.id}</span>. This cannot be undone.
+              </p>
+              {(deleteTarget.payments.length > 0 || deleteTarget.incomeRecords.length > 0) && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
+                  Related records will also be deleted:
+                  {deleteTarget.payments.length > 0 && <div>• {deleteTarget.payments.length} payment(s)</div>}
+                  {deleteTarget.incomeRecords.length > 0 && <div>• {deleteTarget.incomeRecords.length} income record(s)</div>}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
