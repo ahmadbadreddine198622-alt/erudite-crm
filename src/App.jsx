@@ -42,6 +42,7 @@ import KeyHandover from '@/pages/KeyHandover';
 import TransferFeeCalculator from '@/pages/TransferFeeCalculator';
 import FormIGenerator from '@/pages/FormIGenerator';
 import DubaiIntelligence from '@/pages/DubaiIntelligence';
+import EliteDesk from '@/pages/EliteDesk';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
         <Route path="/transfer-calculator" element={<TransferFeeCalculator />} />
         <Route path="/form-i-generator" element={<FormIGenerator />} />
         <Route path="/dubai-intelligence" element={<DubaiIntelligence />} />
+        <Route path="/elite-desk" element={<EliteDesk />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
