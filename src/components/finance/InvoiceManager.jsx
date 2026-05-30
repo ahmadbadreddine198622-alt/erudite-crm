@@ -20,7 +20,7 @@ const STATUS_COLORS = {
 
 const EMPTY_FORM = {
   deal_id: '', agent_id: '', payer_name: '', commission_amount: '',
-  vat_amount: '', total_amount: '', issue_date: '', due_date: '', status: 'draft'
+  issue_date: '', due_date: '', status: 'draft'
 };
 
 export default function InvoiceManager() {
@@ -54,10 +54,7 @@ export default function InvoiceManager() {
     const payload = {
       ...form,
       commission_amount: parseFloat(form.commission_amount) || 0,
-      vat_amount: parseFloat(form.vat_amount) || 0,
-      total_amount: parseFloat(form.total_amount) || 0,
     };
-    if (!payload.vat_amount) delete payload.vat_amount;
     createInvoice.mutate(payload);
   };
 
@@ -128,16 +125,11 @@ export default function InvoiceManager() {
                 <Input placeholder="Payer name" value={form.payer_name} onChange={e => set('payer_name', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label>Commission (AED)</Label>
-                <Input type="number" placeholder="0" value={form.commission_amount} onChange={e => set('commission_amount', e.target.value)} />
+                <Label>Commission (AED) *</Label>
+                <Input type="number" required placeholder="0" value={form.commission_amount} onChange={e => set('commission_amount', e.target.value)} />
               </div>
-              <div className="space-y-1">
-                <Label>VAT (AED, optional)</Label>
-                <Input type="number" placeholder="0" value={form.vat_amount} onChange={e => set('vat_amount', e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label>Total (AED) *</Label>
-                <Input type="number" required placeholder="0" value={form.total_amount} onChange={e => set('total_amount', e.target.value)} />
+              <div className="space-y-1 col-span-2">
+                <p className="text-xs text-muted-foreground">VAT (5%) and total will be calculated automatically.</p>
               </div>
               <div className="space-y-1">
                 <Label>Status</Label>
