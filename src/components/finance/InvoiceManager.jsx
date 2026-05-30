@@ -51,9 +51,14 @@ export default function InvoiceManager() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const commission = parseFloat(form.commission_amount) || 0;
+    const vat = Math.round(commission * 0.05 * 100) / 100;
+    const total = Math.round((commission + vat) * 100) / 100;
     const payload = {
       ...form,
-      commission_amount: parseFloat(form.commission_amount) || 0,
+      commission_amount: commission,
+      vat_amount: vat,
+      total_amount: total,
     };
     createInvoice.mutate(payload);
   };
@@ -128,8 +133,25 @@ export default function InvoiceManager() {
                 <Label>Commission (AED) *</Label>
                 <Input type="number" required placeholder="0" value={form.commission_amount} onChange={e => set('commission_amount', e.target.value)} />
               </div>
+              <div className="space-y-1">
+                <Label>VAT 5% (AED)</Label>
+                <Input
+                  readOnly
+                  tabIndex={-1}
+                  className="bg-secondary/50 cursor-not-allowed text-muted-foreground"
+                  value={form.commission_amount ? (Math.round(parseFloat(form.commission_amount) * 0.05 * 100) / 100).toLocaleString() : ''}
+                  placeholder="auto"
+                />
+              </div>
               <div className="space-y-1 col-span-2">
-                <p className="text-xs text-muted-foreground">VAT (5%) and total will be calculated automatically.</p>
+                <Label>Total (AED)</Label>
+                <Input
+                  readOnly
+                  tabIndex={-1}
+                  className="bg-secondary/50 cursor-not-allowed font-semibold"
+                  value={form.commission_amount ? (() => { const c = parseFloat(form.commission_amount); const v = Math.round(c * 0.05 * 100) / 100; return (Math.round((c + v) * 100) / 100).toLocaleString(); })() : ''}
+                  placeholder="auto"
+                />
               </div>
               <div className="space-y-1">
                 <Label>Status</Label>
