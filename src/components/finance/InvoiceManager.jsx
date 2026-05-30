@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GeneratePDFButton, ViewPDFLink } from './TaxInvoicePDF';
 
 const STATUS_COLORS = {
   draft: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
@@ -86,7 +87,7 @@ export default function InvoiceManager() {
           <table className="w-full text-sm">
             <thead className="bg-secondary/50">
               <tr>
-                {['Invoice #', 'Payer', 'Agent', 'Total (AED)', 'Status'].map(h => (
+                {['Invoice #', 'Payer', 'Agent', 'Total (AED)', 'Status', 'PDF'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -102,6 +103,12 @@ export default function InvoiceManager() {
                     <Badge className={`text-xs border ${STATUS_COLORS[inv.status] || ''}`}>
                       {inv.status?.replace(/_/g, ' ')}
                     </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <GeneratePDFButton invoice={inv} />
+                      <ViewPDFLink invoice={inv} />
+                    </div>
                   </td>
                 </tr>
               ))}

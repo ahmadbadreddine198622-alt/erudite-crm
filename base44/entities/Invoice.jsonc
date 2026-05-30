@@ -17,6 +17,17 @@
     "payer_name": {
       "type": "string"
     },
+    "line_items": {
+      "type": "array",
+      "description": "Billed services rendered on the invoice — each line has a description and amount in AED.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "amount": { "type": "number" }
+        }
+      }
+    },
     "commission_amount": {
       "type": "number"
     },
@@ -44,6 +55,10 @@
         "cancelled"
       ],
       "default": "draft"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL to the generated invoice PDF. Backed by Base44 file storage today; designed to swap to Google Drive once the service-account credentials are provisioned."
     }
   },
   "required": [
