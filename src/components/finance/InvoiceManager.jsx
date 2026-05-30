@@ -221,7 +221,7 @@ export default function InvoiceManager() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Invoice</DialogTitle>
           </DialogHeader>
