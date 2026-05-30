@@ -75,7 +75,7 @@ export default function MobileNav() {
     <nav
       className="fixed left-0 right-0 z-[100] md:hidden"
       style={{
-        bottom: 0,
+        bottom: 60,
         paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
         paddingLeft: 16,
         paddingRight: 16,
