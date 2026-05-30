@@ -48,7 +48,12 @@ const _ASSETS = import.meta.glob('/src/assets/*.png', {
 
 export const SIGNATURE_URL = _ASSETS['/src/assets/signature.png'] || null;
 export const STAMP_URL     = _ASSETS['/src/assets/stamp.png']     || null;
-export const LOGO_URL      = _ASSETS['/src/assets/logo.png']      || null;
+// LOGO_URL is routed around the import.meta.glob enumeration on purpose —
+// Base44's build snapshot dropped src/assets/logo.png from the glob result
+// even though it's in git, so we serve the logo as a static file from
+// public/ (Vite serves /public at the site root, no bundling, no glob).
+// public/erudite-logo.png is the same RGBA binary as src/assets/logo.png.
+export const LOGO_URL      = '/erudite-logo.png';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
