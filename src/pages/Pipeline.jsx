@@ -159,7 +159,12 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="flex flex-col">
+    <div
+      className="flex flex-col min-h-screen"
+      style={{
+        background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
+      }}
+    >
       <div className="px-8 pt-8 pb-2">
         <PageHeader
           title="Pipeline"
@@ -188,7 +193,15 @@ export default function Pipeline() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-8">
-        <TabsList className="self-start">
+        <TabsList
+          className="self-start"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: '12px',
+          }}
+        >
           <TabsTrigger value="sale" className="gap-1.5">
             Sale <span className="text-xs text-muted-foreground">({buckets.sale.length})</span>
           </TabsTrigger>

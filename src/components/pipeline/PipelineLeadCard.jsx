@@ -89,11 +89,19 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
     <div
       onClick={onClick}
       className={cn(
-        'bg-card rounded-xl p-3 border border-border cursor-pointer transition-all duration-200',
-        isDragging
-          ? 'shadow-xl ring-2 ring-accent/30 rotate-1'
-          : 'hover:shadow-md hover:border-accent/30',
+        'rounded-xl p-3 cursor-pointer transition-all duration-200',
       )}
+      style={{
+        background: isDragging ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: isDragging ? '1px solid rgba(245,159,10,0.45)' : '1px solid rgba(255,255,255,0.09)',
+        borderTopColor: isDragging ? 'rgba(245,159,10,0.6)' : 'rgba(255,255,255,0.16)',
+        boxShadow: isDragging
+          ? '0 16px 40px rgba(0,0,0,0.55), 0 0 20px rgba(245,159,10,0.12)'
+          : '0 2px 10px rgba(0,0,0,0.3)',
+        transform: isDragging ? 'scale(1.02) rotate(0.5deg)' : 'scale(1)',
+      }}
     >
       {/* Top row: avatar + name + source */}
       <div className="flex items-start gap-2">
@@ -102,7 +110,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold leading-tight truncate">{lead.name || 'Unknown'}</p>
+            <p className="text-sm font-semibold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{lead.name || 'Unknown'}</p>
             {lead.source && (
               <span className="shrink-0">
                 <SourceBadge source={lead.source} />
@@ -184,7 +192,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
       )}
       {/* Bottom row: time in stage + health dot + docs */}
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.01em' }}>
           {timeInStage ? `In stage · ${timeInStage}` : ''}
         </span>
         <div className="flex items-center gap-1.5">
