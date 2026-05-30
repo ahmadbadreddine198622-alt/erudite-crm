@@ -20,8 +20,8 @@ const STATUS_COLORS = {
 };
 
 const EMPTY_FORM = {
-  deal_id: '', agent_id: '', payer_name: '', commission_amount: '',
-  issue_date: '', due_date: '', status: 'draft', notes: '',
+  deal_id: '', agent_id: '', payer_name: '', payer_email: '', payer_phone: '', payer_trn: '',
+  commission_amount: '',
   property_source: 'manual',
   property_details: { unit_number: '', building_name: '', community: '', property_type: '', reference_no: '', address: '' },
 };
@@ -240,6 +240,18 @@ export default function InvoiceManager() {
               <div className="col-span-2 space-y-1">
                 <Label>Payer Name</Label>
                 <Input placeholder="Payer name" value={form.payer_name} onChange={e => set('payer_name', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Client Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Input type="email" placeholder="client@email.com" value={form.payer_email} onChange={e => set('payer_email', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Client Phone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Input placeholder="+971…" value={form.payer_phone} onChange={e => set('payer_phone', e.target.value)} />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label>Client TRN <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Input placeholder="Tax Registration Number" value={form.payer_trn} onChange={e => set('payer_trn', e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label>Commission (AED) *</Label>

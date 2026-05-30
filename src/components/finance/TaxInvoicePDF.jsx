@@ -165,10 +165,10 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   const billLines = [
-    ['Email', invoice.payer_email || '—'],
-    ['Phone', invoice.payer_phone || '—'],
-    ['TRN',   invoice.payer_trn   || '—'],
-  ];
+    ['Email', invoice.payer_email],
+    ['Phone', invoice.payer_phone],
+    ['TRN',   invoice.payer_trn],
+  ].filter(([, v]) => v);
   for (const [label, val] of billLines) {
     doc.setTextColor(...BRAND.muted);
     doc.text(`${label}:`, leftX, y);

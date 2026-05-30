@@ -17,6 +17,18 @@
     "payer_name": {
       "type": "string"
     },
+    "payer_email": {
+      "type": "string",
+      "description": "Client email address (optional, shown in BILL TO block)"
+    },
+    "payer_phone": {
+      "type": "string",
+      "description": "Client phone number (optional, shown in BILL TO block)"
+    },
+    "payer_trn": {
+      "type": "string",
+      "description": "Client Tax Registration Number (optional, shown in BILL TO block)"
+    },
     "commission_amount": {
       "type": "number"
     },
@@ -55,27 +67,23 @@
             "type": "string"
           },
           "unit_property": {
-            "type": "string",
-            "description": "Unit or property reference for this line item"
+            "type": "string"
           },
           "sell_price": {
-            "type": "number",
-            "description": "Selling price of the property for this line item"
+            "type": "number"
           },
           "amount": {
-            "type": "number",
-            "description": "Commission/fee amount for this line item"
+            "type": "number"
           }
         }
       }
     },
     "notes": {
-      "type": "string",
-      "description": "Optional notes or remarks to display on the invoice PDF"
+      "type": "string"
     },
     "property_details": {
       "type": "object",
-      "description": "Property details to display on the invoice PDF (CRM-pulled or manually entered)",
+      "description": "Property details to display on the invoice PDF",
       "properties": {
         "unit_number": {
           "type": "string"
