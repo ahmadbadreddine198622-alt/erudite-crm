@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import SalesCycleDurationChart from '@/components/analytics/SalesCycleDurationChart';
 import RevenueVsTargetChart from '@/components/analytics/RevenueVsTargetChart';
 import ConversionRateChart from '@/components/analytics/ConversionRateChart';
-import { Card } from '@/components/ui/card';
+import { TrendingUp, Target, BarChart3, DollarSign } from 'lucide-react';
 
 export default function SalesAnalytics() {
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -111,32 +111,125 @@ export default function SalesAnalytics() {
       rate: data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0
     })).sort((a, b) => b.total - a.total);
   }, [leads]);
+  
+  // Summary metrics
+  const totalClosed = leads.filter(l => l.stage === 'closed_won').length;
+  const overallRate = leads.length > 0 ? Math.round((totalClosed / leads.length) * 100) : 0;
+  const totalRevenue = commissions.filter(c => c.status !== 'cancelled').reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
 
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         title="Sales Analytics"
-        subtitle="Track cycle time, revenue, and conversion metrics"
+        subtitle="Performance intelligence and revenue tracking"
       />
+
+      {/* Management Intelligence Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Closed</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{totalClosed}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Deals won</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Conversion</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{overallRate}%</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Lead to deal</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Revenue</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{revenueData.total >= 1_000_000 ? `AED ${(revenueData.total / 1_000_000).toFixed(1)}M` : revenueData.total >= 1_000 ? `AED ${(revenueData.total / 1_000).toFixed(0)}K` : 'AED 0'}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>This month</p>
+        </div>
+        
+        <div
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Agents</span>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{salesCycleData.length}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Active sellers</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6">
         {/* Sales Cycle Duration */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Average Sales Cycle by Agent</h2>
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <h2 className="text-base font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Average Sales Cycle by Agent</h2>
           <SalesCycleDurationChart data={salesCycleData} />
-        </Card>
+        </div>
 
         {/* Revenue vs Target */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Monthly Revenue vs Target</h2>
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <h2 className="text-base font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Monthly Revenue vs Target</h2>
           <RevenueVsTargetChart data={revenueData} />
-        </Card>
+        </div>
 
         {/* Conversion Rate */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Lead-to-Deal Conversion by Source</h2>
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <h2 className="text-base font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Lead-to-Deal Conversion by Source</h2>
           <ConversionRateChart data={conversionData} />
-        </Card>
+        </div>
       </div>
     </div>
   );
