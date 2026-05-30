@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, ChevronLeft, ChevronRight, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key
+  Bell, ChevronLeft, ChevronRight, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ const navItems = [
   { label: 'Offers', icon: FileSignature, path: '/offers' },
   { label: 'Finance', icon: Calculator, path: '/finance' },
   { label: 'Key Handover', icon: Key, path: '/key-handover' },
+  { label: 'Transfer Calculator', icon: Percent, path: '/transfer-calculator' },
   { label: 'Commissions', icon: DollarSign, path: '/commissions' },
   { label: 'Reminders', icon: Bell, path: '/reminders' },
   { label: 'WhatsApp Inbox', icon: MessageCircle, path: '/whatsapp' },
