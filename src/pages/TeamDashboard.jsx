@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import {
-  Users, TrendingUp, Award, Target, Activity, DollarSign, AlertCircle, CheckCircle2
+  Users, TrendingUp, Award, Target, Activity, DollarSign, AlertCircle, CheckCircle2, Trophy, BarChart3, TrendingDown
 } from 'lucide-react';
 import { formatAED } from '@/lib/constants';
 
@@ -145,19 +145,21 @@ export default function TeamDashboard() {
   const totalClosed = filteredLeads.filter(l => l.stage === 'closed_won').length;
   const overallConv = filteredLeads.length > 0 ? ((totalClosed / filteredLeads.length) * 100).toFixed(1) : '0.0';
   const totalActivities = filteredActivities.length;
+  const avgRevenuePerAgent = agentStats.length > 0 ? totalRevenue / agentStats.length : 0;
+  const topPerformer = agentStats[0];
 
   const isLoading = loadingLeads || loadingActivities || loadingComm;
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Team Performance Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Real-time agent analytics · Lead pipeline · Revenue tracking</p>
+          <h1 className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>Team Performance Dashboard</h1>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>Real-time agent intelligence · Pipeline analytics · Revenue tracking</p>
         </div>
         <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.95)' }}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -171,185 +173,267 @@ export default function TeamDashboard() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2" style={{ borderColor: 'rgba(245,159,10,0.3)', borderTopColor: 'hsl(38 92% 50%)', borderRadius: '50%' }} />
         </div>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-                <Users className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredLeads.length}</div>
-                <p className="text-xs text-muted-foreground">{agentStats.filter(a => a.email !== 'Unassigned').length} agents active</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                <Target className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-accent">{overallConv}%</div>
-                <p className="text-xs text-muted-foreground">{totalClosed} deals closed</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
-                <Activity className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalActivities}</div>
-                <p className="text-xs text-muted-foreground">calls, viewings, notes</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Commission Revenue</CardTitle>
-                <DollarSign className="w-4 h-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">{formatAED(totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">{filteredCommissions.length} commissions</p>
-              </CardContent>
-            </Card>
+          {/* Management Intelligence Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Total Leads</span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{filteredLeads.length}</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{agentStats.length} agents</p>
+            </div>
+            
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4 text-emerald-500" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Conversion</span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{overallConv}%</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{totalClosed} closed</p>
+            </div>
+            
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-purple-400" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Revenue</span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{formatAED(totalRevenue)}</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{filteredCommissions.length} deals</p>
+            </div>
+            
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-amber-500" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Activities</span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{totalActivities}</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Total actions</p>
+            </div>
+            
+            <div
+              className="rounded-xl p-4"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Top Agent</span>
+              </div>
+              <p className="text-lg font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>{topPerformer?.name || 'N/A'}</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{topPerformer?.conversionRate}% conv.</p>
+            </div>
           </div>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pipeline Stage Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Pipeline Stage Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {stageData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={stageData} layout="vertical">
-                      <XAxis type="number" tick={{ fontSize: 10 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground text-sm py-12">No lead data</p>
-                )}
-              </CardContent>
-            </Card>
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <h3 className="text-sm font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Pipeline Stage Distribution</h3>
+              {stageData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={stageData} layout="vertical">
+                    <XAxis type="number" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} width={110} />
+                    <Tooltip 
+                      contentStyle={{
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    />
+                    <Bar dataKey="value" fill="hsl(38 92% 50%)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-sm py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>No pipeline data</p>
+              )}
+            </div>
 
             {/* Lead Sources */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Lead Sources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {sourceData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={sourceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
-                        {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground text-sm py-12">No source data</p>
-                )}
-              </CardContent>
-            </Card>
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <h3 className="text-sm font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Lead Sources</h3>
+              {sourceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie data={sourceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+                      {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-sm py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>No source data</p>
+              )}
+            </div>
           </div>
 
           {/* Agent Leaderboard */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Award className="w-4 h-4 text-amber-500" />
-                Agent Leaderboard
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {agentStats.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-12">No agent data found. Assign leads to agents to see performance.</p>
-              ) : (
-                <div className="space-y-3">
-                  {agentStats.map((agent, i) => {
-                    const isTop = i === 0;
-                    const conv = parseFloat(agent.conversionRate);
-                    return (
-                      <div key={agent.email} className={`p-4 rounded-xl border flex flex-wrap gap-4 items-center justify-between ${isTop ? 'border-amber-500/30 bg-amber-500/5' : 'border-border'}`}>
-                        <div className="flex items-center gap-3">
-                          <span className={`text-lg font-bold w-6 text-center ${isTop ? 'text-amber-500' : 'text-muted-foreground'}`}>#{i + 1}</span>
-                          {isTop && <Award className="w-4 h-4 text-amber-500" />}
-                          <div>
-                            <p className="font-semibold text-sm">{agent.name}</p>
-                            <p className="text-xs text-muted-foreground">{agent.email}</p>
-                          </div>
+          <div
+            className="rounded-2xl p-5"
+            style={{
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            <h3 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ color: 'hsl(38 92% 50%)' }}>
+              <Award className="w-5 h-5" />
+              Agent Leaderboard
+            </h3>
+            {agentStats.length === 0 ? (
+              <p className="text-center text-sm py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>No agent data. Assign leads to see performance.</p>
+            ) : (
+              <div className="space-y-3">
+                {agentStats.map((agent, i) => {
+                  const isTop = i === 0;
+                  const conv = parseFloat(agent.conversionRate);
+                  return (
+                    <div
+                      key={agent.email}
+                      className="p-4 rounded-xl border flex flex-wrap gap-4 items-center justify-between transition-all"
+                      style={{
+                        background: isTop ? 'rgba(245,159,10,0.08)' : 'transparent',
+                        border: isTop ? '1px solid rgba(245,159,10,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-lg font-bold w-6 text-center ${isTop ? 'text-amber-500' : 'text-white/50'}`}>#{i + 1}</span>
+                        {isTop && <Trophy className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />}
+                        <div>
+                          <p className="font-semibold text-sm" style={{ color: 'rgba(255,255,255,0.95)' }}>{agent.name}</p>
+                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.email}</p>
                         </div>
-
-                        <div className="flex flex-wrap gap-6">
-                          <div className="text-center">
-                            <p className="text-lg font-bold">{agent.totalLeads}</p>
-                            <p className="text-[10px] text-muted-foreground">Leads</p>
-                          </div>
-                          <div className="text-center">
-                            <p className={`text-lg font-bold ${conv >= 30 ? 'text-emerald-600' : conv >= 15 ? 'text-amber-600' : 'text-red-500'}`}>
-                              {agent.conversionRate}%
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Conversion</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-emerald-600">{agent.closedWon}</p>
-                            <p className="text-[10px] text-muted-foreground">Closed Won</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold">{agent.activities}</p>
-                            <p className="text-[10px] text-muted-foreground">Activities</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-accent">{formatAED(agent.revenue)}</p>
-                            <p className="text-[10px] text-muted-foreground">Commission</p>
-                          </div>
-                        </div>
-
-                        <Badge variant={conv >= 20 ? 'default' : 'outline'} className={conv >= 20 ? 'bg-emerald-500/10 text-emerald-700' : ''}>
-                          {conv >= 30 ? '🔥 Top Performer' : conv >= 15 ? '✓ On Track' : '⚠ Needs Support'}
-                        </Badge>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                      <div className="flex flex-wrap gap-6">
+                        <div className="text-center">
+                          <p className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{agent.totalLeads}</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Leads</p>
+                        </div>
+                        <div className="text-center">
+                          <p className={`text-lg font-bold ${conv >= 30 ? 'text-emerald-500' : conv >= 15 ? 'text-amber-500' : 'text-red-500'}`}>
+                            {agent.conversionRate}%
+                          </p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Conversion</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-emerald-500">{agent.closedWon}</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Closed</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{agent.activities}</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,255,0.5)' }}>Activities</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{formatAED(agent.revenue)}</p>
+                          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Revenue</p>
+                        </div>
+                      </div>
+
+                      <Badge
+                        style={{
+                          background: conv >= 20 ? 'rgba(16,185,129,0.15)' : 'transparent',
+                          border: `1px solid ${conv >= 20 ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.15)'}`,
+                          color: conv >= 20 ? 'rgba(16,185,129,0.95)' : 'rgba(255,255,255,0.7)',
+                        }}
+                      >
+                        {conv >= 30 ? '🔥 Elite' : conv >= 15 ? '✓ Performing' : '⚠ Support'}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Goal Setter (admin only) */}
           <GoalSetterPanel />
 
           {/* Activity Breakdown */}
           {activityTypeData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Activity Breakdown by Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={activityTypeData}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
+              <h3 className="text-sm font-semibold mb-4" style={{ color: 'hsl(38 92% 50%)' }}>Activity Breakdown</h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={activityTypeData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.5)' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.5)' }} />
+                  <Tooltip 
+                    contentStyle={{
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: 'rgba(255,255,255,0.95)',
+                    }}
+                  />
+                  <Bar dataKey="count" fill="hsl(38 92% 50%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </>
       )}
