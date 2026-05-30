@@ -47,7 +47,7 @@
     },
     "line_items": {
       "type": "array",
-      "description": "Optional itemised breakdown rendered in the PDF service table. If empty, the PDF falls back to a single Brokerage-commission row derived from commission_amount.",
+      "description": "Itemised breakdown; if empty, PDF falls back to a single Brokerage commission row",
       "items": {
         "type": "object",
         "properties": {
@@ -56,22 +56,22 @@
           },
           "unit_property": {
             "type": "string",
-            "description": "Unit number or property reference for this line"
+            "description": "Unit or property reference for this line item"
           },
           "sell_price": {
             "type": "number",
-            "description": "Sale price of the unit/property in AED (informational; not summed into totals)"
+            "description": "Selling price of the property for this line item"
           },
           "amount": {
             "type": "number",
-            "description": "Line amount in AED (commission charged on this line)"
+            "description": "Commission/fee amount for this line item"
           }
         }
       }
     },
     "pdf_url": {
       "type": "string",
-      "description": "URL of the latest generated TAX INVOICE PDF (Base44 storage today; Drive link after swap)"
+      "description": "URL of the latest generated TAX INVOICE PDF (Base44 storage or Drive link)"
     }
   },
   "required": [
