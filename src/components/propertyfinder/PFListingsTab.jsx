@@ -520,8 +520,24 @@ async function downloadSingleListingPDF(listing) {
   doc.setFontSize(7);
   doc.text('info@erudite-estate.com', W - M - 38, H - 5);
 
+  // ── Upload to Google Drive ────────────────────────────────────────────────────
+  const pdfBase64 = doc.output('datauristring');
+  const base64Data = pdfBase64.split(',')[1];
   const safeTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30);
-  doc.save(`Erudite_${safeTitle}_${ref}.pdf`);
+  const fileName = `${safeTitle}_${ref}.pdf`;
+  
+  try {
+    await base44.functions.invoke('uploadToGoogleDrive', {
+      base64Content: base64Data,
+      fileName,
+      folderPath: 'Property Finder Listing',
+      mimeType: 'application/pdf'
+    });
+  } catch (err) {
+    console.error('Google Drive upload failed:', err);
+    // Fallback to local download
+    doc.save(fileName);
+  }
 }
 
 // ─── Bulk PDF (all listings report) ─────────────────────────────────────────
