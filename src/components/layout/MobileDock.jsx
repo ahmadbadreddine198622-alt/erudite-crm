@@ -12,6 +12,7 @@ import { Home } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ALL_APPS, CONTEXT_DOCK_MAP } from '@/lib/navApps';
+import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SZ       = 46;
@@ -58,69 +59,26 @@ function selectDockItems(pathname, usage) {
 // ─── NavIcon ─────────────────────────────────────────────────────────────────
 function NavIcon({ app, active }) {
   const { icon: Icon, label, gradient, glowColor } = app;
-  const [pressed, setPressed] = useState(false);
-
-  const scale = active ? 1.08 : pressed ? 0.91 : 1;
-  // Derive a glow color from glowColor or fallback
   const glow = glowColor || 'rgba(255,255,255,0.25)';
 
   return (
     <div
       className="flex flex-col items-center select-none"
       style={{ gap: 3, WebkitTapHighlightColor: 'transparent' }}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
     >
-      <div style={{
-        width: SZ, height: SZ, borderRadius: R, position: 'relative',
-        transform: `scale(${scale})`,
-        transition: 'transform 0.12s cubic-bezier(0.34,1.56,0.64,1)',
-        opacity: 1,
-        boxShadow: active
-          ? `0 6px 20px ${glow}, 0 2px 8px rgba(0,0,0,0.45)`
-          : '0 2px 8px rgba(0,0,0,0.40)',
-      }}>
-        {/* Vivid gradient base — same as grid tile */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-br ${gradient}`}
-          style={{ borderRadius: R, filter: active ? 'saturate(2.2) brightness(1.35)' : 'saturate(2.0) brightness(1.22)', transition: 'filter 0.12s ease' }}
-        />
-        {/* Glass overlay */}
-        <div style={{
-        position: 'absolute', inset: 0, borderRadius: R,
-        border: active ? '1.5px solid rgba(255,255,255,0.32)' : '1px solid rgba(255,255,255,0.14)',
-        borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
-        }} />
-        {/* Top gloss */}
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: R,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0) 60%)',
-          pointerEvents: 'none',
-        }} />
-        {/* Inner depth */}
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: R,
-          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.12)',
-          pointerEvents: 'none',
-        }} />
-        {/* Active glow bloom */}
-        {active && (
-          <div style={{
-            position: 'absolute', inset: -5, borderRadius: `calc(${R} + 5px)`,
-            background: glow,
-            filter: 'blur(10px)', opacity: 0.55,
-            pointerEvents: 'none', zIndex: -1,
-          }} />
-        )}
-        <Icon style={{
-          position: 'absolute', width: GLYPH, height: GLYPH,
-          top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          color: 'rgba(255,255,255,0.96)',
-          filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.65))',
-          strokeWidth: 2.2, zIndex: 2,
-        }} />
-      </div>
+      <ExtremeLiquidIcon
+        icon={Icon}
+        gradient={gradient}
+        glowColor={glow}
+        size={SZ}
+        iconSize={GLYPH}
+        active={active}
+        badge={0}
+        tiltX={0}
+        tiltY={0}
+        index={0}
+        isDragging={false}
+      />
       <span style={{
         fontSize: 9, fontWeight: active ? 600 : 400,
         color: active ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.42)',
