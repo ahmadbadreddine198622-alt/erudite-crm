@@ -349,7 +349,7 @@ export default function VapiDashboard() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 pt-3">
-                                        <Button size="sm" variant="outline" className="flex-1 text-xs">
+                                        <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => window.open(`https://dashboard.vapi.ai/assistant/${assistant.id}`, '_blank')}>
                                             <Edit className="w-3 h-3 mr-1" />
                                             Edit
                                         </Button>
@@ -597,17 +597,33 @@ export default function VapiDashboard() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="p-4 rounded-lg bg-amber-400/10 border border-amber-400/20">
-                                    <div className="flex items-start gap-3">
-                                        <Shield className="w-5 h-5 text-amber-400 mt-0.5" />
-                                        <div className="text-xs text-amber-200/80">
-                                            <p className="font-semibold mb-1">Important Notes</p>
-                                            <ul className="list-disc list-inside space-y-1">
-                                                <li>Assistants must be configured in Vapi Dashboard</li>
-                                                <li>Phone provider (Twilio) must be connected in Vapi</li>
-                                                <li>API key is stored securely in environment variables</li>
-                                                <li>All calls are logged to AircallCall entity</li>
-                                            </ul>
+                                <div className="space-y-4">
+                                    <div className="p-4 rounded-lg bg-amber-400/10 border border-amber-400/20">
+                                        <div className="flex items-start gap-3">
+                                            <Shield className="w-5 h-5 text-amber-400 mt-0.5" />
+                                            <div className="text-xs text-amber-200/80">
+                                                <p className="font-semibold mb-1">Required Setup</p>
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    <li>Configure Twilio in Vapi Dashboard</li>
+                                                    <li>Add phone number to your assistant</li>
+                                                    <li>API key is stored securely</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-lg bg-blue-400/10 border border-blue-400/20">
+                                        <div className="flex items-start gap-3">
+                                            <Settings className="w-5 h-5 text-blue-400 mt-0.5" />
+                                            <div className="text-xs text-blue-200/80">
+                                                <p className="font-semibold mb-1">To Enable Calling:</p>
+                                                <ol className="list-decimal list-inside space-y-1">
+                                                    <li>Go to Vapi Dashboard</li>
+                                                    <li>Navigate to Settings &gt; Phone Providers</li>
+                                                    <li>Connect your Twilio account</li>
+                                                    <li>Add a phone number to your assistant</li>
+                                                    <li>Return here and make calls</li>
+                                                </ol>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

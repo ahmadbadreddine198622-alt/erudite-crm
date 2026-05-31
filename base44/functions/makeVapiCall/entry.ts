@@ -21,7 +21,9 @@ Deno.serve(async (req) => {
         }
 
         // Create a phone call using Vapi API
-        const response = await fetch('https://api.vapi.ai/call', {
+        // Vapi requires Twilio credentials configured either in assistant or passed here
+        // Try using phoneProvider configuration
+        const response = await fetch('https://api.vapi.ai/call/phone', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${VAPI_API_KEY}`,
@@ -29,8 +31,10 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 assistantId: assistantId,
-                phoneNumberToCall: phoneNumber,
-                telephoneInitiationEnabled: true,
+                phoneNumber: {
+                    twilioPhoneNumber: phoneNumber,
+                    twilioAccountSid: Deno.env.get("TWILIO_ACCOUNT_SID") || ""
+                },
                 metadata: {
                     leadId: leadId || '',
                     leadName: leadName || '',
@@ -41,6 +45,16 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: 'Failed to create call' }));
+            
+            // Check if it's a Twilio configuration error
+            if (errorData.message && errorData.message.includes('twilio')) {
+                return Response.json({ 
+                    error: 'Twilio not configured in Vapi. Please add your Twilio credentials in Vapi Dashboard > Settings > Phone Providers.',
+                    details: errorData,
+                    setupRequired: true
+                }, { status: response.status });
+            }
+            
             return Response.json({ 
                 error: 'Failed to create Vapi call', 
                 details: errorData 
