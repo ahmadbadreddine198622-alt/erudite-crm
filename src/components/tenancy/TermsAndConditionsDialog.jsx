@@ -12,6 +12,14 @@ import { toast } from 'sonner';
 export default function TermsAndConditionsDialog({ open, onClose, contractId }) {
   const queryClient = useQueryClient();
   const [terms, setTerms] = useState([]);
+  const [addendumEn, setAddendumEn] = useState('');
+  const [addendumAr, setAddendumAr] = useState('');
+
+  const { data: contract = {} } = useQuery({
+    queryKey: ['tenancy-contract', contractId],
+    queryFn: () => base44.entities.TenancyContract.get(contractId),
+    enabled: open && !!contractId,
+  });
 
   const { data: existingTerms = [] } = useQuery({
     queryKey: ['terms-and-conditions', contractId],
@@ -32,7 +40,9 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
         term_ar: '',
       })));
     }
-  }, [existingTerms, contractId, open]);
+    setAddendumEn(contract?.addendum_en || '');
+    setAddendumAr(contract?.addendum_ar || '');
+  }, [existingTerms, contractId, open, contract]);
 
   const saveTerm = useMutation({
     mutationFn: async (term) => {
@@ -67,10 +77,17 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
           await deleteTerm.mutateAsync(term.id);
         }
       }
-      toast.success('Terms saved successfully');
+      // Save addendum to contract
+      if (contractId) {
+        await base44.entities.TenancyContract.update(contractId, {
+          addendum_en: addendumEn,
+          addendum_ar: addendumAr,
+        });
+      }
+      toast.success('Terms and addendum saved successfully');
       onClose();
     } catch (error) {
-      toast.error('Failed to save terms', { description: error?.message });
+      toast.error('Failed to save', { description: error?.message });
     }
   };
 
@@ -138,6 +155,31 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="border-t pt-4">
+            <Label className="font-semibold text-sm block mb-3">Addendum</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground block mb-1">English</Label>
+                <Textarea
+                  placeholder="Enter addendum in English..."
+                  value={addendumEn}
+                  onChange={(e) => setAddendumEn(e.target.value)}
+                  className="text-xs min-h-24"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground block mb-1">Arabic</Label>
+                <Textarea
+                  placeholder="Enter addendum in Arabic..."
+                  value={addendumAr}
+                  onChange={(e) => setAddendumAr(e.target.value)}
+                  className="text-xs min-h-24 text-right"
+                  dir="rtl"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

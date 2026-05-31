@@ -124,6 +124,14 @@
       "type": "string",
       "description": "Ejari registration number \u2014 filled after DLD registration"
     },
+    "addendum_en": {
+      "type": "string",
+      "description": "Addendum text in English"
+    },
+    "addendum_ar": {
+      "type": "string",
+      "description": "Addendum text in Arabic"
+    },
     "status": {
       "type": "string",
       "enum": [
