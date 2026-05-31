@@ -39,7 +39,7 @@ export default function PFLeadsTab({ leads, isLoading, channelConfig }) {
     if (search) {
       const q = search.toLowerCase();
       return (
-        (lead.name || '').toLowerCase().includes(q) ||
+        (lead.full_name || lead.name || '').toLowerCase().includes(q) ||
         (lead.phone || '').includes(q) ||
         (lead.email || '').toLowerCase().includes(q) ||
         ((lead.source_metadata && lead.source_metadata.listing_reference) || '').toLowerCase().includes(q)
@@ -105,14 +105,14 @@ export default function PFLeadsTab({ leads, isLoading, channelConfig }) {
                     return (
                       <tr key={lead.id} className="border-b hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="font-medium">{lead.name}</div>
+                          <div className="font-medium">{lead.full_name || lead.name || '—'}</div>
                           {meta.message && (
                             <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5">"{meta.message}"</div>
                           )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${chColor}`}>
-                            {chIcon}{ch}
+                            {chIcon}{ch === 'unknown' ? 'Portal' : ch}
                           </span>
                           {meta.call_recording && (
                             <a href={meta.call_recording} target="_blank" rel="noopener noreferrer" className="ml-1 inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
