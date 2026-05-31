@@ -100,6 +100,18 @@ export default function MobileDock() {
   const [userEmail, setUserEmail] = useState('');
   const [usage, setUsage] = useState(() => loadUsage(''));
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  // Detect landscape orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -149,6 +161,30 @@ export default function MobileDock() {
   const isUrgent = urgentCount > 0;
   const homeColor = isUrgent ? 'rgba(239,68,68,1)' : 'rgba(245,158,11,1)';
   const homeGlow  = isUrgent ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.45)';
+
+  // Landscape mode: show only minimal Home button
+  if (isLandscape) {
+    return (
+      <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8, padding: '0 16px' }}>
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          aria-label="Home"
+          style={{
+            width: 48, height: 48,
+            borderRadius: '12px',
+            background: 'rgba(245,158,11,0.15)',
+            border: '1.5px solid rgba(245,158,11,0.35)',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.22s ease',
+          }}
+        >
+          <Home style={{ width: 24, height: 24, color: 'hsl(38 92% 55%)' }} />
+        </button>
+      </nav>
+    );
+  }
 
   return (
     <nav
