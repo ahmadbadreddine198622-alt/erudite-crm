@@ -27,6 +27,14 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
     queryFn: () => base44.entities.Lead.list('-created_date', 100),
   });
 
+  // Fetch child reminders (subtasks) for iOS-synced reminders
+  const { data: childReminders = [] } = useQuery({
+    queryKey: ['reminder-children', reminder?.id],
+    queryFn: () => base44.entities.Reminder.filter({ parent_reminder_id: reminder?.id }, 'created_date', 100),
+    enabled: !!reminder?.id,
+    staleTime: 30000,
+  });
+
   useEffect(() => { setDraft(reminder); }, [reminder?.id]);
 
   const updateMutation = useMutation({
@@ -51,20 +59,43 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
     updateMutation.mutate(updated);
   };
 
-  const addSubtask = () => {
+  const addSubtask = async () => {
     if (!newSubtask.trim()) return;
-    const subs = [...(draft.subtasks || []), { id: nanoid(6), title: newSubtask.trim(), completed: false }];
-    setNewSubtask('');
-    save({ subtasks: subs });
+    try {
+      await base44.entities.Reminder.create({
+        title: newSubtask.trim(),
+        notes: `Subtask of: ${draft.title}`,
+        priority: draft.priority,
+        status: 'pending',
+        parent_reminder_id: draft.id,
+      });
+      setNewSubtask('');
+      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
+      toast.success('Subtask added');
+    } catch (error) {
+      toast.error('Failed to add subtask');
+    }
   };
 
-  const toggleSubtask = (id) => {
-    const subs = (draft.subtasks || []).map(s => s.id === id ? { ...s, completed: !s.completed } : s);
-    save({ subtasks: subs });
+  const toggleSubtask = async (childReminder) => {
+    try {
+      await base44.entities.Reminder.update(childReminder.id, {
+        status: childReminder.status === 'completed' ? 'pending' : 'completed',
+      });
+      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
+    } catch (error) {
+      toast.error('Failed to update subtask');
+    }
   };
 
-  const removeSubtask = (id) => {
-    save({ subtasks: (draft.subtasks || []).filter(s => s.id !== id) });
+  const removeSubtask = async (childReminder) => {
+    try {
+      await base44.entities.Reminder.delete(childReminder.id);
+      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
+      toast.success('Subtask removed');
+    } catch (error) {
+      toast.error('Failed to remove subtask');
+    }
   };
 
   const addTag = () => {
@@ -201,27 +232,33 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
 
         {/* Subtasks */}
         <div>
-          <label className="text-[10px] text-[#8E8E93] font-semibold uppercase tracking-wider">Subtasks</label>
+          <label className="text-[10px] text-[#8E8E93] font-semibold uppercase tracking-wider">
+            Subtasks {childReminders.length > 0 && `(${childReminders.length})`}
+          </label>
           <div className="mt-1.5 space-y-1">
-            {(draft.subtasks || []).map((sub) => (
-              <div key={sub.id} className="flex items-center gap-2 group/sub">
-                <button onClick={() => toggleSubtask(sub.id)}>
-                  {sub.completed
-                    ? <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                    : <Circle className="w-4 h-4 text-[#C7C7CC]" />
-                  }
-                </button>
-                <span className={`text-xs flex-1 ${sub.completed ? 'line-through text-[#8E8E93]' : 'text-[#1C1C1E]'}`}>
-                  {sub.title}
-                </span>
-                <button
-                  onClick={() => removeSubtask(sub.id)}
-                  className="opacity-0 group-hover/sub:opacity-100 text-[#C7C7CC] hover:text-red-400 transition-all"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+            {childReminders.length === 0 ? (
+              <p className="text-xs text-[#8E8E93] italic">No subtasks</p>
+            ) : (
+              childReminders.map((child) => (
+                <div key={child.id} className="flex items-center gap-2 group/sub">
+                  <button onClick={() => toggleSubtask(child)}>
+                    {child.status === 'completed'
+                      ? <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                      : <Circle className="w-4 h-4 text-[#C7C7CC]" />
+                    }
+                  </button>
+                  <span className={`text-xs flex-1 ${child.status === 'completed' ? 'line-through text-[#8E8E93]' : 'text-[#1C1C1E]'}`}>
+                    {child.title}
+                  </span>
+                  <button
+                    onClick={() => removeSubtask(child)}
+                    className="opacity-0 group-hover/sub:opacity-100 text-[#C7C7CC] hover:text-red-400 transition-all"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
           <div className="flex gap-1.5 mt-2">
             <Input
