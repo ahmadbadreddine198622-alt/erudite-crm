@@ -639,7 +639,7 @@ export default function PFListingsTab() {
   const [filterBeds, setFilterBeds] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterEmirate, setFilterEmirate] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('published');
   const [filterOffering, setFilterOffering] = useState('');
   const [filterAgent, setFilterAgent] = useState('');
   const [filterDeveloper, setFilterDeveloper] = useState('');
