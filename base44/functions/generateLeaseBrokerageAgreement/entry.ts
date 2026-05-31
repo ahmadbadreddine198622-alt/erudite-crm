@@ -85,6 +85,28 @@ const OWNER_DOC_CHECKBOXES: { key: string; label: string }[] = [
 
 // fetchAsDataUri removed — assets are now inline base64 constants (see top of file).
 
+// LOGO is served from /public/ which is auth-gated; we fetch it once per isolate
+// using the incoming request's auth headers, then cache the result so every
+// subsequent PDF request in the same isolate gets the logo instantly.
+let _logoCacheUri: string | null = null;
+async function _fetchLogoOnce(req: Request): Promise<string | null> {
+  if (_logoCacheUri) return _logoCacheUri;
+  try {
+    const fwdHeaders: Record<string, string> = { Accept: 'image/*' };
+    for (const [k, v] of req.headers.entries()) {
+      if (k === 'authorization' || k === 'cookie') fwdHeaders[k] = v;
+    }
+    const res = await fetch('https://dubai-estate-pro.base44.app/erudite-logo.png', { headers: fwdHeaders });
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bin = '';
+    const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.slice(i, i + chunk));
+    _logoCacheUri = `data:image/png;base64,${btoa(bin)}`;
+    return _logoCacheUri;
+  } catch { return null; }
+}
+
 function fmtDate(d: Date): string {
   return d.toLocaleDateString('en-AE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -208,8 +230,10 @@ Deno.serve(async (req) => {
     const durationDays = Math.max(0, (endDate.getTime() - startDate.getTime()) / 86_400_000);
     const durationMonths = Math.round(durationDays / 30.44);
 
-    // ── Load branded images (inline base64 — no fetch needed) ───────────
-    const logoData  = LOGO_DATA_URI;
+    // ── Load branded images ─────────────────────────────────────────
+    // LOGO: fetched from the app using request auth (cached per isolate; /public/ is auth-gated).
+    // SIGNATURE + STAMP: already inlined as base64 constants at the top of this file.
+    const logoData  = await _fetchLogoOnce(req);
     const sigData   = SIGNATURE_DATA_URI;
     const stampData = STAMP_DATA_URI;
 
