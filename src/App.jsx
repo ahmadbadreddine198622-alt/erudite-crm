@@ -48,6 +48,7 @@ import Leaderboard from '@/pages/Leaderboard';
 import LeadScoringDashboard from '@/pages/LeadScoringDashboard';
 import DealRiskMonitor from '@/pages/DealRiskMonitor';
 import TaskCenter from '@/pages/TaskCenter';
+import WhatsAppAnalytics from '@/pages/WhatsAppAnalytics';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -116,6 +117,7 @@ const AuthenticatedApp = () => {
         <Route path="/lead-scoring" element={<LeadScoringDashboard />} />
         <Route path="/deal-risk" element={<DealRiskMonitor />} />
         <Route path="/task-center" element={<TaskCenter />} />
+        <Route path="/whatsapp-analytics" element={<WhatsAppAnalytics />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
