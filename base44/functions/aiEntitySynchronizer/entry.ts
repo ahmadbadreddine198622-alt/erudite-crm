@@ -590,13 +590,19 @@ function calculateEngagementLevel(conversation) {
   return 'disengaged';
 }
 
-// Claude AI-powered insights generation
+// Claude AI-powered insights generation with auto-remediation
 async function generateClaudeInsights(leads, properties, landlords, deals, conversations, reminders, base44) {
   console.log('Generating Claude AI insights...');
   
   const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
   
-  // Prepare CRM context snapshot
+  // Enhanced CRM context with metrics
+  const stageDistribution = leads.reduce((acc, l) => { acc[l.stage] = (acc[l.stage] || 0) + 1; return acc; }, {});
+  const contactIdentityCount = stageDistribution['contact_identity'] || 0;
+  const conversionRate = leads.length > 0 ? (deals.filter(d => d.stage === 'closed_won').length / leads.length * 100).toFixed(2) : 0;
+  const leadsPerProperty = properties.length > 0 ? Math.round(leads.length / properties.length) : 0;
+  const whatsappEngagementRate = leads.length > 0 ? ((conversations.length / leads.length) * 100).toFixed(1) : 0;
+  
   const crmSnapshot = {
     total_leads: leads.length,
     total_properties: properties.length,
@@ -604,17 +610,31 @@ async function generateClaudeInsights(leads, properties, landlords, deals, conve
     total_deals: deals.length,
     total_conversations: conversations.length,
     total_reminders: reminders.length,
-    stage_distribution: leads.reduce((acc, l) => { acc[l.stage] = (acc[l.stage] || 0) + 1; return acc; }, {}),
+    stage_distribution: stageDistribution,
     hot_leads: leads.filter(l => l.ai_lead_score >= 70).length,
     stale_leads: leads.filter(l => l.stage_entered_at && new Date(l.stage_entered_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
     overdue_reminders: reminders.filter(r => r.due_date && new Date(r.due_date) < new Date() && r.status === 'pending').length,
     top_deals: deals.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0)).slice(0, 5).map(d => ({ lead: d.lead_id, value: d.deal_value, stage: d.stage })),
+    // Key metrics for bottleneck detection
+    contact_identity_bottleneck: contactIdentityCount,
+    contact_identity_percentage: leads.length > 0 ? ((contactIdentityCount / leads.length) * 100).toFixed(1) : 0,
+    conversion_rate_percentage: conversionRate,
+    leads_per_property_ratio: leadsPerProperty,
+    whatsapp_engagement_rate: whatsappEngagementRate,
+    landlord_listing_ratio: landlords.length > 0 ? (properties.length / landlords.length).toFixed(2) : 0,
   };
 
-  const prompt = `Analyze this CRM snapshot and provide strategic insights:
+  const prompt = `Analyze this Dubai real estate CRM and provide HIGH-PRIORITY actionable insights:
 ${JSON.stringify(crmSnapshot, null, 2)}
 
-Provide actionable insights, recommended CRM actions, risk factors, and opportunities.`;
+Focus on:
+1. Funnel bottlenecks (especially if >50% leads stuck at contact_identity)
+2. Inventory shortages (leads_per_property > 20 is critical)
+3. Low conversion rates (<2% is below market)
+4. Communication gaps (WhatsApp engagement <10%)
+5. Landlord supply issues
+
+Return JSON with specific, executable actions.`;
 
   try {
     const response = await anthropic.messages.create({
@@ -633,7 +653,68 @@ Provide actionable insights, recommended CRM actions, risk factors, and opportun
       opportunities: []
     };
 
+    // Auto-generate remediation actions for critical issues
+    const autoActions = [];
+    
+    // Auto-action 1: Create follow-up reminders for stale leads at contact_identity
+    if (contactIdentityCount > leads.length * 0.5) {
+      const staleContactLeads = leads
+        .filter(l => l.stage === 'contact_identity' && 
+                     l.stage_entered_at && 
+                     new Date(l.stage_entered_at) < new Date(Date.now() - 3 * 24 * 60 * 60 * 1000))
+        .slice(0, 10);
+      
+      staleContactLeads.forEach(lead => {
+        autoActions.push({
+          type: 'create_reminder',
+          data: {
+            title: `Follow up: ${lead.full_name || lead.name}`,
+            notes: `Lead stuck at contact_identity for 3+ days. Qualify budget, timeline, and needs.`,
+            due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            priority: 'high',
+            lead_id: lead.id,
+            lead_name: lead.full_name || lead.name,
+          }
+        });
+      });
+    }
+
+    // Auto-action 2: Flag hot leads without deals
+    const hotLeadsWithoutDeals = leads
+      .filter(l => l.ai_lead_score >= 70 && !deals.some(d => d.lead_id === l.id))
+      .slice(0, 5);
+    
+    hotLeadsWithoutDeals.forEach(lead => {
+      autoActions.push({
+        type: 'create_reminder',
+        data: {
+          title: `Create deal for hot lead: ${lead.full_name || lead.name}`,
+          notes: `Lead score: ${lead.ai_lead_score}. High priority - create deal and move to negotiation.`,
+          due_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+          priority: 'urgent',
+          lead_id: lead.id,
+          lead_name: lead.full_name || lead.name,
+        }
+      });
+    });
+
+    // Merge auto-actions with Claude's recommendations
+    insights.recommended_actions = [...(insights.recommended_actions || []), ...autoActions];
+
+    // Calculate business metrics for dashboard
+    insights.metrics = {
+      contact_identity_percentage: parseFloat(stageDistribution['contact_identity'] ? (contactIdentityCount / leads.length * 100).toFixed(1) : 0),
+      leads_per_property_ratio: leadsPerProperty,
+      conversion_rate_percentage: parseFloat(conversionRate),
+      whatsapp_engagement_rate: parseFloat(whatsappEngagementRate),
+      landlord_listing_ratio: parseFloat((properties.length / landlords.length).toFixed(2)),
+      hot_leads_count: leads.filter(l => l.ai_lead_score >= 70).length,
+      stale_leads_count: leads.filter(l => l.stage_entered_at && new Date(l.stage_entered_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
+      total_pipeline_value: deals.reduce((sum, d) => sum + (d.deal_value || 0), 0),
+    };
+
     console.log('Claude insights generated:', insights);
+    console.log(`Auto-generated ${autoActions.length} remediation actions`);
     return insights;
   } catch (error) {
     console.error('Claude insight generation failed:', error);
@@ -650,6 +731,11 @@ Provide actionable insights, recommended CRM actions, risk factors, and opportun
 async function executeClaudeActions(actions, base44) {
   console.log('Executing Claude recommended actions...');
   const executed = [];
+
+  if (!actions || !Array.isArray(actions) || actions.length === 0) {
+    console.log('No Claude actions to execute');
+    return [];
+  }
 
   for (const action of actions.slice(0, 10)) { // Limit to 10 actions
     try {
@@ -669,28 +755,35 @@ async function executeClaudeActions(actions, base44) {
         result = { success: true, type: 'reminder_created', id: reminder.id };
       } 
       else if (action.type === 'update_lead') {
-        await base44.asServiceRole.entities.Lead.update(action.data.lead_id, action.data.updates || {});
-        result = { success: true, type: 'lead_updated', id: action.data.lead_id };
+        if (action.data.lead_id) {
+          await base44.asServiceRole.entities.Lead.update(action.data.lead_id, action.data.updates || {});
+          result = { success: true, type: 'lead_updated', id: action.data.lead_id };
+        } else {
+          result = { success: false, error: 'No lead_id provided' };
+        }
       }
       else if (action.type === 'link_entities') {
-        if (action.data.entity_type === 'WhatsAppConversation' && action.data.lead_id) {
+        if (action.data.entity_type === 'WhatsAppConversation' && action.data.lead_id && action.data.entity_id) {
           await base44.asServiceRole.entities.WhatsAppConversation.update(action.data.entity_id, {
             lead_id: action.data.lead_id,
           });
           result = { success: true, type: 'entities_linked' };
+        } else {
+          result = { success: false, error: 'Missing entity_id or lead_id' };
         }
       }
       else {
-        result = { success: false, error: 'Unknown action type' };
+        result = { success: false, error: 'Unknown action type: ' + action.type };
       }
       
       executed.push(result);
     } catch (error) {
       console.error('Failed to execute action:', action, error);
-      executed.push({ success: false, action, error: error.message });
+      executed.push({ success: false, action: action.type, error: error.message });
     }
   }
 
-  console.log(`Executed ${executed.filter(e => e.success).length}/${executed.length} actions`);
+  const successCount = executed.filter(e => e && e.success).length;
+  console.log(`Executed ${successCount}/${executed.length} actions`);
   return executed;
 }

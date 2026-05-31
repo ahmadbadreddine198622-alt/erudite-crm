@@ -5,6 +5,7 @@ import { Brain, Network, Zap, Users, Home, Building, MessageCircle, TrendingUp, 
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import CriticalMetricsPanel from '@/components/aisync/CriticalMetricsPanel';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -554,11 +555,12 @@ export default function AISyncHub() {
         description,
       });
 
-      // Store Claude insights for display
+      // Store Claude insights and metrics for display
       if (response.data.claude_insights) {
         setSyncHistory({
           claude_insights: response.data.claude_insights,
           executed_actions: response.data.executed_actions || [],
+          metrics: response.data.claude_insights.metrics || null,
         });
       }
 
@@ -657,6 +659,11 @@ export default function AISyncHub() {
             />
           ))}
         </div>
+
+        {/* Critical Business Metrics */}
+        {syncHistory?.metrics && (
+          <CriticalMetricsPanel metrics={syncHistory.metrics} />
+        )}
 
         {/* Smart Insights */}
         {insights.length > 0 && (
