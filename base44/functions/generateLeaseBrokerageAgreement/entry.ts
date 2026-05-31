@@ -16,6 +16,27 @@
 //     force?: boolean,                       // bypass idempotency guard
 //     contract_start?: string,               // ISO date — optional
 //     contract_end?: string,                 // ISO date — optional
+//
+//     // ── Manual overrides (all optional) ──────────────────────────────
+//     // Precedence everywhere is: override > record > null (rendered '—').
+//     // Empty string / undefined / null in body = "no override, use record".
+//     owner_name?: string,
+//     owner_email?: string,
+//     owner_phone?: string,
+//     passport_no?: string,
+//     agent_name?: string,
+//     brn?: string,
+//     agent_email?: string,
+//     property_type?: string,
+//     location?: string,
+//     building_name?: string,
+//     unit_no?: string,
+//     view?: string,
+//     bedrooms?: number | string,
+//     bathrooms?: number | string,
+//     area_sqft?: number | string,
+//     price_aed?: number | string,
+//     rent_aed?: number | string,
 //   }
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
@@ -151,6 +172,42 @@ Deno.serve(async (req) => {
         r.document_type === type && (r.status === 'received' || r.status === 'verified')
       );
 
+    // ── Resolve every renderable field: override > record > null ─────────
+    // The body overrides come from the Manual form on the LeaseAgreement page.
+    // Empty string / undefined / null in body falls through to the record;
+    // any non-empty value (string or number) wins.
+    const strOv = (v: unknown): string | null => {
+      if (typeof v !== 'string') return null;
+      const t = v.trim();
+      return t.length ? t : null;
+    };
+    const numOv = (v: unknown): number | null => {
+      if (v === undefined || v === null || v === '') return null;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const f = {
+      owner_name:    strOv(body?.owner_name)    ?? landlord.full_name_en ?? landlord.full_name ?? null,
+      owner_email:   strOv(body?.owner_email)   ?? landlord.email ?? null,
+      owner_phone:   strOv(body?.owner_phone)   ?? landlord.phone ?? null,
+      passport_no:   strOv(body?.passport_no)   ?? landlord.passport_no ?? null,
+      nationality:   landlord.nationality ?? null, // not exposed in Manual form, record only
+      agent_name:    strOv(body?.agent_name)    ?? agent?.full_name ?? agent?.email ?? null,
+      brn:           strOv(body?.brn)           ?? agent?.brn ?? null,
+      agent_email:   strOv(body?.agent_email)   ?? agent?.email ?? landlord.assigned_agent_email ?? null,
+      property_type: strOv(body?.property_type) ?? property?.property_type ?? null,
+      location:      strOv(body?.location)      ?? property?.location ?? null,
+      building_name: strOv(body?.building_name) ?? property?.building_name ?? null,
+      unit_no:       strOv(body?.unit_no)       ?? property?.unit_no ?? null,
+      view:          strOv(body?.view)          ?? property?.view ?? null,
+      bedrooms:      numOv(body?.bedrooms)      ?? property?.bedrooms ?? null,
+      bathrooms:     numOv(body?.bathrooms)     ?? property?.bathrooms ?? null,
+      area_sqft:     numOv(body?.area_sqft)     ?? property?.area_sqft ?? null,
+      price_aed:     numOv(body?.price_aed)     ?? property?.price_aed ?? null,
+      rent_aed:      numOv(body?.rent_aed)      ?? property?.rent_aed ?? null,
+    };
+
     // ── Contract duration ────────────────────────────────────────────────
     const startDate = contract_start ? new Date(contract_start) : new Date();
     const endDate = contract_end ? new Date(contract_end) : (() => {
@@ -229,17 +286,17 @@ Deno.serve(async (req) => {
     section('BROKER');
     row('Company:', COMPANY_NAME);
     row('ORN:', ORN);
-    row('Agent Name:', agent?.full_name || agent?.email || '—');
-    row('BRN:', agent?.brn || '—');
-    row('Agent Email:', agent?.email || landlord.assigned_agent_email || '—');
+    row('Agent Name:', f.agent_name || '—');
+    row('BRN:', f.brn || '—');
+    row('Agent Email:', f.agent_email || '—');
 
     // ── OWNER ────────────────────────────────────────────────────────────
     section('OWNER');
-    row('Full Name:', landlord.full_name_en || landlord.full_name || '—');
-    row('Passport No.:', landlord.passport_no || '—');
-    row('Nationality:', landlord.nationality || '—');
-    row('Email:', landlord.email || '—');
-    row('Phone:', landlord.phone || '—');
+    row('Full Name:', f.owner_name || '—');
+    row('Passport No.:', f.passport_no || '—');
+    row('Nationality:', f.nationality || '—');
+    row('Email:', f.owner_email || '—');
+    row('Phone:', f.owner_phone || '—');
 
     // ── PROPERTY ─────────────────────────────────────────────────────────
     section('PROPERTY');
@@ -253,7 +310,7 @@ Deno.serve(async (req) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT);
     PROPERTY_TYPES.forEach((t) => {
-      checkbox(doc, cbX, y, property?.property_type === t.key);
+      checkbox(doc, cbX, y, f.property_type === t.key);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...TEXT);
@@ -262,15 +319,15 @@ Deno.serve(async (req) => {
     });
     y += 7;
 
-    row('Location:', property?.location || '—');
-    row('Building / Community:', property?.building_name || '—');
-    row('Unit No.:', property?.unit_no || '—');
-    row('View:', property?.view || '—');
-    row('Bedrooms:', property?.bedrooms != null ? String(property.bedrooms) : '—');
-    row('Bathrooms:', property?.bathrooms != null ? String(property.bathrooms) : '—');
-    row('Area (sqft):', property?.area_sqft != null ? property.area_sqft.toLocaleString() : '—');
-    row('Price (AED):', property?.price_aed != null ? `AED ${property.price_aed.toLocaleString()}` : '—');
-    row('Rent (AED):', property?.rent_aed != null ? `AED ${property.rent_aed.toLocaleString()}` : '—');
+    row('Location:', f.location || '—');
+    row('Building / Community:', f.building_name || '—');
+    row('Unit No.:', f.unit_no || '—');
+    row('View:', f.view || '—');
+    row('Bedrooms:', f.bedrooms != null ? String(f.bedrooms) : '—');
+    row('Bathrooms:', f.bathrooms != null ? String(f.bathrooms) : '—');
+    row('Area (sqft):', f.area_sqft != null ? f.area_sqft.toLocaleString() : '—');
+    row('Price (AED):', f.price_aed != null ? `AED ${f.price_aed.toLocaleString()}` : '—');
+    row('Rent (AED):', f.rent_aed != null ? `AED ${f.rent_aed.toLocaleString()}` : '—');
 
     // ── CONTRACT DURATION ────────────────────────────────────────────────
     section('CONTRACT DURATION');
@@ -357,9 +414,9 @@ Deno.serve(async (req) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...TEXT);
-    doc.text(agent?.full_name || 'Ahmad Badreddine', c1X, sigTopY + 32);
+    doc.text(f.agent_name || 'Ahmad Badreddine', c1X, sigTopY + 32);
     doc.setTextColor(...MUTED);
-    doc.text(`${COMPANY_NAME} · ORN ${ORN} · BRN ${agent?.brn || '—'}`, c1X, sigTopY + 36);
+    doc.text(`${COMPANY_NAME} · ORN ${ORN} · BRN ${f.brn || '—'}`, c1X, sigTopY + 36);
 
     // ── OWNER block: intentionally EMPTY — DocuSign captures the signature ──
     doc.setFont('helvetica', 'bold');
@@ -374,7 +431,7 @@ Deno.serve(async (req) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...TEXT);
-    doc.text(landlord.full_name_en || landlord.full_name || '—', c2X, sigTopY + 32);
+    doc.text(f.owner_name || '—', c2X, sigTopY + 32);
     doc.setTextColor(...MUTED);
     // DocuSign anchor tags — recipient signs and dates at these markers.
     doc.text('Signature: /sn1/    Date: /dt1/', c2X, sigTopY + 36);
@@ -390,7 +447,7 @@ Deno.serve(async (req) => {
     const base64Data = dataUri.split(',')[1];
     const pdfBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-    const safeOwner = (landlord.full_name_en || landlord.full_name || 'landlord')
+    const safeOwner = (f.owner_name || 'landlord')
       .replace(/[^a-zA-Z0-9_-]+/g, '_')
       .slice(0, 60) || 'landlord';
     const fileName = `LeaseBrokerageAgreement_${safeOwner}_${refNo}.pdf`;
@@ -405,18 +462,18 @@ Deno.serve(async (req) => {
     const dsRes = await base44.functions.invoke('docusignSendForSignature', {
       form_type: 'A',
       pdf_url,
-      subject: `Lease Brokerage Agreement — ${property?.building_name || property?.title || 'Erudite Property'} — Please Sign`,
+      subject: `Lease Brokerage Agreement — ${f.building_name || property?.title || 'Erudite Property'} — Please Sign`,
       message:
-        `Dear ${landlord.full_name_en || landlord.full_name || 'Owner'},\n\n` +
+        `Dear ${f.owner_name || 'Owner'},\n\n` +
         `Please review and sign the attached Lease Brokerage Agreement for the property at ` +
-        `${property?.location || ''}${property?.building_name ? ', ' + property.building_name : ''}.\n\n` +
+        `${f.location || ''}${f.building_name ? ', ' + f.building_name : ''}.\n\n` +
         `Reference: ${refNo}`,
       signers: [
         {
           role: 'owner',
-          name: landlord.full_name_en || landlord.full_name || 'Owner',
-          email: landlord.email,
-          phone: landlord.phone,
+          name: f.owner_name || 'Owner',
+          email: f.owner_email,
+          phone: f.owner_phone,
         },
       ],
       property_id: lpRow?.property_id || null,
