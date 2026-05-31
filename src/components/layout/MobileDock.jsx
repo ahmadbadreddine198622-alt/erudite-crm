@@ -57,10 +57,12 @@ function selectDockItems(pathname, usage) {
 
 // ─── NavIcon ─────────────────────────────────────────────────────────────────
 function NavIcon({ app, active }) {
-  const { icon: Icon, label } = app;
+  const { icon: Icon, label, gradient, glowColor } = app;
   const [pressed, setPressed] = useState(false);
 
-  const scale = active ? 1.06 : pressed ? 0.92 : 1;
+  const scale = active ? 1.08 : pressed ? 0.91 : 1;
+  // Derive a glow color from glowColor or fallback
+  const glow = glowColor || 'rgba(255,255,255,0.25)';
 
   return (
     <div
@@ -74,63 +76,56 @@ function NavIcon({ app, active }) {
         width: SZ, height: SZ, borderRadius: R, position: 'relative',
         transform: `scale(${scale})`,
         transition: 'transform 0.18s cubic-bezier(0.34,1.26,0.64,1)',
+        opacity: active ? 1 : 0.72,
         boxShadow: active
-          ? '0 6px 20px rgba(245,158,11,0.45), 0 2px 8px rgba(0,0,0,0.40)'
-          : '0 2px 8px rgba(0,0,0,0.35)',
+          ? `0 6px 20px ${glow}, 0 2px 8px rgba(0,0,0,0.45)`
+          : '0 2px 8px rgba(0,0,0,0.40)',
       }}>
-        {/* Base layer */}
+        {/* Vivid gradient base — same as grid tile */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${gradient}`}
+          style={{ borderRadius: R, filter: active ? 'saturate(1.4) brightness(1.08)' : 'saturate(1.1)' }}
+        />
+        {/* Glass overlay */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: R,
-          background: active
-            ? 'linear-gradient(145deg, rgba(245,158,11,0.28) 0%, rgba(160,100,0,0.20) 100%)'
-            : 'linear-gradient(145deg, rgba(18,28,56,0.90) 0%, rgba(10,16,36,0.85) 100%)',
-          transition: 'background 0.22s ease',
-        }} />
-        {/* Glass rim */}
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: R,
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: active
-            ? '1.5px solid rgba(245,158,11,0.45)'
-            : '1px solid rgba(255,255,255,0.10)',
-          borderTopColor: active ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)',
-          transition: 'border-color 0.22s ease',
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          border: active ? '1.5px solid rgba(255,255,255,0.32)' : '1px solid rgba(255,255,255,0.14)',
+          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
         }} />
         {/* Top gloss */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: R,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 52%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0) 60%)',
           pointerEvents: 'none',
         }} />
         {/* Inner depth */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: R,
-          boxShadow: 'inset 0 2px 6px rgba(255,255,255,0.06), inset 0 -3px 8px rgba(0,0,0,0.25)',
+          boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.10), inset 0 -4px 10px rgba(0,0,0,0.30)',
           pointerEvents: 'none',
         }} />
-        {/* Active gold glow bloom */}
+        {/* Active glow bloom */}
         {active && (
           <div style={{
-            position: 'absolute', inset: -4, borderRadius: `calc(${R} + 4px)`,
-            background: 'rgba(245,158,11,0.30)',
-            filter: 'blur(8px)', opacity: 0.6,
+            position: 'absolute', inset: -5, borderRadius: `calc(${R} + 5px)`,
+            background: glow,
+            filter: 'blur(10px)', opacity: 0.55,
             pointerEvents: 'none', zIndex: -1,
           }} />
         )}
         <Icon style={{
           position: 'absolute', width: GLYPH, height: GLYPH,
           top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          color: active ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.52)',
-          filter: active ? 'drop-shadow(0 1px 4px rgba(245,158,11,0.60))' : 'none',
-          strokeWidth: active ? 2.4 : 1.8,
-          transition: 'color 0.22s ease, filter 0.22s ease',
-          zIndex: 2,
+          color: 'rgba(255,255,255,0.96)',
+          filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.65))',
+          strokeWidth: 2.2, zIndex: 2,
         }} />
       </div>
       <span style={{
         fontSize: 9, fontWeight: active ? 600 : 400,
-        color: active ? 'hsl(38 92% 58%)' : 'rgba(255,255,255,0.38)',
+        color: active ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.42)',
         letterSpacing: '0.02em',
         transition: 'color 0.22s ease',
       }}>{label}</span>
