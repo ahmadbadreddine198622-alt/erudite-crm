@@ -504,19 +504,7 @@ export default function Reminders() {
         )}
       </AnimatePresence>
 
-      {/* Floating Add Button */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setShowAdd(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-40"
-        style={{
-          background: 'hsl(38 92% 50%)',
-          color: 'hsl(222 47% 11%)',
-          boxShadow: '0 8px 24px hsl(38 92% 50% / 0.4)',
-        }}
-      >
-        <Plus className="w-6 h-6" />
-      </motion.button>
+
     </div>
   );
 }
