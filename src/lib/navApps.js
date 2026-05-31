@@ -47,3 +47,5 @@ export const ALL_APPS = [
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
+export const MIN_ITEMS = 3;
+export const MAX_ITEMS = 5;

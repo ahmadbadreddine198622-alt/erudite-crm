@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp } from 'lucide-react';
-import { ALL_APPS } from '@/lib/navApps';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus } from 'lucide-react';
+import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
+import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
@@ -16,7 +17,7 @@ const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const STORAGE_KEY = 'dashboard_app_order';
+const storageKey = (email) => `dashboard_apps_${email || 'default'}`;
 const LONG_PRESS_MS = 4000;
 const HOLD_CUE_MS = 2000;
 
@@ -24,12 +25,19 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
+  const [userEmail, setUserEmail] = useState('');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
+
+  // Load user email
+  useEffect(() => {
+    base44.auth.me().then(u => { if (u?.email) setUserEmail(u.email); }).catch(() => {});
+  }, []);
 
   // Pointer / orientation tracking for tilt specular
   useEffect(() => {
@@ -79,23 +87,43 @@ export default function Dashboard() {
   }, []);
   const [apps, setApps] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey(''));
       if (saved) {
-        const savedOrder = JSON.parse(saved);
-        // If ALL_APPS has changed size, reset to default order
-        if (savedOrder.length !== ALL_APPS.length) {
-          localStorage.removeItem(STORAGE_KEY);
-          return ALL_APPS;
-        }
-        return savedOrder.map(s => ALL_APPS.find(a => a.label === s.label) || s).filter(Boolean);
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        if (resolved.length >= MIN_ITEMS) return resolved;
       }
     } catch {}
     return ALL_APPS;
   });
 
+  // Reload when we get user email
+  useEffect(() => {
+    if (!userEmail) return;
+    try {
+      const saved = localStorage.getItem(storageKey(userEmail));
+      if (saved) {
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        if (resolved.length >= MIN_ITEMS) setApps(resolved);
+      }
+    } catch {}
+  }, [userEmail]);
+
   const saveOrder = (newApps) => {
     setApps(newApps);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newApps.map(a => ({ label: a.label }))));
+    localStorage.setItem(storageKey(userEmail), JSON.stringify(newApps.map(a => a.label)));
+  };
+
+  const removeApp = (path) => {
+    if (apps.length <= MIN_ITEMS) return;
+    saveOrder(apps.filter(a => a.path !== path));
+  };
+
+  const addApp = (app) => {
+    if (apps.length >= MAX_ITEMS) return;
+    saveOrder([...apps, app]);
+    setShowPicker(false);
   };
 
   const onDragEnd = ({ source, destination }) => {
@@ -264,6 +292,24 @@ export default function Dashboard() {
               {...provided.droppableProps}
               className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
             >
+              {/* Add slot — shown in edit mode if under max */}
+              {editMode && apps.length < MAX_ITEMS && (
+                <div className="flex flex-col items-center gap-2 select-none">
+                  <button
+                    onPointerDown={() => setShowPicker(true)}
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 62, height: 62,
+                      borderRadius: `${Math.round(62 * 0.245)}px`,
+                      border: '1.5px dashed rgba(255,255,255,0.25)',
+                      background: 'rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <Plus className="w-6 h-6 text-white/40" strokeWidth={2} />
+                  </button>
+                  <span className="text-[11px] text-center leading-tight max-w-[72px] font-medium" style={{ color: 'rgba(255,255,255,0.30)' }}>Add</span>
+                </div>
+              )}
               {filtered.map((app, idx) => {
                 const Icon = app.icon;
                 const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
@@ -285,7 +331,18 @@ export default function Dashboard() {
                         }}
                         className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
                         style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : {}}
+                        style={{ position: 'relative' }}
                       >
+                        {/* Remove badge */}
+                        {editMode && (
+                          <button
+                            onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
+                            className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
+                            style={{ fontSize: 12 }}
+                          >
+                            <Minus className="w-3 h-3 text-white" strokeWidth={3} />
+                          </button>
+                        )}
                         <ExtremeLiquidIcon
                          icon={Icon}
                          gradient={app.gradient}
@@ -325,9 +382,19 @@ export default function Dashboard() {
       </div>
 
       {/* No results */}
-      {filtered.length === 0 && (
-        <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
+       {filtered.length === 0 && (
+         <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
+       )}
+
+      {/* Picker */}
+      {showPicker && (
+        <AppPickerSheet
+          currentItems={apps}
+          onAdd={addApp}
+          onClose={() => setShowPicker(false)}
+          title="Add to Dashboard"
+        />
       )}
-    </div>
-  );
-}
+      </div>
+      );
+      }
