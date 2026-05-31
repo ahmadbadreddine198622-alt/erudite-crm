@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import CriticalMetricsPanel from '@/components/aisync/CriticalMetricsPanel';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
+import SmartOperationsWindow from '@/components/aisync/SmartOperationsWindow';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -593,31 +594,13 @@ export default function AISyncHub() {
     <div className="min-h-screen page-root pb-24">
       <div className="max-w-[1600px] mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="page-title text-4xl flex items-center gap-3">
-              <Brain className="w-10 h-10 text-accent" />
-              AI Sync Hub
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Intelligent entity synchronization and relationship discovery
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSyncAll}
-              className="px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2"
-              style={{
-                background: 'hsl(38 92% 50%)',
-                color: 'hsl(222 47% 11%)',
-              }}
-            >
-              <Zap className="w-4 h-4" />
-              Sync All
-            </button>
-          </div>
-        </div>
+        {/* Smart Operations Window */}
+        <SmartOperationsWindow
+          metrics={syncHistory?.metrics}
+          insights={insights}
+          syncStatus={syncingEntity ? 'syncing' : 'idle'}
+          onSyncAll={handleSyncAll}
+        />
 
         {/* Search & Filter */}
         <div className="flex gap-3">
@@ -661,32 +644,7 @@ export default function AISyncHub() {
           ))}
         </div>
 
-        {/* Critical Business Metrics */}
-        {syncHistory?.metrics && (
-          <CriticalMetricsPanel metrics={syncHistory.metrics} />
-        )}
 
-        {/* Smart Insights */}
-        {insights.length > 0 && (
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-accent" />
-              <h2 className="text-lg font-semibold text-foreground">Smart Insights</h2>
-              <span className="text-xs text-muted-foreground ml-auto">
-                {insights.length} {insights.length === 1 ? 'insight' : 'insights'} detected
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {insights.map((insight, idx) => (
-                <SmartInsightCard
-                  key={idx}
-                  insight={insight}
-                  onAction={handleInsightAction}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Claude AI Insights */}
         {syncHistory.claude_insights && (
