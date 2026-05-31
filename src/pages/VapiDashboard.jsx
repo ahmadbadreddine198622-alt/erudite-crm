@@ -30,12 +30,20 @@ export default function VapiDashboard() {
         },
     });
 
-    const { data: calls = [] } = useQuery({
+    const { data: calls = [], refetch: refetchCalls } = useQuery({
         queryKey: ['vapi-calls'],
         queryFn: async () => {
+            // First sync from Vapi API
+            try {
+                await base44.functions.invoke('syncVapiCalls', {});
+            } catch (e) {
+                console.error('Sync failed:', e);
+            }
+            // Then fetch from CRM
             const allCalls = await base44.entities.AircallCall.list('-started_at', 100);
             return allCalls.filter(call => call.from_number === 'Vapi AI' || call.aircall_id?.startsWith('vapi_'));
         },
+        refetchInterval: 30000, // Refresh every 30 seconds
     });
 
     const stats = {
@@ -72,6 +80,21 @@ export default function VapiDashboard() {
                     >
                         <ExternalLink className="w-4 h-4" />
                         Vapi Dashboard
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                            const result = await base44.functions.invoke('syncVapiCalls', {});
+                            if (result.data.success) {
+                                alert(`Synced ${result.data.syncedCount} new calls from Vapi!`);
+                                window.location.reload();
+                            }
+                        }}
+                        className="gap-2"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Sync Calls
                     </Button>
                     <Button
                         size="sm"
