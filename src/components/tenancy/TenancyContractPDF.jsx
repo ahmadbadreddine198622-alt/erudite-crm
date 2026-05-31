@@ -105,15 +105,20 @@ export function ViewTenancyPDFLink({ contract }) {
     const url = contract.pdf_url.includes('drive.google.com')
       ? contract.pdf_url.replace('/view', '/export?format=pdf')
       : contract.pdf_url;
-    window.open(url, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tenancy_${contract.tenant_name?.replace(/\s+/g, '_') || 'contract'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
-    <div className="flex gap-1 items-center">
+    <>
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className="h-8 w-8 p-0"
         title="Open PDF in preview"
         onClick={() => window.open(contract.pdf_url, '_blank')}
       >
@@ -122,12 +127,12 @@ export function ViewTenancyPDFLink({ contract }) {
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className="h-8 w-8 p-0"
         title="Download PDF to desktop"
         onClick={handleDownload}
       >
         <Download className="w-3.5 h-3.5" />
       </Button>
-    </div>
+    </>
   );
 }
