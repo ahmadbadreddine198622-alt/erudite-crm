@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +27,37 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     },
     onError: (e) => toast.error(`Aurora failed: ${e.message}`)
   });
+
+  // Generates the Lease Brokerage Agreement PDF (RERA Form A) server-side,
+  // pre-signs the broker block, and routes to DocuSign for the owner's
+  // signature. The function is idempotent — if lease_agreement_status is
+  // already sent_for_signature or signed it returns { skipped: true } unless
+  // force=true is passed. AutomationRule on stage form_a_initiation also calls
+  // this function; the button is the agent-initiated entry point.
+  const lbaMutation = useMutation({
+    mutationFn: () => base44.functions.generateLeaseBrokerageAgreement({ landlord_id: landlord.id }),
+    onSuccess: (res) => {
+      const data = res?.data ?? res;
+      if (data?.skipped) {
+        toast.info(data.reason || 'Lease Brokerage Agreement already sent for signature.');
+      } else {
+        toast.success('Lease Brokerage Agreement sent for signature');
+      }
+      onUpdate?.();
+      queryClient.invalidateQueries({ queryKey: ['landlord', landlord.id] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+    },
+    onError: (e) => toast.error(`Lease Brokerage Agreement failed: ${e.message}`),
+  });
+
+  // lease_agreement_status badge styling — mirrors the rest of this panel's badges.
+  const LBA_STATUS_STYLE = {
+    drafted: 'bg-slate-500/10 text-slate-500 border-slate-500/30',
+    sent_for_signature: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+    signed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+    cancelled: 'bg-red-500/10 text-red-600 border-red-500/30',
+  };
+  const lbaStatus = landlord.lease_agreement_status; // may be undefined → no badge
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -55,6 +86,37 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-600' : ''}`} />
             </Button>
           </div>
+        </div>
+
+        {/* Lease Brokerage Agreement — labeled action + live status badge.
+            Button gates on its own mutation state. The function it calls is
+            idempotent server-side so an accidental double-click is safe. */}
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-muted-foreground">Lease Brokerage Agreement</span>
+            {lbaStatus && (
+              <Badge variant="outline" className={`text-xs border ${LBA_STATUS_STYLE[lbaStatus] || ''}`}>
+                {lbaStatus.replace(/_/g, ' ')}
+              </Badge>
+            )}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => lbaMutation.mutate()}
+            disabled={lbaMutation.isPending}
+            className="gap-1.5"
+            title={
+              lbaStatus === 'sent_for_signature' || lbaStatus === 'signed'
+                ? 'Already sent — regeneration is blocked by the idempotency guard'
+                : 'Generate the Lease Brokerage Agreement and send to the owner via DocuSign'
+            }
+          >
+            {lbaMutation.isPending
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <FileSignature className="w-3.5 h-3.5" />}
+            {lbaStatus === 'signed' ? 'Signed' : lbaStatus === 'sent_for_signature' ? 'Sent for signature' : 'Generate Agreement'}
+          </Button>
         </div>
 
         {/* Whisper Panel (toggle) */}
