@@ -264,6 +264,16 @@ Deno.serve(async (req) => {
       await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
       await createAgentReminder(base44, agentEmail, landlord.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
 
+      // Fire auto-reply (respects business hours, includes property link)
+      base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
+        lead_id: landlord.id,
+        phone_e164: normalized,
+        suggested_reply: c?.suggested_first_reply,
+        language: c?.language || 'en',
+        intent: c?.intent,
+        lead_name: name,
+      }).catch(() => null);
+
       return Response.json({
         routed_entity_type: 'landlord',
         routed_entity_id: landlord.id,
@@ -338,6 +348,19 @@ Deno.serve(async (req) => {
 
     await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
     await createAgentReminder(base44, agentEmail, lead.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
+
+    // Fire auto-reply (respects business hours, includes matching property link)
+    base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
+      lead_id: lead.id,
+      phone_e164: normalized,
+      suggested_reply: c?.suggested_first_reply,
+      language: c?.language || 'en',
+      budget_min: c?.entities?.budget_min,
+      budget_max: c?.entities?.budget_max,
+      preferred_locations: c?.entities?.preferred_locations || [],
+      intent: c?.intent,
+      lead_name: name,
+    }).catch(() => null);
 
     return Response.json({
       routed_entity_type: 'lead',
