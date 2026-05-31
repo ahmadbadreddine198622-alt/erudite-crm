@@ -150,7 +150,7 @@ export default function MobileDock() {
   return (
     <nav
       className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center"
-      style={{ bottom: 0, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
+      style={{ bottom: -8, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
     >
       <div style={{
         background: 'rgba(8,12,28,0.72)',
