@@ -76,8 +76,8 @@ export default function DesktopApps() {
       </div>
 
       {/* App Grid */}
-      <div className="w-full max-w-6xl">
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-x-3 gap-y-6">
+      <div className="w-full">
+        <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(7, 1fr)', maxWidth: '900px', margin: '0 auto' }}>
           {ALL_APPS.map((app, idx) => {
             const Icon = app.icon;
             return (
@@ -101,7 +101,7 @@ export default function DesktopApps() {
                   active={false}
                   badge={0}
                 />
-                <span className="text-[10px] text-center leading-tight max-w-[64px] font-medium text-white/75 min-h-[2rem] flex items-start justify-center">
+                <span className="text-[8px] text-center leading-tight max-w-[56px] font-medium text-white/70 min-h-[2rem] flex items-start justify-center">
                   {app.label}
                 </span>
               </motion.button>
