@@ -41,15 +41,15 @@ function NavIcon({ icon: Icon, label, path, gradient, glow, active }) {
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
     >
-      {/* Glow halo — active only */}
+      {/* Glow halo — active only, contained */}
       {active && (
         <div style={{
           position: 'absolute',
-          width: sz + 20, height: sz + 20,
-          borderRadius: `${SQUIRCLE_R + 5}px`,
+          width: sz + 6, height: sz + 6,
+          borderRadius: `${SQUIRCLE_R + 2}px`,
           background: activeGlow,
-          filter: 'blur(14px)',
-          opacity: 0.6,
+          filter: 'blur(8px)',
+          opacity: 0.55,
           pointerEvents: 'none',
           transform: 'translate(-50%, -50%)',
           top: '50%', left: '50%',
@@ -63,11 +63,10 @@ function NavIcon({ icon: Icon, label, path, gradient, glow, active }) {
         borderRadius: r,
         position: 'relative',
         transform: pressed ? 'scale(0.93)' : active ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1), box-shadow 0.22s ease, filter 0.22s ease',
+        transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1), box-shadow 0.22s ease',
         boxShadow: active
           ? `0 6px 22px ${activeGlow}, 0 2px 8px rgba(0,0,0,0.40)`
-          : '0 4px 14px rgba(0,0,0,0.45)',
-        filter: active ? 'saturate(1.5) brightness(1.1)' : 'saturate(0.75) brightness(0.75)',
+          : '0 4px 14px rgba(0,0,0,0.50)',
         zIndex: 1,
       }}>
         {/* Gradient base */}
@@ -186,14 +185,14 @@ export default function MobileDock() {
 
           {/* Center Home — largest, most elevated */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px' }}>
-            {/* Outer glow bloom — amber or red when urgent */}
+            {/* Outer glow bloom — contained, no bleed */}
             <div style={{
               position: 'absolute',
-              width: HOME_SIZE + 28,
-              height: HOME_SIZE + 28,
-              borderRadius: `${Math.round(HOME_SIZE * 0.24) + 7}px`,
+              width: HOME_SIZE + 8,
+              height: HOME_SIZE + 8,
+              borderRadius: `${Math.round(HOME_SIZE * 0.24) + 2}px`,
               background: homeGlowBloom,
-              filter: 'blur(18px)',
+              filter: 'blur(10px)',
               top: '50%', left: '50%',
               transform: 'translate(-50%, -56%)',
               pointerEvents: 'none',

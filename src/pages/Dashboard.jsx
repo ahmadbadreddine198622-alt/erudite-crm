@@ -311,7 +311,7 @@ export default function Dashboard() {
                           if (editMode) return;
                           app.href ? window.open(app.href, '_blank') : navigate(app.path);
                         }}
-                        className={`flex flex-col items-center gap-2 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
+                        className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
                       >
                         <ExtremeLiquidIcon
                          icon={Icon}
@@ -324,9 +324,7 @@ export default function Dashboard() {
                          active={editMode && !snapshot.isDragging}
                          badge={!editMode && badgeCount > 0 ? badgeCount : 0}
                         />
-                        <span className={`text-[11px] text-center leading-tight max-w-[72px] font-medium ${
-                          editMode ? 'text-white/50' : 'text-white/75'
-                        }`}>
+                        <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
                           {app.label}
                         </span>
                       </div>
