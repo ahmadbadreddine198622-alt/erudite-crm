@@ -420,6 +420,7 @@ export function GeneratePDFButton({ invoice }) {
 
       // Upload to Google Drive directly with base64 content
       let finalUrl;
+      let uploadedToDrive = false;
       try {
         const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
           base64Content: base64Data,
@@ -429,12 +430,13 @@ export function GeneratePDFButton({ invoice }) {
         });
         if (driveUpload?.file_url) {
           finalUrl = driveUpload.file_url;
+          uploadedToDrive = true;
+          console.log('Invoice uploaded to Google Drive:', finalUrl);
         } else {
-          throw new Error('Google Drive upload failed');
+          throw new Error('No file URL returned from Google Drive');
         }
       } catch (driveError) {
-        console.error('Google Drive upload failed:', driveError.message);
-        // Fallback to Base44 storage
+        console.error('Google Drive upload failed, falling back to Base44:', driveError.message);
         const blob = doc.output('blob');
         const file = new File([blob], fileName, { type: 'application/pdf' });
         const uploadRes = await base44.integrations.Core.UploadFile({ file });
@@ -447,7 +449,7 @@ export function GeneratePDFButton({ invoice }) {
         await base44.entities.Invoice.update(invoice.id, { pdf_url: finalUrl });
       }
 
-      toast.success('Invoice PDF saved', { description: invoice.invoice_number || fileName });
+      toast.success(uploadedToDrive ? 'Invoice saved to Google Drive' : 'Invoice PDF saved', { description: invoice.invoice_number || fileName });
       queryClient.invalidateQueries({ queryKey: ['invoices-live'] });
       return finalUrl;
     } catch (err) {
