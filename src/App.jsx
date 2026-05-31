@@ -46,6 +46,7 @@ import EliteDesk from '@/pages/EliteDesk';
 import WhatsAppScheduler from '@/pages/WhatsAppScheduler';
 import Leaderboard from '@/pages/Leaderboard';
 import LeadScoringDashboard from '@/pages/LeadScoringDashboard';
+import DealRiskMonitor from '@/pages/DealRiskMonitor';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -112,6 +113,7 @@ const AuthenticatedApp = () => {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/whatsapp-scheduler" element={<WhatsAppScheduler />} />
         <Route path="/lead-scoring" element={<LeadScoringDashboard />} />
+        <Route path="/deal-risk" element={<DealRiskMonitor />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

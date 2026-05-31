@@ -7,7 +7,7 @@ import {
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
-  Calendar, TrendingUp, Activity
+  Calendar, TrendingUp, Activity, ShieldAlert
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -44,6 +44,7 @@ export const ALL_APPS = [
   { label: 'Transfer Numbers',   icon: Calculator,     path: '/transfer-breakdown',  gradient: 'from-green-500 to-emerald-700',    glowColor: 'rgba(34,197,94,0.40)', href: 'https://claude.ai/project/019e7460-ea5f-74e0-8efb-c3a58527c3bd' },
   { label: 'Transfer Calculator',icon: Calculator,     path: '/transfer-calculator', gradient: 'from-amber-500 to-yellow-700',     glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Form I Generator',   icon: FileSignature,  path: '/form-i-generator',    gradient: 'from-indigo-500 to-slate-700',     glowColor: 'rgba(99,102,241,0.40)' },
+  { label: 'Deal Risk',          icon: ShieldAlert,    path: '/deal-risk',           gradient: 'from-red-600 to-rose-800',         glowColor: 'rgba(239,68,68,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
