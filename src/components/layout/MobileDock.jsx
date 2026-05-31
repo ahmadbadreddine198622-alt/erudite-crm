@@ -84,15 +84,15 @@ function NavIcon({ app, active }) {
         {/* Vivid gradient base — same as grid tile */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${gradient}`}
-          style={{ borderRadius: R, filter: active ? 'saturate(2.0) brightness(1.25)' : 'saturate(1.7) brightness(1.1)', transition: 'filter 0.12s ease' }}
+          style={{ borderRadius: R, filter: active ? 'saturate(2.2) brightness(1.35)' : 'saturate(2.0) brightness(1.22)', transition: 'filter 0.12s ease' }}
         />
         {/* Glass overlay */}
         <div style={{
-          position: 'absolute', inset: 0, borderRadius: R,
-          backdropFilter: 'blur(16px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-          border: active ? '1.5px solid rgba(255,255,255,0.32)' : '1px solid rgba(255,255,255,0.14)',
-          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
+        position: 'absolute', inset: 0, borderRadius: R,
+        backdropFilter: 'blur(8px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(8px) saturate(120%)',
+        border: active ? '1.5px solid rgba(255,255,255,0.32)' : '1px solid rgba(255,255,255,0.14)',
+        borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
         }} />
         {/* Top gloss */}
         <div style={{
