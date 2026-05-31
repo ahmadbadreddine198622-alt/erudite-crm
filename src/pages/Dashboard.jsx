@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Grid3X3 } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -259,22 +259,6 @@ export default function Dashboard() {
         </p>
         <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
-
-      {/* Desktop Apps button */}
-      <button
-        onClick={() => navigate('/desktop')}
-        className="absolute top-6 right-6 z-20 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-105"
-        style={{
-          background: 'rgba(245,158,11,0.15)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(245,158,11,0.4)',
-          color: 'hsl(38 92% 50%)',
-          boxShadow: '0 4px 12px rgba(245,158,11,0.2)',
-        }}
-      >
-        <Grid3X3 className="w-4 h-4" />
-        Desktop Apps
-      </button>
 
       {/* Done button — only visible in edit mode */}
       {editMode && (

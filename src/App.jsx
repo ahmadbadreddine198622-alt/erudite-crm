@@ -51,7 +51,6 @@ import TaskCenter from '@/pages/TaskCenter';
 import WhatsAppAnalytics from '@/pages/WhatsAppAnalytics';
 import AISyncHub from '@/pages/AISyncHub';
 import IOSRemindersSync from '@/pages/iOSRemindersSync';
-import DesktopApps from '@/pages/DesktopApps';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -123,7 +122,6 @@ const AuthenticatedApp = () => {
         <Route path="/whatsapp-analytics" element={<WhatsAppAnalytics />} />
         <Route path="/ai-sync-hub" element={<AISyncHub />} />
         <Route path="/ios-reminders" element={<IOSRemindersSync />} />
-        <Route path="/desktop" element={<DesktopApps />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
