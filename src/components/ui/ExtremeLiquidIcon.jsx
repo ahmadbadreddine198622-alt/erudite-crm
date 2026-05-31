@@ -29,8 +29,8 @@ export default function ExtremeLiquidIcon({
   const [entered, setEntered] = useState(false);
   const timerRef = useRef(null);
 
-  const glyphSize = iconSize ?? Math.round(size * 0.38);
-  const radius = `${Math.round(size * 0.22)}px`;
+  const glyphSize = iconSize ?? Math.round(size * 0.56);
+  const radius = `${Math.round(size * 0.245)}px`;
 
   useEffect(() => {
     timerRef.current = setTimeout(() => setEntered(true), prefersReducedMotion ? 0 : index * 55);
@@ -87,12 +87,12 @@ export default function ExtremeLiquidIcon({
           transition: 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
       >
-        {/* Vibrant jewel base — saturated, lit from within */}
+        {/* Vibrant jewel base — saturated, iOS-grade */}
         <div
-          className={cn('absolute inset-0 bg-gradient-to-br opacity-90', gradient)}
+          className={cn('absolute inset-0 bg-gradient-to-br', gradient)}
           style={{
             borderRadius: radius,
-            filter: 'saturate(1.1) brightness(0.78)',
+            filter: 'saturate(1.5) brightness(1.05)',
           }}
         />
 
@@ -111,18 +111,18 @@ export default function ExtremeLiquidIcon({
             border: '1.5px solid rgba(255,255,255,0.18)',
             borderTopColor: 'rgba(255,255,255,0.42)',
             boxShadow: pressed
-              ? `0 3px 10px rgba(0,0,0,0.35), 0 0 0 0 ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.18)`
-              : `0 8px 28px rgba(0,0,0,0.4), 0 0 22px ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.14)`,
+              ? `0 4px 12px rgba(0,0,0,0.45), 0 0 0 0 ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.20)`
+              : `0 10px 32px rgba(0,0,0,0.5), 0 0 28px ${glowColor}, 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)`,
             transition: 'background 0.18s ease, box-shadow 0.18s ease',
           }}
         />
 
-        {/* Fine polished bevel rim */}
+        {/* iOS-style top gloss — strong highlight band */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0) 48%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%)',
             pointerEvents: 'none',
           }}
         />
@@ -147,12 +147,12 @@ export default function ExtremeLiquidIcon({
           />
         </div>
 
-        {/* Whisper of inner depth */}
+        {/* Dimensional inner depth — top catch + base shadow */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            boxShadow: 'inset 0 2px 8px rgba(255,255,255,0.04), inset 0 -3px 8px rgba(0,0,0,0.18)',
+            boxShadow: 'inset 0 3px 10px rgba(255,255,255,0.08), inset 0 -4px 12px rgba(0,0,0,0.30)',
             pointerEvents: 'none',
           }}
         />
@@ -168,7 +168,7 @@ export default function ExtremeLiquidIcon({
           }}
         />
 
-        {/* Glyph — crisp soft off-white, never harsh */}
+        {/* Glyph — bold, large, lit from within */}
         <Icon
           className="absolute"
           style={{
@@ -176,9 +176,10 @@ export default function ExtremeLiquidIcon({
             height: glyphSize,
             top: '50%',
             left: '50%',
-            transform: `translate(-50%, -50%) ${pressed ? 'scale(0.95)' : 'scale(1)'}`,
-            color: 'rgba(255, 255, 255, 0.90)',
-            filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.6))',
+            transform: `translate(-50%, -50%) ${pressed ? 'scale(0.93)' : 'scale(1)'}`,
+            color: 'rgba(255, 255, 255, 0.95)',
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.70)) drop-shadow(0 3px 8px rgba(0,0,0,0.45))',
+            strokeWidth: 2.2,
             zIndex: 2,
             transition: 'transform 0.15s ease',
           }}
