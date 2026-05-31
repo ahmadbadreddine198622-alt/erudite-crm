@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, MessageCircle, Phone, Video } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle, Phone, Video, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,16 @@ export default function WhatsAppPopup({ isOpen, onClose, phone, leadId, leadName
   const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
+
+  const openWhatsAppWeb = () => {
+    const phoneNum = phone?.replace(/\D/g, '');
+    if (!phoneNum) {
+      toast.error('Invalid phone number');
+      return;
+    }
+    const url = `https://wa.me/${phoneNum}`;
+    window.open(url, '_blank');
+  };
 
   // Find or create conversation
   const { data: conversations = [] } = useQuery({
@@ -69,16 +79,15 @@ export default function WhatsAppPopup({ isOpen, onClose, phone, leadId, leadName
           last_message_at: new Date().toISOString(),
         });
         setConversationId(newConv.id);
-        await base44.functions.invoke('sendWhatsAppMessage', {
-          conversation_id: newConv.id,
-          message: text,
-        });
-      } else {
-        await base44.functions.invoke('sendWhatsAppMessage', {
-          conversation_id: conversationId,
-          message: text,
-        });
       }
+      
+      const convList = await base44.entities.WhatsAppConversation.filter({ lead_id: leadId });
+      const convId = conversationId || (convList.length > 0 ? convList[0].id : null);
+      
+      await base44.functions.invoke('sendWhatsAppMessage', {
+        conversation_id: convId,
+        message: text,
+      });
     },
     onSuccess: () => {
       setMessage('');
@@ -87,7 +96,8 @@ export default function WhatsAppPopup({ isOpen, onClose, phone, leadId, leadName
       toast.success('Message sent');
     },
     onError: (err) => {
-      toast.error('Failed to send: ' + err.message);
+      console.error('Send error:', err);
+      toast.error('Failed to send: ' + (err.message || 'Unknown error'));
     },
   });
 
@@ -157,6 +167,15 @@ export default function WhatsAppPopup({ isOpen, onClose, phone, leadId, leadName
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="w-8 h-8 text-green-500 hover:text-green-400"
+                onClick={openWhatsAppWeb}
+                title="Open in WhatsApp Web"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
               <Button size="icon" variant="ghost" className="w-8 h-8 text-muted-foreground hover:text-white">
                 <Phone className="w-4 h-4" />
               </Button>
