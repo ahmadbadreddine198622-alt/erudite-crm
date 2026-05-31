@@ -18,7 +18,7 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { FileText, Loader2, ExternalLink } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function GenerateTenancyPDFButton({ contract, size = 'sm', variant = 'outline' }) {
@@ -99,17 +99,36 @@ export function GenerateTenancyPDFButton({ contract, size = 'sm', variant = 'out
 
 export function ViewTenancyPDFLink({ contract }) {
   if (!contract?.pdf_url) return null;
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = contract.pdf_url;
+    link.download = `TenancyContract_${contract.tenant_name || contract.id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <a
-      href={contract.pdf_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-      title="Open generated PDF in a new tab"
-    >
-      <ExternalLink className="w-3 h-3" />
-      View
-    </a>
+    <div className="flex gap-1 items-center">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 w-7 p-0"
+        title="Open PDF in preview"
+        onClick={() => window.open(contract.pdf_url, '_blank')}
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 w-7 p-0"
+        title="Download PDF to desktop"
+        onClick={handleDownload}
+      >
+        <Download className="w-3.5 h-3.5" />
+      </Button>
+    </div>
   );
 }
