@@ -552,14 +552,34 @@ export default function VapiDashboard() {
                                             </div>
                                             
                                             {/* Audio Player */}
-                                            <div className="flex items-center gap-3">
-                                                <audio controls className="flex-1 h-8">
-                                                    <source src={call.recording_url} type="audio/mpeg" />
-                                                    Your browser does not support the audio element.
-                                                </audio>
-                                                <Button size="sm" variant="outline" onClick={() => window.open(call.recording_url, '_blank')}>
-                                                    <ExternalLink className="w-3 h-3" />
-                                                </Button>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-3">
+                                                    <audio 
+                                                        controls 
+                                                        className="flex-1"
+                                                        crossOrigin="anonymous"
+                                                        preload="metadata"
+                                                    >
+                                                        <source src={call.recording_url} type="audio/wav" />
+                                                        <source src={call.recording_url} type="audio/mpeg" />
+                                                        <source src={call.recording_url} type="audio/mp3" />
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline" 
+                                                        onClick={() => {
+                                                            // Open recording in new tab
+                                                            window.open(call.recording_url, '_blank');
+                                                        }}
+                                                        title="Open recording in new tab"
+                                                    >
+                                                        <ExternalLink className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                                <p className="text-xs text-white/40">
+                                                    Recording URL: <a href={call.recording_url} target="_blank" rel="noopener noreferrer" className="text-purple-400 underline break-all">{call.recording_url}</a>
+                                                </p>
                                             </div>
                                             
                                             {/* Transcript */}
