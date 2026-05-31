@@ -14,7 +14,14 @@
 export const BRAND = {
   name:        'ERUDITE REAL ESTATE',
   fullName:    'ERUDITE PROPERTY REAL ESTATE',
-  address:     'Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, United Arab Emirates',
+  address:     'Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, U.A.E.',
+  // Multi-line form for headers that print the address line-by-line (e.g. the
+  // TaxInvoicePDF navy header band). Keep .address as the single-line form
+  // for footers that print it on one centered row.
+  addressLines: [
+    'Shop R-10, Marquise Square Tower',
+    'Marasi Drive, Business Bay, Dubai, U.A.E.',
+  ],
   phone:       '+971 58 180 6000',
   email:       'info@erudite-estate.com',
   website:     'www.eruditeproperty.com',

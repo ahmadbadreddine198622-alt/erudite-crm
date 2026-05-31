@@ -47,9 +47,15 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.text(BRAND.name, pad, 13);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
+  // Multi-line address. Defensive: if BRAND.addressLines is missing or
+  // malformed (string / null / object), fall back to wrapping BRAND.address
+  // as a single line so a future mis-shape can't crash the whole PDF.
   let addrY = 18;
-  for (const line of BRAND.addressLines) {
-    doc.text(line, pad, addrY);
+  const safeAddressLines = Array.isArray(BRAND.addressLines)
+    ? BRAND.addressLines
+    : (typeof BRAND.address === 'string' && BRAND.address ? [BRAND.address] : []);
+  for (const line of safeAddressLines) {
+    doc.text(String(line), pad, addrY);
     addrY += 4;
   }
   doc.setTextColor(...BRAND.gold);
