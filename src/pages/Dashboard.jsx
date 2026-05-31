@@ -86,6 +86,7 @@ export default function Dashboard() {
     setHoldingPath(null);
     setHoldCueActive(false);
   }, []);
+
   const [apps, setApps] = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey(''));
@@ -297,90 +298,85 @@ export default function Dashboard() {
 
       {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
       <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
-            >
-              {/* Add slot — shown in edit mode if under max */}
-              {editMode && apps.length < MAX_ITEMS && (
-                <div className="flex flex-col items-center gap-2 select-none">
-                  <button
-                    onPointerDown={() => setShowPicker(true)}
-                    className="flex items-center justify-center"
-                    style={{
-                      width: 62, height: 62,
-                      borderRadius: `${Math.round(62 * 0.245)}px`,
-                      border: '1.5px dashed rgba(255,255,255,0.25)',
-                      background: 'rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <Plus className="w-6 h-6 text-white/40" strokeWidth={2} />
-                  </button>
-                  <span className="text-[11px] text-center leading-tight max-w-[72px] font-medium" style={{ color: 'rgba(255,255,255,0.30)' }}>Add</span>
-                </div>
-              )}
-              {filtered.map((app, idx) => {
-                const Icon = app.icon;
-                const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
-                return (
-                  <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
-                    {(p, snapshot) => (
-                      <div
-                        ref={p.innerRef}
-                        {...p.draggableProps}
-                        {...p.dragHandleProps}
-                        onMouseDown={!editMode ? () => startPress(app.path) : undefined}
-                        onMouseUp={!editMode ? cancelPress : undefined}
-                        onMouseLeave={!editMode ? cancelPress : undefined}
-                        onTouchStart={!editMode ? () => startPress(app.path) : undefined}
-                        onTouchEnd={!editMode ? cancelPress : undefined}
-                        onClick={() => {
-                          if (editMode) return;
-                          app.href ? window.open(app.href, '_blank') : navigate(app.path);
-                        }}
-                        className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
-                        style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : {}}
-                        style={{ position: 'relative' }}
-                      >
-                        {/* Remove badge */}
-                        {editMode && (
-                          <button
-                            onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
-                            className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
-                            style={{ fontSize: 12 }}
-                          >
-                            <Minus className="w-3 h-3 text-white" strokeWidth={3} />
-                          </button>
-                        )}
-                        <ExtremeLiquidIcon
-                         icon={Icon}
-                         gradient={app.gradient}
-                         glowColor={app.glowColor}
-                         tiltX={tilt.x}
-                         tiltY={tilt.y}
-                         index={idx}
-                         isDragging={snapshot.isDragging}
-                         active={editMode && !snapshot.isDragging}
-                         badge={!editMode && badgeCount > 0 ? badgeCount : 0}
-                        />
-                        <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
-                          {app.label}
-                        </span>
-                      </div>
-                    )}
-                  </Draggable>
-                );
-              })}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
+              >
+                {filtered.map((app, idx) => {
+                  const Icon = app.icon;
+                  const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+                  return (
+                    <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
+                      {(p, snapshot) => (
+                        <div
+                          ref={p.innerRef}
+                          {...p.draggableProps}
+                          {...p.dragHandleProps}
+                          onMouseDown={!editMode ? () => startPress(app.path) : undefined}
+                          onMouseUp={!editMode ? cancelPress : undefined}
+                          onMouseLeave={!editMode ? cancelPress : undefined}
+                          onTouchStart={!editMode ? () => startPress(app.path) : undefined}
+                          onTouchEnd={!editMode ? cancelPress : undefined}
+                          onClick={() => {
+                            if (editMode) return;
+                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
+                          }}
+                          className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
+                          style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : { position: 'relative' }}
+                        >
+                          {/* Remove badge */}
+                          {editMode && (
+                            <button
+                              onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
+                              className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
+                              style={{ fontSize: 12 }}
+                            >
+                              <Minus className="w-3 h-3 text-white" strokeWidth={3} />
+                            </button>
+                          )}
+                          <ExtremeLiquidIcon
+                            icon={Icon}
+                            gradient={app.gradient}
+                            glowColor={app.glowColor}
+                            tiltX={tilt.x}
+                            tiltY={tilt.y}
+                            index={idx}
+                            isDragging={snapshot.isDragging}
+                            active={editMode && !snapshot.isDragging}
+                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
+                          />
+                          <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
+                            {app.label}
+                          </span>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
 
+        {/* Floating Add Button — top-right corner */}
+        {editMode && apps.length < MAX_ITEMS && (
+          <button
+            onClick={() => setShowPicker(true)}
+            className="fixed top-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 50%))',
+              boxShadow: '0 8px 28px rgba(245,159,10,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <Plus className="w-6 h-6 text-white" strokeWidth={3} />
+          </button>
+        )}
       </div>
 
       {/* AI Insights + Activity */}
@@ -395,9 +391,9 @@ export default function Dashboard() {
       </div>
 
       {/* No results */}
-       {filtered.length === 0 && (
-         <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
-       )}
+      {filtered.length === 0 && (
+        <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
+      )}
 
       {/* Picker */}
       {showPicker && (
@@ -408,6 +404,6 @@ export default function Dashboard() {
           title="Add to Dashboard"
         />
       )}
-      </div>
-      );
-      }
+    </div>
+  );
+}
