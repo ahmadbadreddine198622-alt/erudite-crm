@@ -47,6 +47,7 @@ export const ALL_APPS = [
   { label: 'Deal Risk',          icon: ShieldAlert,    path: '/deal-risk',           gradient: 'from-red-600 to-rose-800',         glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'Team Management',    icon: Shield,         path: '/team-management',     gradient: 'from-slate-500 to-slate-700',      glowColor: 'rgba(148,163,184,0.40)' },
   { label: 'Dubai Intelligence', icon: Globe,          path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-800',      glowColor: 'rgba(245,158,11,0.45)' },
+  { label: 'Lease Agreement',    icon: FileSignature,  path: '/lease-agreement',     gradient: 'from-slate-500 to-slate-800',       glowColor: 'rgba(148,163,184,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];

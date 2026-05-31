@@ -52,6 +52,7 @@ import WhatsAppAnalytics from '@/pages/WhatsAppAnalytics';
 import AISyncHub from '@/pages/AISyncHub';
 import IOSRemindersSync from '@/pages/iOSRemindersSync';
 import TeamManagement from '@/pages/TeamManagement';
+import LeaseAgreement from '@/pages/LeaseAgreement';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -124,6 +125,7 @@ const AuthenticatedApp = () => {
         <Route path="/ai-sync-hub" element={<AISyncHub />} />
         <Route path="/ios-reminders" element={<IOSRemindersSync />} />
         <Route path="/team-management" element={<TeamManagement />} />
+        <Route path="/lease-agreement" element={<LeaseAgreement />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
