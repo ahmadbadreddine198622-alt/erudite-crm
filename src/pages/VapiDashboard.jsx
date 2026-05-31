@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import PageHeader from '@/components/shared/PageHeader';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import GoogleDriveSettings from '@/components/settings/GoogleDriveSettings';
 import { toast } from 'sonner';
 
 export default function VapiDashboard() {
@@ -647,6 +648,8 @@ export default function VapiDashboard() {
 
                 {/* Settings Tab */}
                 <TabsContent value="settings" className="space-y-6">
+                    <GoogleDriveSettings />
+                    
                     <div className="grid gap-6">
                         <Card className="liquid-glass">
                             <CardHeader>
