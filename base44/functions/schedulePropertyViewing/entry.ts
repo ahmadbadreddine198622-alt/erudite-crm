@@ -1,4 +1,13 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+const UAE_TZ = 'Asia/Dubai';
+
+function formatUAEDate(iso) {
+  return new Date(iso).toLocaleString('en-GB', {
+    timeZone: UAE_TZ, weekday: 'short', day: '2-digit',
+    month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 Deno.serve(async (req) => {
   try {
@@ -9,7 +18,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { lead_id, lead_name, property_title, viewing_date, viewing_time, duration_minutes } = await req.json();
+    const {
+      lead_id, lead_name, lead_phone,
+      property_title, property_address, virtual_tour_link,
+      viewing_date, viewing_time, duration_minutes,
+      agent_email: agentEmail,
+    } = await req.json();
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
     
@@ -19,9 +33,13 @@ Deno.serve(async (req) => {
     const startTime = new Date(year, parseInt(month) - 1, day, hours, minutes);
     const endTime = new Date(startTime.getTime() + (duration_minutes || 30) * 60000);
 
+    const location = property_address || property_title;
+    const tourLine = virtual_tour_link ? `\n🎥 Virtual Tour: ${virtual_tour_link}` : '';
+
     const event = {
-      summary: `Property Viewing: ${property_title}`,
-      description: `Lead: ${lead_name}\nLead ID: ${lead_id}`,
+      summary: `🏠 Viewing: ${property_title} — ${lead_name}`,
+      description: `Lead: ${lead_name}\nLead ID: ${lead_id}\nPhone: ${lead_phone || 'N/A'}\nLocation: ${location}${tourLine}`,
+      location,
       start: {
         dateTime: startTime.toISOString(),
         timeZone: 'UTC'
@@ -47,26 +65,52 @@ Deno.serve(async (req) => {
     }
 
     const createdEvent = await response.json();
+    const startIso = startTime.toISOString();
 
-    // Create an activity record for the scheduled viewing
+    // Update lead: stage → viewing, save appointment & calendar event id
+    await base44.entities.Lead.update(lead_id, {
+      stage: 'viewing',
+      next_appointment_at: startIso,
+      last_touch_at: new Date().toISOString(),
+    }).catch(() => null);
+
+    // WhatsApp confirmation to the lead
+    if (lead_phone) {
+      const dateFormatted = formatUAEDate(startIso);
+      let waMsg = `Hi ${lead_name}! ✅ Your property viewing has been confirmed.\n\n🏠 *${property_title}*\n📍 ${location}\n📅 ${dateFormatted}`;
+      if (virtual_tour_link) waMsg += `\n\n🎥 Virtual Tour: ${virtual_tour_link}`;
+      waMsg += `\n\nSee you then! Feel free to reply with any questions. 😊`;
+
+      await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+        phone_number: lead_phone,
+        message: waMsg,
+      }).catch(() => null);
+    }
+
+    // Log activity record
     await base44.entities.Activity.create({
       lead_id,
       type: 'viewing',
       title: `Viewing Scheduled: ${property_title}`,
-      description: `Viewing scheduled for ${viewing_date} at ${viewing_time}`,
-      agent_email: user.email,
-      agent_name: user.full_name,
+      description: `Viewing on ${viewing_date} at ${viewing_time} — ${location}`,
+      agent_email: user?.email || agentEmail,
+      agent_name: user?.full_name,
       outcome: 'viewing_scheduled',
       metadata: {
         calendar_event_id: createdEvent.id,
-        property_title
+        property_title,
+        property_address: location,
+        virtual_tour_link: virtual_tour_link || null,
+        wa_confirmation_sent: !!lead_phone,
       }
-    });
+    }).catch(() => null);
 
-    return Response.json({ 
-      success: true, 
+    return Response.json({
+      success: true,
       event_id: createdEvent.id,
-      message: 'Viewing scheduled on Google Calendar'
+      calendar_link: createdEvent.htmlLink || null,
+      wa_confirmation_sent: !!lead_phone,
+      message: 'Viewing scheduled on Google Calendar and WhatsApp confirmation sent',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
