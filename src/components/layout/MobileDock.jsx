@@ -89,21 +89,19 @@ function NavIcon({ app, active }) {
         {/* Glass overlay */}
         <div style={{
         position: 'absolute', inset: 0, borderRadius: R,
-        backdropFilter: 'blur(8px) saturate(120%)',
-        WebkitBackdropFilter: 'blur(8px) saturate(120%)',
         border: active ? '1.5px solid rgba(255,255,255,0.32)' : '1px solid rgba(255,255,255,0.14)',
         borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
         }} />
         {/* Top gloss */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: R,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0) 60%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0) 60%)',
           pointerEvents: 'none',
         }} />
         {/* Inner depth */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: R,
-          boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.10), inset 0 -4px 10px rgba(0,0,0,0.30)',
+          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.08), inset 0 -2px 6px rgba(0,0,0,0.12)',
           pointerEvents: 'none',
         }} />
         {/* Active glow bloom */}
