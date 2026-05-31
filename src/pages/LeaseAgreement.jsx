@@ -322,9 +322,10 @@ export default function LeaseAgreement() {
           </DialogHeader>
           {pdfViewer?.url && (
             <iframe
-              src={pdfViewer.url}
+              src={pdfViewer.url.replace(/\/view(\?.*)?$/, '/preview')}
               className="flex-1 w-full border-0"
               title="Lease Agreement PDF"
+              allow="autoplay"
             />
           )}
         </DialogContent>
