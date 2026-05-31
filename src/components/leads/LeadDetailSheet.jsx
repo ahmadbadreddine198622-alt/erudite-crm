@@ -28,6 +28,7 @@ import LeadPropertyMatches from '@/components/leads/LeadPropertyMatches';
 import ContractWorkflow from '@/components/leads/ContractWorkflow';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 import LeadAISummary from '@/components/leads/LeadAISummary';
+import VoiceMemoButton from '@/components/leads/VoiceMemoButton';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -464,7 +465,8 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
         </Tabs>
 
         {/* Actions */}
-        <div className="border-t p-4 flex gap-2">
+        <div className="border-t p-4 flex flex-wrap gap-2">
+          <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 
             lead_name={lead.name}
