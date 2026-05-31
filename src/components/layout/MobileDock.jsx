@@ -8,11 +8,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, Brain } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ALL_APPS, CONTEXT_DOCK_MAP } from '@/lib/navApps';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
+import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SZ       = 46;
@@ -168,6 +169,20 @@ export default function MobileDock() {
         position: 'relative',
         overflow: 'hidden',
       }}>
+        {/* Claude Presence Indicator — Top center of dock */}
+        <div style={{
+          position: 'absolute',
+          top: -18,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          pointerEvents: 'none',
+        }}>
+          <ClaudePresenceIcon size={28} active={false} thinking={false} />
+        </div>
         {/* Top gloss sheen */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
