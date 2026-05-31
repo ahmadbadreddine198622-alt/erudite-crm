@@ -11,7 +11,7 @@ import {
     Mic, Phone, Loader2, RefreshCw, MessageCircle, Calendar, Clock, TrendingUp,
     Play, Square, Settings, BarChart3, Users, Zap, Activity, FileAudio,
     Database, GitBranch, Webhook, CreditCard, Shield, Globe, Headphones,
-    MessageSquare, BarChart, Layers, Copy, ExternalLink, Plus, Trash2, Edit
+    MessageSquare, BarChart, Layers, Copy, ExternalLink, Plus, Trash2, Edit, BookOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/shared/PageHeader';
@@ -598,31 +598,81 @@ export default function VapiDashboard() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    <div className="p-4 rounded-lg bg-amber-400/10 border border-amber-400/20">
-                                        <div className="flex items-start gap-3">
-                                            <Shield className="w-5 h-5 text-amber-400 mt-0.5" />
-                                            <div className="text-xs text-amber-200/80">
-                                                <p className="font-semibold mb-1">Required Setup</p>
-                                                <ul className="list-disc list-inside space-y-1">
-                                                    <li>Configure Twilio in Vapi Dashboard</li>
-                                                    <li>Add phone number to your assistant</li>
-                                                    <li>API key is stored securely</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <div className="p-4 rounded-lg bg-blue-400/10 border border-blue-400/20">
                                         <div className="flex items-start gap-3">
                                             <Settings className="w-5 h-5 text-blue-400 mt-0.5" />
                                             <div className="text-xs text-blue-200/80">
-                                                <p className="font-semibold mb-1">To Enable Calling:</p>
-                                                <ol className="list-decimal list-inside space-y-1">
-                                                    <li>Go to Vapi Dashboard</li>
-                                                    <li>Navigate to Settings &gt; Phone Providers</li>
-                                                    <li>Connect your Twilio account</li>
-                                                    <li>Add a phone number to your assistant</li>
-                                                    <li>Return here and make calls</li>
+                                                <p className="font-semibold mb-1">Setup Guide - Enable AI Voice Calls</p>
+                                                <ol className="list-decimal list-inside space-y-2 mt-2">
+                                                    <li>
+                                                        <span className="font-semibold text-blue-100">Connect Twilio:</span>
+                                                        <br />
+                                                        <span className="opacity-80">Go to </span>
+                                                        <a href="https://dashboard.vapi.ai/settings/phone-providers" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
+                                                            Vapi Dashboard &gt; Settings &gt; Phone Providers
+                                                        </a>
+                                                        <br />
+                                                        <span className="opacity-80">Connect your Twilio account</span>
+                                                    </li>
+                                                    <li>
+                                                        <span className="font-semibold text-blue-100">Add Phone Number:</span>
+                                                        <br />
+                                                        <a href="https://dashboard.vapi.ai/phone-numbers" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
+                                                            Vapi Dashboard &gt; Phone Numbers
+                                                        </a>
+                                                        <br />
+                                                        <span className="opacity-80">Add your Twilio phone number</span>
+                                                    </li>
+                                                    <li>
+                                                        <span className="font-semibold text-blue-100">Configure Assistant:</span>
+                                                        <br />
+                                                        <a href="https://dashboard.vapi.ai/assistants" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
+                                                            Vapi Dashboard &gt; Assistants
+                                                        </a>
+                                                        <br />
+                                                        <span className="opacity-80">Edit your assistant and assign the phone number</span>
+                                                    </li>
+                                                    <li>
+                                                        <span className="font-semibold text-blue-100">Start Calling:</span>
+                                                        <br />
+                                                        <span className="opacity-80">Return to this dashboard and initiate AI calls</span>
+                                                    </li>
                                                 </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="p-4 rounded-lg bg-amber-400/10 border border-amber-400/20">
+                                        <div className="flex items-start gap-3">
+                                            <Shield className="w-5 h-5 text-amber-400 mt-0.5" />
+                                            <div className="text-xs text-amber-200/80">
+                                                <p className="font-semibold mb-1">Important Notes</p>
+                                                <ul className="list-disc list-inside space-y-1 mt-2">
+                                                    <li>Twilio account must be verified</li>
+                                                    <li>Phone number must support voice calls</li>
+                                                    <li>VAPI API key is securely stored</li>
+                                                    <li>All calls are logged to CRM</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-lg bg-purple-400/10 border border-purple-400/20">
+                                        <div className="flex items-start gap-3">
+                                            <BookOpen className="w-5 h-5 text-purple-400 mt-0.5" />
+                                            <div className="text-xs text-purple-200/80">
+                                                <p className="font-semibold mb-1">Documentation</p>
+                                                <div className="space-y-1 mt-2">
+                                                    <a href="https://docs.vapi.ai/api-reference/calls" target="_blank" rel="noopener noreferrer" className="block text-purple-300 underline hover:text-purple-200">
+                                                        📄 Vapi Calls API Reference
+                                                    </a>
+                                                    <a href="https://docs.vapi.ai/api-reference/phone-numbers" target="_blank" rel="noopener noreferrer" className="block text-purple-300 underline hover:text-purple-200">
+                                                        📄 Phone Numbers Setup
+                                                    </a>
+                                                    <a href="https://docs.vapi.ai/introduction" target="_blank" rel="noopener noreferrer" className="block text-purple-300 underline hover:text-purple-200">
+                                                        📄 Vapi Documentation
+                                                    </a>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

@@ -21,9 +21,9 @@ Deno.serve(async (req) => {
         }
 
         // Create a phone call using Vapi API
-        // Vapi requires Twilio credentials configured either in assistant or passed here
-        // Try using phoneProvider configuration
-        const response = await fetch('https://api.vapi.ai/call/phone', {
+        // Vapi requires phone numbers to be configured in their dashboard first
+        // Users must add Twilio credentials and phone numbers via Vapi Dashboard > Phone Numbers
+        const response = await fetch('https://api.vapi.ai/call', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${VAPI_API_KEY}`,
@@ -46,13 +46,17 @@ Deno.serve(async (req) => {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: 'Failed to create call' }));
             
-            // Check if it's a Twilio configuration error
-            if (errorData.message && errorData.message.includes('twilio')) {
-                return Response.json({ 
-                    error: 'Twilio not configured in Vapi. Please add your Twilio credentials in Vapi Dashboard > Settings > Phone Providers.',
-                    details: errorData,
-                    setupRequired: true
-                }, { status: response.status });
+            // Provide helpful error messages based on common issues
+            if (errorData.message) {
+                const errorMsg = Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message;
+                if (errorMsg.includes('twilio') || errorMsg.includes('provider') || errorMsg.includes('phone')) {
+                    return Response.json({ 
+                        error: 'Twilio not connected. Please configure Twilio in Vapi Dashboard first.',
+                        details: 'You need to: 1) Connect Twilio in Vapi Settings > Phone Providers, 2) Add a phone number in Phone Numbers, 3) Assign it to your assistant.',
+                        setupRequired: true,
+                        setupUrl: 'https://dashboard.vapi.ai/phone-numbers'
+                    }, { status: response.status });
+                }
             }
             
             return Response.json({ 
