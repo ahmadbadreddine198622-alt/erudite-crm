@@ -1,0 +1,57 @@
+{
+  "name": "ScheduledMessage",
+  "type": "object",
+  "properties": {
+    "recipient_phone": {
+      "type": "string",
+      "description": "E.164 phone number"
+    },
+    "recipient_name": {
+      "type": "string"
+    },
+    "lead_id": {
+      "type": "string"
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "message_body": {
+      "type": "string"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to send the message"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "created_by_email": {
+      "type": "string"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Optional label for the message type"
+    }
+  },
+  "required": [
+    "recipient_phone",
+    "message_body",
+    "scheduled_at",
+    "status"
+  ]
+}

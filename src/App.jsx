@@ -43,6 +43,7 @@ import TransferFeeCalculator from '@/pages/TransferFeeCalculator';
 import FormIGenerator from '@/pages/FormIGenerator';
 import DubaiIntelligence from '@/pages/DubaiIntelligence';
 import EliteDesk from '@/pages/EliteDesk';
+import WhatsAppScheduler from '@/pages/WhatsAppScheduler';
 import Leaderboard from '@/pages/Leaderboard';
 
 const AuthenticatedApp = () => {
@@ -108,6 +109,7 @@ const AuthenticatedApp = () => {
         <Route path="/dubai-intelligence" element={<DubaiIntelligence />} />
         <Route path="/elite-desk" element={<EliteDesk />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/whatsapp-scheduler" element={<WhatsAppScheduler />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
