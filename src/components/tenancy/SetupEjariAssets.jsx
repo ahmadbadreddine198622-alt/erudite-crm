@@ -17,7 +17,7 @@ export default function SetupEjariAssets() {
   const setup = setups[0];
   const stampOk = !!setup?.stamp_url;
   const sigOk   = !!setup?.sig_url;
-  const isReady = stampOk && sigOk && setup?.template_url;
+  const isReady = !!setup?.template_url; // Only template required; stamp/sig optional
 
   // Upload stamp + sig from /public (same-origin fetch)
   const uploadBrandMutation = useMutation({
@@ -80,15 +80,15 @@ export default function SetupEjariAssets() {
           ? <CheckCircle className="w-4 h-4 text-emerald-400" />
           : <AlertCircle className="w-4 h-4 text-amber-400" />}
         <span className="text-sm font-medium">
-          {isReady ? 'Ejari PDF Assets Configured' : 'Ejari PDF Setup Required'}
+          {isReady ? 'Ejari PDF Ready (stamp/signature optional)' : 'Ejari PDF Setup: Template Required'}
         </span>
       </div>
 
       <div className="space-y-3">
-        {/* Step 1: Brand assets */}
+        {/* Step 1: Brand assets (optional) */}
         <div className="flex items-center justify-between text-xs">
           <span className={stampOk && sigOk ? 'text-emerald-400' : 'text-white/60'}>
-            {stampOk && sigOk ? '✓ Stamp & signature uploaded' : 'Step 1 — Upload stamp & signature (from app /public)'}
+            {stampOk && sigOk ? '✓ Stamp & signature uploaded (optional)' : 'Optional — Upload stamp & signature for branding'}
           </span>
           {(!stampOk || !sigOk) && (
             <Button

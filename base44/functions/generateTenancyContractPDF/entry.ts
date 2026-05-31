@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
       }, { status: 500 });
     }
     // Stamp/sig are optional — PDF is still valid without them
+    // If missing, the contract will generate without branding
 
     // ── Fetch template (required) and brand assets (optional) ───────────
     const templateResp = await fetch(templateUrl);
