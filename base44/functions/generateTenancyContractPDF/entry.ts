@@ -1,12 +1,13 @@
 // generateTenancyContractPDF — overlay TenancyContract data on the official
 // DLD Ejari Unified Tenancy Contract template (3-page A4 PDF).
 //
-// Assets are fetched at runtime from Base44 storage to keep this function
-// deployable. Run the "Setup Ejari Assets" panel on the Tenancy Contracts page
-// once to upload the three files and set the secrets below:
-//   EJARI_TEMPLATE_FILE_URL  — DLD unified tenancy contract template PDF
-//   EJARI_STAMP_FILE_URL     — Erudite stamp PNG (public/erudite-stamp.png)
-//   EJARI_SIG_FILE_URL       — Erudite signature PNG (public/erudite-signature.png)
+// All three assets (template PDF, stamp PNG, signature PNG) are fetched at
+// runtime from Base44 storage, keeping this function small enough to deploy.
+//
+// ONE-TIME SETUP (run once from the Tenancy Contracts page):
+//   Click "Upload & Configure Assets" — the UI uploads the three files,
+//   saves stamp/sig URLs to the EjariSetup entity, and shows the template URL
+//   to copy into the EJARI_TEMPLATE_FILE_URL app secret.
 //
 // Input: { tenancyContractId } — also accepts { event: { entity_id } }
 // Idempotent — regenerating overwrites pdf_url.
@@ -52,38 +53,44 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'tenancyContractId is required' }, { status: 400 });
     }
 
+    // Fetch the tenancy contract record
     const contracts = await base44.asServiceRole.entities.TenancyContract.filter({ id: tenancyContractId });
     const contract = contracts?.[0];
     if (!contract) {
       return Response.json({ error: 'TenancyContract not found' }, { status: 404 });
     }
 
-    // Resolve asset URLs from secrets
-    const templateUrl = Deno.env.get('EJARI_TEMPLATE_FILE_URL');
-    const stampUrl    = Deno.env.get('EJARI_STAMP_FILE_URL');
-    const sigUrl      = Deno.env.get('EJARI_SIG_FILE_URL');
+    // ── Resolve asset URLs ───────────────────────────────────────────────
+    // Template: prefer EJARI_TEMPLATE_FILE_URL secret, fall back to EjariSetup entity
+    // Stamp / sig: from EjariSetup entity (uploaded once via the TenancyContracts setup UI)
+    const setups = await base44.asServiceRole.entities.EjariSetup.filter({});
+    const setup = setups?.[0];
+
+    const templateUrl = Deno.env.get('EJARI_TEMPLATE_FILE_URL') || setup?.template_url;
+    const stampUrl    = setup?.stamp_url;
+    const sigUrl      = setup?.sig_url;
 
     if (!templateUrl) {
       return Response.json({
-        error: 'EJARI_TEMPLATE_FILE_URL secret not set — open Tenancy Contracts and run "Setup Ejari Assets" first.',
+        error: 'Template not configured. Open the Tenancy Contracts page, click "Upload & Configure Assets", then set EJARI_TEMPLATE_FILE_URL to the displayed URL.',
       }, { status: 500 });
     }
     if (!stampUrl || !sigUrl) {
       return Response.json({
-        error: 'EJARI_STAMP_FILE_URL or EJARI_SIG_FILE_URL not set — run Setup on the Tenancy Contracts page.',
+        error: 'Brand assets (stamp / signature) not configured. Open the Tenancy Contracts page and click "Upload & Configure Assets".',
       }, { status: 500 });
     }
 
-    // Fetch all three assets in parallel
+    // ── Fetch all three assets in parallel ───────────────────────────────
     const [templateResp, stampResp, sigResp] = await Promise.all([
       fetch(templateUrl),
       fetch(stampUrl),
       fetch(sigUrl),
     ]);
 
-    if (!templateResp.ok) throw new Error(`Template fetch failed: HTTP ${templateResp.status} — check EJARI_TEMPLATE_FILE_URL`);
-    if (!stampResp.ok)   throw new Error(`Stamp fetch failed: HTTP ${stampResp.status} — check EJARI_STAMP_FILE_URL`);
-    if (!sigResp.ok)     throw new Error(`Signature fetch failed: HTTP ${sigResp.status} — check EJARI_SIG_FILE_URL`);
+    if (!templateResp.ok) throw new Error(`Template fetch failed: HTTP ${templateResp.status}`);
+    if (!stampResp.ok)   throw new Error(`Stamp fetch failed: HTTP ${stampResp.status}`);
+    if (!sigResp.ok)     throw new Error(`Signature fetch failed: HTTP ${sigResp.status}`);
 
     const [templateBytes, stampBytes, sigBytes] = await Promise.all([
       templateResp.arrayBuffer().then(b => new Uint8Array(b)),
@@ -91,12 +98,12 @@ Deno.serve(async (req) => {
       sigResp.arrayBuffer().then(b => new Uint8Array(b)),
     ]);
 
-    // Load the official DLD Ejari template + embed brand assets
-    const pdf = await PDFDocument.load(templateBytes);
-    const pages = pdf.getPages();
+    // ── Load the official DLD Ejari template + embed brand assets ────────
+    const pdf      = await PDFDocument.load(templateBytes);
+    const pages    = pdf.getPages();
     if (!pages.length) return Response.json({ error: 'Template has no pages' }, { status: 500 });
 
-    const page1 = pages[0];
+    const page1    = pages[0];
     const font     = await pdf.embedFont(StandardFonts.Helvetica);
     const stampImg = await pdf.embedPng(stampBytes);
     const sigImg   = await pdf.embedPng(sigBytes);
@@ -109,7 +116,7 @@ Deno.serve(async (req) => {
       page1.drawText(s, { x, y, size, font, color: black });
     };
 
-    // ── Page 1 overlay ─────────────────────────────────────────────────────
+    // ── Page 1 overlay ───────────────────────────────────────────────────
     draw(fmtDate(contract.contract_date), 70, 722);
 
     // Lessor block
@@ -157,11 +164,10 @@ Deno.serve(async (req) => {
     draw(contract.mode_of_payment,               150, 144);
 
     // Lessor signature block — stamp + signature bottom-right
-    // Tenant signature block and both Date lines remain blank for manual signing
-    page1.drawImage(stampImg, { x: 360, y: 38, width: 72,  height: 75 });
-    page1.drawImage(sigImg,   { x: 432, y: 44, width: 92,  height: 40 });
+    page1.drawImage(stampImg, { x: 360, y: 38, width: 72, height: 75 });
+    page1.drawImage(sigImg,   { x: 432, y: 44, width: 92, height: 40 });
 
-    // ── Save → upload → write back ─────────────────────────────────────────
+    // ── Save → upload → write back ───────────────────────────────────────
     const outBytes = await pdf.save();
     const fileName = `EjariTenancyContract_${safeSeg(contract.tenant_name)}_${tenancyContractId.slice(0, 8)}.pdf`;
 

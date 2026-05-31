@@ -7,6 +7,7 @@ import ContractFormDialog from '@/components/tenancy/ContractFormDialog';
 import ContractPreviewDialog from '@/components/tenancy/ContractPreviewDialog';
 import ContractSendDialog from '@/components/tenancy/ContractSendDialog';
 import { GenerateTenancyPDFButton, ViewTenancyPDFLink } from '@/components/tenancy/TenancyContractPDF';
+import SetupEjariAssets from '@/components/tenancy/SetupEjariAssets';
 import { toast } from 'sonner';
 
 const STATUS_PILL = {
@@ -125,6 +126,8 @@ export default function TenancyContracts() {
           </table>
         </div>
       )}
+
+      <SetupEjariAssets />
 
       <ContractFormDialog open={formOpen} onClose={() => setFormOpen(false)} contract={selected} />
       <ContractPreviewDialog open={previewOpen} onClose={() => setPreviewOpen(false)} contract={selected} />

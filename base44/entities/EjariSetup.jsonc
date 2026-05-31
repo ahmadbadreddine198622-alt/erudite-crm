@@ -1,0 +1,19 @@
+{
+  "name": "EjariSetup",
+  "type": "object",
+  "properties": {
+    "template_url": {
+      "type": "string",
+      "description": "Public URL of the DLD Ejari unified tenancy contract template PDF"
+    },
+    "stamp_url": {
+      "type": "string",
+      "description": "Public URL of the Erudite company stamp PNG"
+    },
+    "sig_url": {
+      "type": "string",
+      "description": "Public URL of the Erudite signature PNG"
+    }
+  },
+  "required": []
+}
