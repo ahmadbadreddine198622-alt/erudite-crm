@@ -36,7 +36,8 @@
         "good_conduct_certificate",
         "tax_residency_certificate",
         "bank_swift_letter",
-        "kyc_uae_pass"
+        "kyc_uae_pass",
+        "lease_brokerage_agreement"
       ]
     },
     "status": {

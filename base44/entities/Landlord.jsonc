@@ -318,6 +318,21 @@
     "ai_processed_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "passport_no": {
+      "type": "string",
+      "description": "Passport number for lease agreement"
+    },
+    "lease_agreement_status": {
+      "type": "string",
+      "enum": [
+        "drafted",
+        "sent_for_signature",
+        "signed",
+        "cancelled"
+      ],
+      "default": "drafted",
+      "description": "Status of lease brokerage agreement"
     }
   },
   "required": [
