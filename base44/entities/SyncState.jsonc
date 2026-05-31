@@ -1,0 +1,21 @@
+{
+  "name": "SyncState",
+  "type": "object",
+  "properties": {
+    "sync_token": {
+      "type": "string",
+      "description": "Google Calendar sync token for incremental syncs"
+    },
+    "last_sync_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last successful sync timestamp"
+    },
+    "events_synced_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total events synced"
+    }
+  },
+  "required": []
+}
