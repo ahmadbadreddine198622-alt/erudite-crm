@@ -75,8 +75,8 @@ function NavIcon({ app, active }) {
       <div style={{
         width: SZ, height: SZ, borderRadius: R, position: 'relative',
         transform: `scale(${scale})`,
-        transition: 'transform 0.18s cubic-bezier(0.34,1.26,0.64,1)',
-        opacity: active ? 1 : 0.72,
+        transition: 'transform 0.12s cubic-bezier(0.34,1.56,0.64,1)',
+        opacity: active ? 1 : 0.70,
         boxShadow: active
           ? `0 6px 20px ${glow}, 0 2px 8px rgba(0,0,0,0.45)`
           : '0 2px 8px rgba(0,0,0,0.40)',
@@ -84,7 +84,7 @@ function NavIcon({ app, active }) {
         {/* Vivid gradient base — same as grid tile */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${gradient}`}
-          style={{ borderRadius: R, filter: active ? 'saturate(1.4) brightness(1.08)' : 'saturate(1.1)' }}
+          style={{ borderRadius: R, filter: active ? 'saturate(1.5) brightness(1.12)' : 'saturate(1.05) brightness(0.90)', transition: 'filter 0.12s ease' }}
         />
         {/* Glass overlay */}
         <div style={{
@@ -197,18 +197,28 @@ export default function MobileDock() {
       style={{ padding: '0 16px 14px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom))' }}
     >
       <div style={{
-        background: 'rgba(6,10,22,0.90)',
-        backdropFilter: 'blur(48px) saturate(220%)',
-        WebkitBackdropFilter: 'blur(48px) saturate(220%)',
-        borderRadius: 32,
-        border: '1px solid rgba(255,255,255,0.09)',
-        borderTopColor: 'rgba(255,255,255,0.16)',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.05) inset, 0 0 0 1px rgba(245,159,10,0.07)',
-        padding: '8px 14px 8px',
+        background: 'rgba(8,12,28,0.72)',
+        backdropFilter: 'blur(56px) saturate(240%) brightness(1.08)',
+        WebkitBackdropFilter: 'blur(56px) saturate(240%) brightness(1.08)',
+        borderRadius: 36,
+        border: '1px solid rgba(255,255,255,0.13)',
+        borderTopColor: 'rgba(255,255,255,0.22)',
+        borderBottomColor: 'rgba(0,0,0,0.30)',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.70), 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.35), 0 0 0 1px rgba(245,158,11,0.06)',
+        padding: '10px 16px 10px',
         display: 'flex',
         alignItems: 'flex-end',
-        gap: 4,
+        gap: 6,
+        position: 'relative',
+        overflow: 'hidden',
       }}>
+        {/* Top gloss sheen */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+          borderRadius: '36px 36px 0 0',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 100%)',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
 
         {/* Left 2 items */}
         <div className="flex items-end gap-1">
