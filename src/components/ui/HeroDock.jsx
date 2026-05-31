@@ -1,25 +1,46 @@
 /**
- * HeroDock — extreme luxury floating dock, desktop.
- * Materials: deep obsidian body, frosted crystal tiles, brushed-gold home button.
- * Icon tiles: jewel-tone inner glow — dark, muted, precious. Not candy-colored.
+ * HeroDock — redesigned floating dock with customization and AI suggestions.
+ * Features:
+ * - Customizable apps via user preferences (dock_apps array)
+ * - AI-suggested slot based on recent activity
+ * - Elevated floating surface with distinct edge and shadow
+ * - Edit mode for managing visible apps
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Building2, KanbanSquare, Bell, MessageCircle, Calculator } from 'lucide-react';
+import { Home, MoreHorizontal, Sparkles, Pencil, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ALL_APPS } from '@/lib/navApps';
 
-const navItems = [
-  { label: 'Pipeline',  icon: KanbanSquare,    path: '/pipeline',  gradient: 'from-violet-900 to-purple-950' },
-  { label: 'Leads',     icon: Users,           path: '/leads',     gradient: 'from-emerald-800 to-emerald-950' },
-  { label: 'Landlords', icon: Building2,       path: '/landlords', gradient: 'from-amber-900 to-orange-950' },
-  { label: 'WhatsApp',  icon: MessageCircle,   path: '/whatsapp',  gradient: 'from-green-900 to-green-950' },
-  { label: 'Finance',   icon: Calculator,      path: '/finance',   gradient: 'from-green-900 to-teal-950' },
-  { label: 'More',      icon: Bell,            path: '/reminders', gradient: 'from-rose-900 to-red-950' },
-];
+// Default apps if user hasn't customized yet
+const DEFAULT_DOCK_APPS = ['/pipeline', '/leads', '/landlords', '/whatsapp', '/finance'];
 
-function DockIcon({ icon: Icon, gradient, active, label }) {
-  const [pressed, setPressed] = React.useState(false);
+// Map routes to suggested next apps based on context
+const CONTEXT_SUGGESTIONS = {
+  '/pipeline': ['/leads', '/whatsapp', '/reminders'],
+  '/leads': ['/pipeline', '/whatsapp', '/contacts'],
+  '/landlords': ['/property-finder', '/offers', '/pipeline'],
+  '/whatsapp': ['/leads', '/pipeline', '/reminders'],
+  '/finance': ['/commissions', '/leads', '/analytics'],
+  '/reminders': ['/pipeline', '/leads', '/calendar'],
+  '/analytics': ['/team-dashboard', '/sales-analytics', '/leads'],
+  '/team': ['/team-dashboard', '/analytics', '/leaderboard'],
+};
+
+// Get all available dock apps (excluding home)
+const getAvailableApps = () => {
+  return ALL_APPS.filter(app => 
+    app.path && 
+    app.path !== '/' && 
+    !app.label.includes('Dashboard')
+  ).slice(0, 20); // Limit to top 20 for picker
+};
+
+function DockIcon({ icon: Icon, gradient, active, label, onClick, showEditBadge, onRemove, isSuggestion }) {
+  const [pressed, setPressed] = useState(false);
   const size = 50;
   const radius = `${Math.round(size * 0.22)}px`;
 
@@ -34,9 +55,20 @@ function DockIcon({ icon: Icon, gradient, active, label }) {
       onMouseLeave={() => setPressed(false)}
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
+      onClick={onClick}
     >
+      {/* Edit remove badge */}
+      {showEditBadge && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md hover:bg-red-600 transition-colors"
+        >
+          <X className="w-3 h-3 text-white" strokeWidth={3} />
+        </button>
+      )}
+
       <div style={{ width: size, height: size, borderRadius: radius, position: 'relative' }}>
-        {/* Deep jewel-tone inner glow — dark, muted, NOT bright */}
+        {/* Deep jewel-tone inner glow */}
         <div
           className={cn('absolute inset-0 bg-gradient-to-br opacity-72', gradient)}
           style={{ borderRadius: radius, filter: 'saturate(0.35) brightness(0.5)' }}
@@ -82,6 +114,11 @@ function DockIcon({ icon: Icon, gradient, active, label }) {
             zIndex: 2,
           }}
         />
+
+        {/* AI suggestion sparkle */}
+        {isSuggestion && (
+          <Sparkles className="absolute -top-1 -left-1 w-3.5 h-3.5 text-amber-400" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+        )}
       </div>
 
       {/* Label */}
@@ -92,75 +129,286 @@ function DockIcon({ icon: Icon, gradient, active, label }) {
   );
 }
 
-export default function HeroDock() {
-  const location = useLocation();
+function AppPickerSheet({ isOpen, onClose, currentApps, onToggleApp }) {
+  const availableApps = getAvailableApps();
+
+  if (!isOpen) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 hidden md:block" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className="mx-auto max-w-2xl px-4 pb-7" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
-        {/* Main dock bar — deep obsidian with fine gold hairline */}
-        <div
-          style={{
-            background: 'rgba(8, 11, 18, 0.90)',
-            backdropFilter: 'blur(44px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(44px) saturate(200%)',
-            borderRadius: '30px',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderTopColor: 'rgba(255,255,255,0.18)',
-            boxShadow: '0 20px 56px rgba(0,8,32,0.7), inset 0 1px 0 rgba(255,255,255,0.06)',
-            padding: '11px 18px 11px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            position: 'relative',
-          }}
-        >
-          {/* Fine gold hairline frame — jewelry, not paint */}
-          <div className="absolute inset-0" style={{ borderRadius: '30px', border: '1px solid rgba(245,159,10,0.15)', pointerEvents: 'none' }} />
-
-          {navItems.slice(0, 3).map((item) => (
-            <Link key={item.path} to={item.path}>
-              <DockIcon icon={item.icon} gradient={item.gradient} active={location.pathname === item.path} label={item.label} />
-            </Link>
-          ))}
-
-          {/* Elevated center home button — the crown jewel, brushed gold */}
-          <div style={{ position: 'relative', top: '-20px', zIndex: 10 }}>
-            <Link to="/">
-              <button
-                className="transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] group"
-                style={{
-                  width: 66, height: 66,
-                  borderRadius: '22%',
-                  background: 'rgba(245,159,10,0.10)',
-                  backdropFilter: 'blur(36px) saturate(200%)',
-                  WebkitBackdropFilter: 'blur(36px) saturate(200%)',
-                  border: '2px solid rgba(245,159,10,0.38)',
-                  borderTopColor: 'rgba(255,255,255,0.42)',
-                  boxShadow: '0 16px 48px rgba(245,159,10,0.28), inset 0 1px 0 rgba(255,255,255,0.22), 0 0 40px rgba(245,159,10,0.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', position: 'relative',
-                }}
-              >
-                {/* Brushed metal gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-700 to-amber-900 opacity-30" style={{ borderRadius: '22%' }} />
-                {/* Idle shimmer — slow, alive */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[2000ms]"
-                  style={{ borderRadius: '22%', background: 'linear-gradient(125deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.07) 45%, rgba(255,255,255,0) 55%)', animation: 'shimmer 4s ease-in-out infinite', pointerEvents: 'none' }} />
-                {/* Polished top rim */}
-                <div className="absolute inset-0" style={{ borderRadius: '22%', background: 'linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 52%)', pointerEvents: 'none' }} />
-                <Home className="relative z-10" style={{ width: 30, height: 30, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.65))' }} />
-              </button>
-            </Link>
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-card w-full max-w-lg max-h-[80vh] rounded-t-2xl md:rounded-2xl border border-border overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">Customize Dock</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto max-h-[60vh]">
+          <p className="text-xs text-muted-foreground mb-3">Toggle apps to show in your dock</p>
+          <div className="grid grid-cols-2 gap-2">
+            {availableApps.map(app => {
+              const isSelected = currentApps.includes(app.path);
+              const Icon = app.icon;
+              return (
+                <button
+                  key={app.path}
+                  onClick={() => onToggleApp(app.path)}
+                  className={cn(
+                    'flex items-center gap-2 p-2.5 rounded-lg border transition-all',
+                    isSelected 
+                      ? 'bg-accent/10 border-accent/30 text-foreground' 
+                      : 'bg-card hover:bg-accent/5 border-border text-muted-foreground'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="text-xs font-medium flex-1 text-left">{app.label}</span>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-accent" />}
+                </button>
+              );
+            })}
           </div>
-
-          {navItems.slice(3).map((item) => (
-            <Link key={item.path} to={item.path}>
-              <DockIcon icon={item.icon} gradient={item.gradient} active={location.pathname === item.path} label={item.label} />
-            </Link>
-          ))}
         </div>
       </div>
-    </nav>
+    </div>
+  );
+}
+
+export default function HeroDock() {
+  const location = useLocation();
+  const [editMode, setEditMode] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const qc = useQueryClient();
+
+  // Load user email
+  useEffect(() => {
+    base44.auth.me().then(u => { if (u?.email) setUserEmail(u.email); }).catch(() => {});
+  }, []);
+
+  // Load dock apps from user preferences (localStorage for now)
+  const { data: dockApps = DEFAULT_DOCK_APPS } = useQuery({
+    queryKey: ['dock-apps', userEmail],
+    queryFn: () => {
+      try {
+        const saved = localStorage.getItem(`dock_apps_${userEmail || 'default'}`);
+        return saved ? JSON.parse(saved) : DEFAULT_DOCK_APPS;
+      } catch {
+        return DEFAULT_DOCK_APPS;
+      }
+    },
+    enabled: !!userEmail,
+  });
+
+  const saveDockApps = useMutation({
+    mutationFn: async (apps) => {
+      localStorage.setItem(`dock_apps_${userEmail || 'default'}`, JSON.stringify(apps));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dock-apps', userEmail] });
+    },
+  });
+
+  // Get recent activity to suggest next app
+  const { data: recentActivity } = useQuery({
+    queryKey: ['recent-activity', userEmail],
+    queryFn: async () => {
+      try {
+        const activities = await base44.entities.LeadActivity.list('-created_date', 10);
+        return activities;
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60000,
+  });
+
+  // Determine AI-suggested app
+  const suggestedApp = (() => {
+    if (!recentActivity || recentActivity.length === 0) return null;
+    
+    // Get current context suggestions
+    const currentContext = Object.keys(CONTEXT_SUGGESTIONS).find(key => 
+      location.pathname.startsWith(key)
+    );
+    
+    const suggestions = currentContext 
+      ? CONTEXT_SUGGESTIONS[currentContext]
+      : ['/pipeline', '/leads', '/whatsapp'];
+    
+    // Find first suggestion not already in dock and not current page
+    for (const path of suggestions) {
+      if (path !== location.pathname && !dockApps.includes(path)) {
+        const app = ALL_APPS.find(a => a.path === path);
+        if (app) return app;
+      }
+    }
+    
+    return null;
+  })();
+
+  const handleToggleApp = (appPath) => {
+    const newApps = dockApps.includes(appPath)
+      ? dockApps.filter(a => a !== appPath)
+      : [...dockApps, appPath];
+    
+    // Ensure min/max constraints
+    if (newApps.length < 3) return;
+    if (newApps.length > 6) return;
+    
+    saveDockApps.mutate(newApps);
+  };
+
+  const handleRemoveApp = (appPath) => {
+    if (dockApps.length <= 3) return;
+    saveDockApps.mutate(dockApps.filter(a => a !== appPath));
+  };
+
+  // Build dock items: apps + optional suggestion + more button
+  const dockItems = [];
+  
+  // Add user's selected apps
+  dockApps.forEach(appPath => {
+    const app = ALL_APPS.find(a => a.path === appPath);
+    if (app) {
+      dockItems.push({
+        ...app,
+        isSuggestion: false,
+      });
+    }
+  });
+
+  // Add AI suggestion if available and not already in dock
+  if (suggestedApp && !dockApps.includes(suggestedApp.path) && dockItems.length < 5) {
+    dockItems.push({
+      ...suggestedApp,
+      isSuggestion: true,
+    });
+  }
+
+  return (
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 hidden md:block" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="mx-auto max-w-3xl px-4 pb-8" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+          {/* Elevated dock surface — distinct floating layer */}
+          <div
+            style={{
+              background: 'linear-gradient(180deg, rgba(15,20,35,0.95) 0%, rgba(8,11,18,0.98) 100%)',
+              backdropFilter: 'blur(48px) saturate(220%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(220%)',
+              borderRadius: '28px',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderTopColor: 'rgba(255,255,255,0.20)',
+              boxShadow: `
+                0 -8px 32px rgba(0,0,0,0.4),
+                0 24px 64px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                inset 0 -1px 0 rgba(0,0,0,0.3)
+              `,
+              padding: '10px 14px 10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              position: 'relative',
+            }}
+          >
+            {/* Enhanced gold rim frame */}
+            <div className="absolute inset-0" style={{ 
+              borderRadius: '28px', 
+              border: '1px solid rgba(245,159,10,0.18)',
+              boxShadow: '0 0 24px rgba(245,159,10,0.08)',
+              pointerEvents: 'none' 
+            }} />
+
+            {/* Edit mode toggle */}
+            {editMode && (
+              <button
+                onClick={() => { setEditMode(false); setShowPicker(true); }}
+                className="absolute -top-12 right-0 px-3 py-1.5 rounded-lg bg-accent/20 text-accent text-xs font-semibold flex items-center gap-1.5 hover:bg-accent/30 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit Dock
+              </button>
+            )}
+
+            {/* Dock apps */}
+            {dockItems.slice(0, 5).map((item) => (
+              <Link key={item.path} to={item.path}>
+                <DockIcon
+                  icon={item.icon}
+                  gradient={item.gradient}
+                  active={location.pathname === item.path}
+                  label={item.label}
+                  isSuggestion={item.isSuggestion}
+                  showEditBadge={editMode}
+                  onRemove={() => handleRemoveApp(item.path)}
+                />
+              </Link>
+            ))}
+
+            {/* Elevated center home button */}
+            <div style={{ position: 'relative', top: '-22px', zIndex: 10, margin: '0 4px' }}>
+              <Link to="/">
+                <button
+                  className="transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] group"
+                  style={{
+                    width: 68, height: 68,
+                    borderRadius: '22%',
+                    background: 'rgba(245,159,10,0.12)',
+                    backdropFilter: 'blur(36px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(36px) saturate(200%)',
+                    border: '2px solid rgba(245,159,10,0.42)',
+                    borderTopColor: 'rgba(255,255,255,0.45)',
+                    boxShadow: '0 18px 52px rgba(245,159,10,0.32), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 44px rgba(245,159,10,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', position: 'relative',
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-700 to-amber-900 opacity-35" style={{ borderRadius: '22%' }} />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[2000ms]"
+                    style={{ borderRadius: '22%', background: 'linear-gradient(125deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0) 55%)', animation: 'shimmer 4s ease-in-out infinite', pointerEvents: 'none' }} />
+                  <div className="absolute inset-0" style={{ borderRadius: '22%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 52%)', pointerEvents: 'none' }} />
+                  <Home className="relative z-10" style={{ width: 32, height: 32, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.65))' }} />
+                </button>
+              </Link>
+            </div>
+
+            {/* More button with edit trigger */}
+            <div className="relative">
+              <Link to="/reminders">
+                <DockIcon
+                  icon={editMode ? Pencil : MoreHorizontal}
+                  gradient="from-slate-700 to-slate-900"
+                  active={false}
+                  label={editMode ? 'Edit' : 'More'}
+                  onClick={(e) => {
+                    if (editMode) {
+                      e.preventDefault();
+                      setEditMode(false);
+                    }
+                  }}
+                />
+              </Link>
+              
+              {/* Long-press to enter edit mode */}
+              <button
+                className="absolute inset-0 z-30"
+                onContextMenu={(e) => { e.preventDefault(); setEditMode(true); }}
+                onTouchStart={() => {}}
+                onTouchEnd={() => {}}
+              />
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* App picker sheet */}
+      <AppPickerSheet
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        currentApps={dockApps}
+        onToggleApp={handleToggleApp}
+      />
+    </>
   );
 }
