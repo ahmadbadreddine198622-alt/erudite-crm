@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
       throw new Error('No file data available');
     }
 
-    // Determine target folder
-    const targetFolderName = folderName || 'PropCRM PDFs';
-    const targetFolderPath = folderPath || targetFolderName;
+    // Determine target folder (ensure proper defaults)
+    const targetFolderName = folderName || folderPath || 'PropCRM PDFs';
+    const targetFolderPath = folderPath || folderName || targetFolderName;
     
     // Create/get target folder (supports nested paths like "Finance/Invoices")
     const folderParts = targetFolderPath.split('/').map(p => p.trim()).filter(p => p);
