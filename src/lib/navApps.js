@@ -49,3 +49,17 @@ export const ALL_APPS = [
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
 export const MIN_ITEMS = 3;
 export const MAX_ITEMS = 5;
+
+// Context-aware dock slots: when on a matching route, surface these apps.
+// Key = pathname fragment to match (startsWith), value = ordered preferred app paths.
+export const CONTEXT_DOCK_MAP = {
+  '/landlords':        ['/landlords', '/property-finder', '/offers', '/pipeline'],
+  '/pipeline':         ['/pipeline', '/leads', '/whatsapp', '/reminders'],
+  '/aurora-pipeline':  ['/pipeline', '/leads', '/whatsapp', '/reminders'],
+  '/finance':          ['/finance', '/commissions', '/leads', '/reminders'],
+  '/commissions':      ['/finance', '/commissions', '/leads', '/invoices'],
+  '/whatsapp':         ['/whatsapp', '/leads', '/pipeline', '/reminders'],
+  '/leads':            ['/leads', '/pipeline', '/whatsapp', '/reminders'],
+  '/analytics':        ['/analytics', '/sales-analytics', '/team-dashboard', '/leads'],
+  '/team':             ['/team', '/team-dashboard', '/analytics', '/leads'],
+};
