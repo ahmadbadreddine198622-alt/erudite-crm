@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  Plus, Search, Download, Wand2, GitMerge, ChevronUp, ChevronDown,
-  ChevronsUpDown, X, CalendarDays, SlidersHorizontal, Clock, TrendingUp, DollarSign, UserCheck
+  Plus, Search, Wand2, GitMerge, ChevronUp, ChevronDown,
+  ChevronsUpDown, X, CalendarDays, SlidersHorizontal, Clock, TrendingUp, DollarSign,
+  MessageCircle, Phone, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import { format, isPast, parseISO } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/shared/PageHeader';
 import SourceBadge from '@/components/shared/SourceBadge';
-import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction';
+
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
@@ -464,7 +465,7 @@ export default function Leads() {
                   />
                 </TableHead>
                 <SortableHead label="Name" col="name" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[180px]" />
-                <TableHead className="text-xs">Phone</TableHead>
+                <TableHead className="text-xs min-w-[110px]">Contact</TableHead>
                 <SortableHead label="Deal (AED)" col="deal_value_aed" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[120px]" />
                 <TableHead className="text-xs min-w-[140px]">Stage</TableHead>
                 <SortableHead label="Next Appt" col="next_appointment_at" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} className="min-w-[120px]" />
@@ -515,17 +516,45 @@ export default function Leads() {
                         </div>
                       </div>
                     </TableCell>
-                    {/* Phone */}
+                    {/* Contact quick actions */}
                     <TableCell onClick={e => e.stopPropagation()}>
-                      {lead.phone && (
-                        <UniversalWhatsAppAction
-                          phone={lead.phone}
-                          name={name}
-                          leadId={lead.id}
-                          size="sm"
-                          disabled={lead.do_not_contact}
-                        />
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {lead.phone && (
+                          <a
+                            href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`WhatsApp ${name}`}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                            style={{ background: 'rgba(37,211,102,0.18)', border: '1px solid rgba(37,211,102,0.35)' }}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" style={{ color: '#25D166' }} />
+                          </a>
+                        )}
+                        {lead.phone && (
+                          <a
+                            href={`tel:${lead.phone}`}
+                            title={`Call ${name}`}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                            style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.35)' }}
+                          >
+                            <Phone className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+                          </a>
+                        )}
+                        {lead.email && (
+                          <a
+                            href={`mailto:${lead.email}`}
+                            title={`Email ${name}`}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                            style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.35)' }}
+                          >
+                            <Mail className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 55%)' }} />
+                          </a>
+                        )}
+                        {!lead.phone && !lead.email && (
+                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
+                        )}
+                      </div>
                     </TableCell>
                     {/* Stage */}
                     <TableCell>
