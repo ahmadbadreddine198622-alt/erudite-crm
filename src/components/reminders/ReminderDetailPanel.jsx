@@ -27,12 +27,10 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
     queryFn: () => base44.entities.Lead.list('-created_date', 100),
   });
 
-  // Fetch child reminders (subtasks) for iOS-synced reminders
   const { data: childReminders = [] } = useQuery({
-    queryKey: ['reminder-children', reminder?.id],
-    queryFn: () => base44.entities.Reminder.filter({ parent_reminder_id: reminder?.id }, 'created_date', 100),
+    queryKey: ['child-reminders', reminder?.id],
+    queryFn: () => reminder?.id ? base44.entities.Reminder.filter({ parent_reminder_id: reminder.id }, '-created_date', 100) : Promise.resolve([]),
     enabled: !!reminder?.id,
-    staleTime: 30000,
   });
 
   useEffect(() => { setDraft(reminder); }, [reminder?.id]);
@@ -59,42 +57,33 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
     updateMutation.mutate(updated);
   };
 
-  const addSubtask = async () => {
+  const addSubtask = () => {
     if (!newSubtask.trim()) return;
-    try {
-      await base44.entities.Reminder.create({
-        title: newSubtask.trim(),
-        notes: `Subtask of: ${draft.title}`,
-        priority: draft.priority,
-        status: 'pending',
-        parent_reminder_id: draft.id,
-      });
-      setNewSubtask('');
-      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
-      toast.success('Subtask added');
-    } catch (error) {
-      toast.error('Failed to add subtask');
+    const subs = [...(draft.subtasks || []), { id: nanoid(6), title: newSubtask.trim(), completed: false }];
+    setNewSubtask('');
+    save({ subtasks: subs });
+  };
+
+  const toggleSubtask = (child) => {
+    if (child.parent_reminder_id) {
+      // iOS reminder - update directly
+      base44.entities.Reminder.update(child.id, { status: child.status === 'completed' ? 'pending' : 'completed' });
+      qc.invalidateQueries({ queryKey: ['child-reminders', reminder?.id] });
+    } else {
+      // Draft subtask - update in subtasks array
+      const subs = (draft.subtasks || []).map(s => s.id === child.id ? { ...s, completed: !s.completed } : s);
+      save({ subtasks: subs });
     }
   };
 
-  const toggleSubtask = async (childReminder) => {
-    try {
-      await base44.entities.Reminder.update(childReminder.id, {
-        status: childReminder.status === 'completed' ? 'pending' : 'completed',
-      });
-      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
-    } catch (error) {
-      toast.error('Failed to update subtask');
-    }
-  };
-
-  const removeSubtask = async (childReminder) => {
-    try {
-      await base44.entities.Reminder.delete(childReminder.id);
-      qc.invalidateQueries({ queryKey: ['reminder-children', draft.id] });
-      toast.success('Subtask removed');
-    } catch (error) {
-      toast.error('Failed to remove subtask');
+  const removeSubtask = (child) => {
+    if (child.parent_reminder_id) {
+      // iOS reminder - delete it
+      base44.entities.Reminder.delete(child.id);
+      qc.invalidateQueries({ queryKey: ['child-reminders', reminder?.id] });
+    } else {
+      // Draft subtask - remove from array
+      save({ subtasks: (draft.subtasks || []).filter(s => s.id !== child.id) });
     }
   };
 
