@@ -41,12 +41,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    // ── DRIVE SWAP SEAM ────────────────────────────────────────────────────
-    // When Google Drive credentials land, do the upload here:
-    //   const driveLink = await uploadToDrive(file_url, file_name, invoice);
-    //   pdf_url = driveLink;
-    // For now, the Base44 storage URL is the canonical pdf_url.
-    const pdf_url = file_url;
+    // Upload to Google Drive "PropCRM PDFs" folder
+    let pdf_url = file_url;
+    try {
+      const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
+        file_url: file_url,
+        file_name: file_name || `Invoice_${invoice_id}.pdf`,
+        folder_name: 'PropCRM PDFs'
+      });
+      if (driveUpload?.success) {
+        pdf_url = driveUpload.file_url;
+      }
+    } catch (error) {
+      console.error('Google Drive upload failed:', error.message);
+      // Continue with Base44 storage URL as fallback
+    }
 
     await base44.asServiceRole.entities.Invoice.update(invoice_id, { pdf_url });
 

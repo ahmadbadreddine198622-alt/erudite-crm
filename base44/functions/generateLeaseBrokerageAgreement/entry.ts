@@ -455,8 +455,23 @@ Deno.serve(async (req) => {
     const uploadRes = await base44.integrations.Core.UploadFile({
       file: new Blob([pdfBytes], { type: 'application/pdf' }),
     });
-    const pdf_url: string | undefined = uploadRes?.file_url;
+    let pdf_url: string | undefined = uploadRes?.file_url;
     if (!pdf_url) throw new Error('PDF upload to Base44 storage failed');
+
+    // Upload to Google Drive "PropCRM PDFs" folder
+    try {
+      const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
+        file_url: pdf_url,
+        file_name: fileName,
+        folder_name: 'PropCRM PDFs'
+      });
+      if (driveUpload?.success) {
+        pdf_url = driveUpload.file_url;
+      }
+    } catch (error) {
+      console.error('Google Drive upload failed:', error.message);
+      // Continue with Base44 storage URL as fallback
+    }
 
     // ── DocuSign hand-off (owner is the signer; broker block is pre-signed) ──
     const dsRes = await base44.functions.invoke('docusignSendForSignature', {
