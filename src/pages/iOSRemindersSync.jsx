@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Smartphone, Copy, ExternalLink, Clock, Calendar, List } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function iOSRemindersSync() {
+export default function IOSRemindersSync() {
   const webhookUrl = 'https://app-69cabceaeeb8bb5e3a62ead3.base44.app/functions/receiveiOSReminder';
 
   const { data: iosReminders = [] } = useQuery({

@@ -189,9 +189,10 @@ export default function Reminders() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['reminders'] }),
   });
 
-  // Enrich reminders with lead names
+  // Enrich reminders with lead names and normalize date field
   const enrichedReminders = reminders.map(r => ({
     ...r,
+    due_at: r.due_at || r.due_date, // Support both due_at (standard) and due_date (iOS)
     lead_name: r.lead_id ? leads.find(l => l.id === r.lead_id)?.full_name : null,
   }));
 
