@@ -7,7 +7,7 @@ import {
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
-  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield
+  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -48,6 +48,7 @@ export const ALL_APPS = [
   { label: 'Team Management',    icon: Shield,         path: '/team-management',     gradient: 'from-slate-500 to-slate-700',      glowColor: 'rgba(148,163,184,0.40)' },
   { label: 'Dubai Intelligence', icon: Globe,          path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-800',      glowColor: 'rgba(245,158,11,0.45)' },
   { label: 'Lease Agreement',    icon: FileSignature,  path: '/lease-agreement',     gradient: 'from-slate-500 to-slate-800',       glowColor: 'rgba(148,163,184,0.40)' },
+  { label: 'Tenancy Contracts',  icon: FileText,       path: '/tenancy-contracts',   gradient: 'from-blue-500 to-indigo-800',       glowColor: 'rgba(59,130,246,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
