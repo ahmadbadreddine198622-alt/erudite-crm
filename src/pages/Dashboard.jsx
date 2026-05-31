@@ -263,7 +263,14 @@ export default function Dashboard() {
       {/* Desktop Apps button */}
       <button
         onClick={() => navigate('/desktop')}
-        className="absolute top-5 right-6 text-sm font-semibold text-accent z-20 flex items-center gap-1.5"
+        className="absolute top-6 right-6 z-20 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-105"
+        style={{
+          background: 'rgba(245,158,11,0.15)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(245,158,11,0.4)',
+          color: 'hsl(38 92% 50%)',
+          boxShadow: '0 4px 12px rgba(245,158,11,0.2)',
+        }}
       >
         <Grid3X3 className="w-4 h-4" />
         Desktop Apps
@@ -273,7 +280,7 @@ export default function Dashboard() {
       {editMode && (
         <button
           onClick={() => setEditMode(false)}
-          className="absolute top-5 right-12 text-sm font-semibold text-accent z-20"
+          className="absolute top-6 right-48 z-20 px-4 py-2 rounded-xl text-sm font-semibold bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
         >
           Done
         </button>
