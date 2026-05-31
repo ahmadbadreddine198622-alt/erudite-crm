@@ -443,31 +443,34 @@ export default function HeroDock() {
               </Link>
             </div>
 
-            {/* More button with edit trigger */}
-            <div className="relative">
-              <Link to="/reminders">
-                <DockIcon
-                  icon={editMode ? Pencil : MoreHorizontal}
-                  gradient="from-slate-700 to-slate-900"
-                  active={false}
-                  label={editMode ? 'Edit' : 'More'}
-                  onClick={(e) => {
-                    if (editMode) {
-                      e.preventDefault();
-                      setEditMode(false);
-                    }
-                  }}
-                />
-              </Link>
-              
-              {/* Long-press to enter edit mode */}
-              <button
-                className="absolute inset-0 z-30"
-                onContextMenu={(e) => { e.preventDefault(); setEditMode(true); }}
-                onTouchStart={() => {}}
-                onTouchEnd={() => {}}
-              />
-            </div>
+            {/* Separator */}
+            <div style={{ width: '8px' }} />
+            
+            {/* More button - redesigned as floating action button */}
+            <button
+              onClick={() => editMode ? setEditMode(false) : setShowPicker(true)}
+              className="group relative transition-all duration-200 hover:scale-110 active:scale-95"
+              style={{
+                width: 44, height: 44,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(245,159,10,0.25) 0%, rgba(245,159,10,0.15) 100%)',
+                backdropFilter: 'blur(32px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+                border: '1.5px solid rgba(245,159,10,0.35)',
+                borderTopColor: 'rgba(255,255,255,0.4)',
+                boxShadow: '0 8px 28px rgba(245,159,10,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(255,255,255,0.1) 100%)' }} />
+              {editMode ? (
+                <Check className="relative z-10" style={{ width: 20, height: 20, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }} />
+              ) : (
+                <Pencil className="relative z-10" style={{ width: 18, height: 18, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }} />
+              )}
+            </button>
           </div>
         </div>
       </nav>
