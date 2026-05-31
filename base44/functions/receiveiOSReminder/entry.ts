@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
     
     // For webhooks, we use service role (no user auth needed)
     const body = await req.json();
-    const { title, notes, due_date, priority, list_name, source_url } = body;
+    const { title, notes, due_date, priority, list_name, source_url, subtasks } = body;
 
     // Validate required fields
     if (!title) {
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Create the reminder
+    // Create the main reminder
     const reminder = await base44.asServiceRole.entities.Reminder.create({
       title: title,
       notes: notes || '',
@@ -25,15 +25,42 @@ Deno.serve(async (req) => {
       status: 'pending',
       type: 'ios_reminder',
       source: 'ios_shortcut',
-      ios_list_name: list_name || 'Reminders',
-      ios_source_url: source_url || '',
+      list_name: list_name || 'Reminders',
+      list_color: '#3b82f6',
+      source_url: source_url || '',
       created_by_email: 'system@ios-sync',
     });
+
+    // Parse and create subtasks if provided
+    let subtaskCount = 0;
+    if (subtasks && Array.isArray(subtasks) && subtasks.length > 0) {
+      for (const subtask of subtasks) {
+        try {
+          await base44.asServiceRole.entities.Reminder.create({
+            title: subtask.title || subtask,
+            notes: `Parent: ${title}`,
+            due_date: due_date || null,
+            priority: subtask.priority || priority || 'medium',
+            status: subtask.completed ? 'completed' : 'pending',
+            type: 'ios_reminder',
+            source: 'ios_shortcut',
+            list_name: list_name || 'Reminders',
+            list_color: '#3b82f6',
+            parent_reminder_id: reminder.id,
+            created_by_email: 'system@ios-sync',
+          });
+          subtaskCount++;
+        } catch (subtaskError) {
+          console.error('Error creating subtask:', subtaskError);
+        }
+      }
+    }
 
     return Response.json({
       status: 'success',
       reminder_id: reminder.id,
-      message: 'Reminder created successfully',
+      subtasks_created: subtaskCount,
+      message: `Reminder created with ${subtaskCount} subtasks`,
     });
 
   } catch (error) {

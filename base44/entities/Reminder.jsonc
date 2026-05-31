@@ -105,13 +105,22 @@
       "enum": [
         "manual",
         "imported",
-        "ai_suggested"
+        "ai_suggested",
+        "ios_shortcut"
       ],
       "default": "manual"
     },
     "external_id": {
       "type": "string",
       "description": "ID from external system (for dedup)"
+    },
+    "parent_reminder_id": {
+      "type": "string",
+      "description": "Parent reminder ID for subtasks"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Source URL from iOS Shortcuts"
     },
     "is_editable": {
       "type": "boolean",
