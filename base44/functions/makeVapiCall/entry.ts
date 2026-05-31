@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
         }
 
         // Create a phone call using Vapi API
-        // This uses Vapi's configured phone provider (Twilio must be set up in Vapi Dashboard)
+        // phoneNumber should be the destination number to call
         const response = await fetch('https://api.vapi.ai/call', {
             method: 'POST',
             headers: {
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 assistantId: assistantId,
-                phoneNumberId: phoneNumber, // User provides the Phone Number ID from Vapi
+                phoneNumber: phoneNumber, // Destination number to call
                 metadata: {
                     leadId: leadId || '',
                     leadName: leadName || '',

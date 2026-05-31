@@ -652,16 +652,16 @@ export default function VapiDashboard() {
                                         <div className="flex items-start gap-3">
                                             <Settings className="w-5 h-5 text-blue-400 mt-0.5" />
                                             <div className="text-xs text-blue-200/80">
-                                                <p className="font-semibold mb-1">Setup Guide - Enable AI Voice Calls</p>
+                                                <p className="font-semibold mb-1">Required Setup - Enable AI Calls</p>
                                                 <ol className="list-decimal list-inside space-y-2 mt-2">
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Connect Twilio Provider:</span>
+                                                        <span className="font-semibold text-blue-100">Connect Twilio:</span>
                                                         <br />
                                                         <a href="https://dashboard.vapi.ai/settings/phone-providers" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
                                                             Vapi Dashboard &gt; Settings &gt; Phone Providers
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Connect Twilio with Account SID and Auth Token</span>
+                                                        <span className="opacity-80">Connect your Twilio account (Account SID + Auth Token)</span>
                                                     </li>
                                                     <li>
                                                         <span className="font-semibold text-blue-100">Add Phone Number:</span>
@@ -670,21 +670,21 @@ export default function VapiDashboard() {
                                                             Vapi Dashboard &gt; Phone Numbers &gt; Add Number
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Select your Twilio number and save the Phone Number ID</span>
+                                                        <span className="opacity-80">Add your Twilio phone number that will make calls</span>
                                                     </li>
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Assign to Assistant:</span>
+                                                        <span className="font-semibold text-blue-100">Configure Assistant:</span>
                                                         <br />
                                                         <a href="https://dashboard.vapi.ai/assistants" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
-                                                            Vapi Dashboard &gt; Assistants &gt; Edit Assistant
+                                                            Vapi Dashboard &gt; Assistants &gt; Edit
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Add a transport and assign the phone number</span>
+                                                        <span className="opacity-80">Add a "Phone" transport and select your number</span>
                                                     </li>
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Make Calls:</span>
+                                                        <span className="font-semibold text-blue-100">Start Calling:</span>
                                                         <br />
-                                                        <span className="opacity-80">Return here and use the Phone Number ID in the call dialog</span>
+                                                        <span className="opacity-80">Return here and enter destination numbers to call</span>
                                                     </li>
                                                 </ol>
                                             </div>
