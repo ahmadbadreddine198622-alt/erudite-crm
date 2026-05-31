@@ -11,11 +11,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 
 export default function ContactActions({ contact, onClose }) {
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
-  const [whatsappMessage, setWhatsappMessage] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -30,41 +30,13 @@ export default function ContactActions({ contact, onClose }) {
     
     try {
       setSending(true);
-      // Use Aircall to initiate a call
-      const response = await base44.functions.invoke('twilioMakeCall', {
+      await base44.functions.invoke('twilioMakeCall', {
         to: primaryPhone,
         agent_name: contact.full_name || contact.name,
       });
       toast.success('Call initiated via Aircall');
     } catch (err) {
       toast.error('Failed to initiate call: ' + err.message);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleSendWhatsApp = async () => {
-    if (!primaryPhone) {
-      toast.error('No phone number available');
-      return;
-    }
-    if (!whatsappMessage.trim()) {
-      toast.error('Message cannot be empty');
-      return;
-    }
-
-    try {
-      setSending(true);
-      await base44.functions.invoke('sendWhatsAppMessageFromCRM', {
-        phone: primaryPhone,
-        message: whatsappMessage,
-        lead_id: contact.id,
-      });
-      toast.success('WhatsApp message sent');
-      setWhatsappMessage('');
-      setShowWhatsApp(false);
-    } catch (err) {
-      toast.error('Failed to send WhatsApp: ' + err.message);
     } finally {
       setSending(false);
     }
@@ -134,41 +106,14 @@ export default function ContactActions({ contact, onClose }) {
         </Button>
       </div>
 
-      {/* WhatsApp Modal */}
-      <Dialog open={showWhatsApp} onOpenChange={setShowWhatsApp}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Send WhatsApp Message</DialogTitle>
-            <DialogDescription>{primaryPhone || 'No phone'}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              value={whatsappMessage}
-              onChange={(e) => setWhatsappMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="min-h-24"
-            />
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowWhatsApp(false)}
-                disabled={sending}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSendWhatsApp}
-                disabled={!whatsappMessage.trim() || sending}
-              >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Send
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* WhatsApp Popup Overlay */}
+      <WhatsAppPopup
+        isOpen={showWhatsApp}
+        onClose={() => setShowWhatsApp(false)}
+        phone={primaryPhone}
+        leadId={contact.id}
+        leadName={contact.full_name || contact.name}
+      />
 
       {/* Email Modal */}
       <Dialog open={showEmail} onOpenChange={setShowEmail}>

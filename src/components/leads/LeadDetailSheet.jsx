@@ -30,11 +30,15 @@ import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 import LeadAISummary from '@/components/leads/LeadAISummary';
 import VoiceMemoButton from '@/components/leads/VoiceMemoButton';
 import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction';
+import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
   const queryClient = useQueryClient();
+
+  const primaryPhone = lead.phone;
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
@@ -470,6 +474,15 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
         {/* Actions */}
         <div className="border-t p-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowWhatsAppPopup(true)}
+            disabled={!primaryPhone}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+          >
+            <MessageSquare className="w-4 h-4 mr-1" /> WhatsApp
+          </Button>
           <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 
@@ -492,6 +505,15 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <Trash2 className="w-4 h-4 mr-1" /> Delete Lead
           </Button>
         </div>
+
+        {/* WhatsApp Popup */}
+        <WhatsAppPopup
+          isOpen={showWhatsAppPopup}
+          onClose={() => setShowWhatsAppPopup(false)}
+          phone={primaryPhone}
+          leadId={lead.id}
+          leadName={lead.name}
+        />
       </SheetContent>
     </Sheet>
   );

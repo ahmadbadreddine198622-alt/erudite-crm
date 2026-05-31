@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Mail, MapPin, Building2, Hash, Paperclip,
   Plus, X, Save, Loader2, User, ChevronDown, ChevronUp, Edit3,
-  Clock, Briefcase, Layers
+  Clock, Briefcase, Layers, MessageCircle, Video
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -21,7 +21,7 @@ import QualificationScorecard from '@/components/contacts/QualificationScorecard
 import ViewingTracker from '@/components/contacts/ViewingTracker';
 import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
-import { MessageCircle } from 'lucide-react';
+import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 
 const PROJECT_LAYERS = [
   { id: 'peninsula-three', label: 'Peninsula Three' },
@@ -130,6 +130,9 @@ export default function ContactDetailPanel({ contactId, onClose }) {
   const [newCustomKey, setNewCustomKey] = useState('');
   const [newCustomVal, setNewCustomVal] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+
+  const primaryPhone = draft?.phones?.[0]?.number || draft?.phone;
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', contactId],
@@ -278,11 +281,32 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                 Save
               </Button>
             )}
-            <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#374151] p-1 rounded-lg hover:bg-[#F3F4F6] transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="w-8 h-8 text-green-500 hover:bg-green-50"
+                onClick={() => setShowWhatsAppPopup(true)}
+                disabled={!primaryPhone}
+                title="Open WhatsApp Chat"
+              >
+                <MessageCircle className="w-4 h-4" />
+              </Button>
+              <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#374151] p-1 rounded-lg hover:bg-[#F3F4F6] transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* WhatsApp Popup */}
+        <WhatsAppPopup
+          isOpen={showWhatsAppPopup}
+          onClose={() => setShowWhatsAppPopup(false)}
+          phone={primaryPhone}
+          leadId={contactId}
+          leadName={draft?.name}
+        />
       </div>
 
       {/* ── Scrollable Body ── */}
