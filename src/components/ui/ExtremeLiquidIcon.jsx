@@ -14,6 +14,7 @@ const prefersReducedMotion =
 export default function ExtremeLiquidIcon({
   icon: Icon,
   gradient = 'from-slate-700 to-slate-900',
+  glowColor = 'rgba(255,255,255,0.15)',
   size = 62,
   iconSize,
   active = false,
@@ -86,42 +87,42 @@ export default function ExtremeLiquidIcon({
           transition: 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
       >
-        {/* Deep jewel-tone base — muted luminescence within the glass, like a cut stone held to light */}
+        {/* Vibrant jewel base — saturated, lit from within */}
         <div
-          className={cn('absolute inset-0 bg-gradient-to-br opacity-75', gradient)}
+          className={cn('absolute inset-0 bg-gradient-to-br opacity-90', gradient)}
           style={{
             borderRadius: radius,
-            filter: 'saturate(0.36) brightness(0.52)',
+            filter: 'saturate(1.1) brightness(0.78)',
           }}
         />
 
-        {/* Ultra-frosted crystal shell — the primary surface: dark, deep, translucent */}
+        {/* Frosted crystal shell with colored glow */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
             background: pressed
-              ? 'rgba(255,255,255,0.10)'
+              ? 'rgba(255,255,255,0.13)'
               : active
-              ? 'rgba(255,255,255,0.08)'
-              : 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(32px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(160%)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderTopColor: 'rgba(255,255,255,0.22)',
+              ? 'rgba(255,255,255,0.10)'
+              : 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1.5px solid rgba(255,255,255,0.18)',
+            borderTopColor: 'rgba(255,255,255,0.42)',
             boxShadow: pressed
-              ? '0 3px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14)'
-              : '0 8px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+              ? `0 3px 10px rgba(0,0,0,0.35), 0 0 0 0 ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.18)`
+              : `0 8px 28px rgba(0,0,0,0.4), 0 0 22px ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.14)`,
             transition: 'background 0.18s ease, box-shadow 0.18s ease',
           }}
         />
 
-        {/* Fine polished bevel rim — single hairline of light on top edge only */}
+        {/* Fine polished bevel rim */}
         <div
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 45%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0) 48%)',
             pointerEvents: 'none',
           }}
         />
