@@ -28,7 +28,6 @@ import MyDashboard from '@/pages/MyDashboard';
 import SalesAnalytics from '@/pages/SalesAnalytics';
 import Calendar from '@/pages/Calendar';
 import MetaAdsLeads from '@/pages/MetaAdsLeads';
-import WhatsAppSetup from '@/pages/WhatsAppSetup';
 import WhatsAppHub from '@/pages/WhatsAppHub';
 import InstagramLeads from '@/pages/InstagramLeads';
 import DuplicateDetector from '@/pages/DuplicateDetector';
@@ -103,7 +102,6 @@ const AuthenticatedApp = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/landlords" element={<Landlords />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
-        <Route path="/whatsapp-setup" element={<WhatsAppSetup />} />
         <Route path="/whatsapp-hub" element={<WhatsAppHub />} />
         <Route path="/instagram" element={<InstagramLeads />} />
         <Route path="/claude-ai" element={<ClaudeAI />} />
