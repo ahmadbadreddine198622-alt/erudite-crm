@@ -12,6 +12,7 @@ import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import MobilePipeline from '@/components/mobile/MobilePipeline';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { STAGES } from '@/lib/pipeline';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 function formatRelativeShort(iso) {
   if (!iso) return null;
@@ -45,6 +46,8 @@ export default function Pipeline() {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [activeTab, setActiveTab] = useState('sale');
   const [projectFilter, setProjectFilter] = useState('all');
+
+  const { user: currentUser, permissions } = useCurrentUser();
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pipeline-leads'],
@@ -91,6 +94,10 @@ export default function Pipeline() {
   const activeLeads = useMemo(
     () => {
       let result = leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold');
+      // Role-based filtering
+      if (currentUser && !permissions.view_all_pipeline) {
+        result = result.filter(l => l.assigned_agent_email === currentUser.email);
+      }
       if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
       return result;
     },

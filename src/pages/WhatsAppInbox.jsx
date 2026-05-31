@@ -17,9 +17,11 @@ import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 import WhatsAppComposer from '@/components/whatsapp/WhatsAppComposer';
 import MobileInbox from '@/components/mobile/MobileInbox';
 import NewConversationDialog from '@/components/whatsapp/NewConversationDialog';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
+  const { user: currentUser, permissions } = useCurrentUser();
   const [selectedConvId, setSelectedConvId] = useState(null);
   const phoneParam = new URLSearchParams(window.location.search).get('phone');
   const [search, setSearch] = useState('');
@@ -99,6 +101,8 @@ export default function WhatsAppInbox() {
 
   // Filter + search
   const filtered = conversations.filter(c => {
+    // Role-based: non-admins see only their assigned conversations
+    if (currentUser && !permissions.view_all_whatsapp && c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
     const lead = leads.find(l => l.id === c.lead_id);
     const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;

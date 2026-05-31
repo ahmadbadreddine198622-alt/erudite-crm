@@ -7,7 +7,7 @@ import {
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
-  Calendar, TrendingUp, Activity, ShieldAlert, Globe
+  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -45,6 +45,7 @@ export const ALL_APPS = [
   { label: 'Transfer Calculator',icon: Calculator,     path: '/transfer-calculator', gradient: 'from-amber-500 to-yellow-700',     glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Form I Generator',   icon: FileSignature,  path: '/form-i-generator',    gradient: 'from-indigo-500 to-slate-700',     glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Deal Risk',          icon: ShieldAlert,    path: '/deal-risk',           gradient: 'from-red-600 to-rose-800',         glowColor: 'rgba(239,68,68,0.40)' },
+  { label: 'Team Management',    icon: Shield,         path: '/team-management',     gradient: 'from-slate-500 to-slate-700',      glowColor: 'rgba(148,163,184,0.40)' },
   { label: 'Dubai Intelligence', icon: Globe,          path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-800',      glowColor: 'rgba(245,158,11,0.45)' },
 ];
 

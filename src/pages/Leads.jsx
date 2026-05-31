@@ -26,6 +26,7 @@ import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import BulkActionBar from '@/components/leads/BulkActionBar';
 import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 import { STAGES } from '@/lib/pipeline';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const PAGE_SIZE = 50;
 
@@ -74,6 +75,7 @@ function SortableHead({ label, col, sortCol, sortDir, onSort, className = '' }) 
 export default function Leads() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { user: currentUser, permissions } = useCurrentUser();
 
   // ── filters
   const [search, setSearch] = useState('');
@@ -169,6 +171,10 @@ export default function Leads() {
 
   const filtered = useMemo(() => {
     let result = leads;
+    // Role-based filtering: non-admins see only their own leads
+    if (currentUser && !permissions.view_all_leads) {
+      result = result.filter(l => l.assigned_agent_email === currentUser.email);
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(l =>
