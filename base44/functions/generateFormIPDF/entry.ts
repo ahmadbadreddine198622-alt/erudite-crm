@@ -1,7 +1,7 @@
-// generateKeyHandoverPDF — upload key handover PDF directly to Google Drive
+// generateFormIPDF — upload Form I PDF to Google Drive
 // 
 // This function receives the PDF data from the client and uploads it directly
-// to Google Drive "Key Handover" folder.
+// to Google Drive "Form I Generator" folder.
 // Returns the Drive URL for storage/reference.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
@@ -22,12 +22,12 @@ Deno.serve(async (req) => {
     // Extract base64 data (remove data URI prefix if present)
     const base64Data = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
     
-    // Upload directly to Google Drive "Key Handover" folder
+    // Upload directly to Google Drive "Form I Generator" folder
     const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-      fileName: file_name || `KeyHandover_${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: file_name || `FormI_${new Date().toISOString().split('T')[0]}.pdf`,
       base64Content: base64Data,
       mimeType: 'application/pdf',
-      folderPath: 'Key Handover'
+      folderPath: 'Form I Generator'
     });
     
     if (!driveUpload?.success) {
@@ -37,11 +37,11 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       pdf_url: driveUpload.webViewLink || driveUpload.webContentLink,
-      file_name: file_name || 'KeyHandover.pdf',
+      file_name: file_name || 'FormI.pdf',
       drive_file_id: driveUpload.fileId,
     });
   } catch (error) {
-    console.error('generateKeyHandoverPDF:', error);
+    console.error('generateFormIPDF:', error);
     return Response.json(
       { error: (error as Error).message || 'Unknown error' },
       { status: 500 },

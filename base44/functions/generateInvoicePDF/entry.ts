@@ -41,13 +41,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    // Upload to Google Drive "PropCRM PDFs" folder
+    // Upload to Google Drive "Finance/Invoices" folder
     let pdf_url = file_url;
     try {
       const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
         file_url: file_url,
         file_name: file_name || `Invoice_${invoice_id}.pdf`,
-        folder_name: 'PropCRM PDFs'
+        folderPath: 'Finance/Invoices'
       });
       if (driveUpload?.success) {
         pdf_url = driveUpload.file_url;

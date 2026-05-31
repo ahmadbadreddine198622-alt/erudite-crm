@@ -458,12 +458,12 @@ Deno.serve(async (req) => {
     let pdf_url: string | undefined = uploadRes?.file_url;
     if (!pdf_url) throw new Error('PDF upload to Base44 storage failed');
 
-    // Upload to Google Drive "PropCRM PDFs" folder
+    // Upload to Google Drive "Lease Agreements" folder
     try {
       const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
         file_url: pdf_url,
         file_name: fileName,
-        folder_name: 'PropCRM PDFs'
+        folderPath: 'Lease Agreements'
       });
       if (driveUpload?.success) {
         pdf_url = driveUpload.file_url;
