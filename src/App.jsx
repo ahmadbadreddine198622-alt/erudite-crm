@@ -47,6 +47,7 @@ import WhatsAppScheduler from '@/pages/WhatsAppScheduler';
 import Leaderboard from '@/pages/Leaderboard';
 import LeadScoringDashboard from '@/pages/LeadScoringDashboard';
 import DealRiskMonitor from '@/pages/DealRiskMonitor';
+import TaskCenter from '@/pages/TaskCenter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -114,6 +115,7 @@ const AuthenticatedApp = () => {
         <Route path="/whatsapp-scheduler" element={<WhatsAppScheduler />} />
         <Route path="/lead-scoring" element={<LeadScoringDashboard />} />
         <Route path="/deal-risk" element={<DealRiskMonitor />} />
+        <Route path="/task-center" element={<TaskCenter />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
