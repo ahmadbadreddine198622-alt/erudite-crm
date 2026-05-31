@@ -89,15 +89,15 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         />
       )}
 
-      {/* Toolbar */}
-      <div className="flex gap-0.5 px-3 pb-2.5 border-t border-gray-100 pt-1.5">
+      {/* Toolbar - Disabled */}
+      {/* <div className="flex gap-0.5 px-3 pb-2.5 border-t border-gray-100 pt-1.5">
         <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
         <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
         <ToolButton icon={MapPin} label="Location" />
         <ToolButton icon={FileText} label="Document" />
         <ToolButton icon={Mic} label="Voice" />
         <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setTranslatedPreview)} />
-      </div>
+      </div> */}
     </div>
   );
 }
