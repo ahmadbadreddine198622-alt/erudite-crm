@@ -45,12 +45,13 @@ Deno.serve(async (req) => {
             // Provide helpful error messages based on common issues
             if (errorData.message) {
                 const errorMsg = Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message;
-                if (errorMsg.includes('twilio') || errorMsg.includes('provider') || errorMsg.includes('phone') || errorMsg.includes('PhoneNumber')) {
+                if (errorMsg.includes('twilio') || errorMsg.includes('provider') || errorMsg.includes('phone') || errorMsg.includes('PhoneNumber') || errorMsg.includes('transport')) {
                     return Response.json({ 
-                        error: 'Phone provider not configured. Please set up Twilio in Vapi Dashboard.',
-                        details: 'Steps: 1) Go to Vapi Dashboard > Settings > Phone Providers, 2) Connect Twilio with your Account SID and Auth Token, 3) Add a phone number in Phone Numbers, 4) Assign it to your assistant.',
+                        error: 'Phone provider or transport not configured. Please complete the setup in Vapi Dashboard.',
+                        details: 'Required steps: 1) Connect Twilio (Settings > Phone Providers), 2) Add phone number (Phone Numbers), 3) Assign number to assistant (Assistants > Edit > Transport). Make sure the assistant has a phone number assigned.',
                         setupRequired: true,
-                        setupUrl: 'https://dashboard.vapi.ai/settings/phone-providers'
+                        setupUrl: 'https://dashboard.vapi.ai/assistants',
+                        assistantEditUrl: assistantId ? `https://dashboard.vapi.ai/assistant/${assistantId}` : 'https://dashboard.vapi.ai/assistants'
                     }, { status: response.status });
                 }
             }
