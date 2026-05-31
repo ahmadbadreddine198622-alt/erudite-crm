@@ -1,4 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
+
+const CLAUDE_SYSTEM_PROMPT = `You are the AI Sync Hub for Erudite Property CRM in Dubai.
+Your role is to analyze entity data, detect patterns, and recommend actions.
+
+You have access to:
+- Leads, Properties, Landlords, Deals, WhatsApp Conversations, Reminders
+
+For each sync operation, analyze the data and provide:
+1. Key insights about entity relationships
+2. Recommended actions (create reminders, update stages, link entities)
+3. Risk factors or opportunities
+4. Priority recommendations
+
+Respond in JSON format with:
+{
+  "insights": string[],
+  "recommended_actions": [{"type": "create_reminder"|"update_lead"|"link_entities", "data": {...}}],
+  "risk_factors": string[],
+  "opportunities": string[]
+}`;
 
 Deno.serve(async (req) => {
   try {
@@ -10,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { entity_name, mode = 'full_sync', detectConnections = true, generateInsights = true } = body;
+    const { entity_name, mode = 'full_sync', detectConnections = true, generateInsights = true, useClaude = true } = body;
 
     console.log(`Starting AI synchronization for ${entity_name} in mode: ${mode}`);
 
@@ -80,8 +101,17 @@ Deno.serve(async (req) => {
       totalConnections += connectionResults.newConnections;
     }
 
-    // Phase 3: Generate AI insights
-    if (generateInsights && entity_name === 'all') {
+    // Phase 3: Generate AI insights using Claude
+    if (generateInsights && entity_name === 'all' && useClaude) {
+      const claudeInsights = await generateClaudeInsights(leads, properties, landlords, deals, conversations, reminders, base44);
+      results.claude_insights = claudeInsights;
+      
+      // Execute Claude's recommended actions
+      if (claudeInsights.recommended_actions) {
+        const executedActions = await executeClaudeActions(claudeInsights.recommended_actions, base44);
+        results.executed_actions = executedActions;
+      }
+    } else if (generateInsights && entity_name === 'all') {
       const insightsResults = await generateAIInsights(leads, properties, landlords, deals, conversations, reminders, base44);
       results.insights = insightsResults;
     }
@@ -558,4 +588,109 @@ function calculateEngagementLevel(conversation) {
     return 'lukewarm';
   }
   return 'disengaged';
+}
+
+// Claude AI-powered insights generation
+async function generateClaudeInsights(leads, properties, landlords, deals, conversations, reminders, base44) {
+  console.log('Generating Claude AI insights...');
+  
+  const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+  
+  // Prepare CRM context snapshot
+  const crmSnapshot = {
+    total_leads: leads.length,
+    total_properties: properties.length,
+    total_landlords: landlords.length,
+    total_deals: deals.length,
+    total_conversations: conversations.length,
+    total_reminders: reminders.length,
+    stage_distribution: leads.reduce((acc, l) => { acc[l.stage] = (acc[l.stage] || 0) + 1; return acc; }, {}),
+    hot_leads: leads.filter(l => l.ai_lead_score >= 70).length,
+    stale_leads: leads.filter(l => l.stage_entered_at && new Date(l.stage_entered_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
+    overdue_reminders: reminders.filter(r => r.due_date && new Date(r.due_date) < new Date() && r.status === 'pending').length,
+    top_deals: deals.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0)).slice(0, 5).map(d => ({ lead: d.lead_id, value: d.deal_value, stage: d.stage })),
+  };
+
+  const prompt = `Analyze this CRM snapshot and provide strategic insights:
+${JSON.stringify(crmSnapshot, null, 2)}
+
+Provide actionable insights, recommended CRM actions, risk factors, and opportunities.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 4096,
+      system: CLAUDE_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content[0].text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const insights = jsonMatch ? JSON.parse(jsonMatch[0]) : { 
+      insights: [text],
+      recommended_actions: [],
+      risk_factors: [],
+      opportunities: []
+    };
+
+    console.log('Claude insights generated:', insights);
+    return insights;
+  } catch (error) {
+    console.error('Claude insight generation failed:', error);
+    return {
+      insights: ['Claude analysis unavailable'],
+      recommended_actions: [],
+      risk_factors: [],
+      opportunities: []
+    };
+  }
+}
+
+// Execute Claude's recommended CRM actions
+async function executeClaudeActions(actions, base44) {
+  console.log('Executing Claude recommended actions...');
+  const executed = [];
+
+  for (const action of actions.slice(0, 10)) { // Limit to 10 actions
+    try {
+      let result;
+      
+      if (action.type === 'create_reminder') {
+        const reminder = await base44.asServiceRole.entities.Reminder.create({
+          title: action.data.title || 'AI-suggested follow-up',
+          notes: action.data.notes || 'Suggested by Claude AI',
+          due_date: action.data.due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          priority: action.data.priority || 'medium',
+          status: 'pending',
+          lead_id: action.data.lead_id || '',
+          lead_name: action.data.lead_name || '',
+          source: 'claude_ai_suggested',
+        });
+        result = { success: true, type: 'reminder_created', id: reminder.id };
+      } 
+      else if (action.type === 'update_lead') {
+        await base44.asServiceRole.entities.Lead.update(action.data.lead_id, action.data.updates || {});
+        result = { success: true, type: 'lead_updated', id: action.data.lead_id };
+      }
+      else if (action.type === 'link_entities') {
+        if (action.data.entity_type === 'WhatsAppConversation' && action.data.lead_id) {
+          await base44.asServiceRole.entities.WhatsAppConversation.update(action.data.entity_id, {
+            lead_id: action.data.lead_id,
+          });
+          result = { success: true, type: 'entities_linked' };
+        }
+      }
+      else {
+        result = { success: false, error: 'Unknown action type' };
+      }
+      
+      executed.push(result);
+    } catch (error) {
+      console.error('Failed to execute action:', action, error);
+      executed.push({ success: false, action, error: error.message });
+    }
+  }
+
+  console.log(`Executed ${executed.filter(e => e.success).length}/${executed.length} actions`);
+  return executed;
 }

@@ -204,6 +204,7 @@ export default function AISyncHub() {
   const [syncingEntity, setSyncingEntity] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [syncHistory, setSyncHistory] = useState(null);
 
   // Fetch all entities
   const { data: leads = [] } = useQuery({
@@ -541,11 +542,25 @@ export default function AISyncHub() {
         mode: 'full_sync',
         detectConnections: true,
         generateInsights: true,
+        useClaude: true,
       });
 
+      let description = `${response.data.totalSynced} records processed, ${response.data.totalConnections} connections discovered`;
+      if (response.data.executed_actions?.length > 0) {
+        description += `, ${response.data.executed_actions.filter(a => a.success).length} AI actions executed`;
+      }
+
       toast.success('Synchronization complete', {
-        description: `${response.data.totalSynced} records processed, ${response.data.totalConnections} connections discovered`,
+        description,
       });
+
+      // Store Claude insights for display
+      if (response.data.claude_insights) {
+        setSyncHistory({
+          claude_insights: response.data.claude_insights,
+          executed_actions: response.data.executed_actions || [],
+        });
+      }
 
       qc.invalidateQueries();
     } catch (error) {
@@ -661,6 +676,70 @@ export default function AISyncHub() {
                   onAction={handleInsightAction}
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Claude AI Insights */}
+        {syncHistory.claude_insights && (
+          <div className="glass-card rounded-2xl p-5 border border-accent/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className="w-5 h-5 text-accent" />
+              <h2 className="text-lg font-semibold text-foreground">Claude AI Analysis</h2>
+              <span className="text-xs text-accent ml-auto">Powered by Claude Opus</span>
+            </div>
+            <div className="space-y-4">
+              {syncHistory.claude_insights.insights?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Key Insights</h3>
+                  <ul className="space-y-1">
+                    {syncHistory.claude_insights.insights.map((insight, idx) => (
+                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {syncHistory.claude_insights.opportunities?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Opportunities</h3>
+                  <ul className="space-y-1">
+                    {syncHistory.claude_insights.opportunities.map((opp, idx) => (
+                      <li key={idx} className="text-sm text-emerald-400 flex items-start gap-2">
+                        <TrendingUp className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        {opp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {syncHistory.claude_insights.risk_factors?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Risk Factors</h3>
+                  <ul className="space-y-1">
+                    {syncHistory.claude_insights.risk_factors.map((risk, idx) => (
+                      <li key={idx} className="text-sm text-red-400 flex items-start gap-2">
+                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        {risk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {syncHistory.executed_actions?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Executed Actions</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {syncHistory.executed_actions.filter(a => a.success).map((action, idx) => (
+                      <div key={idx} className="text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        ✓ {action.type}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
