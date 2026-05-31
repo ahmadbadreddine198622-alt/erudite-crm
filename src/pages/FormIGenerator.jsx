@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
+import { base44 } from '@/api/base44Client';
 import { LOGO_URL, SIGNATURE_URL, STAMP_URL, loadImage } from '@/lib/pdfBrand';
 import { FileText, Loader2, Upload, RotateCcw, CheckCircle, Info } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ─── Erudite fixed details ────────────────────────────────────────────────────
 const ERUDITE = {
@@ -402,8 +404,7 @@ async function generateFormIPDF({ eruditeSide, other, property, commA, commB, bu
   doc.setTextColor(200, 210, 230);
   doc.text('Erudite Property · 058 180 6000 · Info@erudite-estate.com · Shop R-10, Marquise Square Tower, Business Bay, Dubai', W / 2, fY + 7, { align: 'center' });
 
-  const fname = buyerName ? `Erudite_FormI_${buyerName.replace(/\s+/g, '_')}` : `Erudite_FormI_${(datetime.date || 'undated').replace(/\//g, '-')}`;
-  doc.save(`${fname}.pdf`);
+  return { doc, fname: buyerName ? `Erudite_FormI_${buyerName.replace(/\s+/g, '_')}.pdf` : `Erudite_FormI_${(datetime.date || 'undated').replace(/\//g, '-')}.pdf` };
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -449,8 +450,34 @@ export default function FormIGenerator() {
     setGenerating(true);
     setDone('');
     try {
-      await generateFormIPDF({ eruditeSide, other, property, commA, commB, buyerName, flags, datetime, declA, declB, logoUrl, sigUrl, stampUrl });
-      setDone(`PDF generated — Erudite is Agent ${eruditeSide} (${eruditeSide === 'A' ? "Seller's" : "Buyer's"} Agent), signed & stamped on that side.`);
+      const { doc, fname } = await generateFormIPDF({ eruditeSide, other, property, commA, commB, buyerName, flags, datetime, declA, declB, logoUrl, sigUrl, stampUrl });
+      const pdfBase64 = doc.output('datauristring');
+      const base64Data = pdfBase64.split(',')[1];
+
+      // Upload to Google Drive
+      try {
+        const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
+          base64Content: base64Data,
+          fileName: fname,
+          folderPath: 'Form I Generator',
+          mimeType: 'application/pdf'
+        });
+        if (driveUpload?.file_url) {
+          toast.success('Form I uploaded to Google Drive', { description: fname });
+          setDone(`PDF generated and uploaded to Google Drive — Erudite is Agent ${eruditeSide} (${eruditeSide === 'A' ? "Seller's" : "Buyer's"} Agent), signed & stamped on that side.`);
+        } else {
+          throw new Error('Upload failed');
+        }
+      } catch (driveError) {
+        console.error('Google Drive upload failed:', driveError.message);
+        // Fallback: download locally
+        doc.save(fname);
+        toast.warning('Saved locally (Drive upload failed)', { description: fname });
+        setDone(`PDF generated locally — Erudite is Agent ${eruditeSide} (${eruditeSide === 'A' ? "Seller's" : "Buyer's"} Agent), signed & stamped on that side.`);
+      }
+    } catch (err) {
+      console.error('Form I generation failed:', err);
+      toast.error('PDF generation failed', { description: err?.message || 'unknown error' });
     } finally {
       setGenerating(false);
     }
