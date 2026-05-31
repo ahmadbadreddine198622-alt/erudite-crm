@@ -445,33 +445,39 @@ Deno.serve(async (req) => {
     // ── Output → upload to Base44 storage ────────────────────────────────
     const dataUri = doc.output('datauristring'); // data:application/pdf;base64,...
     const base64Data = dataUri.split(',')[1];
-    const pdfBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
     const safeOwner = (f.owner_name || 'landlord')
       .replace(/[^a-zA-Z0-9_-]+/g, '_')
       .slice(0, 60) || 'landlord';
     const fileName = `LeaseBrokerageAgreement_${safeOwner}_${refNo}.pdf`;
 
-    const uploadRes = await base44.integrations.Core.UploadFile({
-      file: new Blob([pdfBytes], { type: 'application/pdf' }),
-    });
-    let pdf_url: string | undefined = uploadRes?.file_url;
-    if (!pdf_url) throw new Error('PDF upload to Base44 storage failed');
-
-    // Upload to Google Drive "Lease Agreements" folder
+    // Upload to Google Drive directly with base64 content
+    let pdf_url: string | undefined;
     try {
       const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-        file_url: pdf_url,
-        file_name: fileName,
-        folderPath: 'Lease Agreements'
+        base64Content: base64Data,
+        fileName,
+        folderPath: 'Lease Agreements',
+        mimeType: 'application/pdf'
       });
-      if (driveUpload?.success) {
+      if (driveUpload?.file_url) {
         pdf_url = driveUpload.file_url;
       }
     } catch (error) {
       console.error('Google Drive upload failed:', error.message);
-      // Continue with Base44 storage URL as fallback
     }
+
+    if (!pdf_url) {
+      // Fallback to Base44 storage if Google Drive fails
+      const pdfBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+      const uploadRes = await base44.integrations.Core.UploadFile({
+        file: new Blob([pdfBytes], { type: 'application/pdf' }),
+      });
+      pdf_url = uploadRes?.file_url;
+      if (!pdf_url) throw new Error('PDF upload failed (both Drive and Base44 storage)');
+    }
+
+
 
     // ── DocuSign hand-off (owner is the signer; broker block is pre-signed) ──
     const dsRes = await base44.functions.invoke('docusignSendForSignature', {

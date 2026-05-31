@@ -373,18 +373,18 @@ export default function LeaseAgreement() {
 
             {/* CONTRACT TERM */}
             <section>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Contract Term</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Start Date</Label>
-                  <Input type="date" value={manualForm.contract_start || ''} onChange={(e) => updateManual('contract_start', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">End Date</Label>
-                  <Input type="date" value={manualForm.contract_end || ''} onChange={(e) => updateManual('contract_end', e.target.value)} />
-                </div>
-              </div>
-              <p className="text-[10px] text-white/40 mt-1.5">Both blank ⇒ default 12 months from today.</p>
+             <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Contract Term</h3>
+             <div className="grid grid-cols-2 gap-3">
+               <div className="space-y-1">
+                 <Label className="text-xs">Start Date (YYYY-MM-DD)</Label>
+                 <Input type="text" placeholder="2026-06-01" value={manualForm.contract_start || ''} onChange={(e) => updateManual('contract_start', e.target.value)} />
+               </div>
+               <div className="space-y-1">
+                 <Label className="text-xs">End Date (YYYY-MM-DD)</Label>
+                 <Input type="text" placeholder="2027-06-01" value={manualForm.contract_end || ''} onChange={(e) => updateManual('contract_end', e.target.value)} />
+               </div>
+             </div>
+             <p className="text-[10px] text-white/40 mt-1.5">Both blank ⇒ default 12 months from today. Format: YYYY-MM-DD</p>
             </section>
           </div>
 
