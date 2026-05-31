@@ -6,6 +6,7 @@ import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import CriticalMetricsPanel from '@/components/aisync/CriticalMetricsPanel';
+import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 import {
   ResponsiveContainer,
   ComposedChart,

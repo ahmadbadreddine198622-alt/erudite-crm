@@ -5,13 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
+import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -177,7 +178,19 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Management Intelligence Strip */}
+      {/* Claude Presence + Management Intelligence */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        <ClaudePresenceIcon size={48} active={false} thinking={false} />
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)' }}>
+            Claude-Powered CRM
+          </p>
+          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            AI actively monitoring your pipeline
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-4 gap-3 mb-8 w-full max-w-3xl">
         <div
           className="rounded-xl p-3 text-center"
