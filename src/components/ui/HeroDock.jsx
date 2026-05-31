@@ -186,7 +186,7 @@ export default function HeroDock() {
   const [isRevealed, setIsRevealed] = useState(true);
   
   // Mobile landscape collapse state
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -473,125 +473,7 @@ export default function HeroDock() {
       </nav>
       )}
 
-      {/* Mobile landscape collapsed dock */}
-      {isMobileLandscape && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="mx-auto px-4 pb-6" style={{ display: 'flex', justifyContent: 'center' }}>
-            {isCollapsed ? (
-              /* Collapsed single button */
-              <button
-                onClick={() => setIsCollapsed(false)}
-                className="transition-transform duration-300 hover:scale-105 active:scale-95"
-                style={{
-                  width: 64, height: 64,
-                  borderRadius: '20px',
-                  background: 'rgba(245,159,10,0.15)',
-                  backdropFilter: 'blur(36px) saturate(200%)',
-                  WebkitBackdropFilter: 'blur(36px) saturate(200%)',
-                  border: '2px solid rgba(245,159,10,0.45)',
-                  borderTopColor: 'rgba(255,255,255,0.5)',
-                  boxShadow: '0 16px 48px rgba(245,159,10,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <Home className="w-8 h-8" style={{ color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.65))' }} />
-              </button>
-            ) : (
-              /* Expanded dock */
-              <div
-                style={{
-                  background: 'linear-gradient(180deg, rgba(15,20,35,0.95) 0%, rgba(8,11,18,0.98) 100%)',
-                  backdropFilter: 'blur(48px) saturate(220%)',
-                  WebkitBackdropFilter: 'blur(48px) saturate(220%)',
-                  borderRadius: '28px',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderTopColor: 'rgba(255,255,255,0.20)',
-                  boxShadow: `
-                    0 -8px 32px rgba(0,0,0,0.4),
-                    0 24px 64px rgba(0,0,0,0.6),
-                    inset 0 1px 0 rgba(255,255,255,0.08),
-                    inset 0 -1px 0 rgba(0,0,0,0.3)
-                  `,
-                  padding: '10px 14px 10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  position: 'relative',
-                  transition: prefersReducedMotion ? 'none' : 'all 0.3s ease',
-                }}
-              >
-                {/* Close button */}
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="absolute -top-10 right-0 p-2 rounded-full bg-card/80 border border-border hover:bg-accent/20 transition-colors"
-                >
-                  <X className="w-4 h-4 text-foreground" />
-                </button>
-                
-                {/* Dock apps */}
-                {dockItems.slice(0, 5).map((item) => (
-                  <Link key={item.path} to={item.path} onClick={() => setIsCollapsed(true)}>
-                    <DockIcon
-                      icon={item.icon}
-                      gradient={item.gradient}
-                      active={location.pathname === item.path}
-                      label={item.label}
-                      isSuggestion={item.isSuggestion}
-                      showEditBadge={editMode}
-                      onRemove={() => handleRemoveApp(item.path)}
-                    />
-                  </Link>
-                ))}
-
-                {/* Elevated center home button */}
-                <div style={{ position: 'relative', top: '-22px', zIndex: 10, margin: '0 4px' }}>
-                  <Link to="/" onClick={() => setIsCollapsed(true)}>
-                    <button
-                      className="transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97] group"
-                      style={{
-                        width: 68, height: 68,
-                        borderRadius: '22%',
-                        background: 'rgba(245,159,10,0.12)',
-                        backdropFilter: 'blur(36px) saturate(200%)',
-                        WebkitBackdropFilter: 'blur(36px) saturate(200%)',
-                        border: '2px solid rgba(245,159,10,0.42)',
-                        borderTopColor: 'rgba(255,255,255,0.45)',
-                        boxShadow: '0 18px 52px rgba(245,159,10,0.32), inset 0 1px 0 rgba(255,255,255,0.25), 0 0 44px rgba(245,159,10,0.15)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', position: 'relative',
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-700 to-amber-900 opacity-35" style={{ borderRadius: '22%' }} />
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[2000ms]"
-                        style={{ borderRadius: '22%', background: 'linear-gradient(125deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0) 55%)', animation: 'shimmer 4s ease-in-out infinite', pointerEvents: 'none' }} />
-                      <div className="absolute inset-0" style={{ borderRadius: '22%', background: 'linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 52%)', pointerEvents: 'none' }} />
-                      <Home className="relative z-10" style={{ width: 32, height: 32, color: 'hsl(38 92% 50%)', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.65))' }} />
-                    </button>
-                  </Link>
-                </div>
-
-                {/* More button */}
-                <div className="relative">
-                  <Link to="/reminders" onClick={() => setIsCollapsed(true)}>
-                    <DockIcon
-                      icon={editMode ? Pencil : MoreHorizontal}
-                      gradient="from-slate-700 to-slate-900"
-                      active={false}
-                      label={editMode ? 'Edit' : 'More'}
-                      onClick={(e) => {
-                        if (editMode) {
-                          e.preventDefault();
-                          setEditMode(false);
-                        }
-                      }}
-                    />
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </nav>
-      )}
+      {/* Mobile landscape - completely hidden, no dock shown */}
 
       {/* App picker sheet */}
       <AppPickerSheet
