@@ -265,8 +265,8 @@ export default function LeaseAgreement() {
                       >
                         <Info className="w-3.5 h-3.5" />
                       </Button>
-                      {pdfUrls[landlord.id] && (
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-accent hover:text-accent" title="View PDF" onClick={() => setPdfViewer({ url: pdfUrls[landlord.id], name: landlord.full_name_en })}>
+                      {(pdfUrls[landlord.id] || landlord.lease_pdf_url) && (
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-accent hover:text-accent" title="View PDF" onClick={() => setPdfViewer({ url: pdfUrls[landlord.id] || landlord.lease_pdf_url, name: landlord.full_name_en })}>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Button>
                       )}
@@ -356,9 +356,9 @@ export default function LeaseAgreement() {
                   <span className="font-medium text-right max-w-[60%] truncate">{value}</span>
                 </div>
               ))}
-              {pdfUrls[summaryLandlord.id] && (
+              {(pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url) && (
                 <div className="pt-3">
-                  <a href={pdfUrls[summaryLandlord.id]} target="_blank" rel="noopener noreferrer">
+                  <a href={pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url} target="_blank" rel="noopener noreferrer">
                     <Button size="sm" className="w-full gap-1.5">
                       <ExternalLink className="w-3.5 h-3.5" /> View Generated PDF
                     </Button>

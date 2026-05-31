@@ -552,9 +552,10 @@ Deno.serve(async (req) => {
       console.warn('DocuSign skipped (not configured or failed):', dsError?.message);
     }
 
-    // ── Write-back: Landlord.lease_agreement_status → sent_for_signature ──
+    // ── Write-back: Landlord.lease_agreement_status + lease_pdf_url ──
     await base44.asServiceRole.entities.Landlord.update(landlord_id, {
       lease_agreement_status: 'sent_for_signature',
+      lease_pdf_url: pdf_url,
     });
 
     // Upsert DocumentChecklistItem with document_type=lease_brokerage_agreement

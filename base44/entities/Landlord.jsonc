@@ -333,6 +333,10 @@
       ],
       "default": "drafted",
       "description": "Status of lease brokerage agreement"
+    },
+    "lease_pdf_url": {
+      "type": "string",
+      "description": "URL of the generated Lease Brokerage Agreement PDF \u2014 persisted by the backend function"
     }
   },
   "required": [
