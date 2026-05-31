@@ -87,10 +87,14 @@ export default function VapiDashboard() {
                         size="sm"
                         variant="outline"
                         onClick={async () => {
-                            const result = await base44.functions.invoke('syncVapiCalls', {});
-                            if (result.data.success) {
-                                toast.success(`Synced ${result.data.syncedCount} calls from Vapi!`);
-                                refetchCalls();
+                            try {
+                                const result = await base44.functions.invoke('syncVapiCalls', {});
+                                if (result.data.success) {
+                                    toast.success(`Synced ${result.data.syncedCount} new calls from Vapi!`);
+                                    await refetchCalls();
+                                }
+                            } catch (error) {
+                                toast.error('Sync failed: ' + (error.response?.data?.error || error.message));
                             }
                         }}
                         className="gap-2"
@@ -101,7 +105,14 @@ export default function VapiDashboard() {
                     <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => { refetchAssistants(); }}
+                        onClick={async () => {
+                            try {
+                                await refetchAssistants();
+                                toast.success('Assistants refreshed');
+                            } catch (error) {
+                                toast.error('Refresh failed: ' + error.message);
+                            }
+                        }}
                         className="gap-2"
                     >
                         <RefreshCw className="w-4 h-4" />
