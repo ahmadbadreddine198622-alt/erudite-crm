@@ -46,11 +46,11 @@ Deno.serve(async (req) => {
             }).then(calls => calls[0]);
 
             if (!existingCall) {
-                // Create new call record
+                // Create new call record with full details
                 await base44.entities.AircallCall.create({
                     aircall_id: call.id,
                     direction: call.type?.includes('outbound') ? 'outbound' : 'inbound',
-                    status: call.status === 'ended' ? 'completed' : call.status,
+                    status: call.status === 'ended' ? 'done' : call.status,
                     duration: call.cost?.duration || 0,
                     started_at: call.startedAt,
                     ended_at: call.endedAt,
@@ -63,6 +63,13 @@ Deno.serve(async (req) => {
                     lead_id: call.metadata?.leadId || '',
                     lead_name: call.metadata?.leadName || '',
                     notes: `Vapi AI call - ${call.endedReason || call.status}`
+                });
+                syncedCount++;
+            } else if (call.artifact?.recordingUrl && !existingCall.recording_url) {
+                // Update existing call with recording if it wasn't synced before
+                await base44.entities.AircallCall.update(existingCall.id, {
+                    recording_url: call.artifact.recordingUrl,
+                    transcript: call.artifact.transcript || existingCall.transcript
                 });
                 syncedCount++;
             }

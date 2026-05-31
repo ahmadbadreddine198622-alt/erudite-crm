@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import PageHeader from '@/components/shared/PageHeader';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import { toast } from 'sonner';
 
 export default function VapiDashboard() {
     const [searchPhone, setSearchPhone] = useState('');
@@ -35,7 +36,8 @@ export default function VapiDashboard() {
         queryFn: async () => {
             // First sync from Vapi API
             try {
-                await base44.functions.invoke('syncVapiCalls', {});
+                const syncResult = await base44.functions.invoke('syncVapiCalls', {});
+                console.log('Sync result:', syncResult.data);
             } catch (e) {
                 console.error('Sync failed:', e);
             }
@@ -43,7 +45,7 @@ export default function VapiDashboard() {
             const allCalls = await base44.entities.AircallCall.list('-started_at', 100);
             return allCalls.filter(call => call.from_number === 'Vapi AI' || call.aircall_id?.startsWith('vapi_'));
         },
-        refetchInterval: 30000, // Refresh every 30 seconds
+        refetchInterval: 60000, // Refresh every 60 seconds
     });
 
     const stats = {
@@ -87,14 +89,14 @@ export default function VapiDashboard() {
                         onClick={async () => {
                             const result = await base44.functions.invoke('syncVapiCalls', {});
                             if (result.data.success) {
-                                alert(`Synced ${result.data.syncedCount} new calls from Vapi!`);
-                                window.location.reload();
+                                toast.success(`Synced ${result.data.syncedCount} calls from Vapi!`);
+                                refetchCalls();
                             }
                         }}
                         className="gap-2"
                     >
                         <RefreshCw className="w-4 h-4" />
-                        Sync Calls
+                        Sync Now
                     </Button>
                     <Button
                         size="sm"
@@ -517,40 +519,65 @@ export default function VapiDashboard() {
                                 Call Recordings
                             </CardTitle>
                             <CardDescription className="text-white/60">
-                                Access and download call recordings
+                                {calls.filter(c => c.recording_url).length} recordings available
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {calls.filter(c => c.recording_url).length > 0 ? (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {calls.filter(c => c.recording_url).map((call) => (
-                                        <div key={call.id} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
-                                            <div className="flex items-center gap-4">
-                                                <FileAudio className="w-8 h-8 text-purple-400" />
-                                                <div>
-                                                    <p className="text-sm font-semibold text-white">{call.lead_name || call.to_number}</p>
-                                                    <p className="text-xs text-white/50">
-                                                        {format(new Date(call.started_at), 'MMM d, HH:mm')} - {call.duration ? `${Math.round(call.duration / 60)}m ${call.duration % 60}s` : '—'}
-                                                    </p>
+                                        <div key={call.id} className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                                        <FileAudio className="w-5 h-5 text-purple-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-white">{call.lead_name || call.to_number}</p>
+                                                        <p className="text-xs text-white/50">
+                                                            {call.to_number} • {format(new Date(call.started_at), 'MMM d, yyyy HH:mm')}
+                                                        </p>
+                                                    </div>
                                                 </div>
+                                                <Badge className={
+                                                    call.status === 'done' ? 'bg-green-400/20 text-green-400 border-green-400/30' :
+                                                    'bg-amber-400/20 text-amber-400 border-amber-400/30'
+                                                }>
+                                                    {call.duration ? `${Math.round(call.duration / 60)}m ${call.duration % 60}s` : '—'}
+                                                </Badge>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <Button size="sm" variant="outline" onClick={() => window.open(call.recording_url, '_blank')}>
-                                                    <Play className="w-3 h-3 mr-1" />
-                                                    Play
-                                                </Button>
+                                            
+                                            {/* Audio Player */}
+                                            <div className="flex items-center gap-3">
+                                                <audio controls className="flex-1 h-8">
+                                                    <source src={call.recording_url} type="audio/mpeg" />
+                                                    Your browser does not support the audio element.
+                                                </audio>
                                                 <Button size="sm" variant="outline" onClick={() => window.open(call.recording_url, '_blank')}>
                                                     <ExternalLink className="w-3 h-3" />
-                                                    Download
                                                 </Button>
                                             </div>
+                                            
+                                            {/* Transcript */}
+                                            {call.transcript && (
+                                                <div className="mt-3 p-3 rounded bg-black/20 border border-white/5">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <MessageSquare className="w-3 h-3 text-white/50" />
+                                                        <span className="text-xs font-medium text-white/70">Transcript</span>
+                                                    </div>
+                                                    <p className="text-xs text-white/60 line-clamp-3">
+                                                        {call.transcript}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-12 text-white/50">
                                     <FileAudio className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                                    <p className="text-sm">No recordings available</p>
+                                    <p className="text-sm">No recordings available yet</p>
+                                    <p className="text-xs mt-1">Recordings will appear here after calls complete</p>
                                 </div>
                             )}
                         </CardContent>
