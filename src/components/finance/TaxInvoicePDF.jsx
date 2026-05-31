@@ -449,7 +449,10 @@ export function GeneratePDFButton({ invoice }) {
         await base44.entities.Invoice.update(invoice.id, { pdf_url: finalUrl });
       }
 
-      toast.success(uploadedToDrive ? 'Invoice saved to Google Drive' : 'Invoice PDF saved', { description: invoice.invoice_number || fileName });
+      // Download PDF locally as well
+      doc.save(fileName);
+
+      toast.success(uploadedToDrive ? 'Invoice saved to Google Drive & downloaded' : 'Invoice PDF saved & downloaded', { description: invoice.invoice_number || fileName });
       queryClient.invalidateQueries({ queryKey: ['invoices-live'] });
       return finalUrl;
     } catch (err) {
