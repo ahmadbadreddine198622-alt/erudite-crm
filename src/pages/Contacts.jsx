@@ -12,6 +12,7 @@ import {
   Search, Plus, Phone, Mail, SlidersHorizontal, MessageSquare, Zap, User, Wand2, Snowflake
 } from 'lucide-react';
 import ColdLeadsPanel from '@/components/contacts/ColdLeadsPanel';
+import ContactActions from '@/components/contacts/ContactActions';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SOURCE_OPTIONS = ['all', 'property_finder', 'bayut', 'whatsapp', 'referral', 'website', 'walk_in', 'social_media', 'email', 'other'];
@@ -35,24 +36,30 @@ const TABS = [
 ];
 
 function ContactItem({ contact, isSelected, onClick }) {
+  const [showActions, setShowActions] = useState(false);
   const initials = contact.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
   const hue = contact.name ? (contact.name.charCodeAt(0) * 7) % 360 : 200;
   const primaryPhone = contact.phones?.find(p => p.is_primary)?.number || contact.phone;
   const primaryEmail = contact.emails?.find(e => e.is_primary)?.address || contact.email;
 
   return (
-    <motion.button
+    <motion.div
       layout
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      onClick={onClick}
-      className={`w-full text-left px-3 py-3 rounded-xl transition-all duration-150 ${
+      className={`w-full px-3 py-3 rounded-xl transition-all duration-150 ${
         isSelected
           ? 'bg-accent/10 border border-accent/30 shadow-sm'
           : 'hover:bg-secondary border border-transparent'
       }`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
-      <div className="flex items-start gap-2.5">
+      <button
+        onClick={onClick}
+        className="w-full text-left"
+      >
+        <div className="flex items-start gap-2.5">
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-[11px]"
           style={{ background: `hsl(${hue}, 50%, 45%)` }}
@@ -95,7 +102,13 @@ function ContactItem({ contact, isSelected, onClick }) {
           )}
         </div>
       </div>
-    </motion.button>
+      </button>
+      {showActions && (
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <ContactActions contact={contact} />
+        </div>
+      )}
+    </motion.div>
   );
 }
 
