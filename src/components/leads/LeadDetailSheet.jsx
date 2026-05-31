@@ -27,6 +27,7 @@ import LeadScorePanel from '@/components/leads/LeadScorePanel';
 import LeadPropertyMatches from '@/components/leads/LeadPropertyMatches';
 import ContractWorkflow from '@/components/leads/ContractWorkflow';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
+import LeadAISummary from '@/components/leads/LeadAISummary';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -198,6 +199,9 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           </TabsList>
 
           <TabsContent value="details" className="p-6 space-y-5 mt-0" key={lead.id}>
+
+            {/* AI Summary */}
+            <LeadAISummary lead={lead} />
 
             {/* Ownership & Value */}
             <section>
