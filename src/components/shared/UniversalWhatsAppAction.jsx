@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
-import { normalizePhone } from '@/lib/phoneUtils';
+import { normalizePhone } from '@/lib/phone';
 import { toast } from 'sonner';
 
 /**

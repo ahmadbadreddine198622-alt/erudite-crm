@@ -29,6 +29,7 @@ import ContractWorkflow from '@/components/leads/ContractWorkflow';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 import LeadAISummary from '@/components/leads/LeadAISummary';
 import VoiceMemoButton from '@/components/leads/VoiceMemoButton';
+import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -255,9 +256,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               </div>
               <div className="space-y-3">
                 {lead.phone && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
-                    <Phone className="w-4 h-4 text-accent shrink-0" />
-                    <WhatsAppPhone
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-accent shrink-0" />
+                      <span className="text-foreground">{lead.phone}</span>
+                    </div>
+                    <UniversalWhatsAppAction
                       phone={lead.phone}
                       name={lead.full_name || lead.name}
                       leadId={lead.id}

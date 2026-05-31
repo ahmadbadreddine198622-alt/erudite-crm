@@ -19,7 +19,7 @@ import { format, isPast, parseISO } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/shared/PageHeader';
 import SourceBadge from '@/components/shared/SourceBadge';
-import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
+import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
@@ -512,7 +512,7 @@ export default function Leads() {
                     {/* Phone */}
                     <TableCell onClick={e => e.stopPropagation()}>
                       {lead.phone && (
-                        <WhatsAppPhone
+                        <UniversalWhatsAppAction
                           phone={lead.phone}
                           name={name}
                           leadId={lead.id}
