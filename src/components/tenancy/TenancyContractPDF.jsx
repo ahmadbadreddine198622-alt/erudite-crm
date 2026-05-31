@@ -39,6 +39,23 @@ export function GenerateTenancyPDFButton({ contract, size = 'sm', variant = 'out
       if (data?.error) throw new Error(data.error);
       if (!data?.pdf_url) throw new Error('No pdf_url returned by function');
 
+      // Open PDF directly in a new tab from the returned base64 bytes
+      if (data.pdf_base64) {
+        try {
+          const binary = atob(data.pdf_base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        } catch (e) {
+          window.open(data.pdf_url, '_blank');
+        }
+      } else {
+        window.open(data.pdf_url, '_blank');
+      }
+
       toast.success('Ejari Tenancy Contract generated', {
         description: contract.tenant_name || contract.id,
       });

@@ -209,7 +209,15 @@ Deno.serve(async (req) => {
       generated_at: new Date().toISOString(),
     });
 
-    return Response.json({ success: true, tenancyContractId, pdf_url, file_name: fileName });
+    // Also encode the PDF bytes as base64 so the caller can open it directly in the browser
+    let b64 = '';
+    const CHUNK = 8192;
+    for (let i = 0; i < outBytes.length; i += CHUNK) {
+      b64 += String.fromCharCode(...outBytes.subarray(i, i + CHUNK));
+    }
+    const pdf_base64 = btoa(b64);
+
+    return Response.json({ success: true, tenancyContractId, pdf_url, file_name: fileName, pdf_base64 });
   } catch (error) {
     console.error('generateTenancyContractPDF:', error);
     return Response.json({ error: error.message || 'Unknown error' }, { status: 500 });
