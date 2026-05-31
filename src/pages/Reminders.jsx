@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import ReminderDetailPanel from '@/components/reminders/ReminderDetailPanel';
 import AddReminderInline from '@/components/reminders/AddReminderInline';
+import { Sparkles } from 'lucide-react';
 
 // Smart tile component
 function SmartTile({ icon: Icon, label, count, gradient, onClick, active }) {
@@ -165,6 +166,8 @@ export default function Reminders() {
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
+  const [claudeAnalysis, setClaudeAnalysis] = useState(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
   const { data: reminders = [] } = useQuery({
     queryKey: ['reminders'],
@@ -261,6 +264,24 @@ export default function Reminders() {
       return new Date(a.due_at) - new Date(b.due_at);
     });
   }, [activeView, search, todayItems, scheduledItems, allItems, completedItems, flaggedItems, urgentItems, overdueItems, userGroups]);
+
+  const handleClaudeAnalysis = async () => {
+    setLoadingAnalysis(true);
+    try {
+      const res = await base44.functions.invoke('claudeAI', {
+        mode: 'chat',
+        messages: [{
+          role: 'user',
+          content: `Analyze these reminders and suggest priorities, patterns, and recommendations: ${JSON.stringify(activeItems.map(r => ({ title: r.title, due: r.due_at, priority: r.priority, status: r.status })))}`
+        }]
+      });
+      setClaudeAnalysis(res.data?.reply || 'No insights available');
+    } catch (error) {
+      console.error('Claude analysis failed:', error);
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
 
   const viewTitle = activeView === 'today' ? 'Today'
     : activeView === 'scheduled' ? 'Scheduled'
@@ -437,6 +458,30 @@ export default function Reminders() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Claude AI Insights */}
+        <div className="glass-card rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-accent" />
+              AI Insights
+            </h2>
+            <button
+              onClick={handleClaudeAnalysis}
+              disabled={loadingAnalysis || activeItems.length === 0}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 disabled:opacity-50 transition-colors"
+            >
+              {loadingAnalysis ? 'Analyzing...' : 'Ask Claude'}
+            </button>
+          </div>
+          {claudeAnalysis ? (
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {claudeAnalysis}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Click "Ask Claude" to get AI-powered insights about your reminders</p>
+          )}
         </div>
 
       </div>

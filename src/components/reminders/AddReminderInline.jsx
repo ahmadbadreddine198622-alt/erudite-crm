@@ -16,7 +16,8 @@ export default function AddReminderInline({ defaultListName, onClose }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reminders'] });
       setTitle('');
-      inputRef.current?.focus();
+      toast.success('Reminder added');
+      onClose();
     },
     onError: () => toast.error('Failed to create reminder'),
   });
@@ -31,9 +32,9 @@ export default function AddReminderInline({ defaultListName, onClose }) {
       is_editable: true,
       list_name: defaultListName || undefined,
       list_color: '#3b82f6',
+      due_at: new Date().toISOString(),
     });
-    setTitle('');
-  };
+  }
 
   return (
     <div className="flex items-center gap-3 px-5 py-3 bg-blue-50/40">
