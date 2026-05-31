@@ -57,6 +57,7 @@ import Profile from '@/pages/Profile';
 import VapiDashboard from '@/pages/VapiDashboard';
 import VapiWorkflow from '@/pages/VapiWorkflow';
 import GoogleDrive from '@/pages/GoogleDrive';
+import Notes from '@/pages/Notes';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -134,6 +135,7 @@ const AuthenticatedApp = () => {
         <Route path="/vapi" element={<VapiDashboard />} />
         <Route path="/vapi-workflow" element={<VapiWorkflow />} />
         <Route path="/google-drive" element={<GoogleDrive />} />
+        <Route path="/notes" element={<Notes />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

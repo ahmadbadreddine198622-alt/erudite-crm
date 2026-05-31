@@ -1,0 +1,64 @@
+{
+  "name": "Note",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Note title"
+    },
+    "body": {
+      "type": "string",
+      "description": "Raw note content pasted by user"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "deal",
+        "reference",
+        "personal",
+        "idea",
+        "other"
+      ],
+      "default": "other"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "imported_text",
+        "other"
+      ],
+      "default": "manual"
+    },
+    "ai_summary": {
+      "type": "string",
+      "description": "Claude-generated summary \u2014 read-only"
+    },
+    "ai_action_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Claude-extracted action items \u2014 read-only"
+    },
+    "ai_entities_mentioned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "People / properties / companies mentioned \u2014 read-only"
+    },
+    "linked_lead_id": {
+      "type": "string",
+      "description": "Optional linked lead"
+    },
+    "linked_landlord_id": {
+      "type": "string",
+      "description": "Optional linked landlord"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}
