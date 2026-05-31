@@ -439,54 +439,94 @@ Deno.serve(async (req) => {
       .slice(0, 60) || 'landlord';
     const fileName = `LeaseBrokerageAgreement_${safeOwner}_${refNo}.pdf`;
 
-    // Upload to Google Drive directly with base64 content
+    // Upload directly to Google Drive (inline — avoids function-to-function auth issues)
     let pdf_url: string | undefined;
-    try {
-      const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-        base64Content: base64Data,
-        fileName,
-        folderPath: 'Lease Agreements',
-        mimeType: 'application/pdf'
+    const { accessToken: driveToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+    if (!driveToken) throw new Error('Google Drive not connected — please authorise the Drive connector.');
+
+    // Resolve / create "Lease Agreements" folder
+    const folderSearchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("name='Lease Agreements' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false")}`,
+      { headers: { Authorization: `Bearer ${driveToken}` } }
+    );
+    const folderSearchData = await folderSearchRes.json();
+    let folderId: string;
+    if (folderSearchData.files && folderSearchData.files.length > 0) {
+      folderId = folderSearchData.files[0].id;
+    } else {
+      const mkRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Lease Agreements', mimeType: 'application/vnd.google-apps.folder', parents: ['root'] }),
       });
-      if (driveUpload?.file_url) {
-        pdf_url = driveUpload.file_url;
-      }
-    } catch (error) {
-      console.error('Google Drive upload failed:', error.message);
+      const mkData = await mkRes.json();
+      folderId = mkData.id;
     }
 
-    if (!pdf_url) {
-      // Fallback to Base44 storage if Google Drive fails
-      const pdfBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-      const uploadRes = await base44.integrations.Core.UploadFile({
-        file: new Blob([pdfBytes], { type: 'application/pdf' }),
-      });
-      pdf_url = uploadRes?.file_url;
-      if (!pdf_url) throw new Error('PDF upload failed (both Drive and Base44 storage)');
+    // Multipart upload
+    const pdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    const boundary = '---boundary_lease_pdf';
+    const metaPart = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ name: fileName, parents: [folderId] })}\r\n`;
+    const dataPart = `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+    const tail = `\r\n--${boundary}--`;
+    const metaBytes = new TextEncoder().encode(metaPart);
+    const dataHeaderBytes = new TextEncoder().encode(dataPart);
+    const tailBytes = new TextEncoder().encode(tail);
+    const combined = new Uint8Array(metaBytes.length + dataHeaderBytes.length + pdfBytes.length + tailBytes.length);
+    combined.set(metaBytes, 0);
+    combined.set(dataHeaderBytes, metaBytes.length);
+    combined.set(pdfBytes, metaBytes.length + dataHeaderBytes.length);
+    combined.set(tailBytes, metaBytes.length + dataHeaderBytes.length + pdfBytes.length);
+
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: combined,
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Drive upload failed: ${uploadRes.status} ${errText}`);
     }
+    const uploadData = await uploadRes.json();
+    const fileId = uploadData.id;
+
+    // Make shareable
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+    });
+
+    pdf_url = uploadData.webViewLink || `https://drive.google.com/file/d/${fileId}/view`;
+    console.log('PDF uploaded to Drive:', pdf_url);
 
 
 
     // ── DocuSign hand-off (owner is the signer; broker block is pre-signed) ──
-    const dsRes = await base44.functions.invoke('docusignSendForSignature', {
-      form_type: 'A',
-      pdf_url,
-      subject: `Lease Brokerage Agreement — ${f.building_name || property?.title || 'Erudite Property'} — Please Sign`,
-      message:
-        `Dear ${f.owner_name || 'Owner'},\n\n` +
-        `Please review and sign the attached Lease Brokerage Agreement for the property at ` +
-        `${f.location || ''}${f.building_name ? ', ' + f.building_name : ''}.\n\n` +
-        `Reference: ${refNo}`,
-      signers: [
-        {
-          role: 'owner',
-          name: f.owner_name || 'Owner',
-          email: f.owner_email,
-          phone: f.owner_phone,
-        },
-      ],
-      property_id: lpRow?.property_id || null,
-    });
+    let dsRes = null;
+    try {
+      dsRes = await base44.asServiceRole.functions.invoke('docusignSendForSignature', {
+        form_type: 'A',
+        pdf_url,
+        subject: `Lease Brokerage Agreement — ${f.building_name || property?.title || 'Erudite Property'} — Please Sign`,
+        message:
+          `Dear ${f.owner_name || 'Owner'},\n\n` +
+          `Please review and sign the attached Lease Brokerage Agreement for the property at ` +
+          `${f.location || ''}${f.building_name ? ', ' + f.building_name : ''}.\n\n` +
+          `Reference: ${refNo}`,
+        signers: [
+          {
+            role: 'owner',
+            name: f.owner_name || 'Owner',
+            email: f.owner_email,
+            phone: f.owner_phone,
+          },
+        ],
+        property_id: lpRow?.property_id || null,
+      });
+    } catch (dsError) {
+      console.warn('DocuSign skipped (not configured or failed):', dsError?.message);
+    }
 
     // ── Write-back: Landlord.lease_agreement_status → sent_for_signature ──
     await base44.asServiceRole.entities.Landlord.update(landlord_id, {
