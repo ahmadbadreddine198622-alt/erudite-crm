@@ -50,7 +50,7 @@ export default function LeaseAgreement() {
   const generateMutation = useMutation({
     mutationFn: (arg) => {
       const payload = typeof arg === 'string' ? { landlord_id: arg } : arg;
-      return base44.functions.generateLeaseBrokerageAgreement(payload);
+      return base44.functions.invoke('generateLeaseBrokerageAgreement', payload);
     },
     onSuccess: (res) => {
       const data = res?.data ?? res;
