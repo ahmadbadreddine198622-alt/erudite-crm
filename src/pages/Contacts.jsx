@@ -37,8 +37,9 @@ const TABS = [
 
 function ContactItem({ contact, isSelected, onClick }) {
   const [showActions, setShowActions] = useState(false);
-  const initials = contact.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
-  const hue = contact.name ? (contact.name.charCodeAt(0) * 7) % 360 : 200;
+  const contactName = contact.full_name || contact.name || 'Unnamed';
+  const initials = contactName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+  const hue = contactName ? (contactName.charCodeAt(0) * 7) % 360 : 200;
   const primaryPhone = contact.phones?.find(p => p.is_primary)?.number || contact.phone;
   const primaryEmail = contact.emails?.find(e => e.is_primary)?.address || contact.email;
 
@@ -69,7 +70,7 @@ function ContactItem({ contact, isSelected, onClick }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <p className={`text-sm font-semibold truncate ${isSelected ? 'text-accent' : 'text-foreground'}`}>
-              {contact.name}
+              {contactName}
             </p>
             {contact.stage && (
               <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[contact.stage] || 'bg-muted text-muted-foreground'}`}>
@@ -135,6 +136,7 @@ export default function ContactsPage() {
       if (c.assigned_agent_email !== currentUser.email) return false;
     }
     const matchSearch = !search
+      || c.full_name?.toLowerCase().includes(search.toLowerCase())
       || c.name?.toLowerCase().includes(search.toLowerCase())
       || c.phone?.includes(search)
       || c.email?.toLowerCase().includes(search.toLowerCase())
