@@ -414,11 +414,33 @@ export function GeneratePDFButton({ invoice }) {
       }
 
       const doc = await buildInvoicePDF(invoice, { propertyLabel, propertyDetails });
-      const blob = doc.output('blob');
+      const pdfBase64 = doc.output('datauristring');
+      const base64Data = pdfBase64.split(',')[1];
       const fileName = `${invoice.invoice_number || 'INV'}_${sanitizeFileSegment(invoice.payer_name)}.pdf`;
-      const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Upload to Google Drive directly with base64 content
+      let file_url;
+      try {
+        const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
+          base64Content: base64Data,
+          fileName,
+          folderPath: 'Invoices',
+          mimeType: 'application/pdf'
+        });
+        if (driveUpload?.file_url) {
+          file_url = driveUpload.file_url;
+        } else {
+          throw new Error('Google Drive upload failed');
+        }
+      } catch (driveError) {
+        console.error('Google Drive upload failed:', driveError.message);
+        // Fallback to Base44 storage
+        const blob = doc.output('blob');
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        const uploadRes = await base44.integrations.Core.UploadFile({ file });
+        file_url = uploadRes?.file_url;
+        if (!file_url) throw new Error('PDF upload failed (both Drive and Base44 storage)');
+      }
 
       const result = await base44.functions.invoke('generateInvoicePDF', {
         invoice_id: invoice.id,
