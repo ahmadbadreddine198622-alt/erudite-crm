@@ -13,10 +13,38 @@ Deno.serve(async (req) => {
         const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
         
         const body = await req.json();
-        const { fileName, base64Content, mimeType = 'application/pdf', folderName = 'PropCRM PDFs' } = body;
+        
+        // Support two calling conventions:
+        // 1. Direct base64 upload: { fileName, base64Content, mimeType, folderName }
+        // 2. File URL upload: { file_url, file_name, folder_name }
+        let fileName = body.fileName || body.file_name;
+        let base64Content = body.base64Content;
+        let mimeType = body.mimeType || 'application/pdf';
+        let folderName = body.folderName || body.folder_name || 'PropCRM PDFs';
+        
+        // If file_url is provided instead of base64Content, fetch it first
+        if (!base64Content && body.file_url) {
+            console.log('Fetching file from URL:', body.file_url);
+            const fileUrl = body.file_url;
+            const fileRes = await fetch(fileUrl);
+            if (!fileRes.ok) {
+                console.error('Failed to fetch file, status:', fileRes.status);
+                return Response.json({ error: 'Failed to fetch file from file_url' }, { status: 500 });
+            }
+            const blob = await fileRes.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            base64Content = btoa(String.fromCharCode(...bytes));
+            console.log('Successfully converted file to base64, length:', base64Content.length);
+            
+            // Extract filename from URL if not provided
+            if (!fileName) {
+                fileName = fileUrl.split('/').pop() || 'file.pdf';
+            }
+        }
         
         if (!fileName || !base64Content) {
-            return Response.json({ error: 'fileName and base64Content are required' }, { status: 400 });
+            return Response.json({ error: 'fileName and base64Content (or file_url) are required' }, { status: 400 });
         }
 
         // Step 1: Find or create the folder
@@ -54,6 +82,7 @@ Deno.serve(async (req) => {
         }
 
         // Step 2: Upload the file to the folder
+        console.log('Uploading to Google Drive, fileName:', fileName, 'folderId:', folderId);
         const decodedContent = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
         
         const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files', {
@@ -65,7 +94,9 @@ Deno.serve(async (req) => {
             body: decodedContent
         });
         
+        console.log('Google Drive upload response status:', uploadRes.status);
         const fileData = await uploadRes.json();
+        console.log('Google Drive upload response:', JSON.stringify(fileData, null, 2));
         
         if (!uploadRes.ok) {
             return Response.json({ 
@@ -94,6 +125,7 @@ Deno.serve(async (req) => {
             fileName: movedFile.name,
             folderId,
             folderName,
+            file_url: movedFile.webContentLink || movedFile.webViewLink,
             webViewLink: movedFile.webViewLink,
             webContentLink: movedFile.webContentLink
         });

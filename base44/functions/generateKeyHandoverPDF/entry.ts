@@ -1,7 +1,7 @@
-// generateKeyHandoverPDF — upload key handover PDF to Google Drive
+// generateKeyHandoverPDF — upload key handover PDF directly to Google Drive
 // 
-// This function receives the PDF data from the client, uploads it to
-// Base44 storage, then syncs to Google Drive "PropCRM PDFs" folder.
+// This function receives the PDF data from the client and uploads it directly
+// to Google Drive "PropCRM PDFs" folder.
 // Returns the Drive URL for storage/reference.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
@@ -19,37 +19,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'pdf_base64 is required' }, { status: 400 });
     }
 
-    // Convert base64 to blob and upload to Base44 storage
+    // Extract base64 data (remove data URI prefix if present)
     const base64Data = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
-    const pdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
-    const uploadRes = await base44.integrations.Core.UploadFile({
-      file: new Blob([pdfBytes], { type: 'application/pdf' }),
+    // Upload directly to Google Drive
+    const driveUpload = await base44.asServiceRole.functions.invoke('uploadToGoogleDrive', {
+      fileName: file_name || `KeyHandover_${new Date().toISOString().split('T')[0]}.pdf`,
+      base64Content: base64Data,
+      mimeType: 'application/pdf',
+      folderName: 'PropCRM PDFs'
     });
     
-    let pdf_url = uploadRes?.file_url;
-    if (!pdf_url) throw new Error('Failed to upload PDF to Base44 storage');
-
-    // Upload to Google Drive "PropCRM PDFs" folder
-    try {
-      const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-        file_url: pdf_url,
-        file_name: file_name || `KeyHandover_${new Date().toISOString().split('T')[0]}.pdf`,
-        folder_name: 'PropCRM PDFs'
-      });
-      
-      if (driveUpload?.success) {
-        pdf_url = driveUpload.file_url;
-      }
-    } catch (error) {
-      console.error('Google Drive upload failed:', error.message);
-      // Continue with Base44 storage URL as fallback
+    if (!driveUpload?.success) {
+      throw new Error('Failed to upload to Google Drive');
     }
 
     return Response.json({
       success: true,
-      pdf_url,
+      pdf_url: driveUpload.webViewLink || driveUpload.webContentLink,
       file_name: file_name || 'KeyHandover.pdf',
+      drive_file_id: driveUpload.fileId,
     });
   } catch (error) {
     console.error('generateKeyHandoverPDF:', error);
