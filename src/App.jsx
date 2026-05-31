@@ -53,6 +53,7 @@ import AISyncHub from '@/pages/AISyncHub';
 import IOSRemindersSync from '@/pages/iOSRemindersSync';
 import TeamManagement from '@/pages/TeamManagement';
 import LeaseAgreement from '@/pages/LeaseAgreement';
+import Profile from '@/pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
         <Route path="/ios-reminders" element={<IOSRemindersSync />} />
         <Route path="/team-management" element={<TeamManagement />} />
         <Route path="/lease-agreement" element={<LeaseAgreement />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
