@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -84,6 +84,16 @@ export default function LeaseAgreement() {
   const [manualForm, setManualForm] = useState({});
   const [formStep, setFormStep] = useState('form'); // 'form' | 'review'
   const [pdfUrls, setPdfUrls] = useState({}); // landlordId → pdfUrl
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Agreement removed');
+    },
+    onError: (e) => toast.error(`Failed: ${e.message}`),
+  });
 
   const openManual = (landlord) => {
     const init = Object.fromEntries(MANUAL_FIELDS.map((k) => [k, '']));
@@ -252,6 +262,16 @@ export default function LeaseAgreement() {
                           </Button>
                         </a>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        title="Remove agreement status"
+                        onClick={() => { if (confirm('Remove this landlord\'s agreement status?')) deleteMutation.mutate(landlord.id); }}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
