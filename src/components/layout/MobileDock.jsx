@@ -1,131 +1,303 @@
 /**
- * MobileDock — Premium iOS-grade floating nav bar.
- * Squircle icon containers, amber glow active state, dimensional depth.
+ * MobileDock — Slim floating nav bar with editable items.
+ * Long-press 4s on any icon → edit mode (jiggle + add/remove/reorder).
+ * Per-user config persisted to localStorage (keyed by user email).
  */
 
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, KanbanSquare, MoreHorizontal, UserCheck } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Home, Plus, Minus, X, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { ALL_APPS, DEFAULT_NAV_LABELS } from '@/lib/navApps';
 
-const NAV_ITEMS = [
-  { label: 'Pipeline', icon: KanbanSquare,   path: '/pipeline',  gradient: 'linear-gradient(145deg, #7c3aed 0%, #4c1d95 100%)', glow: 'rgba(139,92,246,0.55)' },
-  { label: 'Leads',    icon: Users,          path: '/leads',     gradient: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', glow: 'rgba(16,185,129,0.55)' },
-  // center Home slot
-  { label: 'Contacts', icon: UserCheck,      path: '/contacts',  gradient: 'linear-gradient(145deg, #0ea5e9 0%, #0e4d6e 100%)', glow: 'rgba(14,165,233,0.55)' },
-  { label: 'More',     icon: MoreHorizontal, path: '/reminders', gradient: 'linear-gradient(145deg, #f43f5e 0%, #881337 100%)', glow: 'rgba(244,63,94,0.55)' },
-];
+// ─── Constants ───────────────────────────────────────────────────────────────
+const SZ = 44;          // icon squircle size
+const R  = `${Math.round(SZ * 0.245)}px`;
+const GLYPH = Math.round(SZ * 0.55);
+const HOME_SZ = 58;
+const HOME_R  = `${Math.round(HOME_SZ * 0.245)}px`;
+const HOME_GLYPH = Math.round(HOME_SZ * 0.55);
+const LONG_PRESS_MS = 4000;
+const HOLD_CUE_MS   = 2000;
+const MIN_ITEMS = 3;
+const MAX_ITEMS = 5;
 
-const SQUIRCLE_SIZE = 46;
-const SQUIRCLE_R = Math.round(SQUIRCLE_SIZE * 0.24);
+function storageKey(email) {
+  return `nav_bar_items_${email || 'default'}`;
+}
 
-function NavIcon({ icon: Icon, label, path, gradient, glow, active }) {
-  const [pressed, setPressed] = React.useState(false);
-  const sz = SQUIRCLE_SIZE;
-  const r = `${SQUIRCLE_R}px`;
-  const iconSz = Math.round(sz * 0.58);
+function loadSavedItems(email) {
+  try {
+    const raw = localStorage.getItem(storageKey(email));
+    if (!raw) return null;
+    const labels = JSON.parse(raw);
+    const resolved = labels
+      .map(l => ALL_APPS.find(a => a.label === l))
+      .filter(Boolean);
+    if (resolved.length >= MIN_ITEMS) return resolved;
+  } catch {}
+  return null;
+}
 
-  // Active → amber gradient; inactive → item's own gradient (slightly muted)
-  const bgGradient = active
-    ? 'linear-gradient(145deg, rgba(245,158,11,0.85) 0%, rgba(180,100,0,0.70) 100%)'
-    : gradient;
-  const activeGlow = 'rgba(245,158,11,0.55)';
+// ─── Squircle Icon ─────────────────────────────────────────────────────────
+function NavIcon({ app, active, editMode, onRemove, holdCue }) {
+  const { icon: Icon, gradient, label } = app;
+  const [pressed, setPressed] = useState(false);
+
+  const activeBg = 'linear-gradient(145deg, rgba(245,158,11,0.85) 0%, rgba(180,100,0,0.70) 100%)';
+  const bg = active ? activeBg : gradient
+    .replace('from-', '').split(' to-')
+    .reduce((_, __, i, arr) => i === 0
+      ? `linear-gradient(145deg, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%)`
+      : _);
+
+  // Build gradient from tailwind class strings
+  const gradientStyle = (() => {
+    const match = gradient.match(/from-(\S+)\s+to-(\S+)/);
+    if (!match) return gradient;
+    return gradient; // will use className bg-gradient-to-br
+  })();
+
+  const scale = active ? 1.05 : pressed ? 0.93 : 1;
+  const glow = active ? '0 6px 18px rgba(245,158,11,0.50), 0 2px 8px rgba(0,0,0,0.40)' : '0 3px 12px rgba(0,0,0,0.45)';
 
   return (
-    <Link
-      to={path}
-      className="flex flex-col items-center gap-1 select-none"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-    >
-      {/* Glow halo — active only, contained */}
-      {active && (
-        <div style={{
-          position: 'absolute',
-          width: sz + 6, height: sz + 6,
-          borderRadius: `${SQUIRCLE_R + 2}px`,
-          background: activeGlow,
-          filter: 'blur(8px)',
-          opacity: 0.55,
-          pointerEvents: 'none',
-          transform: 'translate(-50%, -50%)',
-          top: '50%', left: '50%',
-          zIndex: 0,
-        }} />
+    <div className="flex flex-col items-center gap-[3px] relative select-none" style={{ WebkitTapHighlightColor: 'transparent' }}>
+      {/* Remove badge */}
+      {editMode && (
+        <button
+          onPointerDown={e => { e.stopPropagation(); onRemove(); }}
+          className="absolute -top-1.5 -left-1 z-20 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
+          style={{ fontSize: 10 }}
+        >
+          <Minus className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+        </button>
       )}
 
-      {/* Squircle container */}
-      <div style={{
-        width: sz, height: sz,
-        borderRadius: r,
-        position: 'relative',
-        transform: pressed ? 'scale(0.93)' : active ? 'scale(1.06)' : 'scale(1)',
-        transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1), box-shadow 0.22s ease',
-        boxShadow: active
-          ? `0 6px 22px ${activeGlow}, 0 2px 8px rgba(0,0,0,0.40)`
-          : '0 4px 14px rgba(0,0,0,0.50)',
-        zIndex: 1,
-      }}>
+      <div
+        style={{
+          width: SZ, height: SZ, borderRadius: R, position: 'relative',
+          transform: `scale(${holdCue ? 1.1 : scale})`,
+          transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1)',
+          boxShadow: glow,
+        }}
+        onPointerDown={() => setPressed(true)}
+        onPointerUp={() => setPressed(false)}
+        onPointerLeave={() => setPressed(false)}
+      >
         {/* Gradient base */}
-        <div style={{ position: 'absolute', inset: 0, borderRadius: r, background: bgGradient, transition: 'background 0.22s ease' }} />
-
-        {/* Frosted glass overlay */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${app.gradient.replace('from-', 'from-').replace(' to-', ' to-')}`}
+          style={{ borderRadius: R, filter: active ? 'saturate(1.5) brightness(1.1)' : 'none' }} />
+        {/* Glass overlay */}
         <div style={{
-          position: 'absolute', inset: 0, borderRadius: r,
+          position: 'absolute', inset: 0, borderRadius: R,
           backdropFilter: 'blur(20px) saturate(160%)',
           WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: active ? '1.5px solid rgba(255,255,255,0.30)' : '1px solid rgba(255,255,255,0.14)',
-          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
-          transition: 'border-color 0.22s ease',
+          border: active ? '1.5px solid rgba(255,255,255,0.30)' : '1px solid rgba(255,255,255,0.15)',
+          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.30)',
         }} />
-
-        {/* iOS top gloss */}
+        {/* Top gloss */}
         <div style={{
-          position: 'absolute', inset: 0, borderRadius: r,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0) 60%)',
+          position: 'absolute', inset: 0, borderRadius: R,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 42%, rgba(255,255,255,0) 60%)',
           pointerEvents: 'none',
         }} />
-
-        {/* Inner depth shadow */}
+        {/* Inner depth */}
         <div style={{
-          position: 'absolute', inset: 0, borderRadius: r,
+          position: 'absolute', inset: 0, borderRadius: R,
           boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.08), inset 0 -4px 10px rgba(0,0,0,0.28)',
           pointerEvents: 'none',
         }} />
-
-        {/* Icon glyph */}
+        {/* Active amber overlay */}
+        {active && (
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: R,
+            background: 'linear-gradient(145deg, rgba(245,158,11,0.60) 0%, rgba(160,90,0,0.50) 100%)',
+          }} />
+        )}
         <Icon style={{
-          position: 'absolute',
-          width: iconSz, height: iconSz,
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
+          position: 'absolute', width: GLYPH, height: GLYPH,
+          top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           color: 'rgba(255,255,255,0.95)',
-          filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65)) drop-shadow(0 2px 6px rgba(0,0,0,0.40))',
-          strokeWidth: 2.2,
-          zIndex: 2,
+          filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65))',
+          strokeWidth: 2.2, zIndex: 2,
         }} />
+        {/* Active contained glow */}
+        {active && (
+          <div style={{
+            position: 'absolute', inset: -3, borderRadius: `calc(${R} + 3px)`,
+            background: 'rgba(245,158,11,0.45)',
+            filter: 'blur(8px)', opacity: 0.55,
+            pointerEvents: 'none', zIndex: -1,
+          }} />
+        )}
+        {/* Hold cue ring */}
+        {holdCue && (
+          <div style={{
+            position: 'absolute', inset: -4, borderRadius: `calc(${R} + 4px)`,
+            border: '2px solid rgba(245,158,11,0.6)',
+            animation: 'pulse 1s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
+        )}
       </div>
 
       <span style={{
-        fontSize: 9,
-        fontWeight: active ? 600 : 400,
+        fontSize: 9, fontWeight: active ? 600 : 400,
         color: active ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.45)',
         letterSpacing: '0.02em',
-        transition: 'color 0.22s ease',
       }}>{label}</span>
-    </Link>
+    </div>
   );
 }
 
+// ─── App Picker Modal ─────────────────────────────────────────────────────
+function AppPicker({ currentItems, onAdd, onClose }) {
+  const available = ALL_APPS.filter(a => !currentItems.find(c => c.path === a.path));
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-t-3xl overflow-hidden"
+        style={{
+          background: 'rgba(12,16,28,0.96)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderTopColor: 'rgba(255,255,255,0.20)',
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.7)',
+          maxHeight: '72dvh',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+        <div className="flex items-center justify-between px-5 pb-3 pt-2">
+          <p className="text-sm font-semibold text-white/80">Add to Nav Bar</p>
+          <button onPointerDown={onClose} className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+            <X className="w-4 h-4 text-white/60" />
+          </button>
+        </div>
+        <div className="overflow-y-auto pb-8 px-4" style={{ maxHeight: '56dvh' }}>
+          <div className="grid grid-cols-4 gap-x-3 gap-y-5">
+            {available.map(app => {
+              const Icon = app.icon;
+              return (
+                <button
+                  key={app.path}
+                  onPointerDown={() => onAdd(app)}
+                  className="flex flex-col items-center gap-1.5 select-none"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div style={{
+                    width: 52, height: 52,
+                    borderRadius: `${Math.round(52 * 0.245)}px`,
+                    position: 'relative',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.50)',
+                  }}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${app.gradient}`}
+                      style={{ borderRadius: `${Math.round(52 * 0.245)}px` }} />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      borderRadius: `${Math.round(52 * 0.245)}px`,
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderTopColor: 'rgba(255,255,255,0.30)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      borderRadius: `${Math.round(52 * 0.245)}px`,
+                      background: 'linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0) 55%)',
+                      pointerEvents: 'none',
+                    }} />
+                    <Icon style={{
+                      position: 'absolute', width: Math.round(52 * 0.55), height: Math.round(52 * 0.55),
+                      top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                      color: 'rgba(255,255,255,0.95)', strokeWidth: 2.2, zIndex: 2,
+                      filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65))',
+                    }} />
+                  </div>
+                  <span className="text-[9px] text-white/60 text-center leading-tight max-w-[56px]">{app.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {available.length === 0 && (
+            <p className="text-white/40 text-sm text-center py-8">All apps are already in your nav bar</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main MobileDock ───────────────────────────────────────────────────────
 export default function MobileDock() {
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
 
-  // Context-aware Home button data
+  // Load user email for per-user storage
+  const [userEmail, setUserEmail] = useState('');
+  useEffect(() => {
+    base44.auth.me().then(u => { if (u?.email) setUserEmail(u.email); }).catch(() => {});
+  }, []);
+
+  // Nav items state
+  const [items, setItems] = useState(() => {
+    const saved = loadSavedItems('');
+    return saved || ALL_APPS.filter(a => DEFAULT_NAV_LABELS.includes(a.label)).slice(0, 4);
+  });
+
+  // Reload when we get user email
+  useEffect(() => {
+    if (!userEmail) return;
+    const saved = loadSavedItems(userEmail);
+    if (saved) setItems(saved);
+  }, [userEmail]);
+
+  const persistItems = useCallback((newItems, email) => {
+    setItems(newItems);
+    localStorage.setItem(storageKey(email || userEmail), JSON.stringify(newItems.map(a => a.label)));
+  }, [userEmail]);
+
+  // Edit mode
+  const [editMode, setEditMode] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [holdingPath, setHoldingPath] = useState(null);
+  const [holdCueActive, setHoldCueActive] = useState(false);
+  const pressTimer = useRef(null);
+  const cueTimer = useRef(null);
+
+  const startHold = useCallback((path) => {
+    if (editMode) return;
+    setHoldingPath(path);
+    cueTimer.current = setTimeout(() => setHoldCueActive(true), HOLD_CUE_MS);
+    pressTimer.current = setTimeout(() => {
+      setEditMode(true);
+      setHoldingPath(null);
+      setHoldCueActive(false);
+    }, LONG_PRESS_MS);
+  }, [editMode]);
+
+  const cancelHold = useCallback(() => {
+    clearTimeout(pressTimer.current);
+    clearTimeout(cueTimer.current);
+    setHoldingPath(null);
+    setHoldCueActive(false);
+  }, []);
+
+  const exitEdit = useCallback(() => {
+    setEditMode(false);
+    setShowPicker(false);
+  }, []);
+
+  // Badge data
   const { data: reminders = [] } = useQuery({
     queryKey: ['dock-reminders'],
     queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20),
@@ -137,165 +309,260 @@ export default function MobileDock() {
     staleTime: 60_000,
   });
 
-  const urgentCount = reminders.filter(r => {
-    if (!r.due_at) return false;
-    const overdue = new Date(r.due_at) < new Date();
-    return overdue;
-  }).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
+  const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length
+    + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
   const isUrgent = urgentCount > 0;
-
-  // Dynamic Home colors
   const homeColor = isUrgent ? 'rgba(239,68,68,1)' : 'rgba(245,158,11,1)';
-  const homeGlow = isUrgent ? 'rgba(239,68,68,0.50)' : 'rgba(245,158,11,0.50)';
-  const homeGlowBloom = isUrgent ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.38)';
-  const homeIconColor = isUrgent ? 'hsl(0 84% 65%)' : 'hsl(38 92% 55%)';
+  const homeGlow  = isUrgent ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.45)';
 
-  const HOME_SIZE = 62;
-  const HOME_R = `${Math.round(HOME_SIZE * 0.24)}px`;
-  const homeIconSz = Math.round(HOME_SIZE * 0.52);
+  // DnD
+  const onDragEnd = ({ source, destination }) => {
+    if (!destination) return;
+    const next = [...items];
+    const [moved] = next.splice(source.index, 1);
+    next.splice(destination.index, 0, moved);
+    persistItems(next);
+  };
+
+  const removeItem = (path) => {
+    if (items.length <= MIN_ITEMS) return;
+    persistItems(items.filter(i => i.path !== path));
+  };
+
+  const addItem = (app) => {
+    if (items.length >= MAX_ITEMS) return;
+    persistItems([...items, app]);
+    setShowPicker(false);
+  };
+
+  // Split items into left/right of Home
+  const half = Math.floor(items.length / 2);
+  const leftItems  = items.slice(0, half);
+  const rightItems = items.slice(half);
+  const allIds = items.map(i => i.path);
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-    >
-      <div className="flex justify-center" style={{ padding: '0 16px 18px' }}>
-        {/* Floating pill bar */}
-        <div
-          style={{
-            background: 'rgba(6, 8, 16, 0.88)',
-            backdropFilter: 'blur(48px) saturate(220%)',
-            WebkitBackdropFilter: 'blur(48px) saturate(220%)',
-            borderRadius: '36px',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderTopColor: 'rgba(255,255,255,0.18)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.70), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 1px rgba(245,159,10,0.10)',
-            padding: '10px 18px 10px',
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: '6px',
-          }}
-        >
-          {/* Left 2 items */}
-          {NAV_ITEMS.slice(0, 2).map(item => (
-            <div key={item.path} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <NavIcon {...item} active={location.pathname === item.path} />
-            </div>
-          ))}
-
-          {/* Center Home — largest, most elevated */}
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px' }}>
-            {/* Outer glow bloom — contained, no bleed */}
-            <div style={{
-              position: 'absolute',
-              width: HOME_SIZE + 8,
-              height: HOME_SIZE + 8,
-              borderRadius: `${Math.round(HOME_SIZE * 0.24) + 2}px`,
-              background: homeGlowBloom,
-              filter: 'blur(10px)',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -56%)',
-              pointerEvents: 'none',
-              zIndex: 0,
-              transition: 'background 0.4s ease',
-            }} />
-            {/* Urgent pulse ring */}
-            {isUrgent && (
-              <div style={{
-                position: 'absolute',
-                width: HOME_SIZE + 16, height: HOME_SIZE + 16,
-                borderRadius: `${Math.round(HOME_SIZE * 0.24) + 4}px`,
-                border: '2px solid rgba(239,68,68,0.55)',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -56%)',
-                pointerEvents: 'none',
-                zIndex: 1,
-                animation: 'pulse 2s ease-in-out infinite',
-              }} />
-            )}
-
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex justify-center" style={{ padding: '0 16px 14px' }}>
+          {/* "Done" button above the pill */}
+          {editMode && (
             <button
-              type="button"
-              onClick={() => navigate('/')}
-              aria-label="Home"
-              aria-current={isHome ? 'page' : undefined}
+              onPointerDown={exitEdit}
+              className="absolute text-xs font-semibold px-3 py-1 rounded-full"
               style={{
-                width: HOME_SIZE, height: HOME_SIZE,
-                borderRadius: HOME_R,
-                position: 'relative',
-                top: isHome ? '-14px' : '-10px',
-                zIndex: 2,
-                border: `2px solid ${isHome ? homeColor.replace('1)', '0.55)') : homeColor.replace('1)', '0.30)')}`,
-                borderTopColor: `rgba(255,255,255,${isHome ? '0.55' : '0.35'})`,
-                boxShadow: isHome
-                  ? `0 14px 42px ${homeGlow}, 0 4px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22)`
-                  : `0 8px 28px ${homeGlow.replace('0.50', '0.25')}, 0 2px 10px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14)`,
-                background: isHome ? homeColor.replace('1)', '0.18)') : homeColor.replace('1)', '0.09)'),
-                transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1), background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
-                backdropFilter: 'blur(32px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-                cursor: 'pointer',
-                transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bottom: 'calc(env(safe-area-inset-bottom) + 90px)',
+                background: 'rgba(245,158,11,0.18)',
+                border: '1px solid rgba(245,158,11,0.35)',
+                color: 'hsl(38 92% 55%)',
               }}
             >
-              {/* Gradient base — shifts red when urgent */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: HOME_R,
-                background: isUrgent
-                  ? 'linear-gradient(145deg, rgba(239,68,68,0.55) 0%, rgba(180,20,20,0.40) 100%)'
-                  : 'linear-gradient(145deg, rgba(245,158,11,0.55) 0%, rgba(180,100,0,0.40) 100%)',
-                transition: 'background 0.4s ease',
-              }} />
-              {/* Top gloss */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: HOME_R,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 52%)',
-                pointerEvents: 'none',
-              }} />
-              {/* Urgent count badge */}
-              {isUrgent && (
-                <div style={{
-                  position: 'absolute', top: -5, right: -5,
-                  background: 'rgb(239,68,68)',
-                  color: '#fff',
-                  fontSize: 8, fontWeight: 700,
-                  minWidth: 16, height: 16,
-                  borderRadius: 99,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1.5px solid rgba(6,8,16,0.9)',
-                  zIndex: 5,
-                  padding: '0 3px',
-                }}>{urgentCount > 99 ? '99+' : urgentCount}</div>
-              )}
-              <Home style={{
-                width: homeIconSz, height: homeIconSz,
-                position: 'relative', zIndex: 2,
-                color: homeIconColor,
-                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.60))',
-                strokeWidth: 2.2,
-                transition: 'color 0.4s ease',
-              }} />
+              Done
             </button>
+          )}
 
-            <span style={{
-              fontSize: 9,
-              fontWeight: isHome ? 700 : 400,
-              color: isHome ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.40)',
-              letterSpacing: '0.02em',
-              transition: 'color 0.22s ease',
-              marginTop: 2,
-            }}>Home</span>
-          </div>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div
+              style={{
+                background: 'rgba(6,8,16,0.88)',
+                backdropFilter: 'blur(48px) saturate(220%)',
+                WebkitBackdropFilter: 'blur(48px) saturate(220%)',
+                borderRadius: '32px',
+                border: '1px solid rgba(255,255,255,0.10)',
+                borderTopColor: 'rgba(255,255,255,0.18)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 1px rgba(245,159,10,0.08)',
+                padding: '7px 14px 7px',
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '4px',
+              }}
+            >
+              {/* Left items */}
+              <Droppable droppableId="nav-left" direction="horizontal" isDropDisabled={!editMode}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="flex items-end gap-1">
+                    {leftItems.map((item, idx) => (
+                      <Draggable key={item.path} draggableId={`nav-${item.path}`} index={idx} isDragDisabled={!editMode}>
+                        {(p) => (
+                          <div
+                            ref={p.innerRef}
+                            {...p.draggableProps}
+                            {...p.dragHandleProps}
+                            onPointerDown={() => startHold(item.path)}
+                            onPointerUp={cancelHold}
+                            onPointerLeave={cancelHold}
+                            onClick={() => { if (!editMode) navigate(item.path); }}
+                            className={editMode && !false ? 'animate-wiggle' : ''}
+                            style={{ position: 'relative' }}
+                          >
+                            <NavIcon
+                              app={item}
+                              active={!editMode && location.pathname === item.path}
+                              editMode={editMode}
+                              onRemove={() => removeItem(item.path)}
+                              holdCue={holdingPath === item.path && holdCueActive}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
 
-          {/* Right 2 items */}
-          {NAV_ITEMS.slice(2).map(item => (
-            <div key={item.path} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <NavIcon {...item} active={location.pathname === item.path} />
+              {/* Center Home — fixed anchor */}
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 2px' }}>
+                {/* Contained bloom */}
+                <div style={{
+                  position: 'absolute',
+                  width: HOME_SZ + 8, height: HOME_SZ + 8,
+                  borderRadius: `${Math.round(HOME_SZ * 0.245) + 2}px`,
+                  background: homeGlow,
+                  filter: 'blur(10px)',
+                  top: '50%', left: '50%',
+                  transform: 'translate(-50%, -58%)',
+                  pointerEvents: 'none', zIndex: 0,
+                  transition: 'background 0.4s ease',
+                }} />
+                {isUrgent && (
+                  <div style={{
+                    position: 'absolute',
+                    width: HOME_SZ + 14, height: HOME_SZ + 14,
+                    borderRadius: `${Math.round(HOME_SZ * 0.245) + 3}px`,
+                    border: '2px solid rgba(239,68,68,0.50)',
+                    top: '50%', left: '50%',
+                    transform: 'translate(-50%, -58%)',
+                    pointerEvents: 'none', zIndex: 1,
+                    animation: 'pulse 2s ease-in-out infinite',
+                  }} />
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  aria-label="Home"
+                  style={{
+                    width: HOME_SZ, height: HOME_SZ,
+                    borderRadius: HOME_R,
+                    position: 'relative',
+                    top: isHome ? '-12px' : '-8px',
+                    zIndex: 2,
+                    border: `2px solid ${isHome ? homeColor.replace('1)', '0.50)') : homeColor.replace('1)', '0.25)')}`,
+                    borderTopColor: `rgba(255,255,255,${isHome ? '0.55' : '0.30'})`,
+                    boxShadow: isHome
+                      ? `0 12px 36px ${homeGlow}, 0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22)`
+                      : `0 6px 20px ${homeGlow.replace('0.45', '0.20')}, 0 2px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14)`,
+                    background: isHome ? homeColor.replace('1)', '0.18)') : homeColor.replace('1)', '0.09)'),
+                    backdropFilter: 'blur(32px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+                    cursor: 'pointer',
+                    transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: HOME_R,
+                    background: isUrgent
+                      ? 'linear-gradient(145deg, rgba(239,68,68,0.55) 0%, rgba(180,20,20,0.40) 100%)'
+                      : 'linear-gradient(145deg, rgba(245,158,11,0.55) 0%, rgba(180,100,0,0.40) 100%)',
+                    transition: 'background 0.4s ease',
+                  }} />
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: HOME_R,
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 52%)',
+                    pointerEvents: 'none',
+                  }} />
+                  {isUrgent && (
+                    <div style={{
+                      position: 'absolute', top: -5, right: -5,
+                      background: 'rgb(239,68,68)', color: '#fff',
+                      fontSize: 8, fontWeight: 700,
+                      minWidth: 16, height: 16, borderRadius: 99,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '1.5px solid rgba(6,8,16,0.9)', zIndex: 5, padding: '0 3px',
+                    }}>{urgentCount > 99 ? '99+' : urgentCount}</div>
+                  )}
+                  <Home style={{
+                    width: HOME_GLYPH, height: HOME_GLYPH,
+                    position: 'relative', zIndex: 2,
+                    color: isUrgent ? 'hsl(0 84% 65%)' : 'hsl(38 92% 55%)',
+                    filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.60))',
+                    strokeWidth: 2.2,
+                    transition: 'color 0.4s ease',
+                  }} />
+                </button>
+                <span style={{
+                  fontSize: 9, fontWeight: isHome ? 700 : 400,
+                  color: isHome ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.40)',
+                  letterSpacing: '0.02em', marginTop: 2,
+                  transition: 'color 0.22s ease',
+                }}>Home</span>
+              </div>
+
+              {/* Right items */}
+              <Droppable droppableId="nav-right" direction="horizontal" isDropDisabled={!editMode}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="flex items-end gap-1">
+                    {rightItems.map((item, idx) => (
+                      <Draggable key={item.path} draggableId={`nav-${item.path}`} index={idx} isDragDisabled={!editMode}>
+                        {(p) => (
+                          <div
+                            ref={p.innerRef}
+                            {...p.draggableProps}
+                            {...p.dragHandleProps}
+                            onPointerDown={() => startHold(item.path)}
+                            onPointerUp={cancelHold}
+                            onPointerLeave={cancelHold}
+                            onClick={() => { if (!editMode) navigate(item.path); }}
+                            className={editMode ? 'animate-wiggle' : ''}
+                            style={{ position: 'relative' }}
+                          >
+                            <NavIcon
+                              app={item}
+                              active={!editMode && location.pathname === item.path}
+                              editMode={editMode}
+                              onRemove={() => removeItem(item.path)}
+                              holdCue={holdingPath === item.path && holdCueActive}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+
+              {/* Add slot — shown in edit mode if under max */}
+              {editMode && items.length < MAX_ITEMS && (
+                <button
+                  onPointerDown={() => setShowPicker(true)}
+                  className="flex flex-col items-center gap-[3px] select-none"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div style={{
+                    width: SZ, height: SZ, borderRadius: R,
+                    border: '1.5px dashed rgba(255,255,255,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(255,255,255,0.05)',
+                  }}>
+                    <Plus className="w-5 h-5 text-white/40" strokeWidth={2} />
+                  </div>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.30)' }}>Add</span>
+                </button>
+              )}
             </div>
-          ))}
+          </DragDropContext>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {showPicker && (
+        <AppPicker
+          currentItems={items}
+          onAdd={addItem}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+    </>
   );
 }
