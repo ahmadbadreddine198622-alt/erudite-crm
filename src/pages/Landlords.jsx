@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,7 @@ import KanbanBoard from '@/components/landlord/KanbanBoard';
 import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
+import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
 
 const STAGES = [
   'initial_contact',
@@ -48,6 +49,7 @@ export default function Landlords() {
   const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showVirtualViewing, setShowVirtualViewing] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const [filterProject, setFilterProject] = useState('');
@@ -206,6 +208,10 @@ export default function Landlords() {
                 <Upload className="w-4 h-4" />
                 Import Owners
               </Button>
+              <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2">
+                <Video className="w-4 h-4" />
+                Virtual Viewing
+              </Button>
               <Button onClick={() => setShowNewDialog(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 New Landlord
@@ -357,6 +363,15 @@ export default function Landlords() {
       <ImportOwnersDialog
         open={showImportDialog}
         onClose={() => setShowImportDialog(false)}
+      />
+      <ScheduleVirtualViewingDialog
+        open={showVirtualViewing}
+        onClose={() => setShowVirtualViewing(false)}
+        prefill={selectedLandlord ? {
+          landlord_name:  selectedLandlord.full_name_en,
+          landlord_email: selectedLandlord.email,
+          landlord_phone: selectedLandlord.phone,
+        } : {}}
       />
     </div>
   );
