@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2 } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -60,9 +60,10 @@ export default function LeaseAgreement() {
         : generateMutation.variables?.landlord_id;
       if (pdfUrl && landlordId) {
         setPdfUrls(prev => ({ ...prev, [landlordId]: pdfUrl }));
-        // Auto-open the PDF
-        window.open(pdfUrl, '_blank');
-        toast.success('Agreement generated — PDF opened in new tab');
+        // Show inline PDF viewer (avoids browser popup blocking)
+        const landlordName = landlords.find(l => l.id === landlordId)?.full_name_en || 'Agreement';
+        setPdfViewer({ url: pdfUrl, name: landlordName });
+        toast.success('Agreement generated — PDF ready');
       } else if (data?.skipped) {
         toast.info(data.reason || 'Already sent for signature.');
       } else {
@@ -84,6 +85,8 @@ export default function LeaseAgreement() {
   const [manualForm, setManualForm] = useState({});
   const [formStep, setFormStep] = useState('form'); // 'form' | 'review'
   const [pdfUrls, setPdfUrls] = useState({}); // landlordId → pdfUrl
+  const [pdfViewer, setPdfViewer] = useState(null); // { url, name }
+  const [summaryLandlord, setSummaryLandlord] = useState(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
@@ -254,13 +257,18 @@ export default function LeaseAgreement() {
                         <PenLine className="w-3.5 h-3.5" />
                         Manual
                       </Button>
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        title="Summary"
+                        onClick={() => setSummaryLandlord(landlord)}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </Button>
                       {pdfUrls[landlord.id] && (
-                        <a href={pdfUrls[landlord.id]} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="ghost" className="gap-1.5 text-accent hover:text-accent" title="View last generated PDF">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            PDF
-                          </Button>
-                        </a>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-accent hover:text-accent" title="View PDF" onClick={() => setPdfViewer({ url: pdfUrls[landlord.id], name: landlord.full_name_en })}>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Button>
                       )}
                       <Button
                         size="sm"
@@ -297,6 +305,70 @@ export default function LeaseAgreement() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── PDF Viewer Dialog ── */}
+      <Dialog open={!!pdfViewer} onOpenChange={(o) => !o && setPdfViewer(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b border-white/10 flex-row items-center justify-between">
+            <DialogTitle className="text-sm font-medium">{pdfViewer?.name} — Lease Brokerage Agreement</DialogTitle>
+            <div className="flex items-center gap-2">
+              <a href={pdfViewer?.url} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
+                  <ExternalLink className="w-3 h-3" /> Open in tab
+                </Button>
+              </a>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setPdfViewer(null)}><X className="w-3.5 h-3.5" /></Button>
+            </div>
+          </DialogHeader>
+          {pdfViewer?.url && (
+            <iframe
+              src={pdfViewer.url}
+              className="flex-1 w-full border-0"
+              title="Lease Agreement PDF"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Summary Dialog ── */}
+      <Dialog open={!!summaryLandlord} onOpenChange={(o) => !o && setSummaryLandlord(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agreement Summary</DialogTitle>
+            <DialogDescription>{summaryLandlord?.full_name_en}</DialogDescription>
+          </DialogHeader>
+          {summaryLandlord && (
+            <div className="space-y-1">
+              {[
+                ['Full Name', summaryLandlord.full_name_en],
+                ['Email', summaryLandlord.email],
+                ['Phone', summaryLandlord.phone],
+                ['Passport No.', summaryLandlord.passport_no],
+                ['Nationality', summaryLandlord.nationality],
+                ['Source', summaryLandlord.source],
+                ['Mandate', summaryLandlord.mandate_type],
+                ['Agreement Status', summaryLandlord.lease_agreement_status?.replace(/_/g, ' ')],
+                ['Stage', summaryLandlord.stage?.replace(/_/g, ' ')],
+                ['Assigned Agent', summaryLandlord.assigned_agent_email],
+              ].filter(([, v]) => v).map(([label, value], i) => (
+                <div key={label} className={`flex justify-between px-3 py-2 rounded text-sm ${i % 2 === 0 ? 'bg-white/5' : ''}`}>
+                  <span className="text-white/50">{label}</span>
+                  <span className="font-medium text-right max-w-[60%] truncate">{value}</span>
+                </div>
+              ))}
+              {pdfUrls[summaryLandlord.id] && (
+                <div className="pt-3">
+                  <a href={pdfUrls[summaryLandlord.id]} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" className="w-full gap-1.5">
+                      <ExternalLink className="w-3.5 h-3.5" /> View Generated PDF
+                    </Button>
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Manual override dialog */}
       <Dialog open={!!manualForLandlord} onOpenChange={(o) => !o && setManualForLandlord(null)}>
