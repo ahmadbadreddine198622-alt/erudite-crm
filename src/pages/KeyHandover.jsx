@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import HandoverItems from '@/components/handover/HandoverItems';
 import { buildHandoverPDF } from '@/lib/buildHandoverPDF';
 import { LOGO_URL, SIGNATURE_URL, STAMP_URL } from '@/lib/pdfBrand';
+import { base44 } from '@/api/base44Client';
 
 const HANDOVER_TYPES = {
   owner_to_buyer_sale:              { label: 'Owner → Buyer (Sale)',                 fromLabel: 'OWNER / SELLER',             toLabel: 'BUYER',                   toPreset: null },
@@ -125,9 +126,27 @@ export default function KeyHandover() {
         },
         { logoUrl, signatureUrl: sigUrl, stampUrl }
       );
+      
+      // Convert PDF to base64
+      const pdfBase64 = doc.output('datauristring');
+      
+      // Upload to Google Drive via backend function
       const lastName = (toParty.name || 'Recipient').trim().split(' ').pop();
-      doc.save(`Erudite_KeyHandover_${lastName}.pdf`);
-      toast.success('PDF downloaded!');
+      const fileName = `Erudite_KeyHandover_${lastName}_${property.reference}.pdf`;
+      
+      const result = await base44.functions.invoke('generateKeyHandoverPDF', {
+        pdf_base64: pdfBase64,
+        file_name: fileName
+      });
+      
+      // Download the PDF
+      doc.save(fileName);
+      
+      if (result.success) {
+        toast.success('PDF downloaded & uploaded to Google Drive!');
+      } else {
+        toast.success('PDF downloaded!');
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to generate PDF', { description: err.message });
