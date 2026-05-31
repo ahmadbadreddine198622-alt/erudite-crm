@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Plus, Search, Filter, FileSignature, Loader2 } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -52,18 +52,9 @@ export default function LeaseAgreement() {
 
   return (
     <div className="page-root">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="page-title text-3xl mb-1">Lease Brokerage Agreement</h1>
-          <p className="page-subtitle">Manage and generate lease agreements for landlords</p>
-        </div>
-        <Button
-          className="gap-2"
-          title="Use the per-row Generate button in the list below to create an agreement for a specific landlord."
-        >
-          <Plus className="w-4 h-4" />
-          Generate Agreement
-        </Button>
+      <div className="mb-8">
+        <h1 className="page-title text-3xl mb-1">Lease Brokerage Agreement</h1>
+        <p className="page-subtitle">Manage and generate lease agreements for landlords</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">
