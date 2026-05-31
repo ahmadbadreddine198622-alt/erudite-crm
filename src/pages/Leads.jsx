@@ -25,6 +25,7 @@ import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import RawDataIngestion from '@/components/leads/RawDataIngestion';
 import BulkActionBar from '@/components/leads/BulkActionBar';
+import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import { primeWhatsAppCache } from '@/hooks/useHasWhatsApp';
 import { STAGES } from '@/lib/pipeline';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -519,6 +520,11 @@ export default function Leads() {
                     {/* Contact quick actions */}
                     <TableCell onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1.5">
+                        {lead.phone && (
+                          <div onClick={ev => ev.stopPropagation()}>
+                            <VapiCallDialog lead={lead} />
+                          </div>
+                        )}
                         {lead.phone && (
                           <a
                             href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}

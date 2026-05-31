@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Mail, MapPin, Building2, Hash, Paperclip,
   Plus, X, Save, Loader2, User, ChevronDown, ChevronUp, Edit3,
-  Clock, Briefcase, Layers, MessageCircle, Video
+  Clock, Briefcase, Layers, MessageCircle, Video, Mic
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -22,6 +22,7 @@ import ViewingTracker from '@/components/contacts/ViewingTracker';
 import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
+import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 
 const PROJECT_LAYERS = [
   { id: 'peninsula-three', label: 'Peninsula Three' },
@@ -282,6 +283,8 @@ export default function ContactDetailPanel({ contactId, onClose }) {
               </Button>
             )}
             <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
+              <VapiCallDialog lead={draft} />
               <Button
                 size="icon"
                 variant="ghost"
@@ -292,6 +295,7 @@ export default function ContactDetailPanel({ contactId, onClose }) {
               >
                 <MessageCircle className="w-4 h-4" />
               </Button>
+            </div>
               <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#374151] p-1 rounded-lg hover:bg-[#F3F4F6] transition-colors">
                 <X className="w-4 h-4" />
               </button>
