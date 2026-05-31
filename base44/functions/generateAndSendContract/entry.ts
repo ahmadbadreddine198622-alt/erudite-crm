@@ -187,8 +187,52 @@ Deno.serve(async (req) => {
     formData.append('file', new Blob([pdfBlob], { type: 'application/pdf' }), `${contract_type.replace(/ /g, '_')}_${refNo}.pdf`);
 
     const uploadRes = await base44.integrations.Core.UploadFile({ file: new Blob([pdfBlob], { type: 'application/pdf' }) });
-    const pdf_url = uploadRes.file_url;
+    let pdf_url = uploadRes.file_url;
     if (!pdf_url) throw new Error('Failed to upload contract PDF');
+
+    // Upload to Google Drive "PropCRM PDFs" folder
+    try {
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+      const folderName = 'PropCRM PDFs';
+      
+      // Find or create folder
+      const folderSearchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+      );
+      const folderSearch = await folderSearchRes.json();
+      let folderId;
+      
+      if (folderSearch.files && folderSearch.files.length > 0) {
+        folderId = folderSearch.files[0].id;
+      } else {
+        const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder' })
+        });
+        folderId = (await createFolderRes.json()).id;
+      }
+
+      // Upload file
+      const uploadDriveRes = await fetch('https://www.googleapis.com/upload/drive/v3/files', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/octet-stream' },
+        body: pdfBlob
+      });
+      const fileData = await uploadDriveRes.json();
+      
+      // Move to folder
+      await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileData.id}?addParents=${folderId}&removeParents=root`,
+        { method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+      );
+      
+      pdf_url = `https://drive.google.com/file/d/${fileData.id}/view`;
+    } catch (error) {
+      console.error('Google Drive upload failed:', error.message);
+      // Continue with Base44 storage URL as fallback
+    }
 
     // Send via DocuSign
     const signers = [
