@@ -76,7 +76,7 @@ function NavIcon({ app, active }) {
         width: SZ, height: SZ, borderRadius: R, position: 'relative',
         transform: `scale(${scale})`,
         transition: 'transform 0.12s cubic-bezier(0.34,1.56,0.64,1)',
-        opacity: active ? 1 : 0.70,
+        opacity: 1,
         boxShadow: active
           ? `0 6px 20px ${glow}, 0 2px 8px rgba(0,0,0,0.45)`
           : '0 2px 8px rgba(0,0,0,0.40)',
@@ -84,7 +84,7 @@ function NavIcon({ app, active }) {
         {/* Vivid gradient base — same as grid tile */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${gradient}`}
-          style={{ borderRadius: R, filter: active ? 'saturate(1.5) brightness(1.12)' : 'saturate(1.05) brightness(0.90)', transition: 'filter 0.12s ease' }}
+          style={{ borderRadius: R, filter: active ? 'saturate(1.6) brightness(1.14)' : 'saturate(1.3) brightness(1.0)', transition: 'filter 0.12s ease' }}
         />
         {/* Glass overlay */}
         <div style={{
@@ -194,7 +194,7 @@ export default function MobileDock() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex justify-center"
-      style={{ padding: '0 16px 14px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom))' }}
+      style={{ padding: '0 16px 0', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div style={{
         background: 'rgba(8,12,28,0.72)',
