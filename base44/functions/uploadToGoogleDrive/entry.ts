@@ -8,9 +8,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Get Google Drive connection using service role (for backend-to-backend calls)
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+    if (!accessToken) {
+      return Response.json({ error: 'Google Drive not connected' }, { status: 500 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -19,12 +21,6 @@ Deno.serve(async (req) => {
     // Validate input
     if (!file_url && !base64Content) {
       return Response.json({ error: 'Either file_url or base64Content is required' }, { status: 400 });
-    }
-
-    // Get Google Drive connection
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
-    if (!accessToken) {
-      return Response.json({ error: 'Google Drive not connected' }, { status: 500 });
     }
 
     // Handle file content

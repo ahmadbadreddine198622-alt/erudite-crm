@@ -1,27 +1,11 @@
 // generateInvoicePDF — persist the PDF URL for an invoice.
-//
-// Today: the client renders the PDF with jsPDF and uploads it to Base44 file
-// storage via Core.UploadFile, then calls this function with the returned
-// file_url. This function validates the call, writes pdf_url back onto the
-// Invoice via asServiceRole, and returns the resolved URL.
-//
-// Tomorrow (Google Drive): once a service-account JSON + Drive folder id land
-// in env (e.g. GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON, GOOGLE_DRIVE_INVOICES_FOLDER_ID),
-// the Drive upload step lives here — fetch bytes from `file_url`, push to the
-// Drive folder (idempotent: replace via files.update when a previous drive file
-// id is known), and overwrite `pdf_url` with the Drive link. The client does
-// not change.
-//
-// Idempotency today: regenerating overwrites Invoice.pdf_url with the latest
-// upload. Previous storage objects become orphans — acceptable until Drive,
-// where files.update gives true in-place replacement.
+// Uploads invoice PDFs to Google Drive "Finance/Invoices" folder.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
 
     const body = await req.json().catch(() => ({}));
     const invoice_id = body?.invoice_id;
@@ -44,14 +28,107 @@ Deno.serve(async (req) => {
     // Upload to Google Drive "Finance/Invoices" folder
     let pdf_url = file_url;
     try {
-      const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-        file_url: file_url,
-        file_name: file_name || `Invoice_${invoice_id}.pdf`,
-        folderPath: 'Finance/Invoices'
-      });
-      if (driveUpload?.success) {
-        pdf_url = driveUpload.file_url;
+      console.log('Attempting Google Drive upload for invoice:', invoice_id);
+      
+      // Get Google Drive connection
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+      if (!accessToken) {
+        throw new Error('Google Drive not connected');
       }
+
+      // Fetch the PDF file
+      const fileResponse = await fetch(file_url);
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to fetch PDF: ${fileResponse.status}`);
+      }
+      const fileData = await fileResponse.arrayBuffer();
+      const mimeType = fileResponse.headers.get('content-type') || 'application/pdf';
+
+      // Create/get "Finance/Invoices" folder
+      const folderParts = ['Finance', 'Invoices'];
+      let currentFolderId = 'root';
+      
+      for (const folderPart of folderParts) {
+        const searchResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(folderPart)}' and mimeType='application/vnd.google-apps.folder' and '${currentFolderId}' in parents and trashed=false`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const searchData = await searchResponse.json();
+        
+        let folderId;
+        if (searchData.files && searchData.files.length > 0) {
+          folderId = searchData.files[0].id;
+        } else {
+          const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: folderPart,
+              mimeType: 'application/vnd.google-apps.folder',
+              parents: [currentFolderId],
+            }),
+          });
+          const createData = await createResponse.json();
+          folderId = createData.id;
+        }
+        currentFolderId = folderId;
+      }
+
+      const targetFolderId = currentFolderId;
+      const fileName = file_name || `Invoice_${invoice_id}.pdf`;
+
+      // Upload file
+      const metadata = {
+        name: fileName,
+        parents: [targetFolderId],
+      };
+
+      const form = new FormData();
+      form.append(
+        'metadata',
+        new Blob([JSON.stringify(metadata)], { type: 'application/json' }),
+      );
+      form.append(
+        'file',
+        new Blob([fileData], { type: mimeType }),
+      );
+
+      const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: form,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`Google Drive upload failed: ${uploadResponse.status} ${errorText}`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      const fileId = uploadData.id;
+
+      // Get shareable link
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          permissions: [{
+            type: 'anyone',
+            role: 'reader',
+          }],
+        }),
+      });
+
+      pdf_url = uploadData.webViewLink || uploadData.webContentLink;
+      console.log('Successfully uploaded to Google Drive:', pdf_url);
     } catch (error) {
       console.error('Google Drive upload failed:', error.message);
       // Continue with Base44 storage URL as fallback
