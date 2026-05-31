@@ -84,9 +84,11 @@ function mapPFLeadToCRM(pfLead) {
   const listingId = pfLead.listing ? String(pfLead.listing.id || pfLead.listing.reference || '') : '';
   const listingRef = pfLead.listing ? String(pfLead.listing.reference || '') : '';
 
-  const agentName = (pfLead.agent && pfLead.agent.name) ? pfLead.agent.name :
-    ((pfLead.agent && pfLead.agent.firstName) ? (pfLead.agent.firstName + ' ' + (pfLead.agent.lastName || '')).trim() : '');
-  const agentEmail = (pfLead.agent && pfLead.agent.email) ? pfLead.agent.email : '';
+  // PF API uses 'assignedTo' for agent info (also try 'agent' as fallback)
+  const agentObj = pfLead.assignedTo || pfLead.agent || {};
+  const agentName = agentObj.name ||
+    ([agentObj.firstName, agentObj.lastName].filter(Boolean).join(' ').trim()) || '';
+  const agentEmail = agentObj.email || '';
 
   const hasCallRecording = pfLead.call && pfLead.call.recordFile ? pfLead.call.recordFile : '';
 
@@ -101,7 +103,7 @@ function mapPFLeadToCRM(pfLead) {
       listing_reference: listingRef,
       channel: channel,
       pf_created_at: pfLead.createdAt || '',
-      pf_status: pfLead.status || '',
+      pf_status: pfLead.status || (pfLead.state && (pfLead.state.stage || pfLead.state.type || pfLead.state)) || '',
       message: pfLead.message || pfLead.body || '',
       pf_agent_name: agentName,
       pf_agent_email: agentEmail,
