@@ -37,6 +37,18 @@
       "type": "number",
       "description": "Price in AED"
     },
+    "unit_no": {
+      "type": "string",
+      "description": "Unit number"
+    },
+    "view": {
+      "type": "string",
+      "description": "View type"
+    },
+    "rent_aed": {
+      "type": "number",
+      "description": "Rent amount in AED"
+    },
     "area_sqft": {
       "type": "number",
       "description": "Area in square feet"
