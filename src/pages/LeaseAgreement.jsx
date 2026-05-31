@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -40,6 +40,19 @@ export default function LeaseAgreement() {
     queryKey: ['landlords-lease'],
     queryFn: () => base44.entities.Landlord.list('-created_date', 100),
   });
+
+  const { data: checklistItems = [] } = useQuery({
+    queryKey: ['checklist-lease-pdfs'],
+    queryFn: () => base44.entities.DocumentChecklistItem.filter({ document_type: 'lease_brokerage_agreement' }),
+  });
+
+  const checklistUrlMap = useMemo(() => {
+    const map = {};
+    for (const item of checklistItems) {
+      if (item.landlord_id && item.file_url) map[item.landlord_id] = item.file_url;
+    }
+    return map;
+  }, [checklistItems]);
 
   // Calls the Deno function. Accepts either:
   //   - a landlord_id string (Auto path — function pulls every field from records)
@@ -265,8 +278,8 @@ export default function LeaseAgreement() {
                       >
                         <Info className="w-3.5 h-3.5" />
                       </Button>
-                      {(pdfUrls[landlord.id] || landlord.lease_pdf_url) && (
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-accent hover:text-accent" title="View PDF" onClick={() => setPdfViewer({ url: pdfUrls[landlord.id] || landlord.lease_pdf_url, name: landlord.full_name_en })}>
+                      {(pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id]) && (
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-accent hover:text-accent" title="View PDF" onClick={() => setPdfViewer({ url: pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id], name: landlord.full_name_en })}>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Button>
                       )}
@@ -357,9 +370,9 @@ export default function LeaseAgreement() {
                   <span className="font-medium text-right max-w-[60%] truncate">{value}</span>
                 </div>
               ))}
-              {(pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url) && (
+              {(pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url || checklistUrlMap[summaryLandlord.id]) && (
                 <div className="pt-3">
-                  <a href={pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url} target="_blank" rel="noopener noreferrer">
+                  <a href={pdfUrls[summaryLandlord.id] || summaryLandlord.lease_pdf_url || checklistUrlMap[summaryLandlord.id]} target="_blank" rel="noopener noreferrer">
                     <Button size="sm" className="w-full gap-1.5">
                       <ExternalLink className="w-3.5 h-3.5" /> View Generated PDF
                     </Button>
