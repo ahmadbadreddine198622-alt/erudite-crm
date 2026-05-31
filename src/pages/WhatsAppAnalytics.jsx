@@ -29,7 +29,7 @@ function AgentRow({ agent, conversations, avgResponse, slaBreaches, sentiment })
   
   return (
     <div className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors">
-      <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-sm font-bold text-accent shrink-0">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-accent shrink-0" style={{ background: 'hsl(38 92% 50% / 0.2)' }}>
         {agent.name[0]?.toUpperCase() || '?'}
       </div>
       <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ export default function WhatsAppAnalytics() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="page-title text-3xl">WhatsApp Analytics</h1>
-            <p className="page-subtitle mt-1">Team performance & conversation insights</p>
+            <p className="text-sm text-muted-foreground mt-1">Team performance and conversation insights</p>
           </div>
           <div className="flex gap-2">
             {['7d', '30d', '90d'].map(range => (
@@ -323,7 +323,7 @@ export default function WhatsAppAnalytics() {
             icon={Users}
             label="Active Agents"
             value={agentStats.length}
-            subtext={agentStats.length > 0 ? `${Math.round((agentStats.filter(a => a.conversations > 5).length / agentStats.length) * 100)}% highly active`}
+            subtext={agentStats.length > 0 ? `${Math.round((agentStats.filter(a => a.conversations > 5).length / agentStats.length) * 100)}% highly active` : ''}
             color="bg-emerald-500"
             gradient="linear-gradient(135deg, rgba(16,185,129,0.8) 0%, rgba(10,80,60,0.6) 100%)"
           />
