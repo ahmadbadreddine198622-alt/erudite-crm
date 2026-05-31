@@ -19,15 +19,16 @@ Deno.serve(async (req) => {
     const results = {};
 
     // Fetch all entities
-    const [leads, properties, landlords, deals, conversations] = await Promise.all([
+    const [leads, properties, landlords, deals, conversations, reminders] = await Promise.all([
       base44.asServiceRole.entities.Lead.list('-created_date', 500),
       base44.asServiceRole.entities.Property.list('-created_date', 500),
       base44.asServiceRole.entities.Landlord.list('-created_date', 500),
       base44.asServiceRole.entities.Deal.list('-created_date', 500),
       base44.asServiceRole.entities.WhatsAppConversation.list('-last_message_at', 500),
+      base44.asServiceRole.entities.Reminder.list('-due_at', 500),
     ]);
 
-    console.log(`Fetched: ${leads.length} leads, ${properties.length} properties, ${landlords.length} landlords, ${deals.length} deals, ${conversations.length} conversations`);
+    console.log(`Fetched: ${leads.length} leads, ${properties.length} properties, ${landlords.length} landlords, ${deals.length} deals, ${conversations.length} conversations, ${reminders.length} reminders`);
 
     // Phase 1: Entity-specific synchronization
     if (entity_name === 'all' || entity_name === 'Lead') {
@@ -65,16 +66,23 @@ Deno.serve(async (req) => {
       totalConnections += conversationResults.connectionsFound;
     }
 
+    if (entity_name === 'all' || entity_name === 'Reminder') {
+      const reminderResults = await syncReminders(reminders, leads, properties, deals, base44);
+      results.Reminder = reminderResults;
+      totalSynced += reminderResults.syncedCount;
+      totalConnections += reminderResults.connectionsFound;
+    }
+
     // Phase 2: Cross-entity relationship detection
     if (detectConnections && entity_name === 'all') {
-      const connectionResults = await detectCrossEntityConnections(leads, properties, landlords, deals, conversations, base44);
+      const connectionResults = await detectCrossEntityConnections(leads, properties, landlords, deals, conversations, reminders, base44);
       results.connections = connectionResults;
       totalConnections += connectionResults.newConnections;
     }
 
     // Phase 3: Generate AI insights
     if (generateInsights && entity_name === 'all') {
-      const insightsResults = await generateAIInsights(leads, properties, landlords, deals, conversations, base44);
+      const insightsResults = await generateAIInsights(leads, properties, landlords, deals, conversations, reminders, base44);
       results.insights = insightsResults;
     }
 
@@ -343,8 +351,76 @@ async function syncConversations(conversations, leads, deals, base44) {
   return { syncedCount, connectionsFound };
 }
 
+// Sync Reminders with AI suggestions
+async function syncReminders(reminders, leads, properties, deals, base44) {
+  console.log('Syncing reminders...');
+  let syncedCount = 0;
+  let connectionsFound = 0;
+
+  for (const reminder of reminders) {
+    try {
+      const updates = {};
+
+      // Link reminder to lead if title/description mentions lead name
+      if (!reminder.lead_id && reminder.title) {
+        const matchingLead = leads.find(l =>
+          l.full_name?.toLowerCase().includes(reminder.title.toLowerCase()) ||
+          reminder.title.toLowerCase().includes(l.full_name?.toLowerCase())
+        );
+        if (matchingLead) {
+          updates.lead_id = matchingLead.id;
+          updates.lead_name = matchingLead.full_name;
+          connectionsFound++;
+        }
+      }
+
+      // Link reminder to property if mentions property details
+      if (!reminder.property_id && reminder.notes) {
+        const matchingProperty = properties.find(p =>
+          p.title?.toLowerCase().includes(reminder.notes.toLowerCase()) ||
+          reminder.notes.toLowerCase().includes(p.building_name?.toLowerCase()) ||
+          reminder.notes.toLowerCase().includes(p.address?.toLowerCase())
+        );
+        if (matchingProperty) {
+          updates.property_id = matchingProperty.id;
+          connectionsFound++;
+        }
+      }
+
+      // Auto-suggest reminders from deal stages
+      const relatedDeal = deals.find(d =>
+        d.lead_id === reminder.lead_id ||
+        (reminder.property_id && d.property_id === reminder.property_id)
+      );
+      if (relatedDeal && !reminder.tags?.includes('deal-related')) {
+        updates.tags = [...(reminder.tags || []), 'deal-related'];
+        connectionsFound++;
+      }
+
+      // Flag overdue high-priority reminders
+      if (reminder.due_date &&
+          new Date(reminder.due_date) < new Date() &&
+          reminder.status === 'pending' &&
+          reminder.priority === 'urgent' &&
+          !reminder.tags?.includes('overdue')) {
+        updates.tags = [...(reminder.tags || []), 'overdue'];
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await base44.asServiceRole.entities.Reminder.update(reminder.id, updates);
+        syncedCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to sync reminder ${reminder.id}:`, error);
+    }
+  }
+
+  console.log(`Reminder sync complete: ${syncedCount} updated, ${connectionsFound} connections found`);
+  return { syncedCount, connectionsFound };
+}
+
 // Detect cross-entity connections
-async function detectCrossEntityConnections(leads, properties, landlords, deals, conversations, base44) {
+async function detectCrossEntityConnections(leads, properties, landlords, deals, conversations, reminders, base44) {
   console.log('Detecting cross-entity connections...');
   let newConnections = 0;
 
@@ -373,12 +449,18 @@ async function detectCrossEntityConnections(leads, properties, landlords, deals,
     newConnections += matchingProperties.length;
   });
 
+  // Reminder ↔ Lead/Property connections
+  reminders.forEach(reminder => {
+    if (reminder.lead_id) newConnections++;
+    if (reminder.property_id) newConnections++;
+  });
+
   console.log(`Detected ${newConnections} cross-entity connections`);
   return { newConnections };
 }
 
 // Generate AI insights
-async function generateAIInsights(leads, properties, landlords, deals, conversations, base44) {
+async function generateAIInsights(leads, properties, landlords, deals, conversations, reminders, base44) {
   console.log('Generating AI insights...');
 
   const insights = [];
@@ -424,6 +506,37 @@ async function generateAIInsights(leads, properties, landlords, deals, conversat
       title: 'Stale Conversations',
       count: staleConversations.length,
       description: `${staleConversations.length} conversations inactive for 3+ days`,
+    });
+  }
+
+  // Insight 4: Overdue reminders
+  const overdueReminders = reminders.filter(r =>
+    r.due_date &&
+    new Date(r.due_date) < new Date() &&
+    r.status === 'pending'
+  );
+  if (overdueReminders.length > 0) {
+    insights.push({
+      type: 'warning',
+      title: 'Overdue Reminders',
+      count: overdueReminders.length,
+      description: `${overdueReminders.length} reminders past due date`,
+    });
+  }
+
+  // Insight 5: Reminders without lead associations
+  const orphanReminders = reminders.filter(r =>
+    !r.lead_id &&
+    !r.property_id &&
+    r.status === 'pending' &&
+    (r.priority === 'high' || r.priority === 'urgent')
+  );
+  if (orphanReminders.length > 0) {
+    insights.push({
+      type: 'recommendation',
+      title: 'Unlinked High-Priority Reminders',
+      count: orphanReminders.length,
+      description: `${orphanReminders.length} urgent reminders not linked to leads or properties`,
     });
   }
 

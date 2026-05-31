@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Brain, Network, Zap, Users, Home, Building, MessageCircle, TrendingUp, AlertCircle, CheckCircle2, Clock, RefreshCw, Sparkles, Link2, Search, Filter } from 'lucide-react';
+import { Brain, Network, Zap, Users, Home, Building, MessageCircle, TrendingUp, AlertCircle, CheckCircle2, Clock, RefreshCw, Sparkles, Link2, Search, Filter, Calendar } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ const ENTITY_CONFIG = {
   Landlord: { icon: Building, color: '#f59e0b', label: 'Landlords' },
   Deal: { icon: TrendingUp, color: '#8b5cf6', label: 'Deals' },
   WhatsAppConversation: { icon: MessageCircle, color: '#22c55e', label: 'Conversations' },
+  Reminder: { icon: Calendar, color: '#ec4899', label: 'Reminders' },
 };
 
 // Sync status badge
@@ -235,6 +236,12 @@ export default function AISyncHub() {
     staleTime: 60000,
   });
 
+  const { data: reminders = [] } = useQuery({
+    queryKey: ['reminders-sync'],
+    queryFn: () => base44.entities.Reminder.list('-due_at', 200),
+    staleTime: 60000,
+  });
+
   // Trigger AI synchronization
   const syncMutation = useMutation({
     mutationFn: async (entityName) => {
@@ -252,7 +259,7 @@ export default function AISyncHub() {
       qc.invalidateQueries({ queryKey: [`${entityName.toLowerCase()}-sync`] });
       setSyncingEntity(null);
     },
-    onError: (error) => {
+    onError: (error, entityName) => {
       toast.error(`Sync failed for ${entityName}`, {
         description: error.message,
       });
@@ -267,6 +274,7 @@ export default function AISyncHub() {
     { name: 'Landlord', count: landlords.length, syncStatus: 'synced', lastSyncAt: new Date().toISOString() },
     { name: 'Deal', count: deals.length, syncStatus: 'synced', lastSyncAt: new Date().toISOString() },
     { name: 'WhatsAppConversation', count: conversations.length, syncStatus: 'synced', lastSyncAt: new Date().toISOString() },
+    { name: 'Reminder', count: reminders.length, syncStatus: 'synced', lastSyncAt: new Date().toISOString() },
   ];
 
   // Detect connections between entities
@@ -331,8 +339,36 @@ export default function AISyncHub() {
       }
     });
 
+    // Reminder ↔ Lead connections
+    reminders.forEach(reminder => {
+      if (reminder.lead_id) {
+        const lead = leads.find(l => l.id === reminder.lead_id);
+        if (lead) {
+          allConnections.push({
+            source: `Reminder-${reminder.id}`,
+            target: `Lead-${lead.id}`,
+            type: 'follows_up',
+            strength: 1,
+          });
+        }
+      }
+
+      // Reminder ↔ Property connections
+      if (reminder.property_id) {
+        const property = properties.find(p => p.id === reminder.property_id);
+        if (property) {
+          allConnections.push({
+            source: `Reminder-${reminder.id}`,
+            target: `Property-${property.id}`,
+            type: 'related_to',
+            strength: 0.8,
+          });
+        }
+      }
+    });
+
     return allConnections;
-  }, [leads, properties, landlords, deals, conversations]);
+  }, [leads, properties, landlords, deals, conversations, reminders]);
 
   // Generate smart insights
   const insights = useMemo(() => {
@@ -408,8 +444,44 @@ export default function AISyncHub() {
       });
     }
 
+    // Overdue reminders
+    const overdueReminders = reminders.filter(r =>
+      r.due_date &&
+      new Date(r.due_date) < new Date() &&
+      r.status === 'pending'
+    );
+    if (overdueReminders.length > 0) {
+      generatedInsights.push({
+        type: 'warning',
+        title: `${overdueReminders.length} Overdue Reminders`,
+        description: `These reminders are past due and need immediate attention.`,
+        detectedAt: new Date().toISOString(),
+        action: 'review_reminders',
+        actionLabel: 'Review & Reschedule',
+        data: overdueReminders.slice(0, 5),
+      });
+    }
+
+    // Reminders without leads
+    const orphanReminders = reminders.filter(r =>
+      !r.lead_id &&
+      r.status === 'pending' &&
+      r.priority === 'urgent'
+    );
+    if (orphanReminders.length > 0) {
+      generatedInsights.push({
+        type: 'recommendation',
+        title: `${orphanReminders.length} Unlinked Urgent Reminders`,
+        description: `These urgent reminders aren't linked to any lead. Consider associating them.`,
+        detectedAt: new Date().toISOString(),
+        action: 'link_reminders',
+        actionLabel: 'Link to Leads',
+        data: orphanReminders.slice(0, 5),
+      });
+    }
+
     return generatedInsights;
-  }, [leads, properties, landlords, deals, conversations]);
+  }, [leads, properties, landlords, deals, conversations, reminders]);
 
   // Build graph data for visualization
   const graphData = useMemo(() => {
@@ -552,6 +624,7 @@ export default function AISyncHub() {
             <option value="Landlord">Landlords</option>
             <option value="Deal">Deals</option>
             <option value="WhatsAppConversation">Conversations</option>
+            <option value="Reminder">Reminders</option>
           </select>
         </div>
 
