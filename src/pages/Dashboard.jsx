@@ -58,7 +58,7 @@ const ALL_APPS = [
 ];
 
 const STORAGE_KEY = 'dashboard_app_order';
-const LONG_PRESS_MS = 5000;
+const LONG_PRESS_MS = 1000;
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -311,7 +311,7 @@ export default function Dashboard() {
                           if (editMode) return;
                           app.href ? window.open(app.href, '_blank') : navigate(app.path);
                         }}
-                        className="flex flex-col items-center gap-2 select-none focus:outline-none"
+                        className={`flex flex-col items-center gap-2 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
                       >
                         <ExtremeLiquidIcon
                          icon={Icon}

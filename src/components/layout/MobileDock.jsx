@@ -10,21 +10,27 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 const NAV_ITEMS = [
-  { label: 'Pipeline',  icon: KanbanSquare, path: '/pipeline',  color: 'rgba(139,92,246,1)',  glow: 'rgba(139,92,246,0.55)' },
-  { label: 'Leads',     icon: Users,        path: '/leads',     color: 'rgba(16,185,129,1)',  glow: 'rgba(16,185,129,0.55)' },
+  { label: 'Pipeline', icon: KanbanSquare,   path: '/pipeline',  gradient: 'linear-gradient(145deg, #7c3aed 0%, #4c1d95 100%)', glow: 'rgba(139,92,246,0.55)' },
+  { label: 'Leads',    icon: Users,          path: '/leads',     gradient: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', glow: 'rgba(16,185,129,0.55)' },
   // center Home slot
-  { label: 'Contacts',  icon: UserCheck,    path: '/contacts',  color: 'rgba(14,165,233,1)',  glow: 'rgba(14,165,233,0.55)' },
-  { label: 'More',      icon: MoreHorizontal, path: '/reminders', color: 'rgba(244,63,94,1)', glow: 'rgba(244,63,94,0.55)' },
+  { label: 'Contacts', icon: UserCheck,      path: '/contacts',  gradient: 'linear-gradient(145deg, #0ea5e9 0%, #0e4d6e 100%)', glow: 'rgba(14,165,233,0.55)' },
+  { label: 'More',     icon: MoreHorizontal, path: '/reminders', gradient: 'linear-gradient(145deg, #f43f5e 0%, #881337 100%)', glow: 'rgba(244,63,94,0.55)' },
 ];
 
 const SQUIRCLE_SIZE = 46;
 const SQUIRCLE_R = Math.round(SQUIRCLE_SIZE * 0.24);
 
-function NavIcon({ icon: Icon, label, path, color, glow, active }) {
+function NavIcon({ icon: Icon, label, path, gradient, glow, active }) {
   const [pressed, setPressed] = React.useState(false);
   const sz = SQUIRCLE_SIZE;
   const r = `${SQUIRCLE_R}px`;
-  const iconSz = Math.round(sz * 0.52);
+  const iconSz = Math.round(sz * 0.58);
+
+  // Active → amber gradient; inactive → item's own gradient (slightly muted)
+  const bgGradient = active
+    ? 'linear-gradient(145deg, rgba(245,158,11,0.85) 0%, rgba(180,100,0,0.70) 100%)'
+    : gradient;
+  const activeGlow = 'rgba(245,158,11,0.55)';
 
   return (
     <Link
@@ -35,63 +41,59 @@ function NavIcon({ icon: Icon, label, path, color, glow, active }) {
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
     >
-      {/* Outer glow halo — only on active */}
+      {/* Glow halo — active only */}
       {active && (
-        <div
-          style={{
-            position: 'absolute',
-            width: sz + 20,
-            height: sz + 20,
-            borderRadius: `${SQUIRCLE_R + 5}px`,
-            background: glow,
-            filter: 'blur(14px)',
-            opacity: 0.55,
-            pointerEvents: 'none',
-            transform: 'translate(-50%, -50%)',
-            top: '50%', left: '50%',
-            zIndex: 0,
-          }}
-        />
+        <div style={{
+          position: 'absolute',
+          width: sz + 20, height: sz + 20,
+          borderRadius: `${SQUIRCLE_R + 5}px`,
+          background: activeGlow,
+          filter: 'blur(14px)',
+          opacity: 0.6,
+          pointerEvents: 'none',
+          transform: 'translate(-50%, -50%)',
+          top: '50%', left: '50%',
+          zIndex: 0,
+        }} />
       )}
 
       {/* Squircle container */}
-      <div
-        style={{
-          width: sz,
-          height: sz,
-          borderRadius: r,
-          position: 'relative',
-          transform: pressed ? 'scale(0.93)' : active ? 'scale(1.06)' : 'scale(1)',
-          transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1), box-shadow 0.22s ease',
-          boxShadow: active
-            ? `0 6px 22px ${glow}, 0 2px 8px rgba(0,0,0,0.35)`
-            : '0 2px 10px rgba(0,0,0,0.4)',
-          zIndex: 1,
-        }}
-      >
+      <div style={{
+        width: sz, height: sz,
+        borderRadius: r,
+        position: 'relative',
+        transform: pressed ? 'scale(0.93)' : active ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.2s cubic-bezier(0.34,1.26,0.64,1), box-shadow 0.22s ease, filter 0.22s ease',
+        boxShadow: active
+          ? `0 6px 22px ${activeGlow}, 0 2px 8px rgba(0,0,0,0.40)`
+          : '0 4px 14px rgba(0,0,0,0.45)',
+        filter: active ? 'saturate(1.5) brightness(1.1)' : 'saturate(0.75) brightness(0.75)',
+        zIndex: 1,
+      }}>
         {/* Gradient base */}
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: r,
-          background: active
-            ? `linear-gradient(145deg, ${color} 0%, ${color.replace('1)', '0.7)')} 100%)`
-            : 'linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%)',
-          transition: 'background 0.22s ease',
-        }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: r, background: bgGradient, transition: 'background 0.22s ease' }} />
 
         {/* Frosted glass overlay */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: r,
           backdropFilter: 'blur(20px) saturate(160%)',
           WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          border: active ? `1.5px solid rgba(255,255,255,0.30)` : '1px solid rgba(255,255,255,0.10)',
-          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)',
+          border: active ? '1.5px solid rgba(255,255,255,0.30)' : '1px solid rgba(255,255,255,0.14)',
+          borderTopColor: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.28)',
           transition: 'border-color 0.22s ease',
         }} />
 
-        {/* Top gloss highlight */}
+        {/* iOS top gloss */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: r,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0) 60%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Inner depth shadow */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: r,
+          boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.08), inset 0 -4px 10px rgba(0,0,0,0.28)',
           pointerEvents: 'none',
         }} />
 
@@ -101,10 +103,9 @@ function NavIcon({ icon: Icon, label, path, color, glow, active }) {
           width: iconSz, height: iconSz,
           top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          color: active ? '#fff' : 'rgba(255,255,255,0.50)',
-          filter: active ? `drop-shadow(0 2px 6px ${glow})` : 'none',
-          strokeWidth: 2,
-          transition: 'color 0.22s ease, filter 0.22s ease',
+          color: 'rgba(255,255,255,0.95)',
+          filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65)) drop-shadow(0 2px 6px rgba(0,0,0,0.40))',
+          strokeWidth: 2.2,
           zIndex: 2,
         }} />
       </div>
@@ -112,7 +113,7 @@ function NavIcon({ icon: Icon, label, path, color, glow, active }) {
       <span style={{
         fontSize: 9,
         fontWeight: active ? 600 : 400,
-        color: active ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.40)',
+        color: active ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.45)',
         letterSpacing: '0.02em',
         transition: 'color 0.22s ease',
       }}>{label}</span>
