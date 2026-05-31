@@ -10,6 +10,16 @@
       "type": "string",
       "description": "Agent display name"
     },
+    "department": {
+      "type": "string",
+      "enum": [
+        "Sales",
+        "Leasing",
+        "Listing Acquisition",
+        "Management"
+      ],
+      "description": "Which department this agent belongs to \u2014 used for capacity-based routing"
+    },
     "assigned_conversations": {
       "type": "number",
       "default": 0,
@@ -47,7 +57,7 @@
         "offline"
       ],
       "default": "available",
-      "description": "Agent current status"
+      "description": "Agent current availability status \u2014 set to 'busy' or 'away' to exclude from routing"
     },
     "last_activity": {
       "type": "string",

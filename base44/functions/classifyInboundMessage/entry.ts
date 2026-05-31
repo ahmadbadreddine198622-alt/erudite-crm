@@ -76,6 +76,12 @@ You read 1 message (plus optional prior thread) and emit STRICT JSON with:
 
 9. REASONING — 1-2 sentences explaining the classification.
 
+10. DEPARTMENT — derived from intent:
+    - "Sales" for: buyer, investor, general_inquiry, agent_other_brokerage
+    - "Leasing" for: tenant
+    - "Listing Acquisition" for: landlord_sale, landlord_rent
+    - "Unknown" if intent is spam
+
 Rules:
 - STRICT JSON only.
 - Default to "general_inquiry" if uncertain rather than guessing wrong.
@@ -104,7 +110,7 @@ Classify and return JSON.`;
     if (!jsonMatch) throw new Error('AI returned non-JSON: ' + text.slice(0, 200));
     const result = JSON.parse(jsonMatch[0]);
     return Response.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error('classifyInboundMessage error:', error);
     // Fallback — return a safe default so webhook doesn't break
     return Response.json({
