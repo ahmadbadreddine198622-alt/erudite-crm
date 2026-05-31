@@ -348,6 +348,7 @@ export default function HeroDock() {
   return (
     <>
       {/* Desktop / Mac dock with auto-hide */}
+      {!isMobileLandscape && (
       <nav 
         className="fixed bottom-0 left-0 right-0 z-50 hidden md:block" 
         style={{ 
@@ -470,6 +471,7 @@ export default function HeroDock() {
           </div>
         </div>
       </nav>
+      )}
 
       {/* Mobile landscape collapsed dock */}
       {isMobileLandscape && (
