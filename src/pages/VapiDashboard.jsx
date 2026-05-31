@@ -11,7 +11,7 @@ import {
     Mic, Phone, Loader2, RefreshCw, MessageCircle, Calendar, Clock, TrendingUp,
     Play, Square, Settings, BarChart3, Users, Zap, Activity, FileAudio,
     Database, GitBranch, Webhook, CreditCard, Shield, Globe, Headphones,
-    MessageSquare, BarChart, Layers, Copy, ExternalLink, Plus, Trash2, Edit, BookOpen
+    MessageSquare, BarChart, Layers, Copy, ExternalLink, Plus, Trash2, Edit, BookOpen, Workflow
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/shared/PageHeader';
@@ -111,7 +111,7 @@ export default function VapiDashboard() {
             </PageHeader>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid grid-cols-6 gap-2 liquid-glass p-1">
+                <TabsList className="grid grid-cols-7 gap-2 liquid-glass p-1">
                     <TabsTrigger value="overview" className="data-[state=active]:bg-white/15">
                         <BarChart className="w-4 h-4 mr-2" />
                         Overview
@@ -131,6 +131,10 @@ export default function VapiDashboard() {
                     <TabsTrigger value="recordings" className="data-[state=active]:bg-white/15">
                         <FileAudio className="w-4 h-4 mr-2" />
                         Recordings
+                    </TabsTrigger>
+                    <TabsTrigger value="workflow" className="data-[state=active]:bg-white/15">
+                        <Workflow className="w-4 h-4 mr-2" />
+                        Workflow
                     </TabsTrigger>
                     <TabsTrigger value="settings" className="data-[state=active]:bg-white/15">
                         <Settings className="w-4 h-4 mr-2" />
@@ -584,6 +588,32 @@ export default function VapiDashboard() {
                     </Card>
                 </TabsContent>
 
+                {/* Workflow Tab */}
+                <TabsContent value="workflow" className="space-y-6">
+                    <Card className="liquid-glass">
+                        <CardHeader>
+                            <CardTitle className="text-white flex items-center gap-2">
+                                <Workflow className="w-5 h-5" />
+                                AI Workflow Testing
+                            </CardTitle>
+                            <CardDescription className="text-white/60">
+                                Test Vapi assistants and manage workflows from CRM
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="text-center py-12">
+                            <Workflow className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
+                            <p className="text-white/70 mb-4">Use the dedicated Vapi Workflow page for testing and managing AI assistants</p>
+                            <Button
+                                onClick={() => window.location.href = '/vapi-workflow'}
+                                className="gap-2"
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                                Open Workflow Page
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
                 {/* Settings Tab */}
                 <TabsContent value="settings" className="space-y-6">
                     <div className="grid gap-6">
@@ -652,16 +682,16 @@ export default function VapiDashboard() {
                                         <div className="flex items-start gap-3">
                                             <Settings className="w-5 h-5 text-blue-400 mt-0.5" />
                                             <div className="text-xs text-blue-200/80">
-                                                <p className="font-semibold mb-1">Required Setup - Enable AI Calls</p>
+                                                <p className="font-semibold mb-1">Setup Guide - Enable AI Voice Calls</p>
                                                 <ol className="list-decimal list-inside space-y-2 mt-2">
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Connect Twilio:</span>
+                                                        <span className="font-semibold text-blue-100">Connect Twilio Provider:</span>
                                                         <br />
                                                         <a href="https://dashboard.vapi.ai/settings/phone-providers" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
                                                             Vapi Dashboard &gt; Settings &gt; Phone Providers
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Connect your Twilio account (Account SID + Auth Token)</span>
+                                                        <span className="opacity-80">Connect Twilio with Account SID and Auth Token</span>
                                                     </li>
                                                     <li>
                                                         <span className="font-semibold text-blue-100">Add Phone Number:</span>
@@ -670,21 +700,21 @@ export default function VapiDashboard() {
                                                             Vapi Dashboard &gt; Phone Numbers &gt; Add Number
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Add your Twilio phone number that will make calls</span>
+                                                        <span className="opacity-80">Add your Twilio phone number here</span>
                                                     </li>
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Configure Assistant:</span>
+                                                        <span className="font-semibold text-blue-100">Assign to Assistant:</span>
                                                         <br />
                                                         <a href="https://dashboard.vapi.ai/assistants" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline hover:text-blue-200">
-                                                            Vapi Dashboard &gt; Assistants &gt; Edit
+                                                            Vapi Dashboard &gt; Assistants &gt; Edit Assistant
                                                         </a>
                                                         <br />
-                                                        <span className="opacity-80">Add a "Phone" transport and select your number</span>
+                                                        <span className="opacity-80">Add a transport and assign the phone number</span>
                                                     </li>
                                                     <li>
-                                                        <span className="font-semibold text-blue-100">Start Calling:</span>
+                                                        <span className="font-semibold text-blue-100">Make Calls:</span>
                                                         <br />
-                                                        <span className="opacity-80">Return here and enter destination numbers to call</span>
+                                                        <span className="opacity-80">Return here and use the Phone Number ID in the call dialog</span>
                                                     </li>
                                                 </ol>
                                             </div>
