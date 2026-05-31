@@ -1,5 +1,5 @@
 /**
- * pdfBrand.js — Erudite Property Real Estate
+ * pdfBrand.js — Erudite Property Real Estate — retrigger 2026-05-31
  *
  * Single source of truth for all PDF branding across the CRM.
  * Import this into any PDF-generating component so every document
