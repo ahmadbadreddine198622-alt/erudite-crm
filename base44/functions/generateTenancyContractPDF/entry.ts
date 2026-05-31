@@ -75,28 +75,20 @@ Deno.serve(async (req) => {
         error: 'Template not configured. Open the Tenancy Contracts page, click "Upload & Configure Assets", then set EJARI_TEMPLATE_FILE_URL to the displayed URL.',
       }, { status: 500 });
     }
-    if (!stampUrl || !sigUrl) {
-      return Response.json({
-        error: 'Brand assets (stamp / signature) not configured. Open the Tenancy Contracts page and click "Upload & Configure Assets".',
-      }, { status: 500 });
-    }
+    // Stamp/sig are optional — PDF is still valid without them
 
-    // ── Fetch all three assets in parallel ───────────────────────────────
-    const [templateResp, stampResp, sigResp] = await Promise.all([
-      fetch(templateUrl),
-      fetch(stampUrl),
-      fetch(sigUrl),
-    ]);
-
+    // ── Fetch template (required) and brand assets (optional) ───────────
+    const templateResp = await fetch(templateUrl);
     if (!templateResp.ok) throw new Error(`Template fetch failed: HTTP ${templateResp.status}`);
-    if (!stampResp.ok)   throw new Error(`Stamp fetch failed: HTTP ${stampResp.status}`);
-    if (!sigResp.ok)     throw new Error(`Signature fetch failed: HTTP ${sigResp.status}`);
+    const templateBytes = new Uint8Array(await templateResp.arrayBuffer());
 
-    const [templateBytes, stampBytes, sigBytes] = await Promise.all([
-      templateResp.arrayBuffer().then(b => new Uint8Array(b)),
-      stampResp.arrayBuffer().then(b => new Uint8Array(b)),
-      sigResp.arrayBuffer().then(b => new Uint8Array(b)),
-    ]);
+    let stampBytes = null;
+    let sigBytes   = null;
+    if (stampUrl && sigUrl) {
+      const [stampResp, sigResp] = await Promise.all([fetch(stampUrl), fetch(sigUrl)]);
+      if (stampResp.ok) stampBytes = new Uint8Array(await stampResp.arrayBuffer());
+      if (sigResp.ok)   sigBytes   = new Uint8Array(await sigResp.arrayBuffer());
+    }
 
     // ── Load the official DLD Ejari template + embed brand assets ────────
     const pdf      = await PDFDocument.load(templateBytes);
@@ -105,8 +97,8 @@ Deno.serve(async (req) => {
 
     const page1    = pages[0];
     const font     = await pdf.embedFont(StandardFonts.Helvetica);
-    const stampImg = await pdf.embedPng(stampBytes);
-    const sigImg   = await pdf.embedPng(sigBytes);
+    const stampImg = stampBytes ? await pdf.embedPng(stampBytes) : null;
+    const sigImg   = sigBytes   ? await pdf.embedPng(sigBytes)   : null;
 
     // Draw helper — origin is BOTTOM-LEFT in pdf-lib, Helvetica 9pt black
     const black = rgb(0, 0, 0);
@@ -163,19 +155,52 @@ Deno.serve(async (req) => {
     draw(fmtAED(contract.security_deposit_aed),  360, 167);
     draw(contract.mode_of_payment,               150, 144);
 
-    // Lessor signature block — stamp + signature bottom-right
-    page1.drawImage(stampImg, { x: 360, y: 38, width: 72, height: 75 });
-    page1.drawImage(sigImg,   { x: 432, y: 44, width: 92, height: 40 });
+    // Lessor signature block — stamp + signature bottom-right (skipped if not configured)
+    if (stampImg) page1.drawImage(stampImg, { x: 360, y: 38, width: 72, height: 75 });
+    if (sigImg)   page1.drawImage(sigImg,   { x: 432, y: 44, width: 92, height: 40 });
 
-    // ── Save → upload → write back ───────────────────────────────────────
+    // ── Save → upload directly to Google Drive → write back ────────────────
     const outBytes = await pdf.save();
     const fileName = `EjariTenancyContract_${safeSeg(contract.tenant_name)}_${tenancyContractId.slice(0, 8)}.pdf`;
 
-    const uploadRes = await base44.integrations.Core.UploadFile({
-      file: new Blob([outBytes], { type: 'application/pdf' }),
+    const { accessToken: driveToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+    if (!driveToken) throw new Error('Google Drive connector not connected');
+
+    // Ensure the Tenancy Contracts folder exists
+    const folderSearch = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='Tenancy Contracts' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+      { headers: { Authorization: `Bearer ${driveToken}` } },
+    );
+    const folderData = await folderSearch.json();
+    let folderId;
+    if (folderData.files?.length > 0) {
+      folderId = folderData.files[0].id;
+    } else {
+      const createFolder = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Tenancy Contracts', mimeType: 'application/vnd.google-apps.folder', parents: ['root'] }),
+      });
+      const createdFolder = await createFolder.json();
+      folderId = createdFolder.id;
+    }
+
+    // Upload the PDF
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
+    form.append('file', new Blob([outBytes], { type: 'application/pdf' }));
+
+    const driveUpload = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driveToken}` },
+      body: form,
     });
-    const pdf_url = uploadRes?.file_url;
-    if (!pdf_url) throw new Error('PDF upload to Base44 storage failed');
+    if (!driveUpload.ok) {
+      const errText = await driveUpload.text();
+      throw new Error(`Google Drive upload failed: ${driveUpload.status} ${errText}`);
+    }
+    const driveFile = await driveUpload.json();
+    const pdf_url = driveFile.webViewLink || `https://drive.google.com/file/d/${driveFile.id}/view`;
 
     // Idempotent: overwrites pdf_url, status, generated_at on every run
     await base44.asServiceRole.entities.TenancyContract.update(tenancyContractId, {
