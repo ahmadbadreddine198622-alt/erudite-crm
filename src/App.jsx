@@ -50,7 +50,7 @@ import DealRiskMonitor from '@/pages/DealRiskMonitor';
 import TaskCenter from '@/pages/TaskCenter';
 import WhatsAppAnalytics from '@/pages/WhatsAppAnalytics';
 import AISyncHub from '@/pages/AISyncHub';
-import iOSRemindersSync from '@/pages/iOSRemindersSync.jsx';
+import iOSRemindersSync from '@/pages/iOSRemindersSync';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
