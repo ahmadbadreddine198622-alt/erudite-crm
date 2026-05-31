@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 import AddContactDialog from '@/components/contacts/AddContactDialog';
 import ContactChatPanel from '@/components/contacts/ContactChatPanel';
 import AIActionsPanel from '@/components/contacts/AIActionsPanel';
@@ -99,6 +100,7 @@ function ContactItem({ contact, isSelected, onClick }) {
 }
 
 export default function ContactsPage() {
+  const { user: currentUser, permissions } = useCurrentUser();
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showRollImport, setShowRollImport] = useState(false);
@@ -115,6 +117,10 @@ export default function ContactsPage() {
   });
 
   const filtered = contacts.filter(c => {
+    // Role-based filtering: non-admins see only their own assigned contacts
+    if (currentUser && !permissions.view_all_leads) {
+      if (c.assigned_agent_email !== currentUser.email) return false;
+    }
     const matchSearch = !search
       || c.name?.toLowerCase().includes(search.toLowerCase())
       || c.phone?.includes(search)
