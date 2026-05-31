@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Pencil, Trash2, FileText, Send } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, FileText, Send, BookOpen } from 'lucide-react';
 import ContractFormDialog from '@/components/tenancy/ContractFormDialog';
 import ContractPreviewDialog from '@/components/tenancy/ContractPreviewDialog';
 import ContractSendDialog from '@/components/tenancy/ContractSendDialog';
+import TermsAndConditionsDialog from '@/components/tenancy/TermsAndConditionsDialog';
 import { GenerateTenancyPDFButton, ViewTenancyPDFLink } from '@/components/tenancy/TenancyContractPDF';
 import SetupEjariAssets from '@/components/tenancy/SetupEjariAssets';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ export default function TenancyContracts() {
   const [formOpen, setFormOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
   const { data: contracts = [], isLoading } = useQuery({
@@ -40,6 +42,7 @@ export default function TenancyContracts() {
   const openForm = (c = null) => { setSelected(c); setFormOpen(true); };
   const openPreview = (c) => { setSelected(c); setPreviewOpen(true); };
   const openSend = (c) => { setSelected(c); setSendOpen(true); };
+  const openTerms = (c) => { setSelected(c); setTermsOpen(true); };
 
   return (
     <div className="page-root">
@@ -104,6 +107,9 @@ export default function TenancyContracts() {
                       </Button>
                       <GenerateTenancyPDFButton contract={c} />
                       <ViewTenancyPDFLink contract={c} />
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Terms & Conditions" onClick={() => openTerms(c)}>
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Send" onClick={() => openSend(c)}>
                         <Send className="w-3.5 h-3.5" />
                       </Button>
@@ -131,6 +137,7 @@ export default function TenancyContracts() {
 
       <ContractFormDialog open={formOpen} onClose={() => setFormOpen(false)} contract={selected} />
       <ContractPreviewDialog open={previewOpen} onClose={() => setPreviewOpen(false)} contract={selected} />
+      <TermsAndConditionsDialog open={termsOpen} onClose={() => setTermsOpen(false)} contractId={selected?.id} />
       <ContractSendDialog open={sendOpen} onClose={() => setSendOpen(false)} contract={selected} />
     </div>
   );

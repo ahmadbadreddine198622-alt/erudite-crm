@@ -209,6 +209,76 @@ Deno.serve(async (req) => {
       generated_at: new Date().toISOString(),
     });
 
+    // ── Add Page 4: Terms and Conditions ────────────────────────────────────────────────
+    const termsData = await base44.asServiceRole.entities.TermsAndConditions.filter(
+      { tenancy_contract_id: tenancyContractId },
+      'term_number',
+      20
+    );
+
+    if (termsData && termsData.length > 0) {
+      const page4 = pdf.addPage([595, 842]); // A4 size
+      const marginLeft = 50;
+      const marginRight = 50;
+      const marginTop = 50;
+      const lineHeight = 20;
+      let y = 842 - marginTop;
+
+      // Header
+      page4.drawText('Additional Terms and Conditions', {
+        x: marginLeft,
+        y: y,
+        size: 14,
+        font,
+        color: black,
+      });
+      page4.drawText('شروط اضافية', {
+        x: 595 - marginRight - 100,
+        y: y,
+        size: 14,
+        font,
+        color: black,
+      });
+      y -= lineHeight * 1.5;
+
+      // Draw terms
+      termsData.forEach((term) => {
+        if (!term.term_en && !term.term_ar) return;
+
+        const termNum = term.term_number + '.';
+        page4.drawText(termNum, { x: marginLeft, y, size: 9, font, color: black });
+
+        const enText = term.term_en || '';
+        const arText = term.term_ar || '';
+        const combinedText = `${enText} ${arText}`.trim();
+
+        // Simple word wrapping for long terms
+        const maxWidth = 495;
+        const words = combinedText.split(' ');
+        let line = '';
+        let lineY = y;
+
+        for (const word of words) {
+          const testLine = line + (line ? ' ' : '') + word;
+          const width = font.widthOfTextAtSize(testLine, 8);
+          if (width > maxWidth) {
+            if (line) {
+              page4.drawText(line, { x: marginLeft + 20, y: lineY, size: 8, font, color: black });
+              lineY -= lineHeight * 0.8;
+            }
+            line = word;
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) {
+          page4.drawText(line, { x: marginLeft + 20, y: lineY, size: 8, font, color: black });
+        }
+
+        y = lineY - lineHeight * 1.2;
+      });
+    }
+
     // Also encode the PDF bytes as base64 so the caller can open it directly in the browser
     let b64 = '';
     const CHUNK = 8192;

@@ -1,0 +1,26 @@
+{
+  "name": "TermsAndConditions",
+  "type": "object",
+  "properties": {
+    "tenancy_contract_id": {
+      "type": "string",
+      "description": "Reference to TenancyContract entity"
+    },
+    "term_number": {
+      "type": "number",
+      "description": "Term number (1-20)"
+    },
+    "term_en": {
+      "type": "string",
+      "description": "Term text in English"
+    },
+    "term_ar": {
+      "type": "string",
+      "description": "Term text in Arabic"
+    }
+  },
+  "required": [
+    "tenancy_contract_id",
+    "term_number"
+  ]
+}
