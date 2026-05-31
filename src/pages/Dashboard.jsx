@@ -363,20 +363,7 @@ export default function Dashboard() {
           </Droppable>
         </DragDropContext>
 
-        {/* Floating Add Button — top-left corner */}
-        {editMode && apps.length < MAX_ITEMS && (
-          <button
-            onClick={() => setShowPicker(true)}
-            className="fixed top-6 left-20 z-50 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 50%))',
-              boxShadow: '0 8px 28px rgba(245,159,10,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            <Plus className="w-6 h-6 text-white" strokeWidth={3} />
-          </button>
-        )}
+
       </div>
 
       {/* AI Insights + Activity */}
