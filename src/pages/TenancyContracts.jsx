@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Plus, ExternalLink, Pencil, Trash2, FileText } from 'lucide-react';
 import ContractFormDialog from '@/components/tenancy/ContractFormDialog';
+import { GenerateTenancyPDFButton, ViewTenancyPDFLink } from '@/components/tenancy/TenancyContractPDF';
 import { toast } from 'sonner';
 
 const STATUS_PILL = {
@@ -54,7 +55,7 @@ export default function TenancyContracts() {
           <p className="text-muted-foreground text-sm">No tenancy contracts yet. Click <strong>New Contract</strong> to get started.</p>
         </div>
       ) : (
-        <div className="glass-card overflow-hidden">
+        <div className="glass-card overflow-x-auto">
           <table className="glass-table w-full">
             <thead>
               <tr>
@@ -64,8 +65,7 @@ export default function TenancyContracts() {
                 <th>Period</th>
                 <th>Annual Rent</th>
                 <th>Status</th>
-                <th>PDF</th>
-                <th></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -90,22 +90,15 @@ export default function TenancyContracts() {
                     </span>
                   </td>
                   <td>
-                    {c.pdf_url ? (
-                      <a href={c.pdf_url} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="ghost" className="gap-1 h-7">
-                          <ExternalLink className="w-3.5 h-3.5" /> View
-                        </Button>
-                      </a>
-                    ) : '—'}
-                  </td>
-                  <td>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(c)}>
+                    <div className="flex gap-1 flex-wrap">
+                      <GenerateTenancyPDFButton contract={c} />
+                      <ViewTenancyPDFLink contract={c} />
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(c)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button
                         size="sm" variant="ghost"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         onClick={() => { if (confirm('Delete this contract?')) remove.mutate(c.id); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
