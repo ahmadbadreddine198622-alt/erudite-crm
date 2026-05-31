@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import ReactMarkdown from 'react-markdown';
 import {
-  Bot, Send, Sparkles, Users, BarChart3, Loader2,
+  Bot, Send, Square, Sparkles, Users, BarChart3, Loader2,
   ChevronRight, Copy, Check, Zap, Brain, TrendingUp, AlertTriangle,
   PlusCircle, Database, Bell, FileText, UserCheck, Home, DollarSign,
   MessageSquare, ClipboardList
@@ -18,6 +18,8 @@ const QUICK_ACTIONS = [
   { id: 'stale_leads', label: 'Find Stale Leads', icon: AlertTriangle, color: 'text-amber-600', desc: 'Identify leads that need attention' },
   { id: 'top_leads', label: 'Rank Top Leads', icon: Users, color: 'text-green-600', desc: 'Score and prioritize best opportunities' },
   { id: 'weekly_summary', label: 'Weekly Summary', icon: BarChart3, color: 'text-purple-600', desc: 'AI-generated weekly brief' },
+  { id: 'whatsapp_draft', label: 'Draft WhatsApp Message', icon: MessageSquare, color: 'text-emerald-600', desc: 'Personalized follow-up message' },
+  { id: 'log_activity', label: 'Log Activity', icon: ClipboardList, color: 'text-rose-600', desc: 'Record call, meeting, or viewing' },
 ];
 
 const PROMPT_SUGGESTIONS = [
@@ -121,6 +123,7 @@ export default function ClaudeAI() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
+  const [abortController, setAbortController] = useState(null);
   const bottomRef = useRef(null);
 
   const { data: crmStats } = useQuery({
@@ -157,7 +160,7 @@ export default function ClaudeAI() {
     setInput('');
   };
 
-  const sendMessage = async (text) => {
+  const sendMessage = useCallback(async (text) => {
     const userMsg = text || input.trim();
     if (!userMsg || loading) return;
 
@@ -166,41 +169,56 @@ export default function ClaudeAI() {
     setMessages(updatedMessages);
     setLoading(true);
 
+    const controller = new AbortController();
+    setAbortController(controller);
+
     const chatMessages = updatedMessages.map(m => ({ role: m.role, content: m.content }));
 
-    const res = await base44.functions.invoke('claudeAI', {
-      mode: 'chat',
-      messages: chatMessages,
-    });
+    try {
+      const res = await base44.functions.invoke('claudeAI', {
+        mode: 'chat',
+        messages: chatMessages,
+      }, { signal: controller.signal });
 
-    setLoading(false);
+      if (res.data?.executed_actions?.length > 0) {
+        const done = res.data.executed_actions.filter(a => a.ok).length;
+        if (done > 0) toast.success(`${done} CRM action${done > 1 ? 's' : ''} executed`);
+      }
 
-    if (res.data?.executed_actions?.length > 0) {
-      const done = res.data.executed_actions.filter(a => a.ok).length;
-      if (done > 0) toast.success(`${done} CRM action${done > 1 ? 's' : ''} executed`);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: res.data?.reply || 'Sorry, I could not get a response.',
+        crm_actions: res.data?.crm_actions || [],
+        executed_actions: res.data?.executed_actions || [],
+      }]);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '*Response stopped by user.*',
+        }]);
+      } else {
+        toast.error('Failed to get response');
+      }
+    } finally {
+      setLoading(false);
+      setAbortController(null);
     }
-
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: res.data?.reply || 'Sorry, I could not get a response.',
-      crm_actions: res.data?.crm_actions || [],
-      executed_actions: res.data?.executed_actions || [],
-    }]);
-  };
+  }, [input, loading, messages]);
 
   const runQuickAction = async (action) => {
     setActiveAction(action.id);
 
-    if (action.id === 'pipeline_insights') {
-      await sendMessage('Give me a full pipeline health analysis with priorities and recommendations.');
-    } else if (action.id === 'stale_leads') {
-      await sendMessage('Identify my stale leads (inactive 7+ days) and suggest specific re-engagement actions for each.');
-    } else if (action.id === 'top_leads') {
-      await sendMessage('Rank my top 10 leads by closing potential. Explain why each is ranked that way.');
-    } else if (action.id === 'weekly_summary') {
-      await sendMessage('Generate a concise weekly performance summary for my CRM including pipeline health, key metrics, and recommended actions this week.');
-    }
+    const prompts = {
+      pipeline_insights: 'Give me a full pipeline health analysis with priorities and recommendations.',
+      stale_leads: 'Identify my stale leads (inactive 7+ days) and suggest specific re-engagement actions for each.',
+      top_leads: 'Rank my top 10 leads by closing potential. Explain why each is ranked that way.',
+      weekly_summary: 'Generate a concise weekly performance summary for my CRM including pipeline health, key metrics, and recommended actions this week.',
+      whatsapp_draft: 'Draft a personalized WhatsApp follow-up message for a lead after a property viewing.',
+      log_activity: 'Help me log a call activity with a lead, including outcome and next steps.',
+    };
 
+    await sendMessage(prompts[action.id] || 'Help me with this task.');
     setActiveAction(null);
   };
 
@@ -301,6 +319,26 @@ export default function ClaudeAI() {
 
         {/* Input */}
         <div className="p-4 border-t bg-card">
+          {/* Quick Actions Chips */}
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+            {QUICK_ACTIONS.map((action) => (
+              <button
+                key={action.id}
+                onClick={() => runQuickAction(action)}
+                disabled={activeAction === action.id || loading}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                  activeAction === action.id
+                    ? 'bg-muted border-border opacity-50'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-accent/30'
+                }`}
+              >
+                <action.icon className={`w-3.5 h-3.5 ${action.color}`} />
+                {action.label}
+                {activeAction === action.id && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-3 items-end">
             <Textarea
               placeholder="Ask Claude anything — or tell it to take action in your CRM..."
@@ -312,15 +350,31 @@ export default function ClaudeAI() {
               disabled={loading}
             />
             <Button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || loading}
-              className="h-12 w-12 shrink-0 bg-gradient-to-br from-purple-600 to-blue-600 hover:opacity-90"
+              onClick={() => {
+                if (loading && abortController) {
+                  abortController.abort();
+                  return;
+                }
+                sendMessage();
+              }}
+              disabled={!input.trim() && !loading}
+              className={`h-12 w-12 shrink-0 transition-all ${
+                loading
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-gradient-to-br from-purple-600 to-blue-600 hover:opacity-90'
+              }`}
               size="icon"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {loading ? (
+                <Square className="w-4 h-4" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Enter to send · Shift+Enter for new line · Claude has access to all your CRM data</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Enter to send · Shift+Enter for new line · Claude has access to all your CRM data
+          </p>
         </div>
       </div>
     </div>
