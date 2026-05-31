@@ -120,6 +120,10 @@
     "mode_of_payment": {
       "type": "string"
     },
+    "ejari_registration_no": {
+      "type": "string",
+      "description": "Ejari registration number \u2014 filled after DLD registration"
+    },
     "status": {
       "type": "string",
       "enum": [

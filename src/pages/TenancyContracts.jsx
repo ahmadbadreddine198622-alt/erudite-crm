@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Plus, ExternalLink, Pencil, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, FileText, Send } from 'lucide-react';
 import ContractFormDialog from '@/components/tenancy/ContractFormDialog';
+import ContractPreviewDialog from '@/components/tenancy/ContractPreviewDialog';
+import ContractSendDialog from '@/components/tenancy/ContractSendDialog';
 import { GenerateTenancyPDFButton, ViewTenancyPDFLink } from '@/components/tenancy/TenancyContractPDF';
 import { toast } from 'sonner';
 
@@ -16,7 +18,9 @@ const STATUS_PILL = {
 
 export default function TenancyContracts() {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
   const { data: contracts = [], isLoading } = useQuery({
@@ -32,8 +36,9 @@ export default function TenancyContracts() {
     },
   });
 
-  const openNew = () => { setSelected(null); setDialogOpen(true); };
-  const openEdit = (c) => { setSelected(c); setDialogOpen(true); };
+  const openForm = (c = null) => { setSelected(c); setFormOpen(true); };
+  const openPreview = (c) => { setSelected(c); setPreviewOpen(true); };
+  const openSend = (c) => { setSelected(c); setSendOpen(true); };
 
   return (
     <div className="page-root">
@@ -42,7 +47,7 @@ export default function TenancyContracts() {
           <h1 className="page-title text-2xl">Tenancy Contracts</h1>
           <p className="page-subtitle mt-1">Dubai Ejari Unified Tenancy Contracts</p>
         </div>
-        <Button className="gap-2" onClick={openNew}>
+        <Button className="gap-2" onClick={() => openForm()}>
           <Plus className="w-4 h-4" /> New Contract
         </Button>
       </div>
@@ -64,6 +69,7 @@ export default function TenancyContracts() {
                 <th>Property</th>
                 <th>Period</th>
                 <th>Annual Rent</th>
+                <th>Ejari No.</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -84,6 +90,7 @@ export default function TenancyContracts() {
                       ? `AED ${Number(c.annual_rent_aed).toLocaleString('en-AE')}`
                       : '—'}
                   </td>
+                  <td className="text-xs text-muted-foreground">{c.ejari_registration_no || '—'}</td>
                   <td>
                     <span className={`jewel-pill ${STATUS_PILL[c.status] || 'jewel-slate'}`}>
                       {c.status}
@@ -91,14 +98,21 @@ export default function TenancyContracts() {
                   </td>
                   <td>
                     <div className="flex gap-1 flex-wrap">
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Preview" onClick={() => openPreview(c)}>
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
                       <GenerateTenancyPDFButton contract={c} />
                       <ViewTenancyPDFLink contract={c} />
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(c)}>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Send" onClick={() => openSend(c)}>
+                        <Send className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit" onClick={() => openForm(c)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       <Button
                         size="sm" variant="ghost"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        title="Delete"
                         onClick={() => { if (confirm('Delete this contract?')) remove.mutate(c.id); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -112,11 +126,9 @@ export default function TenancyContracts() {
         </div>
       )}
 
-      <ContractFormDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        contract={selected}
-      />
+      <ContractFormDialog open={formOpen} onClose={() => setFormOpen(false)} contract={selected} />
+      <ContractPreviewDialog open={previewOpen} onClose={() => setPreviewOpen(false)} contract={selected} />
+      <ContractSendDialog open={sendOpen} onClose={() => setSendOpen(false)} contract={selected} />
     </div>
   );
 }
