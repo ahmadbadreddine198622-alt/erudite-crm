@@ -5,7 +5,7 @@ import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic
+  Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -43,6 +43,7 @@ const navItems = [
   { label: 'Dubai Intelligence',  icon: TrendingUp,      path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-700' },
   { label: 'Elite Desk',          icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-500 to-yellow-700' },
   { label: 'Lease Agreement',     icon: FileText,        path: '/lease-agreement',     gradient: 'from-indigo-500 to-slate-700' },
+  { label: 'Tenancy Contracts',   icon: ScrollText,      path: '/tenancy-contracts',   gradient: 'from-teal-500 to-cyan-800' },
   { label: 'Leaderboard',         icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-500 to-amber-700' },
   { label: 'AI Voice',            icon: Mic,             path: '/vapi',                gradient: 'from-violet-500 to-purple-800' },
 ];

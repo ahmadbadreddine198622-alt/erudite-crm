@@ -52,6 +52,7 @@ import AISyncHub from '@/pages/AISyncHub';
 import IOSRemindersSync from '@/pages/iOSRemindersSync';
 import TeamManagement from '@/pages/TeamManagement';
 import LeaseAgreement from '@/pages/LeaseAgreement';
+import TenancyContracts from '@/pages/TenancyContracts';
 import Profile from '@/pages/Profile';
 import VapiDashboard from '@/pages/VapiDashboard';
 import VapiWorkflow from '@/pages/VapiWorkflow';
@@ -128,6 +129,7 @@ const AuthenticatedApp = () => {
         <Route path="/ios-reminders" element={<IOSRemindersSync />} />
         <Route path="/team-management" element={<TeamManagement />} />
         <Route path="/lease-agreement" element={<LeaseAgreement />} />
+        <Route path="/tenancy-contracts" element={<TenancyContracts />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/vapi" element={<VapiDashboard />} />
         <Route path="/vapi-workflow" element={<VapiWorkflow />} />
