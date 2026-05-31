@@ -5,8 +5,9 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Building2, KanbanSquare, MoreHorizontal, UserCheck } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Home, Users, KanbanSquare, MoreHorizontal, UserCheck } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
 const NAV_ITEMS = [
   { label: 'Pipeline',  icon: KanbanSquare, path: '/pipeline',  color: 'rgba(139,92,246,1)',  glow: 'rgba(139,92,246,0.55)' },
@@ -124,6 +125,31 @@ export default function MobileDock() {
   const navigate = useNavigate();
   const isHome = location.pathname === '/';
 
+  // Context-aware Home button data
+  const { data: reminders = [] } = useQuery({
+    queryKey: ['dock-reminders'],
+    queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20),
+    staleTime: 60_000,
+  });
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['dock-wa'],
+    queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20),
+    staleTime: 60_000,
+  });
+
+  const urgentCount = reminders.filter(r => {
+    if (!r.due_at) return false;
+    const overdue = new Date(r.due_at) < new Date();
+    return overdue;
+  }).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
+  const isUrgent = urgentCount > 0;
+
+  // Dynamic Home colors
+  const homeColor = isUrgent ? 'rgba(239,68,68,1)' : 'rgba(245,158,11,1)';
+  const homeGlow = isUrgent ? 'rgba(239,68,68,0.50)' : 'rgba(245,158,11,0.50)';
+  const homeGlowBloom = isUrgent ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.38)';
+  const homeIconColor = isUrgent ? 'hsl(0 84% 65%)' : 'hsl(38 92% 55%)';
+
   const HOME_SIZE = 62;
   const HOME_R = `${Math.round(HOME_SIZE * 0.24)}px`;
   const homeIconSz = Math.round(HOME_SIZE * 0.52);
@@ -159,19 +185,34 @@ export default function MobileDock() {
 
           {/* Center Home — largest, most elevated */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px' }}>
-            {/* Outer amber glow bloom */}
+            {/* Outer glow bloom — amber or red when urgent */}
             <div style={{
               position: 'absolute',
               width: HOME_SIZE + 28,
               height: HOME_SIZE + 28,
               borderRadius: `${Math.round(HOME_SIZE * 0.24) + 7}px`,
-              background: 'rgba(245,158,11,0.38)',
+              background: homeGlowBloom,
               filter: 'blur(18px)',
               top: '50%', left: '50%',
               transform: 'translate(-50%, -56%)',
               pointerEvents: 'none',
               zIndex: 0,
+              transition: 'background 0.4s ease',
             }} />
+            {/* Urgent pulse ring */}
+            {isUrgent && (
+              <div style={{
+                position: 'absolute',
+                width: HOME_SIZE + 16, height: HOME_SIZE + 16,
+                borderRadius: `${Math.round(HOME_SIZE * 0.24) + 4}px`,
+                border: '2px solid rgba(239,68,68,0.55)',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -56%)',
+                pointerEvents: 'none',
+                zIndex: 1,
+                animation: 'pulse 2s ease-in-out infinite',
+              }} />
+            )}
 
             <button
               type="button"
@@ -184,12 +225,13 @@ export default function MobileDock() {
                 position: 'relative',
                 top: isHome ? '-14px' : '-10px',
                 zIndex: 2,
-                border: `2px solid rgba(245,158,11,${isHome ? '0.55' : '0.30'})`,
+                border: `2px solid ${isHome ? homeColor.replace('1)', '0.55)') : homeColor.replace('1)', '0.30)')}`,
                 borderTopColor: `rgba(255,255,255,${isHome ? '0.55' : '0.35'})`,
                 boxShadow: isHome
-                  ? '0 14px 42px rgba(245,158,11,0.50), 0 4px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22)'
-                  : '0 8px 28px rgba(245,158,11,0.25), 0 2px 10px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14)',
-                background: isHome ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.09)',
+                  ? `0 14px 42px ${homeGlow}, 0 4px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22)`
+                  : `0 8px 28px ${homeGlow.replace('0.50', '0.25')}, 0 2px 10px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14)`,
+                background: isHome ? homeColor.replace('1)', '0.18)') : homeColor.replace('1)', '0.09)'),
+                transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1), background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
                 backdropFilter: 'blur(32px) saturate(200%)',
                 WebkitBackdropFilter: 'blur(32px) saturate(200%)',
                 cursor: 'pointer',
@@ -197,10 +239,13 @@ export default function MobileDock() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {/* Amber gradient base */}
+              {/* Gradient base — shifts red when urgent */}
               <div style={{
                 position: 'absolute', inset: 0, borderRadius: HOME_R,
-                background: 'linear-gradient(145deg, rgba(245,158,11,0.55) 0%, rgba(180,100,0,0.40) 100%)',
+                background: isUrgent
+                  ? 'linear-gradient(145deg, rgba(239,68,68,0.55) 0%, rgba(180,20,20,0.40) 100%)'
+                  : 'linear-gradient(145deg, rgba(245,158,11,0.55) 0%, rgba(180,100,0,0.40) 100%)',
+                transition: 'background 0.4s ease',
               }} />
               {/* Top gloss */}
               <div style={{
@@ -208,12 +253,28 @@ export default function MobileDock() {
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 52%)',
                 pointerEvents: 'none',
               }} />
+              {/* Urgent count badge */}
+              {isUrgent && (
+                <div style={{
+                  position: 'absolute', top: -5, right: -5,
+                  background: 'rgb(239,68,68)',
+                  color: '#fff',
+                  fontSize: 8, fontWeight: 700,
+                  minWidth: 16, height: 16,
+                  borderRadius: 99,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1.5px solid rgba(6,8,16,0.9)',
+                  zIndex: 5,
+                  padding: '0 3px',
+                }}>{urgentCount > 99 ? '99+' : urgentCount}</div>
+              )}
               <Home style={{
                 width: homeIconSz, height: homeIconSz,
                 position: 'relative', zIndex: 2,
-                color: 'hsl(38 92% 55%)',
+                color: homeIconColor,
                 filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.60))',
                 strokeWidth: 2.2,
+                transition: 'color 0.4s ease',
               }} />
             </button>
 
