@@ -1,10 +1,12 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Smartphone, Copy, ExternalLink, Clock, Calendar, List } from 'lucide-react';
+import { Smartphone, Copy, ExternalLink, Clock, Calendar, List, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function IOSRemindersSync() {
+  const qc = useQueryClient();
   const webhookUrl = 'https://app-69cabceaeeb8bb5e3a62ead3.base44.app/functions/receiveiOSReminder';
 
   const { data: iosReminders = [] } = useQuery({
@@ -13,8 +15,26 @@ export default function IOSRemindersSync() {
     staleTime: 30000,
   });
 
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('syncGoogleCalendarToReminders', {});
+      return response.data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['ios-reminders'] });
+      toast.success('Sync complete!', { description: `${data?.synced_count || 0} reminders synced` });
+    },
+    onError: (error) => {
+      toast.error('Sync failed', { description: error.message });
+    },
+  });
+
   const copyShortcut = () => {
     navigator.clipboard.writeText(`iOS Shortcut Webhook: ${webhookUrl}`);
+  };
+
+  const handleSync = () => {
+    syncMutation.mutate();
   };
 
   return (
@@ -70,10 +90,20 @@ export default function IOSRemindersSync() {
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <List className="w-5 h-5 text-emerald-500" />
-            Synced Reminders
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <List className="w-5 h-5 text-emerald-500" />
+              Synced Reminders
+            </h2>
+            <button
+              onClick={handleSync}
+              disabled={syncMutation.isPending}
+              className="py-2 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncMutation.isPending ? 'Syncing...' : 'Sync Now'}
+            </button>
+          </div>
 
           {iosReminders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
