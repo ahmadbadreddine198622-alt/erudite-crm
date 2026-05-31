@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import QuickActionsPanel from '@/components/shared/QuickActionsPanel';
 import CommandCenter from '@/components/shared/CommandCenter';
 import HeroDock from '@/components/ui/HeroDock';
-import { Menu } from 'lucide-react';
+import { Menu, UserPlus } from 'lucide-react';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
 
   // Global keyboard shortcut (Cmd/Ctrl + K)
   React.useEffect(() => {
@@ -53,6 +55,21 @@ export default function AppLayout() {
       <HeroDock />
       <QuickActionsPanel />
       {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
+
+      {/* Global floating New Lead button */}
+      <button
+        onClick={() => setAddLeadOpen(true)}
+        title="Add New Lead (Buyer / Tenant)"
+        className="fixed bottom-24 right-5 z-40 md:bottom-6 md:right-6 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95"
+        style={{
+          background: 'hsl(38 92% 50%)',
+          boxShadow: '0 4px 20px rgba(245,159,10,0.45)',
+        }}
+      >
+        <UserPlus className="w-5 h-5 text-black" />
+      </button>
+
+      <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
     </div>
   );
 }
