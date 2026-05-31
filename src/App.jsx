@@ -53,6 +53,7 @@ import IOSRemindersSync from '@/pages/iOSRemindersSync';
 import TeamManagement from '@/pages/TeamManagement';
 import LeaseAgreement from '@/pages/LeaseAgreement';
 import Profile from '@/pages/Profile';
+import VapiDashboard from '@/pages/VapiDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
         <Route path="/team-management" element={<TeamManagement />} />
         <Route path="/lease-agreement" element={<LeaseAgreement />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/vapi" element={<VapiDashboard />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
