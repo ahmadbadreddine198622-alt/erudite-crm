@@ -192,7 +192,11 @@ export default function WhatsAppInbox() {
 
   const sendMutation = useMutation({
     mutationFn: ({ conversation_id, message }) =>
-      base44.functions.invoke('sendWhatsAppMessage', { conversation_id, message }),
+      base44.functions.invoke('sendWhatsAppMessageFromCRM', { 
+        phone_number: selectedConv?.wa_phone_e164 || selectedConv?.phone_number,
+        message_text: message,
+        media_type: 'text'
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wa_messages', selectedConvId] });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });

@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FileText, Star, Plus, Search, MoreVertical, Edit, Trash2, Copy } from 'lucide-react';
+import { FileText, Star, Plus, Search, MoreVertical, Edit, Trash2, Copy, RefreshCw, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -39,6 +39,7 @@ export default function TemplateManager() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: templates = [] } = useQuery({
     queryKey: ['reply_templates'],
@@ -76,6 +77,21 @@ export default function TemplateManager() {
     });
   };
 
+  const handleSyncMeta = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncWhatsAppTemplates', {});
+      if (res.data.success) {
+        toast.success(`Synced ${res.data.synced} templates (${res.data.created} new, ${res.data.updated} updated)`);
+        queryClient.invalidateQueries({ queryKey: ['reply_templates'] });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to sync templates');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const filtered = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.body.toLowerCase().includes(search.toLowerCase());
@@ -111,6 +127,16 @@ export default function TemplateManager() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button 
+          variant="outline" 
+          onClick={handleSyncMeta}
+          disabled={isSyncing}
+          className="gap-2"
+        >
+          {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+          {isSyncing ? 'Syncing...' : 'Sync Meta Templates'}
+        </Button>
+
         <Dialog open={showAddDialog || !!editingTemplate} onOpenChange={(open) => {
           setShowAddDialog(open);
           if (!open) setEditingTemplate(null);
