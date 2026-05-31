@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { pdf_base64, file_name } = body;
+    const { pdf_base64, file_name, landlord_first_name } = body;
 
     if (!pdf_base64) {
       return Response.json({ error: 'pdf_base64 is required' }, { status: 400 });
@@ -22,9 +22,16 @@ Deno.serve(async (req) => {
     // Extract base64 data (remove data URI prefix if present)
     const base64Data = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
     
+    // Generate filename with landlord's first name if provided
+    const safeFirstName = landlord_first_name 
+      ? landlord_first_name.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 40)
+      : 'KeyHandover';
+    const timestamp = new Date().toISOString().split('T')[0];
+    const generatedFileName = `${safeFirstName}_${timestamp}.pdf`;
+    
     // Upload directly to Google Drive "Key Handover" folder
     const driveUpload = await base44.functions.invoke('uploadToGoogleDrive', {
-      fileName: file_name || `KeyHandover_${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: file_name || generatedFileName,
       base64Content: base64Data,
       mimeType: 'application/pdf',
       folderPath: 'Key Handover'

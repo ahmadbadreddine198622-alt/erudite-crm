@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       }),
     });
 
-    return {
+    return Response.json({
       success: true,
       fileId,
       fileName: uploadData.name,
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       file_url: uploadData.webViewLink || uploadData.webContentLink,
       folderId: targetFolderId,
       folderPath: targetFolderPath,
-    };
+    });
   } catch (error) {
     console.error('uploadToGoogleDrive:', error);
     return Response.json(

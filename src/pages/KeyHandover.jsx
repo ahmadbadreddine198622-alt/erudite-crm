@@ -130,17 +130,18 @@ export default function KeyHandover() {
       // Convert PDF to base64
       const pdfBase64 = doc.output('datauristring');
       
-      // Upload to Google Drive via backend function
-      const lastName = (toParty.name || 'Recipient').trim().split(' ').pop();
-      const fileName = `Erudite_KeyHandover_${lastName}_${property.reference}.pdf`;
+      // Extract first name from the "To" party
+      const firstName = (toParty.name || 'Recipient').trim().split(' ')[0];
       
+      // Upload to Google Drive via backend function with first name
       const result = await base44.functions.invoke('generateKeyHandoverPDF', {
         pdf_base64: pdfBase64,
-        file_name: fileName
+        landlord_first_name: firstName
       });
       
-      // Download the PDF
-      doc.save(fileName);
+      // Download the PDF with first name
+      const downloadFileName = `${firstName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(downloadFileName);
       
       if (result.success) {
         toast.success('PDF downloaded & uploaded to Google Drive!');
