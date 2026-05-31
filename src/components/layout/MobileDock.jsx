@@ -14,6 +14,7 @@ import { base44 } from '@/api/base44Client';
 import { ALL_APPS, CONTEXT_DOCK_MAP } from '@/lib/navApps';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
+import ClaudeChatSheet from '@/components/chat/ClaudeChatSheet';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SZ       = 46;
@@ -98,6 +99,7 @@ export default function MobileDock() {
 
   const [userEmail, setUserEmail] = useState('');
   const [usage, setUsage] = useState(() => loadUsage(''));
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -205,6 +207,52 @@ export default function MobileDock() {
           ))}
         </div>
 
+        {/* Claude Chat Button */}
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 3px' }}>
+          <button
+            type="button"
+            onClick={() => setIsChatOpen(true)}
+            aria-label="Chat with Claude"
+            style={{
+              width: SZ, height: SZ,
+              borderRadius: R,
+              position: 'relative',
+              zIndex: 2,
+              border: '2px solid rgba(245,158,11,0.35)',
+              borderTopColor: 'rgba(255,255,255,0.40)',
+              boxShadow: '0 6px 20px rgba(245,158,11,0.25), 0 2px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.18)',
+              background: 'rgba(245,158,11,0.12)',
+              backdropFilter: 'blur(32px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+              cursor: 'pointer',
+              transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: R,
+              background: 'linear-gradient(145deg, rgba(245,158,11,0.45) 0%, rgba(180,100,0,0.30) 100%)',
+            }} />
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: R,
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 52%)',
+              pointerEvents: 'none',
+            }} />
+            <Brain style={{
+              width: GLYPH, height: GLYPH,
+              position: 'relative', zIndex: 2,
+              color: 'hsl(38 92% 55%)',
+              filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.60))',
+              strokeWidth: 2.2,
+            }} />
+          </button>
+          <span style={{
+            fontSize: 9, fontWeight: 500,
+            color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.02em', marginTop: 2,
+          }}>Claude</span>
+        </div>
+
         {/* Center Home — fixed anchor */}
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 3px' }}>
           {/* Bloom */}
@@ -308,6 +356,9 @@ export default function MobileDock() {
         </div>
 
       </div>
+
+      {/* Claude Chat Bottom Sheet */}
+      <ClaudeChatSheet isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </nav>
   );
 }
