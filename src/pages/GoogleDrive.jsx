@@ -45,6 +45,23 @@ export default function GoogleDrive() {
         enabled: !!folderData,
     });
 
+    // Calculate statistics
+    const totalFiles = filesData?.files?.length || 0;
+    const recentFiles = filesData?.files?.filter(f => {
+        const created = new Date(f.createdTime);
+        const now = new Date();
+        const hoursDiff = (now - created) / (1000 * 60 * 60);
+        return hoursDiff <= 24; // Last 24 hours
+    }) || [];
+    const todayFiles = filesData?.files?.filter(f => {
+        const created = new Date(f.createdTime);
+        const today = new Date();
+        return created.getDate() === today.getDate() && 
+               created.getMonth() === today.getMonth() && 
+               created.getFullYear() === today.getFullYear();
+    }) || [];
+    const pdfCount = filesData?.files?.filter(f => f.mimeType === 'application/pdf')?.length || 0;
+
     const handleSync = async () => {
         setSyncing(true);
         try {
@@ -201,9 +218,11 @@ export default function GoogleDrive() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold text-white">
-                                                    {filesData?.files?.length || 0} Files
+                                                    {pdfCount} PDFs
                                                 </p>
-                                                <p className="text-xs text-white/50">Total PDFs Stored</p>
+                                                <p className="text-xs text-white/50">
+                                                    {todayFiles.length} today • {recentFiles.length} in 24h
+                                                </p>
                                             </div>
                                         </div>
                                         <Button
@@ -234,6 +253,42 @@ export default function GoogleDrive() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Recent Uploads Summary */}
+                                {(todayFiles.length > 0 || recentFiles.length > 0) && (
+                                    <div className="mt-4 grid md:grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-green-400">
+                                                        {todayFiles.length} Uploaded Today
+                                                    </p>
+                                                    <p className="text-xs text-green-200/60">
+                                                        Last 24 hours: {recentFiles.length} files
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                                    <Folder className="w-4 h-4 text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-blue-400">
+                                                        Total: {pdfCount} PDFs
+                                                    </p>
+                                                    <p className="text-xs text-blue-200/60">
+                                                        In PropCRM PDFs folder
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="mt-4 p-3 rounded-lg bg-blue-400/10 border border-blue-400/20">
                                     <div className="flex items-start gap-3">
