@@ -424,8 +424,8 @@ export function GeneratePDFButton({ invoice }) {
           folderPath: 'Finance/Invoices',
           mimeType: 'application/pdf'
         });
-        if (driveUpload?.file_url) {
-          finalUrl = driveUpload.file_url;
+        if (driveUpload?.data?.file_url) {
+          finalUrl = driveUpload.data.file_url;
           uploadedToDrive = true;
           console.log('Invoice uploaded to Google Drive:', finalUrl);
         } else {
