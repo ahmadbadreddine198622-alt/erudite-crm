@@ -8,38 +8,38 @@ import {
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
 
-// Deep desaturated jewel tones matching ExtremeLiquidIcon in launcher
+// Vibrant iOS-grade gradients matching dashboard tiles
 const navItems = [
-  { label: 'Dashboard',         icon: LayoutDashboard, path: '/',                gradient: 'from-blue-900 to-blue-950' },
-  { label: 'My Dashboard',      icon: UserCircle,      path: '/my-dashboard',    gradient: 'from-sky-900 to-blue-950' },
-  { label: 'Pipeline',          icon: KanbanSquare,    path: '/pipeline',        gradient: 'from-violet-900 to-purple-950' },
-  { label: 'Leads',             icon: Users,           path: '/leads',           gradient: 'from-emerald-800 to-emerald-950' },
-  { label: 'Contacts',          icon: UserCheck,       path: '/contacts',        gradient: 'from-sky-900 to-cyan-950' },
-  { label: 'Landlords',         icon: Building2,       path: '/landlords',       gradient: 'from-amber-900 to-orange-950' },
-  { label: 'Projects',          icon: FolderOpen,      path: '/projects',        gradient: 'from-teal-900 to-teal-950' },
-  { label: 'Analytics',         icon: BarChart3,       path: '/analytics',       gradient: 'from-purple-900 to-fuchsia-950' },
-  { label: 'Team',              icon: UserCheck,       path: '/team',            gradient: 'from-slate-700 to-slate-900' },
-  { label: 'Team AI OS',        icon: Brain,           path: '/team-os',         gradient: 'from-indigo-900 to-violet-950' },
-  { label: 'Team Performance',  icon: Trophy,          path: '/team-dashboard',  gradient: 'from-yellow-900 to-amber-950' },
-  { label: 'Offers',            icon: FileSignature,   path: '/offers',          gradient: 'from-cyan-900 to-blue-950' },
-  { label: 'Finance',           icon: Calculator,      path: '/finance',         gradient: 'from-green-900 to-teal-950' },
-  { label: 'Key Handover',      icon: Key,             path: '/key-handover',    gradient: 'from-orange-900 to-red-950' },
-  { label: 'Transfer Calculator', icon: Percent,       path: '/transfer-calculator', gradient: 'from-amber-900 to-yellow-950' },
-  { label: 'Commissions',       icon: DollarSign,      path: '/commissions',     gradient: 'from-amber-900 to-yellow-950' },
-  { label: 'Reminders',         icon: Bell,            path: '/reminders',       gradient: 'from-rose-900 to-red-950' },
-  { label: 'WhatsApp Inbox',    icon: MessageCircle,   path: '/whatsapp',        gradient: 'from-green-900 to-green-950' },
-  { label: 'Inbox',             icon: Inbox,           path: '/inbox',           gradient: 'from-blue-900 to-indigo-950' },
-  { label: 'WhatsApp Hub',      icon: Zap,             path: '/whatsapp-hub',    gradient: 'from-emerald-900 to-green-950' },
-  { label: 'Meta & Google Leads', icon: Zap,           path: '/meta-ads-leads',  gradient: 'from-blue-900 to-sky-950' },
-  { label: 'WhatsApp Setup',    icon: MessageCircle,   path: '/whatsapp-setup',  gradient: 'from-slate-800 to-slate-950' },
-  { label: 'Instagram Leads',   icon: Instagram,       path: '/instagram',       gradient: 'from-fuchsia-900 to-pink-950' },
-  { label: 'Duplicate Detector', icon: GitMerge,       path: '/duplicates',      gradient: 'from-orange-900 to-amber-950' },
-  { label: 'Email Automations', icon: Mail,            path: '/email-automations', gradient: 'from-indigo-900 to-blue-950' },
-  { label: 'Claude AI',         icon: Sparkles,        path: '/claude-ai',       gradient: 'from-violet-900 to-purple-950' },
-  { label: 'Property Finder',   icon: Link2,           path: '/property-finder', gradient: 'from-red-900 to-rose-950' },
-  { label: 'Dubai Intelligence', icon: TrendingUp,      path: '/dubai-intelligence', gradient: 'from-amber-900 to-orange-950' },
-  { label: 'Elite Desk',         icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-800 to-yellow-950' },
-  { label: 'Leaderboard',        icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-800 to-amber-950' },
+  { label: 'Dashboard',           icon: LayoutDashboard, path: '/',                    gradient: 'from-blue-600 to-blue-800' },
+  { label: 'My Dashboard',        icon: UserCircle,      path: '/my-dashboard',        gradient: 'from-blue-500 to-indigo-700' },
+  { label: 'Pipeline',            icon: KanbanSquare,    path: '/pipeline',            gradient: 'from-violet-600 to-purple-800' },
+  { label: 'Leads',               icon: Users,           path: '/leads',               gradient: 'from-emerald-500 to-emerald-800' },
+  { label: 'Contacts',            icon: UserCheck,       path: '/contacts',            gradient: 'from-sky-500 to-cyan-800' },
+  { label: 'Landlords',           icon: Building2,       path: '/landlords',           gradient: 'from-amber-500 to-orange-700' },
+  { label: 'Projects',            icon: FolderOpen,      path: '/projects',            gradient: 'from-teal-500 to-teal-800' },
+  { label: 'Analytics',           icon: BarChart3,       path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800' },
+  { label: 'Team',                icon: UserCheck,       path: '/team',                gradient: 'from-slate-500 to-slate-700' },
+  { label: 'Team AI OS',          icon: Brain,           path: '/team-os',             gradient: 'from-indigo-500 to-violet-800' },
+  { label: 'Team Performance',    icon: Trophy,          path: '/team-dashboard',      gradient: 'from-yellow-500 to-amber-700' },
+  { label: 'Offers',              icon: FileSignature,   path: '/offers',              gradient: 'from-cyan-500 to-blue-800' },
+  { label: 'Finance',             icon: Calculator,      path: '/finance',             gradient: 'from-green-500 to-teal-800' },
+  { label: 'Key Handover',        icon: Key,             path: '/key-handover',        gradient: 'from-orange-500 to-red-700' },
+  { label: 'Transfer Calculator', icon: Percent,         path: '/transfer-calculator', gradient: 'from-amber-500 to-yellow-700' },
+  { label: 'Commissions',         icon: DollarSign,      path: '/commissions',         gradient: 'from-amber-400 to-yellow-700' },
+  { label: 'Reminders',           icon: Bell,            path: '/reminders',           gradient: 'from-rose-500 to-red-700' },
+  { label: 'WhatsApp Inbox',      icon: MessageCircle,   path: '/whatsapp',            gradient: 'from-green-500 to-green-800' },
+  { label: 'Inbox',               icon: Inbox,           path: '/inbox',               gradient: 'from-blue-600 to-indigo-800' },
+  { label: 'WhatsApp Hub',        icon: Zap,             path: '/whatsapp-hub',        gradient: 'from-emerald-500 to-green-700' },
+  { label: 'Meta & Google Leads', icon: Zap,             path: '/meta-ads-leads',      gradient: 'from-blue-500 to-sky-700' },
+  { label: 'WhatsApp Setup',      icon: MessageCircle,   path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700' },
+  { label: 'Instagram Leads',     icon: Instagram,       path: '/instagram',           gradient: 'from-fuchsia-500 to-pink-700' },
+  { label: 'Duplicate Detector',  icon: GitMerge,        path: '/duplicates',          gradient: 'from-orange-500 to-amber-700' },
+  { label: 'Email Automations',   icon: Mail,            path: '/email-automations',   gradient: 'from-indigo-500 to-blue-800' },
+  { label: 'Claude AI',           icon: Sparkles,        path: '/claude-ai',           gradient: 'from-violet-500 to-purple-800' },
+  { label: 'Property Finder',     icon: Link2,           path: '/property-finder',     gradient: 'from-red-500 to-rose-700' },
+  { label: 'Dubai Intelligence',  icon: TrendingUp,      path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-700' },
+  { label: 'Elite Desk',          icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-500 to-yellow-700' },
+  { label: 'Leaderboard',         icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-500 to-amber-700' },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
@@ -75,15 +75,16 @@ export default function Sidebar({ open = false, onClose }) {
               to={item.path}
               onClick={onClose}
               className={cn(
-                'group flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                'group flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative',
                 isActive
-                  ? 'text-sidebar-foreground'
-                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground'
+                  ? 'text-white'
+                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/5'
               )}
               style={isActive ? {
+                background: 'rgba(245,158,11,0.12)',
                 borderLeft: '3px solid hsl(38 92% 50%)',
                 paddingLeft: 'calc(0.5rem - 3px)',
-                boxShadow: 'inset 0 0 16px rgba(245, 158, 11, 0.08), 0 2px 8px rgba(245, 158, 11, 0.06)',
+                boxShadow: '0 2px 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
               } : {}}
             >
               <LiquidGlassIcon

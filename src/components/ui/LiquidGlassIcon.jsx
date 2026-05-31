@@ -32,8 +32,8 @@ export default function LiquidGlassIcon({
   onClick,
   children,
 }) {
-  const glyphSize = iconSize ?? Math.round(size * 0.5);
-  const radius = `${Math.round(size * 0.22)}px`;
+  const glyphSize = iconSize ?? Math.round(size * 0.58);
+  const radius = `${Math.round(size * 0.245)}px`;
 
   return (
     <div
@@ -41,10 +41,10 @@ export default function LiquidGlassIcon({
       className={cn('relative shrink-0 select-none group', className)}
       style={{ width: size, height: size, ...style }}
     >
-      {/* Gradient base layer */}
+      {/* Gradient base — vibrant, saturated */}
       <div
         className={cn('absolute inset-0 bg-gradient-to-br', gradient)}
-        style={{ borderRadius: radius }}
+        style={{ borderRadius: radius, filter: 'saturate(1.5) brightness(1.05)' }}
       />
 
       {/* Heavy frosted glass overlay */}
@@ -60,27 +60,26 @@ export default function LiquidGlassIcon({
           border: '1px solid rgba(255, 255, 255, 0.18)',
           borderTopColor: active ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.25)',
           boxShadow: active
-            ? '0 12px 32px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-            : '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+            ? '0 8px 28px rgba(0,0,0,0.45), 0 0 18px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.22)'
+            : '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)',
         }}
       />
 
-      {/* Luminous top rim highlight */}
+      {/* iOS top gloss — strong highlight band */}
       <div
         className="absolute inset-0"
         style={{
           borderRadius: radius,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.10) 38%, rgba(255,255,255,0) 60%)',
           pointerEvents: 'none',
         }}
       />
-
-      {/* Inner specular highlight */}
+      {/* Dimensional inner depth */}
       <div
         className="absolute inset-0"
         style={{
           borderRadius: radius,
-          boxShadow: 'inset 0 2px 10px rgba(255, 255, 255, 0.1)',
+          boxShadow: 'inset 0 3px 8px rgba(255,255,255,0.08), inset 0 -4px 10px rgba(0,0,0,0.28)',
           pointerEvents: 'none',
         }}
       />
@@ -95,7 +94,8 @@ export default function LiquidGlassIcon({
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))',
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65)) drop-shadow(0 2px 6px rgba(0,0,0,0.40))',
+            strokeWidth: 2.2,
             zIndex: 2,
           }}
         />
