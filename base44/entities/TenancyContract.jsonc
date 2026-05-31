@@ -1,0 +1,146 @@
+{
+  "name": "TenancyContract",
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string",
+      "description": "Reference to Deal entity"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "Reference to Landlord entity (lessor)"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Reference to Property entity"
+    },
+    "tenant_lead_id": {
+      "type": "string",
+      "description": "Reference to Lead entity (tenant)"
+    },
+    "contract_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "lessor_name": {
+      "type": "string"
+    },
+    "lessor_emirates_id": {
+      "type": "string"
+    },
+    "lessor_email": {
+      "type": "string"
+    },
+    "lessor_phone": {
+      "type": "string"
+    },
+    "lessor_license_no": {
+      "type": "string",
+      "description": "Company trade license number (if lessor is a company)"
+    },
+    "lessor_licensing_authority": {
+      "type": "string",
+      "description": "Licensing authority (if lessor is a company)"
+    },
+    "tenant_name": {
+      "type": "string"
+    },
+    "tenant_emirates_id": {
+      "type": "string"
+    },
+    "tenant_email": {
+      "type": "string"
+    },
+    "tenant_phone": {
+      "type": "string"
+    },
+    "tenant_license_no": {
+      "type": "string",
+      "description": "Company trade license number (if tenant is a company)"
+    },
+    "tenant_licensing_authority": {
+      "type": "string",
+      "description": "Licensing authority (if tenant is a company)"
+    },
+    "plot_no": {
+      "type": "string"
+    },
+    "makani_no": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "building_name": {
+      "type": "string"
+    },
+    "property_type": {
+      "type": "string"
+    },
+    "property_no": {
+      "type": "string"
+    },
+    "property_area_sqm": {
+      "type": "number"
+    },
+    "dewa_premises_no": {
+      "type": "string"
+    },
+    "property_usage": {
+      "type": "string",
+      "enum": [
+        "residential",
+        "commercial",
+        "industrial"
+      ]
+    },
+    "annual_rent_aed": {
+      "type": "number",
+      "description": "Annual rent amount in AED"
+    },
+    "contract_period_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "contract_period_to": {
+      "type": "string",
+      "format": "date"
+    },
+    "contract_value_aed": {
+      "type": "number",
+      "description": "Total contract value in AED"
+    },
+    "security_deposit_aed": {
+      "type": "number",
+      "description": "Security deposit amount in AED"
+    },
+    "mode_of_payment": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "generated",
+        "signed",
+        "registered"
+      ],
+      "default": "draft"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL of the generated PDF \u2014 populated by backend generator only"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when PDF was generated \u2014 populated by backend generator only"
+    }
+  },
+  "required": [
+    "status"
+  ]
+}
