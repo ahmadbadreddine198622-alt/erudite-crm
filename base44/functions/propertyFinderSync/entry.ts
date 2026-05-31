@@ -91,7 +91,7 @@ function mapPFLeadToCRM(pfLead) {
   const hasCallRecording = pfLead.call && pfLead.call.recordFile ? pfLead.call.recordFile : '';
 
   return {
-    name: name,
+    full_name: name,
     phone: phone,
     email: email,
     source: 'property_finder',
@@ -111,9 +111,8 @@ function mapPFLeadToCRM(pfLead) {
       response_link: pfLead.responseLink || '',
     },
     notes: pfLead.message || pfLead.body || '',
-    stage: 'new_lead',
-    relationship_type: 'buyer',
-    assigned_agent: agentEmail || undefined,
+    stage: 'intake_clarify',
+    assigned_agent_email: agentEmail || undefined,
     assigned_agent_name: agentName || undefined,
   };
 }
