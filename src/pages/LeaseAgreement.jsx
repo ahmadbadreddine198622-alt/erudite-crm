@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,16 @@ export default function LeaseAgreement() {
     },
     onSuccess: (res) => {
       const data = res?.data ?? res;
-      if (data?.skipped) {
+      const pdfUrl = data?.pdf_url || data?.pdfUrl;
+      const landlordId = typeof generateMutation.variables === 'string'
+        ? generateMutation.variables
+        : generateMutation.variables?.landlord_id;
+      if (pdfUrl && landlordId) {
+        setPdfUrls(prev => ({ ...prev, [landlordId]: pdfUrl }));
+        // Auto-open the PDF
+        window.open(pdfUrl, '_blank');
+        toast.success('Agreement generated — PDF opened in new tab');
+      } else if (data?.skipped) {
         toast.info(data.reason || 'Already sent for signature.');
       } else {
         toast.success('Lease Brokerage Agreement sent for signature');
@@ -73,17 +82,17 @@ export default function LeaseAgreement() {
   // ── Manual form state ───────────────────────────────────────────────────
   const [manualForLandlord, setManualForLandlord] = useState(null);
   const [manualForm, setManualForm] = useState({});
+  const [formStep, setFormStep] = useState('form'); // 'form' | 'review'
+  const [pdfUrls, setPdfUrls] = useState({}); // landlordId → pdfUrl
 
   const openManual = (landlord) => {
-    // Per spec: pre-fill only from the landlord record. Property / agent
-    // fields stay blank so the function falls back to the linked records,
-    // and the user only types what they want to override.
     const init = Object.fromEntries(MANUAL_FIELDS.map((k) => [k, '']));
     init.owner_name  = landlord.full_name_en || '';
     init.owner_email = landlord.email || '';
     init.owner_phone = landlord.phone || '';
     init.passport_no = landlord.passport_no || '';
     setManualForm(init);
+    setFormStep('form');
     setManualForLandlord(landlord);
   };
 
@@ -91,8 +100,6 @@ export default function LeaseAgreement() {
 
   const submitManual = () => {
     if (!manualForLandlord) return;
-    // Only forward fields the user actually filled in. Empty strings fall
-    // through to record on the server (override > record > null).
     const payload = { landlord_id: manualForLandlord.id };
     for (const k of MANUAL_FIELDS) {
       const v = manualForm[k];
@@ -237,6 +244,14 @@ export default function LeaseAgreement() {
                         <PenLine className="w-3.5 h-3.5" />
                         Manual
                       </Button>
+                      {pdfUrls[landlord.id] && (
+                        <a href={pdfUrls[landlord.id]} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="ghost" className="gap-1.5 text-accent hover:text-accent" title="View last generated PDF">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            PDF
+                          </Button>
+                        </a>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -263,141 +278,120 @@ export default function LeaseAgreement() {
         </CardContent>
       </Card>
 
-      {/* Manual override dialog — opens via per-row "Manual" button. Empty fields
-          fall back to the linked record on the server. Submit calls the same
-          generateLeaseBrokerageAgreement function as Auto, with overrides. */}
+      {/* Manual override dialog */}
       <Dialog open={!!manualForLandlord} onOpenChange={(o) => !o && setManualForLandlord(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Generate with manual overrides</DialogTitle>
+            <DialogTitle>
+              {formStep === 'form' ? 'Generate with manual overrides' : 'Review & Confirm'}
+            </DialogTitle>
             <DialogDescription>
-              Edit any field below to override what the function would auto-pull.
-              Leave fields blank to use the landlord / linked-property record. Owner fields
-              pre-filled from the landlord; property + agent fields blank (use record on submit).
+              {formStep === 'form'
+                ? 'Edit any field below. Leave blank to use the landlord / linked-property record.'
+                : 'Review the data below before generating the agreement.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            {/* OWNER */}
-            <section>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Owner</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Full Name</Label>
-                  <Input value={manualForm.owner_name || ''} onChange={(e) => updateManual('owner_name', e.target.value)} placeholder="Owner name" />
+          {formStep === 'form' ? (
+            <div className="space-y-5 py-2">
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Owner</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">Full Name</Label><Input value={manualForm.owner_name || ''} onChange={(e) => updateManual('owner_name', e.target.value)} placeholder="Owner name" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Passport No.</Label><Input value={manualForm.passport_no || ''} onChange={(e) => updateManual('passport_no', e.target.value)} placeholder="Passport number" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" value={manualForm.owner_email || ''} onChange={(e) => updateManual('owner_email', e.target.value)} placeholder="owner@example.com" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Phone</Label><Input value={manualForm.owner_phone || ''} onChange={(e) => updateManual('owner_phone', e.target.value)} placeholder="+971…" /></div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Passport No.</Label>
-                  <Input value={manualForm.passport_no || ''} onChange={(e) => updateManual('passport_no', e.target.value)} placeholder="Passport number" />
+              </section>
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Broker (Erudite Agent)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">Agent Name</Label><Input value={manualForm.agent_name || ''} onChange={(e) => updateManual('agent_name', e.target.value)} placeholder="Blank = use User record" /></div>
+                  <div className="space-y-1"><Label className="text-xs">BRN</Label><Input value={manualForm.brn || ''} onChange={(e) => updateManual('brn', e.target.value)} placeholder="Broker Registration No." /></div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Email</Label>
-                  <Input type="email" value={manualForm.owner_email || ''} onChange={(e) => updateManual('owner_email', e.target.value)} placeholder="owner@example.com" />
+              </section>
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Property</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">Property Type</Label>
+                    <select value={manualForm.property_type || ''} onChange={(e) => updateManual('property_type', e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                      {PROPERTY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1"><Label className="text-xs">Unit No.</Label><Input value={manualForm.unit_no || ''} onChange={(e) => updateManual('unit_no', e.target.value)} placeholder="Blank = use Property record" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Building / Community</Label><Input value={manualForm.building_name || ''} onChange={(e) => updateManual('building_name', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Location</Label><Input value={manualForm.location || ''} onChange={(e) => updateManual('location', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">View</Label><Input value={manualForm.view || ''} onChange={(e) => updateManual('view', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Area (sqft)</Label><Input type="number" value={manualForm.area_sqft || ''} onChange={(e) => updateManual('area_sqft', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Bedrooms</Label><Input type="number" value={manualForm.bedrooms || ''} onChange={(e) => updateManual('bedrooms', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Bathrooms</Label><Input type="number" value={manualForm.bathrooms || ''} onChange={(e) => updateManual('bathrooms', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Price (AED)</Label><Input type="number" value={manualForm.price_aed || ''} onChange={(e) => updateManual('price_aed', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Rent (AED)</Label><Input type="number" value={manualForm.rent_aed || ''} onChange={(e) => updateManual('rent_aed', e.target.value)} /></div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Phone</Label>
-                  <Input value={manualForm.owner_phone || ''} onChange={(e) => updateManual('owner_phone', e.target.value)} placeholder="+971…" />
+              </section>
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Contract Term</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">Start Date</Label><Input type="text" placeholder="2026-06-01" value={manualForm.contract_start || ''} onChange={(e) => updateManual('contract_start', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">End Date</Label><Input type="text" placeholder="2027-06-01" value={manualForm.contract_end || ''} onChange={(e) => updateManual('contract_end', e.target.value)} /></div>
                 </div>
+                <p className="text-[10px] text-white/40 mt-1.5">Both blank ⇒ default 12 months from today.</p>
+              </section>
+            </div>
+          ) : (
+            /* ── REVIEW STEP ─────────────────────────────────────── */
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg border border-white/10 overflow-hidden">
+                {[
+                  { label: 'Owner', value: manualForm.owner_name },
+                  { label: 'Passport No.', value: manualForm.passport_no },
+                  { label: 'Email', value: manualForm.owner_email },
+                  { label: 'Phone', value: manualForm.owner_phone },
+                  { label: 'Agent', value: manualForm.agent_name },
+                  { label: 'BRN', value: manualForm.brn },
+                  { label: 'Property Type', value: manualForm.property_type },
+                  { label: 'Unit No.', value: manualForm.unit_no },
+                  { label: 'Building', value: manualForm.building_name },
+                  { label: 'Location', value: manualForm.location },
+                  { label: 'Area (sqft)', value: manualForm.area_sqft },
+                  { label: 'Bedrooms', value: manualForm.bedrooms },
+                  { label: 'Price (AED)', value: manualForm.price_aed },
+                  { label: 'Rent (AED)', value: manualForm.rent_aed },
+                  { label: 'Contract Start', value: manualForm.contract_start },
+                  { label: 'Contract End', value: manualForm.contract_end },
+                ].filter(r => r.value).map((row, i) => (
+                  <div key={row.label} className={`flex justify-between px-4 py-2 text-sm ${i % 2 === 0 ? 'bg-white/5' : ''}`}>
+                    <span className="text-white/50">{row.label}</span>
+                    <span className="font-medium">{row.value}</span>
+                  </div>
+                ))}
               </div>
-            </section>
-
-            {/* AGENT (BROKER) */}
-            <section>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Broker (Erudite Agent)</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Agent Name</Label>
-                  <Input value={manualForm.agent_name || ''} onChange={(e) => updateManual('agent_name', e.target.value)} placeholder="Blank = use User record" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">BRN</Label>
-                  <Input value={manualForm.brn || ''} onChange={(e) => updateManual('brn', e.target.value)} placeholder="Broker Registration No." />
-                </div>
-              </div>
-            </section>
-
-            {/* PROPERTY */}
-            <section>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Property</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Property Type</Label>
-                  <select
-                    value={manualForm.property_type || ''}
-                    onChange={(e) => updateManual('property_type', e.target.value)}
-                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                  >
-                    {PROPERTY_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Unit No.</Label>
-                  <Input value={manualForm.unit_no || ''} onChange={(e) => updateManual('unit_no', e.target.value)} placeholder="Blank = use Property record" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Building / Community</Label>
-                  <Input value={manualForm.building_name || ''} onChange={(e) => updateManual('building_name', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Location</Label>
-                  <Input value={manualForm.location || ''} onChange={(e) => updateManual('location', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">View</Label>
-                  <Input value={manualForm.view || ''} onChange={(e) => updateManual('view', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Area (sqft)</Label>
-                  <Input type="number" value={manualForm.area_sqft || ''} onChange={(e) => updateManual('area_sqft', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Bedrooms</Label>
-                  <Input type="number" value={manualForm.bedrooms || ''} onChange={(e) => updateManual('bedrooms', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Bathrooms</Label>
-                  <Input type="number" value={manualForm.bathrooms || ''} onChange={(e) => updateManual('bathrooms', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Price (AED)</Label>
-                  <Input type="number" value={manualForm.price_aed || ''} onChange={(e) => updateManual('price_aed', e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Rent (AED)</Label>
-                  <Input type="number" value={manualForm.rent_aed || ''} onChange={(e) => updateManual('rent_aed', e.target.value)} />
-                </div>
-              </div>
-            </section>
-
-            {/* CONTRACT TERM */}
-            <section>
-             <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Contract Term</h3>
-             <div className="grid grid-cols-2 gap-3">
-               <div className="space-y-1">
-                 <Label className="text-xs">Start Date (YYYY-MM-DD)</Label>
-                 <Input type="text" placeholder="2026-06-01" value={manualForm.contract_start || ''} onChange={(e) => updateManual('contract_start', e.target.value)} />
-               </div>
-               <div className="space-y-1">
-                 <Label className="text-xs">End Date (YYYY-MM-DD)</Label>
-                 <Input type="text" placeholder="2027-06-01" value={manualForm.contract_end || ''} onChange={(e) => updateManual('contract_end', e.target.value)} />
-               </div>
-             </div>
-             <p className="text-[10px] text-white/40 mt-1.5">Both blank ⇒ default 12 months from today. Format: YYYY-MM-DD</p>
-            </section>
-          </div>
+              <p className="text-xs text-white/40">Fields not shown above will be pulled automatically from the linked landlord / property records.</p>
+              <p className="text-xs text-amber-400/80">📁 PDF will be saved to Google Drive → <strong>Lease Agreements/</strong></p>
+            </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setManualForLandlord(null)} disabled={generateMutation.isPending}>
-              Cancel
-            </Button>
-            <Button onClick={submitManual} disabled={generateMutation.isPending} className="gap-1.5">
-              {generateMutation.isPending
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <FileSignature className="w-3.5 h-3.5" />}
-              Generate Agreement
-            </Button>
+            {formStep === 'form' ? (
+              <>
+                <Button variant="outline" onClick={() => setManualForLandlord(null)}>Cancel</Button>
+                <Button onClick={() => setFormStep('review')} className="gap-1.5">
+                  Review <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setFormStep('form')} className="gap-1.5">
+                  <ChevronLeft className="w-3.5 h-3.5" /> Back
+                </Button>
+                <Button onClick={submitManual} disabled={generateMutation.isPending} className="gap-1.5">
+                  {generateMutation.isPending
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <FileSignature className="w-3.5 h-3.5" />}
+                  Generate Agreement
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
