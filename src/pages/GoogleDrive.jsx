@@ -16,6 +16,13 @@ export default function GoogleDrive() {
     const [searchQuery, setSearchQuery] = useState('');
     const [syncing, setSyncing] = useState(false);
 
+    const documentTypes = [
+        { name: 'Property Documents', icon: FileText, desc: 'Brochures, floor plans, permits' },
+        { name: 'Call Transcripts', icon: FileText, desc: 'Vapi & Aircall call records' },
+        { name: 'Contracts & Forms', icon: FileText, desc: 'Form A, Form F, lease agreements' },
+        { name: 'Invoices & Payments', icon: FileText, desc: 'Tax invoices, receipts' },
+    ];
+
     // Check Google Drive connection
     const { data: folderData, isLoading: loadingFolder, refetch: refetchFolder } = useQuery({
         queryKey: ['gdrive-folder'],
@@ -78,7 +85,10 @@ export default function GoogleDrive() {
                 background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
             }}
         >
-            <PageHeader title="Google Drive Integration" subtitle="Store and manage all CRM PDFs in your Google Drive">
+            <PageHeader 
+                title="Google Drive" 
+                subtitle="Independent document storage for all CRM PDFs - separate from Vapi AI calling platform"
+            >
                 <div className="flex gap-2">
                     <Button
                         size="sm"
@@ -142,10 +152,26 @@ export default function GoogleDrive() {
                                     </Badge>
                                 </div>
                                 <CardDescription className="text-white/60">
-                                    All CRM PDFs are automatically saved to your Google Drive
+                                    Property documents, call transcripts, contracts, and invoices auto-sync to your Google Drive
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
+                                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                                    {documentTypes.map((doc, idx) => (
+                                        <div key={idx} className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                                    <doc.icon className="w-5 h-5 text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-white">{doc.name}</p>
+                                                    <p className="text-xs text-white/50">{doc.desc}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
                                 <div className="grid md:grid-cols-3 gap-4">
                                     <div className="p-4 rounded-lg bg-white/5 border border-white/10">
                                         <div className="flex items-center gap-3 mb-2">
@@ -217,6 +243,9 @@ export default function GoogleDrive() {
                                             <p>ahmad@erudite-estate.com</p>
                                             <p className="text-xs text-blue-200/60 mt-1">
                                                 Folder ID: {folderData.folderId}
+                                            </p>
+                                            <p className="text-xs text-blue-200/60 mt-2">
+                                                <strong>Note:</strong> Google Drive is a separate document storage system, independent from Vapi (AI calling platform)
                                             </p>
                                         </div>
                                     </div>
