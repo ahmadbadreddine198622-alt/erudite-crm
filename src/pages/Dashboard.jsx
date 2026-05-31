@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Grid3X3 } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -260,11 +260,20 @@ export default function Dashboard() {
         <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
+      {/* Desktop Apps button */}
+      <button
+        onClick={() => navigate('/desktop')}
+        className="absolute top-5 right-6 text-sm font-semibold text-accent z-20 flex items-center gap-1.5"
+      >
+        <Grid3X3 className="w-4 h-4" />
+        Desktop Apps
+      </button>
+
       {/* Done button — only visible in edit mode */}
       {editMode && (
         <button
           onClick={() => setEditMode(false)}
-          className="absolute top-5 right-6 text-sm font-semibold text-accent z-20"
+          className="absolute top-5 right-12 text-sm font-semibold text-accent z-20"
         >
           Done
         </button>
