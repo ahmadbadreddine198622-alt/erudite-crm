@@ -24,6 +24,7 @@ import { formatAED, LEAD_TYPE_LABELS } from '@/lib/constants';
 import { getStagesForIntent } from '@/lib/pipeline';
 import LeadWhatsAppTab from '@/components/whatsapp/LeadWhatsAppTab';
 import LeadScorePanel from '@/components/leads/LeadScorePanel';
+import LeadPropertyMatches from '@/components/leads/LeadPropertyMatches';
 import ScheduleViewingDialog from '@/components/leads/ScheduleViewingDialog';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
@@ -182,6 +183,9 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <TabsTrigger value="details" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">Details</TabsTrigger>
             <TabsTrigger value="whatsapp" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
               💬 WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="matches" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
+              🏠 Matches
             </TabsTrigger>
             <TabsTrigger value="score" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
               🎯 Score
@@ -395,6 +399,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               />
             </section>
 
+          </TabsContent>
+
+          <TabsContent value="matches" className="p-4 mt-0">
+            <LeadPropertyMatches lead={lead} />
           </TabsContent>
 
           <TabsContent value="score" className="p-4 mt-0">
