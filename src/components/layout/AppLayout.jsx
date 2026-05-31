@@ -36,7 +36,7 @@ export default function AppLayout() {
         />
       )}
 
-      <main className="flex-1 overflow-x-hidden pb-36 md:pb-0 relative">
+      <main className="flex-1 overflow-x-hidden pb-36 md:pb-0 relative bg-background">
         {/* Hamburger button */}
         <button
           onClick={() => setSidebarOpen(true)}
@@ -45,7 +45,9 @@ export default function AppLayout() {
         >
           <Menu className="w-4 h-4" />
         </button>
-        <Outlet />
+        <div className="page-enter">
+          <Outlet />
+        </div>
       </main>
       <MobileNav />
       <HeroDock />
