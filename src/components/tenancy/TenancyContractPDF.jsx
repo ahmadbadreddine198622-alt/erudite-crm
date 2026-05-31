@@ -101,12 +101,11 @@ export function ViewTenancyPDFLink({ contract }) {
   if (!contract?.pdf_url) return null;
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = contract.pdf_url;
-    link.download = `TenancyContract_${contract.tenant_name || contract.id}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Google Drive links need the download parameter to trigger download instead of preview
+    const url = contract.pdf_url.includes('drive.google.com')
+      ? contract.pdf_url.replace('/view', '/export?format=pdf')
+      : contract.pdf_url;
+    window.open(url, '_blank');
   };
 
   return (
