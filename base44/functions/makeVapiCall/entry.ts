@@ -21,8 +21,7 @@ Deno.serve(async (req) => {
         }
 
         // Create a phone call using Vapi API
-        // Vapi requires phone numbers to be configured in their dashboard first
-        // Users must add Twilio credentials and phone numbers via Vapi Dashboard > Phone Numbers
+        // This uses Vapi's configured phone provider (Twilio must be set up in Vapi Dashboard)
         const response = await fetch('https://api.vapi.ai/call', {
             method: 'POST',
             headers: {
@@ -31,10 +30,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 assistantId: assistantId,
-                phoneNumber: {
-                    twilioPhoneNumber: phoneNumber,
-                    twilioAccountSid: Deno.env.get("TWILIO_ACCOUNT_SID") || ""
-                },
+                phoneNumberId: phoneNumber, // User provides the Phone Number ID from Vapi
                 metadata: {
                     leadId: leadId || '',
                     leadName: leadName || '',
@@ -49,12 +45,12 @@ Deno.serve(async (req) => {
             // Provide helpful error messages based on common issues
             if (errorData.message) {
                 const errorMsg = Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message;
-                if (errorMsg.includes('twilio') || errorMsg.includes('provider') || errorMsg.includes('phone')) {
+                if (errorMsg.includes('twilio') || errorMsg.includes('provider') || errorMsg.includes('phone') || errorMsg.includes('PhoneNumber')) {
                     return Response.json({ 
-                        error: 'Twilio not connected. Please configure Twilio in Vapi Dashboard first.',
-                        details: 'You need to: 1) Connect Twilio in Vapi Settings > Phone Providers, 2) Add a phone number in Phone Numbers, 3) Assign it to your assistant.',
+                        error: 'Phone provider not configured. Please set up Twilio in Vapi Dashboard.',
+                        details: 'Steps: 1) Go to Vapi Dashboard > Settings > Phone Providers, 2) Connect Twilio with your Account SID and Auth Token, 3) Add a phone number in Phone Numbers, 4) Assign it to your assistant.',
                         setupRequired: true,
-                        setupUrl: 'https://dashboard.vapi.ai/phone-numbers'
+                        setupUrl: 'https://dashboard.vapi.ai/settings/phone-providers'
                     }, { status: response.status });
                 }
             }

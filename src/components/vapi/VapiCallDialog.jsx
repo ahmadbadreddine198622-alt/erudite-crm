@@ -161,15 +161,16 @@ export default function VapiCallDialog({ lead }) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone">Vapi Phone Number ID</Label>
                         <Input
                             id="phone"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="+971 50 123 4567"
+                            placeholder="phone-number-id-from-vapi"
                         />
                         <p className="text-xs text-muted-foreground">
-                            Enter the phone number to call (E.164 format recommended).
+                            Enter the Phone Number ID from Vapi Dashboard (not the actual phone number).
+                            Find it in Vapi &gt; Phone Numbers &gt; Copy the ID.
                         </p>
                     </div>
                 </div>
