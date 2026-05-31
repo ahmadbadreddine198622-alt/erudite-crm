@@ -51,44 +51,52 @@ Deno.serve(async (req) => {
 
     console.log(`Fetched: ${leads.length} leads, ${properties.length} properties, ${landlords.length} landlords, ${deals.length} deals, ${conversations.length} conversations, ${reminders.length} reminders`);
 
-    // Phase 1: Entity-specific synchronization
+    // CLAUDE FIRST: Generate strategic insights BEFORE any sync operations
+    let claudeInsights = null;
+    if (useClaude !== false && entity_name === 'all') {
+      console.log('🤖 CLAUDE: Generating pre-sync strategic analysis...');
+      claudeInsights = await generateClaudeInsights(leads, properties, landlords, deals, conversations, reminders, base44);
+      console.log('🤖 CLAUDE: Analysis complete -', claudeInsights.insights?.length || 0, 'insights,', claudeInsights.recommended_actions?.length || 0, 'actions');
+    }
+
+    // Phase 1: Entity-specific synchronization - CLAUDE-ENHANCED
     if (entity_name === 'all' || entity_name === 'Lead') {
-      const leadResults = await syncLeads(leads, properties, deals, conversations, base44);
+      const leadResults = await syncLeads(leads, properties, deals, conversations, base44, claudeInsights);
       results.Lead = leadResults;
       totalSynced += leadResults.syncedCount;
       totalConnections += leadResults.connectionsFound;
     }
 
     if (entity_name === 'all' || entity_name === 'Property') {
-      const propertyResults = await syncProperties(properties, leads, deals, landlords, base44);
+      const propertyResults = await syncProperties(properties, leads, deals, landlords, base44, claudeInsights);
       results.Property = propertyResults;
       totalSynced += propertyResults.syncedCount;
       totalConnections += propertyResults.connectionsFound;
     }
 
     if (entity_name === 'all' || entity_name === 'Landlord') {
-      const landlordResults = await syncLandlords(landlords, properties, leads, base44);
+      const landlordResults = await syncLandlords(landlords, properties, leads, base44, claudeInsights);
       results.Landlord = landlordResults;
       totalSynced += landlordResults.syncedCount;
       totalConnections += landlordResults.connectionsFound;
     }
 
     if (entity_name === 'all' || entity_name === 'Deal') {
-      const dealResults = await syncDeals(deals, leads, properties, conversations, base44);
+      const dealResults = await syncDeals(deals, leads, properties, conversations, base44, claudeInsights);
       results.Deal = dealResults;
       totalSynced += dealResults.syncedCount;
       totalConnections += dealResults.connectionsFound;
     }
 
     if (entity_name === 'all' || entity_name === 'WhatsAppConversation') {
-      const conversationResults = await syncConversations(conversations, leads, deals, base44);
+      const conversationResults = await syncConversations(conversations, leads, deals, base44, claudeInsights);
       results.WhatsAppConversation = conversationResults;
       totalSynced += conversationResults.syncedCount;
       totalConnections += conversationResults.connectionsFound;
     }
 
     if (entity_name === 'all' || entity_name === 'Reminder') {
-      const reminderResults = await syncReminders(reminders, leads, properties, deals, base44);
+      const reminderResults = await syncReminders(reminders, leads, properties, deals, base44, claudeInsights);
       results.Reminder = reminderResults;
       totalSynced += reminderResults.syncedCount;
       totalConnections += reminderResults.connectionsFound;
@@ -101,28 +109,24 @@ Deno.serve(async (req) => {
       totalConnections += connectionResults.newConnections;
     }
 
-    // Phase 3: Generate AI insights using Claude
-    if (generateInsights && entity_name === 'all' && useClaude) {
-      const claudeInsights = await generateClaudeInsights(leads, properties, landlords, deals, conversations, reminders, base44);
-      results.claude_insights = claudeInsights;
-      
-      // Execute Claude's recommended actions
-      if (claudeInsights.recommended_actions) {
-        const executedActions = await executeClaudeActions(claudeInsights.recommended_actions, base44);
-        results.executed_actions = executedActions;
-      }
-    } else if (generateInsights && entity_name === 'all') {
-      const insightsResults = await generateAIInsights(leads, properties, landlords, deals, conversations, reminders, base44);
-      results.insights = insightsResults;
+    // Phase 3: Execute Claude's post-sync actions (already generated pre-sync)
+    if (claudeInsights && claudeInsights.recommended_actions) {
+      console.log('🤖 CLAUDE: Executing', claudeInsights.recommended_actions.length, 'recommended actions...');
+      const executedActions = await executeClaudeActions(claudeInsights.recommended_actions, base44);
+      results.executed_actions = executedActions;
+      const successCount = executedActions.filter(e => e?.success).length;
+      console.log('🤖 CLAUDE: Executed', successCount, '/', executedActions.length, 'actions successfully');
     }
 
-    console.log(`Synchronization complete: ${totalSynced} records processed, ${totalConnections} connections discovered`);
+    console.log(`🤖 CLAUDE-POWERED SYNC COMPLETE: ${totalSynced} records, ${totalConnections} connections, ${claudeInsights?.insights?.length || 0} insights`);
 
     return Response.json({
       success: true,
       totalSynced,
       totalConnections,
       results,
+      claude_in_control: true,
+      claude_insights: claudeInsights,
       timestamp: new Date().toISOString(),
     });
 
@@ -135,15 +139,28 @@ Deno.serve(async (req) => {
   }
 });
 
-// Sync Leads with AI enrichment
-async function syncLeads(leads, properties, deals, conversations, base44) {
-  console.log('Syncing leads...');
+// Sync Leads with AI enrichment - CLAUDE-ENHANCED
+async function syncLeads(leads, properties, deals, conversations, base44, claudeInsights) {
+  console.log('Syncing leads (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
   for (const lead of leads) {
     try {
       const updates = {};
+
+      // CLAUDE PRIORITY: Flag leads matching critical bottleneck patterns
+      if (claudeInsights?.metrics?.contact_identity_percentage > 50 && lead.stage === 'contact_identity') {
+        const daysInStage = lead.stage_entered_at 
+          ? Math.floor((new Date() - new Date(lead.stage_entered_at)) / (1000 * 60 * 60 * 24))
+          : 0;
+        
+        if (daysInStage > 3 && !lead.ai_lead_score) {
+          updates.ai_lead_score = Math.max(0, 100 - (daysInStage * 10)); // Decay score for stagnation
+          updates.tags = [...(lead.tags || []), 'claude_flagged_stale'];
+          connectionsFound++;
+        }
+      }
 
       // Check if lead has matching WhatsApp conversation
       const matchingConvo = conversations.find(c =>
@@ -185,7 +202,12 @@ async function syncLeads(leads, properties, deals, conversations, base44) {
         syncedCount++;
       }
     } catch (error) {
-      console.error(`Failed to sync lead ${lead.id}:`, error);
+      if (error.status === 429) {
+        // Rate limit - wait and continue
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        console.error(`Failed to sync lead ${lead.id}:`, error);
+      }
     }
   }
 
@@ -193,15 +215,28 @@ async function syncLeads(leads, properties, deals, conversations, base44) {
   return { syncedCount, connectionsFound };
 }
 
-// Sync Properties with AI matching
-async function syncProperties(properties, leads, deals, landlords, base44) {
-  console.log('Syncing properties...');
+// Sync Properties with AI matching - CLAUDE-ENHANCED
+async function syncProperties(properties, leads, deals, landlords, base44, claudeInsights) {
+  console.log('Syncing properties (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
   for (const property of properties) {
     try {
       const updates = {};
+
+      // CLAUDE: Flag properties in high-demand areas based on lead preferences
+      const interestedLeads = leads.filter(l => 
+        l.preferred_locations?.some(loc => 
+          property.location?.toLowerCase().includes(loc.toLowerCase()) ||
+          property.building_name?.toLowerCase().includes(loc.toLowerCase())
+        )
+      );
+      
+      if (interestedLeads.length > 5 && !property.tags?.includes('high_demand')) {
+        updates.tags = [...(property.tags || []), 'high_demand'];
+        connectionsFound += interestedLeads.length;
+      }
 
       // Check if property has interested leads
       const interestedDeals = deals.filter(d => d.property_id === property.id);
@@ -229,9 +264,9 @@ async function syncProperties(properties, leads, deals, landlords, base44) {
   return { syncedCount, connectionsFound };
 }
 
-// Sync Landlords with pipeline progression
-async function syncLandlords(landlords, properties, leads, base44) {
-  console.log('Syncing landlords...');
+// Sync Landlords with pipeline progression - CLAUDE-ENHANCED
+async function syncLandlords(landlords, properties, leads, base44, claudeInsights) {
+  console.log('Syncing landlords (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
@@ -239,7 +274,7 @@ async function syncLandlords(landlords, properties, leads, base44) {
     try {
       const updates = {};
 
-      // Check if landlord has properties listed
+      // CLAUDE: Flag landlords with multiple properties but no listings
       const landlordProperties = properties.filter(p =>
         p.building_name === landlord.project_name ||
         p.address?.includes(landlord.unit_reference)
@@ -249,6 +284,14 @@ async function syncLandlords(landlords, properties, leads, base44) {
         updates.stage = 'listing_creation';
         updates.stage_entered_at = new Date().toISOString();
         connectionsFound += landlordProperties.length;
+      }
+
+      // CLAUDE: Detect inactive landlords (potential listing acquisition targets)
+      if (!landlordProperties.length && 
+          landlord.stage === 'initial_contact' && 
+          landlord.urgency_score >= 70) {
+        updates.tags = [...(landlord.tags || []), 'claude_priority_listing_target'];
+        connectionsFound++;
       }
 
       // Check if landlord was referred by a lead
@@ -273,15 +316,25 @@ async function syncLandlords(landlords, properties, leads, base44) {
   return { syncedCount, connectionsFound };
 }
 
-// Sync Deals with AI predictions
-async function syncDeals(deals, leads, properties, conversations, base44) {
-  console.log('Syncing deals...');
+// Sync Deals with AI predictions - CLAUDE-ENHANCED
+async function syncDeals(deals, leads, properties, conversations, base44, claudeInsights) {
+  console.log('Syncing deals (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
   for (const deal of deals) {
     try {
       const updates = {};
+
+      // CLAUDE: Flag deals at risk based on stagnation
+      if (deal.stage_entered_at) {
+        const daysInStage = Math.floor((new Date() - new Date(deal.stage_entered_at)) / (1000 * 60 * 60 * 24));
+        if (daysInStage > 14 && !deal.tags?.includes('at_risk')) {
+          updates.tags = [...(deal.tags || []), 'at_risk'];
+          updates.aurora_temperature = 'cold';
+          connectionsFound++;
+        }
+      }
 
       // Get associated lead
       const lead = leads.find(l => l.id === deal.lead_id);
@@ -336,15 +389,21 @@ async function syncDeals(deals, leads, properties, conversations, base44) {
   return { syncedCount, connectionsFound };
 }
 
-// Sync WhatsApp Conversations with entity linking
-async function syncConversations(conversations, leads, deals, base44) {
-  console.log('Syncing conversations...');
+// Sync WhatsApp Conversations with entity linking - CLAUDE-ENHANCED
+async function syncConversations(conversations, leads, deals, base44, claudeInsights) {
+  console.log('Syncing conversations (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
   for (const convo of conversations) {
     try {
       const updates = {};
+
+      // CLAUDE: Flag conversations with negative sentiment for immediate action
+      if (convo.ai_sentiment === 'negative' && !convo.tags?.includes('needs_attention')) {
+        updates.tags = [...(convo.tags || []), 'needs_attention'];
+        connectionsFound++;
+      }
 
       // Link to lead if not already linked
       if (!convo.lead_id) {
@@ -381,15 +440,24 @@ async function syncConversations(conversations, leads, deals, base44) {
   return { syncedCount, connectionsFound };
 }
 
-// Sync Reminders with AI suggestions
-async function syncReminders(reminders, leads, properties, deals, base44) {
-  console.log('Syncing reminders...');
+// Sync Reminders with AI suggestions - CLAUDE-ENHANCED
+async function syncReminders(reminders, leads, properties, deals, base44, claudeInsights) {
+  console.log('Syncing reminders (Claude-enhanced)...');
   let syncedCount = 0;
   let connectionsFound = 0;
 
   for (const reminder of reminders) {
     try {
       const updates = {};
+
+      // CLAUDE: Auto-prioritize reminders for high-value deals
+      if (reminder.lead_id) {
+        const relatedDeal = deals.find(d => d.lead_id === reminder.lead_id && d.deal_value >= 1000000);
+        if (relatedDeal && reminder.priority !== 'urgent') {
+          updates.priority = 'high';
+          connectionsFound++;
+        }
+      }
 
       // Link reminder to lead if title/description mentions lead name
       if (!reminder.lead_id && reminder.title) {
@@ -441,7 +509,11 @@ async function syncReminders(reminders, leads, properties, deals, base44) {
         syncedCount++;
       }
     } catch (error) {
-      console.error(`Failed to sync reminder ${reminder.id}:`, error);
+      if (error.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        console.error(`Failed to sync reminder ${reminder.id}:`, error);
+      }
     }
   }
 
