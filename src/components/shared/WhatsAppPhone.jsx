@@ -1,10 +1,14 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Phone, MessageCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import useHasWhatsApp from '@/hooks/useHasWhatsApp';
 import { normalizePhone, formatPhone, waMeUrl } from '@/lib/phone';
+import { base44 } from '@/api/base44Client';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 /**
  * <WhatsAppPhone />
