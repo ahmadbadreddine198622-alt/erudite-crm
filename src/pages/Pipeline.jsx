@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Plus } from 'lucide-react';
+import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineBoard from '@/components/pipeline/PipelineBoard';
@@ -182,24 +182,11 @@ export default function Pipeline() {
 
   return (
     <div
-      className="flex flex-col min-h-screen relative"
+      className="flex flex-col min-h-screen"
       style={{
         background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
       }}
     >
-      {/* Floating add button at top-center */}
-      <button
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 active:scale-95"
-        style={{
-          background: 'linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 50%))',
-          boxShadow: '0 8px 28px rgba(245,159,10,0.35)',
-        }}
-        onClick={() => {/* Add new lead logic */}}
-      >
-        <Plus className="w-6 h-6 text-white" strokeWidth={3} />
-      </button>
-      {/* Management Intelligence Strip - shifted down for floating button */}
-      <div className="h-16" />
       <div className="px-8 pb-4">
         <div className="grid grid-cols-4 gap-3">
           <div
