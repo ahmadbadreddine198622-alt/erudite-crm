@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck, LogOut } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -33,8 +33,10 @@ export default function Dashboard() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
+  const menuRef = useRef(null);
 
   // Load user
   useEffect(() => {
@@ -43,6 +45,19 @@ export default function Dashboard() {
       if (u?.full_name) setUserName(u.full_name);
     }).catch(() => {});
   }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
 
   // Pointer / orientation tracking for tilt specular
   useEffect(() => {
@@ -183,32 +198,99 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Logged-in account badge */}
+      {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
-        <div
-          className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(12px)',
-            color: 'rgba(255,255,255,0.75)',
-          }}
-        >
+        <div className="absolute top-4 right-4 z-50" ref={menuRef}>
           <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-            style={{ background: 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
+            style={{
+              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
+              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(12px)',
+              color: 'rgba(255,255,255,0.75)',
+            }}
           >
-            {(userName || userEmail)[0].toUpperCase()}
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+              style={{ background: 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
+            >
+              {(userName || userEmail)[0].toUpperCase()}
+            </div>
+            <span style={{ color: 'hsl(38 92% 55%)' }}>{userName || userEmail}</span>
+            <span className="opacity-50 hidden sm:inline">· {userEmail}</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
           </div>
-          <span style={{ color: 'hsl(38 92% 55%)' }}>{userName || userEmail}</span>
-          <span className="opacity-50 hidden sm:inline">· {userEmail}</span>
-          <button
-            onClick={() => base44.auth.logout()}
-            className="ml-1 flex items-center justify-center w-5 h-5 rounded-full transition-colors hover:bg-red-500/20"
-            title="Logout"
-          >
-            <LogOut className="w-3 h-3" style={{ color: 'rgba(255,100,100,0.8)' }} />
-          </button>
+
+          {/* Dropdown Menu */}
+          {showUserMenu && (
+            <div
+              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
+              style={{
+                background: 'rgba(15,20,30,0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(245,158,11,0.35)',
+              }}
+            >
+              <div className="p-3 border-b border-white/10">
+                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
+                <p className="text-xs text-white/50">{userEmail}</p>
+              </div>
+              <div className="py-2">
+                <button
+                  onClick={() => { navigate('/team'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/landlords'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/leads'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/analytics'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/finance'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
+                </button>
+              </div>
+              <div className="py-2 border-t border-white/10">
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
+                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
