@@ -174,6 +174,17 @@ export default function Team() {
                 <Plus className="w-5 h-5" />
                 {inviting ? 'Sending...' : 'Send Invite'}
               </Button>
+              <Button onClick={async () => {
+                  if (!inviteEmail.trim()) return;
+                  try {
+                    await base44.users.inviteUser(inviteEmail.trim(), 'user');
+                    toast.success(`Password reset link sent to ${inviteEmail}`);
+                  } catch(e) { toast.error(e.message || 'Failed'); }
+                }}
+                disabled={!inviteEmail.trim()}
+                className="gap-2 font-bold text-base px-6" style={{ background: '#6366f1', color: '#fff', minHeight: 44 }}>
+                🔑 Reset Password
+              </Button>
             </div>
             <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>The person receives an email with a link to set their password and log in.</p>
           </div>
