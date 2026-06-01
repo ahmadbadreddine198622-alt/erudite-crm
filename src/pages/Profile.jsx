@@ -1,29 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Save, Shield } from 'lucide-react';
+import { User, Mail, Phone, Save, Shield, Upload, Camera } from 'lucide-react';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '' });
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '' });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, profile_image: file_url }));
+      toast.success('Profile picture uploaded');
+    } catch (err) {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -52,26 +69,49 @@ export default function Profile() {
           <p className="page-subtitle mt-1">Edit your personal information</p>
         </div>
 
-        {/* Avatar + role */}
-        <Card className="glass-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-accent"
-                style={{ background: 'hsl(38 92% 50% / 0.18)' }}>
-                {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+        {/* Profile Picture + Role */}
+        <div className="relative rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(245,158,11,0.05) 100%)', border: '1px solid rgba(245,158,11,0.2)' }}>
+          <div className="p-8">
+            <div className="flex items-end gap-6">
+              <div className="relative group">
+                <div className="w-28 h-28 rounded-2xl flex items-center justify-center text-4xl font-bold text-accent overflow-hidden border-2 border-accent/30"
+                  style={{ background: form.profile_image ? 'transparent' : 'hsl(38 92% 50% / 0.18)' }}>
+                  {form.profile_image ? (
+                    <img src={form.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'
+                  )}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                  style={{ background: 'hsl(38 92% 50%)', color: '#000' }}
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
               </div>
-              <div>
-                <p className="text-lg font-semibold">{user?.full_name || '(No name)'}</p>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
-                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+              <div className="flex-1">
+                <p className="text-2xl font-bold">{user?.full_name || '(No name)'}</p>
+                <p className="text-accent font-semibold text-sm mt-1">{form.position || 'Position not set'}</p>
+                <p className="text-xs text-muted-foreground mt-3">{user?.email}</p>
+                <span className="inline-flex items-center gap-1 mt-3 px-2.5 py-1 rounded-full text-xs font-semibold"
                   style={{ background: `${roleColor}20`, color: roleColor, border: `1px solid ${roleColor}40` }}>
                   <Shield className="w-3 h-3" />
                   {roleLabel}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Edit form */}
         <Card className="glass-card">
@@ -111,6 +151,19 @@ export default function Profile() {
                   value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+971 50 000 0000"
+                  className="glass-input pl-9"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Position / Title</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={form.position}
+                  onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
+                  placeholder="e.g. CEO of Erudite Real Estate"
                   className="glass-input pl-9"
                 />
               </div>
