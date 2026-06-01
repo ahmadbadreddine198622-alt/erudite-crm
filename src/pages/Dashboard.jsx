@@ -1,50 +1,24 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
-import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
-import AppPickerSheet from '@/components/ui/AppPickerSheet';
-import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
-import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
-import ActivityFeed from '@/components/shared/ActivityFeed';
-import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
-import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
-import PFListingsGrid from '@/components/properties/PFListingsGrid';
+import { 
+  Building2, TrendingUp, Users, Bell, MessageCircle, 
+  Brain, Activity, DollarSign, FileSignature, Eye,
+  Repeat, Handshake, Calendar, MapPin, RefreshCw,
+  AlertCircle, CheckCircle2, Clock, ArrowUpRight, ArrowDownRight
+} from 'lucide-react';
 import EruditeCard from '@/components/erudite/EruditeCard';
-import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import { Brain } from 'lucide-react';
-
-const prefersReducedMotion =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const storageKey = (email) => `dashboard_apps_${email || 'default'}`;
-const LONG_PRESS_MS = 4000;
-const HOLD_CUE_MS = 2000;
+import EruditeStat from '@/components/erudite/EruditeStat';
+import EruditeButton from '@/components/erudite/EruditeButton';
+import PFListingsGrid from '@/components/properties/PFListingsGrid';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [editMode, setEditMode] = useState(false);
-  const [showPicker, setShowPicker] = useState(false);
-  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
-  const [userPosition, setUserPosition] = useState('');
-  const [userProfileImage, setUserProfileImage] = useState('');
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [holdingPath, setHoldingPath] = useState(null);
-  const [holdCueActive, setHoldCueActive] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const pressTimer = useRef(null);
-  const cueTimer = useRef(null);
-  const menuRef = useRef(null);
 
   // Load user
   useEffect(() => {
@@ -52,120 +26,10 @@ export default function Dashboard() {
       if (u?.email) setUserEmail(u.email);
       if (u?.full_name) setUserName(u.full_name);
       if (u?.role) setUserRole(u.role);
-      if (u?.position) setUserPosition(u.position);
-      if (u?.profile_image) setUserProfileImage(u.profile_image);
     }).catch(() => {});
   }, []);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-    };
-    if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserMenu]);
-
-  // Pointer / orientation tracking for tilt specular
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-    let rafId;
-    const handlePointer = (e) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const nx = (e.clientX / window.innerWidth - 0.5) * 2;
-        const ny = (e.clientY / window.innerHeight - 0.5) * 2;
-        setTilt({ x: nx, y: ny });
-      });
-    };
-    const handleOrientation = (e) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setTilt({
-          x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
-          y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
-        });
-      });
-    };
-    window.addEventListener('pointermove', handlePointer, { passive: true });
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-    return () => {
-      window.removeEventListener('pointermove', handlePointer);
-      window.removeEventListener('deviceorientation', handleOrientation);
-      cancelAnimationFrame(rafId);
-    };
-  }, []);
-
-  const startPress = useCallback((path) => {
-    setHoldingPath(path);
-    cueTimer.current = setTimeout(() => setHoldCueActive(true), HOLD_CUE_MS);
-    pressTimer.current = setTimeout(() => {
-      setEditMode(true);
-      setHoldingPath(null);
-      setHoldCueActive(false);
-    }, LONG_PRESS_MS);
-  }, []);
-
-  const cancelPress = useCallback(() => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-    if (cueTimer.current) clearTimeout(cueTimer.current);
-    setHoldingPath(null);
-    setHoldCueActive(false);
-  }, []);
-
-  const [apps, setApps] = useState(() => {
-    try {
-      const saved = localStorage.getItem(storageKey(''));
-      if (saved) {
-        const labels = JSON.parse(saved);
-        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
-        if (resolved.length >= MIN_ITEMS) return resolved;
-      }
-    } catch {}
-    return ALL_APPS;
-  });
-
-  // Reload when we get user email
-  useEffect(() => {
-    if (!userEmail) return;
-    try {
-      const saved = localStorage.getItem(storageKey(userEmail));
-      if (saved) {
-        const labels = JSON.parse(saved);
-        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
-        if (resolved.length >= MIN_ITEMS) setApps(resolved);
-      }
-    } catch {}
-  }, [userEmail]);
-
-  const saveOrder = (newApps) => {
-    setApps(newApps);
-    localStorage.setItem(storageKey(userEmail), JSON.stringify(newApps.map(a => a.label)));
-  };
-
-  const removeApp = (path) => {
-    if (apps.length <= MIN_ITEMS) return;
-    saveOrder(apps.filter(a => a.path !== path));
-  };
-
-  const addApp = (app) => {
-    if (apps.length >= MAX_ITEMS) return;
-    saveOrder([...apps, app]);
-    setShowPicker(false);
-  };
-
-  const onDragEnd = ({ source, destination }) => {
-    if (!destination) return;
-    const next = [...apps];
-    const [moved] = next.splice(source.index, 1);
-    next.splice(destination.index, 0, moved);
-    saveOrder(next);
-  };
-
+  // Fetch data
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
@@ -181,347 +45,331 @@ export default function Dashboard() {
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
   });
 
-  const badges = {
-    leads:     leads.filter(l => l.status === 'active').length,
-    reminders: reminders.length,
-    whatsapp:  conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
-  };
-  
-  // Management intelligence
-  const todayDeals = leads.filter(l => l.stage === 'negotiation_deal_lock' || l.stage === 'closing_dld').length;
-  const hotLeads = leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
+  const { data: offers = [] } = useQuery({
+    queryKey: ['offers'],
+    queryFn: () => base44.entities.Offer.filter({ status: 'submitted' }, '-submitted_at', 50),
+  });
 
-  const filtered = search.trim()
-    ? apps.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
-    : apps;
+  const { data: viewings = [] } = useQuery({
+    queryKey: ['viewings'],
+    queryFn: () => base44.entities.Reminder.filter({ type: 'viewing', status: 'pending' }, '-due_date', 20),
+  });
+
+  // Calculate stats
+  const stats = {
+    activeLeads: leads.filter(l => l.status === 'active').length,
+    hotLeads: leads.filter(l => (l.ai_lead_score || 0) >= 75).length,
+    pendingReminders: reminders.length,
+    unreadWhatsApp: conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
+    activeOffers: offers.length,
+    upcomingViewings: viewings.length,
+  };
+
+  // Recent activity
+  const recentLeads = leads.slice(0, 5);
+  const overdueReminders = reminders.filter(r => {
+    const dueDate = new Date(r.due_date);
+    return dueDate < new Date() && r.status === 'pending';
+  }).slice(0, 3);
 
   return (
-    <div
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
-      style={{
-        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
-      }}
-    >
-      {/* Logo */}
-      {logoUrl && (
-        <div className="mb-6">
-          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
-        </div>
-      )}
-
-      {/* Logged-in account badge with dropdown menu */}
-      {userEmail && (
-        <div className="absolute top-4 right-4 z-50" ref={menuRef}>
-          <div
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
-            style={{
-              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(12px)',
-              color: 'rgba(255,255,255,0.75)',
-            }}
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Welcome back, {userName || userEmail?.split('@')[0]}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Here's what's happening with your real estate business today
+            </p>
+          </div>
+          <EruditeButton
+            variant="primary"
+            icon={Building2}
+            onClick={() => navigate('/landlords')}
           >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
-              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
-            >
-              {userProfileImage ? (
-                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (userName || userEmail)[0].toUpperCase()
-              )}
-            </div>
-            <div className="flex flex-col items-start gap-0">
-              <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
-              {userPosition && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
-            </div>
-            <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
-          </div>
-
-          {/* Dropdown Menu */}
-          {showUserMenu && (
-            <div
-              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                background: 'rgba(15,20,30,0.95)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(245,158,11,0.35)',
-              }}
-            >
-              <div className="p-3 border-b border-white/10">
-                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
-                <p className="text-xs text-white/50">{userEmail}</p>
-                {userRole && (
-                  <div className="mt-1.5">
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-                      {userRole}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="py-2">
-                <button
-                  onClick={() => { navigate('/team'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/landlords'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/leads'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/analytics'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/finance'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
-                </button>
-              </div>
-              <div className="py-2 border-t border-white/10">
-                <button
-                  onClick={() => base44.auth.logout()}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
-                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
+            Landlord Pipeline
+          </EruditeButton>
         </div>
-      )}
 
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <EruditeCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Users className="w-4 h-4 text-blue-500" />
+                </div>
+                <span className="text-sm text-muted-foreground">Active Leads</span>
+              </div>
+              <EruditeBadge variant="blue">{stats.activeLeads}</EruditeBadge>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.activeLeads}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+              <ArrowUpRight className="w-3 h-3" />
+              <span>+12% from last week</span>
+            </div>
+          </EruditeCard>
 
+          <EruditeCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Brain className="w-4 h-4 text-amber-500" />
+                </div>
+                <span className="text-sm text-muted-foreground">Hot Leads</span>
+              </div>
+              <EruditeBadge variant="gold">{stats.hotLeads}</EruditeBadge>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.hotLeads}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-amber-500">
+              <TrendingUp className="w-3 h-3" />
+              <span>Score ≥75</span>
+            </div>
+          </EruditeCard>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 w-full max-w-4xl">
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Active Leads</p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Reminders</p>
-          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Unread</p>
-          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Hot Leads</p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{hotLeads}</p>
-        </EruditeCard>
-      </div>
-
-      {/* Date & greeting */}
-      <div className="text-center mb-8">
-        <p className="text-4xl font-light tracking-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
-          {format(new Date(), 'h:mm')}
-          <span className="text-xl ml-1" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'a')}</span>
-        </p>
-        <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
-      </div>
-
-      {/* Done button — only visible in edit mode */}
-      {editMode && (
-        <button
-          onClick={() => setEditMode(false)}
-          className="absolute top-6 right-48 z-20 px-4 py-2 rounded-xl text-sm font-semibold bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
-        >
-          Done
-        </button>
-      )}
-
-      {/* Search */}
-      <div className="relative mb-10 w-full max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search apps"
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: 'rgba(255,255,255,0.95)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50%)';
-            e.target.style.background = 'rgba(255,255,255,0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.target.style.background = 'rgba(255,255,255,0.07)';
-          }}
-        />
-      </div>
-
-      {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
-      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
-              >
-                {filtered.map((app, idx) => {
-                  const Icon = app.icon;
-                  const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
-                  return (
-                    <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
-                      {(p, snapshot) => (
-                        <div
-                          ref={p.innerRef}
-                          {...p.draggableProps}
-                          {...p.dragHandleProps}
-                          onMouseDown={!editMode ? () => startPress(app.path) : undefined}
-                          onMouseUp={!editMode ? cancelPress : undefined}
-                          onMouseLeave={!editMode ? cancelPress : undefined}
-                          onTouchStart={!editMode ? () => startPress(app.path) : undefined}
-                          onTouchEnd={!editMode ? cancelPress : undefined}
-                          onClick={() => {
-                            if (editMode) return;
-                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
-                          }}
-                          className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
-                          style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : { position: 'relative' }}
-                        >
-                          {/* Remove badge */}
-                          {editMode && (
-                            <button
-                              onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
-                              className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
-                              style={{ fontSize: 12 }}
-                            >
-                              <Minus className="w-3 h-3 text-white" strokeWidth={3} />
-                            </button>
-                          )}
-                          <ExtremeLiquidIcon
-                            icon={Icon}
-                            gradient={app.gradient}
-                            glowColor={app.glowColor}
-                            tiltX={tilt.x}
-                            tiltY={tilt.y}
-                            index={idx}
-                            isDragging={snapshot.isDragging}
-                            active={editMode && !snapshot.isDragging}
-                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
-                          />
-                          <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
-                            {app.label}
-                          </span>
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
+          <EruditeCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-rose-500/10">
+                  <Bell className="w-4 h-4 text-rose-500" />
+                </div>
+                <span className="text-sm text-muted-foreground">Pending Tasks</span>
+              </div>
+              <EruditeBadge variant="rose">{stats.pendingReminders}</EruditeBadge>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.pendingReminders}</p>
+            {overdueReminders.length > 0 && (
+              <div className="flex items-center gap-1 mt-2 text-xs text-rose-500">
+                <AlertCircle className="w-3 h-3" />
+                <span>{overdueReminders.length} overdue</span>
               </div>
             )}
-          </Droppable>
-        </DragDropContext>
+          </EruditeCard>
 
+          <EruditeCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <MessageCircle className="w-4 h-4 text-green-500" />
+                </div>
+                <span className="text-sm text-muted-foreground">WhatsApp</span>
+              </div>
+              <EruditeBadge variant="emerald">{stats.unreadWhatsApp}</EruditeBadge>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.unreadWhatsApp}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <span>Unread messages</span>
+            </div>
+          </EruditeCard>
+        </div>
 
+        {/* Secondary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <EruditeCard className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-purple-500/10">
+                <Handshake className="w-5 h-5 text-purple-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Active Offers</p>
+                <p className="text-2xl font-bold text-foreground">{stats.activeOffers}</p>
+              </div>
+            </div>
+          </EruditeCard>
+
+          <EruditeCard className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-cyan-500/10">
+                <Eye className="w-5 h-5 text-cyan-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Upcoming Viewings</p>
+                <p className="text-2xl font-bold text-foreground">{stats.upcomingViewings}</p>
+              </div>
+            </div>
+          </EruditeCard>
+
+          <EruditeCard className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-emerald-500/10">
+                <DollarSign className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Deals This Month</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {leads.filter(l => l.stage === 'closing_dld' || l.stage === 'negotiation_deal_lock').length}
+                </p>
+              </div>
+            </div>
+          </EruditeCard>
+        </div>
+
+        {/* Property Finder Listings */}
+        <EruditeCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <Building2 className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Property Finder Listings</h2>
+                <p className="text-sm text-muted-foreground">Your active listings from Property Finder</p>
+              </div>
+            </div>
+          </div>
+          <PFListingsGrid />
+        </EruditeCard>
+
+        {/* AI Insights + Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* AI Insights */}
+          <EruditeCard className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <Brain className="w-5 h-5 text-purple-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">AI Insights</h2>
+                <p className="text-sm text-muted-foreground">Your intelligence hub</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {stats.hotLeads > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{stats.hotLeads} Hot Leads</p>
+                      <p className="text-xs text-muted-foreground">High conversion probability</p>
+                    </div>
+                  </div>
+                  <EruditeButton variant="ghost" onClick={() => navigate('/leads')}>
+                    View
+                  </EruditeButton>
+                </div>
+              )}
+              {overdueReminders.length > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-4 h-4 text-rose-500" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{overdueReminders.length} Overdue Tasks</p>
+                      <p className="text-xs text-muted-foreground">Need immediate attention</p>
+                    </div>
+                  </div>
+                  <EruditeButton variant="ghost" onClick={() => navigate('/reminders')}>
+                    View
+                  </EruditeButton>
+                </div>
+              )}
+              {stats.activeOffers > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                  <div className="flex items-center gap-3">
+                    <Handshake className="w-4 h-4 text-purple-500" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{stats.activeOffers} Active Offers</p>
+                      <p className="text-xs text-muted-foreground">In negotiation</p>
+                    </div>
+                  </div>
+                  <EruditeButton variant="ghost" onClick={() => navigate('/offers')}>
+                    View
+                  </EruditeButton>
+                </div>
+              )}
+              {stats.hotLeads === 0 && overdueReminders.length === 0 && stats.activeOffers === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Everything looks good! No urgent actions needed.
+                </p>
+              )}
+            </div>
+          </EruditeCard>
+
+          {/* Recent Leads */}
+          <EruditeCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Users className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Recent Leads</h2>
+                  <p className="text-sm text-muted-foreground">Latest additions to your pipeline</p>
+                </div>
+              </div>
+              <EruditeButton variant="ghost" onClick={() => navigate('/leads')}>
+                View All
+              </EruditeButton>
+            </div>
+            <div className="space-y-3">
+              {recentLeads.map((lead) => (
+                <div key={lead.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-blue-400">
+                        {(lead.full_name || lead.email || 'L')[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{lead.full_name || 'Lead'}</p>
+                      <p className="text-xs text-muted-foreground">{lead.email || 'No email'}</p>
+                    </div>
+                  </div>
+                  <EruditeBadge variant={lead.status === 'active' ? 'emerald' : 'default'}>
+                    {lead.status}
+                  </EruditeBadge>
+                </div>
+              ))}
+              {recentLeads.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No leads yet. Start adding contacts to your pipeline!
+                </p>
+              )}
+            </div>
+          </EruditeCard>
+        </div>
+
+        {/* Quick Actions */}
+        <EruditeCard className="p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <EruditeButton
+              variant="secondary"
+              icon={Building2}
+              onClick={() => navigate('/landlords')}
+              className="w-full justify-center"
+            >
+              Landlords
+            </EruditeButton>
+            <EruditeButton
+              variant="secondary"
+              icon={Users}
+              onClick={() => navigate('/leads')}
+              className="w-full justify-center"
+            >
+              Leads
+            </EruditeButton>
+            <EruditeButton
+              variant="secondary"
+              icon={Bell}
+              onClick={() => navigate('/reminders')}
+              className="w-full justify-center"
+            >
+              Reminders
+            </EruditeButton>
+            <EruditeButton
+              variant="secondary"
+              icon={MessageCircle}
+              onClick={() => navigate('/whatsapp')}
+              className="w-full justify-center"
+            >
+              WhatsApp
+            </EruditeButton>
+          </div>
+        </EruditeCard>
       </div>
-
-      {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
-        <button
-          onClick={() => {
-            console.log('Navigating to Landlord Pipeline');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
-        >
-          <Building2 className="w-4 h-4" />
-          Landlord Pipeline
-        </button>
-        <button
-          onClick={() => {
-            console.log('Navigating to Assign Leads');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
-        >
-          <UserCheck className="w-4 h-4" />
-          Assign Leads
-        </button>
-      </div>
-
-      {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
-        <PFListingsGrid />
-      </EruditeSection>
-
-      {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
-        <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
-          <AIInsightsDashboard />
-        </EruditeSection>
-        <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
-          <ActivityFeed />
-        </EruditeSection>
-      </div>
-
-      {/* No results */}
-      {filtered.length === 0 && (
-        <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
-      )}
-
-      {/* Picker */}
-      {showPicker && (
-        <AppPickerSheet
-          currentItems={apps}
-          onAdd={addApp}
-          onClose={() => setShowPicker(false)}
-          title="Add to Dashboard"
-        />
-      )}
     </div>
   );
 }
