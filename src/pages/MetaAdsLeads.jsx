@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EruditePage from '@/components/erudite/EruditePage';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeButton from '@/components/erudite/EruditeButton';
-import { Users, Brain, TrendingUp, Target, MessageCircle, Phone, Mail, Trash2, User } from 'lucide-react';
+import { Users, Brain, TrendingUp, Target, MessageCircle, Phone, Mail, Trash2, User, Home } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import PropertyComparison from '@/components/properties/PropertyComparison';
 
 export default function MetaAdsLeads() {
   const [filterIntent, setFilterIntent] = useState('all');
+  const [showComparison, setShowComparison] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
   const queryClient = useQueryClient();
 
   // Fetch leads from Meta/Google sources
@@ -89,6 +93,11 @@ export default function MetaAdsLeads() {
     }
   };
 
+  const handleShowProperties = async (lead) => {
+    setSelectedLead(lead);
+    setShowComparison(true);
+  };
+
   return (
     <EruditePage
       title="Meta Ads & Google Leads"
@@ -158,6 +167,24 @@ export default function MetaAdsLeads() {
 
       {/* Leads Grid */}
       <EruditeSection title="Imported Leads" subtitle={`${filteredLeads.length} leads from Meta & Google`} icon={Users}>
+        
+        {/* Property Comparison Dialog */}
+        <Dialog open={showComparison} onOpenChange={setShowComparison}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Property Comparison</DialogTitle>
+              <DialogDescription>
+                Comparing properties for {selectedLead?.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedLead && (
+              <PropertyComparisonWrapper 
+                lead={selectedLead} 
+                onClose={() => setShowComparison(false)} 
+              />
+            )}
+          </DialogContent>
+        </Dialog>
         {filteredLeads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border border-dashed bg-white/[0.02] border-white/10">
             <Users className="w-8 h-8 mb-4" style={{ color: 'hsl(38 92% 50% / 0.6)' }} />
@@ -174,6 +201,7 @@ export default function MetaAdsLeads() {
                 lead={lead}
                 onAssignAgent={handleAssignAgent}
                 onSendFirstMessage={handleSendFirstMessage}
+                onShowProperties={handleShowProperties}
                 onDelete={() => deleteLeadMutation.mutate(lead.id)}
               />
             ))}
@@ -184,8 +212,48 @@ export default function MetaAdsLeads() {
   );
 }
 
+// Property Comparison Wrapper - fetches AI-recommended properties
+function PropertyComparisonWrapper({ lead, onClose }) {
+  const [properties, setProperties] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    const fetchProperties = async () => {
+      setIsLoading(true);
+      try {
+        const result = await base44.functions.invoke('matchLeadToProperties', { lead_id: lead.id });
+        setProperties(result.properties || []);
+      } catch (error) {
+        console.error('Failed to fetch properties:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProperties();
+  }, [lead.id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!properties || properties.length === 0) {
+    return (
+      <div className="text-center py-12" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <Home className="w-12 h-12 mx-auto mb-3 opacity-50" />
+        <p>No matching properties found for this lead</p>
+      </div>
+    );
+  }
+
+  return <PropertyComparison properties={properties} lead={lead} onClose={onClose} />;
+}
+
 // Compact Lead Card Component
-function LeadCard({ lead, onAssignAgent, onSendFirstMessage, onDelete }) {
+function LeadCard({ lead, onAssignAgent, onSendFirstMessage, onShowProperties, onDelete }) {
   const score = lead.ai_lead_score || 0;
   const conversionProb = lead.ai_conversion_probability ? Math.round(lead.ai_conversion_probability * 100) : 0;
   const persona = lead.ai_persona;
@@ -292,6 +360,13 @@ function LeadCard({ lead, onAssignAgent, onSendFirstMessage, onDelete }) {
             </SelectContent>
           </Select>
         </div>
+        <button
+          onClick={() => onShowProperties(lead)}
+          className="p-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors"
+          title="Show AI-matched properties"
+        >
+          <Home className="w-4 h-4" />
+        </button>
         {nba?.draft_message && lead.whatsapp && (
           <button
             onClick={() => onSendFirstMessage(lead)}
