@@ -10,17 +10,15 @@ export default function PFListingsGrid() {
   const queryClient = useQueryClient();
   const [syncStatus, setSyncStatus] = useState(null);
 
-  // Fetch Property Finder listings from database
   const { data: listings = [], isLoading, refetch } = useQuery({
     queryKey: ['pfListings'],
     queryFn: async () => {
       const result = await base44.entities.PFListing.filter({}, '-last_synced_at', 100);
       return result || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Sync mutation - uses syncPFListings for proper pagination
   const syncMutation = useMutation({
     mutationFn: async () => {
       setSyncStatus({ type: 'syncing', message: 'Syncing listings...' });
@@ -48,11 +46,11 @@ export default function PFListingsGrid() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium" style={{ color: 'rgba(255,255,255,0.95)' }}>My Listings</h3>
+          <h3 className="text-lg font-medium text-gray-900">My Listings</h3>
           <button
             onClick={handleSync}
             disabled={syncMutation.isPending}
-            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
             {syncMutation.isPending ? 'Syncing...' : 'Synchronize'}
@@ -60,16 +58,16 @@ export default function PFListingsGrid() {
         </div>
         {syncStatus && (
           <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            syncStatus.type === 'error' ? 'bg-rose-500/10 text-rose-400' : 
-            syncStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 
-            'bg-amber-500/10 text-amber-400'
+            syncStatus.type === 'error' ? 'bg-rose-50 text-rose-600' : 
+            syncStatus.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 
+            'bg-amber-50 text-amber-600'
           }`}>
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">{syncStatus.message}</span>
           </div>
         )}
         <iOSCard className="p-8 text-center">
-          <Home className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <Home className="w-12 h-12 mx-auto mb-3 text-gray-400" />
           <p className="text-gray-500">No listings synced yet. Click Synchronize to fetch your Property Finder listings.</p>
         </iOSCard>
       </div>
@@ -79,11 +77,11 @@ export default function PFListingsGrid() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium" style={{ color: 'rgba(255,255,255,0.95)' }}>My Listings</h3>
+        <h3 className="text-lg font-medium text-gray-900">My Listings</h3>
         <button
           onClick={handleSync}
           disabled={syncMutation.isPending}
-          className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-lg transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
           Synchronize
@@ -96,7 +94,7 @@ export default function PFListingsGrid() {
         ))}
       </div>
 
-      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <p className="text-xs text-gray-500">
         {listings.length} {listings.length === 1 ? 'listing' : 'listings'} from Property Finder
       </p>
     </div>
@@ -121,7 +119,7 @@ function ListingCard({ listing }) {
     <iOSCard className="overflow-hidden flex flex-col h-full">
       {/* Image */}
       {displayData.image ? (
-        <div className="relative w-full h-40 bg-gradient-to-br from-white/5 to-white/2 overflow-hidden">
+        <div className="relative w-full h-40 bg-gray-100 overflow-hidden">
           <img
             src={displayData.image}
             alt={displayData.title}
@@ -134,54 +132,54 @@ function ListingCard({ listing }) {
           </div>
         </div>
       ) : (
-        <div className="w-full h-40 bg-gradient-to-br from-white/5 to-white/2 flex items-center justify-center">
-          <Home className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.2)' }} />
+        <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+          <Home className="w-8 h-8 text-gray-400" />
         </div>
       )}
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
         {/* Title */}
-        <h4 className="font-medium text-sm mb-1 line-clamp-2" style={{ color: 'rgba(255,255,255,0.95)' }}>
+        <h4 className="font-medium text-sm mb-1 line-clamp-2 text-gray-900">
           {displayData.title}
         </h4>
 
         {/* Reference */}
-        <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-xs mb-3 text-gray-500">
           Ref: {displayData.reference}
         </p>
 
         {/* Location */}
         <div className="flex items-center gap-1.5 mb-3">
-          <MapPin className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          <MapPin className="w-3 h-3 text-amber-500" />
+          <span className="text-xs text-gray-600">
             {displayData.location}
           </span>
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-4 gap-2 mb-3 pb-3 border-b border-white/10">
+        <div className="grid grid-cols-4 gap-2 mb-3 pb-3 border-b border-gray-200">
           <div className="flex flex-col items-center">
-            <Bed className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <Bed className="w-3.5 h-3.5 mb-1 text-gray-400" />
+            <span className="text-xs font-medium text-gray-700">
               {displayData.bedrooms}
             </span>
           </div>
           <div className="flex flex-col items-center">
-            <Bath className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <Bath className="w-3.5 h-3.5 mb-1 text-gray-400" />
+            <span className="text-xs font-medium text-gray-700">
               {displayData.bathrooms}
             </span>
           </div>
           <div className="flex flex-col items-center">
-            <Ruler className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <Ruler className="w-3.5 h-3.5 mb-1 text-gray-400" />
+            <span className="text-xs font-medium text-gray-700">
               {Math.round(displayData.area)}
             </span>
           </div>
           <div className="flex flex-col items-center">
-            <Home className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium capitalize" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <Home className="w-3.5 h-3.5 mb-1 text-gray-400" />
+            <span className="text-xs font-medium capitalize text-gray-700">
               {displayData.type}
             </span>
           </div>
