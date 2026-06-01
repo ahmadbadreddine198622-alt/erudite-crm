@@ -212,18 +212,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Claude Presence + Management Intelligence */}
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <ClaudePresenceIcon size={48} active={false} thinking={false} />
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)' }}>
-            Claude-Powered CRM
-          </p>
-          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            AI actively monitoring your pipeline
-          </p>
-        </div>
-      </div>
+
 
       <div className="grid grid-cols-4 gap-3 mb-8 w-full max-w-3xl">
         <div
