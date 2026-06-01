@@ -58,6 +58,7 @@ import VapiDashboard from '@/pages/VapiDashboard';
 import VapiWorkflow from '@/pages/VapiWorkflow';
 import GoogleDrive from '@/pages/GoogleDrive';
 import Notes from '@/pages/Notes';
+import EruditeDashboard from '@/pages/EruditeDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -136,6 +137,7 @@ const AuthenticatedApp = () => {
         <Route path="/vapi-workflow" element={<VapiWorkflow />} />
         <Route path="/google-drive" element={<GoogleDrive />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/erudite-dashboard" element={<EruditeDashboard />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
