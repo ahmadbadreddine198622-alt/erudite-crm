@@ -1,43 +1,60 @@
 /**
- * Normalize phone number to international format
- * Removes symbols, spaces, and ensures E.164 format (+country code number)
+ * Normalize phone numbers to E.164 format for deduplication
+ * Handles UAE numbers and various formats
  */
+
 export function normalizePhoneNumber(phone) {
-  if (!phone) return null;
+  if (!phone) return '';
   
-  // Remove all non-digit characters
-  const cleaned = phone.replace(/\D/g, '');
-  if (!cleaned) return null;
+  // Remove all non-digit characters except +
+  let cleaned = phone.replace(/[^\d+]/g, '');
   
-  // Handle UAE numbers (leading 0 or without)
-  if (cleaned.startsWith('971') && cleaned.length === 12) {
-    return `+${cleaned}`;
+  // Remove leading + if present (we'll add it back)
+  cleaned = cleaned.replace(/^\+/, '');
+  
+  // Remove international prefix (00)
+  cleaned = cleaned.replace(/^00/, '');
+  
+  // For UAE numbers: ensure +971 prefix
+  if (cleaned.startsWith('971')) {
+    // Already has country code
+    return '+' + cleaned;
+  } else if (cleaned.startsWith('0') && cleaned.length > 8) {
+    // Local UAE number starting with 0 (e.g., 058...)
+    return '+971' + cleaned.slice(1);
+  } else if (cleaned.length === 9) {
+    // 9-digit UAE mobile (e.g., 581806000)
+    return '+971' + cleaned;
   }
-  if (cleaned.startsWith('0') && cleaned.length === 10 && cleaned.substring(1).startsWith('5')) {
-    return `+971${cleaned.substring(1)}`;
-  }
   
-  // Already in E.164 format
-  if (cleaned.length >= 10 && cleaned.length <= 15) {
-    return `+${cleaned}`;
-  }
-  
-  return null;
+  // For other countries, just ensure + prefix
+  return '+' + cleaned;
 }
 
 /**
- * Extract phone number from various formats
+ * Format phone number for display
+ * Shows in a readable format: +971 58 180 6000
  */
-export function extractPhoneNumber(phone) {
+export function formatPhoneNumber(phone) {
   const normalized = normalizePhoneNumber(phone);
-  return normalized ? normalized.replace('+', '') : null;
+  if (!normalized) return '';
+  
+  // Remove + for formatting
+  const digits = normalized.replace(/\D/g, '');
+  
+  if (digits.startsWith('971') && digits.length === 12) {
+    // UAE format: +971 58 180 6000
+    return `+971 ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+  }
+  
+  // Default: just return with +
+  return normalized;
 }
 
 /**
- * Check if two phone numbers match
+ * Check if two phone numbers match after normalization
  */
-export function phonesMatch(phone1, phone2) {
-  const norm1 = normalizePhoneNumber(phone1);
-  const norm2 = normalizePhoneNumber(phone2);
-  return norm1 && norm2 && norm1 === norm2;
+export function phoneNumbersMatch(phone1, phone2) {
+  if (!phone1 || !phone2) return false;
+  return normalizePhoneNumber(phone1) === normalizePhoneNumber(phone2);
 }

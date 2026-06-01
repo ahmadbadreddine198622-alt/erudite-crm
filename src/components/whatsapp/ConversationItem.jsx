@@ -33,9 +33,10 @@ const statusDot = {
   blocked: 'bg-red-600',
 };
 
-export default function ConversationItem({ conv, lead, selected, onClick }) {
+export default function ConversationItem({ conv, lead, landlord, selected, onClick }) {
   const displayPhone = conv.wa_phone_e164 || conv.phone_number || '';
-  const name = lead?.full_name || conv.wa_display_name || displayPhone;
+  // Priority: landlord name > lead name > wa_display_name > phone
+  const name = landlord?.full_name_en || lead?.full_name || conv.wa_display_name || displayPhone;
   const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
   const timeAgo = conv.last_message_at
     ? formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })
@@ -89,7 +90,7 @@ export default function ConversationItem({ conv, lead, selected, onClick }) {
             <span className="text-[10px] font-medium shrink-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>{timeAgo}</span>
           </div>
           <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>{conv.last_message || '—'}</p>
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded border',
               sentiment === 'positive' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
               sentiment === 'negative' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
@@ -97,6 +98,11 @@ export default function ConversationItem({ conv, lead, selected, onClick }) {
             )}>
               {sentiment === 'positive' ? '✓ Positive' : sentiment === 'negative' ? '⚠ Negative' : 'Neutral'}
             </span>
+            {landlord && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'hsl(38 92% 50% / 0.15)', borderColor: 'hsl(38 92% 50% / 0.3)', color: 'hsl(38 92% 55%)' }}>
+                Landlord
+              </span>
+            )}
             {allTags.length > 0 && (
               <div className="flex gap-1">
                 {allTags.map(t => (

@@ -24,6 +24,7 @@ import TemplateManager from '@/components/whatsapp/TemplateManager';
 import WhatsAppSetupGuide from '@/components/whatsapp/WhatsAppSetupGuide';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
+import { normalizePhoneNumber } from '@/lib/phoneUtils';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
@@ -128,12 +129,17 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.Lead.list('-created_date', 500),
   });
 
+  const { data: landlords = [] } = useQuery({
+    queryKey: ['landlords'],
+    queryFn: () => base44.entities.Landlord.list('-created_date', 500),
+  });
+
   const { data: leadScores = [] } = useQuery({
     queryKey: ['lead_scores'],
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
   });
 
-  const selectedConv = conversations.find(c => c.id === selectedConvId) || null;
+  const selectedConv = normalizedConversations.find(c => c.id === selectedConvId) || null;
   const selectedLead = leads.find(l => l.id === selectedConv?.lead_id) || null;
 
   const handleAction = (action, payload) => {
@@ -156,8 +162,45 @@ export default function WhatsAppInbox() {
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
 
+  // Normalize phone numbers and dedupe conversations
+  const normalizedConversations = (() => {
+    const map = new Map();
+    conversations.forEach(conv => {
+      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+      const existing = map.get(normalizedPhone);
+      if (!existing) {
+        map.set(normalizedPhone, conv);
+      } else {
+        // Merge: keep the one with more recent message
+        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
+        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
+        if (newTime > existingTime) {
+          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
+        } else {
+          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
+        }
+      }
+    });
+    return Array.from(map.values());
+  })();
+
+  // Find landlord by normalized phone match
+  const findLandlordByPhone = (conv) => {
+    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+    return landlords.find(ll => {
+      if (!ll.phone) return false;
+      const normalizedLandlordPhone = normalizePhoneNumber(ll.phone);
+      if (normalizedConvPhone === normalizedLandlordPhone) return true;
+      // Check additional phones
+      if (ll.additional_phones) {
+        return ll.additional_phones.some(ap => normalizePhoneNumber(ap) === normalizedConvPhone);
+      }
+      return false;
+    });
+  };
+
   // Filter + search
-  const filtered = conversations.filter(c => {
+  const filtered = normalizedConversations.filter(c => {
     // Role-based: non-admins see only their assigned conversations
     if (currentUser && !permissions.view_all_whatsapp && c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
     const lead = leads.find(l => l.id === c.lead_id);
@@ -172,9 +215,9 @@ export default function WhatsAppInbox() {
     return matchesSearch && matchesFilter;
   });
 
-  const unreadTotal = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const now = new Date();
-  const conversationsToday = conversations.filter(c => {
+  const conversationsToday = normalizedConversations.filter(c => {
     if (!c.first_message_at) return false;
     const msgDate = new Date(c.first_message_at);
     const today = new Date();
@@ -182,13 +225,13 @@ export default function WhatsAppInbox() {
     return msgDate >= today;
   }).length;
   const avgResponseTime = (() => {
-    const withResponse = conversations.filter(c => c.first_response_seconds && c.first_response_seconds > 0);
+    const withResponse = normalizedConversations.filter(c => c.first_response_seconds && c.first_response_seconds > 0);
     if (withResponse.length === 0) return 0;
     const totalSeconds = withResponse.reduce((sum, c) => sum + c.first_response_seconds, 0);
     return Math.round(totalSeconds / withResponse.length / 60); // minutes
   })();
-  const slaBreaches = conversations.filter(c => c.sla_breached === true).length;
-  const unresolvedCount = conversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
+  const slaBreaches = normalizedConversations.filter(c => c.sla_breached === true).length;
+  const unresolvedCount = normalizedConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
     mutationFn: ({ conversation_id, message }) =>
@@ -548,15 +591,20 @@ export default function WhatsAppInbox() {
               <p className="text-xs mt-1 opacity-60">Messages will appear here when leads contact you on WhatsApp</p>
             </div>
           ) : (
-            filtered.map(conv => (
-              <ConversationItem
-                key={conv.id}
-                conv={conv}
-                lead={leads.find(l => l.id === conv.lead_id)}
-                selected={conv.id === selectedConvId}
-                onClick={() => handleSelectConv(conv.id)}
-              />
-            ))
+            filtered.map(conv => {
+              const lead = leads.find(l => l.id === conv.lead_id);
+              const landlord = findLandlordByPhone(conv);
+              return (
+                <ConversationItem
+                  key={conv.id}
+                  conv={conv}
+                  lead={lead}
+                  landlord={landlord}
+                  selected={conv.id === selectedConvId}
+                  onClick={() => handleSelectConv(conv.id)}
+                />
+              );
+            })
           )}
         </div>
       </div>
