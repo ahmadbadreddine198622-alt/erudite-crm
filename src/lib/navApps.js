@@ -7,7 +7,8 @@ import {
   Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
-  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive
+  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
+  Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -51,6 +52,16 @@ export const ALL_APPS = [
   { label: 'Tenancy Contracts',  icon: FileText,       path: '/tenancy-contracts',   gradient: 'from-blue-500 to-indigo-800',       glowColor: 'rgba(59,130,246,0.40)' },
   { label: 'Notes',              icon: BookOpen,       path: '/notes',               gradient: 'from-violet-500 to-purple-700',      glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Google Drive',       icon: HardDrive,      path: '/google-drive',        gradient: 'from-blue-500 to-indigo-700',       glowColor: 'rgba(59,130,246,0.40)' },
+  { label: 'Negotiations',       icon: Handshake,      path: '/negotiations',        gradient: 'from-purple-500 to-violet-700',      glowColor: 'rgba(139,92,246,0.40)' },
+  { label: 'Follow Ups',         icon: Repeat,         path: '/follow-ups',          gradient: 'from-orange-500 to-amber-700',        glowColor: 'rgba(245,158,11,0.40)' },
+  { label: 'Viewings',           icon: Eye,            path: '/viewings',            gradient: 'from-cyan-500 to-blue-700',            glowColor: 'rgba(6,182,212,0.40)' },
+  { label: 'Email Templates',    icon: FileBox,        path: '/email-templates',     gradient: 'from-slate-500 to-gray-700',         glowColor: 'rgba(148,163,184,0.40)' },
+  { label: 'Broadcasts',         icon: Megaphone,      path: '/broadcasts',          gradient: 'from-rose-500 to-pink-700',            glowColor: 'rgba(244,63,94,0.40)' },
+  { label: 'Property Intel',     icon: Building,       path: '/property-intel',      gradient: 'from-teal-500 to-emerald-700',         glowColor: 'rgba(20,184,166,0.40)' },
+  { label: 'Market Intelligence',icon: LineChart,      path: '/market-intelligence', gradient: 'from-indigo-500 to-purple-700',        glowColor: 'rgba(99,102,241,0.40)' },
+  { label: 'Buyer Match AI',     icon: UserSearch,     path: '/buyer-match-ai',      gradient: 'from-violet-500 to-fuchsia-700',       glowColor: 'rgba(139,92,246,0.40)' },
+  { label: 'Closing AI',         icon: CheckCircle,    path: '/closing-ai',          gradient: 'from-emerald-500 to-green-700',         glowColor: 'rgba(16,185,129,0.40)' },
+  { label: 'Brand Settings',     icon: Target,         path: '/brand-settings',      gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];

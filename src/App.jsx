@@ -58,6 +58,16 @@ import VapiDashboard from '@/pages/VapiDashboard';
 import VapiWorkflow from '@/pages/VapiWorkflow';
 import GoogleDrive from '@/pages/GoogleDrive';
 import Notes from '@/pages/Notes';
+import Negotiations from '@/pages/Negotiations';
+import FollowUps from '@/pages/FollowUps';
+import Viewings from '@/pages/Viewings';
+import EmailTemplates from '@/pages/EmailTemplates';
+import Broadcasts from '@/pages/Broadcasts';
+import PropertyIntel from '@/pages/PropertyIntel';
+import MarketIntelligence from '@/pages/MarketIntelligence';
+import BuyerMatchAI from '@/pages/BuyerMatchAI';
+import ClosingAI from '@/pages/ClosingAI';
+import BrandSettings from '@/pages/BrandSettings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -136,6 +146,16 @@ const AuthenticatedApp = () => {
         <Route path="/vapi-workflow" element={<VapiWorkflow />} />
         <Route path="/google-drive" element={<GoogleDrive />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/negotiations" element={<Negotiations />} />
+        <Route path="/follow-ups" element={<FollowUps />} />
+        <Route path="/viewings" element={<Viewings />} />
+        <Route path="/email-templates" element={<EmailTemplates />} />
+        <Route path="/broadcasts" element={<Broadcasts />} />
+        <Route path="/property-intel" element={<PropertyIntel />} />
+        <Route path="/market-intelligence" element={<MarketIntelligence />} />
+        <Route path="/buyer-match-ai" element={<BuyerMatchAI />} />
+        <Route path="/closing-ai" element={<ClosingAI />} />
+        <Route path="/brand-settings" element={<BrandSettings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
