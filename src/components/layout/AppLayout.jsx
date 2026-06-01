@@ -3,7 +3,6 @@ import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
-import QuickActionsPanel from '@/components/shared/QuickActionsPanel';
 import CommandCenter from '@/components/shared/CommandCenter';
 
 import { Menu, UserPlus } from 'lucide-react';
@@ -52,7 +51,6 @@ export default function AppLayout() {
         </div>
       </main>
 
-      <QuickActionsPanel />
       {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
 
       <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
