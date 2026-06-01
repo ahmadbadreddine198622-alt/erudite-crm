@@ -244,6 +244,16 @@ export default function Team() {
                         <RoleBadge role={u.role} />
                         {u.id !== currentUser?.id ? (
                           <>
+                            <Button size="sm" variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                  toast.success(`Invite resent to ${u.email}`);
+                                } catch(e) { toast.error(e.message || 'Failed'); }
+                              }}
+                              className="h-7 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                              <Mail className="w-3 h-3" /> Resend Invite
+                            </Button>
                             <select value={u.role || 'agent'}
                               onChange={e => updateUserRoleMutation.mutate({ userId: u.id, role: e.target.value, customRoleId: u.custom_role_id })}
                               className="text-xs rounded-lg px-2 py-1.5"
