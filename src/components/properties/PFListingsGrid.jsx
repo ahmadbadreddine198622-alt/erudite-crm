@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import iOSCard from '@/components/ios/iOSCard';
@@ -16,8 +16,18 @@ export default function PFListingsGrid() {
       const result = await base44.entities.PFListing.filter({}, '-last_synced_at', 100);
       return result || [];
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 1 * 60 * 1000,
+    refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.PFListing.subscribe((event) => {
+      if (event.type === 'create' || event.type === 'update') {
+        refetch();
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -88,7 +98,7 @@ export default function PFListingsGrid() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {listings.map((listing) => (
           <ListingCard key={listing.id} listing={listing} />
         ))}
@@ -119,11 +129,12 @@ function ListingCard({ listing }) {
     <iOSCard className="overflow-hidden flex flex-col h-full">
       {/* Image */}
       {displayData.image ? (
-        <div className="relative w-full h-40 bg-gray-100 overflow-hidden">
+        <div className="relative w-full h-32 sm:h-40 bg-gray-100 overflow-hidden">
           <img
             src={displayData.image}
             alt={displayData.title}
             className="w-full h-full object-cover hover:scale-105 transition-transform"
+            loading="lazy"
           />
           <div className="absolute top-2 right-2">
             <iOSBadge variant={displayData.status === 'active' ? 'green' : 'gray'} className="text-xs">
@@ -132,25 +143,25 @@ function ListingCard({ listing }) {
           </div>
         </div>
       ) : (
-        <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+        <div className="w-full h-32 sm:h-40 bg-gray-100 flex items-center justify-center">
           <Home className="w-8 h-8 text-gray-400" />
         </div>
       )}
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-3 sm:p-4 flex flex-col flex-1">
         {/* Title */}
         <h4 className="font-medium text-sm mb-1 line-clamp-2 text-gray-900">
           {displayData.title}
         </h4>
 
         {/* Reference */}
-        <p className="text-xs mb-3 text-gray-500">
+        <p className="text-xs mb-2 text-gray-500">
           Ref: {displayData.reference}
         </p>
 
         {/* Location */}
-        <div className="flex items-center gap-1.5 mb-3">
+        <div className="flex items-center gap-1.5 mb-2">
           <MapPin className="w-3 h-3 text-amber-500" />
           <span className="text-xs text-gray-600">
             {displayData.location}
