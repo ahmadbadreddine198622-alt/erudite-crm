@@ -15,6 +15,7 @@ import PageHeader from '@/components/shared/PageHeader';
 export default function GoogleDrive() {
     const [searchQuery, setSearchQuery] = useState('');
     const [syncing, setSyncing] = useState(false);
+    const [connecting, setConnecting] = useState(false);
 
     const documentTypes = [
         { name: 'Property Documents', icon: FileText, desc: 'Brochures, floor plans, permits' },
@@ -27,10 +28,36 @@ export default function GoogleDrive() {
     const { data: folderData, isLoading: loadingFolder, refetch: refetchFolder } = useQuery({
         queryKey: ['gdrive-folder'],
         queryFn: async () => {
-            const result = await base44.functions.invoke('getGoogleDriveFolder', {});
-            return result.data;
+            try {
+                const result = await base44.functions.invoke('getGoogleDriveFolder', {});
+                return result.data;
+            } catch (error) {
+                // Not connected yet
+                return null;
+            }
         },
     });
+
+    const handleConnect = async () => {
+        setConnecting(true);
+        try {
+            // Get OAuth URL from Base44
+            const url = await base44.connectors.connectAppUser('google-drive-connector');
+            // Open in popup and poll for completion
+            const popup = window.open(url, '_blank', 'width=600,height=700');
+            const checkInterval = setInterval(() => {
+                if (!popup || popup.closed) {
+                    clearInterval(checkInterval);
+                    refetchFolder();
+                    toast.success('Google Drive connected!');
+                }
+            }, 1000);
+        } catch (error) {
+            toast.error('Connection failed: ' + error.message);
+        } finally {
+            setConnecting(false);
+        }
+    };
 
     // Fetch files from Google Drive
     const { data: filesData, isLoading: loadingFiles, refetch: refetchFiles } = useQuery({
@@ -147,9 +174,28 @@ export default function GoogleDrive() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-center py-8">
-                                <Loader2 className="w-8 h-8 animate-spin text-white/50 mx-auto mb-4" />
-                                <p className="text-white/70">Checking Google Drive connection...</p>
+                            <div className="text-center py-8 space-y-4">
+                                <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mx-auto">
+                                    <Folder className="w-8 h-8 text-blue-400" />
+                                </div>
+                                <p className="text-white/70 max-w-md mx-auto">
+                                    Connect your Google Drive account to browse and manage your files directly from the CRM.
+                                </p>
+                                <Button
+                                    onClick={handleConnect}
+                                    disabled={connecting}
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {connecting ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle2 className="w-4 h-4" />
+                                    )}
+                                    {connecting ? 'Connecting...' : 'Connect Google Drive'}
+                                </Button>
+                                <p className="text-xs text-white/40 mt-4">
+                                    You'll be redirected to Google to authorize secure access
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
