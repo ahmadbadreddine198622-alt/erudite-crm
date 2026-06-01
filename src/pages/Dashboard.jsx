@@ -13,6 +13,7 @@ import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
+import PFListingsGrid from '@/components/properties/PFListingsGrid';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -513,6 +514,11 @@ export default function Dashboard() {
           <UserCheck className="w-4 h-4" />
           Assign Leads
         </button>
+      </div>
+
+      {/* Property Finder Listings */}
+      <div className="w-full max-w-5xl mt-8">
+        <PFListingsGrid />
       </div>
 
       {/* AI Insights + Activity */}
