@@ -382,36 +382,40 @@ export default function Landlords() {
           </select>
         </div>
 
-        {/* Bulk Assign Bar */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 mt-3 px-4 py-2.5 rounded-xl" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <UserCheck className="w-4 h-4 text-accent shrink-0" />
-            <span className="text-sm font-medium text-accent">{selectedIds.size} selected</span>
-            <select
-              value={bulkAgentEmail}
-              onChange={e => setBulkAgentEmail(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded-md flex-1 max-w-xs"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}
-            >
-              <option value="">Select agent...</option>
-              {users.map(u => (
-                <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              disabled={!bulkAgentEmail || bulkAssignMutation.isPending}
-              onClick={() => bulkAssignMutation.mutate(bulkAgentEmail)}
-              className="gap-1.5"
-            >
-              {bulkAssignMutation.isPending ? 'Assigning...' : 'Assign'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="text-xs">
-              Clear
-            </Button>
-          </div>
-        )}
       </div>
+
+      {/* Floating Bulk Assign Bar — always visible at bottom when items selected */}
+      {selectedIds.size > 0 && (
+        <div
+          className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
+          style={{ background: 'rgba(20,18,10,0.92)', backdropFilter: 'blur(20px)', border: '1px solid rgba(245,158,11,0.45)', boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,158,11,0.2)' }}
+        >
+          <UserCheck className="w-4 h-4 text-accent shrink-0" />
+          <span className="text-sm font-semibold text-accent whitespace-nowrap">{selectedIds.size} selected</span>
+          <select
+            value={bulkAgentEmail}
+            onChange={e => setBulkAgentEmail(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+          >
+            <option value="">Select agent...</option>
+            {users.map(u => (
+              <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            disabled={!bulkAgentEmail || bulkAssignMutation.isPending}
+            onClick={() => bulkAssignMutation.mutate(bulkAgentEmail)}
+            className="gap-1.5 whitespace-nowrap"
+          >
+            {bulkAssignMutation.isPending ? 'Assigning...' : 'Assign'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="text-xs opacity-70">
+            ✕
+          </Button>
+        </div>
+      )}
 
       {/* Kanban Board - scrolls horizontally within bounded container */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-4" style={{ minHeight: '420px' }}>
