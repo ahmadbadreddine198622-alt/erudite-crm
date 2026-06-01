@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import iOSCard from '@/components/ios/iOSCard';
 import iOSBadge from '@/components/ios/iOSBadge';
-import { RefreshCw, Bed, Bath, Ruler, MapPin, Home, AlertCircle } from 'lucide-react';
+import { RefreshCw, Bed, Bath, Ruler, MapPin, Home, AlertCircle, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PFListingsGrid() {
@@ -112,6 +112,8 @@ export default function PFListingsGrid() {
 }
 
 function ListingCard({ listing }) {
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  
   const displayData = {
     image: listing.images?.[0] || '',
     title: listing.title || `${listing.property_type} in ${listing.location}`,
@@ -123,6 +125,39 @@ function ListingCard({ listing }) {
     type: listing.property_type || 'apartment',
     price: listing.price || 0,
     status: listing.status || 'active',
+  };
+
+  const generatePDFMutation = useMutation({
+    mutationFn: async () => {
+      setIsGeneratingPDF(true);
+      const result = await base44.functions.invoke('generatePFListingPDF', { listing_id: listing.id });
+      return result;
+    },
+    onSuccess: (result) => {
+      setIsGeneratingPDF(false);
+      if (result.data.pdf_url) {
+        window.open(result.data.pdf_url, '_blank');
+        toast.success('PDF opened in new tab');
+      } else {
+        toast.info('PDF generated but Google Drive not connected');
+      }
+    },
+    onError: (error) => {
+      setIsGeneratingPDF(false);
+      toast.error('Failed to generate PDF: ' + error.message);
+    },
+  });
+
+  const handleGeneratePDF = () => {
+    generatePDFMutation.mutate();
+  };
+
+  const handleOpenPortal = () => {
+    if (listing.pf_url) {
+      window.open(listing.pf_url, '_blank');
+    } else {
+      toast.info('Portal URL not available for this listing');
+    }
   };
 
   return (
@@ -197,9 +232,29 @@ function ListingCard({ listing }) {
         </div>
 
         {/* Price */}
-        <p className="text-sm font-semibold text-amber-600">
+        <p className="text-sm font-semibold text-amber-600 mb-3">
           AED {displayData.price?.toLocaleString()}
         </p>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 mt-auto">
+          <button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors disabled:opacity-50 text-xs font-medium"
+          >
+            <FileText className={`w-3.5 h-3.5 ${isGeneratingPDF ? 'animate-spin' : ''}`} />
+            {isGeneratingPDF ? 'Generating...' : 'PDF'}
+          </button>
+          <button
+            onClick={handleOpenPortal}
+            disabled={!listing.pf_url}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Portal
+          </button>
+        </div>
       </div>
     </iOSCard>
   );
