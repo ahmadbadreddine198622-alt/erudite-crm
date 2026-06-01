@@ -13,18 +13,83 @@ Deno.serve(async (req) => {
     if (!leads.length) return Response.json({ error: 'Lead not found' }, { status: 404 });
     const lead = leads[0];
 
-    // Fetch available properties
-    const properties = await base44.asServiceRole.entities.Property.filter(
-      { status: 'available' }, '-created_date', 200
-    );
+    // Fetch properties from Property Finder API
+    const PF_API_KEY = Deno.env.get('PROPERTY_FINDER_API_KEY');
+    const PF_API_SECRET = Deno.env.get('PROPERTY_FINDER_API_SECRET');
+    
+    if (!PF_API_KEY || !PF_API_SECRET) {
+      return Response.json({ error: 'Property Finder credentials not configured' }, { status: 500 });
+    }
 
-    if (!properties.length) return Response.json({ matches: [] });
+    // Get auth token from Property Finder
+    const authResponse = await fetch('https://dev-sandbox.propertyfinder.ae/api/v1/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: PF_API_KEY,
+        api_secret: PF_API_SECRET,
+      }),
+    });
+
+    if (!authResponse.ok) {
+      throw new Error('Property Finder authentication failed');
+    }
+
+    const { access_token } = await authResponse.json();
 
     // Determine lead intent — buyer or tenant
-    const intent = lead.intent || 'unknown';
-    const listingType = intent === 'tenant' ? 'rent' : 'sale';
+    const searchType = lead.intent === 'tenant' ? 'rent' : 'buy';
 
-    // Lead criteria
+    // Build search query based on lead criteria
+    const queryParams = new URLSearchParams({
+      search_type: searchType,
+      per_page: '50',
+    });
+
+    if (lead.preferred_locations?.length > 0) {
+      // Use first preferred location for search
+      queryParams.append('location', lead.preferred_locations[0]);
+    }
+
+    if (lead.bedrooms_min) {
+      queryParams.append('beds_min', lead.bedrooms_min.toString());
+    }
+
+    if (lead.bedrooms_max) {
+      queryParams.append('beds_max', lead.bedrooms_max.toString());
+    }
+
+    if (lead.budget_min) {
+      queryParams.append('price_min', lead.budget_min.toString());
+    }
+
+    if (lead.budget_max) {
+      queryParams.append('price_max', lead.budget_max.toString());
+    }
+
+    // Fetch properties from Property Finder
+    const pfResponse = await fetch(`https://dev-sandbox.propertyfinder.ae/api/v1/property/search?${queryParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!pfResponse.ok) {
+      throw new Error('Property Finder search failed');
+    }
+
+    const pfData = await pfResponse.json();
+    const properties = pfData.results || [];
+
+    if (!properties.length) {
+      return Response.json({ matches: [], total_checked: 0 });
+    }
+
+    // Lead criteria for scoring
     const budgetMin = lead.budget_min || 0;
     const budgetMax = lead.budget_max || Infinity;
     const bedsMin = lead.bedrooms_min;
@@ -40,16 +105,16 @@ Deno.serve(async (req) => {
       const missed = [];
 
       // Listing type match (hard filter reduces score heavily if wrong)
-      if (p.listing_type === listingType) {
+      if (p.search_type === searchType) {
         score += 20;
-        matched.push(`Listed for ${listingType}`);
+        matched.push(`Listed for ${searchType}`);
       } else {
         score -= 30;
-        missed.push(`Listed for ${p.listing_type}, lead wants ${listingType}`);
+        missed.push(`Listed for ${p.search_type}, lead wants ${searchType}`);
       }
 
       // Budget fit (30 pts)
-      const price = p.price_aed;
+      const price = p.price;
       if (price && (budgetMin || budgetMax !== Infinity)) {
         if (price >= budgetMin && price <= budgetMax) {
           score += 30;
@@ -70,8 +135,7 @@ Deno.serve(async (req) => {
       // Location match (25 pts)
       if (prefLocations.length > 0) {
         const propLoc = (p.location || '').toLowerCase();
-        const propBldg = (p.building_name || '').toLowerCase();
-        const locHit = prefLocations.some(l => propLoc.includes(l) || l.includes(propLoc) || propBldg.includes(l));
+        const locHit = prefLocations.some(l => propLoc.includes(l) || l.includes(propLoc));
         if (locHit) { score += 25; matched.push('Preferred location'); }
         else { score -= 5; missed.push('Outside preferred locations'); }
       } else {
@@ -95,8 +159,8 @@ Deno.serve(async (req) => {
       }
 
       // Size fit (optional bonus)
-      if ((sizeMin || sizeMax) && p.area_sqft) {
-        const sz = p.area_sqft;
+      if ((sizeMin || sizeMax) && p.area) {
+        const sz = p.area;
         const min = sizeMin || 0;
         const max = sizeMax || Infinity;
         if (sz >= min && sz <= max) { score += 5; matched.push('Size within range'); }
@@ -109,16 +173,17 @@ Deno.serve(async (req) => {
           id: p.id,
           title: p.title,
           property_type: p.property_type,
-          listing_type: p.listing_type,
-          price_aed: p.price_aed,
+          listing_type: p.search_type,
+          price_aed: p.price,
           location: p.location,
           building_name: p.building_name,
           bedrooms: p.bedrooms,
           bathrooms: p.bathrooms,
-          area_sqft: p.area_sqft,
-          furnishing: p.furnishing,
+          area_sqft: p.area,
+          furnishing: p.furnishing_status,
           images: p.images || [],
-          status: p.status,
+          amenities: p.amenities || [],
+          developer: p.developer,
         },
         probability,
         matched_criteria: matched,
