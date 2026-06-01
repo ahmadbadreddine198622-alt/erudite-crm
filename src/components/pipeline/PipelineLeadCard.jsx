@@ -87,7 +87,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
     <div
       onClick={onClick}
       className={cn(
-        'rounded-2xl p-4 cursor-pointer transition-all duration-200',
+        'rounded-lg p-2.5 cursor-pointer transition-all duration-200',
       )}
       style={{
         background: isDragging ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.07)',
@@ -102,15 +102,15 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
       }}
     >
       {/* Top row: health status + avatar + name */}
-      <div className="flex items-start gap-2.5 mb-2">
-        <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-sm font-bold text-accent shrink-0">
+      <div className="flex items-start gap-1.5 mb-1.5">
+        <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-xs font-bold text-accent shrink-0">
           {lead.name?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-base font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.name || 'Unknown'}</p>
+          <div className="flex items-center gap-1 mb-0.5">
+            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.name || 'Unknown'}</p>
             {healthStatus && (
-              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${healthColors[healthStatus]} text-white`}>
+              <span className={`shrink-0 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${healthColors[healthStatus]} text-white`}>
                 {healthStatus}
               </span>
             )}
@@ -132,8 +132,8 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
 
       {/* LEVEL 2: Deal Value (dominant business metric) */}
       {lead.deal_value_aed > 0 && (
-        <div className="mb-2">
-          <p className="text-lg font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+        <div className="mb-1.5">
+          <p className="text-sm font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
             {formatDealValue(lead.deal_value_aed)}
           </p>
         </div>
@@ -141,20 +141,20 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
 
       {/* LEVEL 3: Property / Project */}
       {projectName && (
-        <div className="mb-2">
+        <div className="mb-1.5">
           <ProjectBadge name={projectName} />
         </div>
       )}
 
       {/* Listing enrichment (only if PFListing matched) */}
       {hasListingBlock && (
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-1.5 flex items-center gap-1.5">
           {listing.image_url && (
             <img
               src={listing.image_url}
               alt=""
               loading="lazy"
-              className="w-12 h-12 rounded-xl object-cover bg-muted shrink-0 border border-white/10"
+              className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0 border border-white/10"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
@@ -162,20 +162,20 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
           )}
           <div className="flex-1 min-w-0">
             {listing.title && (
-              <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{listing.title}</p>
+              <p className="text-[11px] font-medium truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{listing.title}</p>
             )}
-            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
               {showOfferingBadge && (
                 <span
                   className={cn(
-                    'inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider',
+                    'inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border uppercase tracking-wider',
                     OFFERING_BADGE_COLORS[offering],
                   )}
                 >
                   {offering}
                 </span>
               )}
-              {price && <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{price}</span>}
+              {price && <span className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{price}</span>}
             </div>
           </div>
         </div>
@@ -183,15 +183,15 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
 
       {/* LEVEL 4: Next Appointment + Days in Stage */}
       {(lead.next_appointment_at || timeInStage) && (
-        <div className="mb-2 flex items-center gap-2 flex-wrap">
+        <div className="mb-1.5 flex items-center gap-1 flex-wrap">
           {lead.next_appointment_at && (
-            <span className="text-xs font-medium px-2 py-1 rounded-lg bg-purple-500/15 text-purple-400 border border-purple-500/25 inline-flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
+            <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/25 inline-flex items-center gap-1">
+              <Calendar className="w-2.5 h-2.5" />
               {format(new Date(lead.next_appointment_at), 'MMM d, h:mm a')}
             </span>
           )}
           {timeInStage && (
-            <span className="text-xs font-medium px-2 py-1 rounded-lg bg-white/5 text-white/60 border border-white/10">
+            <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">
               {timeInStage} in stage
             </span>
           )}
@@ -199,12 +199,12 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
       )}
 
       {/* LEVEL 5: Source + Tags */}
-      <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-white/8">
+      <div className="flex items-center gap-1 flex-wrap pt-1.5 border-t border-white/8">
         {lead.source && (
           <SourceBadge source={lead.source} />
         )}
         {STAGES[lead.stage]?.required_documents?.length > 0 && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 shrink-0">
+          <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 shrink-0">
             {STAGES[lead.stage].required_documents.length} docs
           </span>
         )}
