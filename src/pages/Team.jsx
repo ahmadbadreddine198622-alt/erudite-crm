@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ResetPasswordBanner from '@/components/team/ResetPasswordBanner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -177,6 +178,11 @@ export default function Team() {
             </div>
             <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>The person receives an email with a link to set their password and log in.</p>
           </div>
+        )}
+
+        {/* Reset Password Section */}
+        {isAdmin && (
+          <ResetPasswordBanner />
         )}
 
         <Tabs defaultValue={isAdmin ? 'members' : 'performance'}>
