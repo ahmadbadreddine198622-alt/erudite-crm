@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -364,6 +364,26 @@ export default function Dashboard() {
         </DragDropContext>
 
 
+      </div>
+
+      {/* Quick Navigation Buttons */}
+      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
+        <button
+          onClick={() => navigate('/landlords')}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
+        >
+          <Building2 className="w-4 h-4" />
+          Landlord Pipeline
+        </button>
+        <button
+          onClick={() => navigate('/landlords')}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
+        >
+          <UserCheck className="w-4 h-4" />
+          Assign Leads
+        </button>
       </div>
 
       {/* AI Insights + Activity */}
