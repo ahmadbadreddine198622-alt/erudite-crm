@@ -29,15 +29,19 @@ export default function Dashboard() {
   const [showPicker, setShowPicker] = useState(false);
   const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
 
-  // Load user email
+  // Load user
   useEffect(() => {
-    base44.auth.me().then(u => { if (u?.email) setUserEmail(u.email); }).catch(() => {});
+    base44.auth.me().then(u => {
+      if (u?.email) setUserEmail(u.email);
+      if (u?.full_name) setUserName(u.full_name);
+    }).catch(() => {});
   }, []);
 
   // Pointer / orientation tracking for tilt specular
@@ -176,6 +180,28 @@ export default function Dashboard() {
       {logoUrl && (
         <div className="mb-6">
           <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
+        </div>
+      )}
+
+      {/* Logged-in account badge */}
+      {userEmail && (
+        <div
+          className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(12px)',
+            color: 'rgba(255,255,255,0.75)',
+          }}
+        >
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+            style={{ background: 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
+          >
+            {(userName || userEmail)[0].toUpperCase()}
+          </div>
+          <span style={{ color: 'hsl(38 92% 55%)' }}>{userName || userEmail}</span>
+          <span className="opacity-50 hidden sm:inline">· {userEmail}</span>
         </div>
       )}
 
