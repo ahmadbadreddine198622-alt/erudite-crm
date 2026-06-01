@@ -1,25 +1,30 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, ChevronLeft } from 'lucide-react';
 
-const STORAGE_KEY = 'floating_nav_pos';
+const STORAGE_KEY = 'floating_nav_pill_pos';
 
-function useDraggable(storageKey, defaultPos) {
+export default function FloatingNavButtons() {
+  const navigate = useNavigate();
+  const ref = useRef(null);
+  const dragging = useRef(false);
+  const didDrag = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+
   const [pos, setPos] = useState(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return defaultPos;
+    return { x: window.innerWidth / 2 - 60, y: window.innerHeight - 120 };
   });
 
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const ref = useRef(null);
-
   const onPointerDown = useCallback((e) => {
+    // Only start drag from the pill background, not buttons
+    if (e.target.closest('button')) return;
     e.preventDefault();
     dragging.current = true;
+    didDrag.current = false;
     const rect = ref.current.getBoundingClientRect();
     offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     ref.current.setPointerCapture(e.pointerId);
@@ -27,119 +32,109 @@ function useDraggable(storageKey, defaultPos) {
 
   const onPointerMove = useCallback((e) => {
     if (!dragging.current) return;
-    const maxX = window.innerWidth - 52;
-    const maxY = window.innerHeight - 52;
-    const x = Math.max(0, Math.min(maxX, e.clientX - offset.current.x));
-    const y = Math.max(0, Math.min(maxY, e.clientY - offset.current.y));
+    didDrag.current = true;
+    const w = ref.current?.offsetWidth || 120;
+    const h = ref.current?.offsetHeight || 52;
+    const x = Math.max(0, Math.min(window.innerWidth - w, e.clientX - offset.current.x));
+    const y = Math.max(0, Math.min(window.innerHeight - h, e.clientY - offset.current.y));
     setPos({ x, y });
   }, []);
 
   const onPointerUp = useCallback((e) => {
     if (!dragging.current) return;
     dragging.current = false;
-    const maxX = window.innerWidth - 52;
-    const maxY = window.innerHeight - 52;
-    const x = Math.max(0, Math.min(maxX, e.clientX - offset.current.x));
-    const y = Math.max(0, Math.min(maxY, e.clientY - offset.current.y));
-    const newPos = { x, y };
-    setPos(newPos);
-    localStorage.setItem(storageKey, JSON.stringify(newPos));
-  }, [storageKey]);
-
-  return { pos, ref, onPointerDown, onPointerMove, onPointerUp };
-}
-
-export default function FloatingNavButtons() {
-  const navigate = useNavigate();
-  const homeClickRef = useRef(false);
-  const backClickRef = useRef(false);
-
-  const home = useDraggable(STORAGE_KEY + '_home', { x: window.innerWidth - 64, y: window.innerHeight * 0.75 });
-  const back = useDraggable(STORAGE_KEY + '_back', { x: window.innerWidth - 64, y: window.innerHeight * 0.75 - 64 });
-
-  const handleHomePointerDown = (e) => {
-    homeClickRef.current = true;
-    home.onPointerDown(e);
-  };
-  const handleHomePointerUp = (e) => {
-    const wasClick = homeClickRef.current;
-    home.onPointerUp(e);
-    if (wasClick) navigate('/');
-    homeClickRef.current = false;
-  };
-  const handleHomePointerMove = (e) => {
-    homeClickRef.current = false;
-    home.onPointerMove(e);
-  };
-
-  const handleBackPointerDown = (e) => {
-    backClickRef.current = true;
-    back.onPointerDown(e);
-  };
-  const handleBackPointerUp = (e) => {
-    const wasClick = backClickRef.current;
-    back.onPointerUp(e);
-    if (wasClick) navigate(-1);
-    backClickRef.current = false;
-  };
-  const handleBackPointerMove = (e) => {
-    backClickRef.current = false;
-    back.onPointerMove(e);
-  };
-
-  const btnStyle = (pos) => ({
-    position: 'fixed',
-    left: pos.x,
-    top: pos.y,
-    zIndex: 9999,
-    width: 48,
-    height: 48,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'grab',
-    userSelect: 'none',
-    touchAction: 'none',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-    transition: 'box-shadow 0.15s ease',
-  });
+    if (didDrag.current) {
+      const w = ref.current?.offsetWidth || 120;
+      const h = ref.current?.offsetHeight || 52;
+      const x = Math.max(0, Math.min(window.innerWidth - w, e.clientX - offset.current.x));
+      const y = Math.max(0, Math.min(window.innerHeight - h, e.clientY - offset.current.y));
+      const newPos = { x, y };
+      setPos(newPos);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newPos));
+    }
+  }, []);
 
   return (
-    <>
-      {/* Home button */}
-      <div
-        ref={home.ref}
-        style={{
-          ...btnStyle(home.pos),
-          background: 'rgba(245,158,11,0.9)',
-          border: '1px solid rgba(255,200,80,0.5)',
-          backdropFilter: 'blur(10px)',
-        }}
-        onPointerDown={handleHomePointerDown}
-        onPointerMove={handleHomePointerMove}
-        onPointerUp={handleHomePointerUp}
-        title="Go to Home"
-      >
-        <Home className="w-5 h-5 text-black" />
-      </div>
-
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y,
+        zIndex: 9999,
+        cursor: 'grab',
+        userSelect: 'none',
+        touchAction: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        borderRadius: 999,
+        overflow: 'hidden',
+        background: 'rgba(20, 28, 48, 0.75)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        borderTopColor: 'rgba(255,255,255,0.28)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12)',
+      }}
+    >
       {/* Back button */}
-      <div
-        ref={back.ref}
-        style={{
-          ...btnStyle(back.pos),
-          background: 'rgba(255,255,255,0.12)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          backdropFilter: 'blur(10px)',
-        }}
-        onPointerDown={handleBackPointerDown}
-        onPointerMove={handleBackPointerMove}
-        onPointerUp={handleBackPointerUp}
+      <button
+        onClick={() => navigate(-1)}
         title="Go Back"
+        style={{
+          width: 52,
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          borderRight: '1px solid rgba(255,255,255,0.1)',
+          transition: 'background 0.15s ease',
+          color: 'rgba(255,255,255,0.75)',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
-        <ChevronLeft className="w-5 h-5 text-white" />
-      </div>
-    </>
+        <ChevronLeft size={20} />
+      </button>
+
+      {/* Divider dot */}
+      <div style={{
+        width: 4,
+        height: 4,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.2)',
+        margin: '0 2px',
+        flexShrink: 0,
+      }} />
+
+      {/* Home button */}
+      <button
+        onClick={() => navigate('/')}
+        title="Go to Home"
+        style={{
+          width: 52,
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          borderLeft: '1px solid rgba(255,255,255,0.1)',
+          transition: 'background 0.15s ease',
+          color: 'hsl(38 92% 55%)',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.12)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <Home size={20} />
+      </button>
+    </div>
   );
 }
