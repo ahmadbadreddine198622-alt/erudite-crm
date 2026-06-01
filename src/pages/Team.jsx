@@ -175,13 +175,21 @@ export default function Team() {
                 {inviting ? 'Sending...' : 'Send Invite'}
               </Button>
               <Button onClick={async () => {
-                  if (!inviteEmail.trim()) return;
+                  if (!inviteEmail.trim()) {
+                    toast.error('Please enter an email address');
+                    return;
+                  }
                   try {
+                    console.log('Sending password reset to:', inviteEmail.trim());
                     await base44.users.inviteUser(inviteEmail.trim(), 'user');
+                    console.log('Password reset sent successfully');
                     toast.success(`Password reset link sent to ${inviteEmail}`);
-                  } catch(e) { toast.error(e.message || 'Failed'); }
+                  } catch(e) {
+                    console.error('Password reset failed:', e);
+                    toast.error(e.message || 'Failed to send reset link');
+                  }
                 }}
-                disabled={!inviteEmail.trim()}
+                disabled={inviting || !inviteEmail.trim()}
                 className="gap-2 font-bold text-base px-6" style={{ background: '#6366f1', color: '#fff', minHeight: 44 }}>
                 🔑 Reset Password
               </Button>
@@ -258,9 +266,14 @@ export default function Team() {
                             <Button size="sm" variant="outline"
                               onClick={async () => {
                                 try {
+                                  console.log('Resending invite to:', u.email, 'role:', u.role);
                                   await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                  console.log('Invite resent successfully to:', u.email);
                                   toast.success(`Invite resent to ${u.email}`);
-                                } catch(e) { toast.error(e.message || 'Failed'); }
+                                } catch(e) {
+                                  console.error('Resend invite failed:', e);
+                                  toast.error(e.message || 'Failed to resend invite');
+                                }
                               }}
                               className="h-7 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
                               <Mail className="w-3 h-3" /> Resend Invite
@@ -268,9 +281,14 @@ export default function Team() {
                             <Button size="sm" variant="outline"
                               onClick={async () => {
                                 try {
+                                  console.log('Sending password reset to:', u.email);
                                   await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
-                                  toast.success(`Password reset email sent to ${u.email}`);
-                                } catch(e) { toast.error(e.message || 'Failed'); }
+                                  console.log('Password reset sent successfully to:', u.email);
+                                  toast.success(`Password reset link sent to ${u.email}`);
+                                } catch(e) {
+                                  console.error('Password reset failed:', e);
+                                  toast.error(e.message || 'Failed to send reset link');
+                                }
                               }}
                               className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
                               🔑 Reset Password

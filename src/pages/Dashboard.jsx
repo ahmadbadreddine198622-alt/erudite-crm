@@ -391,7 +391,10 @@ export default function Dashboard() {
       {/* Quick Navigation Buttons */}
       <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
         <button
-          onClick={() => navigate('/landlords')}
+          onClick={() => {
+            console.log('Navigating to Landlord Pipeline');
+            navigate('/landlords');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
         >
@@ -399,7 +402,10 @@ export default function Dashboard() {
           Landlord Pipeline
         </button>
         <button
-          onClick={() => navigate('/landlords')}
+          onClick={() => {
+            console.log('Navigating to Assign Leads');
+            navigate('/landlords');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
         >
