@@ -3,33 +3,40 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import { RefreshCw, Bed, Bath, Ruler, MapPin, Home } from 'lucide-react';
+import { RefreshCw, Bed, Bath, Ruler, MapPin, Home, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PFListingsGrid() {
   const queryClient = useQueryClient();
+  const [syncStatus, setSyncStatus] = useState(null);
 
-  // Fetch Property Finder listings
+  // Fetch Property Finder listings from database
   const { data: listings = [], isLoading, refetch } = useQuery({
     queryKey: ['pfListings'],
     queryFn: async () => {
-      const result = await base44.functions.invoke('fetchPFListings', {});
-      return result.data?.listings || [];
+      const result = await base44.entities.PFListing.filter({}, '-last_synced_at', 100);
+      return result || [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
-  // Sync mutation
+  // Sync mutation - uses syncPFListings for proper pagination
   const syncMutation = useMutation({
     mutationFn: async () => {
-      return await base44.functions.invoke('fetchPFListings', {});
+      setSyncStatus({ type: 'syncing', message: 'Syncing listings...' });
+      const result = await base44.functions.invoke('syncPFListings', {});
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setSyncStatus({ type: 'success', message: `Synced ${result.data.total_listings_written || 0} listings` });
       queryClient.invalidateQueries({ queryKey: ['pfListings'] });
-      toast.success('Property Finder listings synced');
+      toast.success(`Synced ${result.data.total_listings_written || 0} listings`);
+      setTimeout(() => setSyncStatus(null), 5000);
     },
     onError: (error) => {
+      setSyncStatus({ type: 'error', message: error.message });
       toast.error('Sync failed: ' + error.message);
+      setTimeout(() => setSyncStatus(null), 5000);
     },
   });
 
@@ -48,9 +55,19 @@ export default function PFListingsGrid() {
             className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            Synchronize
+            {syncMutation.isPending ? 'Syncing...' : 'Synchronize'}
           </button>
         </div>
+        {syncStatus && (
+          <div className={`p-3 rounded-lg flex items-center gap-2 ${
+            syncStatus.type === 'error' ? 'bg-rose-500/10 text-rose-400' : 
+            syncStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 
+            'bg-amber-500/10 text-amber-400'
+          }`}>
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm">{syncStatus.message}</span>
+          </div>
+        )}
         <EruditeCard className="p-8 text-center">
           <Home className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
           <p style={{ color: 'rgba(255,255,255,0.5)' }}>No listings synced yet. Click Synchronize to fetch your Property Finder listings.</p>
@@ -112,7 +129,7 @@ function ListingCard({ listing }) {
             className="w-full h-full object-cover hover:scale-105 transition-transform"
           />
           <div className="absolute top-2 right-2">
-            <EruditeBadge variant="emerald" className="text-xs">
+            <EruditeBadge variant={displayData.status === 'active' ? 'emerald' : 'default'} className="text-xs">
               {displayData.status}
             </EruditeBadge>
           </div>
