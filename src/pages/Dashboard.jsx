@@ -30,11 +30,12 @@ export default function Dashboard() {
   const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState(null);
+  const [userProfileImage, setUserProfileImage] = useState('');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [userRole, setUserRole] = useState(null);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
@@ -45,6 +46,7 @@ export default function Dashboard() {
       if (u?.email) setUserEmail(u.email);
       if (u?.full_name) setUserName(u.full_name);
       if (u?.role) setUserRole(u.role);
+      if (u?.profile_image) setUserProfileImage(u.profile_image);
     }).catch(() => {});
   }, []);
 
@@ -214,10 +216,14 @@ export default function Dashboard() {
             }}
           >
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-              style={{ background: 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden"
+              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
             >
-              {(userName || userEmail)[0].toUpperCase()}
+              {userProfileImage ? (
+                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                (userName || userEmail)[0].toUpperCase()
+              )}
             </div>
             <div className="flex flex-col items-start gap-0">
               <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
