@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
         </tr>
       </table>
       <p>
-        <a href="${Deno.env.get('BASE44_APP_URL') || 'https://dubai-estate-pro.base44.app'}/leads?id=${lead_id}" 
+        <a href="${window.location.origin}/leads?id=${lead_id}" 
            style="background: #f59e0b; color: #0F1419; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">
           View Lead in CRM
         </a>
@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
       <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
     `;
 
+    // Use Gmail integration (already authorized)
     const result = await base44.integrations.Core.SendEmail({
       to: agent_email,
       subject,

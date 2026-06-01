@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const appUrl = Deno.env.get('BASE44_APP_URL') || 'https://dubai-estate-pro.base44.app';
+    const appUrl = window.location.origin;
     const notificationPayload = {
       agent_email: new_assigned_agent_email,
       agent_name: lead.assigned_agent_name || new_assigned_agent_email,
