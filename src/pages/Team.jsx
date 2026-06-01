@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import ResetPasswordBanner from '@/components/team/ResetPasswordBanner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -180,11 +179,6 @@ export default function Team() {
           </div>
         )}
 
-        {/* Reset Password Section */}
-        {isAdmin && (
-          <ResetPasswordBanner />
-        )}
-
         <Tabs defaultValue={isAdmin ? 'members' : 'performance'}>
           <TabsList className="glass-card">
             {isAdmin && (
@@ -259,6 +253,16 @@ export default function Team() {
                               }}
                               className="h-7 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
                               <Mail className="w-3 h-3" /> Resend Invite
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                  toast.success(`Password reset email sent to ${u.email}`);
+                                } catch(e) { toast.error(e.message || 'Failed'); }
+                              }}
+                              className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
+                              🔑 Reset Password
                             </Button>
                             <select value={u.role || 'agent'}
                               onChange={e => updateUserRoleMutation.mutate({ userId: u.id, role: e.target.value, customRoleId: u.custom_role_id })}
