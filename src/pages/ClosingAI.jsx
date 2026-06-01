@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import EruditePage from '@/components/erudite/EruditePage';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
@@ -6,40 +6,59 @@ import EruditeStat from '@/components/erudite/EruditeStat';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeButton from '@/components/erudite/EruditeButton';
 import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
-import { CheckCircle, TrendingUp, Clock, DollarSign } from 'lucide-react';
+import EruditeTable from '@/components/erudite/EruditeTable';
+import { CheckCircle, TrendingUp, Clock, DollarSign, Brain, Target } from 'lucide-react';
 
 export default function ClosingAI() {
+  const stats = {
+    dealsInClosing: 14,
+    closeRate: 76,
+    avgTimeToClose: 18,
+    totalValueClosed: 89000000,
+  };
+
+  const tableColumns = [
+    { header: 'Deal', accessor: 'deal_name' },
+    { header: 'Lead', accessor: 'lead_name' },
+    { header: 'Value', accessor: (row) => `AED ${row.value?.toLocaleString()}` },
+    { header: 'Stage', accessor: 'stage' },
+    { header: 'AI Recommendation', accessor: 'recommendation' },
+    { header: 'Confidence', accessor: (row) => `${row.confidence}%` },
+  ];
+
   return (
     <EruditePage
       title="Closing AI"
       subtitle="Deal-closing assistant and guidance"
       actions={
-        <EruditeButton icon={CheckCircle}>New Deal Review</EruditeButton>
+        <EruditeButton icon={Brain}>New Deal Review</EruditeButton>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <EruditeCard>
           <div className="p-5 space-y-3">
-            <EruditeStat label="Deals in Closing" value="14" />
+            <EruditeStat label="Deals in Closing" value={stats.dealsInClosing.toString()} />
           </div>
         </EruditeCard>
         <EruditeCard>
           <div className="p-5 space-y-3">
-            <EruditeStat label="Close Rate" value="76%" trend="up" trendValue="+8%" />
+            <EruditeStat label="Close Rate" value={`${stats.closeRate}%`} trend="up" trendValue="+8%" />
           </div>
         </EruditeCard>
         <EruditeCard>
           <div className="p-5 space-y-3">
-            <EruditeStat label="Avg. Time to Close" value="18 days" trend="down" trendValue="-3 days" />
+            <EruditeStat label="Avg. Time to Close" value={`${stats.avgTimeToClose} days`} trend="down" trendValue="-3 days" />
           </div>
         </EruditeCard>
         <EruditeCard>
           <div className="p-5 space-y-3">
-            <EruditeStat label="Total Value Closed" value="AED 89M" trend="up" trendValue="+15%" />
+            <EruditeStat label="Total Value Closed" value={`AED ${(stats.totalValueClosed / 1000000).toFixed(1)}M`} trend="up" trendValue="+15%" />
           </div>
         </EruditeCard>
       </div>
 
+      {/* Main Content */}
       <EruditeSection title="Active Closings" subtitle="Pipeline" icon={Clock}>
         <EruditeEmptyState
           icon={CheckCircle}
