@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import QuickActionsPanel from '@/components/shared/QuickActionsPanel';
 import CommandCenter from '@/components/shared/CommandCenter';
-import HeroDock from '@/components/ui/HeroDock';
+import FloatingNavButtons from '@/components/ui/FloatingNavButtons';
 import { Menu, UserPlus } from 'lucide-react';
 
 export default function AppLayout() {
@@ -51,8 +51,7 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
-      <MobileNav />
-      <HeroDock />
+      <FloatingNavButtons />
       <QuickActionsPanel />
       {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
 
