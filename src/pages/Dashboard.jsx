@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
@@ -43,6 +44,7 @@ export default function Dashboard() {
     base44.auth.me().then(u => {
       if (u?.email) setUserEmail(u.email);
       if (u?.full_name) setUserName(u.full_name);
+      if (u?.role) setUserRole(u.role);
     }).catch(() => {});
   }, []);
 
@@ -217,8 +219,10 @@ export default function Dashboard() {
             >
               {(userName || userEmail)[0].toUpperCase()}
             </div>
-            <span style={{ color: 'hsl(38 92% 55%)' }}>{userName || userEmail}</span>
-            <span className="opacity-50 hidden sm:inline">· {userEmail}</span>
+            <div className="flex flex-col items-start gap-0">
+              <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
+              {userRole && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userRole}</span>}
+            </div>
             <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
           </div>
 
@@ -235,6 +239,13 @@ export default function Dashboard() {
               <div className="p-3 border-b border-white/10">
                 <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
                 <p className="text-xs text-white/50">{userEmail}</p>
+                {userRole && (
+                  <div className="mt-1.5">
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+                      {userRole}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="py-2">
                 <button
