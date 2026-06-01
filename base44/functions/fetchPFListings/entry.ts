@@ -1,64 +1,76 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get Property Finder credentials
-    const PF_API_KEY = Deno.env.get('PROPERTY_FINDER_API_KEY');
-    const PF_API_SECRET = Deno.env.get('PROPERTY_FINDER_API_SECRET');
+    // Get Property Finder credentials from env or stored credentials
+    let PF_API_KEY = Deno.env.get('PROPERTY_FINDER_API_KEY');
+    let PF_API_SECRET = Deno.env.get('PROPERTY_FINDER_API_SECRET');
+    
+    // Try to get from stored credentials first
+    try {
+      const creds = await base44.asServiceRole.entities.PFCredential.list();
+      if (creds && creds.length > 0 && creds[0].is_connected) {
+        PF_API_KEY = creds[0].api_key || PF_API_KEY;
+        PF_API_SECRET = creds[0].api_secret || PF_API_SECRET;
+      }
+    } catch (e) { /* fallback to env vars */ }
     
     if (!PF_API_KEY || !PF_API_SECRET) {
       return Response.json({ error: 'Property Finder credentials not configured' }, { status: 500 });
     }
 
     // Authenticate with Property Finder
-    const authResponse = await fetch('https://dev-sandbox.propertyfinder.ae/api/v1/auth', {
+    const authResponse = await fetch(`${PF_BASE}/auth/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: PF_API_KEY,
-        api_secret: PF_API_SECRET,
-      }),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ apiKey: PF_API_KEY, apiSecret: PF_API_SECRET }),
     });
 
     if (!authResponse.ok) {
-      throw new Error('Property Finder auth failed');
+      const txt = await authResponse.text();
+      return Response.json({ error: 'Property Finder auth failed: ' + authResponse.status + ' ' + txt }, { status: 500 });
     }
 
-    const { access_token } = await authResponse.json();
+    const { accessToken } = await authResponse.json();
 
     // Fetch listings from Property Finder
-    const listingsResponse = await fetch('https://dev-sandbox.propertyfinder.ae/api/v1/my-properties?per_page=100', {
+    const listingsResponse = await fetch(`${PF_BASE}/listings?perPage=50`, {
       headers: {
-        'Authorization': `Bearer ${access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
       },
     });
 
     if (!listingsResponse.ok) {
-      throw new Error('Failed to fetch listings');
+      const txt = await listingsResponse.text();
+      return Response.json({ error: 'Failed to fetch listings: ' + listingsResponse.status + ' ' + txt }, { status: 500 });
     }
 
-    const { results } = await listingsResponse.json();
+    const data = await listingsResponse.json();
+    const results = data.results || data.data || data.listings || [];
 
     // Format listings for frontend
-    const listings = (results || []).map(p => ({
-      id: p.id,
-      title: p.title,
-      reference: p.reference_no,
-      location: p.location,
-      bedrooms: p.bedrooms,
-      bathrooms: p.bathrooms,
-      area: p.area,
-      type: p.property_type,
-      price: p.price,
-      image: p.images?.[0],
-      status: p.status || 'live',
-      furnishing: p.furnishing_status,
-      developer: p.developer,
+    const listings = results.map(p => ({
+      id: p.id || p.reference,
+      title: p.title || p.headline || `${p.property_type} in ${p.location || 'Unknown'}`,
+      reference: p.reference || p.reference_no,
+      location: p.location || p.community || p.area || '',
+      bedrooms: p.bedrooms || 0,
+      bathrooms: p.bathrooms || 0,
+      area: p.area || p.size || 0,
+      type: p.property_type || 'apartment',
+      price: p.price || p.rent || 0,
+      image: p.images?.[0]?.url || p.images?.[0] || '',
+      status: p.state?.stage || p.status || 'live',
+      furnishing: p.furnishing_status || '',
+      developer: p.developer || '',
+      deal_type: p.deal_type || 'sale',
     }));
 
     // Save listings to PFListing entity
