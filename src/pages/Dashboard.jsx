@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck, LogOut } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -195,13 +195,20 @@ export default function Dashboard() {
           }}
         >
           <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
             style={{ background: 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
           >
             {(userName || userEmail)[0].toUpperCase()}
           </div>
           <span style={{ color: 'hsl(38 92% 55%)' }}>{userName || userEmail}</span>
           <span className="opacity-50 hidden sm:inline">· {userEmail}</span>
+          <button
+            onClick={() => base44.auth.logout()}
+            className="ml-1 flex items-center justify-center w-5 h-5 rounded-full transition-colors hover:bg-red-500/20"
+            title="Logout"
+          >
+            <LogOut className="w-3 h-3" style={{ color: 'rgba(255,100,100,0.8)' }} />
+          </button>
         </div>
       )}
 
