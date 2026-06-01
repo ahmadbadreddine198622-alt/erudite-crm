@@ -150,6 +150,35 @@ export default function Team() {
           <p className="page-subtitle mt-1">Members, roles, permissions, and performance</p>
         </div>
 
+        {/* Always-visible Quick Invite Banner */}
+        {isAdmin && (
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: 'hsl(38 92% 55%)' }}>
+              <Mail className="w-5 h-5" /> Invite Team Member
+            </h2>
+            <div className="flex gap-3 flex-wrap">
+              <Input placeholder="Email address e.g. ahmad@erudite-estate.com" value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                className="flex-1 min-w-52 glass-input text-base" style={{ minHeight: 44 }} />
+              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
+                className="glass-input rounded-md px-3 py-2 text-sm"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)', minHeight: 44 }}>
+                <option value="agent">Agent</option>
+                <option value="manager">Manager</option>
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+              </select>
+              <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}
+                className="gap-2 font-bold text-base px-6" style={{ background: 'hsl(38 92% 50%)', color: '#000', minHeight: 44 }}>
+                <Plus className="w-5 h-5" />
+                {inviting ? 'Sending...' : 'Send Invite'}
+              </Button>
+            </div>
+            <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>The person receives an email with a link to set their password and log in.</p>
+          </div>
+        )}
+
         <Tabs defaultValue={isAdmin ? 'members' : 'performance'}>
           <TabsList className="glass-card">
             {isAdmin && (
