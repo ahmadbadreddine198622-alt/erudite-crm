@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import EruditeCard from '@/components/erudite/EruditeCard';
-import EruditeBadge from '@/components/erudite/EruditeBadge';
+import iOSCard from '@/components/ios/iOSCard';
+import iOSBadge from '@/components/ios/iOSBadge';
 import { RefreshCw, Bed, Bath, Ruler, MapPin, Home, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -68,10 +68,10 @@ export default function PFListingsGrid() {
             <span className="text-sm">{syncStatus.message}</span>
           </div>
         )}
-        <EruditeCard className="p-8 text-center">
-          <Home className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>No listings synced yet. Click Synchronize to fetch your Property Finder listings.</p>
-        </EruditeCard>
+        <iOSCard className="p-8 text-center">
+          <Home className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p className="text-gray-500">No listings synced yet. Click Synchronize to fetch your Property Finder listings.</p>
+        </iOSCard>
       </div>
     );
   }
@@ -104,7 +104,6 @@ export default function PFListingsGrid() {
 }
 
 function ListingCard({ listing }) {
-  // Map backend fields to display fields
   const displayData = {
     image: listing.images?.[0] || '',
     title: listing.title || `${listing.property_type} in ${listing.location}`,
@@ -119,7 +118,7 @@ function ListingCard({ listing }) {
   };
 
   return (
-    <EruditeCard className="overflow-hidden flex flex-col h-full">
+    <iOSCard className="overflow-hidden flex flex-col h-full">
       {/* Image */}
       {displayData.image ? (
         <div className="relative w-full h-40 bg-gradient-to-br from-white/5 to-white/2 overflow-hidden">
@@ -129,9 +128,9 @@ function ListingCard({ listing }) {
             className="w-full h-full object-cover hover:scale-105 transition-transform"
           />
           <div className="absolute top-2 right-2">
-            <EruditeBadge variant={displayData.status === 'active' ? 'emerald' : 'default'} className="text-xs">
+            <iOSBadge variant={displayData.status === 'active' ? 'green' : 'gray'} className="text-xs">
               {displayData.status}
-            </EruditeBadge>
+            </iOSBadge>
           </div>
         </div>
       ) : (
@@ -189,10 +188,10 @@ function ListingCard({ listing }) {
         </div>
 
         {/* Price */}
-        <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 50%)' }}>
+        <p className="text-sm font-semibold text-amber-600">
           AED {displayData.price?.toLocaleString()}
         </p>
       </div>
-    </EruditeCard>
+    </iOSCard>
   );
 }
