@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
+  const [userPosition, setUserPosition] = useState('');
   const [userProfileImage, setUserProfileImage] = useState('');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [holdingPath, setHoldingPath] = useState(null);
@@ -46,6 +47,7 @@ export default function Dashboard() {
       if (u?.email) setUserEmail(u.email);
       if (u?.full_name) setUserName(u.full_name);
       if (u?.role) setUserRole(u.role);
+      if (u?.position) setUserPosition(u.position);
       if (u?.profile_image) setUserProfileImage(u.profile_image);
     }).catch(() => {});
   }, []);
@@ -227,7 +229,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col items-start gap-0">
               <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
-              {userRole && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userRole}</span>}
+              {userPosition && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
             </div>
             <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
           </div>
