@@ -218,7 +218,7 @@ export default function Dashboard() {
             }}
           >
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
               style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
             >
               {userProfileImage ? (
