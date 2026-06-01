@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2 } from 'lucide-react';
@@ -18,8 +18,22 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   const queryClient = useQueryClient();
   const [whisperOpen, setWhisperOpen] = useState(false);
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (email) => base44.entities.Landlord.update(landlord.id, { assigned_agent_email: email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      onUpdate?.();
+    },
+    onError: (e) => toast.error('Assign failed: ' + e.message),
+  });
+
   const orchestrateMutation = useMutation({
-    mutationFn: () => base44.functions.landlordOrchestrator({ landlord_id: landlord.id, force: true }),
+    mutationFn: () => base44.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }),
     onSuccess: () => {
       toast.success('Aurora updated this landlord');
       onUpdate?.();
@@ -28,14 +42,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     onError: (e) => toast.error(`Aurora failed: ${e.message}`)
   });
 
-  // Generates the Lease Brokerage Agreement PDF (RERA Form A) server-side,
-  // pre-signs the broker block, and routes to DocuSign for the owner's
-  // signature. The function is idempotent — if lease_agreement_status is
-  // already sent_for_signature or signed it returns { skipped: true } unless
-  // force=true is passed. AutomationRule on stage form_a_initiation also calls
-  // this function; the button is the agent-initiated entry point.
   const lbaMutation = useMutation({
-    mutationFn: () => base44.functions.generateLeaseBrokerageAgreement({ landlord_id: landlord.id }),
+    mutationFn: () => base44.functions.invoke('generateLeaseBrokerageAgreement', { landlord_id: landlord.id }),
     onSuccess: (res) => {
       const data = res?.data ?? res;
       if (data?.skipped) {
@@ -50,14 +58,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     onError: (e) => toast.error(`Lease Brokerage Agreement failed: ${e.message}`),
   });
 
-  // lease_agreement_status badge styling — mirrors the rest of this panel's badges.
   const LBA_STATUS_STYLE = {
     drafted: 'bg-slate-500/10 text-slate-500 border-slate-500/30',
     sent_for_signature: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
     signed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
     cancelled: 'bg-red-500/10 text-red-600 border-red-500/30',
   };
-  const lbaStatus = landlord.lease_agreement_status; // may be undefined → no badge
+  const lbaStatus = landlord.lease_agreement_status;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -88,9 +95,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
           </div>
         </div>
 
-        {/* Lease Brokerage Agreement — labeled action + live status badge.
-            Button gates on its own mutation state. The function it calls is
-            idempotent server-side so an accidental double-click is safe. */}
+        {/* Lease Brokerage Agreement */}
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-medium text-muted-foreground">Lease Brokerage Agreement</span>
@@ -175,6 +180,24 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 <ProjectBadge name={landlord.project_name} />
               </div>
             )}
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-1">Assigned Agent</p>
+                <select
+                  value={landlord.assigned_agent_email || ''}
+                  onChange={(e) => assignMutation.mutate(e.target.value)}
+                  disabled={assignMutation.isPending}
+                  className="w-full px-2 py-1 text-xs rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">Unassigned</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Metrics Grid */}
@@ -216,7 +239,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-3">
               <Card>
                 <CardHeader className="pb-2">
@@ -264,7 +286,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               <PortfolioRadar landlord={landlord} />
             </TabsContent>
 
-            {/* Negotiation Tab */}
             <TabsContent value="negotiation" className="space-y-3">
               <PricingPressureMeter landlord={landlord} />
 
@@ -303,12 +324,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               </Card>
             </TabsContent>
 
-            {/* Documents Tab */}
             <TabsContent value="documents" className="space-y-2">
               <p className="text-xs text-muted-foreground">Document checklist will appear here once stage S8 is entered.</p>
             </TabsContent>
 
-            {/* AI Tab */}
             <TabsContent value="ai" className="space-y-3">
               {landlord.ai_rolling_summary && (
                 <Card>

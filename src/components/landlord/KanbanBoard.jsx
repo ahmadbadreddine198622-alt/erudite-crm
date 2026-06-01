@@ -10,6 +10,10 @@ export default function KanbanBoard({
   selectedLandlordId,
   onSelectLandlord,
   onStageChange,
+  selectedIds = new Set(),
+  onToggleSelect,
+  users = [],
+  onSingleAssign,
 }) {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -74,6 +78,10 @@ export default function KanbanBoard({
                               isSelected={landlord.id === selectedLandlordId}
                               isDragging={dragSnapshot.isDragging}
                               onClick={() => onSelectLandlord(landlord.id)}
+                              isChecked={selectedIds.has(landlord.id)}
+                              onToggleCheck={onToggleSelect}
+                              users={users}
+                              onSingleAssign={onSingleAssign}
                             />
                           </div>
                         )}

@@ -46,7 +46,7 @@ function getUrgencyDot(score) {
   return 'bg-emerald-500';
 }
 
-export default function LandlordCard({ landlord, isSelected, isDragging, onClick }) {
+export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign }) {
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
 
@@ -108,8 +108,15 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
       }}
     >
-      {/* Top row: avatar + name + urgency badge */}
+      {/* Top row: checkbox + avatar + name + urgency badge */}
       <div className="flex items-start gap-2.5">
+        <input
+          type="checkbox"
+          checked={!!isChecked}
+          onChange={(e) => { e.stopPropagation(); onToggleCheck?.(landlord.id); }}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+        />
         <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0">
           {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
@@ -169,12 +176,36 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </span>
       </div>
 
-      {/* Bottom row: time in stage + actions */}
+      {/* Assigned agent */}
+      {landlord.assigned_agent_email && (
+        <div className="mt-1.5">
+          <span className="text-[9px] px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
+            👤 {landlord.assigned_agent_email.split('@')[0]}
+          </span>
+        </div>
+      )}
+
+      {/* Bottom row: time in stage + single-assign + actions */}
       <div className="mt-2.5 pt-2.5 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>
           {landlord.days_in_stage ? `${landlord.days_in_stage}d in stage` : 'Just added'}
         </span>
         <div className="flex items-center gap-1">
+          {users.length > 0 && (
+            <select
+              title="Assign agent"
+              value={landlord.assigned_agent_email || ''}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => { e.stopPropagation(); onSingleAssign?.(landlord.id, e.target.value); }}
+              className="text-[9px] rounded px-1 py-0.5 max-w-[80px]"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+            >
+              <option value="">Assign…</option>
+              {users.map(u => (
+                <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             onClick={handleCall}

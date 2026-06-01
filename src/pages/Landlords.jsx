@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,6 +53,8 @@ export default function Landlords() {
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const [filterProject, setFilterProject] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkAgentEmail, setBulkAgentEmail] = useState('');
   const queryClient = useQueryClient();
 
   // Sync URL ?selected=<id> with state, both ways
@@ -82,6 +84,11 @@ export default function Landlords() {
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list(),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
   });
 
   // Find the selected landlord directly from the already-loaded list for instant open.
@@ -177,6 +184,44 @@ export default function Landlords() {
   });
 
   const handleStageChange = (payload) => updateStageMutation.mutate(payload);
+
+  // Flatten all filtered landlords for select-all
+  const allFilteredLandlords = useMemo(() => Object.values(filteredGroups).flat(), [filteredGroups]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === allFilteredLandlords.length && allFilteredLandlords.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allFilteredLandlords.map(l => l.id)));
+    }
+  };
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async (agentEmail) => {
+      await Promise.all([...selectedIds].map(id => base44.entities.Landlord.update(id, { assigned_agent_email: agentEmail })));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success(`Assigned ${selectedIds.size} landlord(s)`);
+      setSelectedIds(new Set());
+      setBulkAgentEmail('');
+    },
+    onError: (e) => toast.error('Bulk assign failed: ' + e.message),
+  });
+
+  const singleAssignMutation = useMutation({
+    mutationFn: ({ id, agentEmail }) => base44.entities.Landlord.update(id, { assigned_agent_email: agentEmail }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['landlords'] }),
+    onError: (e) => toast.error('Assign failed: ' + e.message),
+  });
 
   if (isLoading) {
     return (
@@ -282,8 +327,17 @@ export default function Landlords() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Filters + Select All */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 accent-amber-500 rounded"
+            />
+            Select all ({allFilteredLandlords.length})
+          </label>
           <Input
             placeholder="Filter by agent..."
             value={filterAgent}
@@ -327,6 +381,36 @@ export default function Landlords() {
             <option value="unassigned">Unassigned</option>
           </select>
         </div>
+
+        {/* Bulk Assign Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 mt-3 px-4 py-2.5 rounded-xl" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <UserCheck className="w-4 h-4 text-accent shrink-0" />
+            <span className="text-sm font-medium text-accent">{selectedIds.size} selected</span>
+            <select
+              value={bulkAgentEmail}
+              onChange={e => setBulkAgentEmail(e.target.value)}
+              className="px-3 py-1.5 text-xs rounded-md flex-1 max-w-xs"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}
+            >
+              <option value="">Select agent...</option>
+              {users.map(u => (
+                <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              disabled={!bulkAgentEmail || bulkAssignMutation.isPending}
+              onClick={() => bulkAssignMutation.mutate(bulkAgentEmail)}
+              className="gap-1.5"
+            >
+              {bulkAssignMutation.isPending ? 'Assigning...' : 'Assign'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="text-xs">
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Kanban Board - scrolls horizontally within bounded container */}
@@ -338,6 +422,10 @@ export default function Landlords() {
           selectedLandlordId={selectedLandlordId}
           onSelectLandlord={setSelectedLandlordId}
           onStageChange={handleStageChange}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          users={users}
+          onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
         />
       </div>
 
