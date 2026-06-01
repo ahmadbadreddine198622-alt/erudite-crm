@@ -1,0 +1,61 @@
+{
+  "name": "Role",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Role name e.g. Agent, Manager, Viewer"
+    },
+    "description": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex color for role badge"
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "view_all_leads": {
+          "type": "boolean",
+          "default": false
+        },
+        "view_all_pipeline": {
+          "type": "boolean",
+          "default": false
+        },
+        "view_all_whatsapp": {
+          "type": "boolean",
+          "default": false
+        },
+        "view_finance": {
+          "type": "boolean",
+          "default": false
+        },
+        "view_analytics": {
+          "type": "boolean",
+          "default": false
+        },
+        "manage_team": {
+          "type": "boolean",
+          "default": false
+        },
+        "manage_landlords": {
+          "type": "boolean",
+          "default": false
+        },
+        "manage_properties": {
+          "type": "boolean",
+          "default": false
+        },
+        "export_data": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

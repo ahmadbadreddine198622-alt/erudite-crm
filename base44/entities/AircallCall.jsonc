@@ -1,0 +1,84 @@
+{
+  "name": "AircallCall",
+  "type": "object",
+  "properties": {
+    "aircall_id": {
+      "type": "string",
+      "description": "Unique Aircall call ID"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "done",
+        "missed",
+        "voicemail",
+        "busy"
+      ]
+    },
+    "duration": {
+      "type": "number",
+      "description": "Duration in seconds"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "from_number": {
+      "type": "string"
+    },
+    "to_number": {
+      "type": "string"
+    },
+    "aircall_line_name": {
+      "type": "string",
+      "description": "Aircall line / number name"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "recording_url": {
+      "type": "string"
+    },
+    "voicemail_url": {
+      "type": "string"
+    },
+    "transcript": {
+      "type": "string"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Matched Lead ID"
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached lead name"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "aircall_id",
+    "direction"
+  ]
+}

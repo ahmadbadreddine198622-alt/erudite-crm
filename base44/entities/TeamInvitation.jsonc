@@ -1,0 +1,56 @@
+{
+  "name": "TeamInvitation",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Invitee email"
+    },
+    "base_role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "Base system role (admin or user)"
+    },
+    "custom_role_id": {
+      "type": "string",
+      "description": "FK to Role entity"
+    },
+    "custom_role_name": {
+      "type": "string",
+      "description": "Cached role name for display"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "invited_by_email": {
+      "type": "string"
+    },
+    "invited_by_name": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes e.g. area specialist"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "email",
+    "base_role",
+    "status"
+  ]
+}

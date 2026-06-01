@@ -1,0 +1,44 @@
+{
+  "name": "CommissionSlab",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Custom name for this slab (e.g., Sale, Rent, Premium Sale)"
+    },
+    "calculation_type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "fixed"
+      ],
+      "description": "Whether commission is percentage or fixed amount"
+    },
+    "value": {
+      "type": "number",
+      "description": "Percentage value (if percentage) or fixed amount in AED (if fixed)"
+    },
+    "min_deal_amount": {
+      "type": "number",
+      "description": "Minimum deal amount for this slab to apply"
+    },
+    "max_deal_amount": {
+      "type": "number",
+      "description": "Maximum deal amount for this slab to apply"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this slab is currently active"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex color for visual identification"
+    }
+  },
+  "required": [
+    "name",
+    "calculation_type",
+    "value"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Target user email"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "invitation_sent",
+        "member_joined",
+        "lead_assigned",
+        "deal_won",
+        "whatsapp_message",
+        "email_received",
+        "general"
+      ],
+      "default": "general"
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    },
+    "link": {
+      "type": "string",
+      "description": "Optional in-app link"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "title",
+    "type"
+  ]
+}

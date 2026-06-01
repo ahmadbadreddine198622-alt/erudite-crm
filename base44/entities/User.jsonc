@@ -4,18 +4,38 @@
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
       "enum": [
         "admin",
-        "user"
-      ]
+        "manager",
+        "agent",
+        "viewer"
+      ],
+      "default": "agent"
     },
-    "brn": {
+    "custom_role_id": {
       "type": "string",
-      "description": "Broker registration number"
+      "description": "Reference to Role entity for granular permissions"
+    },
+    "department": {
+      "type": "string",
+      "description": "Team department e.g. Sales, Leasing"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "team_name": {
+      "type": "string",
+      "description": "The team this member belongs to e.g. Sales Team A"
+    },
+    "is_team_leader": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this member is the team leader"
     }
   },
-  "required": [
-    "role"
-  ]
+  "required": []
 }

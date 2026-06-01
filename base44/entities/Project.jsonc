@@ -33,6 +33,18 @@
         "closed"
       ],
       "default": "active"
+    },
+    "assigned_agents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of agent emails assigned to this project"
+    },
+    "primary_agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Primary agent responsible for this project"
     }
   },
   "required": [
