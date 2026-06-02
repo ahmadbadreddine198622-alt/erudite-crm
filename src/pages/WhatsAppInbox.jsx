@@ -208,8 +208,13 @@ export default function WhatsAppInbox() {
 
   // Filter + search
   const filtered = normalizedConversations.filter(c => {
-    // Role-based: non-admins see only their assigned conversations
-    if (currentUser && !permissions.view_all_whatsapp && c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
+    // Role-based: non-admins without view_all_whatsapp see only conversations assigned to them
+    if (currentUser && !permissions.view_all_whatsapp) {
+      // If conversation has assigned_agent_email, only show if it matches current user
+      if (c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
+      // If no assigned_agent_email, hide from non-admin users (only admins/managers see unassigned)
+      if (!c.assigned_agent_email && !permissions.manage_team) return false;
+    }
     const lead = leads.find(l => l.id === c.lead_id);
     const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;
