@@ -1,198 +1,395 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import EruditeCard from '@/components/erudite/EruditeCard';
-import EruditeBadge from '@/components/erudite/EruditeBadge';
-import { RefreshCw, Bed, Bath, Ruler, MapPin, Home, AlertCircle } from 'lucide-react';
+import {
+  RefreshCw, Bed, Bath, Ruler, Filter, ExternalLink,
+  FileDown, X, RotateCcw, Home, ChevronDown, ChevronUp
+} from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function PFListingsGrid() {
-  const queryClient = useQueryClient();
-  const [syncStatus, setSyncStatus] = useState(null);
+const GOLD = '#c9a85c';
+const GREEN = '#3fcf8e';
 
-  // Fetch Property Finder listings from database
-  const { data: listings = [], isLoading, refetch } = useQuery({
-    queryKey: ['pfListings'],
-    queryFn: async () => {
-      const result = await base44.entities.PFListing.filter({}, '-last_synced_at', 100);
-      return result || [];
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
+const formatPrice = (p) => {
+  if (!p) return 'POA';
+  if (p >= 1_000_000) return `AED ${(p / 1_000_000).toFixed(2)}M`;
+  if (p >= 1_000) return `AED ${(p / 1_000).toFixed(0)}K`;
+  return `AED ${p.toLocaleString()}`;
+};
 
-  // Sync mutation - uses syncPFListings for proper pagination
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      setSyncStatus({ type: 'syncing', message: 'Syncing listings...' });
-      const result = await base44.functions.invoke('syncPFListings', {});
-      return result;
-    },
-    onSuccess: (result) => {
-      setSyncStatus({ type: 'success', message: `Synced ${result.data.total_listings_written || 0} listings` });
-      queryClient.invalidateQueries({ queryKey: ['pfListings'] });
-      toast.success(`Synced ${result.data.total_listings_written || 0} listings`);
-      setTimeout(() => setSyncStatus(null), 5000);
-    },
-    onError: (error) => {
-      setSyncStatus({ type: 'error', message: error.message });
-      toast.error('Sync failed: ' + error.message);
-      setTimeout(() => setSyncStatus(null), 5000);
-    },
-  });
+const MAX_PRICE_OPTIONS = [
+  { label: 'Any', value: null },
+  { label: '≤500K', value: 500_000 },
+  { label: '≤1.5M', value: 1_500_000 },
+  { label: '≤3M', value: 3_000_000 },
+  { label: '≤15M', value: 15_000_000 },
+];
 
-  const handleSync = () => {
-    syncMutation.mutate();
+const BED_OPTIONS = [
+  { label: 'Any', value: null },
+  { label: 'Studio', value: 0 },
+  { label: '1+', value: 1 },
+  { label: '2+', value: 2 },
+  { label: '3+', value: 3 },
+  { label: '4+', value: 4 },
+];
+
+function ChipGroup({ options, value, onChange, multi = false }) {
+  const handleClick = (v) => {
+    if (multi) {
+      if (v === null) { onChange(null); return; }
+      const current = value || [];
+      if (current.includes(v)) onChange(current.filter(x => x !== v).length ? current.filter(x => x !== v) : null);
+      else onChange([...current.filter(x => x !== null), v]);
+    } else {
+      onChange(v === value ? null : v);
+    }
   };
-
-  if (!listings.length && !isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium" style={{ color: 'rgba(255,255,255,0.95)' }}>My Listings</h3>
-          <button
-            onClick={handleSync}
-            disabled={syncMutation.isPending}
-            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {syncMutation.isPending ? 'Syncing...' : 'Synchronize'}
-          </button>
-        </div>
-        {syncStatus && (
-          <div className={`p-3 rounded-lg flex items-center gap-2 ${
-            syncStatus.type === 'error' ? 'bg-rose-500/10 text-rose-400' : 
-            syncStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 
-            'bg-amber-500/10 text-amber-400'
-          }`}>
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-sm">{syncStatus.message}</span>
-          </div>
-        )}
-        <EruditeCard className="p-8 text-center">
-          <Home className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>No listings synced yet. Click Synchronize to fetch your Property Finder listings.</p>
-        </EruditeCard>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium" style={{ color: 'rgba(255,255,255,0.95)' }}>My Listings</h3>
-        <button
-          onClick={handleSync}
-          disabled={syncMutation.isPending}
-          className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          Synchronize
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {listings.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} />
-        ))}
-      </div>
-
-      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-        {listings.length} {listings.length === 1 ? 'listing' : 'listings'} from Property Finder
-      </p>
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((opt) => {
+        const isActive = multi
+          ? (opt.value === null ? (!value || value.length === 0) : (value || []).includes(opt.value))
+          : (value === opt.value || (opt.value === null && value === null));
+        return (
+          <button
+            key={String(opt.value)}
+            onClick={() => handleClick(opt.value)}
+            className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+            style={{
+              background: isActive ? GOLD : 'rgba(255,255,255,0.05)',
+              color: isActive ? '#0a1320' : 'rgba(255,255,255,0.65)',
+              border: `1px solid ${isActive ? GOLD : 'rgba(255,255,255,0.12)'}`,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
+function generatePDF(listing) {
+  const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
+  const html = `
+  <html><head><meta charset="utf-8"/>
+  <style>
+    body { font-family: Inter, sans-serif; background: #fff; color: #111; margin: 0; padding: 40px; }
+    .header { background: #0a1320; color: #c9a85c; padding: 24px 32px; border-radius: 10px; margin-bottom: 28px; }
+    .header h1 { font-size: 22px; margin: 0 0 4px; }
+    .header .ref { font-size: 12px; opacity: 0.7; font-family: monospace; }
+    .price { font-size: 28px; font-weight: 700; color: #c9a85c; margin: 0 0 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #e8e8e8; }
+    td:first-child { color: #666; width: 40%; }
+    td:last-child { font-weight: 600; }
+    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 10px; color: #888; line-height: 1.6; }
+  </style></head>
+  <body>
+    <div class="header">
+      <h1>${listing.title || `${listing.property_type} in ${listing.location}`}</h1>
+      <div class="ref">REF: ${listing.reference_number || listing.pf_listing_id}</div>
+    </div>
+    <div class="price">${formatPrice(listing.price)}</div>
+    <table>
+      <tr><td>Location</td><td>${listing.location || '-'}, Dubai</td></tr>
+      <tr><td>Type</td><td style="text-transform:capitalize">${listing.property_type || '-'}</td></tr>
+      <tr><td>Bedrooms</td><td>${beds}</td></tr>
+      <tr><td>Bathrooms</td><td>${listing.bathrooms || '-'}</td></tr>
+      <tr><td>Size</td><td>${listing.area_sqft ? listing.area_sqft.toLocaleString() + ' sq ft' : '-'}</td></tr>
+      <tr><td>Status</td><td>${listing.status === 'active' ? 'Live' : 'Inactive'}</td></tr>
+    </table>
+    <div class="footer">
+      ERUDITE PROPERTY REAL ESTATE, Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE.<br/>
+      T: +971 58 180 6000 | E: info@erudite-estate.com | W: www.eruditeproperty.com — TRN/VAT Reg No: 104029757200003
+    </div>
+  </body></html>`;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.print(); };
+}
+
 function ListingCard({ listing }) {
-  // Map backend fields to display fields
-  const displayData = {
-    image: listing.images?.[0] || '',
-    title: listing.title || `${listing.property_type} in ${listing.location}`,
-    reference: listing.reference_number || listing.pf_listing_id,
-    location: listing.location || listing.community || '',
-    bedrooms: listing.bedrooms || 0,
-    bathrooms: listing.bathrooms || 0,
-    area: listing.area_sqft || 0,
-    type: listing.property_type || 'apartment',
-    price: listing.price || 0,
-    status: listing.status || 'active',
-  };
+  const img = listing.images?.[0];
+  const isLive = listing.status === 'active';
+  const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
+  const title = listing.title || `${listing.property_type} in ${listing.location}`;
 
   return (
-    <EruditeCard className="overflow-hidden flex flex-col h-full">
+    <div
+      className="flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
+      style={{ background: '#0e1a2b', border: '1px solid #1a2942', minHeight: 132 }}
+    >
       {/* Image */}
-      {displayData.image ? (
-        <div className="relative w-full h-40 bg-gradient-to-br from-white/5 to-white/2 overflow-hidden">
-          <img
-            src={displayData.image}
-            alt={displayData.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform"
-          />
-          <div className="absolute top-2 right-2">
-            <EruditeBadge variant={displayData.status === 'active' ? 'emerald' : 'default'} className="text-xs">
-              {displayData.status}
-            </EruditeBadge>
+      <div className="relative flex-shrink-0 overflow-hidden" style={{ width: 150 }}>
+        {img ? (
+          <img src={img} alt={title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: '#111e30' }}>
+            <Home className="w-8 h-8 opacity-20 text-white" />
+          </div>
+        )}
+        {/* Diagonal overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
+        {/* Status pill */}
+        <div className="absolute top-2 left-2">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: isLive ? 'rgba(63,207,142,0.15)' : 'rgba(255,255,255,0.1)', color: isLive ? GREEN : 'rgba(255,255,255,0.5)', border: `1px solid ${isLive ? 'rgba(63,207,142,0.35)' : 'rgba(255,255,255,0.15)'}` }}>
+            {isLive && <span className="w-1.5 h-1.5 rounded-full" style={{ background: GREEN }} />}
+            {isLive ? 'Live' : 'Archived'}
+          </span>
+        </div>
+        {/* Purpose tag */}
+        <div className="absolute bottom-2 left-2">
+          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest"
+            style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.7)' }}>
+            {listing.listing_type || 'sale'}
+          </span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-col flex-1 p-3 min-w-0 justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'rgba(255,255,255,0.95)' }}>
+            {title}
+          </p>
+          <p className="text-xs font-mono mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Ref: {listing.reference_number || listing.pf_listing_id}
+          </p>
+          {/* Specs */}
+          <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{beds}</span>
+            <span className="flex items-center gap-1"><Bath className="w-3 h-3" />{listing.bathrooms || '-'}</span>
+            <span className="flex items-center gap-1"><Ruler className="w-3 h-3" />{listing.area_sqft ? listing.area_sqft.toLocaleString() : '-'} ft²</span>
           </div>
         </div>
-      ) : (
-        <div className="w-full h-40 bg-gradient-to-br from-white/5 to-white/2 flex items-center justify-center">
-          <Home className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.2)' }} />
+
+        {/* Bottom row */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-sm font-bold" style={{ color: GOLD }}>{formatPrice(listing.price)}</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => generatePDF(listing)}
+              title="Download PDF"
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+              style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}
+            >
+              <FileDown className="w-3.5 h-3.5" />
+            </button>
+            {listing.pf_url && (
+              <a
+                href={listing.pf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open in Property Finder"
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PFListingsGrid() {
+  const queryClient = useQueryClient();
+  const [statusTab, setStatusTab] = useState('live');
+  const [search, setSearch] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [fPurpose, setFPurpose] = useState(null);
+  const [fTypes, setFTypes] = useState(null);
+  const [fBeds, setFBeds] = useState(null);
+  const [fArea, setFArea] = useState(null);
+  const [fMaxPrice, setFMaxPrice] = useState(null);
+
+  const { data: listings = [], isLoading } = useQuery({
+    queryKey: ['pfListings'],
+    queryFn: () => base44.entities.PFListing.filter({}, '-last_synced_at', 200),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('syncPFListings', {}),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['pfListings'] });
+      toast.success(`Synced ${result.data?.total_listings_written || 0} listings`);
+    },
+    onError: (e) => toast.error('Sync failed: ' + e.message),
+  });
+
+  // Derive unique areas and types from data
+  const allAreas = useMemo(() => [...new Set(listings.map(l => l.location).filter(Boolean))].sort(), [listings]);
+  const allTypes = useMemo(() => [...new Set(listings.map(l => l.property_type).filter(Boolean))].sort(), [listings]);
+
+  const typeOptions = [{ label: 'All', value: null }, ...allTypes.map(t => ({ label: t.charAt(0).toUpperCase() + t.slice(1), value: t }))];
+  const areaOptions = [{ label: 'All', value: null }, ...allAreas.map(a => ({ label: a, value: a }))];
+
+  const activeFilterCount = [fPurpose, fTypes?.length ? fTypes : null, fBeds, fArea, fMaxPrice].filter(Boolean).length;
+
+  const resetFilters = () => { setFPurpose(null); setFTypes(null); setFBeds(null); setFArea(null); setFMaxPrice(null); };
+
+  const filtered = useMemo(() => {
+    return listings.filter(l => {
+      // Status tab
+      if (statusTab === 'live' && l.status !== 'active') return false;
+      if (statusTab === 'archived' && l.status !== 'inactive') return false;
+
+      // Search
+      if (search) {
+        const q = search.toLowerCase();
+        const match = (l.title || '').toLowerCase().includes(q)
+          || (l.location || '').toLowerCase().includes(q)
+          || (l.reference_number || '').toLowerCase().includes(q)
+          || (l.pf_listing_id || '').toLowerCase().includes(q);
+        if (!match) return false;
+      }
+
+      if (fPurpose && l.listing_type !== fPurpose) return false;
+      if (fTypes?.length && !fTypes.includes(l.property_type)) return false;
+      if (fBeds !== null) {
+        if (fBeds === 0 && l.bedrooms !== 0) return false;
+        if (fBeds > 0 && (l.bedrooms || 0) < fBeds) return false;
+      }
+      if (fArea && l.location !== fArea) return false;
+      if (fMaxPrice && (l.price || 0) > fMaxPrice) return false;
+
+      return true;
+    });
+  }, [listings, statusTab, search, fPurpose, fTypes, fBeds, fArea, fMaxPrice]);
+
+  const tabLabel = statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total';
+
+  return (
+    <div className="space-y-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Segmented control */}
+        <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {[['live', 'Live'], ['archived', 'Archived'], ['all', 'All']].map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setStatusTab(v)}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: statusTab === v ? GOLD : 'transparent',
+                color: statusTab === v ? '#0a1320' : 'rgba(255,255,255,0.55)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={() => syncMutation.mutate()}
+          disabled={syncMutation.isPending}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50"
+          style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.25)` }}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+          {syncMutation.isPending ? 'Syncing...' : 'Sync'}
+        </button>
+      </div>
+
+      {/* Search + Filter toggle */}
+      <div className="flex gap-2">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search title, area, ref..."
+          className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+          style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.85)', caretColor: GOLD }}
+        />
+        <button
+          onClick={() => setFilterOpen(o => !o)}
+          className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
+          style={{
+            background: filterOpen ? 'rgba(201,168,92,0.15)' : '#0e1a2b',
+            border: `1px solid ${filterOpen ? GOLD : '#1a2942'}`,
+            color: filterOpen ? GOLD : 'rgba(255,255,255,0.65)',
+          }}
+        >
+          <Filter className="w-4 h-4" />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
+              style={{ background: GOLD, color: '#0a1320' }}>
+              {activeFilterCount}
+            </span>
+          )}
+          {filterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* Filter panel */}
+      {filterOpen && (
+        <div className="rounded-2xl p-4 space-y-4" style={{ background: '#0e1a2b', border: '1px solid #1a2942' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>PURPOSE</p>
+              <ChipGroup options={[{ label: 'All', value: null }, { label: 'Sale', value: 'sale' }, { label: 'Rent', value: 'rent' }]} value={fPurpose} onChange={setFPurpose} />
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>BEDROOMS (MIN)</p>
+              <ChipGroup options={BED_OPTIONS} value={fBeds} onChange={setFBeds} />
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>TYPE</p>
+              <ChipGroup options={typeOptions} value={fTypes} onChange={setFTypes} multi />
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>MAX PRICE</p>
+              <ChipGroup options={MAX_PRICE_OPTIONS} value={fMaxPrice} onChange={setFMaxPrice} />
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>AREA</p>
+              <ChipGroup options={areaOptions} value={fArea} onChange={setFArea} />
+            </div>
+          </div>
+          {activeFilterCount > 0 && (
+            <button onClick={resetFilters} className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <RotateCcw className="w-3 h-3" /> Reset filters
+            </button>
+          )}
         </div>
       )}
 
-      {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Title */}
-        <h4 className="font-medium text-sm mb-1 line-clamp-2" style={{ color: 'rgba(255,255,255,0.95)' }}>
-          {displayData.title}
-        </h4>
+      {/* Results count */}
+      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        {filtered.length} {tabLabel} {filtered.length === 1 ? 'listing' : 'listings'}
+      </p>
 
-        {/* Reference */}
-        <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Ref: {displayData.reference}
-        </p>
-
-        {/* Location */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <MapPin className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {displayData.location}
-          </span>
+      {/* Cards */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: '#0e1a2b' }} />
+          ))}
         </div>
-
-        {/* Details Grid */}
-        <div className="grid grid-cols-4 gap-2 mb-3 pb-3 border-b border-white/10">
-          <div className="flex flex-col items-center">
-            <Bed className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
-              {displayData.bedrooms}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <Bath className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
-              {displayData.bathrooms}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <Ruler className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
-              {Math.round(displayData.area)}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <Home className="w-3.5 h-3.5 mb-1" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            <span className="text-xs font-medium capitalize" style={{ color: 'rgba(255,255,255,0.9)' }}>
-              {displayData.type}
-            </span>
-          </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: '#1a2942', background: 'rgba(14,26,43,0.5)' }}>
+          <Home className="w-10 h-10 mb-3 opacity-20 text-white" />
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>No listings match.</p>
+          <button
+            onClick={() => { setStatusTab('live'); resetFilters(); setSearch(''); }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.3)` }}
+          >
+            Back to Live
+          </button>
         </div>
-
-        {/* Price */}
-        <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 50%)' }}>
-          AED {displayData.price?.toLocaleString()}
-        </p>
-      </div>
-    </EruditeCard>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(l => <ListingCard key={l.id} listing={l} />)}
+        </div>
+      )}
+    </div>
   );
 }
