@@ -216,7 +216,14 @@ export default function PFListingsGrid() {
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['pfListings'],
-    queryFn: () => base44.entities.PFListing.filter({}, '-last_synced_at', 200),
+    queryFn: async () => {
+      // Fetch sale listings first, then rent, to guarantee sale-first ordering
+      const [sale, rent] = await Promise.all([
+        base44.entities.PFListing.filter({ listing_type: 'sale' }, '-created_date', 500),
+        base44.entities.PFListing.filter({ listing_type: 'rent' }, '-created_date', 500),
+      ]);
+      return [...sale, ...rent];
+    },
     staleTime: 30_000,
   });
 
