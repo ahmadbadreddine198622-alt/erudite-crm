@@ -9,7 +9,7 @@ import SLATimer from "@/components/SLATimer";
 
 const TEMP_COLORS = { frozen: "bg-blue-500", cold: "bg-blue-400", warming: "bg-amber-400", hot: "bg-orange-500", blazing: "bg-red-500" };
 
-export default function WhatsAppHeader({ conversation, lead, agent, onAction }) {
+export default function WhatsAppHeader({ conversation, lead, agent, teamMembers, onAction }) {
   const flag = countryFlag(conversation.country_code);
 
   return (
@@ -51,18 +51,37 @@ export default function WhatsAppHeader({ conversation, lead, agent, onAction }) 
 
         <SLATimer dueAt={conversation.sla_due_at} breached={conversation.sla_breached} />
 
+        {/* Assign to Agent Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-1 h-8">
-              <Avatar className="w-5 h-5">
-                <AvatarFallback className="text-[10px]">{agent?.full_name?.[0] || "?"}</AvatarFallback>
-              </Avatar>
+            <Button variant="outline" size="sm" className="gap-1 h-8">
               <UserCheck className="w-3 h-3" />
+              Assign
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => onAction("reassign")}>Reassign agent…</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onAction("escalate")}>Escalate to manager</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-56">
+            {teamMembers && teamMembers.length > 0 ? (
+              teamMembers.map(tm => (
+                <DropdownMenuItem
+                  key={tm.email}
+                  onClick={() => onAction("assign_agent", { email: tm.email, full_name: tm.full_name })}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Avatar className="w-5 h-5">
+                    <AvatarFallback className="text-[9px]">{(tm.full_name || tm.email).slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{tm.full_name || tm.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{tm.email}</p>
+                  </div>
+                  {conversation.assigned_agent_email === tm.email && (
+                    <span className="text-[10px] text-green-600 font-medium">Assigned</span>
+                  )}
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <DropdownMenuItem disabled>No team members</DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
