@@ -30,6 +30,7 @@ const ROLE_COLORS = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EF4444', '#EC
 
 const SYSTEM_ROLES = {
   admin:   { label: 'Admin',   color: '#F59E0B', icon: Crown },
+  ceo:     { label: 'CEO',     color: '#DC2626', icon: Trophy },
   manager: { label: 'Manager', color: '#10B981', icon: Shield },
   agent:   { label: 'Agent',   color: '#3B82F6', icon: User },
   viewer:  { label: 'Viewer',  color: '#94A3B8', icon: Eye },
@@ -168,6 +169,7 @@ export default function Team() {
                 <option value="manager">Manager</option>
                 <option value="viewer">Viewer</option>
                 <option value="admin">Admin</option>
+                <option value="ceo">CEO</option>
               </select>
               <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}
                 className="gap-2 font-bold text-base px-6" style={{ background: 'hsl(38 92% 50%)', color: '#000', minHeight: 44 }}>
@@ -298,6 +300,7 @@ export default function Team() {
                               className="text-xs rounded-lg px-2 py-1.5"
                               style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}>
                               <option value="admin">Admin</option>
+                              <option value="ceo">CEO</option>
                               <option value="manager">Manager</option>
                               <option value="agent">Agent</option>
                               <option value="viewer">Viewer</option>

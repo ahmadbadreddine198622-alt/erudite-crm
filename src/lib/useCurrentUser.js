@@ -24,22 +24,23 @@ export function useCurrentUser() {
   }, []);
 
   const isAdmin = user?.role === 'admin';
-  const isManager = user?.role === 'admin' || user?.role === 'manager';
+  const isCEO = user?.role === 'ceo';
+  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'ceo';
 
   const customRole = user?.custom_role_id
     ? roles.find(r => r.id === user.custom_role_id)
     : null;
 
   const permissions = {
-    view_all_leads: isAdmin || customRole?.permissions?.view_all_leads || false,
-    view_all_pipeline: isAdmin || customRole?.permissions?.view_all_pipeline || false,
-    view_all_whatsapp: isAdmin || customRole?.permissions?.view_all_whatsapp || false,
-    view_finance: isAdmin || customRole?.permissions?.view_finance || false,
+    view_all_leads: isAdmin || isCEO || customRole?.permissions?.view_all_leads || false,
+    view_all_pipeline: isAdmin || isCEO || customRole?.permissions?.view_all_pipeline || false,
+    view_all_whatsapp: isAdmin || isCEO || customRole?.permissions?.view_all_whatsapp || false,
+    view_finance: isAdmin || isCEO || customRole?.permissions?.view_finance || false,
     view_analytics: isAdmin || isManager || customRole?.permissions?.view_analytics || false,
-    manage_team: isAdmin || customRole?.permissions?.manage_team || false,
-    manage_landlords: isAdmin || customRole?.permissions?.manage_landlords || false,
-    manage_properties: isAdmin || customRole?.permissions?.manage_properties || false,
-    export_data: isAdmin || customRole?.permissions?.export_data || false,
+    manage_team: isAdmin || isCEO || customRole?.permissions?.manage_team || false,
+    manage_landlords: isAdmin || isCEO || customRole?.permissions?.manage_landlords || false,
+    manage_properties: isAdmin || isCEO || customRole?.permissions?.manage_properties || false,
+    export_data: isAdmin || isCEO || customRole?.permissions?.export_data || false,
   };
 
   return { user, loading, isAdmin, isManager, permissions, customRole };
