@@ -3,7 +3,7 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import PipelineColumn from './PipelineColumn';
 import { getStagesForIntent } from '@/lib/pipeline';
 
-export default function PipelineBoard({ track, leads, getListing, onLeadClick, onStageChange }) {
+export default function PipelineBoard({ track, leads, getListing, onLeadClick, onStageChange, users, onAssign, onDelete }) {
   const stages = useMemo(() => getStagesForIntent(track), [track]);
 
   const leadsByStage = useMemo(() => {
@@ -41,6 +41,9 @@ export default function PipelineBoard({ track, leads, getListing, onLeadClick, o
               leads={leadsByStage[stage.key] || []}
               getListing={getListing}
               onLeadClick={onLeadClick}
+              users={users}
+              onAssign={onAssign}
+              onDelete={onDelete}
             />
           ))}
         </div>

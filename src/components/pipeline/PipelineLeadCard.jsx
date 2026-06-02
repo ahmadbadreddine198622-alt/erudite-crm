@@ -5,7 +5,7 @@ import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
 import { STAGES, DEFAULT_HEALTH_THRESHOLDS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
-import { Calendar } from 'lucide-react';
+import { Calendar, Trash2, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
 function formatTimeInStage(stageEnteredAt) {
@@ -67,7 +67,7 @@ const OFFERING_BADGE_COLORS = {
   rent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
-export default function PipelineLeadCard({ lead, listing, isDragging, onClick }) {
+export default function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete }) {
   const queryClient = useQueryClient();
   const projects = queryClient.getQueryData(['projects']) || [];
   const project = projects.find((p) => p.id === lead.project_id);
@@ -208,6 +208,36 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick })
             {STAGES[lead.stage].required_documents.length} docs
           </span>
         )}
+      </div>
+
+      {/* LEVEL 6: Assign + Delete */}
+      <div className="flex items-center gap-1.5 pt-1.5 mt-1 border-t border-white/8" onClick={e => e.stopPropagation()}>
+        {users.length > 0 && (
+          <select
+            title="Assign agent"
+            value={lead.assigned_agent_email || ''}
+            onChange={e => onAssign?.(lead.id, e.target.value)}
+            className="flex-1 text-[9px] rounded-md px-1.5 py-1 min-w-0"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+          >
+            <option value="">Assign agent…</option>
+            {users.map(u => (
+              <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          title="Delete lead"
+          onClick={() => {
+            if (window.confirm(`Delete ${lead.name || 'this lead'}? This can't be undone.`)) {
+              onDelete?.(lead.id);
+            }
+          }}
+          className="flex items-center justify-center w-7 h-7 rounded-lg text-red-400 hover:bg-red-500/15 transition-colors shrink-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

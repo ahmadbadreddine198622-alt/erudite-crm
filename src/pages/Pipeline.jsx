@@ -64,6 +64,30 @@ export default function Pipeline() {
     queryFn: () => base44.entities.PFListing.list('-updated_date', 5000),
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['pipeline-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ id, email }) => base44.entities.Lead.update(id, { assigned_agent_email: email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
+      toast.success('Agent assigned');
+    },
+    onError: () => toast.error('Failed to assign agent'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Lead.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
+      toast.success('Lead deleted');
+    },
+    onError: () => toast.error('Failed to delete lead'),
+  });
+
   const { data: credRows = [] } = useQuery({
     queryKey: ['pf-credential'],
     queryFn: () => base44.entities.PFCredential.list(),
@@ -315,6 +339,9 @@ export default function Pipeline() {
               getListing={getListing}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
+              users={users}
+              onAssign={(id, email) => assignMutation.mutate({ id, email })}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
           )}
         </TabsContent>
@@ -329,6 +356,9 @@ export default function Pipeline() {
               getListing={getListing}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
+              users={users}
+              onAssign={(id, email) => assignMutation.mutate({ id, email })}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
           )}
         </TabsContent>
@@ -343,6 +373,9 @@ export default function Pipeline() {
               getListing={getListing}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
+              users={users}
+              onAssign={(id, email) => assignMutation.mutate({ id, email })}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
           )}
         </TabsContent>
