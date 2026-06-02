@@ -13,7 +13,8 @@ export default function ChatThread({ conversationId, allConversationIds }) {
 
   // All IDs to load — use ref so loadMessages always sees current value
   const idsRef = useRef([]);
-  idsRef.current = Array.isArray(allConversationIds) && allConversationIds.length ? allConversationIds : (conversationId ? [conversationId] : []);
+  const safeConvIds = Array.isArray(allConversationIds) ? allConversationIds : [];
+  idsRef.current = safeConvIds.length ? safeConvIds : (conversationId ? [conversationId] : []);
 
   const loadMessages = async () => {
     const ids = idsRef.current;
