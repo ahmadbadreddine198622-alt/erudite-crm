@@ -68,6 +68,8 @@ import MarketIntelligence from '@/pages/MarketIntelligence';
 import BuyerMatchAI from '@/pages/BuyerMatchAI';
 import ClosingAI from '@/pages/ClosingAI';
 import BrandSettings from '@/pages/BrandSettings';
+import TeamActivityLog from '@/pages/TeamActivityLog';
+import InviteAgents from '@/pages/InviteAgents';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -156,6 +158,8 @@ const AuthenticatedApp = () => {
         <Route path="/buyer-match-ai" element={<BuyerMatchAI />} />
         <Route path="/closing-ai" element={<ClosingAI />} />
         <Route path="/brand-settings" element={<BrandSettings />} />
+        <Route path="/team-activity" element={<TeamActivityLog />} />
+        <Route path="/invite-agents" element={<InviteAgents />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
