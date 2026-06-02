@@ -2,12 +2,22 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
 import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
@@ -55,6 +65,8 @@ export default function Landlords() {
   const [filterProject, setFilterProject] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
 
   // Sync URL ?selected=<id> with state, both ways
@@ -217,6 +229,29 @@ export default function Landlords() {
     onError: (e) => toast.error('Bulk assign failed: ' + e.message),
   });
 
+  // Bulk delete mutation - deletes landlords AND their linked LandlordProperty records
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (idsToDelete) => {
+      // First, find and delete all linked LandlordProperty records
+      const allLandlordProperties = await base44.entities.LandlordProperty.list();
+      const propsToDelete = allLandlordProperties.filter(lp => idsToDelete.includes(lp.landlord_id));
+      if (propsToDelete.length > 0) {
+        await Promise.all(propsToDelete.map(lp => base44.entities.LandlordProperty.delete(lp.id)));
+      }
+      // Then delete the landlords
+      await Promise.all(idsToDelete.map(id => base44.entities.Landlord.delete(id)));
+      return idsToDelete.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success(`Deleted ${count} landlord(s)`);
+      setSelectedIds(new Set());
+      setDeleteConfirmText('');
+      setShowDeleteDialog(false);
+    },
+    onError: (e) => toast.error('Bulk delete failed: ' + e.message),
+  });
+
   const singleAssignMutation = useMutation({
     mutationFn: ({ id, agentEmail }) => base44.entities.Landlord.update(id, { assigned_agent_email: agentEmail }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['landlords'] }),
@@ -366,6 +401,16 @@ export default function Landlords() {
               >
                 {bulkAssignMutation.isPending ? 'Assigning…' : 'Assign'}
               </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={bulkDeleteMutation.isPending}
+                onClick={() => setShowDeleteDialog(true)}
+                className="h-7 px-3 text-xs gap-1 whitespace-nowrap"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </Button>
               <button
                 onClick={() => setSelectedIds(new Set())}
                 className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1"
@@ -461,6 +506,40 @@ export default function Landlords() {
           landlord_phone: selectedLandlord.phone,
         } : {}}
       />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete {selectedIds.size} Landlord(s)?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>This action cannot be undone. This will permanently delete {selectedIds.size} selected landlord record(s) and all linked property associations.</p>
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="confirm-delete"
+                  checked={deleteConfirmText === 'DELETE'}
+                  onChange={(e) => setDeleteConfirmText(e.target.checked ? 'DELETE' : '')}
+                  className="w-4 h-4 accent-destructive rounded"
+                />
+                <label htmlFor="confirm-delete" className="text-sm font-medium cursor-pointer select-none">
+                  I confirm that I want to delete these {selectedIds.size} landlord(s)
+                </label>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmText('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirmText !== 'DELETE' || bulkDeleteMutation.isPending}
+              onClick={() => bulkDeleteMutation.mutate([...selectedIds])}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
