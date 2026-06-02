@@ -12,17 +12,41 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID' }, { status: 500 });
   }
 
-  // First, resolve the WABA ID from the phone number ID
+  // Resolve WABA ID: try via phone number first, then fall back to /me businesses
+  let wabaId = null;
+
+  // Attempt 1: phone number -> owned_whatsapp_business_account
   const phoneRes = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=whatsapp_business_account&access_token=${accessToken}`
+    `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=whatsapp_business_account,id&access_token=${accessToken}`
   );
   const phoneData = await phoneRes.json();
-
-  if (!phoneRes.ok || !phoneData.whatsapp_business_account?.id) {
-    return Response.json({ error: 'Could not resolve WABA ID', details: phoneData }, { status: 500 });
+  if (phoneData.whatsapp_business_account?.id) {
+    wabaId = phoneData.whatsapp_business_account.id;
   }
 
-  const wabaId = phoneData.whatsapp_business_account.id;
+  // Attempt 2: look up via /me?fields=businesses then walk to owned_whatsapp_business_accounts
+  if (!wabaId) {
+    const meRes = await fetch(
+      `https://graph.facebook.com/v21.0/me?fields=businesses{owned_whatsapp_business_accounts{id}}&access_token=${accessToken}`
+    );
+    const meData = await meRes.json();
+    const firstWaba = meData.businesses?.data?.[0]?.owned_whatsapp_business_accounts?.data?.[0];
+    if (firstWaba?.id) wabaId = firstWaba.id;
+  }
+
+  // Attempt 3: use the app ID as the WABA source (system user tokens sometimes work with app_id)
+  if (!wabaId) {
+    const appRes = await fetch(
+      `https://graph.facebook.com/v21.0/app?fields=owned_whatsapp_business_accounts{id}&access_token=${accessToken}`
+    );
+    const appData = await appRes.json();
+    const firstWaba = appData.owned_whatsapp_business_accounts?.data?.[0];
+    if (firstWaba?.id) wabaId = firstWaba.id;
+  }
+
+  if (!wabaId) {
+    return Response.json({ error: 'Could not resolve WABA ID. Grant whatsapp_business_management permission or set WHATSAPP_WABA_ID secret.', details: phoneData }, { status: 500 });
+  }
 
   // Fetch all approved templates from Meta
   let allTemplates = [];
