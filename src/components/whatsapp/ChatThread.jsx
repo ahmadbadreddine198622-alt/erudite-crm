@@ -26,8 +26,10 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     }
     try {
       // Query messages directly by conversation_id — avoids the 500-message global limit issue
+      // Coerce to array as final safety measure
+      const idsArray = Array.isArray(ids) ? ids : [];
       const results = await Promise.all(
-        ids.map(async id => {
+        idsArray.map(async id => {
           const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200);
           // Ensure we always get an array
           return Array.isArray(res) ? res : [];
