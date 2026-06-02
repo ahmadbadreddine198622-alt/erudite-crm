@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     }
 
     // Send via WhatsApp API
-    const response = await fetch(`https://graph.instagram.com/v18.0/${phoneNumberId}/messages`, {
+    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     const conversations = await base44.entities.WhatsAppConversation.list();
     const conversation = conversations.find(c => c.phone_number === normalized);
 
-    if (conversation) {
+    if (conversation && conversation.lead_id) {
       await base44.entities.WhatsAppMessage.create({
         conversation_id: conversation.id,
         lead_id: conversation.lead_id,
