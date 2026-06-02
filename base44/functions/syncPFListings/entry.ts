@@ -165,8 +165,12 @@ function mapPFListingToCRM(pfListing) {
   const bedroomsRaw = pickBedrooms(pfListing.bedrooms);
   const sizeSqft = pickSize(pfListing);
 
-  const pfUrl = pfListing.url || pfListing.web_url ||
-    (listingRef ? `https://www.propertyfinder.ae/property-detail/${listingRef}` : undefined);
+  // Try all URL fields returned by the PF API first
+  const pfUrl = pfListing.url || pfListing.web_url || pfListing.link ||
+    (pfListing.links && (pfListing.links.public_link || pfListing.links.web || pfListing.links.url)) ||
+    // Fallback: use the numeric PF listing ID (not the reference number) for the public URL
+    (listingId && /^\d+$/.test(listingId) ? `https://www.propertyfinder.ae/property/${listingId}.html` : undefined) ||
+    (listingRef && /^\d+$/.test(listingRef) ? `https://www.propertyfinder.ae/property/${listingRef}.html` : undefined);
 
   // Map offering_type → listing_type enum (sale | rent)
   // Also check top-level purpose/offering_type fields on the raw listing as fallback
