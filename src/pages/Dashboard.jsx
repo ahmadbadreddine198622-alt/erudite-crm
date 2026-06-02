@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -13,6 +13,11 @@ import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
+import PFListingsGrid from '@/components/properties/PFListingsGrid';
+import EruditeCard from '@/components/erudite/EruditeCard';
+import EruditeSection from '@/components/erudite/EruditeSection';
+import EruditeBadge from '@/components/erudite/EruditeBadge';
+import { Brain } from 'lucide-react';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -315,63 +320,36 @@ export default function Dashboard() {
 
 
 
-      <div className="grid grid-cols-4 gap-3 mb-8 w-full max-w-3xl">
-        <div
-          className="rounded-xl p-3 text-center"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <Users className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 w-full max-w-4xl">
+        <EruditeCard className="p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Active Leads</p>
-          <p className="text-xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
-        </div>
-        <div
-          className="rounded-xl p-3 text-center"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <Bell className="w-3.5 h-3.5 text-amber-500" />
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Active Leads</p>
+          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
+        </EruditeCard>
+        <EruditeCard className="p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Reminders</p>
-          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
-        </div>
-        <div
-          className="rounded-xl p-3 text-center"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Reminders</p>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
+        </EruditeCard>
+        <EruditeCard className="p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Unread</p>
-          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
-        </div>
-        <div
-          className="rounded-xl p-3 text-center"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <div className="flex items-center justify-center gap-1.5 mb-1">
-            <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Unread</p>
+          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
+        </EruditeCard>
+        <EruditeCard className="p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Hot Leads</p>
-          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{hotLeads}</p>
-        </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Hot Leads</p>
+          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{hotLeads}</p>
+        </EruditeCard>
       </div>
 
       {/* Date & greeting */}
@@ -515,15 +493,19 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Property Finder Listings */}
+      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
+        <PFListingsGrid />
+      </EruditeSection>
+
       {/* AI Insights + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
-        <div className="space-y-6">
+        <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
-          <PerformanceStreaks />
-        </div>
-        <div>
+        </EruditeSection>
+        <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />
-        </div>
+        </EruditeSection>
       </div>
 
       {/* No results */}
