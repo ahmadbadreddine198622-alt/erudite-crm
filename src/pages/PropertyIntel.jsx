@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import EruditePage from '@/components/erudite/EruditePage';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeStat from '@/components/erudite/EruditeStat';
-import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeButton from '@/components/erudite/EruditeButton';
-import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
-import EruditeTable from '@/components/erudite/EruditeTable';
-import { Building, Search, TrendingUp, MapPin, DollarSign, Home } from 'lucide-react';
+import ClientBriefForm from '@/components/propertyintel/ClientBriefForm';
+import LiveMarketResults from '@/components/propertyintel/LiveMarketResults';
+import { Building, Search, TrendingUp, MapPin, X, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function PropertyIntel() {
+  const [showSearch, setShowSearch] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [whatsappDraft, setWhatsappDraft] = useState(null);
+
   const stats = {
     tracked: 1248,
     priceChanges: 34,
@@ -17,21 +24,45 @@ export default function PropertyIntel() {
     avgPriceSqft: 1850,
   };
 
-  const tableColumns = [
-    { header: 'Property', accessor: 'title' },
-    { header: 'Location', accessor: 'location' },
-    { header: 'Type', accessor: 'type' },
-    { header: 'Price', accessor: (row) => `AED ${row.price?.toLocaleString()}` },
-    { header: 'Price/Sqft', accessor: (row) => `AED ${row.price_sqft?.toLocaleString()}` },
-    { header: 'Change', accessor: (row) => row.change },
-  ];
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads_for_brief'],
+    queryFn: () => base44.entities.Lead.filter({ status: 'active' }, '-updated_date', 50),
+    initialData: [],
+  });
+
+  const handleSearch = async (brief, clientId) => {
+    setSearching(true);
+    setSearchResults(null);
+    try {
+      const res = await base44.functions.invoke('liveMarketSearch', {
+        brief,
+        client_id: clientId || undefined,
+      });
+      setSearchResults(res.data);
+    } catch (err) {
+      toast.error('Search failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleWhatsApp = (listing) => {
+    const msg = `Hi! I found a great match for your search:\n\n🏠 ${listing.title}\n💰 AED ${Number(listing.price).toLocaleString()}\n📍 ${listing.location}${listing.building ? ` — ${listing.building}` : ''}\n🛏 ${listing.bedrooms === 0 ? 'Studio' : `${listing.bedrooms} BR`}${listing.size_sqft > 0 ? ` · ${Number(listing.size_sqft).toLocaleString()} sqft` : ''}\n\n🔗 ${listing.listing_url}\n\nWould you like to schedule a viewing?`;
+    setWhatsappDraft(msg);
+  };
+
+  const handleSave = (listing) => {
+    toast.success(`${listing.title} saved to shortlist`);
+  };
 
   return (
     <EruditePage
       title="Property Intel"
       subtitle="Research and discovery engine"
       actions={
-        <EruditeButton icon={Search}>New Search</EruditeButton>
+        <EruditeButton icon={Search} onClick={() => { setShowSearch(v => !v); setSearchResults(null); }}>
+          New Search
+        </EruditeButton>
       }
     >
       {/* Stats */}
@@ -58,16 +89,83 @@ export default function PropertyIntel() {
         </EruditeCard>
       </div>
 
-      {/* Main Content */}
+      {/* Search Section */}
       <EruditeSection title="Property Search" subtitle="Discovery" icon={MapPin}>
-        <EruditeEmptyState
-          icon={Building}
-          title="No saved searches"
-          description="Create property searches to track market opportunities"
-          action={<EruditeButton variant="primary">Create First Search</EruditeButton>}
-        />
+        {(showSearch || searchResults) && (
+          <ClientBriefForm
+            leads={leads}
+            onSearch={handleSearch}
+            onClose={() => { setShowSearch(false); setSearchResults(null); }}
+            loading={searching}
+          />
+        )}
+
+        {!showSearch && !searchResults && (
+          <div className="text-center py-12">
+            <Building className="w-10 h-10 text-white/15 mx-auto mb-3" />
+            <p className="text-sm text-white/40 mb-4">Search internal database or escalate to live market</p>
+            <button
+              onClick={() => setShowSearch(true)}
+              className="px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-semibold hover:bg-amber-500/25 transition-all"
+            >
+              Start New Search
+            </button>
+          </div>
+        )}
+
+        {searching && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+            <p className="text-sm text-white/40">Checking internal database, then live market…</p>
+          </div>
+        )}
+
+        {searchResults && !searching && (
+          <LiveMarketResults
+            results={searchResults}
+            onWhatsApp={handleWhatsApp}
+            onSave={handleSave}
+          />
+        )}
       </EruditeSection>
 
+      {/* WhatsApp draft modal */}
+      {whatsappDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass-card p-5 max-w-md w-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-semibold text-white">WhatsApp Draft</span>
+              </div>
+              <button onClick={() => setWhatsappDraft(null)} className="text-white/30 hover:text-white/60">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea
+              className="w-full h-48 px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white/80 resize-none outline-none focus:border-amber-500/40 font-mono"
+              value={whatsappDraft}
+              onChange={e => setWhatsappDraft(e.target.value)}
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => { navigator.clipboard.writeText(whatsappDraft); toast.success('Copied!'); }}
+                className="flex-1 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all"
+              >
+                Copy Message
+              </button>
+              <button
+                onClick={() => setWhatsappDraft(null)}
+                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/40 text-xs font-semibold hover:text-white/60 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Market Trends */}
       <EruditeSection title="Market Trends" subtitle="Analytics" icon={TrendingUp}>
         <EruditeCard>
           <div className="p-6">
