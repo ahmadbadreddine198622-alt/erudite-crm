@@ -260,6 +260,9 @@ export default function WhatsAppInbox() {
       if (c.assigned_agent_email !== currentUser.email) return false; // Hide others'
     }
     
+    // Admin/manager can filter by agent, but regular agents can only see their own
+    const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
+    
     const lead = leads.find(l => l.id === c.lead_id);
     const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;
@@ -269,7 +272,6 @@ export default function WhatsAppInbox() {
       filter === 'unread' ? (c.unread_count || 0) > 0 :
       filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
       filter === 'resolved' ? c.status === 'resolved' : true;
-    const matchesAgent = !filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent;
     return matchesSearch && matchesFilter && matchesAgent;
   });
 
