@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
     const SOFT_TIMEOUT_MS = 22000;
     const deadlineMs = syncStart + SOFT_TIMEOUT_MS;
     const PER_PAGE = 50;
-    const diagnostics = {
+    const diagnostics: any = {
       pages_fetched: 0,
       total_listings_received_from_pf: 0,
       total_listings_written: 0,
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
 
     const { apiKey, apiSecret } = await getStoredCredentials(base44);
 
-    let token;
+    let token: string;
     let tokenAcquiredAt = Date.now();
     try {
       const tokenStart = Date.now();
@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
     }
 
     // Read resume state from PFCredential (non-fatal if absent — sync still runs, just non-resumable)
-    let credRow = null;
+    let credRow: any = null;
     try {
       const creds = await base44.asServiceRole.entities.PFCredential.list();
       credRow = (creds && creds.length > 0) ? creds[0] : null;
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
     }
 
     // Build dedup map of existing PFListing rows by listing_id (with deadline guard)
-    const existingMap = {};
+    const existingMap: any = {};
     let exPage = 0;
     const exPageSize = 500;
     let dedupTimedOut = false;
@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
 
         // Fetch one page
         const fetchStart = Date.now();
-        let data;
+        let data: any;
         try {
           data = await fetchPFListingsPage(token, page, PER_PAGE);
         } catch (err) {
@@ -386,28 +386,13 @@ Deno.serve(async (req) => {
             }
             Object.keys(mapped).forEach((k) => mapped[k] === undefined && delete mapped[k]);
 
-            let writeSuccess = false;
-            let retryCount = 0;
-            while (!writeSuccess && retryCount < 3) {
-              try {
-                if (existingMap[mapped.pf_listing_id]) {
-                  await base44.asServiceRole.entities.PFListing.update(existingMap[mapped.pf_listing_id].id, mapped);
-                  updated++;
-                } else {
-                  const newRow = await base44.asServiceRole.entities.PFListing.create(mapped);
-                  existingMap[mapped.pf_listing_id] = newRow || { id: undefined };
-                  created++;
-                }
-                writeSuccess = true;
-              } catch (writeErr) {
-                const errMsg = String(writeErr.message || writeErr);
-                if (errMsg.includes('Rate limit') && retryCount < 2) {
-                  retryCount++;
-                  await new Promise(r => setTimeout(r, 400 * retryCount));
-                } else {
-                  throw writeErr;
-                }
-              }
+            if (existingMap[mapped.pf_listing_id]) {
+              await base44.asServiceRole.entities.PFListing.update(existingMap[mapped.pf_listing_id].id, mapped);
+              updated++;
+            } else {
+              const newRow = await base44.asServiceRole.entities.PFListing.create(mapped);
+              existingMap[mapped.pf_listing_id] = newRow || { id: undefined };
+              created++;
             }
           } catch (err) {
             errors++;

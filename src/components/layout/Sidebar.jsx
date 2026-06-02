@@ -73,26 +73,26 @@ export default function Sidebar({ open = false, onClose }) {
 
   return (
     <aside className={cn(
-      "fixed top-0 left-0 h-screen bg-white border-r border-gray-200 flex flex-col z-50 w-[280px] transition-transform duration-300 shadow-lg",
+      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
       open ? "translate-x-0" : "-translate-x-full"
     )}>
       {/* Logo + close */}
-      <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100 shrink-0">
+      <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
         <img
           src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
           alt="Erudite Property"
-          className="h-10 w-auto object-contain"
+          className="h-10 w-auto object-contain invert"
         />
         <button
           onClick={onClose}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {visibleNav.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -101,11 +101,17 @@ export default function Sidebar({ open = false, onClose }) {
               to={item.path}
               onClick={onClose}
               className={cn(
-                'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                'group flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative',
                 isActive
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'text-white'
+                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/5'
               )}
+              style={isActive ? {
+                background: 'rgba(245,158,11,0.12)',
+                borderLeft: '3px solid hsl(38 92% 50%)',
+                paddingLeft: 'calc(0.5rem - 3px)',
+                boxShadow: '0 2px 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
+              } : {}}
             >
               <LiquidGlassIcon
                 icon={item.icon}
@@ -114,25 +120,25 @@ export default function Sidebar({ open = false, onClose }) {
                 active={isActive}
                 className="flex-shrink-0"
               />
-              <span className="truncate">{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div className="p-3 border-t border-gray-100 space-y-1">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
         <Link
           to="/profile"
           onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 w-full transition-all"
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/40 w-full transition-all"
         >
           <LiquidGlassIcon icon={User} gradient="from-slate-500 to-slate-700" size={32} className="flex-shrink-0" />
           <span>My Profile</span>
         </Link>
         <button
           onClick={() => base44.auth.logout()}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 w-full transition-all"
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-red-400 hover:bg-sidebar-accent/40 w-full transition-all"
         >
           <LiquidGlassIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={32} className="flex-shrink-0" />
           <span>Logout</span>

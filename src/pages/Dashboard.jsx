@@ -1,91 +1,170 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ALL_APPS } from '@/lib/navApps';
-import { base44 } from '@/api/base44Client';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Brain, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
+import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
+import AppPickerSheet from '@/components/ui/AppPickerSheet';
+import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
+import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
+import ActivityFeed from '@/components/shared/ActivityFeed';
+import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
+import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 
-function AppIcon({ app, badge }) {
-  const [pressed, setPressed] = useState(false);
-  const size = 64;
-  const radius = `${Math.round(size * 0.22)}px`;
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const inner = (
-    <div
-      className={cn('flex flex-col items-center gap-1.5 cursor-pointer select-none transition-transform duration-150',
-        pressed ? 'scale-[0.93]' : 'scale-100'
-      )}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
-    >
-      {/* Icon shell */}
-      <div style={{ width: size, height: size, borderRadius: radius, position: 'relative', flexShrink: 0 }}>
-        {/* Gradient base */}
-        <div
-          className={cn('absolute inset-0 bg-gradient-to-br', app.gradient)}
-          style={{ borderRadius: radius }}
-        />
-        {/* Glass sheen */}
-        <div
-          className="absolute inset-0"
-          style={{
-            borderRadius: radius,
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%)',
-            pointerEvents: 'none',
-          }}
-        />
-        {/* Icon */}
-        <app.icon
-          className="absolute"
-          style={{
-            width: Math.round(size * 0.48),
-            height: Math.round(size * 0.48),
-            top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: 'rgba(255,255,255,0.95)',
-            filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.45))',
-          }}
-        />
-        {/* Badge */}
-        {badge > 0 && (
-          <div
-            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center px-1"
-            style={{ fontSize: 10, color: '#fff', fontWeight: 700, boxShadow: '0 0 0 2px rgba(0,0,0,0.4)' }}
-          >
-            {badge > 99 ? '99+' : badge}
-          </div>
-        )}
-      </div>
-      {/* Label */}
-      <span className="text-[11px] font-medium text-white/80 text-center leading-tight max-w-[72px] line-clamp-2">
-        {app.label}
-      </span>
-    </div>
-  );
-
-  if (app.href) {
-    return (
-      <a href={app.href} target="_blank" rel="noopener noreferrer">
-        {inner}
-      </a>
-    );
-  }
-
-  return <Link to={app.path}>{inner}</Link>;
-}
+const storageKey = (email) => `dashboard_apps_${email || 'default'}`;
+const LONG_PRESS_MS = 4000;
+const HOLD_CUE_MS = 2000;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
+  const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState(null);
+  const [userPosition, setUserPosition] = useState('');
+  const [userProfileImage, setUserProfileImage] = useState('');
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [holdingPath, setHoldingPath] = useState(null);
+  const [holdCueActive, setHoldCueActive] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const pressTimer = useRef(null);
+  const cueTimer = useRef(null);
+  const menuRef = useRef(null);
 
+  // Load user
   useEffect(() => {
     base44.auth.me().then(u => {
+      if (u?.email) setUserEmail(u.email);
       if (u?.full_name) setUserName(u.full_name);
-      else if (u?.email) setUserName(u.email.split('@')[0]);
+      if (u?.role) setUserRole(u.role);
+      if (u?.position) setUserPosition(u.position);
+      if (u?.profile_image) setUserProfileImage(u.profile_image);
     }).catch(() => {});
   }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
+  // Pointer / orientation tracking for tilt specular
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    let rafId;
+    const handlePointer = (e) => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+        const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+        setTilt({ x: nx, y: ny });
+      });
+    };
+    const handleOrientation = (e) => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setTilt({
+          x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
+          y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+        });
+      });
+    };
+    window.addEventListener('pointermove', handlePointer, { passive: true });
+    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', handlePointer);
+      window.removeEventListener('deviceorientation', handleOrientation);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  const startPress = useCallback((path) => {
+    setHoldingPath(path);
+    cueTimer.current = setTimeout(() => setHoldCueActive(true), HOLD_CUE_MS);
+    pressTimer.current = setTimeout(() => {
+      setEditMode(true);
+      setHoldingPath(null);
+      setHoldCueActive(false);
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const cancelPress = useCallback(() => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    if (cueTimer.current) clearTimeout(cueTimer.current);
+    setHoldingPath(null);
+    setHoldCueActive(false);
+  }, []);
+
+  const [apps, setApps] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey(''));
+      if (saved) {
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        if (resolved.length >= MIN_ITEMS) return resolved;
+      }
+    } catch {}
+    return ALL_APPS;
+  });
+
+  // Reload when we get user email
+  useEffect(() => {
+    if (!userEmail) return;
+    try {
+      const saved = localStorage.getItem(storageKey(userEmail));
+      if (saved) {
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        if (resolved.length >= MIN_ITEMS) setApps(resolved);
+      }
+    } catch {}
+  }, [userEmail]);
+
+  const saveOrder = (newApps) => {
+    setApps(newApps);
+    localStorage.setItem(storageKey(userEmail), JSON.stringify(newApps.map(a => a.label)));
+  };
+
+  const removeApp = (path) => {
+    if (apps.length <= MIN_ITEMS) return;
+    saveOrder(apps.filter(a => a.path !== path));
+  };
+
+  const addApp = (app) => {
+    if (apps.length >= MAX_ITEMS) return;
+    saveOrder([...apps, app]);
+    setShowPicker(false);
+  };
+
+  const onDragEnd = ({ source, destination }) => {
+    if (!destination) return;
+    const next = [...apps];
+    const [moved] = next.splice(source.index, 1);
+    next.splice(destination.index, 0, moved);
+    saveOrder(next);
+  };
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => base44.entities.Lead.list('-created_date', 200),
+  });
 
   const { data: reminders = [] } = useQuery({
     queryKey: ['reminders-pending'],
@@ -97,46 +176,370 @@ export default function Dashboard() {
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
   });
 
-  const { data: leads = [] } = useQuery({
-    queryKey: ['leads-count'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 50),
-  });
-
-  const badgeMap = {
+  const badges = {
+    leads:     leads.filter(l => l.status === 'active').length,
     reminders: reminders.length,
-    whatsapp: conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
-    leads: leads.filter(l => l.status === 'active').length,
+    whatsapp:  conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
   };
+  
+  // Management intelligence
+  const todayDeals = leads.filter(l => l.stage === 'negotiation_deal_lock' || l.stage === 'closing_dld').length;
+  const hotLeads = leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
 
-  // All apps excluding dashboard itself
-  const gridApps = ALL_APPS;
+  const filtered = search.trim()
+    ? apps.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
+    : apps;
 
   return (
     <div
-      className="min-h-screen w-full"
+      className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
       style={{
-        background: 'linear-gradient(160deg, #0d1117 0%, #111827 60%, #0d1117 100%)',
+        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
-      {/* Header */}
-      <div className="px-5 pt-8 pb-4">
-        <p className="text-white/40 text-sm font-medium">Good day</p>
-        <h1 className="text-2xl font-bold text-white">{userName || 'PropCRM'}</h1>
-      </div>
+      {/* Logo */}
+      {logoUrl && (
+        <div className="mb-6">
+          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
+        </div>
+      )}
 
-      {/* App Grid */}
-      <div className="px-4 pb-32">
-        <div className="grid grid-cols-4 gap-x-2 gap-y-6">
-          {gridApps.map((app) => (
-            <div key={app.path} className="flex justify-center">
-              <AppIcon
-                app={app}
-                badge={app.badgeKey ? (badgeMap[app.badgeKey] || 0) : 0}
-              />
+      {/* Logged-in account badge with dropdown menu */}
+      {userEmail && (
+        <div className="absolute top-4 right-4 z-50" ref={menuRef}>
+          <div
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
+            style={{
+              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
+              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(12px)',
+              color: 'rgba(255,255,255,0.75)',
+            }}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
+              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
+            >
+              {userProfileImage ? (
+                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                (userName || userEmail)[0].toUpperCase()
+              )}
             </div>
-          ))}
+            <div className="flex flex-col items-start gap-0">
+              <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
+              {userPosition && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
+            </div>
+            <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
+          </div>
+
+          {/* Dropdown Menu */}
+          {showUserMenu && (
+            <div
+              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
+              style={{
+                background: 'rgba(15,20,30,0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(245,158,11,0.35)',
+              }}
+            >
+              <div className="p-3 border-b border-white/10">
+                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
+                <p className="text-xs text-white/50">{userEmail}</p>
+                {userRole && (
+                  <div className="mt-1.5">
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+                      {userRole}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="py-2">
+                <button
+                  onClick={() => { navigate('/team'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/landlords'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/leads'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/analytics'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/finance'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
+                </button>
+                <button
+                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
+                >
+                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
+                </button>
+              </div>
+              <div className="py-2 border-t border-white/10">
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
+                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+
+
+      <div className="grid grid-cols-4 gap-3 mb-8 w-full max-w-3xl">
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Users className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Active Leads</p>
+          <p className="text-xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Bell className="w-3.5 h-3.5 text-amber-500" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Reminders</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Unread</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
+        </div>
+        <div
+          className="rounded-xl p-3 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Hot Leads</p>
+          <p className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{hotLeads}</p>
         </div>
       </div>
+
+      {/* Date & greeting */}
+      <div className="text-center mb-8">
+        <p className="text-4xl font-light tracking-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
+          {format(new Date(), 'h:mm')}
+          <span className="text-xl ml-1" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'a')}</span>
+        </p>
+        <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
+      </div>
+
+      {/* Done button — only visible in edit mode */}
+      {editMode && (
+        <button
+          onClick={() => setEditMode(false)}
+          className="absolute top-6 right-48 z-20 px-4 py-2 rounded-xl text-sm font-semibold bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
+        >
+          Done
+        </button>
+      )}
+
+      {/* Search */}
+      <div className="relative mb-10 w-full max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search apps"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.95)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'hsl(38 92% 50%)';
+            e.target.style.background = 'rgba(255,255,255,0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.target.style.background = 'rgba(255,255,255,0.07)';
+          }}
+        />
+      </div>
+
+      {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
+      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
+              >
+                {filtered.map((app, idx) => {
+                  const Icon = app.icon;
+                  const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+                  return (
+                    <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
+                      {(p, snapshot) => (
+                        <div
+                          ref={p.innerRef}
+                          {...p.draggableProps}
+                          {...p.dragHandleProps}
+                          onMouseDown={!editMode ? () => startPress(app.path) : undefined}
+                          onMouseUp={!editMode ? cancelPress : undefined}
+                          onMouseLeave={!editMode ? cancelPress : undefined}
+                          onTouchStart={!editMode ? () => startPress(app.path) : undefined}
+                          onTouchEnd={!editMode ? cancelPress : undefined}
+                          onClick={() => {
+                            if (editMode) return;
+                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
+                          }}
+                          className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
+                          style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : { position: 'relative' }}
+                        >
+                          {/* Remove badge */}
+                          {editMode && (
+                            <button
+                              onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
+                              className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
+                              style={{ fontSize: 12 }}
+                            >
+                              <Minus className="w-3 h-3 text-white" strokeWidth={3} />
+                            </button>
+                          )}
+                          <ExtremeLiquidIcon
+                            icon={Icon}
+                            gradient={app.gradient}
+                            glowColor={app.glowColor}
+                            tiltX={tilt.x}
+                            tiltY={tilt.y}
+                            index={idx}
+                            isDragging={snapshot.isDragging}
+                            active={editMode && !snapshot.isDragging}
+                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
+                          />
+                          <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
+                            {app.label}
+                          </span>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+
+
+      </div>
+
+      {/* Quick Navigation Buttons */}
+      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
+        <button
+          onClick={() => {
+            console.log('Navigating to Landlord Pipeline');
+            navigate('/landlords');
+          }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
+        >
+          <Building2 className="w-4 h-4" />
+          Landlord Pipeline
+        </button>
+        <button
+          onClick={() => {
+            console.log('Navigating to Assign Leads');
+            navigate('/landlords');
+          }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
+        >
+          <UserCheck className="w-4 h-4" />
+          Assign Leads
+        </button>
+      </div>
+
+      {/* AI Insights + Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
+        <div className="space-y-6">
+          <AIInsightsDashboard />
+          <PerformanceStreaks />
+        </div>
+        <div>
+          <ActivityFeed />
+        </div>
+      </div>
+
+      {/* No results */}
+      {filtered.length === 0 && (
+        <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
+      )}
+
+      {/* Picker */}
+      {showPicker && (
+        <AppPickerSheet
+          currentItems={apps}
+          onAdd={addApp}
+          onClose={() => setShowPicker(false)}
+          title="Add to Dashboard"
+        />
+      )}
     </div>
   );
 }

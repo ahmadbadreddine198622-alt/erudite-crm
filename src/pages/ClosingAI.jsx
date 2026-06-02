@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import iOSCard from '@/components/ios/iOSCard';
-import iOSBadge from '@/components/ios/iOSBadge';
-import { CheckCircle, TrendingUp, Clock, DollarSign, Brain } from 'lucide-react';
+import EruditePage from '@/components/erudite/EruditePage';
+import EruditeCard from '@/components/erudite/EruditeCard';
+import EruditeSection from '@/components/erudite/EruditeSection';
+import EruditeStat from '@/components/erudite/EruditeStat';
+import EruditeBadge from '@/components/erudite/EruditeBadge';
+import EruditeButton from '@/components/erudite/EruditeButton';
+import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
+import EruditeTable from '@/components/erudite/EruditeTable';
+import { CheckCircle, TrendingUp, Clock, DollarSign, Brain, Target } from 'lucide-react';
 
 export default function ClosingAI() {
   const stats = {
@@ -11,108 +17,66 @@ export default function ClosingAI() {
     totalValueClosed: 89000000,
   };
 
+  const tableColumns = [
+    { header: 'Deal', accessor: 'deal_name' },
+    { header: 'Lead', accessor: 'lead_name' },
+    { header: 'Value', accessor: (row) => `AED ${row.value?.toLocaleString()}` },
+    { header: 'Stage', accessor: 'stage' },
+    { header: 'AI Recommendation', accessor: 'recommendation' },
+    { header: 'Confidence', accessor: (row) => `${row.confidence}%` },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Closing AI</h1>
-            <p className="text-gray-500 mt-1">Deal-closing assistant and guidance</p>
+    <EruditePage
+      title="Closing AI"
+      subtitle="Deal-closing assistant and guidance"
+      actions={
+        <EruditeButton icon={Brain}>New Deal Review</EruditeButton>
+      }
+    >
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Deals in Closing" value={stats.dealsInClosing.toString()} />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-            <Brain className="w-4 h-4" />
-            New Deal Review
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Deals in Closing</span>
-              <CheckCircle className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.dealsInClosing}</p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Close Rate</span>
-              <TrendingUp className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.closeRate}%</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              +8%
-            </p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Avg. Time to Close</span>
-              <Clock className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.avgTimeToClose} days</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              -3 days
-            </p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Total Value Closed</span>
-              <DollarSign className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">AED {(stats.totalValueClosed / 1000000).toFixed(1)}M</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              +15%
-            </p>
-          </iOSCard>
-        </div>
-
-        {/* Active Closings */}
-        <iOSCard className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Clock className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Active Closings</h2>
-              <p className="text-sm text-gray-500">Pipeline</p>
-            </div>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Close Rate" value={`${stats.closeRate}%`} trend="up" trendValue="+8%" />
           </div>
-
-          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50">
-            <CheckCircle className="w-12 h-12 mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2 text-gray-700">No deals in closing</h3>
-            <p className="text-sm text-center max-w-md text-gray-500">
-              AI will guide you through the closing process once deals reach this stage
-            </p>
-            <button className="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-              Review Deals
-            </button>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Avg. Time to Close" value={`${stats.avgTimeToClose} days`} trend="down" trendValue="-3 days" />
           </div>
-        </iOSCard>
-
-        {/* Closing Performance */}
-        <iOSCard className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Closing Performance</h2>
-              <p className="text-sm text-gray-500">Analytics</p>
-            </div>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Total Value Closed" value={`AED ${(stats.totalValueClosed / 1000000).toFixed(1)}M`} trend="up" trendValue="+15%" />
           </div>
+        </EruditeCard>
+      </div>
 
-          <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
-            <p className="text-sm text-gray-600">
+      {/* Main Content */}
+      <EruditeSection title="Active Closings" subtitle="Pipeline" icon={Clock}>
+        <EruditeEmptyState
+          icon={CheckCircle}
+          title="No deals in closing"
+          description="AI will guide you through the closing process once deals reach this stage"
+          action={<EruditeButton variant="primary">Review Deals</EruditeButton>}
+        />
+      </EruditeSection>
+
+      <EruditeSection title="Closing Performance" subtitle="Analytics" icon={TrendingUp}>
+        <EruditeCard>
+          <div className="p-6">
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
               Deal closing analytics and AI recommendations will appear here
             </p>
           </div>
-        </iOSCard>
-      </div>
-    </div>
+        </EruditeCard>
+      </EruditeSection>
+    </EruditePage>
   );
 }

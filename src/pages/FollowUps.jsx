@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import iOSCard from '@/components/ios/iOSCard';
-import iOSBadge from '@/components/ios/iOSBadge';
-import { Repeat, Clock, CheckCircle, TrendingUp, Plus } from 'lucide-react';
+import EruditePage from '@/components/erudite/EruditePage';
+import EruditeCard from '@/components/erudite/EruditeCard';
+import EruditeSection from '@/components/erudite/EruditeSection';
+import EruditeStat from '@/components/erudite/EruditeStat';
+import EruditeBadge from '@/components/erudite/EruditeBadge';
+import EruditeButton from '@/components/erudite/EruditeButton';
+import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
+import EruditeTable from '@/components/erudite/EruditeTable';
+import { Repeat, Clock, CheckCircle, TrendingUp, Plus, Eye } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,6 +23,7 @@ export default function FollowUps() {
   const [filterStatus, setFilterStatus] = useState('all');
   const queryClient = useQueryClient();
 
+  // Fetch reminders (used for follow ups)
   const { data: reminders = [], isLoading } = useQuery({
     queryKey: ['reminders'],
     queryFn: async () => {
@@ -25,6 +32,7 @@ export default function FollowUps() {
     },
   });
 
+  // Create reminder mutation
   const createReminderMutation = useMutation({
     mutationFn: async (reminderData) => {
       return await base44.entities.Reminder.create(reminderData);
@@ -39,6 +47,7 @@ export default function FollowUps() {
     },
   });
 
+  // Update reminder mutation
   const updateReminderMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       return await base44.entities.Reminder.update(id, data);
@@ -52,6 +61,7 @@ export default function FollowUps() {
     },
   });
 
+  // Filter reminders
   const followUps = reminders.filter(r => {
     if (filterStatus === 'all') return true;
     if (filterStatus === 'pending') return r.status === 'pending';
@@ -59,6 +69,7 @@ export default function FollowUps() {
     return true;
   });
 
+  // Calculate stats
   const stats = {
     pending: followUps.filter(r => r.status === 'pending').length,
     completed: followUps.filter(r => r.status === 'completed').length,
@@ -81,164 +92,126 @@ export default function FollowUps() {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Follow Ups</h1>
-            <p className="text-gray-500 mt-1">Activity-driven follow-up engine</p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-                <Plus className="w-4 h-4" />
-                Schedule Follow Up
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Schedule Follow Up</DialogTitle>
-              </DialogHeader>
-              <CreateFollowUpForm onSubmit={handleCreateFollowUp} onCancel={() => setIsDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Pending</span>
-              <Clock className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.pending}</p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Completed</span>
-              <CheckCircle className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              +8
-            </p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Overdue</span>
-              <Clock className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className={`text-3xl font-bold ${stats.overdue > 0 ? 'text-red-600' : 'text-gray-900'}`}>{stats.overdue}</p>
-          </iOSCard>
-          <iOSCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase">Total</span>
-              <Repeat className="w-4 h-4 text-gray-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{followUps.length}</p>
-          </iOSCard>
-        </div>
-
-        {/* Filters */}
+  const tableColumns = [
+    { header: 'Title', accessor: 'title' },
+    { header: 'Lead', accessor: (row) => row.lead_name || '-' },
+    { header: 'Due Date', accessor: (row) => row.due_date ? format(new Date(row.due_date), 'MMM d, h:mm a') : '-' },
+    { header: 'Priority', accessor: (row) => (
+      <EruditeBadge variant={row.priority === 'urgent' ? 'rose' : row.priority === 'high' ? 'orange' : 'default'}>
+        {row.priority || 'none'}
+      </EruditeBadge>
+    )},
+    { header: 'Status', accessor: (row) => (
+      <EruditeBadge variant={row.status === 'completed' ? 'emerald' : 'blue'}>
+        {row.status}
+      </EruditeBadge>
+    )},
+    {
+      header: 'Actions',
+      accessor: (row) => (
         <div className="flex gap-2">
-          <iOSBadge 
-            variant={filterStatus === 'all' ? 'blue' : 'gray'}
-            className="cursor-pointer"
-            onClick={() => setFilterStatus('all')}
-          >
-            All
-          </iOSBadge>
-          <iOSBadge 
-            variant={filterStatus === 'pending' ? 'blue' : 'gray'}
-            className="cursor-pointer"
-            onClick={() => setFilterStatus('pending')}
-          >
-            Pending
-          </iOSBadge>
-          <iOSBadge 
-            variant={filterStatus === 'completed' ? 'blue' : 'gray'}
-            className="cursor-pointer"
-            onClick={() => setFilterStatus('completed')}
-          >
-            Completed
-          </iOSBadge>
+          {row.status === 'pending' && (
+            <button
+              onClick={() => handleComplete(row.id)}
+              className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors"
+              title="Mark complete"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </button>
+          )}
         </div>
+      ),
+    },
+  ];
 
-        {/* Main Content */}
-        <iOSCard className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Clock className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Follow Ups</h2>
-              <p className="text-sm text-gray-500">{filterStatus === 'all' ? 'All' : filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}</p>
-            </div>
+  return (
+    <EruditePage
+      title="Follow Ups"
+      subtitle="Activity-driven follow-up engine"
+      actions={
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <EruditeButton icon={Plus}>Schedule Follow Up</EruditeButton>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl bg-[#0F1419] border-white/10">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-display">Schedule Follow Up</DialogTitle>
+            </DialogHeader>
+            <CreateFollowUpForm onSubmit={handleCreateFollowUp} onCancel={() => setIsDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      }
+    >
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Pending" value={stats.pending.toString()} />
           </div>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Completed" value={stats.completed.toString()} trend="up" trendValue="+8" />
+          </div>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Overdue" value={stats.overdue.toString()} trend={stats.overdue > 0 ? 'down' : undefined} />
+          </div>
+        </EruditeCard>
+        <EruditeCard>
+          <div className="p-5 space-y-3">
+            <EruditeStat label="Total" value={followUps.length.toString()} />
+          </div>
+        </EruditeCard>
+      </div>
 
-          {followUps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50">
-              <Repeat className="w-12 h-12 mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2 text-gray-700">No follow ups scheduled</h3>
-              <p className="text-sm text-center max-w-md text-gray-500">
-                Schedule your first follow up to stay on top of lead conversations
-              </p>
+      {/* Filters */}
+      <div className="flex gap-2 mb-4">
+        <EruditeBadge 
+          className={`cursor-pointer transition-all ${filterStatus === 'all' ? 'ring-2 ring-amber-500/50' : ''}`}
+          onClick={() => setFilterStatus('all')}
+        >
+          All
+        </EruditeBadge>
+        <EruditeBadge 
+          className={`cursor-pointer transition-all ${filterStatus === 'pending' ? 'ring-2 ring-amber-500/50' : ''}`}
+          onClick={() => setFilterStatus('pending')}
+        >
+          Pending
+        </EruditeBadge>
+        <EruditeBadge 
+          className={`cursor-pointer transition-all ${filterStatus === 'completed' ? 'ring-2 ring-amber-500/50' : ''}`}
+          onClick={() => setFilterStatus('completed')}
+        >
+          Completed
+        </EruditeBadge>
+      </div>
+
+      {/* Main Content */}
+      <EruditeSection title="Follow Ups" subtitle={filterStatus === 'all' ? 'All' : filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)} icon={Clock}>
+        {followUps.length === 0 ? (
+          <EruditeEmptyState
+            icon={Repeat}
+            title="No follow ups scheduled"
+            description="Schedule your first follow up to stay on top of lead conversations"
+            action={
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <button className="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-                    Schedule First Follow Up
-                  </button>
+                  <EruditeButton variant="primary">Schedule First Follow Up</EruditeButton>
                 </DialogTrigger>
               </Dialog>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {followUps.map((reminder) => (
-                <div
-                  key={reminder.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Clock className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm text-gray-900">{reminder.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {reminder.lead_name || 'No lead'} • Due {reminder.due_date ? format(new Date(reminder.due_date), 'MMM d, h:mm a') : '-'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <iOSBadge variant={reminder.priority === 'urgent' ? 'red' : reminder.priority === 'high' ? 'orange' : 'gray'}>
-                      {reminder.priority || 'none'}
-                    </iOSBadge>
-                    <iOSBadge variant={reminder.status === 'completed' ? 'green' : 'blue'}>
-                      {reminder.status}
-                    </iOSBadge>
-                    {reminder.status === 'pending' && (
-                      <button
-                        onClick={() => handleComplete(reminder.id)}
-                        className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors"
-                        title="Mark complete"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </iOSCard>
-      </div>
-    </div>
+            }
+          />
+        ) : (
+          <EruditeTable columns={tableColumns} data={followUps} />
+        )}
+      </EruditeSection>
+    </EruditePage>
   );
 }
 
+// Create Follow Up Form Component
 function CreateFollowUpForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -256,38 +229,41 @@ function CreateFollowUpForm({ onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
       <div className="space-y-2">
-        <Label>Title</Label>
+        <Label className="text-white/80">Title</Label>
         <Input
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="e.g., Call back about Palm Jumeirah property"
+          className="glass-input"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Lead Name</Label>
+        <Label className="text-white/80">Lead Name</Label>
         <Input
           value={formData.lead_name}
           onChange={(e) => setFormData({ ...formData, lead_name: e.target.value })}
           placeholder="Contact name"
+          className="glass-input"
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Due Date and Time</Label>
+        <Label className="text-white/80">Due Date and Time</Label>
         <Input
           type="datetime-local"
           value={formData.due_date}
           onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+          className="glass-input"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Priority</Label>
+        <Label className="text-white/80">Priority</Label>
         <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-          <SelectTrigger>
+          <SelectTrigger className="glass-input">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -301,29 +277,22 @@ function CreateFollowUpForm({ onSubmit, onCancel }) {
       </div>
 
       <div className="space-y-2">
-        <Label>Notes</Label>
+        <Label className="text-white/80">Notes</Label>
         <Textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           placeholder="Additional context or talking points..."
-          className="min-h-[100px]"
+          className="glass-input min-h-[100px]"
         />
       </div>
 
       <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
-        >
+        <EruditeButton type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-        >
+        </EruditeButton>
+        <EruditeButton type="submit" variant="primary" className="flex-1">
           Schedule Follow Up
-        </button>
+        </EruditeButton>
       </div>
     </form>
   );
