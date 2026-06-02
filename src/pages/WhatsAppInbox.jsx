@@ -639,21 +639,23 @@ export default function WhatsAppInbox() {
             ))}
           </div>
 
-          {/* Team member filter */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Filter by Agent</label>
-            <select
-              value={filterAssignedAgent}
-              onChange={(e) => setFilterAssignedAgent(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
-            >
-              <option value="">All Team Members</option>
-              {teamMembers.map(tm => (
-                <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
-              ))}
-            </select>
-          </div>
+          {/* Team member filter - Admin/Managers only */}
+          {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Filter by Agent</label>
+              <select
+                value={filterAssignedAgent}
+                onChange={(e) => setFilterAssignedAgent(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Team Members</option>
+                {teamMembers.map(tm => (
+                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Conversation list */}
