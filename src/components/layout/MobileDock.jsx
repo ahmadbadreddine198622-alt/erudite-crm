@@ -20,9 +20,10 @@ const HOME_R  = `${Math.round(HOME_SZ * 0.28)}px`;
 
 function loadDockSelection() {
   try {
-    return JSON.parse(localStorage.getItem('dock_selection') || 'null')
-      || ['pipeline', 'leads', 'contacts', 'whatsapp'];
-  } catch { return ['pipeline', 'leads', 'contacts', 'whatsapp']; }
+    const saved = JSON.parse(localStorage.getItem('dock_selection') || 'null');
+    if (saved) return saved.map(p => p.startsWith('/') ? p : `/${p}`);
+    return ['/pipeline', '/leads', '/contacts', '/whatsapp'];
+  } catch { return ['/pipeline', '/leads', '/contacts', '/whatsapp']; }
 }
 
 function DockIcon({ app, active, onPress }) {
@@ -83,8 +84,9 @@ export default function MobileDock() {
   }, []);
 
   const dockApps = useMemo(() => {
-    const selected = dockSelection.slice(0, 4);
-    return selected.map(path => ALL_APPS.find(a => a.path === path || a.path === `/${path}`)).filter(Boolean);
+    return dockSelection.slice(0, 4)
+      .map(path => ALL_APPS.find(a => a.path === path))
+      .filter(Boolean);
   }, [dockSelection]);
 
   const leftItems  = dockApps.slice(0, 2);

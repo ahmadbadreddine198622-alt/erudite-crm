@@ -16,9 +16,11 @@ const GRID_RADIUS = '18px';
 
 function loadDockSelection() {
   try {
-    return JSON.parse(localStorage.getItem('dock_selection') || 'null')
-      || ['pipeline', 'leads', 'contacts', 'whatsapp'];
-  } catch { return ['pipeline', 'leads', 'contacts', 'whatsapp']; }
+    const saved = JSON.parse(localStorage.getItem('dock_selection') || 'null');
+    // Normalize: ensure all paths start with /
+    if (saved) return saved.map(p => p.startsWith('/') ? p : `/${p}`);
+    return ['/pipeline', '/leads', '/contacts', '/whatsapp'];
+  } catch { return ['/pipeline', '/leads', '/contacts', '/whatsapp']; }
 }
 
 function saveDockSelection(paths) {
@@ -217,19 +219,15 @@ export default function AppPickerModal({ onClose }) {
         }}>
           {/* Left 2 */}
           {dockApps.slice(0, 2).map(app => (
-            <button
+            <AppIcon
               key={app.path}
-              onClick={() => handleNav(app.path)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              <AppIcon
-                app={app}
-                size={DOCK_SIZE}
-                radius={DOCK_RADIUS}
-                iconSize={28}
-                isDock
-              />
-            </button>
+              app={app}
+              size={DOCK_SIZE}
+              radius={DOCK_RADIUS}
+              iconSize={28}
+              isDock
+              onSelect={() => handleNav(app.path)}
+            />
           ))}
 
           {/* Home center */}
@@ -257,19 +255,15 @@ export default function AppPickerModal({ onClose }) {
 
           {/* Right 2 */}
           {dockApps.slice(2, 4).map(app => (
-            <button
+            <AppIcon
               key={app.path}
-              onClick={() => handleNav(app.path)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              <AppIcon
-                app={app}
-                size={DOCK_SIZE}
-                radius={DOCK_RADIUS}
-                iconSize={28}
-                isDock
-              />
-            </button>
+              app={app}
+              size={DOCK_SIZE}
+              radius={DOCK_RADIUS}
+              iconSize={28}
+              isDock
+              onSelect={() => handleNav(app.path)}
+            />
           ))}
         </div>
 
