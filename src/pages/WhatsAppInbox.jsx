@@ -178,7 +178,7 @@ export default function WhatsAppInbox() {
   })();
 
   const selectedConv = normalizedConversations.find(c => c.id === selectedConvId) || null;
-  const selectedLead = leads.find(l => l.id === selectedConv?.lead_id) || null;
+  const selectedLead = selectedConv ? (leads.find(l => l.id === selectedConv?.lead_id) || findLeadByPhone(selectedConv)) : null;
 
   const handleAction = (action, payload) => {
     if (!selectedConvId) return;
@@ -223,6 +223,17 @@ export default function WhatsAppInbox() {
     }
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
+
+  // Find lead by normalized phone match
+  const findLeadByPhone = (conv) => {
+    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+    return leads.find(l => {
+      if (!l.phone && !l.whatsapp) return false;
+      const normalizedLeadPhone = l.phone ? normalizePhoneNumber(l.phone) : null;
+      const normalizedLeadWhatsApp = l.whatsapp ? normalizePhoneNumber(l.whatsapp) : null;
+      return normalizedConvPhone === normalizedLeadPhone || normalizedConvPhone === normalizedLeadWhatsApp;
+    });
+  };
 
   // Find landlord by normalized phone match
   const findLandlordByPhone = (conv) => {
@@ -658,9 +669,9 @@ export default function WhatsAppInbox() {
             </div>
           ) : (
             filtered.map(conv => {
-              const lead = leads.find(l => l.id === conv.lead_id);
-              const landlord = findLandlordByPhone(conv);
-              return (
+               const lead = leads.find(l => l.id === conv.lead_id) || findLeadByPhone(conv);
+               const landlord = findLandlordByPhone(conv);
+               return (
                 <ConversationItem
                   key={conv.id}
                   conv={conv}
