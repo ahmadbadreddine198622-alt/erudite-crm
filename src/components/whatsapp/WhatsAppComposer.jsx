@@ -82,11 +82,18 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           {isSyncingTemplates ? (
             <div className="text-center py-6 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Loading templates from Meta…</div>
           ) : templateError || displayTemplates.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                {templateError ? 'Failed to load templates.' : 'No approved templates found on Meta.'}
+            <div className="px-3 py-4 space-y-2">
+              <p className="text-xs font-semibold" style={{ color: 'rgba(255,200,80,0.9)' }}>Template access requires one extra step</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Your token needs the <code className="px-1 rounded" style={{ background: 'rgba(255,255,255,0.1)' }}>whatsapp_business_management</code> permission. To fix:
               </p>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={handleSyncTemplates}>
+              <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <li>Go to <strong style={{ color: 'rgba(255,255,255,0.8)' }}>business.facebook.com → System Users</strong></li>
+                <li>Select your system user → <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Generate New Token</strong></li>
+                <li>Tick <strong style={{ color: 'rgba(255,255,255,0.8)' }}>whatsapp_business_management</strong></li>
+                <li>Update <strong style={{ color: 'rgba(255,255,255,0.8)' }}>WHATSAPP_MANAGEMENT_TOKEN</strong> secret</li>
+              </ol>
+              <Button size="sm" variant="outline" className="text-xs gap-1 mt-2" onClick={handleSyncTemplates}>
                 <RefreshCw className="w-3 h-3" /> Retry
               </Button>
             </div>
