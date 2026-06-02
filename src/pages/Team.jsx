@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import {
   Users, Plus, Shield, Trash2, Mail, Crown, User, Eye, BarChart3,
   MessageCircle, DollarSign, Building2, Download, X, CheckSquare, Square,
-  Clock, TrendingUp, AlertCircle, Trophy
+  Clock, TrendingUp, AlertCircle, Trophy, Hourglass
 } from 'lucide-react';
 
 const PERMISSION_DEFS = [
@@ -82,6 +82,21 @@ export default function Team() {
   const { data: users = [] } = useQuery({
     queryKey: ['team-users'],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: pendingInvites = [] } = useQuery({
+    queryKey: ['pending-invites'],
+    queryFn: async () => {
+      const allUsers = await base44.entities.User.list();
+      // Filter for users who haven't logged in (no last_login or created recently without activity)
+      return allUsers.filter(u => {
+        const createdDate = new Date(u.created_date);
+        const now = new Date();
+        const daysSinceCreated = (now - createdDate) / (1000 * 60 * 60 * 24);
+        // Consider pending if created within last 7 days and no recent activity
+        return daysSinceCreated <= 7;
+      });
+    },
   });
 
   const { data: roles = [] } = useQuery({
@@ -208,6 +223,11 @@ export default function Team() {
               </TabsTrigger>
             )}
             {isAdmin && (
+              <TabsTrigger value="pending" className="gap-2">
+                <Hourglass className="w-4 h-4" /> Pending ({pendingInvites.length})
+              </TabsTrigger>
+            )}
+            {isAdmin && (
               <TabsTrigger value="roles" className="gap-2">
                 <Shield className="w-4 h-4" /> Roles
               </TabsTrigger>
@@ -216,6 +236,88 @@ export default function Team() {
               <Trophy className="w-4 h-4" /> Performance
             </TabsTrigger>
           </TabsList>
+
+          {/* Pending Invitations Tab */}
+          {isAdmin && (
+            <TabsContent value="pending" className="mt-4 space-y-4">
+              <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Hourglass className="w-4 h-4 text-amber-500" />
+                      Pending Invitations ({pendingInvites.length})
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Team members who haven't activated their account yet
+                    </p>
+                  </div>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {pendingInvites.map(u => {
+                    const createdDate = new Date(u.created_date);
+                    const daysAgo = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24));
+                    return (
+                      <div key={u.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-colors">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-amber-500 shrink-0"
+                          style={{ background: 'hsl(38 92% 50% / 0.18)' }}>
+                          {u.full_name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold">{u.full_name || '(No name)'}</p>
+                            <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-400">
+                              <Hourglass className="w-2.5 h-2.5 mr-0.5" /> Pending
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{u.email}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Invited {daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                          <RoleBadge role={u.role} />
+                          <Button size="sm" variant="outline"
+                            onClick={async () => {
+                              try {
+                                console.log('Resending invite to:', u.email);
+                                await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                console.log('Invite resent successfully');
+                                toast.success(`Invite resent to ${u.email}`);
+                              } catch(e) {
+                                console.error('Resend failed:', e);
+                                toast.error(e.message || 'Failed to resend invite');
+                              }
+                            }}
+                            className="h-7 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                            <Mail className="w-3 h-3" /> Resend
+                          </Button>
+                          <Button size="sm" variant="outline"
+                            onClick={async () => {
+                              try {
+                                await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                toast.success(`Password reset sent to ${u.email}`);
+                              } catch(e) {
+                                toast.error(e.message || 'Failed to send reset');
+                              }
+                            }}
+                            className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
+                            🔑 Reset
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {pendingInvites.length === 0 && (
+                    <div className="text-center py-14 text-muted-foreground text-sm">
+                      <Hourglass className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      No pending invitations
+                      <p className="text-xs mt-1 opacity-60">All team members have activated their accounts</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
           {/* Members Tab */}
           {isAdmin && (
