@@ -18,11 +18,9 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     const ids = idsRef.current;
     if (!ids.length) return;
     try {
-      // Load all messages for all conversation IDs in parallel
+      // Query messages directly by conversation_id — avoids the 500-message global limit issue
       const results = await Promise.all(
-        ids.map(id => base44.entities.WhatsAppMessage.list('-timestamp', 500).then(
-          all => all.filter(m => m.conversation_id === id)
-        ))
+        ids.map(id => base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200))
       );
       const all = results.flat();
       const seen = new Set();
