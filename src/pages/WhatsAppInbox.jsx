@@ -233,8 +233,9 @@ export default function WhatsAppInbox() {
   const unresolvedCount = normalizedConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
-    mutationFn: ({ conversation_id, message }) =>
+    mutationFn: ({ message }) =>
       base44.functions.invoke('sendWhatsAppMessageFromCRM', { 
+        conversation_id: selectedConvId,
         phone_number: selectedConv?.wa_phone_e164 || selectedConv?.phone_number,
         message_text: message,
         media_type: 'text'
@@ -242,6 +243,9 @@ export default function WhatsAppInbox() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wa_messages', selectedConvId] });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.error || 'Failed to send message');
     },
   });
 
@@ -255,7 +259,7 @@ export default function WhatsAppInbox() {
 
   const handleSend = (text) => {
     if (!text?.trim() || !selectedConvId) return;
-    sendMutation.mutate({ conversation_id: selectedConvId, message: text.trim() });
+    sendMutation.mutate({ message: text.trim() });
   };
 
   const handleScheduleSend = (text, _minutes) => {

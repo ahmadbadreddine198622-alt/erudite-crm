@@ -1,67 +1,177 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, Mic, FileText, Home, MapPin, Clock, Languages, Paperclip, Wand2 } from "lucide-react";
+import { Send, Sparkles, Mic, FileText, Home, MapPin, Clock, Languages, Paperclip, Wand2, Lock, RefreshCw } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord }) {
   const [text, setText] = useState("");
-  const [translatedPreview, setTranslatedPreview] = useState("");
   const [showAssistant, setShowAssistant] = useState(false);
+  const [isSendingTemplate, setIsSendingTemplate] = useState(false);
 
+  // Check 24-hour window
+  const lastInbound = conversation?.last_inbound_at;
+  const isWithin24h = lastInbound
+    ? (Date.now() - new Date(lastInbound).getTime()) < 24 * 60 * 60 * 1000
+    : false;
+  const windowLocked = !isWithin24h;
+
+  // Load templates for the locked state
+  const { data: templates = [], refetch: refetchTemplates, isFetching: isSyncingTemplates } = useQuery({
+    queryKey: ['reply_templates_composer'],
+    queryFn: () => base44.entities.ReplyTemplate.list('-is_favorite', 200),
+    enabled: windowLocked,
+  });
+
+  const approvedTemplates = templates.filter(t => t.is_meta_template && t.meta_status === 'APPROVED');
+  const displayTemplates = approvedTemplates.length > 0 ? approvedTemplates : templates.filter(t => !t.is_meta_template);
+
+  const handleSyncTemplates = async () => {
+    try {
+      const res = await base44.functions.invoke('syncWhatsAppTemplates', {});
+      if (res.data?.success) {
+        toast.success(`Synced ${res.data.synced} templates`);
+        refetchTemplates();
+      } else {
+        toast.error(res.data?.error || 'Sync failed — check WABA ID in Templates tab');
+      }
+    } catch {
+      toast.error('Failed to sync templates');
+    }
+  };
+
+  const handleSendTemplate = async (template) => {
+    if (!conversation?.id) return;
+    setIsSendingTemplate(true);
+    try {
+      await base44.functions.invoke('sendWhatsAppMessage', {
+        conversation_id: conversation.id,
+        template_name: template.name,
+        template_language: template.meta_language || 'en_US',
+      });
+      toast.success(`Template "${template.name}" sent!`);
+    } catch (e) {
+      toast.error('Failed to send template. Make sure it is approved on Meta.');
+    } finally {
+      setIsSendingTemplate(false);
+    }
+  };
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    onSend(text.trim());
+    setText("");
+  };
+
+  // ── 24-hour window locked ──────────────────────────────────────────────────
+  if (windowLocked) {
+    return (
+      <div className="border-t" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div className="px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(245,159,10,0.08)', borderBottom: '1px solid rgba(245,159,10,0.2)' }}>
+          <Lock className="w-4 h-4 shrink-0" style={{ color: 'hsl(38 92% 50%)' }} />
+          <p className="text-xs flex-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            24-hour messaging window is closed. Send a template to re-open the conversation.
+          </p>
+          <button
+            onClick={handleSyncTemplates}
+            disabled={isSyncingTemplates}
+            className="shrink-0 text-xs px-2 py-1 rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)' }}
+          >
+            <RefreshCw className={`w-3 h-3 inline mr-1 ${isSyncingTemplates ? 'animate-spin' : ''}`} />
+            Sync
+          </button>
+        </div>
+
+        <div className="p-3 max-h-52 overflow-y-auto space-y-1.5">
+          {displayTemplates.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>No templates found. Sync from Meta first.</p>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={handleSyncTemplates}>
+                <RefreshCw className="w-3 h-3" /> Sync Meta Templates
+              </Button>
+            </div>
+          ) : (
+            displayTemplates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => handleSendTemplate(t)}
+                disabled={isSendingTemplate}
+                className="w-full text-left px-3 py-2 rounded-xl transition-all"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>{t.name}</p>
+                <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.body}</p>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal composer (within 24h window) ───────────────────────────────────
   return (
-    <div className="border-t bg-white">
-      {/* AI suggestions row */}
+    <div className="border-t" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      {/* AI suggestions */}
       {suggestions?.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 pb-1">
           {suggestions.slice(0, 3).map((s, i) => (
             <button
               key={i}
               onClick={() => setText(s.text)}
-              className="shrink-0 max-w-[200px] text-left px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs border border-gray-200 transition"
+              className="shrink-0 max-w-[200px] text-left px-2.5 py-1.5 rounded-full text-xs transition"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}
             >
-              <span className="text-[#00A884] font-medium">{s.tone}</span> · <span className="text-gray-600">{s.text.slice(0, 40)}{s.text.length > 40 ? '…' : ''}</span>
+              <span style={{ color: 'hsl(38 92% 50%)' }}>{s.tone}</span> · {s.text.slice(0, 40)}{s.text.length > 40 ? '…' : ''}
             </button>
           ))}
         </div>
       )}
 
-      {/* Composer */}
       <div className="flex items-end gap-2 px-3 py-2">
-        <button type="button" className="text-gray-400 hover:text-gray-600 mb-2 shrink-0">
+        <button type="button" className="mb-2 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <Paperclip className="w-5 h-5" />
         </button>
-        <div className="flex-1 bg-[#F0F2F5] rounded-2xl px-4 py-2">
+        <div className="flex-1 rounded-2xl px-4 py-2" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
           <Textarea
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Type a message…"
             rows={1}
             className="border-0 bg-transparent resize-none p-0 shadow-none focus-visible:ring-0 min-h-0 text-sm w-full"
-            dir={["ar", "ur", "fa"].includes(conversation.detected_language) ? "rtl" : "ltr"}
+            style={{ color: 'rgba(255,255,255,0.9)' }}
+            dir={["ar", "ur", "fa"].includes(conversation?.detected_language) ? "rtl" : "ltr"}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           />
         </div>
         <div className="flex flex-col gap-1.5 shrink-0">
           <button
             type="button"
-            onClick={() => { onSend(text); setText(""); }}
-            className="w-10 h-10 bg-[#00A884] rounded-full flex items-center justify-center hover:bg-[#008f71] transition"
+            onClick={handleSend}
+            disabled={!text.trim()}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition disabled:opacity-40"
+            style={{ background: 'hsl(38 92% 50%)' }}
           >
-            <Send className="w-4 h-4 text-white" />
+            <Send className="w-4 h-4" style={{ color: 'hsl(222 47% 11%)' }} />
           </button>
           <Popover>
             <PopoverTrigger asChild>
-              <button type="button" className="w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
-                <Clock className="w-4 h-4 text-gray-500" />
+              <button type="button" className="w-10 h-10 rounded-full flex items-center justify-center transition"
+                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}>
+                <Clock className="w-4 h-4" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-56">
+            <PopoverContent className="w-48">
               <p className="text-xs font-medium mb-2">Schedule send</p>
               {[15, 60, 240, 1440].map(min => (
-                <button key={min} type="button" onClick={() => onScheduleSend(text, min)} className="w-full text-left px-2 py-1 hover:bg-slate-100 text-xs rounded">
-                  In {min < 60 ? `${min} min` : min < 1440 ? `${min/60}h` : `${min/1440}d`}
+                <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
+                  className="w-full text-left px-2 py-1 hover:bg-muted text-xs rounded">
+                  In {min < 60 ? `${min} min` : min < 1440 ? `${min/60}h` : '1 day'}
                 </button>
               ))}
             </PopoverContent>
@@ -69,34 +179,21 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
       </div>
 
-      {/* Translated preview */}
-      {translatedPreview && (
-        <div className="text-xs p-2 bg-blue-50 border border-blue-200 rounded" dir="rtl">
-          <span className="text-blue-700 font-medium">AR preview: </span>{translatedPreview}
-        </div>
-      )}
-
-      {/* AI Reply Assistant Panel */}
+      {/* AI Reply Assistant */}
       {showAssistant && (
         <ReplyAssistantPanel
           conversation={conversation}
           lead={lead}
           landlord={landlord}
-          onInsertMessage={(draft) => {
-            setText(draft);
-            setShowAssistant(false);
-          }}
+          onInsertMessage={(draft) => { setText(draft); setShowAssistant(false); }}
         />
       )}
 
-      {/* Toolbar - Hidden by default, shows on hover at bottom of screen */}
-      <div className="fixed bottom-0 left-0 right-0 flex gap-0.5 px-3 pb-3 pt-2 bg-white/95 backdrop-blur-sm border-t border-gray-200 opacity-0 hover:opacity-100 transition-opacity duration-200 z-50">
+      {/* Toolbar */}
+      <div className="flex gap-0.5 px-3 pb-2 pt-1">
         <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
         <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
-        <ToolButton icon={MapPin} label="Location" />
-        <ToolButton icon={FileText} label="Document" />
-        <ToolButton icon={Mic} label="Voice" />
-        <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setTranslatedPreview)} />
+        <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setText)} />
       </div>
     </div>
   );
@@ -104,7 +201,12 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
 function ToolButton({ icon: Icon, label, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition">
+    <button type="button" onClick={onClick}
+      className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
+      style={{ color: 'rgba(255,255,255,0.45)' }}
+      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+    >
       <Icon className="w-3.5 h-3.5" /> <span className="text-[11px]">{label}</span>
     </button>
   );
