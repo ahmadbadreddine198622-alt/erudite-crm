@@ -401,6 +401,24 @@ export default function Team() {
                               className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
                               🔑 Reset Password
                             </Button>
+                            <Button size="sm" variant="outline"
+                              onClick={() => {
+                                if (confirm(`Disable account for ${u.email}?`)) {
+                                  disableUserMutation.mutate({ userId: u.id, currentRole: u.role });
+                                }
+                              }}
+                              className="h-7 text-xs gap-1 border-orange-500/40 text-orange-400 hover:bg-orange-500/10">
+                              {u.role === 'disabled' ? 'Enable' : 'Disable'}
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              onClick={() => {
+                                if (confirm(`Delete account for ${u.email}? This cannot be undone.`)) {
+                                  deleteUserMutation.mutate(u.id);
+                                }
+                              }}
+                              className="h-7 text-xs gap-1 border-red-500/40 text-red-400 hover:bg-red-500/10">
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </Button>
                             <select value={u.role || 'agent'}
                               onChange={e => updateUserRoleMutation.mutate({ userId: u.id, role: e.target.value, customRoleId: u.custom_role_id })}
                               className="text-xs rounded-lg px-2 py-1.5"
