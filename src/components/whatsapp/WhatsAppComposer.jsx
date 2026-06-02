@@ -37,14 +37,15 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
     if (!conversation?.id) return;
     setIsSendingTemplate(true);
     try {
-      await base44.functions.invoke('sendWhatsAppMessage', {
+      const res = await base44.functions.invoke('sendWhatsAppMessage', {
         conversation_id: conversation.id,
         template_name: template.name,
-        template_language: template.language || 'en_US',
+        template_language: template.language || 'en',
       });
+      if (res.data?.error) throw new Error(res.data.error);
       toast.success(`Template "${template.name}" sent!`);
     } catch (e) {
-      toast.error('Failed to send template.');
+      toast.error(e.message || 'Failed to send template.');
     } finally {
       setIsSendingTemplate(false);
     }
@@ -189,7 +190,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         open={showTemplates}
         onClose={() => setShowTemplates(false)}
         templates={displayTemplates}
-        onSelect={handleSendTemplate}
+        onSelect={async (t) => { await handleSendTemplate(t); }}
         isSending={isSendingTemplate}
       />
     </div>

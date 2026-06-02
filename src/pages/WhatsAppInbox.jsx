@@ -92,8 +92,8 @@ export default function WhatsAppInbox() {
   // Conversations with real-time refetch
   const { data: conversations = [], isLoading, refetch } = useQuery({
     queryKey: ['wa_conversations'],
-    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 100),
-    refetchInterval: 10000,
+    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
+    refetchInterval: 5000,
   });
 
   // Auto-select conversation from ?phone= URL param
@@ -113,11 +113,12 @@ export default function WhatsAppInbox() {
     return () => unsub();
   }, [queryClient]);
 
-  // Real-time subscription to new messages
+  // Real-time subscription to new messages — refetch conversations to re-sort
   useEffect(() => {
     const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
       if (event.data?.conversation_id) {
         queryClient.invalidateQueries({ queryKey: ['wa_messages', event.data.conversation_id] });
+        // Invalidate conversations so list re-sorts with latest message on top
         queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
       }
     });

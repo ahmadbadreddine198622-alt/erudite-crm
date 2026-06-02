@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -6,7 +6,12 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { conversation_id, message, template_name, template_language, template_components } = await req.json();
+  const body = await req.json();
+  const { conversation_id, template_name, template_components } = body;
+  const message = body.message || body.message_text;
+  // Normalize language: 'en' → 'en_US', 'ar' → 'ar', etc.
+  const rawLang = body.template_language || 'en_US';
+  const template_language = rawLang === 'en' ? 'en_US' : rawLang;
 
   if (!conversation_id || (!message?.trim() && !template_name)) {
     return Response.json({ error: 'conversation_id and message (or template_name) are required' }, { status: 400 });
@@ -74,13 +79,13 @@ Deno.serve(async (req) => {
     media_type: 'none',
   });
 
-  // Update conversation last message
-  // Backfill wa_phone_e164 from phone_number if missing (required field)
+  // Update conversation — bump to top of list
   const phoneE164 = conv.wa_phone_e164 || conv.phone_number;
   const updatePayload = {
     last_message: bodyText,
     last_message_at: timestamp,
     last_outbound_at: timestamp,
+    status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
   };
   if (!conv.wa_phone_e164 && phoneE164) updatePayload.wa_phone_e164 = phoneE164;
   await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, updatePayload);
