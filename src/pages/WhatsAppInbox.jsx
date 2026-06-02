@@ -197,7 +197,27 @@ export default function WhatsAppInbox() {
     } else if (action === 'assign_agent' && payload) {
       base44.entities.WhatsAppConversation.update(selectedConvId, { assigned_agent_email: payload.email });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+      // Send email notification to assigned agent
+      base44.functions.invoke('sendAgentNotificationEmail', {
+        agent_email: payload.email,
+        notification_type: 'conversation_assigned',
+        conversation_id: selectedConvId,
+        conversation_phone: selectedConv?.wa_phone_e164,
+        lead_full_name: selectedLead?.full_name || selectedConv?.wa_display_name,
+        assigned_by: currentUser?.email
+      });
       toast.success(`Assigned to ${payload.full_name || payload.email}`);
+      // Send email notification to assigned agent
+      if (payload.email !== currentUser.email) {
+        base44.functions.invoke('sendAgentNotificationEmail', {
+          agent_email: payload.email,
+          notification_type: 'conversation_assigned',
+          conversation_id: selectedConvId,
+          conversation_phone: selectedConv?.wa_phone_e164 || selectedConv?.phone_number,
+          lead_name: selectedLead?.full_name || selectedConv?.wa_display_name || 'Unknown',
+          assigned_by: currentUser.email
+        });
+      }
     } else if (action === 'schedule_viewing') {
       // handled by existing schedule viewing dialog
     }
