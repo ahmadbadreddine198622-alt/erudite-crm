@@ -117,7 +117,10 @@ export default function WhatsAppInbox() {
   useEffect(() => {
     const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
       if (event.data?.conversation_id) {
+        // Force reload of messages for this specific conversation
         queryClient.invalidateQueries({ queryKey: ['wa_messages', event.data.conversation_id] });
+        // Also invalidate ALL message queries to catch any ChatThread watching this conversation
+        queryClient.invalidateQueries({ queryKey: ['wa_messages'] });
         // Invalidate conversations so list re-sorts with latest message on top
         queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
       }
@@ -647,6 +650,7 @@ export default function WhatsAppInbox() {
 
             {/* Messages — include all merged conversation IDs for full history */}
             <ChatThread
+              key={selectedConvId}
               conversationId={selectedConvId}
               allConversationIds={[selectedConvId, ...(selectedConv?.merged_conv_ids || [])]}
             />
