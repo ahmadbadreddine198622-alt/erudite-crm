@@ -157,7 +157,11 @@ export default function WhatsAppInbox() {
         }
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
   })();
 
   const selectedConv = normalizedConversations.find(c => c.id === selectedConvId) || null;
