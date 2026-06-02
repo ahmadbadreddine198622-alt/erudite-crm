@@ -39,8 +39,7 @@ function TemplateRow({ t, onSend }) {
     // Build components array for Meta API
     let template_components = [];
     if (vars.length > 0) {
-      // Named params → use named format
-      const isNamed = vars.some(v => isNaN(v)); // named if not purely numeric
+      const isNamed = vars.some(v => isNaN(v));
       if (isNamed) {
         template_components = [{
           type: "body",
@@ -51,7 +50,6 @@ function TemplateRow({ t, onSend }) {
           }))
         }];
       } else {
-        // positional {{1}}, {{2}}
         template_components = [{
           type: "body",
           parameters: vars.map(v => ({
@@ -61,7 +59,12 @@ function TemplateRow({ t, onSend }) {
         }];
       }
     }
-    await onSend(t, template_components);
+    // Resolve the template body — replace {{var}} with actual entered values
+    const resolvedBody = vars.reduce(
+      (body, v) => body.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), values[v] || v),
+      t.body || ''
+    );
+    await onSend(t, template_components, resolvedBody);
     setSending(false);
   };
 
@@ -142,8 +145,8 @@ export default function TemplatesModal({ open, onClose, templates, onSelect }) {
     (t.body || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSend = async (t, template_components) => {
-    await onSelect(t, template_components);
+  const handleSend = async (t, template_components, resolvedBody) => {
+    await onSelect(t, template_components, resolvedBody);
     onClose();
   };
 

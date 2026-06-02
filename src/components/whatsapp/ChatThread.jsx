@@ -47,13 +47,14 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     loadMessages();
   }, [conversationId, JSON.stringify(allConversationIds)]);
 
-  // Real-time subscription
+  // Real-time subscription — on any new/updated message for this conversation, reload full list
   useEffect(() => {
     if (!conversationId) return;
     const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
       const ids = idsRef.current;
       if (ids.includes(event.data?.conversation_id)) {
         if (event.type === 'create') {
+          // Optimistically add new message immediately
           setMessages(prev => {
             if (prev.some(m => m.id === event.data.id)) return prev;
             return [...prev, event.data].sort((a, b) =>
@@ -63,15 +64,17 @@ export default function ChatThread({ conversationId, allConversationIds }) {
         } else if (event.type === 'update') {
           setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
         }
+        // Also do a full reload to catch anything missed
+        loadMessages();
       }
     });
     return () => unsub();
   }, [conversationId]);
 
-  // Poll every 8s as fallback
+  // Poll every 4s as fallback to catch inbound replies
   useEffect(() => {
     if (!conversationId) return;
-    const interval = setInterval(loadMessages, 8000);
+    const interval = setInterval(loadMessages, 4000);
     return () => clearInterval(interval);
   }, [conversationId]);
 

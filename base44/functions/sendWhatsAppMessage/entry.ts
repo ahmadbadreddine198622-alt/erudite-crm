@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { conversation_id, template_name, template_components } = body;
+  const { conversation_id, template_name, template_components, template_body } = body;
   const message = body.message || body.message_text;
   // Use language exactly as provided — Meta requires the exact registered language code
   const template_language = body.template_language || 'en';
@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
 
   const waMessageId = data.messages?.[0]?.id;
   const timestamp = new Date().toISOString();
-  const bodyText = message || `[Template: ${template_name}]`;
+  // Use the actual template body text if provided, otherwise fall back to message or a label
+  const bodyText = message || template_body || `[Template: ${template_name}]`;
 
   // Save outbound message
   const msgRecord = {
