@@ -35,8 +35,9 @@ const statusDot = {
 
 export default function ConversationItem({ conv, lead, landlord, selected, onClick }) {
   const displayPhone = conv.wa_phone_e164 || conv.phone_number || '';
-  // Priority: landlord name > lead name > wa_display_name > phone
+  // Priority: landlord name > lead name > wa_display_name (WhatsApp profile) > phone
   const name = landlord?.full_name_en || lead?.full_name || conv.wa_display_name || displayPhone;
+  const isWhatsAppProfile = conv.wa_display_name && !landlord && !lead;
   const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
   const timeAgo = conv.last_message_at
     ? formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })
@@ -73,6 +74,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <span className="text-sm font-bold truncate leading-snug" style={{ color: 'rgba(255,255,255,0.95)' }}>
                 {name}
+                {isWhatsAppProfile && <span className="text-[9px] font-normal ml-1 px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">WA</span>}
                 {conv.is_starred && <Star className="inline w-3.5 h-3.5 fill-amber-400 text-amber-400 ml-0.5" />}
               </span>
               {priority && (

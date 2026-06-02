@@ -592,6 +592,22 @@ export default function WhatsAppInbox() {
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => refetch()}>
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 px-2.5 text-xs gap-1"
+                onClick={async () => {
+                  try {
+                    const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', {});
+                    toast.success(res.data?.summary || 'Profile refresh complete');
+                    refetch();
+                  } catch (err) {
+                    toast.error('Failed to fetch profiles');
+                  }
+                }}
+              >
+                <Bot className="w-3.5 h-3.5" /> Fetch Names
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
