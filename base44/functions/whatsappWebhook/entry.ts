@@ -181,7 +181,16 @@ Deno.serve(async (req) => {
           to_number: value.metadata?.display_phone_number || '',
           media_type: msg.type !== 'text' ? msg.type : 'none'
         });
-      } catch (err) { console.error('message create failed', err); }
+        console.log('✅ Message created:', messageRecord.id, 'conversation:', conv.id);
+      } catch (err) { 
+        console.error('❌ message create failed:', err.message);
+        console.error('Details:', {
+          conversation_id: conv.id,
+          wa_message_id: waMessageId,
+          body: bodyText,
+          timestamp
+        });
+      }
 
       // ---- Update conversation with routing result ----
       if (routeResult?.routed_entity_id) {

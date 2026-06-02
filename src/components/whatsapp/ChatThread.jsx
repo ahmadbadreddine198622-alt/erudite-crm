@@ -35,13 +35,20 @@ export default function ChatThread({ conversationId, allConversationIds }) {
             const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 500);
             return Array.isArray(res) ? res : [];
           } catch (err) {
-            console.warn('Failed to load messages for conversation', id, err);
+            // Silent fail for rate limits
+            if (err?.response?.status === 429) {
+              console.log('Rate limited, skipping...');
+            } else {
+              console.warn('Failed to load messages for conversation', id, err);
+            }
             return [];
           }
         })
       );
       const all = results.flat();
-      console.log(`Loaded ${all.length} total messages for ${ids.length} conversation(s)`);
+      if (all.length > 0) {
+        console.log(`Loaded ${all.length} total messages for ${ids.length} conversation(s)`);
+      }
       
       // Deduplicate by message ID
       const seen = new Set();
@@ -77,19 +84,28 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     loadMessages();
   }, [validConversationId, finalIds.length]);
 
+  // Real-time subscription to new messages
   useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe(async (event) => {
+    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
+      // Only reload if this message belongs to the current conversation(s)
       const ids = idsRef.current;
       const msgConvId = event.data?.conversation_id;
+      
       if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
-        setTimeout(() => loadMessages(), 300);
+        // Debounce rapid updates
+        setTimeout(() => {
+          console.log('New message detected, reloading thread...');
+          loadMessages();
+        }, 500);
       }
     });
+    
     return () => unsub();
   }, []);
 
+  // Polling fallback - reduced to 5 seconds to avoid rate limits
   useEffect(() => {
-    const interval = setInterval(loadMessages, 2000);
+    const interval = setInterval(loadMessages, 5000);
     return () => clearInterval(interval);
   }, []);
 
