@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   // Fetch all approved templates from Meta
   let allTemplates = [];
-  let url = `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=name,status,language,category,components&limit=200&access_token=${accessToken}`;
+  let url = `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=name,status,language,category,components&limit=200&access_token=${accessToken}&status=APPROVED`;
 
   while (url) {
     const res = await fetch(url);
