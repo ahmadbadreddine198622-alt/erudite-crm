@@ -205,6 +205,8 @@ export default function PFListingsGrid() {
   const [fBeds, setFBeds] = useState(null);
   const [fArea, setFArea] = useState(null);
   const [fMaxPrice, setFMaxPrice] = useState(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Sync state
   const [syncState, setSyncState] = useState('idle'); // 'idle' | 'syncing' | 'done' | 'error'
@@ -300,6 +302,12 @@ export default function PFListingsGrid() {
       return true;
     }));
   }, [listings, statusTab, search, fPurpose, fTypes, fBeds, fArea, fMaxPrice]);
+
+  // Reset page on filter/search/tab change
+  useEffect(() => { setPage(1); }, [statusTab, search, fPurpose, fTypes, fBeds, fArea, fMaxPrice]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Fallback: 3 latest live listings if filtered < 3
   const latestFallback = useMemo(() => {
@@ -405,7 +413,7 @@ export default function PFListingsGrid() {
 
       {/* Results count */}
       <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        {filtered.length} {statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total'} {filtered.length === 1 ? 'listing' : 'listings'}
+        {filtered.length} {statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total'} {filtered.length === 1 ? 'listing' : 'listings'}{totalPages > 1 ? ` — page ${page} of ${totalPages}` : ''}
       </p>
 
       {/* Cards */}
@@ -427,7 +435,7 @@ export default function PFListingsGrid() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map(l => <ListingCard key={l.id} listing={l} />)}
+              {paginated.map(l => <ListingCard key={l.id} listing={l} />)}
 
               {/* Fallback section */}
               {latestFallback.length > 0 && (
@@ -439,6 +447,42 @@ export default function PFListingsGrid() {
                   </div>
                   {latestFallback.map(l => <ListingCard key={l.id} listing={l} />)}
                 </>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 pt-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30"
+                    style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.55)' }}
+                  >← Prev</button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                    .reduce((acc, n, idx, arr) => {
+                      if (idx > 0 && n - arr[idx - 1] > 1) acc.push('...');
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((n, i) => n === '...' ? (
+                      <span key={`ellipsis-${i}`} className="px-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>…</span>
+                    ) : (
+                      <button key={n} onClick={() => setPage(n)}
+                        className="w-8 h-8 rounded-lg text-xs font-semibold transition-all"
+                        style={{ background: page === n ? GOLD : '#0e1a2b', color: page === n ? '#0a1320' : 'rgba(255,255,255,0.55)', border: `1px solid ${page === n ? GOLD : '#1a2942'}` }}
+                      >{n}</button>
+                    ))
+                  }
+
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30"
+                    style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.55)' }}
+                  >Next →</button>
+                </div>
               )}
             </div>
           )}
