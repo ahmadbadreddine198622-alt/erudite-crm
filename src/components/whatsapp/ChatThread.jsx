@@ -9,29 +9,30 @@ export default function ChatThread({ conversationId, allConversationIds }) {
   const bottomRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [lastRefresh, setLastRefresh] = useState(null);
 
-  // All IDs to load — use ref so loadMessages always sees current value
-  const idsRef = useRef([]);
-  const safeConvIds = Array.isArray(allConversationIds) ? allConversationIds : [];
-  idsRef.current = safeConvIds.length ? safeConvIds : (conversationId ? [conversationId] : []);
+  // CRITICAL: Normalize all inputs to arrays at the component boundary
+  // This prevents "number is not iterable" errors
+  const normalizedAllIds = Array.isArray(allConversationIds) ? allConversationIds : [];
+  const validConversationId = (typeof conversationId === 'string' && conversationId) ? conversationId : null;
+  const idsToUse = normalizedAllIds.length > 0 ? normalizedAllIds : (validConversationId ? [validConversationId] : []);
+  const finalIds = Array.isArray(idsToUse) ? idsToUse : [];
+  
+  // Store in ref for subscription access
+  const idsRef = useRef(finalIds);
+  idsRef.current = finalIds;
 
   const loadMessages = async () => {
     const ids = idsRef.current;
-    // Defensive check: ensure ids is an array
-    if (!Array.isArray(ids) || !ids.length) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
       setMessages([]);
       setIsLoading(false);
       return;
     }
     try {
-      // Query messages directly by conversation_id — avoids the 500-message global limit issue
-      // Coerce to array as final safety measure
-      const idsArray = Array.isArray(ids) ? ids : [];
       const results = await Promise.all(
-        idsArray.map(async id => {
+        ids.map(async id => {
           const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200);
-          // Ensure we always get an array
           return Array.isArray(res) ? res : [];
         })
       );
@@ -54,33 +55,33 @@ export default function ChatThread({ conversationId, allConversationIds }) {
   };
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!validConversationId && finalIds.length === 0) {
+      setMessages([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setMessages([]);
     loadMessages();
-  }, [conversationId, JSON.stringify(allConversationIds)]);
+  }, [validConversationId, finalIds.length]);
 
   // Real-time subscription — reload immediately on any new message for this conversation
   useEffect(() => {
-    if (!conversationId) return;
     const unsub = base44.entities.WhatsAppMessage.subscribe(async (event) => {
       const ids = idsRef.current;
-      const idsArray = Array.isArray(ids) ? ids : [];
       const msgConvId = event.data?.conversation_id;
-      if (msgConvId && idsArray.includes(msgConvId)) {
-        // Small delay to ensure webhook has finished saving
+      if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
         setTimeout(() => loadMessages(), 300);
       }
     });
     return () => unsub();
-  }, [conversationId]);
+  }, []);
 
   // Poll every 2s as fallback to catch inbound replies quickly
   useEffect(() => {
-    if (!conversationId) return;
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
-  }, [conversationId]);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
