@@ -17,11 +17,19 @@ export default function ChatThread({ conversationId, allConversationIds }) {
 
   const loadMessages = async () => {
     const ids = idsRef.current;
-    if (!ids.length) return;
+    if (!ids.length) {
+      setMessages([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       // Query messages directly by conversation_id — avoids the 500-message global limit issue
       const results = await Promise.all(
-        ids.map(id => base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200))
+        ids.map(async id => {
+          const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200);
+          // Ensure we always get an array
+          return Array.isArray(res) ? res : [];
+        })
       );
       const all = results.flat();
       const seen = new Set();
@@ -35,6 +43,7 @@ export default function ChatThread({ conversationId, allConversationIds }) {
       setLastRefresh(new Date());
     } catch (err) {
       console.error('Failed to load messages:', err);
+      setMessages([]);
     } finally {
       setIsLoading(false);
     }
