@@ -39,29 +39,44 @@ async function fetchPFListingsPage(token, page, perPage) {
   return await res.json();
 }
 
+function normalizeOffering(raw) {
+  if (!raw) return null;
+  const s = String(raw).toLowerCase();
+  if (s === 'sale' || s === 'for-sale' || s === 'for_sale' || s.includes('sale')) return 'sale';
+  if (s === 'rent' || s === 'for-rent' || s === 'for_rent' || s.includes('rent') || s.includes('lease')) return 'rent';
+  return null;
+}
+
 function pickPrice(priceObj) {
   // Returns { price, offering_type, price_period }. Prefers sale over rent when both exist.
   if (!priceObj) return { price: null, offering_type: 'unknown', price_period: null };
   if (typeof priceObj === 'number') return { price: priceObj, offering_type: 'unknown', price_period: null };
   const amounts = priceObj.amounts || {};
   let price = null;
-  let offering = (typeof priceObj.type === 'string') ? priceObj.type.toLowerCase() : null;
+  // Normalize offering from type field first
+  let offering = normalizeOffering(priceObj.type || priceObj.offering_type || priceObj.purpose || priceObj.category);
   let period = null;
+  let derivedFromRent = false;
   if (typeof amounts.sale === 'number') {
     price = amounts.sale;
     if (!offering) offering = 'sale';
   } else if (typeof amounts.rent === 'number') {
     price = amounts.rent;
     if (!offering) offering = 'rent';
+    derivedFromRent = true;
   } else if (typeof amounts.yearly === 'number') {
     price = amounts.yearly;
     if (!offering) offering = 'rent';
+    derivedFromRent = true;
     period = 'year';
   } else if (typeof amounts.monthly === 'number') {
     price = amounts.monthly;
     if (!offering) offering = 'rent';
+    derivedFromRent = true;
     period = 'month';
   }
+  // If price came from a rent amount but offering is still ambiguous, force rent
+  if (derivedFromRent && offering !== 'sale') offering = 'rent';
   // Normalize period from explicit field if present
   const rawPeriod = priceObj.period || priceObj.frequency || null;
   if (rawPeriod) {
@@ -154,7 +169,10 @@ function mapPFListingToCRM(pfListing) {
     (listingRef ? `https://www.propertyfinder.ae/property-detail/${listingRef}` : undefined);
 
   // Map offering_type → listing_type enum (sale | rent)
-  const listing_type = (offering_type === 'rent') ? 'rent' : 'sale';
+  // Also check top-level purpose/offering_type fields on the raw listing as fallback
+  const topLevelOffering = normalizeOffering(pfListing.purpose || pfListing.offering_type || pfListing.category);
+  const resolvedOffering = (offering_type === 'rent' || offering_type === 'sale') ? offering_type : (topLevelOffering || 'sale');
+  const listing_type = resolvedOffering;
 
   // Map bedrooms string → number (studio = 0)
   let bedrooms;

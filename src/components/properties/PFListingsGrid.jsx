@@ -157,7 +157,7 @@ function ListingCard({ listing }) {
         <div className="absolute bottom-2 left-2">
           <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest"
             style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.7)' }}>
-            {listing.listing_type || 'sale'}
+            {listing.listing_type || '—'}
           </span>
         </div>
       </div>
