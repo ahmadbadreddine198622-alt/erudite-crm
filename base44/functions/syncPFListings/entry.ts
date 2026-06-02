@@ -150,7 +150,8 @@ function pickSize(l) {
   return undefined;
 }
 
-function mapPFListingToCRM(pfListing) {
+function mapPFListingToCRM(pfListing, urlStats) {
+  // urlStats is a mutable object { from_api, numeric_fallback, hidden } for diagnostics
   const rawId = pfListing.id || pfListing.reference || '';
   const rawRef = pfListing.reference || pfListing.id || '';
   const listingId = String(rawId);
@@ -165,12 +166,25 @@ function mapPFListingToCRM(pfListing) {
   const bedroomsRaw = pickBedrooms(pfListing.bedrooms);
   const sizeSqft = pickSize(pfListing);
 
-  // Try all URL fields returned by the PF API first
-  const pfUrl = pfListing.url || pfListing.web_url || pfListing.link ||
+  // 1. Try all URL fields returned by the PF API first (real canonical URL)
+  const apiUrl = pfListing.url || pfListing.web_url || pfListing.link ||
     (pfListing.links && (pfListing.links.public_link || pfListing.links.web || pfListing.links.url)) ||
-    // Fallback: use the numeric PF listing ID (not the reference number) for the public URL
-    (listingId && /^\d+$/.test(listingId) ? `https://www.propertyfinder.ae/property/${listingId}.html` : undefined) ||
-    (listingRef && /^\d+$/.test(listingRef) ? `https://www.propertyfinder.ae/property/${listingRef}.html` : undefined);
+    null;
+
+  // 2. Only build fallback if ID is purely numeric (alphanumeric refs like S1EW3... always 404)
+  const numericFallback =
+    (!apiUrl && listingId && /^\d+$/.test(listingId)) ? `https://www.propertyfinder.ae/property/${listingId}.html` :
+    (!apiUrl && listingRef && /^\d+$/.test(listingRef)) ? `https://www.propertyfinder.ae/property/${listingRef}.html` :
+    null;
+
+  const pfUrl = apiUrl || numericFallback || null;
+
+  // Track URL outcomes for diagnostics
+  if (urlStats) {
+    if (apiUrl) urlStats.from_api++;
+    else if (numericFallback) urlStats.numeric_fallback++;
+    else urlStats.hidden++;
+  }
 
   // Map offering_type → listing_type enum (sale | rent)
   // Also check top-level purpose/offering_type fields on the raw listing as fallback
@@ -331,6 +345,7 @@ Deno.serve(async (req) => {
     let updated = 0;
     let errors = 0;
     let totalListingsThisRun = 0;
+    const urlStats = { from_api: 0, numeric_fallback: 0, hidden: 0 };
     const writeStartTime = Date.now();
 
     if (!dedupTimedOut) {
@@ -398,7 +413,7 @@ Deno.serve(async (req) => {
 
           const listingIdOuter = String((pfListing && (pfListing.id || pfListing.reference)) || '');
           try {
-            const mapped = mapPFListingToCRM(pfListing);
+            const mapped = mapPFListingToCRM(pfListing, urlStats);
             if (!mapped.pf_listing_id) {
               errors++;
               if (!diagnostics.first_error_message) {
@@ -493,6 +508,10 @@ Deno.serve(async (req) => {
 
     // Finalize diagnostics
     diagnostics.total_listings_received_from_pf = totalListingsThisRun;
+    diagnostics.url_from_api = urlStats.from_api;
+    diagnostics.url_numeric_fallback = urlStats.numeric_fallback;
+    diagnostics.url_hidden = urlStats.hidden;
+    console.log(`PF_URL_STATS: from_api=${urlStats.from_api}, numeric_fallback=${urlStats.numeric_fallback}, hidden=${urlStats.hidden}`);
     diagnostics.created_count = created;
     diagnostics.updated_count = updated;
     diagnostics.error_count = errors;
@@ -537,6 +556,11 @@ Deno.serve(async (req) => {
       created: created,
       updated: updated,
       errors: errors,
+      url_summary: {
+        from_api: urlStats.from_api,
+        numeric_fallback: urlStats.numeric_fallback,
+        hidden_no_valid_url: urlStats.hidden,
+      },
       ...diagnostics,
     });
   } catch (error) {
