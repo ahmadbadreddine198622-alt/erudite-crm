@@ -33,7 +33,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
   const displayTemplates = metaData?.templates || [];
 
-  const handleSendTemplate = async (template) => {
+  const handleSendTemplate = async (template, template_components) => {
     if (!conversation?.id) return;
     setIsSendingTemplate(true);
     try {
@@ -41,6 +41,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         conversation_id: conversation.id,
         template_name: template.name,
         template_language: template.language || 'en',
+        template_components: template_components || [],
       });
       if (res.data?.error) throw new Error(res.data.error);
       toast.success(`Template "${template.name}" sent!`);
@@ -190,7 +191,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         open={showTemplates}
         onClose={() => setShowTemplates(false)}
         templates={displayTemplates}
-        onSelect={async (t) => { await handleSendTemplate(t); }}
+        onSelect={async (t, comps) => { await handleSendTemplate(t, comps); }}
         isSending={isSendingTemplate}
       />
     </div>
