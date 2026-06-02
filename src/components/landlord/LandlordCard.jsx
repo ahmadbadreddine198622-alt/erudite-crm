@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2 } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -89,6 +89,24 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     }
   };
 
+  const handleExportVCard = (e) => {
+    e.stopPropagation();
+    // Placeholder for vCard export - wire to actual function later
+    toast.info('vCard export coming soon');
+  };
+
+  // Calculate days until mandate expires
+  const daysUntilMandateExpiry = (() => {
+    if (!landlord.mandate_expires_at) return null;
+    const expiry = new Date(landlord.mandate_expires_at);
+    const now = new Date();
+    const diffMs = expiry.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return diffDays;
+  })();
+
+  const showMandateWarning = daysUntilMandateExpiry !== null && daysUntilMandateExpiry <= 14 && daysUntilMandateExpiry >= 0;
+
   return (
     <div
       onClick={onClick}
@@ -122,7 +140,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{landlord.full_name_en || 'Unknown'}</p>
+            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
           </div>
           <div className="flex items-center gap-1.5">
             <span
@@ -146,10 +164,24 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </div>
       </div>
 
-      {/* Project badge */}
-      {landlord.project_name && (
+      {/* Project badge + Unit count badge */}
+      {(landlord.project_name || landlord.unit_reference) && (
+        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+          {landlord.project_name && <ProjectBadge name={landlord.project_name} />}
+          {landlord.unit_reference && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
+              📍 {landlord.unit_reference}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Form A expiry warning */}
+      {showMandateWarning && (
         <div className="mt-1.5">
-          <ProjectBadge name={landlord.project_name} />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+            ⚠️ Form A expires in {daysUntilMandateExpiry}d
+          </span>
         </div>
       )}
 
@@ -221,6 +253,14 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             title="WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleExportVCard}
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-blue-400 hover:bg-blue-500/15 transition-colors"
+            title="Export vCard"
+          >
+            <UserMinus className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"

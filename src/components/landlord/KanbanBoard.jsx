@@ -24,7 +24,7 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 min-w-max h-full pb-4">
+      <div className="flex gap-4 h-full pb-4 overflow-x-auto" style={{ scrollSnapType: 'x proximity' }}>
         {stages.map((stage) => {
           const landlords = stageGroups[stage] || [];
           const totalCommission = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -32,7 +32,8 @@ export default function KanbanBoard({
           return (
             <div
               key={stage}
-              className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden flex flex-col h-full"
+              className="flex-shrink-0 w-[320px] rounded-2xl overflow-hidden flex flex-col h-full"
+              style={{ scrollSnapAlign: 'start' }}
               style={{
                 background: 'rgba(255,255,255,0.05)',
                 backdropFilter: 'blur(16px)',
