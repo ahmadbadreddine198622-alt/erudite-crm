@@ -302,15 +302,6 @@ export default function Team() {
                               <option value="agent">Agent</option>
                               <option value="viewer">Viewer</option>
                             </select>
-                            {roles.length > 0 && (
-                              <select value={u.custom_role_id || ''}
-                                onChange={e => updateUserRoleMutation.mutate({ userId: u.id, role: u.role, customRoleId: e.target.value || null })}
-                                className="text-xs rounded-lg px-2 py-1.5 max-w-36"
-                                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}>
-                                <option value="">No custom role</option>
-                                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                              </select>
-                            )}
                           </>
                         ) : (
                           <span className="text-xs text-muted-foreground">(you)</span>
