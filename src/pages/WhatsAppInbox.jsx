@@ -542,8 +542,6 @@ export default function WhatsAppInbox() {
         <div className="p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
-              <h2 className="font-bold text-lg">Messages</h2>
               {unreadTotal > 0 && (
                 <Badge className="text-xs px-1.5 py-0" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}>{unreadTotal}</Badge>
               )}
