@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import MobileNav from './MobileNav';
+import MobileDock from './MobileDock';
 import CommandCenter from '@/components/shared/CommandCenter';
 
 import { Menu, UserPlus } from 'lucide-react';
@@ -54,6 +54,7 @@ export default function AppLayout() {
       {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
 
       <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
+      <MobileDock />
     </div>
   );
 }
