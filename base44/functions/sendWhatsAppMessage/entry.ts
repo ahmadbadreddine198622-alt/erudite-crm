@@ -9,9 +9,8 @@ Deno.serve(async (req) => {
   const body = await req.json();
   const { conversation_id, template_name, template_components } = body;
   const message = body.message || body.message_text;
-  // Normalize language: 'en' → 'en_US', 'ar' → 'ar', etc.
-  const rawLang = body.template_language || 'en_US';
-  const template_language = rawLang === 'en' ? 'en_US' : rawLang;
+  // Use language exactly as provided — Meta requires the exact registered language code
+  const template_language = body.template_language || 'en';
 
   if (!conversation_id || (!message?.trim() && !template_name)) {
     return Response.json({ error: 'conversation_id and message (or template_name) are required' }, { status: 400 });
@@ -66,9 +65,8 @@ Deno.serve(async (req) => {
   const bodyText = message || `[Template: ${template_name}]`;
 
   // Save outbound message
-  await base44.asServiceRole.entities.WhatsAppMessage.create({
+  const msgRecord = {
     conversation_id,
-    lead_id: conv.lead_id,
     wa_message_id: waMessageId || '',
     direction: 'outbound',
     body: bodyText,
@@ -77,7 +75,9 @@ Deno.serve(async (req) => {
     from_number: '',
     to_number: conv.wa_phone_e164 || conv.phone_number,
     media_type: 'none',
-  });
+  };
+  if (conv.lead_id) msgRecord.lead_id = conv.lead_id;
+  await base44.asServiceRole.entities.WhatsAppMessage.create(msgRecord);
 
   // Update conversation — bump to top of list
   const phoneE164 = conv.wa_phone_e164 || conv.phone_number;
@@ -90,20 +90,22 @@ Deno.serve(async (req) => {
   if (!conv.wa_phone_e164 && phoneE164) updatePayload.wa_phone_e164 = phoneE164;
   await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, updatePayload);
 
-  // Log activity
-  await base44.asServiceRole.entities.Activity.create({
-    lead_id: conv.lead_id,
-    type: 'whatsapp',
-    direction: 'outbound',
-    title: 'WhatsApp message sent',
-    description: bodyText,
-    channel: 'whatsapp',
-    status: 'completed',
-    completed_at: timestamp,
-    agent_email: user.email,
-    agent_name: user.full_name,
-    source: 'manual',
-  });
+  // Log activity only if there's a lead
+  if (conv.lead_id) {
+    await base44.asServiceRole.entities.Activity.create({
+      lead_id: conv.lead_id,
+      type: 'whatsapp',
+      direction: 'outbound',
+      title: 'WhatsApp message sent',
+      description: bodyText,
+      channel: 'whatsapp',
+      status: 'completed',
+      completed_at: timestamp,
+      agent_email: user.email,
+      agent_name: user.full_name,
+      source: 'manual',
+    });
+  }
 
   return Response.json({ status: 'sent', wa_message_id: waMessageId });
 });
