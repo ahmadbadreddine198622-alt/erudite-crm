@@ -318,47 +318,71 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Stats Row — compact single row of 4 */}
+      <div
+        className="grid grid-cols-4 w-full max-w-4xl"
+        style={{ gap: 10, marginBottom: 26 }}
+      >
+        {/* Active Leads */}
+        <button
+          onClick={() => navigate('/leads')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(232,163,61,0.15)', border: '1px solid rgba(232,163,61,0.2)' }}>
+            <Users className="w-4 h-4" style={{ color: '#e8a33d' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#e8a33d', lineHeight: 1 }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>ACTIVE</p>
+        </button>
 
+        {/* Reminders */}
+        <button
+          onClick={() => navigate('/reminders')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(232,163,61,0.15)', border: '1px solid rgba(232,163,61,0.2)' }}>
+            <Bell className="w-4 h-4" style={{ color: '#e8a33d' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#e8a33d', lineHeight: 1 }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>REMINDERS</p>
+        </button>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 w-full max-w-4xl">
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+        {/* Unread */}
+        <button
+          onClick={() => navigate('/whatsapp')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(91,155,255,0.15)', border: '1px solid rgba(91,155,255,0.2)' }}>
+            <MessageCircle className="w-4 h-4" style={{ color: '#5b9bff' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Active Leads</p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{badges.leads}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'rgba(255,255,255,0.95)', lineHeight: 1 }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>UNREAD</p>
+        </button>
+
+        {/* Hot Leads */}
+        <button
+          onClick={() => navigate('/leads')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Reminders</p>
-          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.reminders}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Unread</p>
-          <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{badges.whatsapp}</p>
-        </EruditeCard>
-        <EruditeCard className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Hot Leads</p>
-          <p className="text-2xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{hotLeads}</p>
-        </EruditeCard>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#22c55e', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>HOT</p>
+        </button>
       </div>
 
-      {/* Date & greeting */}
-      <div className="text-center mb-8">
-        <p className="text-4xl font-light tracking-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
+      {/* Clock */}
+      <div className="text-center" style={{ marginBottom: 22 }}>
+        <p style={{ fontSize: 34, fontWeight: 300, color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
           {format(new Date(), 'h:mm')}
-          <span className="text-xl ml-1" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'a')}</span>
+          <span style={{ fontSize: 16, color: '#e8a33d', marginLeft: 4 }}>{format(new Date(), 'a')}</span>
         </p>
-        <p className="text-sm mt-1 font-medium" style={{ color: 'hsl(38 92% 50%)' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: '#e8a33d', marginTop: 4 }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
       {/* Done button — only visible in edit mode */}
