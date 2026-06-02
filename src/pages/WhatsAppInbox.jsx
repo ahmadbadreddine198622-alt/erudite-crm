@@ -657,7 +657,7 @@ export default function WhatsAppInbox() {
             <ChatThread
               key={selectedConvId}
               conversationId={selectedConvId}
-              allConversationIds={[selectedConvId, ...(Array.isArray(selectedConv?.merged_conv_ids) ? selectedConv.merged_conv_ids : [])]}
+              allConversationIds={[selectedConvId, ...(Array.isArray(selectedConv?.merged_conv_ids) && selectedConv.merged_conv_ids.length ? selectedConv.merged_conv_ids : [])]}
             />
 
             {/* Tags row */}
