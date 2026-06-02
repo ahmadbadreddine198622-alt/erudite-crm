@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide Base44 branding badge */
+[data-base44-badge],
+#base44-badge,
+.base44-badge {
+  display: none !important;
+}
+
 @layer base {
   :root {
     --font-sans: 'Inter', sans-serif;
