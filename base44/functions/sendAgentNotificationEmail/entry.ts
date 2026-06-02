@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
       lead_source, 
       ai_lead_score, 
       lead_id,
+      contact_id,
+      contact_full_name,
+      contact_email,
+      contact_phone,
       notification_type,
       conversation_id,
       conversation_phone,
@@ -51,6 +55,98 @@ Deno.serve(async (req) => {
           <a href="https://dubai-estate-pro.base44.app/whatsapp" 
              style="background: #25D366; color: #0F1419; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Open WhatsApp Inbox
+          </a>
+        </p>
+        <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+      `;
+
+      const result = await base44.integrations.Core.SendEmail({
+        to: agent_email,
+        subject,
+        html: body,
+      });
+
+      return Response.json({ 
+        success: true, 
+        email_id: result?.message_id || 'sent',
+        status: 'sent'
+      });
+    }
+
+    if (notification_type === 'contact_assigned') {
+      const subject = `👤 Contact Assigned: ${contact_full_name || contact_email}`;
+      const body = `
+        <h2>Contact Assigned</h2>
+        <p>Hi ${agent_name || agent_email.split('@')[0]},</p>
+        <p>A contact has been assigned to you:</p>
+        <table style="border-collapse: collapse; margin: 20px 0;">
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Name:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${contact_full_name || 'Unknown'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Email:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${contact_email || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Phone:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${contact_phone || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Assigned by:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${assigned_by || 'Manager'}</td>
+          </tr>
+        </table>
+        <p>
+          <a href="https://dubai-estate-pro.base44.app/contacts" 
+             style="background: #3b82f6; color: #0F1419; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            View Contact in CRM
+          </a>
+        </p>
+        <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+      `;
+
+      const result = await base44.integrations.Core.SendEmail({
+        to: agent_email,
+        subject,
+        html: body,
+      });
+
+      return Response.json({ 
+        success: true, 
+        email_id: result?.message_id || 'sent',
+        status: 'sent'
+      });
+    }
+
+    if (notification_type === 'lead_assigned') {
+      const subject = `🎯 Lead Assigned: ${lead_full_name}`;
+      const body = `
+        <h2>Lead Assigned</h2>
+        <p>Hi ${agent_name || agent_email.split('@')[0]},</p>
+        <p>A new lead has been assigned to you:</p>
+        <table style="border-collapse: collapse; margin: 20px 0;">
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Lead Name:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${lead_full_name || 'Unknown'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Source:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${lead_source || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>AI Lead Score:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${ai_lead_score || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Assigned by:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${assigned_by || 'Manager'}</td>
+          </tr>
+        </table>
+        <p>
+          <a href="https://dubai-estate-pro.base44.app/leads?id=${lead_id}" 
+             style="background: #f59e0b; color: #0F1419; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            View Lead in CRM
           </a>
         </p>
         <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
