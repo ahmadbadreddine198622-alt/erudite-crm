@@ -1,204 +1,201 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+// ─── Area slug maps ───────────────────────────────────────────────────────────
+const PF_AREA_SLUGS = {
+  'downtown dubai': 'downtown-dubai',
+  'dubai marina': 'dubai-marina',
+  'palm jumeirah': 'palm-jumeirah',
+  'business bay': 'business-bay',
+  'jvc': 'jumeirah-village-circle',
+  'jumeirah village circle': 'jumeirah-village-circle',
+  'arabian ranches': 'arabian-ranches',
+  'difc': 'difc',
+  'dubai hills': 'dubai-hills-estate',
+  'dubai hills estate': 'dubai-hills-estate',
+  'jumeirah': 'jumeirah',
+  'al barsha': 'al-barsha',
+  'meydan': 'meydan',
+  'dubai creek harbour': 'dubai-creek-harbour',
+  'bluewaters': 'bluewaters-island',
+  'emaar beachfront': 'emaar-beachfront',
+  'mbr city': 'mohammed-bin-rashid-city',
+  'jlt': 'jumeirah-lake-towers',
+  'jumeirah lake towers': 'jumeirah-lake-towers',
+  'motor city': 'motor-city',
+  'sports city': 'dubai-sports-city',
+  'silicon oasis': 'dubai-silicon-oasis',
+  'international city': 'international-city',
+  'discovery gardens': 'discovery-gardens',
+  'the greens': 'the-greens',
+  'the views': 'the-views',
+  'jumeirah golf estates': 'jumeirah-golf-estates',
+  'dubai south': 'dubai-south',
+  'town square': 'town-square',
+  'al furjan': 'al-furjan',
+  'damac hills': 'damac-hills',
+};
 
-async function getPFToken() {
-  const apiKey = Deno.env.get('PROPERTY_FINDER_API_KEY');
-  const apiSecret = Deno.env.get('PROPERTY_FINDER_API_SECRET');
-  if (!apiKey || !apiSecret) return null;
+const BAYUT_AREA_SLUGS = {
+  'downtown dubai': 'downtown-dubai',
+  'dubai marina': 'dubai-marina',
+  'palm jumeirah': 'palm-jumeirah',
+  'business bay': 'business-bay',
+  'jvc': 'jumeirah-village-circle-jvc',
+  'jumeirah village circle': 'jumeirah-village-circle-jvc',
+  'arabian ranches': 'arabian-ranches',
+  'difc': 'difc',
+  'dubai hills': 'dubai-hills-estate',
+  'dubai hills estate': 'dubai-hills-estate',
+  'jumeirah': 'jumeirah',
+  'al barsha': 'al-barsha',
+  'meydan': 'meydan',
+  'dubai creek harbour': 'dubai-creek-harbour',
+  'bluewaters': 'bluewaters-island',
+  'emaar beachfront': 'emaar-beachfront',
+  'mbr city': 'mohammed-bin-rashid-city',
+  'jlt': 'jlt-jumeirah-lake-towers',
+  'jumeirah lake towers': 'jlt-jumeirah-lake-towers',
+  'motor city': 'motor-city',
+  'sports city': 'dubai-sports-city',
+  'silicon oasis': 'dubai-silicon-oasis',
+  'international city': 'international-city',
+  'al furjan': 'al-furjan',
+  'damac hills': 'damac-hills',
+  'town square': 'town-square',
+};
 
-  const res = await fetch(`${PF_BASE}/auth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey, apiSecret }),
-  });
-  if (!res.ok) return null;
-  const { accessToken } = await res.json();
-  return accessToken;
+const PF_TYPE_MAP = {
+  apartment: 'apartments',
+  villa: 'villas',
+  townhouse: 'townhouses',
+  penthouse: 'penthouses',
+  studio: 'apartments', // studio is filtered via beds=0
+  office: 'offices',
+  retail: 'shops',
+  warehouse: 'warehouses',
+};
+
+const BAYUT_TYPE_MAP = {
+  apartment: 'apartments',
+  villa: 'villas',
+  townhouse: 'townhouses',
+  penthouse: 'penthouses',
+  studio: 'apartments',
+  office: 'offices',
+  retail: 'shops',
+  warehouse: 'warehouses',
+};
+
+// ─── Property Finder URL builder ─────────────────────────────────────────────
+function buildPFUrl(brief) {
+  const action = brief.transaction === 'lease' ? 'rent' : 'buy';
+  const typeSlug = PF_TYPE_MAP[brief.property_type] || 'properties';
+  const areaKey = (brief.location || '').toLowerCase().trim();
+  const areaSlug = PF_AREA_SLUGS[areaKey] || areaKey.replace(/\s+/g, '-').toLowerCase();
+  const emirate = 'dubai'; // default
+
+  const bedLabel = !brief.bedrooms ? '' :
+    brief.bedrooms === 0 ? 'studio-' : `${brief.bedrooms}-bedroom-`;
+
+  // Path: /en/buy/dubai/2-bedroom-apartments-for-sale.html
+  const actionWord = action === 'buy' ? 'sale' : 'rent';
+  let path = `/en/${action}/${emirate}/`;
+  if (areaSlug) path += `${areaSlug}/`;
+  path += `${bedLabel}${typeSlug}-for-${actionWord}.html`;
+
+  const params = new URLSearchParams();
+  if (brief.budget_min) params.set('price_min', brief.budget_min);
+  if (brief.budget_max) params.set('price_max', brief.budget_max);
+  if (brief.size_min) params.set('size_min', brief.size_min);
+  if (brief.size_max) params.set('size_max', brief.size_max);
+  if (brief.property_type === 'studio') params.set('beds', '0');
+  if (brief.furnished) params.set('furnishing_status', 'furnished');
+  if (brief.ready_only) params.set('completion_status', 'completed');
+
+  const qs = params.toString();
+  const url = `https://www.propertyfinder.ae${path}${qs ? '?' + qs : ''}`;
+  return url;
 }
 
-async function searchPropertyFinder(token, brief) {
-  // Build query params from brief
-  const params = new URLSearchParams({ perPage: '20' });
-  if (brief.bedrooms) params.set('bedrooms', brief.bedrooms);
-  if (brief.property_type) params.set('propertyType', brief.property_type);
-  if (brief.transaction) params.set('dealType', brief.transaction === 'lease' ? 'rent' : 'sale');
-  if (brief.location) params.set('location', brief.location);
-  if (brief.budget_max) params.set('priceMax', brief.budget_max);
-  if (brief.budget_min) params.set('priceMin', brief.budget_min);
+// ─── Bayut URL builder ────────────────────────────────────────────────────────
+function buildBayutUrl(brief) {
+  const action = brief.transaction === 'lease' ? 'to-rent' : 'for-sale';
+  const typeSlug = BAYUT_TYPE_MAP[brief.property_type] || 'properties';
+  const areaKey = (brief.location || '').toLowerCase().trim();
+  const areaSlug = BAYUT_AREA_SLUGS[areaKey] || areaKey.replace(/\s+/g, '-').toLowerCase();
 
-  const res = await fetch(`${PF_BASE}/listings?${params.toString()}`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-  });
+  const bedLabel = !brief.bedrooms ? '' :
+    brief.bedrooms === 0 ? 'studio-' : `${brief.bedrooms}-bedroom-`;
 
-  if (!res.ok) {
-    // Try fetching all listings and filter client-side as fallback
-    const fallbackRes = await fetch(`${PF_BASE}/listings?perPage=50`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-    });
-    if (!fallbackRes.ok) return [];
-    const data = await fallbackRes.json();
-    return (data.results || data.data || data.listings || []);
+  // Path: /dubai/apartments-for-sale/2-bedroom/in-dubai-marina/
+  let path = `/dubai/${typeSlug}-${action}/`;
+  if (brief.bedrooms !== undefined && brief.bedrooms !== '') {
+    path += brief.bedrooms === 0 ? 'studio/' : `${brief.bedrooms}-bedroom/`;
+  }
+  if (areaSlug) path += `in-${areaSlug}/`;
+
+  const params = new URLSearchParams();
+  if (brief.budget_min) params.set('price_min', brief.budget_min);
+  if (brief.budget_max) params.set('price_max', brief.budget_max);
+  if (brief.size_min) params.set('min_area', brief.size_min);
+  if (brief.size_max) params.set('max_area', brief.size_max);
+  if (brief.furnished) params.set('furnishing_status', 'Furnished');
+  if (brief.ready_only) params.set('completion_status', 'completed');
+
+  const qs = params.toString();
+  const url = `https://www.bayut.com${path}${qs ? '?' + qs : ''}`;
+  return url;
+}
+
+// ─── Fit confidence scorer ────────────────────────────────────────────────────
+function scoreFitConfidence(brief, areaMatched) {
+  let score = 0;
+  const reasons = [];
+  const gaps = [];
+
+  if (brief.location) {
+    if (areaMatched) { score += 35; reasons.push('Area mapped exactly'); }
+    else { score += 15; reasons.push('Area used as-is (verify on site)'); gaps.push('Area slug not pre-mapped — results may be broader'); }
+  } else {
+    gaps.push('No area specified — city-wide results');
   }
 
-  const data = await res.json();
-  return data.results || data.data || data.listings || [];
+  if (brief.bedrooms !== undefined && brief.bedrooms !== '') { score += 25; reasons.push(`${brief.bedrooms === 0 ? 'Studio' : brief.bedrooms + ' BR'} filter applied`); }
+  else gaps.push('Bedrooms not specified');
+
+  if (brief.budget_max) { score += 20; reasons.push(`Budget max AED ${Number(brief.budget_max).toLocaleString()} applied`); }
+  else gaps.push('No budget cap set');
+
+  if (brief.budget_min) { score += 5; reasons.push('Budget floor applied'); }
+  if (brief.property_type) { score += 10; reasons.push(`Type: ${brief.property_type}`); }
+  if (brief.ready_only) { score += 5; reasons.push('Ready only filter on'); }
+  if (brief.furnished) { score += 5; reasons.push('Furnished filter on'); }
+
+  const label = score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Partial';
+  return { score, label, reasons, gaps };
 }
 
-function normalizePFListing(p, brief) {
-  const price = p.price || p.rent || 0;
-  const beds = p.bedrooms ?? 0;
-  const area = p.area || p.size || 0;
-  const location = p.location || p.community || p.area_name || '';
-
-  // Scoring
-  let score = 0;
-  if (brief.budget_min && brief.budget_max) {
-    if (price >= brief.budget_min && price <= brief.budget_max) score += 40;
-    else if (price <= brief.budget_max * 1.1) score += 20;
-  } else if (brief.budget_max && price <= brief.budget_max) score += 40;
-
-  if (brief.bedrooms && beds === parseInt(brief.bedrooms)) score += 30;
-  else if (brief.bedrooms && Math.abs(beds - parseInt(brief.bedrooms)) === 1) score += 15;
-
-  const loc = location.toLowerCase();
-  const briefLoc = (brief.location || '').toLowerCase();
-  if (briefLoc && loc.includes(briefLoc)) score += 20;
-  else if (briefLoc && briefLoc.split(' ').some(w => w.length > 3 && loc.includes(w))) score += 10;
-
-  if (brief.property_type && (p.property_type || '').toLowerCase().includes(brief.property_type.toLowerCase())) score += 10;
-
-  const ref = p.reference || p.reference_no || p.id || '';
-  const listingUrl = ref
-    ? `https://www.propertyfinder.ae/en/plp/${ref}`
-    : 'https://www.propertyfinder.ae';
-
-  return {
-    id: `pf_${p.id || ref}`,
-    source: 'Property Finder',
-    title: p.title || p.headline || `${p.property_type || 'Property'} in ${location}`,
-    price,
-    bedrooms: beds,
-    bathrooms: p.bathrooms || 0,
-    size_sqft: area,
-    location,
-    building: p.building || p.building_name || '',
-    image: p.images?.[0]?.url || p.images?.[0] || '',
-    listing_url: listingUrl,
-    reference: ref,
-    furnishing: p.furnishing_status || '',
-    score,
-    deal_type: p.deal_type || brief.transaction || 'sale',
-    listed_at: p.updated_at || p.created_at || null,
-  };
-}
-
-async function searchBayutViaAI(base44, brief) {
-  const transactionLabel = brief.transaction === 'lease' ? 'for rent' : 'for sale';
-  const beds = brief.bedrooms ? `${brief.bedrooms} bedroom` : '';
-  const budget = brief.budget_max ? `, budget up to AED ${Number(brief.budget_max).toLocaleString()}` : '';
-  const area = brief.location ? ` in ${brief.location}` : ' in Dubai';
-  const type = brief.property_type || 'apartment';
-
-  const prompt = `Search Bayut.com for current active listings: ${beds} ${type} ${transactionLabel}${area}${budget}.
-
-Return a JSON array of the top 6 best matching listings you find. Each object must have these exact keys:
-- title: property title
-- price: number (AED, no commas)
-- bedrooms: number
-- size_sqft: number (0 if unknown)
-- location: area/community name
-- building: building name or empty string
-- listing_url: direct URL to the Bayut listing page
-- listed_recently: boolean (true if listed within last 30 days)
-
-Return ONLY valid JSON array, no markdown, no explanation.`;
-
-  try {
-    const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt,
-      add_context_from_internet: true,
-      response_json_schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            price: { type: 'number' },
-            bedrooms: { type: 'number' },
-            size_sqft: { type: 'number' },
-            location: { type: 'string' },
-            building: { type: 'string' },
-            listing_url: { type: 'string' },
-            listed_recently: { type: 'boolean' },
-          },
-        },
-      },
-    });
-
-    const listings = Array.isArray(res) ? res : [];
-
-    return listings.map((p, i) => {
-      const price = p.price || 0;
+// ─── Internal property scoring ────────────────────────────────────────────────
+function scoreInternalProperties(properties, brief) {
+  return properties
+    .map(p => {
       let score = 0;
-
+      const price = p.price_aed || p.rent_aed || 0;
       if (brief.budget_max && price <= brief.budget_max) score += 40;
       else if (brief.budget_max && price <= brief.budget_max * 1.1) score += 20;
-
-      if (brief.bedrooms && p.bedrooms === parseInt(brief.bedrooms)) score += 30;
-      else if (brief.bedrooms && Math.abs((p.bedrooms || 0) - parseInt(brief.bedrooms)) === 1) score += 15;
-
+      if (brief.bedrooms !== undefined && brief.bedrooms !== '' && p.bedrooms === parseInt(brief.bedrooms)) score += 30;
+      else if (brief.bedrooms !== undefined && brief.bedrooms !== '' && Math.abs((p.bedrooms || 0) - parseInt(brief.bedrooms)) === 1) score += 15;
       const loc = (p.location || '').toLowerCase();
       const briefLoc = (brief.location || '').toLowerCase();
       if (briefLoc && loc.includes(briefLoc)) score += 20;
-
-      if (p.listed_recently) score += 10;
-
-      return {
-        id: `bayut_${i}_${Date.now()}`,
-        source: 'Bayut',
-        title: p.title || 'Property',
-        price,
-        bedrooms: p.bedrooms || 0,
-        bathrooms: 0,
-        size_sqft: p.size_sqft || 0,
-        location: p.location || '',
-        building: p.building || '',
-        image: '',
-        listing_url: p.listing_url || 'https://www.bayut.com',
-        reference: '',
-        furnishing: '',
-        score,
-        deal_type: brief.transaction || 'sale',
-        listed_at: null,
-      };
-    });
-  } catch (e) {
-    return [];
-  }
+      if (brief.property_type && (p.property_type || '').toLowerCase() === brief.property_type) score += 10;
+      return { ...p, _score: score };
+    })
+    .filter(p => p._score >= 40)
+    .sort((a, b) => b._score - a._score);
 }
 
-function scoreInternalProperties(properties, brief) {
-  return properties.map(p => {
-    let score = 0;
-
-    const price = p.price_aed || p.rent_aed || 0;
-    if (brief.budget_max && price <= brief.budget_max) score += 40;
-    else if (brief.budget_max && price <= brief.budget_max * 1.1) score += 20;
-
-    if (brief.bedrooms && p.bedrooms === parseInt(brief.bedrooms)) score += 30;
-    else if (brief.bedrooms && Math.abs((p.bedrooms || 0) - parseInt(brief.bedrooms)) === 1) score += 15;
-
-    const loc = (p.location || '').toLowerCase();
-    const briefLoc = (brief.location || '').toLowerCase();
-    if (briefLoc && loc.includes(briefLoc)) score += 20;
-
-    if (brief.property_type && (p.property_type || '').toLowerCase() === brief.property_type.toLowerCase()) score += 10;
-
-    return { ...p, _internalScore: score };
-  }).filter(p => p._internalScore >= 40);
-}
-
+// ─── Handler ──────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -206,18 +203,16 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { brief, client_id, skip_internal } = body;
-
+    const { brief, client_id } = body;
     if (!brief) return Response.json({ error: 'brief is required' }, { status: 400 });
 
-    // 1. Internal match first (unless skipped)
+    // 1. Internal match first
     let internalMatches = [];
-    if (!skip_internal) {
+    try {
       const internalProps = await base44.asServiceRole.entities.Property.list();
       internalMatches = scoreInternalProperties(internalProps, brief);
-    }
+    } catch (_) { /* no properties yet */ }
 
-    // If strong internal matches, return them and stop
     if (internalMatches.length >= 2) {
       return Response.json({
         source: 'internal',
@@ -227,30 +222,50 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Fallback: live market search
-    const [pfToken, bayutResults] = await Promise.all([
-      getPFToken(),
-      searchBayutViaAI(base44, brief),
-    ]);
+    // 2. Build deep links
+    const areaKey = (brief.location || '').toLowerCase().trim();
+    const pfAreaMatched = !!PF_AREA_SLUGS[areaKey];
+    const bayutAreaMatched = !!BAYUT_AREA_SLUGS[areaKey];
 
-    let pfResults = [];
-    if (pfToken) {
-      const raw = await searchPropertyFinder(pfToken, brief);
-      pfResults = raw.map(p => normalizePFListing(p, brief));
-    }
+    const pfUrl = buildPFUrl(brief);
+    const bayutUrl = buildBayutUrl(brief);
 
-    // Merge, sort by score desc, dedupe
-    const allResults = [...pfResults, ...bayutResults]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    const pfConfidence = scoreFitConfidence(brief, pfAreaMatched);
+    const bayutConfidence = scoreFitConfidence(brief, bayutAreaMatched);
 
-    // Log search against client if client_id provided
-    if (client_id && allResults.length > 0) {
+    // Build plain-language brief summary
+    const briefSummary = [
+      brief.bedrooms === 0 ? 'Studio' : brief.bedrooms ? `${brief.bedrooms} BR` : null,
+      brief.property_type ? brief.property_type.charAt(0).toUpperCase() + brief.property_type.slice(1) : null,
+      brief.transaction === 'lease' ? 'for Rent' : 'for Sale',
+      brief.location ? `in ${brief.location}` : 'in Dubai',
+      (brief.budget_min || brief.budget_max) ? `AED ${brief.budget_min ? Number(brief.budget_min).toLocaleString() + '–' : ''}${brief.budget_max ? Number(brief.budget_max).toLocaleString() : ''}` : null,
+      brief.ready_only ? '· Ready only' : null,
+      brief.furnished ? '· Furnished' : null,
+    ].filter(Boolean).join(' ');
+
+    const portals = [
+      {
+        name: 'Property Finder',
+        url: pfUrl,
+        confidence: pfConfidence,
+        logo_color: '#00D09C',
+      },
+      {
+        name: 'Bayut',
+        url: bayutUrl,
+        confidence: bayutConfidence,
+        logo_color: '#E74C3C',
+      },
+    ].sort((a, b) => b.confidence.score - a.confidence.score);
+
+    // 3. Log against client record
+    if (client_id) {
       await base44.asServiceRole.entities.Activity.create({
         lead_id: client_id,
         type: 'system',
-        title: `Live market search: ${brief.bedrooms || '?'}BR ${brief.property_type || 'property'} in ${brief.location || 'Dubai'}`,
-        description: `Found ${allResults.length} live listings from Property Finder and Bayut. Budget: AED ${Number(brief.budget_min || 0).toLocaleString()}–${Number(brief.budget_max || 0).toLocaleString()}`,
+        title: `Live market search: ${briefSummary}`,
+        description: `Deep-link search generated.\nProperty Finder: ${pfUrl}\nBayut: ${bayutUrl}`,
         source: 'automation',
         agent_email: user.email,
         status: 'completed',
@@ -259,10 +274,9 @@ Deno.serve(async (req) => {
 
     return Response.json({
       source: 'live_market',
-      pf_count: pfResults.length,
-      bayut_count: bayutResults.length,
-      matches: allResults,
-      total: allResults.length,
+      brief_summary: briefSummary,
+      portals,
+      internal_count: internalMatches.length,
       searched_at: new Date().toISOString(),
     });
   } catch (error) {

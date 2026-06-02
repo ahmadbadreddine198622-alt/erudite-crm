@@ -7,7 +7,7 @@ import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeStat from '@/components/erudite/EruditeStat';
 import EruditeButton from '@/components/erudite/EruditeButton';
 import ClientBriefForm from '@/components/propertyintel/ClientBriefForm';
-import LiveMarketResults from '@/components/propertyintel/LiveMarketResults';
+import DeepLinkResults from '@/components/propertyintel/DeepLinkResults';
 import { Building, Search, TrendingUp, MapPin, X, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,13 +46,11 @@ export default function PropertyIntel() {
     }
   };
 
-  const handleWhatsApp = (listing) => {
-    const msg = `Hi! I found a great match for your search:\n\n🏠 ${listing.title}\n💰 AED ${Number(listing.price).toLocaleString()}\n📍 ${listing.location}${listing.building ? ` — ${listing.building}` : ''}\n🛏 ${listing.bedrooms === 0 ? 'Studio' : `${listing.bedrooms} BR`}${listing.size_sqft > 0 ? ` · ${Number(listing.size_sqft).toLocaleString()} sqft` : ''}\n\n🔗 ${listing.listing_url}\n\nWould you like to schedule a viewing?`;
+  const handleWhatsApp = (portal) => {
+    const results = searchResults;
+    const brief = results?.brief_summary || '';
+    const msg = `Hi! I've been searching the market for you and found some great current options.\n\n🔍 Search: ${brief}\n\n📲 Live results on ${portal.name}:\n${portal.url}\n\nI'll give you a call shortly to walk you through the best ones. Does that work for you?`;
     setWhatsappDraft(msg);
-  };
-
-  const handleSave = (listing) => {
-    toast.success(`${listing.title} saved to shortlist`);
   };
 
   return (
@@ -121,10 +119,9 @@ export default function PropertyIntel() {
         )}
 
         {searchResults && !searching && (
-          <LiveMarketResults
+          <DeepLinkResults
             results={searchResults}
-            onWhatsApp={handleWhatsApp}
-            onSave={handleSave}
+            onDraftWhatsApp={handleWhatsApp}
           />
         )}
       </EruditeSection>
