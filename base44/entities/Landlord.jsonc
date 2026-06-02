@@ -41,6 +41,14 @@
       "type": "string",
       "format": "email"
     },
+    "additional_emails": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "email"
+      },
+      "description": "Secondary email addresses beyond primary email"
+    },
     "preferred_language": {
       "type": "string",
       "enum": [
