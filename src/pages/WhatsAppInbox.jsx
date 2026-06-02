@@ -139,6 +139,27 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
   });
 
+  // Normalize phone numbers and dedupe conversations
+  const normalizedConversations = (() => {
+    const map = new Map();
+    conversations.forEach(conv => {
+      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+      const existing = map.get(normalizedPhone);
+      if (!existing) {
+        map.set(normalizedPhone, conv);
+      } else {
+        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
+        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
+        if (newTime > existingTime) {
+          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
+        } else {
+          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
+        }
+      }
+    });
+    return Array.from(map.values());
+  })();
+
   const selectedConv = normalizedConversations.find(c => c.id === selectedConvId) || null;
   const selectedLead = leads.find(l => l.id === selectedConv?.lead_id) || null;
 
@@ -161,28 +182,6 @@ export default function WhatsAppInbox() {
     }
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
-
-  // Normalize phone numbers and dedupe conversations
-  const normalizedConversations = (() => {
-    const map = new Map();
-    conversations.forEach(conv => {
-      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-      const existing = map.get(normalizedPhone);
-      if (!existing) {
-        map.set(normalizedPhone, conv);
-      } else {
-        // Merge: keep the one with more recent message
-        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
-        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
-        if (newTime > existingTime) {
-          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
-        } else {
-          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
-        }
-      }
-    });
-    return Array.from(map.values());
-  })();
 
   // Find landlord by normalized phone match
   const findLandlordByPhone = (conv) => {
