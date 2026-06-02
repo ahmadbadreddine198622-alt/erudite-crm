@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import EruditePage from '@/components/erudite/EruditePage';
-import EruditeCard from '@/components/erudite/EruditeCard';
-import EruditeSection from '@/components/erudite/EruditeSection';
-import EruditeStat from '@/components/erudite/EruditeStat';
-import EruditeBadge from '@/components/erudite/EruditeBadge';
-import EruditeButton from '@/components/erudite/EruditeButton';
-import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
-import EruditeTable from '@/components/erudite/EruditeTable';
+import iOSCard from '@/components/ios/iOSCard';
+import iOSBadge from '@/components/ios/iOSBadge';
 import { FileBox, Plus, Mail, Edit2, TrendingUp, Copy } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,17 +12,6 @@ export default function EmailTemplates() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
 
-  const queryClient = useQueryClient();
-
-  // Templates would need a new entity - using Notes as placeholder for now
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['emailTemplates'],
-    queryFn: async () => {
-      // For now, return empty - would need EmailTemplate entity
-      return [];
-    },
-  });
-
   const stats = {
     total: 24,
     usedThisWeek: 156,
@@ -38,96 +19,115 @@ export default function EmailTemplates() {
     avgReplyRate: 34,
   };
 
-  const tableColumns = [
-    { header: 'Template Name', accessor: 'name' },
-    { header: 'Category', accessor: 'category' },
-    { header: 'Last Used', accessor: (row) => row.last_used || 'Never' },
-    { header: 'Usage Count', accessor: (row) => row.usage_count || 0 },
-    {
-      header: 'Actions',
-      accessor: (row) => (
-        <div className="flex gap-2">
-          <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <EruditePage
-      title="Email Templates"
-      subtitle="Pre-built email templates for common scenarios"
-      actions={
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <EruditeButton icon={Plus}>Create Template</EruditeButton>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl bg-[#0F1419] border-white/10">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-display">
-                {editingTemplate ? 'Edit Template' : 'Create Email Template'}
-              </DialogTitle>
-            </DialogHeader>
-            <CreateTemplateForm 
-              onSubmit={(data) => {
-                toast.success('Template created (placeholder)');
-                setIsDialogOpen(false);
-              }} 
-              onCancel={() => setIsDialogOpen(false)} 
-            />
-          </DialogContent>
-        </Dialog>
-      }
-    >
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <EruditeCard>
-          <div className="p-5 space-y-3">
-            <EruditeStat label="Total Templates" value={stats.total.toString()} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Email Templates</h1>
+            <p className="text-gray-500 mt-1">Pre-built email templates for common scenarios</p>
           </div>
-        </EruditeCard>
-        <EruditeCard>
-          <div className="p-5 space-y-3">
-            <EruditeStat label="Used This Week" value={stats.usedThisWeek.toString()} trend="up" trendValue="+23%" />
-          </div>
-        </EruditeCard>
-        <EruditeCard>
-          <div className="p-5 space-y-3">
-            <EruditeStat label="Avg. Open Rate" value={`${stats.avgOpenRate}%`} trend="up" trendValue="+4%" />
-          </div>
-        </EruditeCard>
-        <EruditeCard>
-          <div className="p-5 space-y-3">
-            <EruditeStat label="Avg. Reply Rate" value={`${stats.avgReplyRate}%`} trend="up" trendValue="+2%" />
-          </div>
-        </EruditeCard>
-      </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                <Plus className="w-4 h-4" />
+                Create Template
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingTemplate ? 'Edit Template' : 'Create Email Template'}
+                </DialogTitle>
+              </DialogHeader>
+              <CreateTemplateForm 
+                onSubmit={(data) => {
+                  toast.success('Template created (placeholder)');
+                  setIsDialogOpen(false);
+                }} 
+                onCancel={() => setIsDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      {/* Main Content */}
-      <EruditeSection title="Template Library" subtitle="Collection" icon={Mail}>
-        <EruditeEmptyState
-          icon={FileBox}
-          title="No templates yet"
-          description="Create your first email template to save time on common communications"
-          action={
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <iOSCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase">Total Templates</span>
+              <FileBox className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+          </iOSCard>
+          <iOSCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase">Used This Week</span>
+              <Mail className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.usedThisWeek}</p>
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              +23%
+            </p>
+          </iOSCard>
+          <iOSCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase">Avg. Open Rate</span>
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.avgOpenRate}%</p>
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              +4%
+            </p>
+          </iOSCard>
+          <iOSCard className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase">Avg. Reply Rate</span>
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.avgReplyRate}%</p>
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              +2%
+            </p>
+          </iOSCard>
+        </div>
+
+        {/* Main Content */}
+        <iOSCard className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <Mail className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Template Library</h2>
+              <p className="text-sm text-gray-500">Collection</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50">
+            <FileBox className="w-12 h-12 mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium mb-2 text-gray-700">No templates yet</h3>
+            <p className="text-sm text-center max-w-md text-gray-500">
+              Create your first email template to save time on common communications
+            </p>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <EruditeButton variant="primary">Create First Template</EruditeButton>
+                <button className="mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                  Create First Template
+                </button>
               </DialogTrigger>
             </Dialog>
-          }
-        />
-      </EruditeSection>
-    </EruditePage>
+          </div>
+        </iOSCard>
+      </div>
+    </div>
   );
 }
 
-// Create Template Form
 function CreateTemplateForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -144,45 +144,50 @@ function CreateTemplateForm({ onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
       <div className="space-y-2">
-        <Label className="text-white/80">Template Name</Label>
+        <Label>Template Name</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Property Inquiry Response"
-          className="glass-input"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-white/80">Email Subject</Label>
+        <Label>Email Subject</Label>
         <Input
           value={formData.subject}
           onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
           placeholder="Email subject line"
-          className="glass-input"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-white/80">Email Body</Label>
+        <Label>Email Body</Label>
         <Textarea
           value={formData.body}
           onChange={(e) => setFormData({ ...formData, body: e.target.value })}
           placeholder="Email content (use {{name}} for personalization)"
-          className="glass-input min-h-[200px] font-mono text-sm"
+          className="min-h-[200px] font-mono text-sm"
           required
         />
       </div>
 
       <div className="flex gap-3 pt-4">
-        <EruditeButton type="button" variant="secondary" onClick={onCancel} className="flex-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
+        >
           Cancel
-        </EruditeButton>
-        <EruditeButton type="submit" variant="primary" className="flex-1">
+        </button>
+        <button
+          type="submit"
+          className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+        >
           Create Template
-        </EruditeButton>
+        </button>
       </div>
     </form>
   );
