@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, RefreshCw, ChevronDown, FileText } from "lucide-react";
+import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, Zap } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
+import TemplatesModal from "@/components/whatsapp/TemplatesModal";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord }) {
   const [text, setText] = useState("");
   const [showAssistant, setShowAssistant] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
 
   // Check 24-hour window
@@ -22,7 +22,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   const windowLocked = !isWithin24h;
 
   // Always fetch templates
-  const { data: metaData, refetch: refetchTemplates, isFetching: isSyncingTemplates } = useQuery({
+  const { data: metaData } = useQuery({
     queryKey: ['meta_templates_live'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getMetaTemplates', {});
@@ -64,7 +64,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         <div className="px-3 py-2 flex items-center gap-2" style={{ background: 'rgba(245,159,10,0.08)', borderBottom: '1px solid rgba(245,159,10,0.15)' }}>
           <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(38 92% 50%)' }} />
           <p className="text-xs flex-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            24-hour window closed — use a template to re-open
+            24-hour window closed — use a <button onClick={() => setShowTemplates(true)} className="underline font-medium" style={{ color: 'hsl(38 92% 55%)' }}>template</button> to re-open
           </p>
         </div>
       )}
@@ -95,7 +95,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           <Textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder={windowLocked ? "Window closed — select a template below to message…" : "Type a message…"}
+            placeholder={windowLocked ? "Window closed — use a template to message…" : "Type a message…"}
             rows={1}
             className="border-0 bg-transparent resize-none p-0 shadow-none focus-visible:ring-0 min-h-0 text-sm w-full"
             style={{ color: windowLocked ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.9)' }}
@@ -104,43 +104,20 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           />
         </div>
 
-        <div className="flex flex-col gap-1.5 shrink-0">
-          {/* Send button — disabled when window locked */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!text.trim() || windowLocked}
-            title={windowLocked ? "24-hour window closed" : "Send"}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed"
-            style={{ background: windowLocked ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50%)' }}
-          >
-            {windowLocked
-              ? <Lock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-              : <Send className="w-4 h-4" style={{ color: 'hsl(222 47% 11%)' }} />
-            }
-          </button>
-
-          {/* Schedule send (only when window open) */}
-          {!windowLocked && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className="w-10 h-10 rounded-full flex items-center justify-center transition"
-                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}>
-                  <Clock className="w-4 h-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48">
-                <p className="text-xs font-medium mb-2">Schedule send</p>
-                {[15, 60, 240, 1440].map(min => (
-                  <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
-                    className="w-full text-left px-2 py-1 hover:bg-muted text-xs rounded">
-                    In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
+        {/* Send button */}
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={!text.trim() || windowLocked}
+          title={windowLocked ? "24-hour window closed" : "Send"}
+          className="mb-0.5 w-10 h-10 rounded-full flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+          style={{ background: (!text.trim() || windowLocked) ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50%)' }}
+        >
+          {windowLocked
+            ? <Lock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            : <Send className="w-4 h-4" style={{ color: 'hsl(222 47% 11%)' }} />
+          }
+        </button>
       </div>
 
       {/* AI Reply Assistant */}
@@ -155,61 +132,66 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 px-3 pb-2 pt-0">
+        {/* Templates button — lightning bolt, always visible */}
+        <button
+          type="button"
+          onClick={() => setShowTemplates(true)}
+          title="WhatsApp Templates"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
+          style={{
+            color: windowLocked ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)',
+            background: windowLocked ? 'rgba(245,159,10,0.1)' : 'transparent',
+            border: windowLocked ? '1px solid rgba(245,159,10,0.25)' : '1px solid transparent',
+          }}
+          onMouseEnter={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
+          onMouseLeave={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span className="text-[11px]">
+            Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
+          </span>
+        </button>
+
         {!windowLocked && (
           <>
             <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
             <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
             <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setText)} />
+            <div className="ml-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition"
+                    style={{ color: 'rgba(255,255,255,0.45)' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Schedule</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48">
+                  <p className="text-xs font-medium mb-2">Schedule send</p>
+                  {[15, 60, 240, 1440].map(min => (
+                    <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
+                      className="w-full text-left px-2 py-1 hover:bg-muted text-xs rounded">
+                      In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
           </>
         )}
-
-        {/* Templates dropdown — always visible */}
-        <div className="ml-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                disabled={isSyncingTemplates}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition"
-                style={{
-                  background: windowLocked ? 'rgba(245,159,10,0.12)' : 'rgba(255,255,255,0.07)',
-                  border: `1px solid ${windowLocked ? 'rgba(245,159,10,0.3)' : 'rgba(255,255,255,0.12)'}`,
-                  color: windowLocked ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.6)',
-                }}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                {isSyncingTemplates ? 'Loading…' : `Templates${displayTemplates.length ? ` (${displayTemplates.length})` : ''}`}
-                <ChevronDown className="w-3 h-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 max-h-72 overflow-y-auto">
-              {displayTemplates.length === 0 ? (
-                <div className="px-3 py-4 text-center">
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>No approved templates found</p>
-                  <button onClick={() => refetchTemplates()} className="mt-2 text-xs underline" style={{ color: 'hsl(38 92% 50%)' }}>
-                    Retry sync
-                  </button>
-                </div>
-              ) : (
-                displayTemplates.map(t => (
-                  <DropdownMenuItem
-                    key={t.name + t.language}
-                    onClick={() => handleSendTemplate(t)}
-                    disabled={isSendingTemplate}
-                    className="flex flex-col items-start gap-0.5 py-2.5 cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between w-full gap-2">
-                      <span className="text-xs font-semibold truncate">{t.name}</span>
-                      <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>{t.language}</span>
-                    </div>
-                    {t.body && <span className="text-[11px] line-clamp-2 opacity-60">{t.body}</span>}
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </div>
+
+      {/* Templates Modal */}
+      <TemplatesModal
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        templates={displayTemplates}
+        onSelect={handleSendTemplate}
+        isSending={isSendingTemplate}
+      />
     </div>
   );
 }
