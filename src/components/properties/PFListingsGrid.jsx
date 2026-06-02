@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   RefreshCw, Bed, Bath, Ruler, Filter, ExternalLink,
-  FileDown, X, RotateCcw, Home, ChevronDown, ChevronUp
+  FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 const GOLD = '#c9a85c';
 const GREEN = '#3fcf8e';
+const AUTO_SYNC_INTERVAL_MS = 60_000;
 
 const formatPrice = (p) => {
   if (!p) return 'POA';
@@ -33,6 +35,19 @@ const BED_OPTIONS = [
   { label: '3+', value: 3 },
   { label: '4+', value: 4 },
 ];
+
+// Sort: sale first, then by created_date desc
+function sortListings(arr) {
+  return [...arr].sort((a, b) => {
+    const purposeA = (a.listing_type || '').toLowerCase();
+    const purposeB = (b.listing_type || '').toLowerCase();
+    if (purposeA === 'sale' && purposeB !== 'sale') return -1;
+    if (purposeA !== 'sale' && purposeB === 'sale') return 1;
+    const dateA = new Date(a.created_date || 0).getTime();
+    const dateB = new Date(b.created_date || 0).getTime();
+    return dateB - dateA;
+  });
+}
 
 function ChipGroup({ options, value, onChange, multi = false }) {
   const handleClick = (v) => {
@@ -131,9 +146,7 @@ function ListingCard({ listing }) {
             <Home className="w-8 h-8 opacity-20 text-white" />
           </div>
         )}
-        {/* Diagonal overlay */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
-        {/* Status pill */}
         <div className="absolute top-2 left-2">
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
             style={{ background: isLive ? 'rgba(63,207,142,0.15)' : 'rgba(255,255,255,0.1)', color: isLive ? GREEN : 'rgba(255,255,255,0.5)', border: `1px solid ${isLive ? 'rgba(63,207,142,0.35)' : 'rgba(255,255,255,0.15)'}` }}>
@@ -141,7 +154,6 @@ function ListingCard({ listing }) {
             {isLive ? 'Live' : 'Archived'}
           </span>
         </div>
-        {/* Purpose tag */}
         <div className="absolute bottom-2 left-2">
           <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest"
             style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.7)' }}>
@@ -153,41 +165,26 @@ function ListingCard({ listing }) {
       {/* Body */}
       <div className="flex flex-col flex-1 p-3 min-w-0 justify-between">
         <div className="min-w-0">
-          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'rgba(255,255,255,0.95)' }}>
-            {title}
-          </p>
-          <p className="text-xs font-mono mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Ref: {listing.reference_number || listing.pf_listing_id}
-          </p>
-          {/* Specs */}
+          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'rgba(255,255,255,0.95)' }}>{title}</p>
+          <p className="text-xs font-mono mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
           <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
             <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{beds}</span>
             <span className="flex items-center gap-1"><Bath className="w-3 h-3" />{listing.bathrooms || '-'}</span>
             <span className="flex items-center gap-1"><Ruler className="w-3 h-3" />{listing.area_sqft ? listing.area_sqft.toLocaleString() : '-'} ft²</span>
           </div>
         </div>
-
-        {/* Bottom row */}
         <div className="flex items-center justify-between mt-2">
           <span className="text-sm font-bold" style={{ color: GOLD }}>{formatPrice(listing.price)}</span>
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => generatePDF(listing)}
-              title="Download PDF"
+            <button onClick={() => generatePDF(listing)} title="Download PDF"
               className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
-              style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}
-            >
+              style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}>
               <FileDown className="w-3.5 h-3.5" />
             </button>
             {listing.pf_url && (
-              <a
-                href={listing.pf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open in Property Finder"
+              <a href={listing.pf_url} target="_blank" rel="noopener noreferrer" title="Open in Property Finder"
                 className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
-                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}
-              >
+                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -209,48 +206,89 @@ export default function PFListingsGrid() {
   const [fArea, setFArea] = useState(null);
   const [fMaxPrice, setFMaxPrice] = useState(null);
 
+  // Sync state
+  const [syncState, setSyncState] = useState('idle'); // 'idle' | 'syncing' | 'done' | 'error'
+  const [lastSynced, setLastSynced] = useState(null);
+  const intervalRef = useRef(null);
+  const isSyncingRef = useRef(false);
+
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['pfListings'],
     queryFn: () => base44.entities.PFListing.filter({}, '-last_synced_at', 200),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30_000,
   });
 
   const syncMutation = useMutation({
     mutationFn: () => base44.functions.invoke('syncPFListings', {}),
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pfListings'] });
-      toast.success(`Synced ${result.data?.total_listings_written || 0} listings`);
+      setLastSynced(new Date());
+      setSyncState('done');
+      setTimeout(() => setSyncState('idle'), 4000);
     },
-    onError: (e) => toast.error('Sync failed: ' + e.message),
+    onError: () => {
+      setSyncState('error');
+    },
   });
 
-  // Derive unique areas and types from data
+  const runSync = useCallback(async () => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    setSyncState('syncing');
+    try {
+      await syncMutation.mutateAsync();
+    } catch {
+      // error handled in onError
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [syncMutation]);
+
+  // Auto-sync interval, paused when tab hidden
+  useEffect(() => {
+    const startInterval = () => {
+      if (intervalRef.current) return;
+      intervalRef.current = setInterval(() => {
+        if (document.visibilityState === 'visible') runSync();
+      }, AUTO_SYNC_INTERVAL_MS);
+    };
+
+    const stopInterval = () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        startInterval();
+        runSync(); // immediate sync on tab focus
+      } else {
+        stopInterval();
+      }
+    };
+
+    startInterval();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      stopInterval();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [runSync]);
+
   const allAreas = useMemo(() => [...new Set(listings.map(l => l.location).filter(Boolean))].sort(), [listings]);
   const allTypes = useMemo(() => [...new Set(listings.map(l => l.property_type).filter(Boolean))].sort(), [listings]);
-
   const typeOptions = [{ label: 'All', value: null }, ...allTypes.map(t => ({ label: t.charAt(0).toUpperCase() + t.slice(1), value: t }))];
   const areaOptions = [{ label: 'All', value: null }, ...allAreas.map(a => ({ label: a, value: a }))];
-
   const activeFilterCount = [fPurpose, fTypes?.length ? fTypes : null, fBeds, fArea, fMaxPrice].filter(Boolean).length;
-
   const resetFilters = () => { setFPurpose(null); setFTypes(null); setFBeds(null); setFArea(null); setFMaxPrice(null); };
 
   const filtered = useMemo(() => {
-    return listings.filter(l => {
-      // Status tab
+    return sortListings(listings.filter(l => {
       if (statusTab === 'live' && l.status !== 'active') return false;
       if (statusTab === 'archived' && l.status !== 'inactive') return false;
-
-      // Search
       if (search) {
         const q = search.toLowerCase();
-        const match = (l.title || '').toLowerCase().includes(q)
-          || (l.location || '').toLowerCase().includes(q)
-          || (l.reference_number || '').toLowerCase().includes(q)
-          || (l.pf_listing_id || '').toLowerCase().includes(q);
-        if (!match) return false;
+        if (!((l.title || '').toLowerCase().includes(q) || (l.location || '').toLowerCase().includes(q) || (l.reference_number || '').toLowerCase().includes(q) || (l.pf_listing_id || '').toLowerCase().includes(q))) return false;
       }
-
       if (fPurpose && l.listing_type !== fPurpose) return false;
       if (fTypes?.length && !fTypes.includes(l.property_type)) return false;
       if (fBeds !== null) {
@@ -259,70 +297,74 @@ export default function PFListingsGrid() {
       }
       if (fArea && l.location !== fArea) return false;
       if (fMaxPrice && (l.price || 0) > fMaxPrice) return false;
-
       return true;
-    });
+    }));
   }, [listings, statusTab, search, fPurpose, fTypes, fBeds, fArea, fMaxPrice]);
 
-  const tabLabel = statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total';
+  // Fallback: 3 latest live listings if filtered < 3
+  const latestFallback = useMemo(() => {
+    if (filtered.length >= 3) return [];
+    const liveSorted = sortListings(listings.filter(l => l.status === 'active'));
+    const filteredIds = new Set(filtered.map(l => l.id));
+    return liveSorted.filter(l => !filteredIds.has(l.id)).slice(0, 3 - filtered.length);
+  }, [filtered, listings]);
+
+  const syncLabel = syncState === 'syncing' ? 'Syncing…'
+    : syncState === 'done' ? '✓ Synced'
+    : syncState === 'error' ? 'Retry'
+    : 'Sync';
 
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Top bar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        {/* Segmented control */}
         <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
           {[['live', 'Live'], ['archived', 'Archived'], ['all', 'All']].map(([v, label]) => (
-            <button
-              key={v}
-              onClick={() => setStatusTab(v)}
+            <button key={v} onClick={() => setStatusTab(v)}
               className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={{
-                background: statusTab === v ? GOLD : 'transparent',
-                color: statusTab === v ? '#0a1320' : 'rgba(255,255,255,0.55)',
-              }}
-            >
+              style={{ background: statusTab === v ? GOLD : 'transparent', color: statusTab === v ? '#0a1320' : 'rgba(255,255,255,0.55)' }}>
               {label}
             </button>
           ))}
         </div>
 
-        <button
-          onClick={() => syncMutation.mutate()}
-          disabled={syncMutation.isPending}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50"
-          style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.25)` }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          {syncMutation.isPending ? 'Syncing...' : 'Sync'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Last synced */}
+          {lastSynced && syncState === 'idle' && (
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Synced {formatDistanceToNow(lastSynced, { addSuffix: true })}
+            </span>
+          )}
+          {syncState === 'error' && (
+            <span className="flex items-center gap-1 text-[10px]" style={{ color: '#f87171' }}>
+              <AlertCircle className="w-3 h-3" /> Sync failed — retrying
+            </span>
+          )}
+          <button
+            onClick={runSync}
+            disabled={syncState === 'syncing'}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50"
+            style={{ background: syncState === 'done' ? 'rgba(63,207,142,0.12)' : syncState === 'error' ? 'rgba(248,113,113,0.12)' : 'rgba(201,168,92,0.12)', color: syncState === 'done' ? GREEN : syncState === 'error' ? '#f87171' : GOLD, border: `1px solid ${syncState === 'done' ? 'rgba(63,207,142,0.25)' : syncState === 'error' ? 'rgba(248,113,113,0.25)' : 'rgba(201,168,92,0.25)'}` }}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncState === 'syncing' ? 'animate-spin' : ''}`} />
+            {syncLabel}
+          </button>
+        </div>
       </div>
 
       {/* Search + Filter toggle */}
       <div className="flex gap-2">
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+        <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search title, area, ref..."
           className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
-          style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.85)', caretColor: GOLD }}
-        />
-        <button
-          onClick={() => setFilterOpen(o => !o)}
+          style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.85)', caretColor: GOLD }} />
+        <button onClick={() => setFilterOpen(o => !o)}
           className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
-          style={{
-            background: filterOpen ? 'rgba(201,168,92,0.15)' : '#0e1a2b',
-            border: `1px solid ${filterOpen ? GOLD : '#1a2942'}`,
-            color: filterOpen ? GOLD : 'rgba(255,255,255,0.65)',
-          }}
-        >
+          style={{ background: filterOpen ? 'rgba(201,168,92,0.15)' : '#0e1a2b', border: `1px solid ${filterOpen ? GOLD : '#1a2942'}`, color: filterOpen ? GOLD : 'rgba(255,255,255,0.65)' }}>
           <Filter className="w-4 h-4" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
-              style={{ background: GOLD, color: '#0a1320' }}>
-              {activeFilterCount}
-            </span>
+            <span className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ background: GOLD, color: '#0a1320' }}>{activeFilterCount}</span>
           )}
           {filterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
@@ -363,32 +405,44 @@ export default function PFListingsGrid() {
 
       {/* Results count */}
       <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        {filtered.length} {tabLabel} {filtered.length === 1 ? 'listing' : 'listings'}
+        {filtered.length} {statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total'} {filtered.length === 1 ? 'listing' : 'listings'}
       </p>
 
       {/* Cards */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3,4].map(i => (
-            <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: '#0e1a2b' }} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: '#1a2942', background: 'rgba(14,26,43,0.5)' }}>
-          <Home className="w-10 h-10 mb-3 opacity-20 text-white" />
-          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>No listings match.</p>
-          <button
-            onClick={() => { setStatusTab('live'); resetFilters(); setSearch(''); }}
-            className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
-            style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.3)` }}
-          >
-            Back to Live
-          </button>
+          {[1,2,3,4].map(i => <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: '#0e1a2b' }} />)}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(l => <ListingCard key={l.id} listing={l} />)}
-        </div>
+        <>
+          {filtered.length === 0 && latestFallback.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: '#1a2942', background: 'rgba(14,26,43,0.5)' }}>
+              <Home className="w-10 h-10 mb-3 opacity-20 text-white" />
+              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>No listings match.</p>
+              <button onClick={() => { setStatusTab('live'); resetFilters(); setSearch(''); }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold"
+                style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.3)` }}>
+                Back to Live
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(l => <ListingCard key={l.id} listing={l} />)}
+
+              {/* Fallback section */}
+              {latestFallback.length > 0 && (
+                <>
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>Latest listings</span>
+                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+                  </div>
+                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} />)}
+                </>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
