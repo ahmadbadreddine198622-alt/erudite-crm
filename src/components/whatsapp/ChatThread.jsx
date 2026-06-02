@@ -18,7 +18,8 @@ export default function ChatThread({ conversationId, allConversationIds }) {
 
   const loadMessages = async () => {
     const ids = idsRef.current;
-    if (!ids.length) {
+    // Defensive check: ensure ids is an array
+    if (!Array.isArray(ids) || !ids.length) {
       setMessages([]);
       setIsLoading(false);
       return;
