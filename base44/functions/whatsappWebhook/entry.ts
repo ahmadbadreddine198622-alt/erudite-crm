@@ -82,6 +82,10 @@ Deno.serve(async (req) => {
       let bodyText = msg.text?.body || msg.caption || (isVoiceMessage ? '🎤 Voice message (transcribing…)' : `[${msg.type}]`);
 
       const e164Phone = normalizePhone(fromNumber);
+      
+      // Extract sender's profile name from Meta's contact data
+      const senderProfile = value?.contacts?.find(c => c.wa_id === fromNumber);
+      const waDisplayName = senderProfile?.profile?.name || '';
 
       // ---- Dedupe by wa_message_id (Meta retries the webhook on failure) ----
       const dup = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId });
@@ -110,6 +114,7 @@ Deno.serve(async (req) => {
           conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
             wa_phone_e164: e164Phone,
             phone_number: e164Phone,
+            wa_display_name: waDisplayName,
             status: 'new',
             first_message_at: timestamp,
             last_inbound_at: timestamp,
@@ -123,10 +128,11 @@ Deno.serve(async (req) => {
           continue;
         }
       } else {
-        // Existing conversation — bump counters
+        // Existing conversation — bump counters & update display name if missing
         try {
           await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, {
             status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
+            wa_display_name: waDisplayName || conv.wa_display_name,
             last_inbound_at: timestamp,
             last_message: bodyText,
             last_message_at: timestamp,

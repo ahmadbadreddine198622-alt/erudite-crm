@@ -24,7 +24,7 @@ export default function WhatsAppHeader({ conversation, lead, agent, teamMembers,
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-semibold truncate">
-              {conversation.wa_display_name || lead?.full_name || conversation.wa_phone_e164}
+              {lead?.full_name || conversation.wa_display_name || conversation.wa_phone_e164}
             </h2>
             {flag && <span title={conversation.country_code}>{flag}</span>}
             {conversation.wa_verified && <Shield className="w-4 h-4 text-green-600" />}
@@ -42,6 +42,7 @@ export default function WhatsAppHeader({ conversation, lead, agent, teamMembers,
           </div>
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+            {!lead?.full_name && conversation.wa_display_name && <span>{conversation.wa_display_name}</span>}
             <span>{conversation.wa_phone_e164}</span>
             {conversation.wa_last_seen_at && <span>· last seen {timeAgo(conversation.wa_last_seen_at)}</span>}
             {conversation.detected_language && <span>· {conversation.detected_language}</span>}
