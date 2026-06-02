@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 
 export const ALL_APPS = [
-  { label: 'My Dashboard',       icon: UserCircle,     path: '/my-dashboard',       gradient: 'from-blue-600 to-blue-800',        glowColor: 'rgba(59,130,246,0.40)' },
   { label: 'Pipeline',           icon: KanbanSquare,   path: '/pipeline',            gradient: 'from-violet-600 to-purple-800',    glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Leads',              icon: Users,          path: '/leads',               gradient: 'from-emerald-500 to-emerald-800',  glowColor: 'rgba(16,185,129,0.40)', badgeKey: 'leads' },
   { label: 'Contacts',           icon: UserCheck,      path: '/contacts',            gradient: 'from-sky-500 to-cyan-800',         glowColor: 'rgba(14,165,233,0.40)' },
