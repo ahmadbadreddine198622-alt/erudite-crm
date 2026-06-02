@@ -645,8 +645,11 @@ export default function WhatsAppInbox() {
               </div>
             )}
 
-            {/* Messages */}
-            <ChatThread conversationId={selectedConvId} />
+            {/* Messages — include all merged conversation IDs for full history */}
+            <ChatThread
+              conversationId={selectedConvId}
+              allConversationIds={[selectedConvId, ...(selectedConv?.merged_conv_ids || [])]}
+            />
 
             {/* Tags row */}
             <div className="px-4 py-2 border-t bg-muted/20">

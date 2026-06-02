@@ -5,19 +5,31 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
 
-export default function ChatThread({ conversationId }) {
+export default function ChatThread({ conversationId, allConversationIds }) {
   const bottomRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load messages
+  // All IDs to load messages for (handles merged/duplicate conversations)
+  const ids = allConversationIds?.length ? allConversationIds : (conversationId ? [conversationId] : []);
+
+  // Load messages from all conversation IDs
   const loadMessages = async () => {
-    if (!conversationId) return;
+    if (!ids.length) return;
     try {
-      const msgs = await base44.entities.WhatsAppMessage.filter(
-        { conversation_id: conversationId }, 'timestamp', 200
+      const results = await Promise.all(
+        ids.map(id => base44.entities.WhatsAppMessage.filter({ conversation_id: id }, 'timestamp', 200))
       );
-      setMessages(msgs || []);
+      const all = results.flat();
+      // Dedupe by id, sort by timestamp ascending
+      const seen = new Set();
+      const deduped = all.filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+      deduped.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      setMessages(deduped);
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
@@ -30,7 +42,7 @@ export default function ChatThread({ conversationId }) {
     setIsLoading(true);
     setMessages([]);
     loadMessages();
-  }, [conversationId]);
+  }, [conversationId, JSON.stringify(allConversationIds)]);
 
   // Real-time subscription
   useEffect(() => {
@@ -58,7 +70,7 @@ export default function ChatThread({ conversationId }) {
     if (!conversationId) return;
     const interval = setInterval(loadMessages, 6000);
     return () => clearInterval(interval);
-  }, [conversationId]);
+  }, [conversationId, JSON.stringify(allConversationIds)]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
