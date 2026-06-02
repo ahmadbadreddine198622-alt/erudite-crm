@@ -79,12 +79,15 @@ Deno.serve(async (req) => {
       body: JSON.stringify(messagePayload)
     });
 
+    const rawBody = await response.text();
+    console.log('WhatsApp API status:', response.status);
+    console.log('WhatsApp API response:', rawBody);
+
     if (!response.ok) {
-      const error = await response.json();
-      return Response.json({ error: error.message || 'Failed to send message' }, { status: response.status });
+      return Response.json({ error: rawBody }, { status: response.status });
     }
 
-    const result = await response.json();
+    const result = JSON.parse(rawBody);
 
     // Create message record in database
     const conversations = await base44.entities.WhatsAppConversation.list();
