@@ -166,23 +166,34 @@ function mapPFListingToCRM(pfListing, urlStats) {
   const bedroomsRaw = pickBedrooms(pfListing.bedrooms);
   const sizeSqft = pickSize(pfListing);
 
-  // 1. Try all URL fields returned by the PF API first (real canonical URL)
-  const apiUrl = pfListing.url || pfListing.web_url || pfListing.link ||
-    (pfListing.links && (pfListing.links.public_link || pfListing.links.web || pfListing.links.url)) ||
-    null;
+  // The PF Atlas API does NOT return a URL field. The only way to build
+  // a valid PF listing URL is from the numeric ID embedded in the reference field.
+  // Reference format: "{agency}-{numericId}" e.g. "erudite-3366406" → numericId = "3366406"
+  // Only listings where portals.propertyfinder.isLive === true are actually live on PF.ae.
 
-  // 2. Only build fallback if ID is purely numeric (alphanumeric refs like S1EW3... always 404)
-  const numericFallback =
-    (!apiUrl && listingId && /^\d+$/.test(listingId)) ? `https://www.propertyfinder.ae/property/${listingId}.html` :
-    (!apiUrl && listingRef && /^\d+$/.test(listingRef)) ? `https://www.propertyfinder.ae/property/${listingRef}.html` :
-    null;
+  // Use the listing's own state to determine if it's published/live on PF.ae
+  const stageRaw = String(pfListing?.state?.stage || pfListing?.state || '').toLowerCase();
+  const isLiveOnPF = ['published', 'live', 'active'].includes(stageRaw);
 
-  const pfUrl = apiUrl || numericFallback || null;
+  // Extract numeric PF listing ID from reference (e.g. "erudite-3366406" → "3366406")
+  let numericPFId = null;
+  if (listingRef) {
+    const parts = listingRef.split('-');
+    const lastPart = parts[parts.length - 1];
+    if (/^\d+$/.test(lastPart)) numericPFId = lastPart;
+  }
+  // Fallback: check if the raw id is numeric
+  if (!numericPFId && listingId && /^\d+$/.test(listingId)) numericPFId = listingId;
+
+  // Only build URL if live on PF AND we have a numeric ID
+  const pfUrl = (isLiveOnPF && numericPFId)
+    ? `https://www.propertyfinder.ae/property-detail/${numericPFId}`
+    : null;
 
   // Track URL outcomes for diagnostics
   if (urlStats) {
-    if (apiUrl) urlStats.from_api++;
-    else if (numericFallback) urlStats.numeric_fallback++;
+    if (pfUrl) urlStats.from_api++;
+    else if (!isLiveOnPF && numericPFId) urlStats.numeric_fallback++; // has ID but not live
     else urlStats.hidden++;
   }
 
@@ -508,10 +519,10 @@ Deno.serve(async (req) => {
 
     // Finalize diagnostics
     diagnostics.total_listings_received_from_pf = totalListingsThisRun;
-    diagnostics.url_from_api = urlStats.from_api;
-    diagnostics.url_numeric_fallback = urlStats.numeric_fallback;
-    diagnostics.url_hidden = urlStats.hidden;
-    console.log(`PF_URL_STATS: from_api=${urlStats.from_api}, numeric_fallback=${urlStats.numeric_fallback}, hidden=${urlStats.hidden}`);
+    diagnostics.url_live_link_built = urlStats.from_api;       // live on PF + numeric ID → has URL
+    diagnostics.url_not_live_on_pf = urlStats.numeric_fallback;  // has numeric ID but not live on PF
+    diagnostics.url_hidden = urlStats.hidden;                     // no numeric ID at all
+    console.log(`PF_URL_STATS: live_url_built=${urlStats.from_api}, not_live_no_url=${urlStats.numeric_fallback}, no_id=${urlStats.hidden}`);
     diagnostics.created_count = created;
     diagnostics.updated_count = updated;
     diagnostics.error_count = errors;
@@ -557,9 +568,9 @@ Deno.serve(async (req) => {
       updated: updated,
       errors: errors,
       url_summary: {
-        from_api: urlStats.from_api,
-        numeric_fallback: urlStats.numeric_fallback,
-        hidden_no_valid_url: urlStats.hidden,
+        live_url_built: urlStats.from_api,
+        not_live_on_pf_no_url: urlStats.numeric_fallback,
+        no_numeric_id: urlStats.hidden,
       },
       ...diagnostics,
     });
