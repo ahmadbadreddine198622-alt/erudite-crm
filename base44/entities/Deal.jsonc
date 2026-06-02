@@ -8,6 +8,10 @@
     "property_id": {
       "type": "string"
     },
+    "property_ref": {
+      "type": "string",
+      "description": "Human-readable property reference e.g. UNIT-1204-MARINA"
+    },
     "co_property_ids": {
       "type": "array",
       "items": {
@@ -18,12 +22,41 @@
       "type": "string",
       "format": "email"
     },
+    "agent_name": {
+      "type": "string",
+      "description": "Cached agent display name"
+    },
     "lead_name": {
       "type": "string"
+    },
+    "client_phone": {
+      "type": "string"
+    },
+    "client_whatsapp": {
+      "type": "string"
+    },
+    "counterparty_agent": {
+      "type": "string",
+      "description": "Name/email of other side agent (buyer's or seller's agent)"
+    },
+    "counterparty_last_update_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time counterparty responded or updated"
     },
     "lead_source": {
       "type": "string",
       "description": "Cached from Lead.source for filtering"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "sale_primary",
+        "sale_secondary",
+        "lease",
+        "commercial"
+      ],
+      "description": "Type of deal"
     },
     "stage": {
       "type": "string",
@@ -83,6 +116,11 @@
     "lost_reason": {
       "type": "string"
     },
+    "last_contact_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time agent contacted client"
+    },
     "deal_value": {
       "type": "number"
     },
@@ -92,6 +130,79 @@
     },
     "commission_value": {
       "type": "number"
+    },
+    "cheque_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pending",
+        "received",
+        "bounced",
+        "cancelled",
+        "cleared"
+      ],
+      "default": "not_required",
+      "description": "Status of client cheque(s)"
+    },
+    "cheque_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When cheque was/is due"
+    },
+    "cheque_amount": {
+      "type": "number"
+    },
+    "form_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "form_f_drafted",
+        "form_f_signed",
+        "mou_drafted",
+        "mou_signed",
+        "form_i_drafted",
+        "form_i_signed",
+        "expired"
+      ],
+      "default": "none",
+      "description": "Status of Form F / MOU / Form I"
+    },
+    "form_expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the current form expires"
+    },
+    "dld_transfer_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Planned/actual DLD transfer date"
+    },
+    "dld_transfer_done": {
+      "type": "boolean",
+      "default": false
+    },
+    "financing_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pre_approved",
+        "confirmed",
+        "unconfirmed",
+        "declined",
+        "in_progress"
+      ],
+      "default": "not_required",
+      "description": "Buyer financing / mortgage status"
+    },
+    "noc_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pending",
+        "received",
+        "rejected"
+      ],
+      "default": "not_required"
     },
     "aurora_score": {
       "type": "number",
