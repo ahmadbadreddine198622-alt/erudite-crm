@@ -5,22 +5,14 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Use a dedicated management token if set, otherwise fall back to the messaging token
-  const accessToken = Deno.env.get('WHATSAPP_MANAGEMENT_TOKEN') || Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-
-  if (!accessToken || !phoneNumberId) {
-    return Response.json({ error: 'Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID' }, { status: 500 });
-  }
-
+  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
   const wabaId = Deno.env.get('WHATSAPP_WABA_ID');
-  if (!wabaId) {
-    return Response.json({ error: 'WHATSAPP_WABA_ID secret is not set.' }, { status: 500 });
-  }
 
-  // Fetch all approved templates from Meta
+  if (!accessToken) return Response.json({ error: 'Missing WHATSAPP_ACCESS_TOKEN' }, { status: 500 });
+  if (!wabaId) return Response.json({ error: 'Missing WHATSAPP_WABA_ID' }, { status: 500 });
+
   let allTemplates = [];
-  let url = `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=name,status,language,category,components&limit=200&access_token=${accessToken}&status=APPROVED`;
+  let url = `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=name,status,language,category,components&limit=200&access_token=${accessToken}`;
 
   while (url) {
     const res = await fetch(url);
@@ -32,7 +24,6 @@ Deno.serve(async (req) => {
     url = data.paging?.next || null;
   }
 
-  // Only return APPROVED templates
   const approved = allTemplates.filter(t => t.status === 'APPROVED').map(t => {
     const bodyComp = t.components?.find(c => c.type === 'BODY');
     const headerComp = t.components?.find(c => c.type === 'HEADER');
