@@ -153,6 +153,31 @@ export default function WhatsAppInbox() {
   });
 
   // Normalize phone numbers and dedupe conversations
+  // Find lead by normalized phone match
+  const findLeadByPhone = (conv) => {
+    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+    return leads.find(l => {
+      if (!l.phone && !l.whatsapp) return false;
+      const normalizedLeadPhone = l.phone ? normalizePhoneNumber(l.phone) : null;
+      const normalizedLeadWhatsApp = l.whatsapp ? normalizePhoneNumber(l.whatsapp) : null;
+      return normalizedConvPhone === normalizedLeadPhone || normalizedConvPhone === normalizedLeadWhatsApp;
+    });
+  };
+
+  // Find landlord by normalized phone match
+  const findLandlordByPhone = (conv) => {
+    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+    return landlords.find(ll => {
+      if (!ll.phone) return false;
+      const normalizedLandlordPhone = normalizePhoneNumber(ll.phone);
+      if (normalizedConvPhone === normalizedLandlordPhone) return true;
+      if (ll.additional_phones) {
+        return ll.additional_phones.some(ap => normalizePhoneNumber(ap) === normalizedConvPhone);
+      }
+      return false;
+    });
+  };
+
   const normalizedConversations = (() => {
     const map = new Map();
     conversations.forEach(conv => {
@@ -223,32 +248,6 @@ export default function WhatsAppInbox() {
     }
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
-
-  // Find lead by normalized phone match
-  const findLeadByPhone = (conv) => {
-    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-    return leads.find(l => {
-      if (!l.phone && !l.whatsapp) return false;
-      const normalizedLeadPhone = l.phone ? normalizePhoneNumber(l.phone) : null;
-      const normalizedLeadWhatsApp = l.whatsapp ? normalizePhoneNumber(l.whatsapp) : null;
-      return normalizedConvPhone === normalizedLeadPhone || normalizedConvPhone === normalizedLeadWhatsApp;
-    });
-  };
-
-  // Find landlord by normalized phone match
-  const findLandlordByPhone = (conv) => {
-    const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-    return landlords.find(ll => {
-      if (!ll.phone) return false;
-      const normalizedLandlordPhone = normalizePhoneNumber(ll.phone);
-      if (normalizedConvPhone === normalizedLandlordPhone) return true;
-      // Check additional phones
-      if (ll.additional_phones) {
-        return ll.additional_phones.some(ap => normalizePhoneNumber(ap) === normalizedConvPhone);
-      }
-      return false;
-    });
-  };
 
   // Filter + search - Strict agent isolation
   const filtered = normalizedConversations.filter(c => {
