@@ -5,47 +5,17 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+  // Use a dedicated management token if set, otherwise fall back to the messaging token
+  const accessToken = Deno.env.get('WHATSAPP_MANAGEMENT_TOKEN') || Deno.env.get('WHATSAPP_ACCESS_TOKEN');
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
 
   if (!accessToken || !phoneNumberId) {
     return Response.json({ error: 'Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID' }, { status: 500 });
   }
 
-  // Resolve WABA ID: try via phone number first, then fall back to /me businesses
-  let wabaId = null;
-
-  // Attempt 1: phone number -> owned_whatsapp_business_account
-  const phoneRes = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=whatsapp_business_account,id&access_token=${accessToken}`
-  );
-  const phoneData = await phoneRes.json();
-  if (phoneData.whatsapp_business_account?.id) {
-    wabaId = phoneData.whatsapp_business_account.id;
-  }
-
-  // Attempt 2: look up via /me?fields=businesses then walk to owned_whatsapp_business_accounts
+  const wabaId = Deno.env.get('WHATSAPP_WABA_ID');
   if (!wabaId) {
-    const meRes = await fetch(
-      `https://graph.facebook.com/v21.0/me?fields=businesses{owned_whatsapp_business_accounts{id}}&access_token=${accessToken}`
-    );
-    const meData = await meRes.json();
-    const firstWaba = meData.businesses?.data?.[0]?.owned_whatsapp_business_accounts?.data?.[0];
-    if (firstWaba?.id) wabaId = firstWaba.id;
-  }
-
-  // Attempt 3: use the app ID as the WABA source (system user tokens sometimes work with app_id)
-  if (!wabaId) {
-    const appRes = await fetch(
-      `https://graph.facebook.com/v21.0/app?fields=owned_whatsapp_business_accounts{id}&access_token=${accessToken}`
-    );
-    const appData = await appRes.json();
-    const firstWaba = appData.owned_whatsapp_business_accounts?.data?.[0];
-    if (firstWaba?.id) wabaId = firstWaba.id;
-  }
-
-  if (!wabaId) {
-    return Response.json({ error: 'Could not resolve WABA ID. Grant whatsapp_business_management permission or set WHATSAPP_WABA_ID secret.', details: phoneData }, { status: 500 });
+    return Response.json({ error: 'WHATSAPP_WABA_ID secret is not set.' }, { status: 500 });
   }
 
   // Fetch all approved templates from Meta
