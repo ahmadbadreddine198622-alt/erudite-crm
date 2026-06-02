@@ -37,6 +37,7 @@ export default function WhatsAppInbox() {
 
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [filterAssignedAgent, setFilterAssignedAgent] = useState('');
   const [setupStatus, setSetupStatus] = useState('idle');
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
@@ -236,7 +237,8 @@ export default function WhatsAppInbox() {
       filter === 'unread' ? (c.unread_count || 0) > 0 :
       filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
       filter === 'resolved' ? c.status === 'resolved' : true;
-    return matchesSearch && matchesFilter;
+    const matchesAgent = !filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent;
+    return matchesSearch && matchesFilter && matchesAgent;
   });
 
   const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
@@ -604,6 +606,19 @@ export default function WhatsAppInbox() {
               </button>
             ))}
           </div>
+
+          {/* Team member filter */}
+          <select
+            value={filterAssignedAgent}
+            onChange={(e) => setFilterAssignedAgent(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+          >
+            <option value="">All Team Members</option>
+            {teamMembers.map(tm => (
+              <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
+            ))}
+          </select>
         </div>
 
         {/* Conversation list */}
