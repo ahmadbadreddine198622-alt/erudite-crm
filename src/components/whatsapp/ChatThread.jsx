@@ -10,18 +10,21 @@ export default function ChatThread({ conversationId, allConversationIds }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // All IDs to load messages for (handles merged/duplicate conversations)
-  const ids = allConversationIds?.length ? allConversationIds : (conversationId ? [conversationId] : []);
+  // All IDs to load — use ref so loadMessages always sees current value
+  const idsRef = useRef([]);
+  idsRef.current = allConversationIds?.length ? allConversationIds : (conversationId ? [conversationId] : []);
 
-  // Load messages from all conversation IDs
   const loadMessages = async () => {
+    const ids = idsRef.current;
     if (!ids.length) return;
     try {
+      // Load all messages for all conversation IDs in parallel
       const results = await Promise.all(
-        ids.map(id => base44.entities.WhatsAppMessage.filter({ conversation_id: id }, 'timestamp', 200))
+        ids.map(id => base44.entities.WhatsAppMessage.list('-timestamp', 500).then(
+          all => all.filter(m => m.conversation_id === id)
+        ))
       );
       const all = results.flat();
-      // Dedupe by id, sort by timestamp ascending
       const seen = new Set();
       const deduped = all.filter(m => {
         if (seen.has(m.id)) return false;
@@ -48,10 +51,10 @@ export default function ChatThread({ conversationId, allConversationIds }) {
   useEffect(() => {
     if (!conversationId) return;
     const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      if (event.data?.conversation_id === conversationId) {
+      const ids = idsRef.current;
+      if (ids.includes(event.data?.conversation_id)) {
         if (event.type === 'create') {
           setMessages(prev => {
-            // Dedupe by id
             if (prev.some(m => m.id === event.data.id)) return prev;
             return [...prev, event.data].sort((a, b) =>
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -65,12 +68,12 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     return () => unsub();
   }, [conversationId]);
 
-  // Also poll every 6s as fallback
+  // Poll every 8s as fallback
   useEffect(() => {
     if (!conversationId) return;
-    const interval = setInterval(loadMessages, 6000);
+    const interval = setInterval(loadMessages, 8000);
     return () => clearInterval(interval);
-  }, [conversationId, JSON.stringify(allConversationIds)]);
+  }, [conversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

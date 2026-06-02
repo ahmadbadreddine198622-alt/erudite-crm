@@ -14,12 +14,12 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   const [showTemplates, setShowTemplates] = useState(false);
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
 
-  // Check 24-hour window
+  // Check 24-hour window — only locked if there WAS an inbound message but it's >24h ago
+  // If no inbound ever, window is open (new outbound conversations use templates separately)
   const lastInbound = conversation?.last_inbound_at;
-  const isWithin24h = lastInbound
-    ? (Date.now() - new Date(lastInbound).getTime()) < 24 * 60 * 60 * 1000
+  const windowLocked = lastInbound
+    ? (Date.now() - new Date(lastInbound).getTime()) >= 24 * 60 * 60 * 1000
     : false;
-  const windowLocked = !isWithin24h;
 
   // Always fetch templates
   const { data: metaData } = useQuery({
