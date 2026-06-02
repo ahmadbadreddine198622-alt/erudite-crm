@@ -88,14 +88,8 @@ export default function Team() {
     queryKey: ['pending-invites'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      // Filter for users who haven't logged in (no last_login or created recently without activity)
-      return allUsers.filter(u => {
-        const createdDate = new Date(u.created_date);
-        const now = new Date();
-        const daysSinceCreated = (now - createdDate) / (1000 * 60 * 60 * 24);
-        // Consider pending if created within last 7 days and no recent activity
-        return daysSinceCreated <= 7;
-      });
+      // Show all users as pending (since we don't have last_login tracking)
+      return allUsers;
     },
   });
 
@@ -126,6 +120,17 @@ export default function Team() {
     mutationFn: ({ userId, role, customRoleId }) =>
       base44.entities.User.update(userId, { role, custom_role_id: customRoleId }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['team-users'] }); toast.success('Role updated'); },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId) => base44.entities.User.delete(userId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['team-users'] }); qc.invalidateQueries({ queryKey: ['pending-invites'] }); toast.success('Account deleted'); },
+  });
+
+  const disableUserMutation = useMutation({
+    mutationFn: ({ userId, currentRole }) =>
+      base44.entities.User.update(userId, { role: currentRole === 'disabled' ? 'user' : 'disabled' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['team-users'] }); qc.invalidateQueries({ queryKey: ['pending-invites'] }); toast.success('Account disabled'); },
   });
 
   const handleInvite = async () => {
@@ -248,7 +253,7 @@ export default function Team() {
                       Pending Invitations ({pendingInvites.length})
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Team members who haven't activated their account yet
+                      All team member accounts ({pendingInvites.length} total)
                     </p>
                   </div>
                 </div>
@@ -275,7 +280,7 @@ export default function Team() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                          <RoleBadge role={u.role} />
+                          <RoleBadge role={u.role === 'disabled' ? 'disabled' : u.role} />
                           <Button size="sm" variant="outline"
                             onClick={async () => {
                               try {
@@ -303,6 +308,28 @@ export default function Team() {
                             className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
                             🔑 Reset
                           </Button>
+                          {u.id !== currentUser?.id && (
+                            <>
+                              <Button size="sm" variant="outline"
+                                onClick={() => {
+                                  if (confirm(`Disable account for ${u.email}?`)) {
+                                    disableUserMutation.mutate({ userId: u.id, currentRole: u.role });
+                                  }
+                                }}
+                                className="h-7 text-xs gap-1 border-orange-500/40 text-orange-400 hover:bg-orange-500/10">
+                                {u.role === 'disabled' ? 'Enable' : 'Disable'}
+                              </Button>
+                              <Button size="sm" variant="outline"
+                                onClick={() => {
+                                  if (confirm(`Delete account for ${u.email}? This cannot be undone.`)) {
+                                    deleteUserMutation.mutate(u.id);
+                                  }
+                                }}
+                                className="h-7 text-xs gap-1 border-red-500/40 text-red-400 hover:bg-red-500/10">
+                                <Trash2 className="w-3 h-3" /> Delete
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
