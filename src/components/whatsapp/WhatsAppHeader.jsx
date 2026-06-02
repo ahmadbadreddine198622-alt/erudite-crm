@@ -89,23 +89,7 @@ export default function WhatsAppHeader({ conversation, lead, agent, onAction }) 
         </DropdownMenu>
       </div>
 
-      {/* Row 2 — pipeline stage strip */}
-      <StagePipeline currentStage={lead?.stage} onStageClick={s => onAction("set_stage", s)} />
 
-      {/* Row 3 — command bar */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-t bg-white overflow-x-auto">
-        <CommandButton icon={Phone} label="Call" onClick={() => onAction("call")} />
-        <CommandButton icon={Video} label="Video" onClick={() => onAction("video")} />
-        <CommandButton icon={Home} label="Send property" onClick={() => onAction("send_property")} highlight />
-        <CommandButton icon={Calendar} label="Schedule viewing" onClick={() => onAction("schedule_viewing")} highlight />
-        <CommandButton icon={DollarSign} label="Send quote" onClick={() => onAction("send_quote")} />
-        <CommandButton icon={MapPin} label="Send location" onClick={() => onAction("send_location")} />
-        <CommandButton icon={FileText} label="Send doc" onClick={() => onAction("send_doc")} />
-        <CommandButton icon={Languages} label="Translate" onClick={() => onAction("toggle_translate")} active={!!conversation.auto_translate_to} />
-        <CommandButton icon={Pin} label="Pin" onClick={() => onAction("toggle_star")} active={conversation.is_starred} />
-        <CommandButton icon={Clock} label="Snooze" onClick={() => onAction("snooze")} />
-        <CommandButton icon={MessageSquare} label="Internal note" onClick={() => onAction("add_note")} />
-      </div>
     </div>
   );
 }
