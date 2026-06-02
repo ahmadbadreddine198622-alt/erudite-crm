@@ -86,11 +86,7 @@ export default function Team() {
 
   const { data: pendingInvites = [] } = useQuery({
     queryKey: ['pending-invites'],
-    queryFn: async () => {
-      const allUsers = await base44.entities.User.list();
-      // Show all users as pending (since we don't have last_login tracking)
-      return allUsers;
-    },
+    queryFn: () => base44.entities.TeamInvitation.filter({ status: 'pending' }, '-sent_at', 100),
   });
 
   const { data: roles = [] } = useQuery({
@@ -253,41 +249,44 @@ export default function Team() {
                       Pending Invitations ({pendingInvites.length})
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      All team member accounts ({pendingInvites.length} total)
+                      Team members who haven't activated their account yet
                     </p>
                   </div>
                 </div>
                 <div className="divide-y divide-white/5">
-                  {pendingInvites.map(u => {
-                    const createdDate = new Date(u.created_date);
-                    const daysAgo = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24));
+                  {pendingInvites.map(invite => {
+                    const sentDate = invite.sent_at ? new Date(invite.sent_at) : new Date();
+                    const daysAgo = Math.floor((new Date() - sentDate) / (1000 * 60 * 60 * 24));
+                    const roleName = invite.custom_role_name || (invite.base_role === 'admin' ? 'Admin' : 'Agent');
                     return (
-                      <div key={u.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-colors">
+                      <div key={invite.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-colors">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-amber-500 shrink-0"
                           style={{ background: 'hsl(38 92% 50% / 0.18)' }}>
-                          {u.full_name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || '?'}
+                          {invite.email?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold">{u.full_name || '(No name)'}</p>
+                            <p className="text-sm font-semibold">{invite.email}</p>
                             <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-400">
                               <Hourglass className="w-2.5 h-2.5 mr-0.5" /> Pending
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Role: {roleName} • Invited by: {invite.invited_by_email || 'Admin'}
+                          </p>
                           <p className="text-[10px] text-muted-foreground mt-1">
                             Invited {daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                          <RoleBadge role={u.role === 'disabled' ? 'disabled' : u.role} />
+                          <RoleBadge role={invite.base_role === 'admin' ? 'admin' : 'agent'} />
                           <Button size="sm" variant="outline"
                             onClick={async () => {
                               try {
-                                console.log('Resending invite to:', u.email);
-                                await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
+                                console.log('Resending invite to:', invite.email);
+                                await base44.users.inviteUser(invite.email, invite.base_role);
                                 console.log('Invite resent successfully');
-                                toast.success(`Invite resent to ${u.email}`);
+                                toast.success(`Invite resent to ${invite.email}`);
                               } catch(e) {
                                 console.error('Resend failed:', e);
                                 toast.error(e.message || 'Failed to resend invite');
@@ -299,37 +298,15 @@ export default function Team() {
                           <Button size="sm" variant="outline"
                             onClick={async () => {
                               try {
-                                await base44.users.inviteUser(u.email, u.role === 'admin' ? 'admin' : 'user');
-                                toast.success(`Password reset sent to ${u.email}`);
+                                await base44.entities.TeamInvitation.update(invite.id, { status: 'cancelled' });
+                                toast.success('Invitation cancelled');
                               } catch(e) {
-                                toast.error(e.message || 'Failed to send reset');
+                                toast.error(e.message || 'Failed to cancel');
                               }
                             }}
-                            className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
-                            🔑 Reset
+                            className="h-7 text-xs gap-1 border-red-500/40 text-red-400 hover:bg-red-500/10">
+                            <X className="w-3 h-3" /> Cancel
                           </Button>
-                          {u.id !== currentUser?.id && (
-                            <>
-                              <Button size="sm" variant="outline"
-                                onClick={() => {
-                                  if (confirm(`Disable account for ${u.email}?`)) {
-                                    disableUserMutation.mutate({ userId: u.id, currentRole: u.role });
-                                  }
-                                }}
-                                className="h-7 text-xs gap-1 border-orange-500/40 text-orange-400 hover:bg-orange-500/10">
-                                {u.role === 'disabled' ? 'Enable' : 'Disable'}
-                              </Button>
-                              <Button size="sm" variant="outline"
-                                onClick={() => {
-                                  if (confirm(`Delete account for ${u.email}? This cannot be undone.`)) {
-                                    deleteUserMutation.mutate(u.id);
-                                  }
-                                }}
-                                className="h-7 text-xs gap-1 border-red-500/40 text-red-400 hover:bg-red-500/10">
-                                <Trash2 className="w-3 h-3" /> Delete
-                              </Button>
-                            </>
-                          )}
                         </div>
                       </div>
                     );
