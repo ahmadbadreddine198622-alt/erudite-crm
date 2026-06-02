@@ -7,7 +7,18 @@
 /* Hide Base44 branding badge */
 [data-base44-badge],
 #base44-badge,
-.base44-badge {
+.base44-badge,
+[class*="base44"],
+[id*="base44"],
+button:has(svg):has-text("Base44"),
+*:has(> :contains("Edit with Base44")) {
+  display: none !important;
+}
+
+/* Aggressive fallback for any Base44 banner/iframe */
+iframe[src*="base44"],
+div[class*="Base44"],
+div[id*="Base44"] {
   display: none !important;
 }
 
