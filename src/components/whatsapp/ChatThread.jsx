@@ -28,20 +28,34 @@ export default function ChatThread({ conversationId, allConversationIds }) {
       return;
     }
     try {
+      // Load messages for all conversation IDs (including merged ones)
       const results = await Promise.all(
         ids.map(async id => {
-          const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 200);
-          return Array.isArray(res) ? res : [];
+          try {
+            const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 500);
+            return Array.isArray(res) ? res : [];
+          } catch (err) {
+            console.warn('Failed to load messages for conversation', id, err);
+            return [];
+          }
         })
       );
       const all = results.flat();
+      console.log(`Loaded ${all.length} total messages for ${ids.length} conversation(s)`);
+      
+      // Deduplicate by message ID
       const seen = new Set();
       const deduped = all.filter(m => {
+        if (!m || !m.id) return false;
         if (seen.has(m.id)) return false;
         seen.add(m.id);
         return true;
       });
+      
+      // Sort by timestamp (oldest first)
       deduped.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      console.log(`After dedup: ${deduped.length} messages, inbound: ${deduped.filter(m => m.direction === 'inbound').length}, outbound: ${deduped.filter(m => m.direction === 'outbound').length}`);
+      
       setMessages(deduped);
       setLastRefresh(new Date());
     } catch (err) {

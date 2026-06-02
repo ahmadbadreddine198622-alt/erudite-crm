@@ -239,15 +239,17 @@ export default function WhatsAppInbox() {
     });
   };
 
-  // Filter + search
+  // Filter + search - Strict agent isolation
   const filtered = normalizedConversations.filter(c => {
-    // Role-based: Admin and CEO see everything, others see only assigned conversations
-    if (currentUser && !permissions.view_all_whatsapp) {
-      // If conversation has assigned_agent_email, only show if it matches current user
-      if (c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
-      // If no assigned_agent_email, hide from regular users (only Admin/CEO/managers see unassigned)
-      if (!c.assigned_agent_email && !permissions.manage_team) return false;
+    // Check if current user has admin/manager permissions
+    const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
+    
+    if (!isAdmin && currentUser) {
+      // Regular agents: ONLY see conversations explicitly assigned to them
+      if (!c.assigned_agent_email) return false; // Hide unassigned
+      if (c.assigned_agent_email !== currentUser.email) return false; // Hide others'
     }
+    
     const lead = leads.find(l => l.id === c.lead_id);
     const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;
