@@ -65,8 +65,9 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     if (!conversationId) return;
     const unsub = base44.entities.WhatsAppMessage.subscribe(async (event) => {
       const ids = idsRef.current;
+      const idsArray = Array.isArray(ids) ? ids : [];
       const msgConvId = event.data?.conversation_id;
-      if (msgConvId && ids.includes(msgConvId)) {
+      if (msgConvId && idsArray.includes(msgConvId)) {
         // Small delay to ensure webhook has finished saving
         setTimeout(() => loadMessages(), 300);
       }
