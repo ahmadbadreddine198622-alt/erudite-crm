@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -250,10 +251,18 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             type="button"
             onClick={handleWhatsApp}
             className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors"
-            title="WhatsApp"
+            title="Open WhatsApp Web"
           >
             <MessageCircle className="w-3.5 h-3.5" />
           </button>
+          <Link
+            to={`/whatsapp?phone=${encodeURIComponent(e164 || landlord.phone || '')}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-green-400 hover:bg-green-500/15 transition-colors"
+            title="Open in CRM"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
           <button
             type="button"
             onClick={handleExportVCard}
