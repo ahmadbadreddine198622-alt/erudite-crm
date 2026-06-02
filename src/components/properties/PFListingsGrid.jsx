@@ -134,8 +134,9 @@ function ListingCard({ listing }) {
 
   return (
     <div
-      className="flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
+      className="flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl cursor-pointer"
       style={{ background: '#0e1a2b', border: '1px solid #1a2942', minHeight: 132 }}
+      onClick={() => listing.pf_url && window.open(listing.pf_url, '_blank')}
     >
       {/* Image */}
       <div className="relative flex-shrink-0 overflow-hidden" style={{ width: 150 }}>
