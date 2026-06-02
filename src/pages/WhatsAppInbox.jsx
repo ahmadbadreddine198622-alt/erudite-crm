@@ -138,6 +138,14 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.Landlord.list('-created_date', 500),
   });
 
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['team_members'],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return Array.isArray(users) ? users : [];
+    },
+  });
+
   const { data: leadScores = [] } = useQuery({
     queryKey: ['lead_scores'],
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
@@ -185,6 +193,10 @@ export default function WhatsAppInbox() {
     } else if (action === 'set_stage' && selectedLead) {
       base44.entities.Lead.update(selectedLead.id, { stage: payload });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } else if (action === 'assign_agent' && payload) {
+      base44.entities.WhatsAppConversation.update(selectedConvId, { assigned_agent_email: payload.email });
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+      toast.success(`Assigned to ${payload.full_name || payload.email}`);
     } else if (action === 'schedule_viewing') {
       // handled by existing schedule viewing dialog
     }
@@ -633,6 +645,7 @@ export default function WhatsAppInbox() {
               conversation={selectedConv}
               lead={selectedLead}
               agent={null}
+              teamMembers={teamMembers}
               onAction={handleAction}
             />
 
