@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2 } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -63,6 +63,10 @@ export default function Landlords() {
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const [filterProject, setFilterProject] = useState('');
+  const [filterFloor, setFilterFloor] = useState('');
+  const [filterLayout, setFilterLayout] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
+  const [filterAssignment, setFilterAssignment] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -103,6 +107,68 @@ export default function Landlords() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: landlordProperties = [] } = useQuery({
+    queryKey: ['landlord_properties'],
+    queryFn: () => base44.entities.LandlordProperty.list(),
+  });
+
+  const { data: properties = [] } = useQuery({
+    queryKey: ['properties'],
+    queryFn: () => base44.entities.Property.list(),
+  });
+
+  // Derive floor number from a unit_no string
+  // e.g. "710" → 7, "2006" → 20, "1410" → 14, "P2-1001" → 10
+  const deriveFloor = (unit_no) => {
+    if (!unit_no) return null;
+    const s = String(unit_no).trim();
+    // Handle prefix like "P2-1001" → take part after last dash
+    const part = s.includes('-') ? s.split('-').pop() : s;
+    const n = parseInt(part, 10);
+    if (isNaN(n)) return null;
+    const digits = String(n).length;
+    if (digits <= 2) return n; // bare floor number
+    if (digits === 3) return Math.floor(n / 100); // 710 → 7
+    if (digits >= 4) return Math.floor(n / 100); // 2006 → 20, 1410 → 14
+    return null;
+  };
+
+  const floorBucket = (floor) => {
+    if (floor === null) return null;
+    if (floor <= 10) return '1-10';
+    if (floor <= 20) return '11-20';
+    return '21+';
+  };
+
+  // Build a map: landlord_id → { floor, layout }
+  const landlordPropertyMap = useMemo(() => {
+    const map = {};
+    landlordProperties.forEach(lp => {
+      if (!lp.landlord_id) return;
+      const prop = properties.find(p => p.id === lp.property_id);
+      if (!prop) return;
+      const floor = deriveFloor(prop.unit_no);
+      // Derive layout from bedrooms + property_type
+      let layout = null;
+      if (prop.property_type === 'studio') {
+        layout = 'Studio';
+      } else if (prop.bedrooms === 1) {
+        layout = '1BR';
+      } else if (prop.bedrooms === 2) {
+        layout = '2BR';
+      } else if (prop.bedrooms === 3) {
+        layout = '3BR';
+      } else if (prop.bedrooms >= 4) {
+        layout = '4BR+';
+      }
+      // If multiple properties, keep the first one found
+      if (!map[lp.landlord_id]) {
+        map[lp.landlord_id] = { floor, layout };
+      }
+    });
+    return map;
+  }, [landlordProperties, properties]);
+
   // Find the selected landlord directly from the already-loaded list for instant open.
   // No separate async fetch needed — avoids the race where the Sheet never mounts
   // because selectedLandlord is undefined until the query resolves.
@@ -127,10 +193,28 @@ export default function Landlords() {
       result[stage] = stageGroups[stage]
         .filter(l => !filterAgent || l.assigned_agent_email === filterAgent)
         .filter(l => !filterArchetype || l.landlord_archetype === filterArchetype)
-        .filter(l => !filterProject || l.project_id === filterProject || (filterProject === 'unassigned' && !l.project_id));
+        .filter(l => !filterProject || l.project_id === filterProject || (filterProject === 'unassigned' && !l.project_id))
+        .filter(l => {
+          if (!filterFloor) return true;
+          const info = landlordPropertyMap[l.id];
+          const bucket = info ? floorBucket(info.floor) : null;
+          return bucket === filterFloor;
+        })
+        .filter(l => {
+          if (!filterLayout) return true;
+          const info = landlordPropertyMap[l.id];
+          return info?.layout === filterLayout;
+        })
+        .filter(l => !filterLanguage || l.preferred_language === filterLanguage)
+        .filter(l => {
+          if (!filterAssignment) return true;
+          if (filterAssignment === 'unassigned') return !l.assigned_agent_email;
+          if (filterAssignment === 'assigned') return !!l.assigned_agent_email;
+          return true;
+        });
     });
     return result;
-  }, [stageGroups, filterAgent, filterArchetype, filterProject]);
+  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, landlordPropertyMap]);
 
   // Calculate metrics
   const totalPipeline = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -452,6 +536,81 @@ export default function Landlords() {
                 ))}
                 <option value="unassigned">Unassigned</option>
               </select>
+
+              {/* Floor filter */}
+              <select
+                value={filterFloor}
+                onChange={(e) => setFilterFloor(e.target.value)}
+                className="px-3 py-2 text-xs rounded-md"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Floors</option>
+                <option value="1-10">Floors 1–10</option>
+                <option value="11-20">Floors 11–20</option>
+                <option value="21+">Floors 21+</option>
+              </select>
+
+              {/* Layout filter */}
+              <select
+                value={filterLayout}
+                onChange={(e) => setFilterLayout(e.target.value)}
+                className="px-3 py-2 text-xs rounded-md"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Layouts</option>
+                <option value="Studio">Studio</option>
+                <option value="1BR">1BR</option>
+                <option value="2BR">2BR</option>
+                <option value="3BR">3BR</option>
+                <option value="4BR+">4BR+</option>
+              </select>
+
+              {/* Language filter */}
+              <select
+                value={filterLanguage}
+                onChange={(e) => setFilterLanguage(e.target.value)}
+                className="px-3 py-2 text-xs rounded-md"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Languages</option>
+                <option value="en">English</option>
+                <option value="ar">Arabic</option>
+                <option value="ru">Russian</option>
+                <option value="zh">Chinese</option>
+                <option value="hi">Hindi</option>
+              </select>
+
+              {/* Assignment status filter */}
+              <select
+                value={filterAssignment}
+                onChange={(e) => setFilterAssignment(e.target.value)}
+                className="px-3 py-2 text-xs rounded-md"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Assignments</option>
+                <option value="unassigned">Unassigned</option>
+                <option value="assigned">Assigned</option>
+              </select>
+
+              {/* Result count badge */}
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+              >
+                <Users className="w-3.5 h-3.5" />
+                {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
+              </div>
+
+              {/* Clear filters button — only shown when any new filter is active */}
+              {(filterFloor || filterLayout || filterLanguage || filterAssignment) && (
+                <button
+                  onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); }}
+                  className="text-xs px-2.5 py-1.5 rounded-lg transition-opacity opacity-70 hover:opacity-100"
+                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+                >
+                  Clear filters
+                </button>
+              )}
             </>
           )}
         </div>
