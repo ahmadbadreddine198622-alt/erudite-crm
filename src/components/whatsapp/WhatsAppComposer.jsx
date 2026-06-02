@@ -20,29 +20,20 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
     : false;
   const windowLocked = !isWithin24h;
 
-  // Load templates for the locked state
-  const { data: templates = [], refetch: refetchTemplates, isFetching: isSyncingTemplates } = useQuery({
-    queryKey: ['reply_templates_composer'],
-    queryFn: () => base44.entities.ReplyTemplate.list('-is_favorite', 200),
+  // Fetch approved templates live from Meta
+  const { data: metaData, refetch: refetchTemplates, isFetching: isSyncingTemplates, error: templateError } = useQuery({
+    queryKey: ['meta_templates_live'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getMetaTemplates', {});
+      return res.data;
+    },
     enabled: windowLocked,
+    staleTime: 5 * 60 * 1000, // cache for 5 min
   });
 
-  const approvedTemplates = templates.filter(t => t.is_meta_template && t.meta_status === 'APPROVED');
-  const displayTemplates = approvedTemplates.length > 0 ? approvedTemplates : templates.filter(t => !t.is_meta_template);
+  const displayTemplates = metaData?.templates || [];
 
-  const handleSyncTemplates = async () => {
-    try {
-      const res = await base44.functions.invoke('syncWhatsAppTemplates', {});
-      if (res.data?.success) {
-        toast.success(`Synced ${res.data.synced} templates`);
-        refetchTemplates();
-      } else {
-        toast.error(res.data?.error || 'Sync failed — check WABA ID in Templates tab');
-      }
-    } catch {
-      toast.error('Failed to sync templates');
-    }
-  };
+  const handleSyncTemplates = () => refetchTemplates();
 
   const handleSendTemplate = async (template) => {
     if (!conversation?.id) return;
@@ -51,11 +42,11 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       await base44.functions.invoke('sendWhatsAppMessage', {
         conversation_id: conversation.id,
         template_name: template.name,
-        template_language: template.meta_language || 'en_US',
+        template_language: template.language || 'en_US',
       });
       toast.success(`Template "${template.name}" sent!`);
     } catch (e) {
-      toast.error('Failed to send template. Make sure it is approved on Meta.');
+      toast.error('Failed to send template.');
     } finally {
       setIsSendingTemplate(false);
     }
@@ -88,24 +79,31 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
 
         <div className="p-3 max-h-52 overflow-y-auto space-y-1.5">
-          {displayTemplates.length === 0 ? (
+          {isSyncingTemplates ? (
+            <div className="text-center py-6 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Loading templates from Meta…</div>
+          ) : templateError || displayTemplates.length === 0 ? (
             <div className="text-center py-6">
-              <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>No templates found. Sync from Meta first.</p>
+              <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {templateError ? 'Failed to load templates.' : 'No approved templates found on Meta.'}
+              </p>
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={handleSyncTemplates}>
-                <RefreshCw className="w-3 h-3" /> Sync Meta Templates
+                <RefreshCw className="w-3 h-3" /> Retry
               </Button>
             </div>
           ) : (
             displayTemplates.map(t => (
               <button
-                key={t.id}
+                key={t.name + t.language}
                 onClick={() => handleSendTemplate(t)}
                 disabled={isSendingTemplate}
                 className="w-full text-left px-3 py-2 rounded-xl transition-all"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
               >
-                <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>{t.name}</p>
-                <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.body}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>{t.name}</p>
+                  <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>{t.language}</span>
+                </div>
+                {t.body && <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.body}</p>}
               </button>
             ))
           )}
