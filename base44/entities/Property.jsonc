@@ -140,7 +140,6 @@
   "required": [
     "title",
     "property_type",
-    "listing_type",
-    "price_aed"
+    "listing_type"
   ]
 }
