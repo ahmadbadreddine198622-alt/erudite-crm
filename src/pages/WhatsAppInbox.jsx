@@ -633,7 +633,6 @@ export default function WhatsAppInbox() {
               conversation={selectedConv}
               lead={selectedLead}
               agent={null}
-              agents={leads.map(l => ({ email: l.assigned_agent_email, full_name: l.assigned_agent_name, id: l.id }))}
               onAction={handleAction}
             />
 

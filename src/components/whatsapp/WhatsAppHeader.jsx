@@ -9,7 +9,7 @@ import SLATimer from "@/components/SLATimer";
 
 const TEMP_COLORS = { frozen: "bg-blue-500", cold: "bg-blue-400", warming: "bg-amber-400", hot: "bg-orange-500", blazing: "bg-red-500" };
 
-export default function WhatsAppHeader({ conversation, lead, agent, onAction, agents = [] }) {
+export default function WhatsAppHeader({ conversation, lead, agent, onAction }) {
   const flag = countryFlag(conversation.country_code);
 
   return (
@@ -60,21 +60,8 @@ export default function WhatsAppHeader({ conversation, lead, agent, onAction, ag
               <UserCheck className="w-3 h-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
-            {agents.length > 0 ? (
-              <>
-                <div className="px-2 py-1.5">
-                  <p className="text-xs font-semibold text-gray-600 mb-2">Assign to agent</p>
-                  {agents.map(a => (
-                    <DropdownMenuItem key={a.id || a.email} onClick={() => onAction("assign_agent", a)} className="cursor-pointer text-sm">
-                      {a.full_name || a.email}
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="px-2 py-1.5 text-xs text-gray-500">No agents available</div>
-            )}
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onAction("reassign")}>Reassign agent…</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onAction("escalate")}>Escalate to manager</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

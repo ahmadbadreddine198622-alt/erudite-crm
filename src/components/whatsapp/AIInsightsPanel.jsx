@@ -8,7 +8,7 @@ import RecommendedPropertyCard from "@/components/RecommendedPropertyCard";
 export default function AIInsightsPanel({ conversation, lead, recommendations, onSendProperty, onClose }) {
   if (!conversation) return null;
   return (
-    <div className="w-80 border-l bg-white flex flex-col h-full">
+    <div className="w-80 border-l bg-white flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 bg-white">
         <h3 className="font-semibold text-sm text-gray-900">Lead Profile</h3>
         {onClose && (
@@ -17,7 +17,7 @@ export default function AIInsightsPanel({ conversation, lead, recommendations, o
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
       {/* Lead snapshot */}
       <Card>
         <CardContent className="p-3 space-y-2">
