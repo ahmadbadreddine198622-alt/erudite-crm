@@ -17,12 +17,12 @@ import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 import ClaudeChatSheet from '@/components/chat/ClaudeChatSheet';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const SZ       = 46;
-const R        = `${Math.round(SZ * 0.245)}px`;
-const GLYPH    = Math.round(SZ * 0.52);
-const HOME_SZ  = 58;
-const HOME_R   = `${Math.round(HOME_SZ * 0.245)}px`;
-const HOME_GLYPH = Math.round(HOME_SZ * 0.55);
+const SZ       = 52;
+const R        = `${Math.round(SZ * 0.26)}px`;
+const GLYPH    = Math.round(SZ * 0.50);
+const HOME_SZ  = 70;
+const HOME_R   = `${Math.round(HOME_SZ * 0.26)}px`;
+const HOME_GLYPH = Math.round(HOME_SZ * 0.52);
 
 function usageKey(email) { return `dock_usage_${email || 'default'}`; }
 
@@ -66,7 +66,7 @@ function NavIcon({ app, active }) {
   return (
     <div
       className="flex flex-col items-center select-none"
-      style={{ gap: 3, WebkitTapHighlightColor: 'transparent' }}
+      style={{ gap: 5, WebkitTapHighlightColor: 'transparent' }}
     >
       <ExtremeLiquidIcon
         icon={Icon}
@@ -82,9 +82,10 @@ function NavIcon({ app, active }) {
         isDragging={false}
       />
       <span style={{
-        fontSize: 9, fontWeight: active ? 600 : 400,
-        color: active ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.42)',
-        letterSpacing: '0.02em',
+        fontSize: 10, fontWeight: active ? 700 : 400,
+        color: active ? 'hsl(38 92% 65%)' : 'rgba(255,255,255,0.38)',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
         transition: 'color 0.22s ease',
       }}>{label}</span>
     </div>
@@ -189,23 +190,26 @@ export default function MobileDock() {
   return (
     <nav
       className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center"
-      style={{ bottom: -8, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
+      style={{ bottom: 0, padding: '0 12px', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
     >
       <div style={{
-        background: 'rgba(8,12,28,0.72)',
-        backdropFilter: 'blur(56px) saturate(240%) brightness(1.08)',
-        WebkitBackdropFilter: 'blur(56px) saturate(240%) brightness(1.08)',
-        borderRadius: 36,
-        border: '1px solid rgba(255,255,255,0.13)',
-        borderTopColor: 'rgba(255,255,255,0.22)',
-        borderBottomColor: 'rgba(0,0,0,0.30)',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.70), 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.35), 0 0 0 1px rgba(245,158,11,0.06)',
-        padding: '10px 16px 10px',
+        background: 'rgba(6,10,22,0.82)',
+        backdropFilter: 'blur(64px) saturate(260%) brightness(1.1)',
+        WebkitBackdropFilter: 'blur(64px) saturate(260%) brightness(1.1)',
+        borderRadius: 40,
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderTopColor: 'rgba(255,255,255,0.20)',
+        borderBottomColor: 'rgba(0,0,0,0.45)',
+        boxShadow: '0 -2px 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.50), 0 0 0 1px rgba(245,158,11,0.07), 0 0 60px rgba(245,158,11,0.04)',
+        padding: '14px 20px 14px',
         display: 'flex',
         alignItems: 'flex-end',
-        gap: 6,
+        gap: 4,
         position: 'relative',
         overflow: 'hidden',
+        width: '100%',
+        maxWidth: 480,
+        justifyContent: 'space-around',
       }}>
         {/* Claude Presence Indicator — Top center of dock */}
         <div style={{
@@ -230,7 +234,7 @@ export default function MobileDock() {
         }} />
 
         {/* Left 2 items */}
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-3">
           {leftItems.map(item => (
             <button
               key={item.path}
@@ -243,8 +247,11 @@ export default function MobileDock() {
           ))}
         </div>
 
+        {/* Divider left */}
+        <div style={{ width: 1, height: 36, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.10), transparent)', flexShrink: 0, alignSelf: 'center' }} />
+
         {/* Claude Chat Button */}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 3px' }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 2px' }}>
           <button
             type="button"
             onClick={() => setIsChatOpen(true)}
@@ -283,14 +290,15 @@ export default function MobileDock() {
             }} />
           </button>
           <span style={{
-            fontSize: 9, fontWeight: 500,
-            color: 'rgba(255,255,255,0.45)',
-            letterSpacing: '0.02em', marginTop: 2,
+            fontSize: 10, fontWeight: 500,
+            color: 'rgba(255,255,255,0.38)',
+            letterSpacing: '0.04em', marginTop: 5,
+            textTransform: 'uppercase',
           }}>Claude</span>
         </div>
 
         {/* Center Home — fixed anchor */}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 3px' }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px' }}>
           {/* Bloom */}
           <div style={{
             position: 'absolute',
@@ -370,15 +378,19 @@ export default function MobileDock() {
             }} />
           </button>
           <span style={{
-            fontSize: 9, fontWeight: isHome ? 700 : 400,
-            color: isHome ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.38)',
-            letterSpacing: '0.02em', marginTop: 2,
+            fontSize: 10, fontWeight: isHome ? 700 : 500,
+            color: isHome ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.06em', marginTop: 6,
+            textTransform: 'uppercase',
             transition: 'color 0.22s ease',
           }}>Home</span>
         </div>
 
+        {/* Divider right */}
+        <div style={{ width: 1, height: 36, background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.10), transparent)', flexShrink: 0, alignSelf: 'center' }} />
+
         {/* Right 2 items */}
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-3">
           {rightItems.map(item => (
             <button
               key={item.path}
