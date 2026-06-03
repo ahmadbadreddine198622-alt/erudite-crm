@@ -24,7 +24,7 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 h-full pb-4 overflow-x-auto" style={{ scrollSnapType: 'x proximity' }}>
+      <div className="flex gap-4 h-full pb-4" style={{ scrollSnapType: 'x proximity' }}>
         {stages.map((stage) => {
           const landlords = stageGroups[stage] || [];
           const totalCommission = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);

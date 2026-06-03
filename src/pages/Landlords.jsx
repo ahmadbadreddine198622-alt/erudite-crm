@@ -629,7 +629,7 @@ export default function Landlords() {
       </div>
 
       {/* Kanban Board - scrolls horizontally within bounded container */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-4" style={{ minHeight: '420px' }}>
+      <div className="flex-1 overflow-x-auto px-8 pb-4" style={{ minHeight: '420px' }}>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
