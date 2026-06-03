@@ -13,6 +13,7 @@ import PricingPressureMeter from './PricingPressureMeter';
 import PortfolioRadar from './PortfolioRadar';
 import CoalitionMap from './CoalitionMap';
 import WhisperPanel from './WhisperPanel';
+import UnitPassport from './UnitPassport';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate }) {
   const queryClient = useQueryClient();
@@ -232,8 +233,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="p-4">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-5 mb-4">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+              <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
@@ -284,6 +286,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
 
               <CoalitionMap landlord={landlord} />
               <PortfolioRadar landlord={landlord} />
+            </TabsContent>
+
+            <TabsContent value="unit" className="space-y-3">
+              <UnitPassport landlordId={landlord.id} />
             </TabsContent>
 
             <TabsContent value="negotiation" className="space-y-3">

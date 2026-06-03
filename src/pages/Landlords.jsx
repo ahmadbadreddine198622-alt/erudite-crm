@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users } from 'lucide-react';
+import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -445,6 +446,16 @@ export default function Landlords() {
             <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
           </div>
         </div>
+
+        {/* Project Intelligence Strip — shown when project filter active */}
+        {filterProject && filterProject !== 'unassigned' && (
+          <ProjectIntelStrip
+            landlords={allFilteredLandlords}
+            landlordPropertyMap={landlordPropertyMap}
+            properties={properties}
+            landlordProperties={landlordProperties}
+          />
+        )}
 
         {/* Filters row + inline bulk toolbar */}
         <div className="flex gap-2 flex-wrap items-center">
