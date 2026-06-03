@@ -149,6 +149,11 @@
     },
     "floor_plan_url": {
       "type": "string"
+    },
+    "noc_from_developer": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether NOC from developer has been obtained"
     }
   },
   "required": [

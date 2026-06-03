@@ -189,6 +189,11 @@
       "type": "string",
       "format": "date-time"
     },
+    "mandate_start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date the mandate/Form A became active"
+    },
     "commission_pct_negotiated": {
       "type": "number",
       "minimum": 0,
@@ -345,6 +350,14 @@
     "lease_pdf_url": {
       "type": "string",
       "description": "URL of the generated Lease Brokerage Agreement PDF \u2014 persisted by the backend function"
+    },
+    "form_a_contract_number": {
+      "type": "string",
+      "description": "Form A contract reference number"
+    },
+    "form_a_pdf_url": {
+      "type": "string",
+      "description": "URL of the generated Form A PDF"
     }
   },
   "required": [
