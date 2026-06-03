@@ -413,9 +413,9 @@ export default function Landlords() {
           >
             <div className="flex items-center gap-2 mb-1">
               <FileCheck className="w-4 h-4 text-emerald-500" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Mandates (30d)</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Form A Signed</span>
             </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandatesThisMonth}</p>
+            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandateCount}</p>
           </div>
           <div
             className="rounded-xl p-3"
