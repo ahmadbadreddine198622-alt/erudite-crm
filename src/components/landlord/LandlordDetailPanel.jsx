@@ -30,6 +30,7 @@ import PortfolioRadar from './PortfolioRadar';
 import CoalitionMap from './CoalitionMap';
 import WhisperPanel from './WhisperPanel';
 import UnitPassport from './UnitPassport';
+import PreShootForm from './PreShootForm';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate }) {
   const queryClient = useQueryClient();
@@ -640,6 +641,16 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 )}
               </div>
             </div>
+
+            {/* Pre-shoot Form - shown only when PhotographyTask exists */}
+            {existingTask && landlordProperty && (
+              <div className="pt-2">
+                <PreShootForm
+                  photographyTask={existingTask}
+                  landlordProperty={landlordProperty}
+                />
+              </div>
+            )}
           </div>
 
           {/* Metrics Grid */}
