@@ -207,7 +207,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   // Photographer options
   const PHOTOGRAPHER_OPTIONS = [
     { email: 'dari@erudite-estate.com', name: 'Dari' },
-    { email: 'ahmad@erudite-estate.com', name: 'Ahmad Badreddine' },
+    { email: 'ahmad.badreddine198622@gmail.com', name: 'Ahmad Badreddine' },
   ];
 
   const orchestrateMutation = useMutation({
