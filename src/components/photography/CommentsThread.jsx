@@ -9,30 +9,42 @@ import { toast } from 'sonner';
 
 function CommentBubble({ comment }) {
   const isPhotographer = comment.author_role === 'photographer';
+  const time = new Date(comment.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   
   return (
     <div className={`flex gap-1.5 ${isPhotographer ? 'justify-end' : 'justify-start'}`}>
+      {/* Avatar - Agent on left, Photographer on right */}
       {!isPhotographer && (
-        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-[8px] shrink-0">
+        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-[9px] shrink-0 border border-amber-500/30">
           {comment.author_email[0]?.toUpperCase()}
         </div>
       )}
-      <div className={`max-w-[85%] ${isPhotographer ? 'items-end' : 'items-start'} flex flex-col`}>
+      
+      <div className={`max-w-[80%] ${isPhotographer ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
+        {/* Author label */}
+        <span className={`text-[7px] font-semibold ${isPhotographer ? 'text-right' : 'text-left'}`} style={{ color: isPhotographer ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)' }}>
+          {isPhotographer ? 'Photographer' : 'Agent'}
+        </span>
+        
+        {/* Message bubble */}
         <div
-          className={`rounded-lg px-2 py-1.5 text-[9px] ${
+          className={`rounded-lg px-2.5 py-1.5 text-[9px] leading-relaxed ${
             isPhotographer
-              ? 'bg-accent/20 text-accent-foreground'
-              : 'bg-white/10 text-foreground'
+              ? 'bg-amber-500/20 border border-amber-500/30 text-white'
+              : 'bg-white/15 border border-white/20 text-white'
           }`}
         >
           {comment.message}
         </div>
-        <span className="text-[8px] text-muted-foreground mt-0.5">
-          {new Date(comment.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+        
+        {/* Timestamp */}
+        <span className={`text-[7px] ${isPhotographer ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {time}
         </span>
       </div>
+      
       {isPhotographer && (
-        <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-[8px] shrink-0">
+        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-[9px] shrink-0 border border-emerald-500/30">
           {comment.author_email[0]?.toUpperCase()}
         </div>
       )}
@@ -85,23 +97,25 @@ export default function CommentsThread({ photographyTaskId, landlordPropertyId }
   const displayedComments = showAll ? comments : comments.slice(-3);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
       {/* Heading - always visible */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <p className="text-[9px] font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>
           Messages
         </p>
-        <Badge variant="outline" className="text-[8px] px-1.5 py-0.5" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+        <Badge variant="outline" className="text-[8px] px-1.5 py-0.5" style={{ background: 'hsl(38 92% 50% / 0.15)', border: '1px solid hsl(38 92% 50% / 0.3)', color: 'hsl(38 92% 55%)' }}>
           {comments.length}
         </Badge>
       </div>
       
       {/* Comments list - always has minimum height */}
-      <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 min-h-[48px]">
+      <div className="space-y-2 max-h-40 overflow-y-auto pr-1 min-h-[60px]" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.2) transparent' }}>
         {displayedComments.length === 0 ? (
-          <p className="text-[8px] text-muted-foreground text-center py-3" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
-            No messages yet — be the first to comment
-          </p>
+          <div className="flex items-center justify-center py-4" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+            <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              No messages yet — be the first to comment
+            </p>
+          </div>
         ) : (
           displayedComments.map((comment, idx) => (
             <CommentBubble key={comment.id || idx} comment={comment} />
@@ -114,7 +128,7 @@ export default function CommentsThread({ photographyTaskId, landlordPropertyId }
       {comments.length > 3 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="text-[8px] text-accent hover:underline w-full text-center"
+          className="text-[8px] hover:underline w-full text-center mt-1"
           style={{ color: 'hsl(38 92% 55%)' }}
         >
           {showAll ? 'Show less' : `Show ${comments.length - 3} more`}
@@ -122,14 +136,14 @@ export default function CommentsThread({ photographyTaskId, landlordPropertyId }
       )}
 
       {/* Input - always visible */}
-      <div className="flex gap-1.5">
+      <div className="flex gap-2 mt-2 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
         <Input
           placeholder="Type a message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="h-7 text-[9px] flex-1"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="h-8 text-[9px] flex-1"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.95)' }}
           disabled={postMutation.isPending}
         />
         <Button
@@ -137,8 +151,8 @@ export default function CommentsThread({ photographyTaskId, landlordPropertyId }
           variant="outline"
           onClick={handleSend}
           disabled={postMutation.isPending || !message.trim()}
-          className="h-7 px-3 text-[9px] gap-1"
-          style={{ background: 'hsl(38 92% 50% / 0.15)', border: '1px solid hsl(38 92% 50% / 0.3)', color: 'hsl(38 92% 55%)' }}
+          className="h-8 px-3 text-[9px] gap-1"
+          style={{ background: 'hsl(38 92% 50%)', border: '1px solid hsl(38 92% 50% / 0.5)', color: 'hsl(222 47% 11%)' }}
         >
           {postMutation.isPending ? (
             <Loader2 className="w-3 h-3 animate-spin" />
