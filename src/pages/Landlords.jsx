@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature } from 'lucide-react';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
+import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 
 const STAGES = [
   'initial_contact',
@@ -61,6 +62,7 @@ export default function Landlords() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showVirtualViewing, setShowVirtualViewing] = useState(false);
+  const [showFormADialog, setShowFormADialog] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const [filterProject, setFilterProject] = useState('');
@@ -389,6 +391,10 @@ export default function Landlords() {
                 <Video className="w-4 h-4" />
                 Virtual Viewing
               </Button>
+              <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2">
+                <FileSignature className="w-4 h-4 text-amber-400" />
+                Upload Form A
+              </Button>
               <Button onClick={() => setShowNewDialog(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 New Landlord
@@ -708,6 +714,14 @@ export default function Landlords() {
           landlord_email: selectedLandlord.email,
           landlord_phone: selectedLandlord.phone,
         } : {}}
+      />
+      <FormAUploadDialog
+        open={showFormADialog}
+        onClose={() => setShowFormADialog(false)}
+        onSuccess={() => {
+          setShowFormADialog(false);
+          queryClient.invalidateQueries({ queryKey: ['landlords'] });
+        }}
       />
 
       {/* Bulk Delete Confirmation Dialog */}
