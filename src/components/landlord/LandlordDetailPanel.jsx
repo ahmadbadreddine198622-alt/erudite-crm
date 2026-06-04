@@ -149,49 +149,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
           </Button>
         </div>
 
-        {/* Form A Upload */}
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-medium text-muted-foreground">Form A / Mandate PDF</span>
-            {landlord.form_a_pdf_url && (
-              <Badge variant="outline" className="text-xs border bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1">
-                <FileCheck className="w-3 h-3" /> Attached
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {landlord.form_a_pdf_url && (
-              <a
-                href={landlord.form_a_pdf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-accent hover:underline flex items-center gap-1"
-              >
-                <ExternalLink className="w-3 h-3" /> View
-              </a>
-            )}
-            <input
-              ref={formAInputRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={handleFormAUpload}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => formAInputRef.current?.click()}
-              disabled={formAUploading}
-              className="gap-1.5"
-            >
-              {formAUploading
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Upload className="w-3.5 h-3.5" />}
-              {formAUploading ? 'Uploading…' : landlord.form_a_pdf_url ? 'Replace Form A' : 'Upload Form A'}
-            </Button>
-          </div>
-        </div>
-
         {/* Whisper Panel (toggle) */}
         {whisperOpen && (
           <div className="p-3 border-b border-border">
@@ -320,6 +277,51 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                       Expires: {new Date(landlord.mandate_expires_at).toLocaleDateString()}
                     </p>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Form A Upload — always visible, no stage gate */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    Form A / Mandate PDF
+                    {landlord.form_a_pdf_url && (
+                      <Badge variant="outline" className="text-xs border bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1">
+                        <FileCheck className="w-3 h-3" /> Attached
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {landlord.form_a_pdf_url && (
+                    <a
+                      href={landlord.form_a_pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View uploaded Form A
+                    </a>
+                  )}
+                  <input
+                    ref={formAInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleFormAUpload}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => formAInputRef.current?.click()}
+                    disabled={formAUploading}
+                    className="gap-1.5 w-full"
+                  >
+                    {formAUploading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Upload className="w-3.5 h-3.5" />}
+                    {formAUploading ? 'Uploading…' : landlord.form_a_pdf_url ? 'Replace Form A PDF' : 'Upload Form A (PDF)'}
+                  </Button>
                 </CardContent>
               </Card>
 
