@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Camera, Home, Key, AlertCircle, CheckCircle2, Film, Disc, FileText } from 'lucide-react';
+import { Camera, Home, Key, AlertCircle, CheckCircle2, Film, Disc, FileText, Loader2 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from 'sonner';
 
 const PHOTOGRAPHY_STATUS_COLORS = {
   none: 'bg-red-500/10 text-red-400 border-red-500/30',
@@ -19,10 +20,19 @@ const PHOTOGRAPHY_STATUS_LABELS = {
   scheduled: 'Scheduled',
 };
 
+const MEDIA_CONFIG = [
+  { label: '360° Tour', key: 'has_360_tour', icon: Disc },
+  { label: 'Drone Footage', key: 'has_drone_footage', icon: Film },
+  { label: 'Video Walkthrough', key: 'has_video_walkthrough', icon: Camera },
+  { label: 'Floor Plan', key: 'has_floor_plan', icon: FileText },
+];
+
 export default function Photography() {
   const [selectedLandlord, setSelectedLandlord] = useState(null);
+  const [savingId, setSavingId] = useState(null);
+  const queryClient = useQueryClient();
 
-  const { data: feed = [], isLoading } = useQuery({
+  const { data: feed = [], isLoading, refetch } = useQuery({
     queryKey: ['photography-feed'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getPhotographyFeed', {});
@@ -30,13 +40,36 @@ export default function Photography() {
     },
   });
 
-  const getMissingMedia = (item) => {
-    const missing = [];
-    if (!item.has_360_tour) missing.push('360° Tour');
-    if (!item.has_drone_footage) missing.push('Drone Footage');
-    if (!item.has_video_walkthrough) missing.push('Video Walkthrough');
-    if (!item.has_floor_plan) missing.push('Floor Plan');
-    return missing;
+  const handleToggleMedia = async (item, flag) => {
+    if (!item.landlord_property_id) {
+      toast.error('No property record found');
+      return;
+    }
+    if (savingId) return; // prevent concurrent saves
+    
+    setSavingId(item.landlord_property_id);
+    try {
+      const currentValue = item[flag] || false;
+      const res = await base44.functions.invoke('updatePhotographyStatus', {
+        landlord_property_id: item.landlord_property_id,
+        updates: { [flag]: !currentValue },
+      });
+      if (res.data?.ok) {
+        await refetch();
+        toast.success('Media status updated');
+      }
+    } catch (err) {
+      toast.error('Failed to update: ' + (err.message || 'unknown error'));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const getMediaItems = (item) => {
+    return MEDIA_CONFIG.map((config) => ({
+      ...config,
+      isDone: item[config.key] === true,
+    }));
   };
 
   if (isLoading) {
@@ -120,7 +153,6 @@ export default function Photography() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {feed.map((item) => {
-            const missingMedia = getMissingMedia(item);
             const statusColor = PHOTOGRAPHY_STATUS_COLORS[item.photography_status] || PHOTOGRAPHY_STATUS_COLORS.none;
             const statusLabel = PHOTOGRAPHY_STATUS_LABELS[item.photography_status] || item.photography_status;
 
@@ -165,27 +197,41 @@ export default function Photography() {
                     </div>
                   </div>
 
-                  {/* Missing Media */}
-                  {missingMedia.length > 0 && (
-                    <div className="pt-2 border-t border-white/10">
-                      <p className="text-[10px] text-muted-foreground mb-1.5">Media Needed</p>
-                      <div className="flex flex-wrap gap-1">
-                        {missingMedia.map((item) => (
-                          <Badge 
-                            key={item} 
-                            variant="outline" 
-                            className="text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 border-red-500/30"
+                  {/* Media Items - Interactive Pills */}
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-[10px] text-muted-foreground mb-1.5">Media Status</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getMediaItems(item).map((media) => {
+                        const Icon = media.icon;
+                        const isSaving = savingId === item.landlord_property_id;
+                        return (
+                          <button
+                            key={media.key}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleMedia(item, media.key);
+                            }}
+                            disabled={isSaving}
+                            className={
+                              media.isDone
+                                ? 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-semibold border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50'
+                                : 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-semibold border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50'
+                            }
+                            title={media.isDone ? 'Click to mark as not done' : 'Click to mark as done'}
                           >
-                            {item === '360° Tour' && <Disc className="w-2.5 h-2.5 mr-0.5" />}
-                            {item === 'Drone Footage' && <Camera className="w-2.5 h-2.5 mr-0.5" />}
-                            {item === 'Video Walkthrough' && <Film className="w-2.5 h-2.5 mr-0.5" />}
-                            {item === 'Floor Plan' && <FileText className="w-2.5 h-2.5 mr-0.5" />}
-                            {item}
-                          </Badge>
-                        ))}
-                      </div>
+                            {isSaving ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : media.isDone ? (
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                            ) : (
+                              <Icon className="w-2.5 h-2.5" />
+                            )}
+                            {media.label}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
 
                   {/* Access/Keys Info */}
                   {(item.keys_location || item.key_access_instructions) && (
@@ -207,15 +253,7 @@ export default function Photography() {
                     </div>
                   )}
 
-                  {/* No missing media - all done */}
-                  {missingMedia.length === 0 && (
-                    <div className="pt-2 border-t border-white/10">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400 font-medium">All media captured</span>
-                      </div>
-                    </div>
-                  )}
+
                 </CardContent>
               </Card>
             );

@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
       
       return {
         landlord_id: landlord.id,
+        landlord_property_id: property?.id || null,
         owner_name: landlord.full_name_en || landlord.full_name,
         project: landlord.project_name,
         unit_reference: landlord.unit_reference,
