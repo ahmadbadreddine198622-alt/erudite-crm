@@ -265,6 +265,7 @@ Deno.serve(async (req) => {
   }
 
   return Response.json({
+    parser_version: 'v4-joint-tiebreak-writetarget',   // deploy marker: if you see this field, the latest code is live
     mode: wantWrite ? 'written' : (needsReview && !match.tier ? 'needs_review' : 'preview_no_write'),
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
