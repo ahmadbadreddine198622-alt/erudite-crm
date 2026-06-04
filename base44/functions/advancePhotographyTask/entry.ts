@@ -31,7 +31,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Not authorized for this task' }, { status: 403 });
     }
 
-    await base44.entities.PhotographyTask.update(task_id, { task_stage: new_stage });
+    // Set timestamp for the stage being entered (only if not already set)
+    const timestampUpdates: any = {};
+    const stageTimestampMap: Record<string, string> = {
+      'pre_shoot_check': 'started_at',
+      'shooting': 'shot_at',
+      'uploaded_3d': 'uploaded_3d_at',
+      'editing': 'editing_at',
+      'complete': 'completed_at',
+      'handed_to_listing': 'handed_to_listing_at',
+    };
+    
+    const timestampField = stageTimestampMap[new_stage];
+    if (timestampField && !task[timestampField]) {
+      timestampUpdates[timestampField] = new Date().toISOString();
+    }
+
+    await base44.entities.PhotographyTask.update(task_id, { 
+      task_stage: new_stage,
+      ...timestampUpdates 
+    });
 
     return Response.json({ ok: true, task_id, new_stage });
   } catch (error) {

@@ -34,6 +34,36 @@
       "format": "date-time",
       "description": "When the task was assigned to photographer"
     },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task left inquiry / reached pre_shoot_check"
+    },
+    "shot_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task reached shooting stage"
+    },
+    "uploaded_3d_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task reached uploaded_3d stage"
+    },
+    "editing_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task reached editing stage"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task reached complete stage"
+    },
+    "handed_to_listing_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task reached handed_to_listing stage"
+    },
     "unit_condition": {
       "type": "string",
       "enum": [
