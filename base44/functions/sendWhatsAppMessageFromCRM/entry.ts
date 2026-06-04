@@ -83,9 +83,8 @@ Deno.serve(async (req) => {
 
     if (conv) {
       // Save outbound message
-      await base44.asServiceRole.entities.WhatsAppMessage.create({
+      const msgRecord = {
         conversation_id: conv.id,
-        lead_id: conv.lead_id || undefined,
         wa_message_id: waMessageId,
         direction: 'outbound',
         body: bodyText,
@@ -95,7 +94,9 @@ Deno.serve(async (req) => {
         timestamp,
         from_number: '',
         to_number: normalized,
-      });
+      };
+      if (conv.lead_id) msgRecord.lead_id = conv.lead_id;
+      await base44.asServiceRole.entities.WhatsAppMessage.create(msgRecord);
 
       // Update conversation — bump to top
       await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, {
