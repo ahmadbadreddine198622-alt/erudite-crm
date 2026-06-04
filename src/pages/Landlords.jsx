@@ -717,7 +717,7 @@ export default function Landlords() {
 
       {/* Detail Panel */}
       {selectedLandlord && (
-        <LandlordDetailPanel
+        <LandlordDetailPanel fullScreenOnMobile={true}
           landlord={selectedLandlord}
           open={!!selectedLandlord}
           onClose={() => setSelectedLandlordId(null)}

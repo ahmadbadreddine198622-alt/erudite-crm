@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
@@ -24,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import PricingPressureMeter from './PricingPressureMeter';
@@ -33,8 +35,10 @@ import WhisperPanel from './WhisperPanel';
 import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
 
-export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate }) {
+export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const useFullDrawer = fullScreenOnMobile && isMobile;
   const [whisperOpen, setWhisperOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
   const [lbaResult, setLbaResult] = useState(null);
@@ -245,56 +249,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   };
   const lbaStatus = landlord.lease_agreement_status;
 
-  return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
-        {/* Header */}
-        <div className="border-b border-border p-4 flex items-center justify-between sticky top-0 z-10 bg-card">
-          <div className="flex items-center gap-2 min-w-0">
-            {landlord.ai_strike_now && (
-              <Badge className="bg-red-500 text-white border-0 animate-pulse">
-                <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
-              </Badge>
-            )}
-            <div className="min-w-0 flex-1">
-              <h2 className="font-semibold truncate">{landlord.full_name_en || landlord.full_name}</h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs text-muted-foreground truncate">
-                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
-                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
-                </p>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10">
-                  {STAGE_LABELS[landlord.stage] || landlord.stage}
-                </Badge>
-              </div>
-            </div>
-            <div className="shrink-0">
-              <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAGE_OPTIONS.map((stage) => (
-                    <SelectItem key={stage} value={stage} className="text-xs">
-                      {STAGE_LABELS[stage] || stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
-              <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : ''}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
-              <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
-              <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-600' : ''}`} />
-            </Button>
-          </div>
-        </div>
+  const renderContent = () => (
 
         {/* Lease Brokerage Agreement */}
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
@@ -991,7 +946,18 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             </TabsContent>
           </Tabs>
         </div>
-      </SheetContent>
-    </Sheet>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Sheet open={open} onOpenChange={onClose}>
+          <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
+            {renderContent()}
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
   );
-}
+  
+  function renderContent() {
+    return (
+      <>
