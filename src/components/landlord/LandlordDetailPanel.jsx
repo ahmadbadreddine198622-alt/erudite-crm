@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare } from 'lucide-react';
+import CommentsThread from "@/components/photography/CommentsThread";
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -692,6 +693,16 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                     Photos
                   </a>
                 )}
+              </div>
+            )}
+
+            {/* Comments thread - only show if task exists */}
+            {existingTask && landlordProperty && (
+              <div className="pt-2 border-t border-white/10">
+                <CommentsThread
+                  photographyTaskId={existingTask.id}
+                  landlordPropertyId={landlordProperty.id}
+                />
               </div>
             )}
           </div>

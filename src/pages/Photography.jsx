@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
+import CommentsThread from "@/components/photography/CommentsThread";
 
 const STAGE_COLUMNS = ['inquiry', 'pre_shoot_check', 'shooting', 'uploaded_3d', 'editing', 'complete'];
 
@@ -301,6 +302,14 @@ function PhotographyCard({ item, refetch }) {
             onChange={(e) => setPhotosLink(e.target.value)}
             className="h-7 text-[10px]"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+        </div>
+
+        {/* Comments thread */}
+        <div className="pt-1.5 border-t border-white/10">
+          <CommentsThread
+            photographyTaskId={item.task_id}
+            landlordPropertyId={item.landlord_property_id}
           />
         </div>
 
