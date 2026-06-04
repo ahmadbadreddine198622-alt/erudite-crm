@@ -115,6 +115,12 @@ export default function Leads() {
     queryFn: () => base44.entities.Project.list('name', 200),
   });
 
+  const { data: teamUsers = [] } = useQuery({
+    queryKey: ['team-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
+  });
+
   useEffect(() => {
     const phones = leads.map(l => l.phone).filter(Boolean);
     if (phones.length > 0) primeWhatsAppCache(phones);
@@ -129,11 +135,9 @@ export default function Leads() {
     }
   }, [searchParams, leads]);
 
-  // Agent list for filter dropdown
-  const agents = useMemo(() => {
-    const set = new Set(leads.map(l => l.assigned_agent_name).filter(Boolean));
-    return [...set].sort();
-  }, [leads]);
+  // Agent list for filter dropdown — use real User list so all agents appear
+  // even if they haven't been assigned any leads yet.
+  const agentFilterKey = agentFilter; // keep existing filter state (by name)
 
   const handleSort = useCallback((col) => {
     setSortCol(prev => {
@@ -190,7 +194,7 @@ export default function Leads() {
     if (stageFilter !== 'all') result = result.filter(l => l.stage === stageFilter);
     if (statusFilter !== 'all') result = result.filter(l => l.status === statusFilter);
     if (sourceFilter !== 'all') result = result.filter(l => l.source === sourceFilter);
-    if (agentFilter !== 'all') result = result.filter(l => l.assigned_agent_name === agentFilter);
+    if (agentFilter !== 'all') result = result.filter(l => l.assigned_agent_email === agentFilter || l.assigned_agent_name === agentFilter);
     if (apptFilter === 'yes') result = result.filter(l => l.next_appointment_at && !isPast(parseISO(l.next_appointment_at)));
     if (apptFilter === 'no') result = result.filter(l => !l.next_appointment_at || isPast(parseISO(l.next_appointment_at)));
     if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
@@ -389,12 +393,14 @@ export default function Leads() {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-            {agents.length > 0 && (
+            {teamUsers.length > 0 && (
               <Select value={agentFilter} onValueChange={setAgentFilter}>
                 <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Agent" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Agents</SelectItem>
-                  {agents.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  {teamUsers.map(u => (
+                    <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}

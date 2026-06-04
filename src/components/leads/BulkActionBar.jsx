@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +19,12 @@ export default function BulkActionBar({ selectedIds, onClear }) {
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('name', 200),
+  });
+
+  const { data: teamUsers = [] } = useQuery({
+    queryKey: ['team-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
   });
 
   const invalidate = () => {
@@ -52,7 +57,8 @@ export default function BulkActionBar({ selectedIds, onClear }) {
 
   const handleAssign = () => {
     if (!agentEmail.trim()) return;
-    bulkUpdate.mutate({ assigned_agent: agentEmail.trim() });
+    const u = teamUsers.find(u => u.email === agentEmail);
+    bulkUpdate.mutate({ assigned_agent_email: agentEmail, assigned_agent_name: u?.full_name || agentEmail });
   };
 
   const handleTag = () => {
@@ -97,13 +103,16 @@ export default function BulkActionBar({ selectedIds, onClear }) {
 
       {activeAction === 'assign' ? (
         <div className="flex items-center gap-2">
-          <Input
-            placeholder="Agent email..."
-            value={agentEmail}
-            onChange={e => setAgentEmail(e.target.value)}
-            className="h-7 text-xs bg-white/10 border-white/20 text-white placeholder:text-white/50 w-48"
-            onKeyDown={e => e.key === 'Enter' && handleAssign()}
-          />
+          <Select value={agentEmail} onValueChange={setAgentEmail}>
+            <SelectTrigger className="h-7 text-xs bg-white/10 border-white/20 text-white w-48">
+              <SelectValue placeholder="Select agent..." />
+            </SelectTrigger>
+            <SelectContent>
+              {teamUsers.map(u => (
+                <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" className="h-7 bg-accent text-accent-foreground hover:bg-accent/90 text-xs" onClick={handleAssign}>
             Assign
           </Button>
