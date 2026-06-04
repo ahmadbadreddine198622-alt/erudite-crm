@@ -42,6 +42,12 @@ Deno.serve(async (req) => {
         staging_needed: task.staging_needed || null,
         what_to_bring: task.what_to_bring || null,
 
+        // Editing/completion fields:
+        editing_substatus: task.editing_substatus || null,
+        completion_notes: task.completion_notes || null,
+        video_link: task.video_link || null,
+        photos_link: task.photos_link || null,
+
         // Access info (from LandlordProperty — safe operational fields):
         keys_location: lp.keys_location || null,
         key_access_instructions: lp.key_access_instructions || null,
