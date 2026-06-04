@@ -66,34 +66,15 @@ function matchSpaceToUnit(
 }
 
 const GET_SPACES_QUERY = `
-  query GetModels($cursor: String) {
-    models(first: 50, after: $cursor) {
-      edges {
-        node {
-          id
-          name
-          status
-          createdDate
-          showcaseUrl
-          floorPlanUrl
-          hasFloorPlan
-          dimensions {
-            width
-            height
-            depth
-          }
-          photos {
-            edges {
-              node {
-                url
-              }
-            }
-          }
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
+  query GetModels {
+    models {
+      results {
+        id
+        name
+        address
+        description
+        publicVisibility
+        virtualTourUrl
       }
     }
   }
@@ -101,44 +82,38 @@ const GET_SPACES_QUERY = `
 
 async function fetchAllMatterportSpaces(tokenId: string, tokenSecret: string): Promise<Array<any>> {
   const allSpaces: Array<any> = [];
-  let cursor: string | null = null;
-  let hasMore = true;
-  
   const token = btoa(`${tokenId}:${tokenSecret}`);
   
-  while (hasMore) {
-    const variables = cursor ? { cursor } : {};
-    
-    const response = await fetch(MATTERPORT_API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${token}`,
-      },
-      body: JSON.stringify({
-        query: GET_SPACES_QUERY,
-        variables,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Matterport API error: ${response.status} ${errorText}`);
-    }
-    
-    const result = await response.json();
-    
-    if (result.errors) {
-      throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
-    }
-    
-    const edges = result.data?.models?.edges || [];
-    for (const edge of edges) {
-      allSpaces.push(edge.node);
-    }
-    
-    hasMore = result.data?.models?.pageInfo?.hasNextPage || false;
-    cursor = result.data?.models?.pageInfo?.endCursor || null;
+  const response = await fetch(MATTERPORT_API_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${token}`,
+    },
+    body: JSON.stringify({
+      query: GET_SPACES_QUERY,
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Matterport API error: ${response.status} ${errorText}`);
+  }
+  
+  const result = await response.json();
+  console.log('[DEBUG] Raw API response:', JSON.stringify(result, null, 2));
+  
+  if (result.errors) {
+    throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+  }
+  
+  const modelsData = result.data?.models;
+  const results = modelsData?.results || [];
+  
+  console.log(`[DEBUG] Found ${results.length} models in response`);
+  
+  for (const model of results) {
+    allSpaces.push(model);
   }
   
   return allSpaces;
@@ -232,7 +207,7 @@ Deno.serve(async (req) => {
           matterport_space_id: space.id,
           name: space.name || '',
           tour_url: space.showcaseUrl || '',
-          thumbnail_url: space.photos?.edges?.[0]?.node?.url || '',
+          thumbnail_url: Array.isArray(space.photos) && space.photos.length > 0 ? space.photos[0].url : '',
           status: space.status || '',
           scan_date: space.createdDate || undefined,
           details_json: JSON.stringify({
