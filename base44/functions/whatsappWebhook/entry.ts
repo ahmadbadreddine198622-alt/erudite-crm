@@ -169,9 +169,8 @@ Deno.serve(async (req) => {
       // ---- Persist the WhatsApp message ----
       let messageRecord = null;
       try {
-        messageRecord = await base44.asServiceRole.entities.WhatsAppMessage.create({
+        const inboundRecord: any = {
           conversation_id: conv.id,
-          lead_id: routeResult?.routed_entity_id,
           wa_message_id: waMessageId,
           direction: 'inbound',
           body: bodyText,
@@ -180,7 +179,9 @@ Deno.serve(async (req) => {
           from_number: e164Phone,
           to_number: value.metadata?.display_phone_number || '',
           media_type: msg.type !== 'text' ? msg.type : 'none'
-        });
+        };
+        if (routeResult?.routed_entity_id) inboundRecord.lead_id = routeResult.routed_entity_id;
+        messageRecord = await base44.asServiceRole.entities.WhatsAppMessage.create(inboundRecord);
         console.log('✅ Message created:', messageRecord.id, 'conversation:', conv.id);
       } catch (err) { 
         console.error('❌ message create failed:', err.message);
