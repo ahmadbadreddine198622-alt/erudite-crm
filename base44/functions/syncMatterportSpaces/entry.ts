@@ -163,7 +163,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'MATTERPORT_TOKEN_SECRET secret not configured' }, { status: 500 });
     }
     
-    console.log('Fetching Matterport spaces...');
+    const payload = await req.json().catch(() => ({}));
+    const dryRun = payload.dryRun !== false; // default true
+    
+    console.log(`Fetching Matterport spaces (dryRun: ${dryRun})...`);
     const spaces = await fetchAllMatterportSpaces(tokenId, tokenSecret);
     console.log(`Fetched ${spaces.length} spaces`);
     
@@ -231,52 +234,66 @@ Deno.serve(async (req) => {
         };
         
         let mpSpaceId: string;
-        if (existingMpSpace) {
-          await base44.asServiceRole.entities.MatterportSpace.update(existingMpSpace.id, mpSpaceData);
-          mpSpaceId = existingMpSpace.id;
-          mpSpaceData.linked_photography_task_id = existingMpSpace.linked_photography_task_id;
-          console.log(`Updated MatterportSpace ${existingMpSpace.id}`);
+        if (dryRun) {
+          mpSpaceId = existingMpSpace?.id || 'new-would-be-created';
+          console.log(`[DRY RUN] Would ${existingMpSpace ? 'update' : 'create'} MatterportSpace ${mpSpaceId}`);
         } else {
-          const newMpSpace = await base44.asServiceRole.entities.MatterportSpace.create(mpSpaceData);
-          mpSpaceId = newMpSpace.id;
-          console.log(`Created MatterportSpace ${newMpSpace.id}`);
+          if (existingMpSpace) {
+            await base44.asServiceRole.entities.MatterportSpace.update(existingMpSpace.id, mpSpaceData);
+            mpSpaceId = existingMpSpace.id;
+            mpSpaceData.linked_photography_task_id = existingMpSpace.linked_photography_task_id;
+            console.log(`Updated MatterportSpace ${existingMpSpace.id}`);
+          } else {
+            const newMpSpace = await base44.asServiceRole.entities.MatterportSpace.create(mpSpaceData);
+            mpSpaceId = newMpSpace.id;
+            console.log(`Created MatterportSpace ${newMpSpace.id}`);
+          }
         }
         
         let tourLinkWritten = false;
         if (space.showcaseUrl) {
-          if (photographyTask) {
-            await base44.asServiceRole.entities.PhotographyTask.update(photographyTask.id, {
-              tour_3d_link: space.showcaseUrl,
-            });
-            photographyTaskId = photographyTask.id;
-            tourLinkWritten = true;
-            console.log(`Updated PhotographyTask ${photographyTask.id} with tour link`);
+          if (dryRun) {
+            photographyTaskId = photographyTask?.id || 'new-would-be-created';
+            console.log(`[DRY RUN] Would ${photographyTask ? 'update' : 'create'} PhotographyTask ${photographyTaskId} with tour link`);
           } else {
-            const newTask = await base44.asServiceRole.entities.PhotographyTask.create({
-              landlord_id: lp.landlord_id,
-              landlord_property_id: lpId,
-              tour_3d_link: space.showcaseUrl,
-              task_stage: 'uploaded_3d',
-              uploaded_3d_at: new Date().toISOString(),
-            });
-            photographyTaskId = newTask.id;
-            tourLinkWritten = true;
-            console.log(`Created PhotographyTask ${newTask.id} with tour link`);
-            
-            await base44.asServiceRole.entities.MatterportSpace.update(mpSpaceId, {
-              linked_photography_task_id: newTask.id,
-            });
+            if (photographyTask) {
+              await base44.asServiceRole.entities.PhotographyTask.update(photographyTask.id, {
+                tour_3d_link: space.showcaseUrl,
+              });
+              photographyTaskId = photographyTask.id;
+              tourLinkWritten = true;
+              console.log(`Updated PhotographyTask ${photographyTask.id} with tour link`);
+            } else {
+              const newTask = await base44.asServiceRole.entities.PhotographyTask.create({
+                landlord_id: lp.landlord_id,
+                landlord_property_id: lpId,
+                tour_3d_link: space.showcaseUrl,
+                task_stage: 'uploaded_3d',
+                uploaded_3d_at: new Date().toISOString(),
+              });
+              photographyTaskId = newTask.id;
+              tourLinkWritten = true;
+              console.log(`Created PhotographyTask ${newTask.id} with tour link`);
+              
+              await base44.asServiceRole.entities.MatterportSpace.update(mpSpaceId, {
+                linked_photography_task_id: newTask.id,
+              });
+            }
           }
         }
         
         let floorPlanWritten = false;
         if (space.hasFloorPlan && space.floorPlanUrl) {
-          await base44.asServiceRole.entities.LandlordProperty.update(lpId, {
-            has_floor_plan: true,
-            floor_plan_url: space.floorPlanUrl,
-          });
-          floorPlanWritten = true;
-          console.log(`Updated LandlordProperty ${lpId} with floor plan`);
+          if (dryRun) {
+            console.log(`[DRY RUN] Would update LandlordProperty ${lpId} with floor plan`);
+          } else {
+            await base44.asServiceRole.entities.LandlordProperty.update(lpId, {
+              has_floor_plan: true,
+              floor_plan_url: space.floorPlanUrl,
+            });
+            floorPlanWritten = true;
+            console.log(`Updated LandlordProperty ${lpId} with floor plan`);
+          }
         }
         
         results.matched.push({
@@ -302,6 +319,7 @@ Deno.serve(async (req) => {
     }
     
     const summary = {
+      dryRun,
       totalFetched: results.totalSpacesFetched,
       matchedCount: results.matched.length,
       unmatchedCount: results.unmatched.length,
