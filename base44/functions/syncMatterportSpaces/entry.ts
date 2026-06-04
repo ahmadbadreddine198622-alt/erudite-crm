@@ -71,10 +71,6 @@ const GET_SPACES_QUERY = `
       results {
         id
         name
-        address
-        description
-        publicVisibility
-        virtualTourUrl
       }
     }
   }
@@ -83,6 +79,8 @@ const GET_SPACES_QUERY = `
 async function fetchAllMatterportSpaces(tokenId: string, tokenSecret: string): Promise<Array<any>> {
   const allSpaces: Array<any> = [];
   const token = btoa(`${tokenId}:${tokenSecret}`);
+  
+  console.log('[DEBUG] Fetching from Matterport GraphQL API...');
   
   const response = await fetch(MATTERPORT_API_ENDPOINT, {
     method: 'POST',
@@ -95,22 +93,32 @@ async function fetchAllMatterportSpaces(tokenId: string, tokenSecret: string): P
     }),
   });
   
+  console.log(`[DEBUG] HTTP Status: ${response.status} ${response.statusText}`);
+  
   if (!response.ok) {
     const errorText = await response.text();
+    console.log('[DEBUG] Error response body:', errorText);
     throw new Error(`Matterport API error: ${response.status} ${errorText}`);
   }
   
   const result = await response.json();
-  console.log('[DEBUG] Raw API response:', JSON.stringify(result, null, 2));
+  console.log('[DEBUG] Full API response:', JSON.stringify(result, null, 2));
   
   if (result.errors) {
+    console.log('[DEBUG] GraphQL errors:', JSON.stringify(result.errors));
     throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
   }
   
-  const modelsData = result.data?.models;
-  const results = modelsData?.results || [];
+  // Check for account/environment info in response extensions
+  if (result.extensions) {
+    console.log('[DEBUG] Response extensions:', JSON.stringify(result.extensions));
+  }
   
-  console.log(`[DEBUG] Found ${results.length} models in response`);
+  const modelsData = result.data?.models;
+  console.log('[DEBUG] models object:', JSON.stringify(modelsData, null, 2));
+  
+  const results = modelsData?.results || [];
+  console.log(`[DEBUG] Found ${results.length} models in results array`);
   
   for (const model of results) {
     allSpaces.push(model);
@@ -153,7 +161,11 @@ Deno.serve(async (req) => {
     const dryRun = payload.dryRun !== false; // default true
     
     console.log(`Fetching Matterport spaces (dryRun: ${dryRun})...`);
-    const spaces = await fetchAllMatterportSpaces(tokenId, tokenSecret);
+    let rawApiResponse: any = null;
+    const spaces = await fetchAllMatterportSpaces(tokenId, tokenSecret).catch((err) => {
+      console.error('[DEBUG] Fetch failed:', err);
+      throw err;
+    });
     console.log(`Fetched ${spaces.length} spaces`);
     
     console.log('Fetching CRM data...');
@@ -323,6 +335,10 @@ Deno.serve(async (req) => {
       matched: results.matched,
       unmatched: results.unmatched,
       errors: results.errors,
+      debugInfo: {
+        totalFetched: spaces.length,
+        rawSpacesSample: spaces.slice(0, 3), // First 3 spaces if any
+      },
     });
     
   } catch (error) {
