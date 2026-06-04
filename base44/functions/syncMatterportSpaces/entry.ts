@@ -156,11 +156,20 @@ Deno.serve(async (req) => {
     const tokenId = Deno.env.get('MATTERPORT_TOKEN_ID');
     const tokenSecret = Deno.env.get('MATTERPORT_TOKEN_SECRET');
     
+    // DEBUG: Log secret presence and lengths (NOT values)
+    const debugSecrets = {
+      tokenId_present: !!tokenId,
+      tokenId_length: tokenId?.length || 0,
+      tokenSecret_present: !!tokenSecret,
+      tokenSecret_length: tokenSecret?.length || 0,
+    };
+    console.log('[DEBUG] Secrets check:', JSON.stringify(debugSecrets));
+    
     if (!tokenId) {
-      return Response.json({ error: 'MATTERPORT_TOKEN_ID secret not configured' }, { status: 500 });
+      return Response.json({ error: 'MATTERPORT_TOKEN_ID secret not configured', debugSecrets }, { status: 500 });
     }
     if (!tokenSecret) {
-      return Response.json({ error: 'MATTERPORT_TOKEN_SECRET secret not configured' }, { status: 500 });
+      return Response.json({ error: 'MATTERPORT_TOKEN_SECRET secret not configured', debugSecrets }, { status: 500 });
     }
     
     const payload = await req.json().catch(() => ({}));
@@ -332,6 +341,7 @@ Deno.serve(async (req) => {
     
     return Response.json({
       success: true,
+      debugSecrets,
       summary,
       matched: results.matched,
       unmatched: results.unmatched,
@@ -343,6 +353,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: false,
       error: error.message,
+      debugSecrets: typeof debugSecrets !== 'undefined' ? debugSecrets : undefined,
     }, { status: 500 });
   }
 });
