@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   const queryClient = useQueryClient();
   const [whisperOpen, setWhisperOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
+  const [lbaResult, setLbaResult] = useState(null); // holds { pdf_url, file_name } after generation
   const formAInputRef = useRef(null);
 
   const handleFormAUpload = async (e) => {
@@ -74,7 +75,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
       if (data?.skipped) {
         toast.info(data.reason || 'Lease Brokerage Agreement already sent for signature.');
       } else {
-        toast.success('Lease Brokerage Agreement sent for signature');
+        setLbaResult({ pdf_url: data.pdf_url, file_name: data.file_name });
+        toast.success('Lease Brokerage Agreement generated');
       }
       onUpdate?.();
       queryClient.invalidateQueries({ queryKey: ['landlord', landlord.id] });
@@ -148,6 +150,44 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             {lbaStatus === 'signed' ? 'Signed' : lbaStatus === 'sent_for_signature' ? 'Sent for signature' : 'Generate Agreement'}
           </Button>
         </div>
+
+        {/* LBA result card — shown after generation */}
+        {lbaResult?.pdf_url && (
+          <div className="px-4 py-3 border-b border-border space-y-2" style={{ background: 'rgba(16,185,129,0.06)' }}>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-emerald-400">Agreement generated</span>
+              <button onClick={() => setLbaResult(null)} className="ml-auto text-muted-foreground hover:text-foreground text-xs">✕</button>
+            </div>
+            {lbaResult.file_name && (
+              <p className="text-xs text-muted-foreground truncate pl-6">{lbaResult.file_name}</p>
+            )}
+            <div className="flex gap-2 pl-6">
+              <a
+                href={lbaResult.pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-amber-400" /> View in Drive
+              </a>
+              <a
+                href={(() => {
+                  const url = lbaResult.pdf_url || '';
+                  // Extract Drive file ID and build direct download link
+                  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                  return url;
+                })()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5 text-accent" /> Download PDF
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Whisper Panel (toggle) */}
         {whisperOpen && (
