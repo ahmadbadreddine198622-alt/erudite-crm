@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2 } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,8 +19,54 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   const queryClient = useQueryClient();
   const [whisperOpen, setWhisperOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
-  const [lbaResult, setLbaResult] = useState(null); // holds { pdf_url, file_name } after generation
+  const [lbaResult, setLbaResult] = useState(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [agreementEmailSending, setAgreementEmailSending] = useState(false);
   const formAInputRef = useRef(null);
+
+  const sendCustomEmail = async () => {
+    if (!emailTo) return toast.error('Please enter a recipient email.');
+    if (!emailSubject) return toast.error('Please enter a subject.');
+    setEmailSending(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: emailTo,
+        subject: emailSubject,
+        body: emailBody,
+      });
+      toast.success('Email sent');
+      setEmailOpen(false);
+      setEmailTo('');
+      setEmailSubject('');
+      setEmailBody('');
+    } catch (err) {
+      toast.error('Failed to send: ' + err.message);
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  const sendAgreementByEmail = async (pdfUrl) => {
+    const recipient = landlord.email;
+    if (!recipient) return toast.error('Landlord has no email address on record.');
+    setAgreementEmailSending(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: recipient,
+        subject: `Lease Brokerage Agreement — ${landlord.full_name_en || landlord.full_name}`,
+        body: `Dear ${landlord.full_name_en || landlord.full_name},\n\nPlease find your Lease Brokerage Agreement at the link below:\n\n${pdfUrl}\n\nKind regards,\nErudite Estate`,
+      });
+      toast.success(`Agreement emailed to ${recipient}`);
+    } catch (err) {
+      toast.error('Failed to send: ' + err.message);
+    } finally {
+      setAgreementEmailSending(false);
+    }
+  };
 
   const handleFormAUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -113,6 +159,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
+              <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : ''}`} />
+            </Button>
             <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
               <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin' : ''}`} />
             </Button>
@@ -132,24 +181,75 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               </Badge>
             )}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => lbaMutation.mutate()}
-            disabled={lbaMutation.isPending}
-            className="gap-1.5"
-            title={
-              lbaStatus === 'sent_for_signature' || lbaStatus === 'signed'
-                ? 'Already sent — regeneration is blocked by the idempotency guard'
-                : 'Generate the Lease Brokerage Agreement and send to the owner via DocuSign'
-            }
-          >
-            {lbaMutation.isPending
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : <FileSignature className="w-3.5 h-3.5" />}
-            {lbaStatus === 'signed' ? 'Signed' : lbaStatus === 'sent_for_signature' ? 'Sent for signature' : 'Generate Agreement'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {landlord.lease_pdf_url && (
+              <button
+                onClick={() => sendAgreementByEmail(landlord.lease_pdf_url)}
+                disabled={agreementEmailSending}
+                title="Email the agreement PDF to the owner"
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-white/20 hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {agreementEmailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-blue-400" />}
+                Email
+              </button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => lbaMutation.mutate()}
+              disabled={lbaMutation.isPending}
+              className="gap-1.5"
+              title={
+                lbaStatus === 'sent_for_signature' || lbaStatus === 'signed'
+                  ? 'Already sent — regeneration is blocked by the idempotency guard'
+                  : 'Generate the Lease Brokerage Agreement and send to the owner via DocuSign'
+              }
+            >
+              {lbaMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <FileSignature className="w-3.5 h-3.5" />}
+              {lbaStatus === 'signed' ? 'Signed' : lbaStatus === 'sent_for_signature' ? 'Sent for signature' : 'Generate Agreement'}
+            </Button>
+          </div>
         </div>
+
+        {/* Custom Email Compose Panel */}
+        {emailOpen && (
+          <div className="px-4 py-3 border-b border-border space-y-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-accent" /> Send Email</p>
+            <input
+              type="email"
+              placeholder="To (email)"
+              value={emailTo}
+              onChange={e => setEmailTo(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs rounded-md glass-input"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+            />
+            <input
+              type="text"
+              placeholder="Subject"
+              value={emailSubject}
+              onChange={e => setEmailSubject(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs rounded-md"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+            />
+            <textarea
+              placeholder="Message body…"
+              value={emailBody}
+              onChange={e => setEmailBody(e.target.value)}
+              rows={4}
+              className="w-full px-2 py-1.5 text-xs rounded-md resize-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setEmailOpen(false)} className="text-xs">Cancel</Button>
+              <Button size="sm" variant="outline" onClick={sendCustomEmail} disabled={emailSending} className="gap-1.5 text-xs">
+                {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Send
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* LBA result card — shown after generation */}
         {lbaResult?.pdf_url && (
@@ -162,7 +262,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             {lbaResult.file_name && (
               <p className="text-xs text-muted-foreground truncate pl-6">{lbaResult.file_name}</p>
             )}
-            <div className="flex gap-2 pl-6">
+            <div className="flex flex-wrap gap-2 pl-6">
               <a
                 href={lbaResult.pdf_url}
                 target="_blank"
@@ -174,7 +274,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               <a
                 href={(() => {
                   const url = lbaResult.pdf_url || '';
-                  // Extract Drive file ID and build direct download link
                   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
                   if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
                   return url;
@@ -185,6 +284,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               >
                 <Download className="w-3.5 h-3.5 text-accent" /> Download PDF
               </a>
+              <button
+                onClick={() => sendAgreementByEmail(lbaResult.pdf_url)}
+                disabled={agreementEmailSending}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/20 hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {agreementEmailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-blue-400" />}
+                Email to Owner
+              </button>
             </div>
           </div>
         )}
