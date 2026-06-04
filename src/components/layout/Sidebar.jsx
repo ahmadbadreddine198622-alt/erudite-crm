@@ -6,7 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -59,6 +59,7 @@ const navItems = [
   { label: 'Market Intelligence', icon: LineChart,       path: '/market-intelligence', gradient: 'from-indigo-500 to-blue-700' },
   { label: 'Buyer Match AI',      icon: UserSearch,      path: '/buyer-match-ai',      gradient: 'from-pink-500 to-rose-700' },
   { label: 'Closing AI',          icon: CheckCircle,     path: '/closing-ai',          gradient: 'from-green-500 to-emerald-700' },
+  { label: 'Photography',         icon: Camera,          path: '/photography',         gradient: 'from-rose-500 to-pink-700' },
 ];
 
 export default function Sidebar({ open = false, onClose }) {

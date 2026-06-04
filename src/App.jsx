@@ -71,6 +71,7 @@ import ClosingAI from '@/pages/ClosingAI';
 import BrandSettings from '@/pages/BrandSettings';
 import TeamActivityLog from '@/pages/TeamActivityLog';
 import InviteAgents from '@/pages/InviteAgents';
+import Photography from '@/pages/Photography';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -162,6 +163,7 @@ const AuthenticatedApp = () => {
         <Route path="/brand-settings" element={<BrandSettings />} />
         <Route path="/team-activity" element={<TeamActivityLog />} />
         <Route path="/invite-agents" element={<InviteAgents />} />
+        <Route path="/photography" element={<Photography />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
