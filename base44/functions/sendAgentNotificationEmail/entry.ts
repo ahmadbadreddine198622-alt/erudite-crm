@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       const result = await base44.integrations.Core.SendEmail({
         to: agent_email,
         subject,
-        html: body,
+        body,
       });
 
       return Response.json({ 
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       const result = await base44.integrations.Core.SendEmail({
         to: agent_email,
         subject,
-        html: body,
+        body,
       });
 
       return Response.json({ 
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       const result = await base44.integrations.Core.SendEmail({
         to: agent_email,
         subject,
-        html: body,
+        body,
       });
 
       return Response.json({ 
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     const result = await base44.integrations.Core.SendEmail({
       to: agent_email,
       subject,
-      html: body,
+      body,
     });
 
     return Response.json({ 
