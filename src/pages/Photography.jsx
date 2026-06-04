@@ -52,6 +52,17 @@ function PhotographyCard({ item, refetch }) {
   const [tour3dLink, setTour3dLink] = useState(item.tour_3d_link || '');
   const [savingFields, setSavingFields] = useState(false);
 
+  const handleSaveLinks = () => {
+    const updates = {
+      tour_3d_link: tour3dLink,
+      video_link: videoLink,
+      photos_link: photosLink,
+    };
+    setSavingFields(true);
+    updateFieldsMutation.mutate({ task_id: item.task_id, updates });
+    setSavingFields(false);
+  };
+
   const advanceMutation = useMutation({
     mutationFn: ({ task_id, new_stage }) => 
       base44.functions.invoke('advancePhotographyTask', { task_id, new_stage }),
@@ -81,11 +92,8 @@ function PhotographyCard({ item, refetch }) {
   const handleSaveFields = () => {
     const updates = {};
     if (item.task_stage === 'editing') updates.editing_substatus = editingSubstatus;
-    if (item.task_stage === 'uploaded_3d') updates.tour_3d_link = tour3dLink;
     if (item.task_stage === 'complete') {
       updates.completion_notes = completionNotes;
-      updates.video_link = videoLink;
-      updates.photos_link = photosLink;
     }
     if (Object.keys(updates).length === 0) return;
     setSavingFields(true);
@@ -258,20 +266,8 @@ function PhotographyCard({ item, refetch }) {
           </div>
         )}
 
-        {item.task_stage === 'uploaded_3d' && (
-          <div className="pt-1.5 border-t border-white/10">
-            <Input
-              placeholder="3D tour link (Matterport, etc.)"
-              value={tour3dLink}
-              onChange={(e) => setTour3dLink(e.target.value)}
-              className="h-7 text-[10px]"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-            />
-          </div>
-        )}
-
         {item.task_stage === 'complete' && (
-          <div className="pt-1.5 border-t border-white/10 space-y-1.5">
+          <div className="pt-1.5 border-t border-white/10">
             <Input
               placeholder="Completion notes"
               value={completionNotes}
@@ -279,25 +275,37 @@ function PhotographyCard({ item, refetch }) {
               className="h-7 text-[10px]"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
-            <Input
-              placeholder="Video link"
-              value={videoLink}
-              onChange={(e) => setVideoLink(e.target.value)}
-              className="h-7 text-[10px]"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-            />
-            <Input
-              placeholder="Photos link"
-              value={photosLink}
-              onChange={(e) => setPhotosLink(e.target.value)}
-              className="h-7 text-[10px]"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-            />
           </div>
         )}
 
+        {/* Links section - visible in ALL stages */}
+        <div className="pt-1.5 border-t border-white/10 space-y-1.5">
+          <p className="text-[9px] text-muted-foreground font-medium">Links</p>
+          <Input
+            placeholder="3D tour link"
+            value={tour3dLink}
+            onChange={(e) => setTour3dLink(e.target.value)}
+            className="h-7 text-[10px]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+          <Input
+            placeholder="Video link"
+            value={videoLink}
+            onChange={(e) => setVideoLink(e.target.value)}
+            className="h-7 text-[10px]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+          <Input
+            placeholder="Photos link"
+            value={photosLink}
+            onChange={(e) => setPhotosLink(e.target.value)}
+            className="h-7 text-[10px]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+        </div>
+
         {/* Advance button */}
-        <div className="pt-2 border-t border-white/10">
+        <div className="pt-2 border-t border-white/10 space-y-1.5">
           <Button
             size="sm"
             variant="outline"
@@ -315,13 +323,22 @@ function PhotographyCard({ item, refetch }) {
               </>
             )}
           </Button>
-          {(item.task_stage === 'editing' || item.task_stage === 'uploaded_3d' || item.task_stage === 'complete') && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleSaveLinks}
+            disabled={isSaving}
+            className="w-full h-7 text-[10px]"
+          >
+            {savingFields ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save links'}
+          </Button>
+          {(item.task_stage === 'editing' || item.task_stage === 'complete') && (
             <Button
               size="sm"
               variant="ghost"
               onClick={handleSaveFields}
               disabled={isSaving}
-              className="w-full h-7 text-[10px] mt-1"
+              className="w-full h-7 text-[10px]"
             >
               {savingFields ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save fields'}
             </Button>

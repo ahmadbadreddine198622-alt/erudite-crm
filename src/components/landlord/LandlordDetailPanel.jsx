@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image } from 'lucide-react';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -653,22 +653,46 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               </div>
             )}
 
-            {/* 3D Tour Link - read-only display for agents */}
-            {existingTask?.tour_3d_link && (
-              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                <Camera className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground mb-1">3D Tour</p>
+            {/* Media Links - read-only display for agents */}
+            {(existingTask?.tour_3d_link || existingTask?.video_link || existingTask?.photos_link) && (
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Media Links</p>
+                {existingTask?.tour_3d_link && (
                   <a
                     href={existingTask.tour_3d_link}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-accent hover:underline flex items-center gap-1"
                   >
+                    <Camera className="w-3 h-3" />
                     <ExternalLink className="w-3 h-3" />
-                    View 3D Tour
+                    3D Tour
                   </a>
-                </div>
+                )}
+                {existingTask?.video_link && (
+                  <a
+                    href={existingTask.video_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    <Film className="w-3 h-3" />
+                    <ExternalLink className="w-3 h-3" />
+                    Video
+                  </a>
+                )}
+                {existingTask?.photos_link && (
+                  <a
+                    href={existingTask.photos_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    <Image className="w-3 h-3" />
+                    <ExternalLink className="w-3 h-3" />
+                    Photos
+                  </a>
+                )}
               </div>
             )}
           </div>
