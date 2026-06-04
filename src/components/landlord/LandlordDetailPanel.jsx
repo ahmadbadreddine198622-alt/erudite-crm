@@ -204,9 +204,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     onError: (e) => toast.error('Failed to assign: ' + e.message),
   });
 
-  // Photographer options (extensible for future)
+  // Photographer options
   const PHOTOGRAPHER_OPTIONS = [
     { email: 'dari@erudite-estate.com', name: 'Dari' },
+    { email: 'ahmad@erudite-estate.com', name: 'Ahmad Badreddine' },
   ];
 
   const orchestrateMutation = useMutation({
