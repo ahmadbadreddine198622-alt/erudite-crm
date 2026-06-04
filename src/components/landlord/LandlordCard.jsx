@@ -55,7 +55,7 @@ const STAGE_LABELS = {
   form_a_signing: 'Form A Signing',
   owner_documents: 'Owner Documents',
   photos_videos: 'Photos / Videos',
-  photographer_scheduling: 'Photographer Scheduling',
+  photographer_scheduling: 'Documentation / verification by admin',
   listing_creation: 'Listing Creation',
   internal_verification: 'Internal Verification',
   listing_publication: 'Listing Publication',

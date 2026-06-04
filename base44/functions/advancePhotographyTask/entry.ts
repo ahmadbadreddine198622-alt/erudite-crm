@@ -52,6 +52,17 @@ Deno.serve(async (req) => {
       ...timestampUpdates 
     });
 
+    // Automation: When task reaches "handed_to_listing", advance landlord from "photos_videos" to "photographer_scheduling"
+    if (new_stage === 'handed_to_listing' && task.landlord_id) {
+      const landlord = await base44.entities.Landlord.get(task.landlord_id);
+      if (landlord && landlord.stage === 'photos_videos') {
+        await base44.entities.Landlord.update(task.landlord_id, {
+          stage: 'photographer_scheduling',
+          stage_entered_at: new Date().toISOString(),
+        });
+      }
+    }
+
     return Response.json({ ok: true, task_id, new_stage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
