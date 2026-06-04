@@ -37,6 +37,7 @@ import Landlords from '@/pages/Landlords';
 import EmailAutomations from '@/pages/EmailAutomations';
 import Projects from '@/pages/Projects';
 import FormAReferral from '@/pages/FormAReferral';
+import FormAInbox from '@/pages/FormAInbox';
 import KeyHandover from '@/pages/KeyHandover';
 import TransferFeeCalculator from '@/pages/TransferFeeCalculator';
 import FormIGenerator from '@/pages/FormIGenerator';
@@ -127,6 +128,7 @@ const AuthenticatedApp = () => {
         <Route path="/email-automations" element={<EmailAutomations />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/form-a-referral" element={<FormAReferral />} />
+        <Route path="/form-a-inbox" element={<FormAInbox />} />
         <Route path="/key-handover" element={<KeyHandover />} />
         <Route path="/transfer-calculator" element={<TransferFeeCalculator />} />
         <Route path="/form-i-generator" element={<FormIGenerator />} />

@@ -20,6 +20,7 @@ const navItems = [
   { label: 'Leads',               icon: Users,           path: '/leads',               gradient: 'from-emerald-500 to-emerald-800' },
   { label: 'Contacts',            icon: UserCheck,       path: '/contacts',            gradient: 'from-sky-500 to-cyan-800' },
   { label: 'Landlords',           icon: Building2,       path: '/landlords',           gradient: 'from-amber-500 to-orange-700', permission: 'manage_landlords' },
+  { label: 'Form A Inbox',        icon: FileSignature,   path: '/form-a-inbox',        gradient: 'from-amber-600 to-yellow-700', permission: 'manage_landlords' },
   { label: 'Projects',            icon: FolderOpen,      path: '/projects',            gradient: 'from-teal-500 to-teal-800' },
   { label: 'Analytics',           icon: BarChart3,       path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800', permission: 'view_analytics' },
   { label: 'Team',                icon: UserCheck,       path: '/team',                gradient: 'from-slate-500 to-slate-700' },
