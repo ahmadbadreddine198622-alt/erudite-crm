@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * Updates editing/completion fields on a PhotographyTask.
- * Payload: { task_id, updates: { editing_substatus?, completion_notes?, video_link?, photos_link? } }
+ * Payload: { task_id, updates: { editing_substatus?, completion_notes?, video_link?, photos_link?, tour_3d_link? } }
  */
 Deno.serve(async (req) => {
   try {
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     }
 
     // Only allow specific fields
-    const allowedFields = ['editing_substatus', 'completion_notes', 'video_link', 'photos_link'];
+    const allowedFields = ['editing_substatus', 'completion_notes', 'video_link', 'photos_link', 'tour_3d_link'];
     const sanitizedUpdates: any = {};
     for (const key of allowedFields) {
       if (key in updates) {

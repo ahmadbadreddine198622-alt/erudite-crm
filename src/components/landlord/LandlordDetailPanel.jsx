@@ -652,6 +652,25 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 />
               </div>
             )}
+
+            {/* 3D Tour Link - read-only display for agents */}
+            {existingTask?.tour_3d_link && (
+              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                <Camera className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">3D Tour</p>
+                  <a
+                    href={existingTask.tour_3d_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View 3D Tour
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Metrics Grid */}

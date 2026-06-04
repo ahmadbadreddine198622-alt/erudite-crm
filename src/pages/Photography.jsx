@@ -49,6 +49,7 @@ function PhotographyCard({ item, refetch }) {
   const [completionNotes, setCompletionNotes] = useState(item.completion_notes || '');
   const [videoLink, setVideoLink] = useState(item.video_link || '');
   const [photosLink, setPhotosLink] = useState(item.photos_link || '');
+  const [tour3dLink, setTour3dLink] = useState(item.tour_3d_link || '');
   const [savingFields, setSavingFields] = useState(false);
 
   const advanceMutation = useMutation({
@@ -80,6 +81,7 @@ function PhotographyCard({ item, refetch }) {
   const handleSaveFields = () => {
     const updates = {};
     if (item.task_stage === 'editing') updates.editing_substatus = editingSubstatus;
+    if (item.task_stage === 'uploaded_3d') updates.tour_3d_link = tour3dLink;
     if (item.task_stage === 'complete') {
       updates.completion_notes = completionNotes;
       updates.video_link = videoLink;
@@ -256,6 +258,18 @@ function PhotographyCard({ item, refetch }) {
           </div>
         )}
 
+        {item.task_stage === 'uploaded_3d' && (
+          <div className="pt-1.5 border-t border-white/10">
+            <Input
+              placeholder="3D tour link (Matterport, etc.)"
+              value={tour3dLink}
+              onChange={(e) => setTour3dLink(e.target.value)}
+              className="h-7 text-[10px]"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+          </div>
+        )}
+
         {item.task_stage === 'complete' && (
           <div className="pt-1.5 border-t border-white/10 space-y-1.5">
             <Input
@@ -301,7 +315,7 @@ function PhotographyCard({ item, refetch }) {
               </>
             )}
           </Button>
-          {(item.task_stage === 'editing' || item.task_stage === 'complete') && (
+          {(item.task_stage === 'editing' || item.task_stage === 'uploaded_3d' || item.task_stage === 'complete') && (
             <Button
               size="sm"
               variant="ghost"

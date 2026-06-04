@@ -96,6 +96,10 @@
     "photos_link": {
       "type": "string",
       "description": "URL to photo gallery"
+    },
+    "tour_3d_link": {
+      "type": "string",
+      "description": "URL to 3D tour (Matterport, etc.)"
     }
   },
   "required": [
