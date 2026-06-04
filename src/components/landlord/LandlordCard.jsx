@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, Clapperboard } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -67,10 +67,23 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
 
-  // Check if landlord has a PhotographyTask with task_stage = "handed_to_listing"
-  const mediaDone = photographyTasks.some(
-    task => task.landlord_id === landlord.id && task.task_stage === 'handed_to_listing'
-  );
+  // Find the landlord's PhotographyTask (same logic as detail panel)
+  const landlordTask = photographyTasks.find(task => task.landlord_id === landlord.id);
+  
+  // Media status logic - EXACT same as "Media for listing" section in detail panel
+  const getMediaStatus = () => {
+    if (!landlordTask) return { complete: false, label: 'No task' };
+    const isHandedToListing = landlordTask.task_stage === 'handed_to_listing';
+    const hasAllLinks = landlordTask.tour_3d_link && landlordTask.video_link && landlordTask.photos_link;
+    const isComplete = isHandedToListing && hasAllLinks;
+    return {
+      complete: isComplete,
+      label: isComplete ? 'Media complete' : 'Media incomplete',
+    };
+  };
+  
+  const mediaStatus = getMediaStatus();
+  const showMediaBadge = landlord.stage === 'photographer_scheduling';
 
   const e164 = normalizePhone(landlord.phone);
   const askingPrice = landlord.asking_price_history?.[0]?.price;
@@ -214,7 +227,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
       </div>
 
-      {/* Badges row: archetype + stage + urgency + media done */}
+      {/* Badges row: archetype + stage + urgency + media status (only for photographer_scheduling stage) */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
         <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
           {archetypeLabel}
@@ -232,10 +245,10 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             ATTENTION
           </span>
         )}
-        {mediaDone && (
-          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/20 text-amber-400 border-amber-500/40">
-            <Clapperboard className="w-2 h-2" />
-            Media done
+        {showMediaBadge && (
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+            {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
+            {mediaStatus.label}
           </span>
         )}
       </div>
