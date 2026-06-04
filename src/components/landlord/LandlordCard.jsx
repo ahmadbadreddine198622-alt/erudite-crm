@@ -108,6 +108,17 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
 
   const showMandateWarning = daysUntilMandateExpiry !== null && daysUntilMandateExpiry <= 14 && daysUntilMandateExpiry >= 0;
 
+  // Get contract numbers from form_a_contracts array, fallback to legacy single field
+  const contractNumbers = (() => {
+    if (landlord.form_a_contracts && landlord.form_a_contracts.length > 0) {
+      return landlord.form_a_contracts.map(c => c.contract_number).filter(Boolean);
+    }
+    if (landlord.form_a_contract_number) {
+      return [landlord.form_a_contract_number];
+    }
+    return [];
+  })();
+
   return (
     <div
       onClick={onClick}
@@ -174,6 +185,15 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
               📍 {landlord.unit_reference}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Form A contract numbers */}
+      {contractNumbers.length > 0 && (
+        <div className="mt-1.5">
+          <p className="text-[9px] font-medium" style={{ color: 'hsl(38 92% 50%)' }}>
+            {contractNumbers.join(', ')}
+          </p>
         </div>
       )}
 
