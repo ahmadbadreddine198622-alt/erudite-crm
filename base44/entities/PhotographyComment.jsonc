@@ -1,0 +1,43 @@
+{
+  "name": "PhotographyComment",
+  "type": "object",
+  "properties": {
+    "photography_task_id": {
+      "type": "string",
+      "description": "Reference to PhotographyTask entity"
+    },
+    "landlord_property_id": {
+      "type": "string",
+      "description": "Property ID for easy lookup from either side"
+    },
+    "author_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the comment author"
+    },
+    "author_role": {
+      "type": "string",
+      "enum": [
+        "agent",
+        "photographer"
+      ],
+      "description": "Role of the author"
+    },
+    "message": {
+      "type": "string",
+      "description": "Comment message text"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the comment was created"
+    }
+  },
+  "required": [
+    "photography_task_id",
+    "landlord_property_id",
+    "author_email",
+    "author_role",
+    "message"
+  ]
+}
