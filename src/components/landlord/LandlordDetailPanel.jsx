@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import PricingPressureMeter from './PricingPressureMeter';
 import PortfolioRadar from './PortfolioRadar';
@@ -42,6 +43,31 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   const [emailSending, setEmailSending] = useState(false);
   const [agreementEmailSending, setAgreementEmailSending] = useState(false);
   const formAInputRef = useRef(null);
+
+  const STAGE_OPTIONS = [
+    'initial_contact',
+    'price_discovery',
+    'listing_commitment',
+    'form_a_initiation',
+    'form_a_signing',
+    'owner_documents',
+    'photos_videos',
+    'photographer_scheduling',
+    'listing_creation',
+    'internal_verification',
+    'listing_publication',
+    'final_confirmation',
+  ];
+
+  const stageMutation = useMutation({
+    mutationFn: (newStage) => base44.entities.Landlord.update(landlord.id, { stage: newStage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      onUpdate?.();
+      toast.success('Stage updated');
+    },
+    onError: (e) => toast.error('Failed to update stage: ' + e.message),
+  });
 
   const sendCustomEmail = async () => {
     if (!emailTo) return toast.error('Please enter a recipient email.');
@@ -165,9 +191,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
               </Badge>
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="font-semibold truncate">{landlord.full_name_en || landlord.full_name}</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5">
                 <p className="text-xs text-muted-foreground truncate">
                   {landlord.landlord_archetype?.replace(/_/g, ' ')}
                   {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
@@ -177,8 +203,22 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                 </Badge>
               </div>
             </div>
+            <div className="shrink-0">
+              <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAGE_OPTIONS.map((stage) => (
+                    <SelectItem key={stage} value={stage} className="text-xs">
+                      {STAGE_LABELS[stage] || stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
               <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : ''}`} />
             </Button>
