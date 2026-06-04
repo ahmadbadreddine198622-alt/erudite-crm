@@ -1,44 +1,60 @@
+// getPhotographyFeed — now driven by PhotographyTask assignments.
+// Returns ONLY tasks assigned to the logged-in photographer, with pre-shoot info
+// + media flags. Sensitive landlord fields (phone/commission/price/contract) NEVER included.
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get landlords in photography stages
-    const landlords = await base44.entities.Landlord.filter({
-      stage: { $in: ['photos_videos', 'photographer_scheduling'] },
+    // Tasks assigned to THIS logged-in user (the photographer).
+    const tasks = await base44.entities.PhotographyTask.filter({
+      assigned_photographer_email: user.email,
     });
 
-    // Get all landlord properties
+    // Preload landlords + properties to join (small data set).
+    const landlords = await base44.entities.Landlord.list();
     const properties = await base44.entities.LandlordProperty.list();
 
-    // Merge data - one row per landlord with property photography fields
-    const feed = landlords.map((landlord) => {
-      const property = properties.find((p) => p.landlord_id === landlord.id);
-      
+    const feed = tasks.map((task) => {
+      const ll = landlords.find((l) => l.id === task.landlord_id) || {};
+      const lp = properties.find((p) => p.id === task.landlord_property_id) || {};
+
       return {
-        landlord_id: landlord.id,
-        landlord_property_id: property?.id || null,
-        owner_name: landlord.full_name_en || landlord.full_name,
-        project: landlord.project_name,
-        unit_reference: landlord.unit_reference,
-        stage: landlord.stage,
-        // Photography status from property
-        photography_status: property?.photography_status || 'none',
-        // Media flags
-        has_360_tour: property?.has_360_tour || false,
-        has_drone_footage: property?.has_drone_footage || false,
-        has_video_walkthrough: property?.has_video_walkthrough || false,
-        has_floor_plan: property?.has_floor_plan || false,
-        // Access info
-        keys_location: property?.keys_location,
-        key_access_instructions: property?.key_access_instructions,
-        photoshoot_scheduled_at: property?.photoshoot_scheduled_at,
+        task_id: task.id,
+        task_stage: task.task_stage,
+
+        // Unit identity (safe):
+        owner_name: ll.full_name_en || ll.full_name || null,
+        project: ll.project_name || null,
+        unit_reference: ll.unit_reference || null,
+
+        // Pre-shoot info from the task (agent-entered):
+        unit_condition: task.unit_condition || null,
+        furnishing: task.furnishing || null,
+        has_bedsheets: task.has_bedsheets ?? null,
+        has_pillows: task.has_pillows ?? null,
+        electricity_on: task.electricity_on ?? null,
+        water_on: task.water_on ?? null,
+        staging_needed: task.staging_needed || null,
+        what_to_bring: task.what_to_bring || null,
+
+        // Access info (from LandlordProperty — safe operational fields):
+        keys_location: lp.keys_location || null,
+        key_access_instructions: lp.key_access_instructions || null,
+
+        // Media flags (from LandlordProperty):
+        photography_status: lp.photography_status || 'none',
+        has_360_tour: lp.has_360_tour ?? false,
+        has_drone_footage: lp.has_drone_footage ?? false,
+        has_video_walkthrough: lp.has_video_walkthrough ?? false,
+        has_floor_plan: lp.has_floor_plan ?? false,
+        landlord_property_id: lp.id,
+
+        // DELIBERATELY OMITTED: phone, whatsapp, email, commission, price, contract
       };
     });
 
