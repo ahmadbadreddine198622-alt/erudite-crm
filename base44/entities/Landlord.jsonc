@@ -293,6 +293,10 @@
       ],
       "default": "cold"
     },
+    "notes_internal": {
+      "type": "string",
+      "description": "Internal agent notes about price, vacancy, tenant situation, owner motivation, etc."
+    },
     "ai_rolling_summary": {
       "type": "string"
     },
@@ -358,6 +362,44 @@
     "form_a_pdf_url": {
       "type": "string",
       "description": "URL of the generated Form A PDF"
+    },
+    "form_a_contracts": {
+      "type": "array",
+      "description": "List of all Form A contracts linked to this landlord",
+      "items": {
+        "type": "object",
+        "properties": {
+          "contract_number": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "pdf_url": {
+            "type": "string"
+          },
+          "mandate_type": {
+            "type": "string"
+          },
+          "mandate_status": {
+            "type": "string"
+          },
+          "mandate_start_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mandate_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "asking_price_aed": {
+            "type": "number"
+          },
+          "drive_file_id": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
