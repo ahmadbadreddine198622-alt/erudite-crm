@@ -283,13 +283,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                     className="p-2.5 rounded-lg border"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-accent truncate">
+                        <p className="text-sm font-semibold text-accent truncate" style={{ color: 'hsl(38 92% 55%)' }}>
                           {contract.contract_number || 'Unknown'}
                         </p>
                         {contract.unit && (
-                          <p className="text-[10px] text-muted-foreground">Unit: {contract.unit}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Unit: {contract.unit}</p>
                         )}
                       </div>
                       <div className="flex gap-1.5 shrink-0">
@@ -322,30 +322,30 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                         )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                       {contract.mandate_type && (
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10">
+                          <Badge variant="outline" className="text-xs px-2 py-1 border-amber-500/30 text-amber-400 bg-amber-500/10">
                             {contract.mandate_type.replace(/_/g, ' ')}
                           </Badge>
                         </div>
                       )}
                       {contract.mandate_status && (
-                        <div className="text-[9px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           Status: <span className={
-                            contract.mandate_status === 'form_a_signed' ? 'text-emerald-500' :
-                            contract.mandate_status === 'expired' ? 'text-red-500' :
-                            contract.mandate_status === 'cancelled' ? 'text-slate-500' : 'text-amber-400'
+                            contract.mandate_status === 'form_a_signed' ? 'text-emerald-500 font-semibold' :
+                            contract.mandate_status === 'expired' ? 'text-red-500 font-semibold' :
+                            contract.mandate_status === 'cancelled' ? 'text-slate-500 font-semibold' : 'text-amber-400 font-semibold'
                           }>{contract.mandate_status.replace(/_/g, ' ')}</span>
                         </div>
                       )}
                       {contract.mandate_expires_at && (
-                        <div className="text-[9px] text-muted-foreground">
-                          Expires: <span className="text-foreground">{new Date(contract.mandate_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <div className="text-xs text-muted-foreground">
+                          Expires: <span className="text-foreground font-medium">{new Date(contract.mandate_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
                       )}
                       {contract.asking_price_aed && (
-                        <div className="text-[9px] text-accent font-medium">
+                        <div className="text-xs text-accent font-semibold">
                           AED {(contract.asking_price_aed / 1000000).toFixed(2)}M
                         </div>
                       )}
