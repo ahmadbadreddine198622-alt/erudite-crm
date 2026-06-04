@@ -50,6 +50,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'no valid photography fields in updates' }, { status: 400 });
     }
 
+    // 3. Read current record to derive status.
+    const matches = await base44.entities.LandlordProperty.filter({ id: landlord_property_id });
+    const current = matches[0];
+    if (!current) {
+      return Response.json({ error: 'LandlordProperty not found' }, { status: 404 });
+    }
+
+    // 4. Resulting flag state (current merged with patch) for status derivation.
+    const resulting = { ...current, ...safePatch };
+    const allFour =
+      resulting.has_360_tour === true &&
+      resulting.has_drone_footage === true &&
+      resulting.has_video_walkthrough === true &&
+      resulting.has_floor_plan === true;
+
+    // 4. Derive status server-side. All four -> professional_done; un-tick reverses.
+    //    Only manages professional_done <-> none; leaves phone_quality/scheduled alone.
+    if (allFour) {
+      safePatch.photography_status = 'professional_done';
+    } else if (current.photography_status === 'professional_done' && !allFour) {
+      safePatch.photography_status = 'none';
+    }
+
     // NOTE: stage, phone, commission, price, contract fields are NOT in the
     // allow-list and can never be written by this function.
     const updated = await base44.entities.LandlordProperty.update(
