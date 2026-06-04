@@ -145,6 +145,8 @@ async function fetchAllMatterportSpaces(tokenId: string, tokenSecret: string): P
 }
 
 Deno.serve(async (req) => {
+  let debugSecrets: any = undefined;
+  
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -157,7 +159,7 @@ Deno.serve(async (req) => {
     const tokenSecret = Deno.env.get('MATTERPORT_TOKEN_SECRET');
     
     // DEBUG: Log secret presence and lengths (NOT values)
-    const debugSecrets = {
+    debugSecrets = {
       tokenId_present: !!tokenId,
       tokenId_length: tokenId?.length || 0,
       tokenSecret_present: !!tokenSecret,
