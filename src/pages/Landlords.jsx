@@ -98,7 +98,7 @@ export default function Landlords() {
   // Fetch all landlords and projects
   const { data: landlords = [], isLoading } = useQuery({
     queryKey: ['landlords'],
-    queryFn: () => base44.entities.Landlord.list('-updated_date', 500),
+    queryFn: () => base44.entities.Landlord.list('-updated_date', 1000),
   });
 
   const { data: projects = [] } = useQuery({
@@ -199,17 +199,6 @@ export default function Landlords() {
         .filter(l => !filterAgent || l.assigned_agent_email === filterAgent)
         .filter(l => !filterArchetype || l.landlord_archetype === filterArchetype)
         .filter(l => !filterProject || l.project_id === filterProject || (filterProject === 'unassigned' && !l.project_id))
-        .filter(l => {
-          if (!filterFloor) return true;
-          const info = landlordPropertyMap[l.id];
-          const bucket = info ? floorBucket(info.floor) : null;
-          return bucket === filterFloor;
-        })
-        .filter(l => {
-          if (!filterLayout) return true;
-          const info = landlordPropertyMap[l.id];
-          return info?.layout === filterLayout;
-        })
         .filter(l => !filterLanguage || l.preferred_language === filterLanguage)
         .filter(l => {
           if (!filterAssignment) return true;
@@ -226,6 +215,17 @@ export default function Landlords() {
           const project = (l.project_name || '').toLowerCase();
           const notes = (l.ai_rolling_summary || '').toLowerCase();
           return name.includes(q) || unit.includes(q) || phone.includes(q) || email.includes(q) || project.includes(q) || notes.includes(q);
+        })
+        .filter(l => {
+          if (!filterFloor) return true;
+          const info = landlordPropertyMap[l.id];
+          const bucket = info ? floorBucket(info.floor) : null;
+          return bucket === filterFloor;
+        })
+        .filter(l => {
+          if (!filterLayout) return true;
+          const info = landlordPropertyMap[l.id];
+          return info?.layout === filterLayout;
         });
     });
     return result;
