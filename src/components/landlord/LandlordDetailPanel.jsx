@@ -653,46 +653,115 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               </div>
             )}
 
-            {/* Media Links - read-only display for agents */}
-            {(existingTask?.tour_3d_link || existingTask?.video_link || existingTask?.photos_link) && (
+            {/* Media for listing - read-only display for admin */}
+            {existingTask && (
               <div className="pt-2 border-t border-white/10 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Media Links</p>
-                {existingTask?.tour_3d_link && (
-                  <a
-                    href={existingTask.tour_3d_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-accent hover:underline flex items-center gap-1"
-                  >
-                    <Camera className="w-3 h-3" />
-                    <ExternalLink className="w-3 h-3" />
-                    3D Tour
-                  </a>
-                )}
-                {existingTask?.video_link && (
-                  <a
-                    href={existingTask.video_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-accent hover:underline flex items-center gap-1"
-                  >
-                    <Film className="w-3 h-3" />
-                    <ExternalLink className="w-3 h-3" />
-                    Video
-                  </a>
-                )}
-                {existingTask?.photos_link && (
-                  <a
-                    href={existingTask.photos_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-accent hover:underline flex items-center gap-1"
-                  >
-                    <Image className="w-3 h-3" />
-                    <ExternalLink className="w-3 h-3" />
-                    Photos
-                  </a>
-                )}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>Media for listing</p>
+                  {(() => {
+                    const isHandedToListing = existingTask.task_stage === 'handed_to_listing';
+                    const hasAllLinks = existingTask.tour_3d_link && existingTask.video_link && existingTask.photos_link;
+                    const isComplete = isHandedToListing && hasAllLinks;
+                    
+                    const missingItems = [];
+                    if (!isHandedToListing) {
+                      missingItems.push('not sent to listing');
+                    } else {
+                      if (!existingTask.tour_3d_link) missingItems.push('3D tour link');
+                      if (!existingTask.video_link) missingItems.push('video link');
+                      if (!existingTask.photos_link) missingItems.push('photos link');
+                    }
+                    
+                    return (
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0.5 ${
+                          isComplete
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        }`}
+                      >
+                        {isComplete ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
+                            Media complete
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-2.5 h-2.5 mr-1" />
+                            Media incomplete
+                          </>
+                        )}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+                
+                {/* Status details for incomplete media */}
+                {(() => {
+                  const isHandedToListing = existingTask.task_stage === 'handed_to_listing';
+                  const hasAllLinks = existingTask.tour_3d_link && existingTask.video_link && existingTask.photos_link;
+                  const isComplete = isHandedToListing && hasAllLinks;
+                  
+                  if (isComplete) return null;
+                  
+                  const missingItems = [];
+                  if (!isHandedToListing) {
+                    missingItems.push('Waiting for photographer to send to listing');
+                  } else {
+                    if (!existingTask.tour_3d_link) missingItems.push('Missing: 3D tour link');
+                    if (!existingTask.video_link) missingItems.push('Missing: video link');
+                    if (!existingTask.photos_link) missingItems.push('Missing: photos link');
+                  }
+                  
+                  return (
+                    <div className="text-[9px] text-amber-400 space-y-0.5 pl-1">
+                      {missingItems.map((item, idx) => (
+                        <p key={idx}>• {item}</p>
+                      ))}
+                    </div>
+                  );
+                })()}
+                
+                {/* Media links - only show if they exist */}
+                <div className="space-y-1.5 pl-1">
+                  {existingTask?.tour_3d_link && (
+                    <a
+                      href={existingTask.tour_3d_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline flex items-center gap-1"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3" />
+                      3D Tour
+                    </a>
+                  )}
+                  {existingTask?.video_link && (
+                    <a
+                      href={existingTask.video_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline flex items-center gap-1"
+                    >
+                      <Film className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3" />
+                      Video
+                    </a>
+                  )}
+                  {existingTask?.photos_link && (
+                    <a
+                      href={existingTask.photos_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline flex items-center gap-1"
+                    >
+                      <Image className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3" />
+                      Photos
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 
