@@ -60,6 +60,53 @@ Deno.serve(async (req) => {
           stage: 'photographer_scheduling',
           stage_entered_at: new Date().toISOString(),
         });
+
+        // Send notification email to listing admin
+        const ADMIN_EMAIL = "ADMIN_EMAIL_HERE";
+        try {
+          const mediaLinks = [];
+          if (task.tour_3d_link) mediaLinks.push(`<a href="${task.tour_3d_link}" target="_blank">3D Tour</a>`);
+          if (task.video_link) mediaLinks.push(`<a href="${task.video_link}" target="_blank">Video</a>`);
+          if (task.photos_link) mediaLinks.push(`<a href="${task.photos_link}" target="_blank">Photos</a>`);
+
+          const body = `
+            <h2>New Listing Ready for Verification</h2>
+            <p>A unit has completed photography and is ready for document verification and listing creation.</p>
+            <table style="border-collapse: collapse; margin: 20px 0;">
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Landlord:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${landlord.full_name_en || landlord.full_name || 'Unknown'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Project:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${landlord.project_name || 'N/A'}</td>
+              </tr>
+              ${landlord.unit_reference ? `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Unit:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${landlord.unit_reference}</td>
+              </tr>
+              ` : ''}
+              ${mediaLinks.length > 0 ? `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Media:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${mediaLinks.join(' | ')}</td>
+              </tr>
+              ` : ''}
+            </table>
+            <p style="color: #666; font-size: 12px;">Erudite CRM</p>
+          `;
+
+          await base44.integrations.Core.SendEmail({
+            to: ADMIN_EMAIL,
+            subject: `New listing ready for verification — ${landlord.full_name_en || landlord.full_name || 'Unknown'}`,
+            body,
+            from_name: "Erudite CRM",
+          });
+        } catch (emailError) {
+          console.error('Failed to send admin notification email:', emailError);
+          // Continue without failing the stage update
+        }
       }
     }
 
