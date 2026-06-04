@@ -142,7 +142,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     queryFn: () => base44.entities.User.list(),
   });
 
-  // Fetch LandlordProperty for this landlord
   const { data: landlordProperties = [] } = useQuery({
     queryKey: ['landlord-properties', landlord.id],
     queryFn: async () => {
@@ -155,7 +154,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const landlordProperty = landlordProperties[0];
   const landlordPropertyId = landlordProperty?.id;
 
-  // Fetch existing PhotographyTask for this landlord's property
   const { data: photographyTasks = [] } = useQuery({
     queryKey: ['photography-task', landlord.id],
     queryFn: async () => {
@@ -177,20 +175,17 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
 
-  // Photographer assignment mutation
   const photographerMutation = useMutation({
     mutationFn: async (photographerEmail) => {
       if (!landlordPropertyId) {
         throw new Error('No property record found for this landlord');
       }
       if (existingTask) {
-        // Update existing task - do NOT change stage on re-assignment
         return await base44.entities.PhotographyTask.update(existingTask.id, {
           assigned_photographer_email: photographerEmail,
           assigned_at: new Date().toISOString(),
         });
       } else {
-        // Create new task - starts at inquiry stage
         return await base44.entities.PhotographyTask.create({
           landlord_id: landlord.id,
           landlord_property_id: landlordPropertyId,
@@ -208,7 +203,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     onError: (e) => toast.error('Failed to assign: ' + e.message),
   });
 
-  // Photographer options
   const PHOTOGRAPHER_OPTIONS = [
     { email: 'dari@erudite-estate.com', name: 'Dari' },
     { email: 'ahmad.badreddine198622@gmail.com', name: 'Ahmad Badreddine' },
@@ -249,7 +243,56 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   };
   const lbaStatus = landlord.lease_agreement_status;
 
-  const renderContent = () => (
+  const renderContent = () => {
+    return (
+      <>
+        {/* Header */}
+        <div className="border-b border-border p-4 flex items-center justify-between sticky top-0 z-10 bg-card">
+          <div className="flex items-center gap-2 min-w-0">
+            {landlord.ai_strike_now && (
+              <Badge className="bg-red-500 text-white border-0 animate-pulse">
+                <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
+              </Badge>
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold truncate">{landlord.full_name_en || landlord.full_name}</h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-muted-foreground truncate">
+                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
+                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
+                </p>
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10">
+                  {STAGE_LABELS[landlord.stage] || landlord.stage}
+                </Badge>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAGE_OPTIONS.map((stage) => (
+                    <SelectItem key={stage} value={stage} className="text-xs">
+                      {STAGE_LABELS[stage] || stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
+              <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
+              <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
+              <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-600' : ''}`} />
+            </Button>
+          </div>
+        </div>
 
         {/* Lease Brokerage Agreement */}
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
@@ -447,7 +490,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           })()}
         </div>
 
-        {/* LBA result card — shown after generation */}
+        {/* LBA result card */}
         {lbaResult?.pdf_url && (
           <div className="px-4 py-3 border-b border-border space-y-2" style={{ background: 'rgba(16,185,129,0.06)' }}>
             <div className="flex items-center gap-2">
@@ -492,7 +535,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           </div>
         )}
 
-        {/* Whisper Panel (toggle) */}
+        {/* Whisper Panel */}
         {whisperOpen && (
           <div className="p-3 border-b border-border">
             <WhisperPanel
@@ -504,7 +547,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         )}
 
         {/* Content */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           {/* Quick Info */}
           <div className="p-4 space-y-3 border-b border-border">
             <div className="flex items-center gap-2 text-sm">
@@ -598,7 +641,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             </div>
 
-            {/* Pre-shoot Form - shown only when PhotographyTask exists */}
+            {/* Pre-shoot Form */}
             {existingTask && landlordProperty && (
               <div className="pt-2">
                 <PreShootForm
@@ -608,7 +651,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
-            {/* Media for listing - read-only display for admin */}
+            {/* Media for listing */}
             {existingTask && (
               <div className="pt-2 border-t border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
@@ -617,15 +660,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                     const isHandedToListing = existingTask.task_stage === 'handed_to_listing';
                     const hasAllLinks = existingTask.tour_3d_link && existingTask.video_link && existingTask.photos_link;
                     const isComplete = isHandedToListing && hasAllLinks;
-                    
-                    const missingItems = [];
-                    if (!isHandedToListing) {
-                      missingItems.push('not sent to listing');
-                    } else {
-                      if (!existingTask.tour_3d_link) missingItems.push('3D tour link');
-                      if (!existingTask.video_link) missingItems.push('video link');
-                      if (!existingTask.photos_link) missingItems.push('photos link');
-                    }
                     
                     return (
                       <Badge
@@ -652,33 +686,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                   })()}
                 </div>
                 
-                {/* Status details for incomplete media */}
-                {(() => {
-                  const isHandedToListing = existingTask.task_stage === 'handed_to_listing';
-                  const hasAllLinks = existingTask.tour_3d_link && existingTask.video_link && existingTask.photos_link;
-                  const isComplete = isHandedToListing && hasAllLinks;
-                  
-                  if (isComplete) return null;
-                  
-                  const missingItems = [];
-                  if (!isHandedToListing) {
-                    missingItems.push('Waiting for photographer to send to listing');
-                  } else {
-                    if (!existingTask.tour_3d_link) missingItems.push('Missing: 3D tour link');
-                    if (!existingTask.video_link) missingItems.push('Missing: video link');
-                    if (!existingTask.photos_link) missingItems.push('Missing: photos link');
-                  }
-                  
-                  return (
-                    <div className="text-[9px] text-amber-400 space-y-0.5 pl-1">
-                      {missingItems.map((item, idx) => (
-                        <p key={idx}>• {item}</p>
-                      ))}
-                    </div>
-                  );
-                })()}
-                
-                {/* Media links - only show if they exist */}
                 <div className="space-y-1.5 pl-1">
                   {existingTask?.tour_3d_link && (
                     <a
@@ -720,7 +727,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
-            {/* Comments thread - only show if task exists */}
+            {/* Comments thread */}
             {existingTask && landlordProperty && (
               <div className="pt-2 border-t border-white/10">
                 <CommentsThread
@@ -786,7 +793,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 </CardContent>
               </Card>
 
-              {/* Form A Upload — always visible, no stage gate */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -946,18 +952,26 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             </TabsContent>
           </Tabs>
         </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Sheet open={open} onOpenChange={onClose}>
-          <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
-            {renderContent()}
-          </SheetContent>
-        </Sheet>
-      )}
-    </>
-  );
-  
-  function renderContent() {
+      </>
+    );
+  };
+
+  // Render mobile drawer or desktop sheet
+  if (useFullDrawer) {
     return (
-      <>
+      <Drawer open={open} onOpenChange={onClose}>
+        <DrawerContent className="h-full max-h-full">
+          {renderContent()}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
+        {renderContent()}
+      </SheetContent>
+    </Sheet>
+  );
+}
