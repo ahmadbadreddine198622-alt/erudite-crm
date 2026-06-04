@@ -52,9 +52,27 @@ function parseFormA(rawText: string) {
   const ownerBlock = between(text, 'Owner Details', 'Property Details');
   const brokerBlock = between(text, 'Seller Broker Details', 'Terms & Conditions');
 
-  // OWNER (landlord) — strictly from Owner Details block
-  const owner_name = f("Seller Name\\s*\\n[^\\n]*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock);
+  // OWNER (landlord) — strictly from Owner Details block, robust to layout variants.
+  // first substantial ALL-CAPS Latin run in a block (the English seller name)
+  const firstAllCaps = (block: string): string | null => {
+    const m = block.match(/([A-Z][A-Z][A-Z][A-Z][A-Z .'\-]*?)(?=[^\x00-\x7f]|\n|$)/);
+    return m ? m[1].trim() : null;
+  };
+  const beforeBroker = text.indexOf('Broker Name') > 0 ? text.slice(0, text.indexOf('Broker Name')) : text.slice(0, 400);
+  const owner_name =
+    f("Seller Name\\s*\\n[^\\n]*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)   // pypdf 3-line layout
+    || f("Seller Name\\s*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)          // name directly under "Seller Name"
+    || firstAllCaps(ownerBlock)                                              // any all-caps run inside Owner Details
+    || firstAllCaps(beforeBroker);                                          // header fallback (seller precedes broker)
   const owner_signature_date = f('Signature Date\\s+(\\d{2}/\\d{2}/\\d{4}\\s+\\d{1,2}:\\d{2}\\s+[AP]M)', ownerBlock);
+
+  // STATUS — robust: allow Arabic/space/newline between the label and the value,
+  // and fall back to the known status enum within the Contract Information block.
+  const STATUS = '(Active|Approved|Accepted|Expired|Cancelled|Pending|Draft|Rejected|New)';
+  const contractInfoBlock = between(text, 'Contract Information', 'Owner Details');
+  const status =
+    f('Status[\\s\\S]{0,20}?' + STATUS)                 // "Status" then (label/space/nl) then enum
+    || f('(?:^|[^A-Za-z])' + STATUS + '(?=[^\\x00-\\x7f]|\\n|$)', contractInfoBlock); // enum word in contract-info block
 
   // BROKER — strictly from Seller Broker Details block
   const broker_name = f("Broker Name\\s*\\(English\\)\\s*([A-Z][A-Z .'-]+?)" + TERM, brokerBlock);
@@ -69,7 +87,7 @@ function parseFormA(rawText: string) {
   return {
     contract_number: contractNo,
     contract_type: ctype ? `${prefix} = ${ctype}` : null,
-    status: f('Status\\s+([A-Za-z]+)' + TERM),
+    status,
     start_date: f('Start Date\\s+(\\d{2}/\\d{2}/\\d{4})'),
     end_date: f('End Date\\s+(\\d{2}/\\d{2}/\\d{4})'),
     is_exclusive: f('Is Exclusive\\?\\s+(Yes|No)'),
@@ -137,6 +155,18 @@ Deno.serve(async (req) => {
   }
 
   const c = parseFormA(rawText!);
+
+  // DEBUG: echo what the live PDF extractor (unpdf) actually produced, so regex
+  // fixes are based on the real text — not a different library's output.
+  if (body.debug === true) {
+    return Response.json({
+      parser_version: 'v5-robust-status-owner',
+      extracted: { status: c.status, owner_name: c.owner_name, contract_number: c.contract_number, property_number: c.property_number, broker_name: c.broker_name },
+      raw_text_first_2600: (rawText || '').slice(0, 2600),
+      raw_text_length: (rawText || '').length,
+    });
+  }
+
   const svc = base44.asServiceRole.entities;
   const warnings: string[] = [];
 
@@ -265,7 +295,7 @@ Deno.serve(async (req) => {
   }
 
   return Response.json({
-    parser_version: 'v4-joint-tiebreak-writetarget',   // deploy marker: if you see this field, the latest code is live
+    parser_version: 'v5-robust-status-owner',   // deploy marker: if you see this field, the latest code is live
     mode: wantWrite ? 'written' : (needsReview && !match.tier ? 'needs_review' : 'preview_no_write'),
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
