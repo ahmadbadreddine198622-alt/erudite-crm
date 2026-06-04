@@ -734,6 +734,7 @@ export default function WhatsAppInbox() {
               key={selectedConvId}
               conversationId={selectedConvId}
               allConversationIds={[selectedConvId, ...(Array.isArray(selectedConv?.merged_conv_ids) ? selectedConv.merged_conv_ids.filter(id => id && id !== selectedConvId) : [])]}
+              contactName={selectedLead?.full_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
             />
 
             {/* Tags row */}

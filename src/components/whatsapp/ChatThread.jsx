@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
 
-export default function ChatThread({ conversationId, allConversationIds }) {
+export default function ChatThread({ conversationId, allConversationIds, contactName }) {
   const bottomRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,7 +174,7 @@ export default function ChatThread({ conversationId, allConversationIds }) {
               <span className="text-[10px] font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>{day}</span>
             </div>
             {msgs.map(msg => (
-              <MessageBubble key={msg.id} msg={msg} />
+              <MessageBubble key={msg.id} msg={msg} contactName={contactName} />
             ))}
           </div>
         ))}
@@ -184,13 +184,16 @@ export default function ChatThread({ conversationId, allConversationIds }) {
   );
 }
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, contactName }) {
   const isOutbound = msg.direction === 'outbound';
 
   if (msg.media_type === 'audio' && msg.transcription) {
     return (
       <div className={cn('flex mb-3', isOutbound ? 'justify-end' : 'justify-start')}>
         <div className="max-w-[72%]">
+          {!isOutbound && contactName && (
+            <p className="text-[10px] font-semibold mb-0.5 px-1" style={{ color: 'rgba(245,159,10,0.85)' }}>{contactName}</p>
+          )}
           <VoiceMessageBubble message={msg} />
           <div className={cn('text-[10px] mt-1 text-gray-400', isOutbound ? 'text-right' : 'text-left')}>
             {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
@@ -204,21 +207,26 @@ function MessageBubble({ msg }) {
 
   return (
     <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn('max-w-[72%] rounded-2xl px-3.5 py-2.5 text-sm shadow-md backdrop-blur-xl', isOutbound ? 'rounded-br-none' : 'rounded-bl-none')}
-        style={{
-          background: isOutbound ? 'rgba(245,159,10,0.15)' : 'rgba(255,255,255,0.08)',
-          border: isOutbound ? '1px solid rgba(245,159,10,0.3)' : '1px solid rgba(255,255,255,0.12)',
-        }}
-      >
-        <p className="leading-relaxed whitespace-pre-wrap" style={{ color: isOutbound ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.9)' }}>
-          {displayBody}
-        </p>
-        <div className={cn('text-[9px] mt-1 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
-          {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
-          {isOutbound && (
-            <span>{msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
-          )}
+      <div className="max-w-[72%]">
+        {!isOutbound && contactName && (
+          <p className="text-[10px] font-semibold mb-0.5 px-1" style={{ color: 'rgba(245,159,10,0.85)' }}>{contactName}</p>
+        )}
+        <div
+          className={cn('rounded-2xl px-3.5 py-2.5 text-sm shadow-md backdrop-blur-xl', isOutbound ? 'rounded-br-none' : 'rounded-bl-none')}
+          style={{
+            background: isOutbound ? 'rgba(245,159,10,0.15)' : 'rgba(255,255,255,0.08)',
+            border: isOutbound ? '1px solid rgba(245,159,10,0.3)' : '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <p className="leading-relaxed whitespace-pre-wrap" style={{ color: isOutbound ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.9)' }}>
+            {displayBody}
+          </p>
+          <div className={cn('text-[9px] mt-1 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
+            {isOutbound && (
+              <span>{msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
+            )}
+          </div>
         </div>
       </div>
     </div>
