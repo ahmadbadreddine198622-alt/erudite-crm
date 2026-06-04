@@ -34,7 +34,7 @@ function WarningsList({ warnings }) {
   );
 }
 
-function ResultPanel({ result, onConfirm, confirming, fileUrl }) {
+function ResultPanel({ result, onConfirm, confirming, fileUrl, driveStatus, onDriveRetry }) {
   const { match, will_write_to, needs_review, proposed_landlord_updates: pu, broker, warnings, mode } = result;
 
   if (mode === 'written') {
@@ -53,6 +53,27 @@ function ResultPanel({ result, onConfirm, confirming, fileUrl }) {
         <a href={`/landlords?id=${w?.landlord_id}`} className="inline-flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors">
           View landlord record <ExternalLink className="w-3.5 h-3.5" />
         </a>
+        {driveStatus === 'uploading' && (
+          <div className="flex items-center gap-2 text-xs text-white/50 bg-white/5 rounded-lg px-3 py-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
+            Saving to Google Drive…
+          </div>
+        )}
+        {driveStatus === 'success' && (
+          <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/8 rounded-lg px-3 py-2">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            Saved to Google Drive (Erudite Form A Contracts)
+          </div>
+        )}
+        {driveStatus === 'failed' && (
+          <div className="flex items-center justify-between gap-2 text-xs text-amber-300 bg-amber-500/8 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              Mandate saved. Google Drive backup failed — retry available
+            </div>
+            <button onClick={onDriveRetry} className="text-amber-400 hover:text-amber-300 underline shrink-0 ml-2">Retry</button>
+          </div>
+        )}
       </div>
     );
   }
@@ -231,8 +252,23 @@ export default function FormAUploadFlow({ onSuccess }) {
   const [fileUrl, setFileUrl] = useState(null);
   const [parseResult, setParseResult] = useState(null);
   const [error, setError] = useState(null);
+  const [driveStatus, setDriveStatus] = useState(null); // null | uploading | success | failed
+  // keep refs so triggerDriveSave can always access the latest values without stale closure
+  const drivePayloadRef = useRef(null);
 
-  const reset = () => { setPhase('idle'); setFileName(null); setFileUrl(null); setParseResult(null); setError(null); };
+  const reset = () => { setPhase('idle'); setFileName(null); setFileUrl(null); setParseResult(null); setError(null); setDriveStatus(null); drivePayloadRef.current = null; };
+
+  const triggerDriveSave = async () => {
+    const payload = drivePayloadRef.current;
+    if (!payload) return;
+    setDriveStatus('uploading');
+    try {
+      await base44.functions.invoke('uploadToGoogleDrive', payload);
+      setDriveStatus('success');
+    } catch (_) {
+      setDriveStatus('failed');
+    }
+  };
 
   const handleFile = async (file) => {
     setError(null);
@@ -266,10 +302,27 @@ export default function FormAUploadFlow({ onSuccess }) {
     setPhase('confirming');
     try {
       const res = await base44.functions.invoke('parseFormA', { file_url: url, confirm: true });
-      setParseResult(res.data);
+      const data = res.data;
+      setParseResult(data);
       setPhase('done');
       toast.success('Mandate applied successfully');
       onSuccess?.();
+
+      // Fire-and-forget Drive backup — mandate write already succeeded above.
+      // Build drive payload from the written result + extracted contract data.
+      if (data?.mode === 'written' && url) {
+        const extracted = data.extracted || {};
+        const contractNo = extracted.contract_number || 'UNKNOWN';
+        const ownerName = data.written?.landlord_name || extracted.owner_name || 'UNKNOWN';
+        const projectName = extracted.project_name || null;
+        const driveFileName = `${contractNo} - ${ownerName}.pdf`;
+        const folderPath = projectName
+          ? `Erudite Form A Contracts/${projectName}`
+          : 'Erudite Form A Contracts';
+        drivePayloadRef.current = { file_url: url, fileName: driveFileName, folderPath };
+        // Kick off immediately (do not await — never block the UI)
+        triggerDriveSave();
+      }
     } catch (e) {
       setError('Confirm failed: ' + e.message);
       setPhase('preview');
@@ -314,7 +367,7 @@ export default function FormAUploadFlow({ onSuccess }) {
               )}
             </div>
           )}
-          <ResultPanel result={parseResult} onConfirm={handleConfirm} confirming={isConfirming} fileUrl={fileUrl} />
+          <ResultPanel result={parseResult} onConfirm={handleConfirm} confirming={isConfirming} fileUrl={fileUrl} driveStatus={driveStatus} onDriveRetry={triggerDriveSave} />
           {phase === 'done' && (
             <button onClick={reset} className="w-full text-xs text-white/30 hover:text-white/60 transition-colors py-2">
               ↑ Upload another Form A
