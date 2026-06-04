@@ -179,20 +179,19 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
         throw new Error('No property record found for this landlord');
       }
       if (existingTask) {
-        // Update existing task
+        // Update existing task - do NOT change stage on re-assignment
         return await base44.entities.PhotographyTask.update(existingTask.id, {
           assigned_photographer_email: photographerEmail,
           assigned_at: new Date().toISOString(),
-          task_stage: 'pre_shoot_check',
         });
       } else {
-        // Create new task
+        // Create new task - starts at inquiry stage
         return await base44.entities.PhotographyTask.create({
           landlord_id: landlord.id,
           landlord_property_id: landlordPropertyId,
           assigned_photographer_email: photographerEmail,
           assigned_at: new Date().toISOString(),
-          task_stage: 'pre_shoot_check',
+          task_stage: 'inquiry',
         });
       }
     },
