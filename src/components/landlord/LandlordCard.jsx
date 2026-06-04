@@ -179,7 +179,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     <div
       onClick={onClick}
       className={cn(
-        'rounded-2xl p-2.5 cursor-pointer transition-all duration-200',
+        'rounded-xl p-1.5 cursor-pointer transition-all duration-200',
         isDragging
           ? 'shadow-2xl rotate-1'
           : 'hover:shadow-lg',
@@ -191,79 +191,73 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         WebkitBackdropFilter: 'blur(16px)',
         border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
         borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}
     >
-      {/* Top row: checkbox + avatar + name + urgency badge */}
-      <div className="flex items-start gap-2">
+      {/* Top row: checkbox + avatar + name */}
+      <div className="flex items-center gap-1.5">
         <input
           type="checkbox"
           checked={!!isChecked}
           onChange={(e) => { e.stopPropagation(); onToggleCheck?.(landlord.id); }}
           onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+          className="w-3.5 h-3.5 accent-amber-500 shrink-0 cursor-pointer"
         />
-        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm font-bold text-accent shrink-0">
+        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
           {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 mb-0.5">
-            <p className="text-xs font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
-          </div>
-          <div className="flex items-center gap-1 flex-wrap">
-            <span
-              className={cn(
-                'shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold border',
-                archetypeColor,
-              )}
-            >
-              {archetypeLabel}
-            </span>
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
-              {stageLabel}
-            </span>
-            {landlord.urgency_score >= 80 ? (
-              <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
-                URGENT
-              </span>
-            ) : landlord.urgency_score >= 60 ? (
-              <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
-                ATTENTION
-              </span>
-            ) : null}
-          </div>
-        </div>
+        <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
       </div>
 
-      {/* Project badge + Unit count badge */}
+      {/* Badges row: archetype + stage + urgency */}
+      <div className="flex items-center gap-1 mt-1 flex-wrap">
+        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
+          {archetypeLabel}
+        </span>
+        <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+          {stageLabel}
+        </span>
+        {landlord.urgency_score >= 80 && (
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+            URGENT
+          </span>
+        )}
+        {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
+            ATTENTION
+          </span>
+        )}
+      </div>
+
+      {/* Project/ref tags */}
       {(landlord.project_name || landlord.unit_reference) && (
-        <div className="mt-1 flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
           {landlord.project_name && <ProjectBadge name={landlord.project_name} />}
           {landlord.unit_reference && (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
+            <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
               📍 {landlord.unit_reference}
             </span>
           )}
         </div>
       )}
 
-      {/* Form A contracts with price and expiry */}
+      {/* Form A contracts - compressed */}
       {contracts.length > 0 && (
-        <div className="mt-1.5 space-y-1">
+        <div className="mt-1 space-y-0.5">
           {contracts.map((contract, idx) => (
-            <div key={contract.contract_number || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.375rem 0.5rem', borderRadius: '0.375rem' }}>
-              <p className="text-[10px] font-semibold mb-0.5" style={{ color: 'hsl(38 92% 55%)', letterSpacing: '0.02em' }}>
+            <div key={contract.contract_number || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>
+              <p className="text-[9px] font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>
                 {contract.contract_number || 'Unknown'}
               </p>
-              <p className="text-[9px] font-medium" style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.3' }}>
+              <p className="text-[8px] font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at), fontWeight: 600 }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
               </p>
               {(() => {
                 const commission = getCommissionInfo(contract);
                 if (!commission) return null;
                 return (
-                  <p className="text-[9px] font-medium mt-0.5" style={{ color: 'hsl(38 92% 55%)' }}>
-                    Commission: {commission.pct}% · AED {commission.amount.toLocaleString('en-US')}
+                  <p className="text-[8px] font-medium leading-tight" style={{ color: 'hsl(38 92% 55%)' }}>
+                    {commission.pct}% · AED {commission.amount.toLocaleString('en-US')}
                   </p>
                 );
               })()}
@@ -274,61 +268,51 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
 
       {/* Form A expiry warning */}
       {showMandateWarning && (
-        <div className="mt-1">
-          <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded text-[8px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
-            ⚠️ Form A expires in {daysUntilMandateExpiry}d
+        <div className="mt-0.5">
+          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+            ⚠️ {daysUntilMandateExpiry}d
           </span>
         </div>
       )}
 
-      {/* Commission (prominent) + Trust */}
-      <div className="mt-1.5 flex items-center gap-2">
+      {/* Commission + Trust + Agent - single row */}
+      <div className="flex items-center gap-2 mt-1 flex-wrap">
         {commission > 0 && (
-          <div className="flex-1">
-            <p className="text-[11px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
-              {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
-            </p>
-            <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Commission</p>
-          </div>
+          <span className="text-[10px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+            {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
+          </span>
         )}
         {askingPrice > 0 && (
-          <div className="text-right">
-            <p className="text-[9px] font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              AED {(askingPrice / 1000000).toFixed(1)}M
-            </p>
-            <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Asking</p>
-          </div>
+          <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            AED {(askingPrice / 1000000).toFixed(1)}M
+          </span>
         )}
-        <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded border', getTrustColor(landlord.trust_score))}>
-          Trust {landlord.trust_score || 0}
+        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))}>
+          T{landlord.trust_score || 0}
         </span>
-      </div>
-
-      {/* Assigned agent */}
-      {landlord.assigned_agent_email && (
-        <div className="mt-1">
-          <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
+        {landlord.assigned_agent_email && (
+          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
             👤 {landlord.assigned_agent_email.split('@')[0]}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Bottom row: time in stage + single-assign + actions */}
-      <div className="mt-2 pt-2 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <span className="text-[8px] font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>
-          {landlord.days_in_stage ? `${landlord.days_in_stage}d in stage` : 'Just added'}
+      {/* Bottom row: time + assign + actions */}
+      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          {landlord.days_in_stage ? `${landlord.days_in_stage}d` : 'New'}
         </span>
         <div className="flex items-center gap-0.5">
           {users.length > 0 && (
             <select
-              title="Assign agent"
+              title="Assign"
               value={landlord.assigned_agent_email || ''}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => { e.stopPropagation(); onSingleAssign?.(landlord.id, e.target.value); }}
-              className="text-[8px] rounded px-1 py-0.5 max-w-[70px]"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+              className="text-[7px] rounded px-0.5 py-0.5 max-w-[60px]"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}
             >
-              <option value="">Assign…</option>
+              <option value="">Assign</option>
               {users.map(u => (
                 <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
               ))}
@@ -337,43 +321,43 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           <button
             type="button"
             onClick={handleCall}
-            className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
             title="Call"
           >
-            <Phone className="w-3 h-3" />
+            <Phone className="w-2.5 h-2.5" />
           </button>
           <button
             type="button"
             onClick={handleWhatsApp}
-            className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors"
-            title="Open WhatsApp Web"
+            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors"
+            title="WhatsApp"
           >
-            <MessageCircle className="w-3 h-3" />
+            <MessageCircle className="w-2.5 h-2.5" />
           </button>
           <Link
             to={`/whatsapp?phone=${encodeURIComponent(e164 || landlord.phone || '')}`}
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-green-400 hover:bg-green-500/15 transition-colors"
+            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-green-400 hover:bg-green-500/15 transition-colors"
             title="Open in CRM"
           >
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="w-2.5 h-2.5" />
           </Link>
           <button
             type="button"
             onClick={handleExportVCard}
-            className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-blue-400 hover:bg-blue-500/15 transition-colors"
-            title="Export vCard"
+            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-blue-400 hover:bg-blue-500/15 transition-colors"
+            title="vCard"
           >
-            <UserMinus className="w-3 h-3" />
+            <UserMinus className="w-2.5 h-2.5" />
           </button>
           <button
             type="button"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
-            className="flex items-center justify-center w-6 h-6 rounded-lg text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-50"
-            title="Delete landlord"
+            className="flex items-center justify-center w-5 h-5 rounded text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-50"
+            title="Delete"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="w-2.5 h-2.5" />
           </button>
         </div>
       </div>
