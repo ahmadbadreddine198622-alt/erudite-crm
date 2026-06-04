@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         });
 
         // Send notification email to listing admin
-        const ADMIN_EMAIL = "ahmad@erudite-estate.com";
+        const ADMIN_EMAIL = "photos@erudite-estate.com";
         try {
           const mediaLinks = [];
           if (task.tour_3d_link) mediaLinks.push(`<a href="${task.tour_3d_link}" target="_blank">3D Tour</a>`);
