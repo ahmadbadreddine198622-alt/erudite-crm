@@ -221,14 +221,14 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
 
       {/* Form A contracts with price and expiry */}
       {contracts.length > 0 && (
-        <div className="mt-1.5 space-y-1">
+        <div className="mt-1.5 space-y-1.5">
           {contracts.map((contract, idx) => (
-            <div key={contract.contract_number || idx}>
-              <p className="text-[9px] font-medium" style={{ color: 'hsl(38 92% 50%)' }}>
+            <div key={contract.contract_number || idx} style={{ background: 'rgba(255,255,255,0.03)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>
+              <p className="text-[9px] font-medium mb-0.5" style={{ color: 'hsl(38 92% 50%)' }}>
                 {contract.contract_number || 'Unknown'}
               </p>
-              <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at) }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
+              <p className="text-[8px] font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at), fontWeight: 600 }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
               </p>
             </div>
           ))}
