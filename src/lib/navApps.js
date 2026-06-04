@@ -8,7 +8,7 @@ import {
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
   Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
-  Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle
+  Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle, Camera
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -61,6 +61,7 @@ export const ALL_APPS = [
   { label: 'Buyer Match AI',     icon: UserSearch,     path: '/buyer-match-ai',      gradient: 'from-violet-500 to-fuchsia-700',       glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Closing AI',         icon: CheckCircle,    path: '/closing-ai',          gradient: 'from-emerald-500 to-green-700',         glowColor: 'rgba(16,185,129,0.40)' },
   { label: 'Brand Settings',     icon: Target,         path: '/brand-settings',      gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
+  { label: 'Photography',        icon: Camera,         path: '/photography',         gradient: 'from-rose-500 to-pink-700',             glowColor: 'rgba(244,63,94,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
