@@ -72,18 +72,19 @@ export default function KanbanBoard({
                           <div
                             ref={dragProvided.innerRef}
                             {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
                           >
-                            <LandlordCard
-                              landlord={landlord}
-                              isSelected={landlord.id === selectedLandlordId}
-                              isDragging={dragSnapshot.isDragging}
-                              onClick={() => onSelectLandlord(landlord.id)}
-                              isChecked={selectedIds.has(landlord.id)}
-                              onToggleCheck={onToggleSelect}
-                              users={users}
-                              onSingleAssign={onSingleAssign}
-                            />
+                            <div {...dragProvided.dragHandleProps}>
+                              <LandlordCard
+                                landlord={landlord}
+                                isSelected={landlord.id === selectedLandlordId}
+                                isDragging={dragSnapshot.isDragging}
+                                onClick={() => onSelectLandlord(landlord.id)}
+                                isChecked={selectedIds.has(landlord.id)}
+                                onToggleCheck={onToggleSelect}
+                                users={users}
+                                onSingleAssign={onSingleAssign}
+                              />
+                            </div>
                           </div>
                         )}
                       </Draggable>

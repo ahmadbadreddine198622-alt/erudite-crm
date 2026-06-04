@@ -47,9 +47,25 @@ function getUrgencyDot(score) {
   return 'bg-emerald-500';
 }
 
+const STAGE_LABELS = {
+  initial_contact: 'Initial Contact',
+  price_discovery: 'Price Discovery',
+  listing_commitment: 'Listing Commitment',
+  form_a_initiation: 'Form A Initiation',
+  form_a_signing: 'Form A Signing',
+  owner_documents: 'Owner Documents',
+  photos_videos: 'Photos / Videos',
+  photographer_scheduling: 'Photographer Scheduling',
+  listing_creation: 'Listing Creation',
+  internal_verification: 'Internal Verification',
+  listing_publication: 'Listing Publication',
+  final_confirmation: 'Final Confirmation',
+};
+
 export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign }) {
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
+  const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
 
   const e164 = normalizePhone(landlord.phone);
   const askingPrice = landlord.asking_price_history?.[0]?.price;
@@ -194,7 +210,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           <div className="flex items-center gap-1.5 mb-0.5">
             <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span
               className={cn(
                 'shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border',
@@ -202,6 +218,9 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
               )}
             >
               {archetypeLabel}
+            </span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+              {stageLabel}
             </span>
             {landlord.urgency_score >= 80 ? (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
