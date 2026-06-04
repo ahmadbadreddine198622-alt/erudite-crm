@@ -14,6 +14,7 @@ export default function KanbanBoard({
   onToggleSelect,
   users = [],
   onSingleAssign,
+  photographyTasks = [],
 }) {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -83,6 +84,7 @@ export default function KanbanBoard({
                                 onToggleCheck={onToggleSelect}
                                 users={users}
                                 onSingleAssign={onSingleAssign}
+                                photographyTasks={photographyTasks}
                               />
                             </div>
                           </div>

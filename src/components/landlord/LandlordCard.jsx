@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, Clapperboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -62,10 +62,15 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign }) {
+export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [] }) {
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
+
+  // Check if landlord has a PhotographyTask with task_stage = "handed_to_listing"
+  const mediaDone = photographyTasks.some(
+    task => task.landlord_id === landlord.id && task.task_stage === 'handed_to_listing'
+  );
 
   const e164 = normalizePhone(landlord.phone);
   const askingPrice = landlord.asking_price_history?.[0]?.price;
@@ -209,7 +214,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
       </div>
 
-      {/* Badges row: archetype + stage + urgency */}
+      {/* Badges row: archetype + stage + urgency + media done */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
         <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
           {archetypeLabel}
@@ -225,6 +230,12 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
           <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
             ATTENTION
+          </span>
+        )}
+        {mediaDone && (
+          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/20 text-amber-400 border-amber-500/40">
+            <Clapperboard className="w-2 h-2" />
+            Media done
           </span>
         )}
       </div>

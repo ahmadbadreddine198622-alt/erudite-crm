@@ -121,6 +121,11 @@ export default function Landlords() {
     queryFn: () => base44.entities.Property.list(),
   });
 
+  const { data: photographyTasks = [] } = useQuery({
+    queryKey: ['photography_tasks'],
+    queryFn: () => base44.entities.PhotographyTask.list(),
+  });
+
   // Derive floor number from a unit_no string
   // e.g. "710" → 7, "2006" → 20, "1410" → 14, "P2-1001" → 10
   const deriveFloor = (unit_no) => {
@@ -680,6 +685,7 @@ export default function Landlords() {
           onToggleSelect={toggleSelect}
           users={users}
           onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
+          photographyTasks={photographyTasks}
         />
       </div>
 
