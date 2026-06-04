@@ -8,7 +8,7 @@ import {
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
   Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
-  Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle, Camera, PhoneCall
+  Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, ImageIcon
 } from 'lucide-react';
 
 export const ALL_APPS = [
@@ -62,6 +62,7 @@ export const ALL_APPS = [
   { label: 'Closing AI',         icon: CheckCircle,    path: '/closing-ai',          gradient: 'from-emerald-500 to-green-700',         glowColor: 'rgba(16,185,129,0.40)' },
   { label: 'Brand Settings',     icon: Target,         path: '/brand-settings',      gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Photography',        icon: Camera,         path: '/photography',         gradient: 'from-rose-500 to-pink-700',             glowColor: 'rgba(244,63,94,0.40)' },
+  { label: 'Matterport Sync',    icon: ImageIcon,      path: '/matterport-sync',     gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Twilio Hub',         icon: PhoneCall,      path: '/twilio',              gradient: 'from-red-500 to-red-800',               glowColor: 'rgba(239,68,68,0.40)' },
 ];
 
