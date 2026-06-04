@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
   // ---- match landlord (property identifiers first; NEVER broker name) ----
   let match: any = { tier: null, via: null, landlord_id: null, landlord_name: null };
   const setMatch = (tier: number, via: string, L: any) => { match = { tier, via, landlord_id: L.id, landlord_name: L.full_name_en }; };
+  let needsReview: any = null;   // set when a unit match is ambiguous (joint unit, seller not disambiguated)
 
   if (c.contract_number) {
     const hit = await listAll(svc.Landlord, { form_a_contract_number: c.contract_number });
@@ -166,15 +167,35 @@ Deno.serve(async (req) => {
     if (lp.length) { const L = await svc.Landlord.filter({ id: lp[0].landlord_id }); if (L && L[0]) setMatch(2, 'title_deed_number', L[0]); }
   }
   if (!match.tier && c.property_number) {
+    const targetOwner = normName(c.owner_name);
     const props = (await listAll(svc.Property, { unit_no: c.property_number }))
       .filter((p: any) => !c.building_name || normName(p.building_name) === normName(c.building_name) || normName(p.location) === normName(c.building_name));
     for (const p of props) {
-      const lp = await listAll(svc.LandlordProperty, { property_id: p.id });
-      if (lp.length) { const L = await svc.Landlord.filter({ id: lp[0].landlord_id }); if (L && L[0]) { setMatch(3, 'unit_no+building', L[0]); break; } }
+      const links = await listAll(svc.LandlordProperty, { property_id: p.id });
+      if (!links.length) continue;
+      const coOwners: any[] = [];
+      for (const lp of links) {
+        const L = await svc.Landlord.filter({ id: lp.landlord_id });
+        if (L && L[0]) coOwners.push(L[0]);
+      }
+      if (!coOwners.length) continue;
+      if (coOwners.length === 1) { setMatch(3, 'unit_no+building (sole owner)', coOwners[0]); break; }
+      // JOINT unit: break the tie with the contract's owner_name (NEVER the broker name).
+      const byName = targetOwner ? coOwners.filter((L: any) => normName(L.full_name_en) === targetOwner) : [];
+      if (byName.length === 1) { setMatch(3, 'unit_no+owner_name_tiebreak (joint unit)', byName[0]); break; }
+      // No single co-owner matches the seller -> do NOT auto-target; require manual review.
+      needsReview = {
+        reason: byName.length > 1 ? 'joint_unit_multiple_name_matches' : 'joint_unit_no_owner_name_match',
+        unit: c.property_number,
+        building: c.building_name,
+        contract_owner_name: c.owner_name,
+        candidate_co_owners: coOwners.map((L: any) => ({ landlord_id: L.id, name: L.full_name_en })),
+      };
+      break;
     }
   }
   let candidates: any[] = [];
-  if (!match.tier && c.owner_name) {
+  if (!match.tier && !needsReview && c.owner_name) {
     const target = normName(c.owner_name);
     const all = await listAll(svc.Landlord, {});
     const exact = all.filter((L: any) => normName(L.full_name_en) === target);
@@ -216,6 +237,9 @@ Deno.serve(async (req) => {
   }
 
   const wantWrite = body.confirm === true;
+  if (wantWrite && needsReview) {
+    return Response.json({ mode: 'refused', reason: 'needs_review', needs_review: needsReview, warnings, note: 'No write — unit is jointly owned and the contract seller could not be uniquely matched to a co-owner. Resolve manually.' });
+  }
   if (wantWrite && (!match.tier || !match.landlord_id || !proposed_landlord_updates)) {
     return Response.json({ mode: 'refused', reason: 'no_confident_match', match, warnings, note: 'No write — owner was not confidently matched.' });
   }
@@ -236,11 +260,16 @@ Deno.serve(async (req) => {
     }
   }
 
+  if (needsReview && !match.tier) {
+    warnings.push(`Joint unit ${needsReview.unit}: contract seller "${needsReview.contract_owner_name}" did not uniquely match a co-owner. No auto-target — see needs_review.candidate_co_owners.`);
+  }
+
   return Response.json({
-    mode: wantWrite ? 'written' : 'preview_no_write',
+    mode: wantWrite ? 'written' : (needsReview && !match.tier ? 'needs_review' : 'preview_no_write'),
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
-    match: match.tier ? match : { tier: null, via: 'no_confident_match', candidates },
+    match: match.tier ? match : (needsReview ? { tier: null, via: 'needs_review' } : { tier: null, via: 'no_confident_match', candidates }),
+    needs_review: needsReview,
     will_write_to: match.tier ? { landlord_id: match.landlord_id, landlord_name: match.landlord_name, matched_via: match.via, tier: match.tier } : null,
     upload_location_landlord_id: expected_landlord_id,
     ignored_upload_location: !!(expected_landlord_id && match.tier && expected_landlord_id !== match.landlord_id),
@@ -250,6 +279,8 @@ Deno.serve(async (req) => {
     warnings,
     note: wantWrite
       ? `Mandate written to the MATCHED landlord ${match.landlord_name} (${match.landlord_id}). Upload location was not used as the write target.`
-      : 'Nothing written. Pass { confirm: true } to write to the MATCHED landlord shown in will_write_to (never the upload card).',
+      : (needsReview && !match.tier
+        ? 'Joint unit — the contract seller was not uniquely matched to a co-owner. Review needs_review.candidate_co_owners; no auto-write.'
+        : 'Nothing written. Pass { confirm: true } to write to the MATCHED landlord shown in will_write_to (never the upload card).'),
   });
 });
