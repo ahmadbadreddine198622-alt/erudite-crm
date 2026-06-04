@@ -31,6 +31,8 @@ import LeadAISummary from '@/components/leads/LeadAISummary';
 import VoiceMemoButton from '@/components/leads/VoiceMemoButton';
 import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction';
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
+import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
+import CallLogPanel from '@/components/twilio/CallLogPanel';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -206,6 +208,9 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             </TabsTrigger>
             <TabsTrigger value="score" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
               🎯 Score
+            </TabsTrigger>
+            <TabsTrigger value="calls" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
+              📞 Calls
             </TabsTrigger>
             <TabsTrigger value="activity" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">Activity</TabsTrigger>
           </TabsList>
@@ -451,6 +456,13 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <LeadWhatsAppTab lead={lead} />
           </TabsContent>
 
+          <TabsContent value="calls" className="p-4 mt-0">
+            <div className="flex justify-end mb-3">
+              <TwilioCallDialog lead={lead} />
+            </div>
+            <CallLogPanel leadId={lead.id} />
+          </TabsContent>
+
           <TabsContent value="activity" className="p-6 mt-0">
             <div className="flex gap-2 mb-4">
               <Input
@@ -500,6 +512,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           >
             <MessageSquare className="w-4 h-4 mr-1" /> WhatsApp
           </Button>
+          <TwilioCallDialog lead={lead} />
           <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 

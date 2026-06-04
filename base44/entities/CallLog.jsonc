@@ -1,0 +1,75 @@
+{
+  "name": "CallLog",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "Related Lead ID"
+    },
+    "twilio_call_sid": {
+      "type": "string",
+      "description": "Twilio Call SID"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "default": "outbound"
+    },
+    "from_number": {
+      "type": "string"
+    },
+    "to_number": {
+      "type": "string"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "ringing",
+        "in-progress",
+        "completed",
+        "failed",
+        "busy",
+        "no-answer"
+      ],
+      "default": "queued"
+    },
+    "duration_seconds": {
+      "type": "number"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recording_url": {
+      "type": "string",
+      "description": "URL to the MP3 recording"
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Full call transcript"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI-generated call summary"
+    },
+    "twilio_number_used": {
+      "type": "string",
+      "description": "Which Twilio number was used to make this call"
+    }
+  },
+  "required": [
+    "direction",
+    "to_number"
+  ]
+}

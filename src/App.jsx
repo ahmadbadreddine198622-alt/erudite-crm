@@ -77,6 +77,7 @@ import BrandSettings from '@/pages/BrandSettings';
 import TeamActivityLog from '@/pages/TeamActivityLog';
 import InviteAgents from '@/pages/InviteAgents';
 import Photography from '@/pages/Photography';
+import TwilioHub from '@/pages/TwilioHub';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -169,6 +170,7 @@ const AuthenticatedApp = () => {
         <Route path="/team-activity" element={<TeamActivityLog />} />
         <Route path="/invite-agents" element={<InviteAgents />} />
         <Route path="/photography" element={<Photography />} />
+        <Route path="/twilio" element={<TwilioHub />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
