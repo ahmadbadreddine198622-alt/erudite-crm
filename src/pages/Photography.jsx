@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Camera, Home, Key, AlertCircle, CheckCircle2, Film, Disc, FileText, Loader2 } from 'lucide-react';
+import { Camera, Home, Key, AlertCircle, CheckCircle2, Film, Disc, FileText, Loader2, Zap, Droplet, Bed, Pill, Sparkles, Package } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from 'sonner';
@@ -233,25 +233,137 @@ export default function Photography() {
                     </div>
                   </div>
 
-                  {/* Access/Keys Info */}
-                  {(item.keys_location || item.key_access_instructions) && (
-                    <div className="pt-2 border-t border-white/10">
-                      <div className="flex items-center gap-1.5 text-xs mb-1">
-                        <Key className="w-3 h-3 text-amber-400" />
-                        <span className="font-medium text-amber-400">Access Information</span>
-                      </div>
-                      {item.keys_location && (
-                        <p className="text-[10px] text-muted-foreground">
-                          Keys: {item.keys_location.replace(/_/g, ' ')}
-                        </p>
-                      )}
-                      {item.key_access_instructions && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {item.key_access_instructions}
-                        </p>
-                      )}
+                  {/* Pre-shoot Details */}
+                  <div className="pt-2 border-t border-white/10 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs mb-1">
+                      <Camera className="w-3 h-3 text-accent" />
+                      <span className="font-semibold text-accent" style={{ color: 'hsl(38 92% 50%)' }}>Pre-shoot Details</span>
                     </div>
-                  )}
+
+                    {/* Access Block */}
+                    {(item.keys_location || item.key_access_instructions) && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Key className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span className="font-medium text-foreground">Access</span>
+                        </div>
+                        {item.keys_location && (
+                          <p className="text-[10px] text-muted-foreground pl-5">
+                            Keys: <span className="text-foreground">{item.keys_location.replace(/_/g, ' ')}</span>
+                          </p>
+                        )}
+                        {item.key_access_instructions && (
+                          <p className="text-[10px] text-muted-foreground pl-5 italic">
+                            {item.key_access_instructions}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Condition Block */}
+                    {(item.unit_condition || item.furnishing) && (
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Home className="w-3 h-3 text-blue-400 shrink-0" />
+                          <span className="font-medium text-foreground">Condition</span>
+                        </div>
+                        {item.unit_condition && (
+                          <p className="text-[10px] text-muted-foreground pl-5">
+                            Unit: <span className="text-foreground">{item.unit_condition.replace(/_/g, ' ')}</span>
+                          </p>
+                        )}
+                        {item.furnishing && (
+                          <p className="text-[10px] text-muted-foreground pl-5">
+                            Furnishing: <span className="text-foreground">{item.furnishing.replace(/_/g, ' ')}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Readiness Row */}
+                    {(item.has_bedsheets !== undefined || item.has_pillows !== undefined || item.electricity_on !== undefined || item.water_on !== undefined) && (
+                      <div className="pt-1">
+                        <div className="flex items-center gap-1.5 text-xs mb-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span className="font-medium text-foreground">Readiness</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pl-5">
+                          {/* Bedsheets */}
+                          {item.has_bedsheets !== undefined && (
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {item.has_bedsheets ? (
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                              ) : (
+                                <AlertCircle className="w-2.5 h-2.5 text-red-400" />
+                              )}
+                              <span className={item.has_bedsheets ? 'text-emerald-400' : 'text-red-400'}>
+                                Bedsheets
+                              </span>
+                            </div>
+                          )}
+                          {/* Pillows */}
+                          {item.has_pillows !== undefined && (
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {item.has_pillows ? (
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                              ) : (
+                                <AlertCircle className="w-2.5 h-2.5 text-red-400" />
+                              )}
+                              <span className={item.has_pillows ? 'text-emerald-400' : 'text-red-400'}>
+                                Pillows
+                              </span>
+                            </div>
+                          )}
+                          {/* Electricity */}
+                          {item.electricity_on !== undefined && (
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {item.electricity_on ? (
+                                <Zap className="w-2.5 h-2.5 text-emerald-400" />
+                              ) : (
+                                <Zap className="w-2.5 h-2.5 text-red-400 fill-red-400" />
+                              )}
+                              <span className={item.electricity_on ? 'text-emerald-400' : 'text-red-400 font-semibold'}>
+                                Electricity
+                              </span>
+                            </div>
+                          )}
+                          {/* Water */}
+                          {item.water_on !== undefined && (
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {item.water_on ? (
+                                <Droplet className="w-2.5 h-2.5 text-emerald-400" />
+                              ) : (
+                                <Droplet className="w-2.5 h-2.5 text-red-400 fill-red-400" />
+                              )}
+                              <span className={item.water_on ? 'text-emerald-400' : 'text-red-400 font-semibold'}>
+                                Water
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Staging Block */}
+                    {(item.staging_needed || item.what_to_bring) && (
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Package className="w-3 h-3 text-purple-400 shrink-0" />
+                          <span className="font-medium text-foreground">Staging & Equipment</span>
+                        </div>
+                        {item.staging_needed && (
+                          <p className="text-[10px] text-muted-foreground pl-5">
+                            Staging: <span className="text-foreground">{item.staging_needed}</span>
+                          </p>
+                        )}
+                        {item.what_to_bring && (
+                          <p className="text-[10px] text-muted-foreground pl-5">
+                            Bring: <span className="text-foreground">{item.what_to_bring}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
 
                 </CardContent>
