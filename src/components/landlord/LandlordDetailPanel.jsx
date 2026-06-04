@@ -3,6 +3,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp } from 'lucide-react';
+
+const STAGE_LABELS = {
+  initial_contact: 'Initial Contact',
+  price_discovery: 'Price Discovery',
+  listing_commitment: 'Listing Commitment',
+  form_a_initiation: 'Form A Initiation',
+  form_a_signing: 'Form A Signing',
+  owner_documents: 'Owner Documents',
+  photos_videos: 'Photos / Videos',
+  photographer_scheduling: 'Photographer Scheduling',
+  listing_creation: 'Listing Creation',
+  internal_verification: 'Internal Verification',
+  listing_publication: 'Listing Publication',
+  final_confirmation: 'Final Confirmation',
+};
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -152,10 +167,15 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             )}
             <div className="min-w-0">
               <h2 className="font-semibold truncate">{landlord.full_name_en || landlord.full_name}</h2>
-              <p className="text-xs text-muted-foreground truncate">
-                {landlord.landlord_archetype?.replace(/_/g, ' ')}
-                {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-xs text-muted-foreground truncate">
+                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
+                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
+                </p>
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10">
+                  {STAGE_LABELS[landlord.stage] || landlord.stage}
+                </Badge>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
