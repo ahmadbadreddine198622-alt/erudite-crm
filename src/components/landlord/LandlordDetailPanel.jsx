@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera } from 'lucide-react';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -136,6 +136,32 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     queryFn: () => base44.entities.User.list(),
   });
 
+  // Fetch LandlordProperty for this landlord
+  const { data: landlordProperties = [] } = useQuery({
+    queryKey: ['landlord-properties', landlord.id],
+    queryFn: async () => {
+      const props = await base44.entities.LandlordProperty.filter({ landlord_id: landlord.id });
+      return props || [];
+    },
+    enabled: !!landlord.id,
+  });
+
+  const landlordProperty = landlordProperties[0];
+  const landlordPropertyId = landlordProperty?.id;
+
+  // Fetch existing PhotographyTask for this landlord's property
+  const { data: photographyTasks = [] } = useQuery({
+    queryKey: ['photography-task', landlord.id],
+    queryFn: async () => {
+      if (!landlordPropertyId) return [];
+      const tasks = await base44.entities.PhotographyTask.filter({ landlord_property_id: landlordPropertyId });
+      return tasks || [];
+    },
+    enabled: !!landlordPropertyId,
+  });
+
+  const existingTask = photographyTasks[0];
+
   const assignMutation = useMutation({
     mutationFn: (email) => base44.entities.Landlord.update(landlord.id, { assigned_agent_email: email }),
     onSuccess: () => {
@@ -144,6 +170,43 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
     },
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
+
+  // Photographer assignment mutation
+  const photographerMutation = useMutation({
+    mutationFn: async (photographerEmail) => {
+      if (!landlordPropertyId) {
+        throw new Error('No property record found for this landlord');
+      }
+      if (existingTask) {
+        // Update existing task
+        return await base44.entities.PhotographyTask.update(existingTask.id, {
+          assigned_photographer_email: photographerEmail,
+          assigned_at: new Date().toISOString(),
+          task_stage: 'pre_shoot_check',
+        });
+      } else {
+        // Create new task
+        return await base44.entities.PhotographyTask.create({
+          landlord_id: landlord.id,
+          landlord_property_id: landlordPropertyId,
+          assigned_photographer_email: photographerEmail,
+          assigned_at: new Date().toISOString(),
+          task_stage: 'pre_shoot_check',
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['photography-task', landlord.id] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties', landlord.id] });
+      toast.success('Photographer assigned');
+    },
+    onError: (e) => toast.error('Failed to assign: ' + e.message),
+  });
+
+  // Photographer options (extensible for future)
+  const PHOTOGRAPHER_OPTIONS = [
+    { email: 'dari@erudite-estate.com', name: 'Dari' },
+  ];
 
   const orchestrateMutation = useMutation({
     mutationFn: () => base44.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }),
@@ -544,6 +607,37 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                     <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Photographer Assignment */}
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-1">Photographer</p>
+                {landlordProperty ? (
+                  <>
+                    <select
+                      value={existingTask?.assigned_photographer_email || ''}
+                      onChange={(e) => photographerMutation.mutate(e.target.value)}
+                      disabled={photographerMutation.isPending}
+                      className="w-full px-2 py-1 text-xs rounded-md"
+                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
+                    >
+                      <option value="">Unassigned</option>
+                      {PHOTOGRAPHER_OPTIONS.map(p => (
+                        <option key={p.email} value={p.email}>{p.name}</option>
+                      ))}
+                    </select>
+                    {existingTask && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {photographerMutation.isPending ? 'Saving...' : `Assigned to ${existingTask.assigned_photographer_email?.split('@')[0]}`}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground">No property linked</p>
+                )}
               </div>
             </div>
           </div>
