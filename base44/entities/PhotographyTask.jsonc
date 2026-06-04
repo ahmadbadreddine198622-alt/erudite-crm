@@ -1,0 +1,105 @@
+{
+  "name": "PhotographyTask",
+  "type": "object",
+  "properties": {
+    "landlord_property_id": {
+      "type": "string",
+      "description": "Reference to LandlordProperty entity"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "Reference to Landlord entity"
+    },
+    "assigned_photographer_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the assigned photographer"
+    },
+    "task_stage": {
+      "type": "string",
+      "enum": [
+        "inquiry",
+        "pre_shoot_check",
+        "shooting",
+        "uploaded_3d",
+        "editing",
+        "complete",
+        "handed_to_listing"
+      ],
+      "default": "inquiry",
+      "description": "Photography task workflow stage"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the task was assigned to photographer"
+    },
+    "unit_condition": {
+      "type": "string",
+      "enum": [
+        "finished",
+        "unfinished",
+        "clean",
+        "needs_cleaning"
+      ],
+      "description": "Unit condition for pre-shoot check"
+    },
+    "furnishing": {
+      "type": "string",
+      "enum": [
+        "furnished",
+        "unfurnished",
+        "partial"
+      ],
+      "description": "Furnishing status"
+    },
+    "has_bedsheets": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether unit has bedsheets"
+    },
+    "has_pillows": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether unit has pillows"
+    },
+    "electricity_on": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether electricity is on"
+    },
+    "water_on": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether water is on"
+    },
+    "staging_needed": {
+      "type": "string",
+      "description": "Staging requirements notes"
+    },
+    "what_to_bring": {
+      "type": "string",
+      "description": "Equipment/items photographer needs to bring"
+    },
+    "editing_substatus": {
+      "type": "string",
+      "description": "Sub-status during editing phase"
+    },
+    "completion_notes": {
+      "type": "string",
+      "description": "Notes upon task completion"
+    },
+    "video_link": {
+      "type": "string",
+      "description": "URL to video walkthrough"
+    },
+    "photos_link": {
+      "type": "string",
+      "description": "URL to photo gallery"
+    }
+  },
+  "required": [
+    "landlord_property_id",
+    "landlord_id"
+  ]
+}
