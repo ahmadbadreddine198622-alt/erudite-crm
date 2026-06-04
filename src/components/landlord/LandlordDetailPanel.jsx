@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2 } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,30 @@ import UnitPassport from './UnitPassport';
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate }) {
   const queryClient = useQueryClient();
   const [whisperOpen, setWhisperOpen] = useState(false);
+  const [formAUploading, setFormAUploading] = useState(false);
+  const formAInputRef = useRef(null);
+
+  const handleFormAUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Please select a PDF file only.');
+      return;
+    }
+    setFormAUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Landlord.update(landlord.id, { form_a_pdf_url: file_url });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      onUpdate?.();
+      toast.success('Form A uploaded successfully');
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      setFormAUploading(false);
+      if (formAInputRef.current) formAInputRef.current.value = '';
+    }
+  };
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
@@ -123,6 +147,49 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
               : <FileSignature className="w-3.5 h-3.5" />}
             {lbaStatus === 'signed' ? 'Signed' : lbaStatus === 'sent_for_signature' ? 'Sent for signature' : 'Generate Agreement'}
           </Button>
+        </div>
+
+        {/* Form A Upload */}
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-medium text-muted-foreground">Form A / Mandate PDF</span>
+            {landlord.form_a_pdf_url && (
+              <Badge variant="outline" className="text-xs border bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-1">
+                <FileCheck className="w-3 h-3" /> Attached
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {landlord.form_a_pdf_url && (
+              <a
+                href={landlord.form_a_pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-accent hover:underline flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" /> View
+              </a>
+            )}
+            <input
+              ref={formAInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFormAUpload}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => formAInputRef.current?.click()}
+              disabled={formAUploading}
+              className="gap-1.5"
+            >
+              {formAUploading
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Upload className="w-3.5 h-3.5" />}
+              {formAUploading ? 'Uploading…' : landlord.form_a_pdf_url ? 'Replace Form A' : 'Upload Form A'}
+            </Button>
+          </div>
         </div>
 
         {/* Whisper Panel (toggle) */}
