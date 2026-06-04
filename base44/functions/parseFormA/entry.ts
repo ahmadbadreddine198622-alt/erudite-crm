@@ -14,11 +14,9 @@ import { extractText, getDocumentProxy } from 'npm:unpdf';
 
 const PAGE = 200;
 const ERUDITE_ORN = '29322';
-// Erudite agents: broker first-name -> {first}@erudite-estate.com
 const KNOWN_AGENTS = new Set(['ahmad', 'alisher', 'aizah', 'ajwa', 'adeyemi', 'manusher', 'same', 'selin', 'ola']);
 
 function normSpaces(s) {
-  // non-breaking space U+00A0 -> space; soft hyphen U+00AD -> '-'
   return s.replace(/\u00a0/g, ' ').replace(/\u00ad/g, '-');
 }
 function normName(s) { return (s || '').replace(/\s+/g, ' ').trim().toUpperCase(); }
@@ -48,33 +46,27 @@ function parseFormA(rawText) {
     return m && m[1] ? m[1].trim() : null;
   };
 
-  // ---- sections ----
   const ownerBlock = between(text, 'Owner Details', 'Property Details');
   const brokerBlock = between(text, 'Seller Broker Details', 'Terms & Conditions');
 
-  // OWNER (landlord) — strictly from Owner Details block, robust to layout variants.
-  // first substantial ALL-CAPS Latin run in a block (the English seller name)
   const firstAllCaps = (block) => {
     const m = block.match(/([A-Z][A-Z][A-Z][A-Z][A-Z .'\-]*?)(?=[^\x00-\x7f]|\n|$)/);
     return m ? m[1].trim() : null;
   };
   const beforeBroker = text.indexOf('Broker Name') > 0 ? text.slice(0, text.indexOf('Broker Name')) : text.slice(0, 400);
   const owner_name =
-    f("Seller Name\\s*\\n[^\\n]*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)   // pypdf 3-line layout
-    || f("Seller Name\\s*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)          // name directly under "Seller Name"
-    || firstAllCaps(ownerBlock)                                              // any all-caps run inside Owner Details
-    || firstAllCaps(beforeBroker);                                          // header fallback (seller precedes broker)
+    f("Seller Name\\s*\\n[^\\n]*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)
+    || f("Seller Name\\s*\\n([A-Z][A-Z .'-]+?)" + TERM, ownerBlock)
+    || firstAllCaps(ownerBlock)
+    || firstAllCaps(beforeBroker);
   const owner_signature_date = f('Signature Date\\s+(\\d{2}/\\d{2}/\\d{4}\\s+\\d{1,2}:\\d{2}\\s+[AP]M)', ownerBlock);
 
-  // STATUS — robust: allow Arabic/space/newline between the label and the value,
-  // and fall back to the known status enum within the Contract Information block.
   const STATUS = '(Active|Approved|Accepted|Expired|Cancelled|Pending|Draft|Rejected|New)';
   const contractInfoBlock = between(text, 'Contract Information', 'Owner Details');
   const status =
-    f('Status[\\s\\S]{0,20}?' + STATUS)                 // "Status" then (label/space/nl) then enum
-    || f('(?:^|[^A-Za-z])' + STATUS + '(?=[^\\x00-\\x7f]|\\n|$)', contractInfoBlock); // enum word in contract-info block
+    f('Status[\\s\\S]{0,20}?' + STATUS)
+    || f('(?:^|[^A-Za-z])' + STATUS + '(?=[^\\x00-\\x7f]|\\n|$)', contractInfoBlock);
 
-  // BROKER — strictly from Seller Broker Details block
   const broker_name = f("Broker Name\\s*\\(English\\)\\s*([A-Z][A-Z .'-]+?)" + TERM, brokerBlock);
   const broker_office = f("Office Name\\s*\\(English\\)\\s*([A-Z0-9 .'&-]+?)" + TERM, brokerBlock);
   const broker_orn = f('ORN\\s+(\\d+)', brokerBlock);
@@ -98,16 +90,13 @@ function parseFormA(rawText) {
     title_deed_no: f('Title Deed #\\s+(\\d+/\\d+)'),
     sell_price_aed: f('Sell Price AED\\s+([\\d,]+\\.\\d{2})'),
     outstanding_service_charge_aed: f('Charge Amount AED\\s+([\\d,]+\\.\\d{2})'),
-    // OWNER (landlord)
     owner_name,
     owner_signature_date,
     owner_mobile: null, owner_email: null, owner_nationality: null, owner_passport_no: null,
-    // BROKER (separate)
     broker_name,
     broker_office,
     broker_orn,
     broker_brn,
-    // property
     location: f('Location\\s+([\\x20-\\x7e]+?)' + TERM),
     building_name: f('Building Name\\s+([\\x20-\\x7e]+?)' + TERM),
     project_name: f('Project Name\\s+([\\x20-\\x7e]+?)' + TERM),
@@ -157,11 +146,9 @@ Deno.serve(async (req) => {
 
   const c = parseFormA(rawText);
 
-  // DEBUG: echo what the live PDF extractor (unpdf) actually produced, so regex
-  // fixes are based on the real text — not a different library's output.
   if (body.debug === true) {
     return Response.json({
-      parser_version: 'v5-robust-status-owner',
+      parser_version: 'v7-stage-advance',
       extracted: { status: c.status, owner_name: c.owner_name, contract_number: c.contract_number, property_number: c.property_number, broker_name: c.broker_name },
       raw_text_first_2600: (rawText || '').slice(0, 2600),
       raw_text_length: (rawText || '').length,
@@ -171,11 +158,9 @@ Deno.serve(async (req) => {
   const svc = base44.asServiceRole.entities;
   const warnings = [];
 
-  // ---- handling agent from broker (Erudite agent list) ----
   const brokerFirst = (c.broker_name || '').trim().split(' ')[0].toLowerCase();
   const handling_agent_email = KNOWN_AGENTS.has(brokerFirst) ? `${brokerFirst}@erudite-estate.com` : null;
 
-  // ---- office / competitor check ----
   const officeIsErudite = !!(c.broker_office && normName(c.broker_office).startsWith('ERUDITE REAL ESTATE') && c.broker_orn === ERUDITE_ORN);
   if (!officeIsErudite) {
     warnings.push(`Contract held by another brokerage — possible competitor mandate. Office: ${c.broker_office || 'unknown'} (ORN ${c.broker_orn || 'n/a'}).`);
@@ -184,10 +169,11 @@ Deno.serve(async (req) => {
   }
   warnings.push('Owner contact (mobile/email/nationality/passport) is not present in this DLD format — owner matched by name + property identifiers only.');
 
-  // ---- match landlord (property identifiers first; NEVER broker name) ----
-  let match = { tier: null, via: null, landlord_id: null, landlord_name: null };
-  const setMatch = (tier, via, L) => { match = { tier, via, landlord_id: L.id, landlord_name: L.full_name_en }; };
-  let needsReview = null;   // set when a unit match is ambiguous (joint unit, seller not disambiguated)
+  let match = { tier: null, via: null, landlord_id: null, landlord_name: null, landlord_stage: null };
+  const setMatch = (tier, via, L) => {
+    match = { tier, via, landlord_id: L.id, landlord_name: L.full_name_en, landlord_stage: L.stage || null };
+  };
+  let needsReview = null;
 
   if (c.contract_number) {
     const hit = await listAll(svc.Landlord, { form_a_contract_number: c.contract_number });
@@ -195,7 +181,10 @@ Deno.serve(async (req) => {
   }
   if (!match.tier && c.title_deed_no) {
     const lp = await listAll(svc.LandlordProperty, { title_deed_number: c.title_deed_no });
-    if (lp.length) { const L = await svc.Landlord.filter({ id: lp[0].landlord_id }); if (L && L[0]) setMatch(2, 'title_deed_number', L[0]); }
+    if (lp.length) {
+      const L = await svc.Landlord.filter({ id: lp[0].landlord_id });
+      if (L && L[0]) setMatch(2, 'title_deed_number', L[0]);
+    }
   }
   if (!match.tier && c.property_number) {
     const targetOwner = normName(c.owner_name);
@@ -211,10 +200,8 @@ Deno.serve(async (req) => {
       }
       if (!coOwners.length) continue;
       if (coOwners.length === 1) { setMatch(3, 'unit_no+building (sole owner)', coOwners[0]); break; }
-      // JOINT unit: break the tie with the contract's owner_name (NEVER the broker name).
       const byName = targetOwner ? coOwners.filter((L) => normName(L.full_name_en) === targetOwner) : [];
       if (byName.length === 1) { setMatch(3, 'unit_no+owner_name_tiebreak (joint unit)', byName[0]); break; }
-      // No single co-owner matches the seller -> do NOT auto-target; require manual review.
       needsReview = {
         reason: byName.length > 1 ? 'joint_unit_multiple_name_matches' : 'joint_unit_no_owner_name_match',
         unit: c.property_number,
@@ -242,7 +229,9 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- proposed updates (NOT written) ----
+  // Stage order for auto-advance
+  const STAGE_ORDER = ['initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing', 'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification', 'listing_publication', 'final_confirmation'];
+
   let proposed_landlord_updates = null;
   if (match.tier) {
     proposed_landlord_updates = {
@@ -255,13 +244,21 @@ Deno.serve(async (req) => {
       asking_price_aed: num(c.sell_price_aed),
       ...(handling_agent_email ? { assigned_agent_email: handling_agent_email } : {}),
     };
+
+    // Stage auto-advance: only forward, never backward
+    if (proposed_landlord_updates.mandate_status === 'form_a_signed') {
+      const curIdx = STAGE_ORDER.indexOf(match.landlord_stage);
+      const targetIdx = STAGE_ORDER.indexOf('form_a_signing'); // index 4
+      // curIdx === -1 means unknown/null stage — advance in that case too
+      if (curIdx < targetIdx) {
+        proposed_landlord_updates.stage = 'form_a_signing';
+        proposed_landlord_updates.stage_entered_at = new Date().toISOString();
+      }
+    }
   }
+
   const proposed_landlordproperty_updates = match.tier ? { title_deed_number: c.title_deed_no, is_off_plan: c.is_off_plan } : null;
 
-  // ---- write-target safety + optional confirm-gated write ----
-  // The write ALWAYS targets match.landlord_id (the parser's matched owner),
-  // NEVER the upload-location landlord. expected_landlord_id is the card the PDF
-  // was uploaded to; if it differs from the match it is flagged and ignored.
   const expected_landlord_id = body.expected_landlord_id || null;
   if (expected_landlord_id && match.tier && expected_landlord_id !== match.landlord_id) {
     warnings.push(`Upload-location landlord (${expected_landlord_id}) differs from the MATCHED landlord (${match.landlord_id} / ${match.landlord_name}). The write targets the MATCHED landlord; the upload location is ignored.`);
@@ -278,16 +275,37 @@ Deno.serve(async (req) => {
   let written = null;
   if (wantWrite) {
     written = { landlord_id: match.landlord_id, landlord_name: match.landlord_name, landlord_updated: false, landlordproperty_updated: false };
-    await svc.Landlord.update(match.landlord_id, proposed_landlord_updates);
-    written.landlord_updated = true;
+    try {
+      await svc.Landlord.update(match.landlord_id, proposed_landlord_updates);
+      written.landlord_updated = true;
+      written.stage_advanced_to = proposed_landlord_updates.stage || null;
+    } catch (e) {
+      return Response.json({
+        parser_version: 'v7-stage-advance',
+        mode: 'write_error',
+        step: 'landlord_update',
+        landlord_id: match.landlord_id,
+        attempted_update: proposed_landlord_updates,
+        error: String(e && e.message ? e.message : e),
+      });
+    }
     if (proposed_landlordproperty_updates && c.property_number) {
-      const props = (await listAll(svc.Property, { unit_no: c.property_number }))
-        .filter((p) => !c.building_name || normName(p.building_name) === normName(c.building_name));
-      for (const p of props) {
-        const lps = await listAll(svc.LandlordProperty, { landlord_id: match.landlord_id, property_id: p.id });
-        if (lps.length) { await svc.LandlordProperty.update(lps[0].id, proposed_landlordproperty_updates); written.landlordproperty_updated = true; written.landlordproperty_id = lps[0].id; break; }
+      try {
+        const props = (await listAll(svc.Property, { unit_no: c.property_number }))
+          .filter((p) => !c.building_name || normName(p.building_name) === normName(c.building_name));
+        for (const p of props) {
+          const lps = await listAll(svc.LandlordProperty, { landlord_id: match.landlord_id, property_id: p.id });
+          if (lps.length) {
+            await svc.LandlordProperty.update(lps[0].id, proposed_landlordproperty_updates);
+            written.landlordproperty_updated = true;
+            written.landlordproperty_id = lps[0].id;
+            break;
+          }
+        }
+        if (!written.landlordproperty_updated) warnings.push('Could not locate the matched landlord\'s LandlordProperty row for this unit; title-deed/off-plan not written.');
+      } catch (e) {
+        written.landlordproperty_error = String(e && e.message ? e.message : e);
       }
-      if (!written.landlordproperty_updated) warnings.push('Could not locate the matched landlord\'s LandlordProperty row for this unit; title-deed/off-plan not written.');
     }
   }
 
@@ -296,7 +314,7 @@ Deno.serve(async (req) => {
   }
 
   return Response.json({
-    parser_version: 'v5-robust-status-owner',   // deploy marker: if you see this field, the latest code is live
+    parser_version: 'v7-stage-advance',
     mode: wantWrite ? 'written' : (needsReview && !match.tier ? 'needs_review' : 'preview_no_write'),
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
