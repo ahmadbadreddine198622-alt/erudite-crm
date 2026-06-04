@@ -125,7 +125,7 @@ export default function Pipeline() {
       if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
       return result;
     },
-    [leads, projectFilter],
+    [leads, projectFilter, currentUser, permissions],
   );
 
   // Live lead for the open detail drawer — re-derived whenever the cache

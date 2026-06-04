@@ -150,6 +150,12 @@ export default function ContactDetailPanel({ contactId, onClose }) {
     enabled: !!contactId,
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['team-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
+  });
+
   useEffect(() => {
     if (contact) { setDraft({ ...contact }); setIsDirty(false); }
   }, [contact]);
@@ -379,6 +385,26 @@ export default function ContactDetailPanel({ contactId, onClose }) {
               <Plus className="w-3.5 h-3.5" /> Add email
             </button>
           </div>
+        </Section>
+
+        {/* Assigned Agent */}
+        <Section title="Assigned Agent" icon={User}>
+          <Select
+            value={draft.assigned_agent_email || ''}
+            onValueChange={(v) => {
+              const u = users.find(u => u.email === v);
+              set('assigned_agent_email', v);
+              if (u) set('assigned_agent_name', u.full_name || v);
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— Unassigned —" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>— Unassigned —</SelectItem>
+              {users.map(u => (
+                <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Section>
 
         {/* Project Layer */}

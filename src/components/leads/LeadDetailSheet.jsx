@@ -45,6 +45,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
     queryFn: () => base44.entities.Project.list('name', 200),
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['team-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
+  });
+
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', lead.id],
     queryFn: () => base44.entities.Activity.filter({ lead_id: lead.id }, '-created_date', 50),
@@ -218,12 +224,23 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               <div className="space-y-3">
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground">Assigned Agent</label>
-                  <Input
-                    defaultValue={lead.assigned_agent_name || ''}
-                    placeholder="Agent name"
-                    className="mt-1 h-9 text-sm"
-                    onBlur={(e) => { if (e.target.value !== (lead.assigned_agent_name || '')) updateMutation.mutate({ assigned_agent_name: e.target.value }); }}
-                  />
+                  <Select
+                    value={lead.assigned_agent_email || ''}
+                    onValueChange={(v) => {
+                      const u = users.find(u => u.email === v);
+                      updateMutation.mutate({ assigned_agent_email: v, assigned_agent_name: u?.full_name || v });
+                    }}
+                  >
+                    <SelectTrigger className="mt-1 h-9">
+                      <SelectValue placeholder="— Unassigned —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>— Unassigned —</SelectItem>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
