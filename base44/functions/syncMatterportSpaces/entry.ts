@@ -99,12 +99,12 @@ const GET_SPACES_QUERY = `
   }
 `;
 
-async function fetchAllMatterportSpaces(apiToken: string): Promise<Array<any>> {
+async function fetchAllMatterportSpaces(tokenId: string, tokenSecret: string): Promise<Array<any>> {
   const allSpaces: Array<any> = [];
   let cursor: string | null = null;
   let hasMore = true;
   
-  const token = btoa(`${apiToken}:`);
+  const token = btoa(`${tokenId}:${tokenSecret}`);
   
   while (hasMore) {
     const variables = cursor ? { cursor } : {};
@@ -153,13 +153,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
     
-    const apiToken = Deno.env.get('MATTERPORT_API_TOKEN');
-    if (!apiToken) {
-      return Response.json({ error: 'MATTERPORT_API_TOKEN not configured' }, { status: 500 });
+    const tokenId = Deno.env.get('MATTERPORT_TOKEN_ID');
+    const tokenSecret = Deno.env.get('MATTERPORT_TOKEN_SECRET');
+    
+    if (!tokenId) {
+      return Response.json({ error: 'MATTERPORT_TOKEN_ID secret not configured' }, { status: 500 });
+    }
+    if (!tokenSecret) {
+      return Response.json({ error: 'MATTERPORT_TOKEN_SECRET secret not configured' }, { status: 500 });
     }
     
     console.log('Fetching Matterport spaces...');
-    const spaces = await fetchAllMatterportSpaces(apiToken);
+    const spaces = await fetchAllMatterportSpaces(tokenId, tokenSecret);
     console.log(`Fetched ${spaces.length} spaces`);
     
     console.log('Fetching CRM data...');
