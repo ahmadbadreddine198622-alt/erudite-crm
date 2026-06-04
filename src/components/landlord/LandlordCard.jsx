@@ -108,16 +108,47 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
 
   const showMandateWarning = daysUntilMandateExpiry !== null && daysUntilMandateExpiry <= 14 && daysUntilMandateExpiry >= 0;
 
-  // Get contract numbers from form_a_contracts array, fallback to legacy single field
-  const contractNumbers = (() => {
+  // Get contracts from form_a_contracts array, fallback to legacy single field
+  const contracts = (() => {
     if (landlord.form_a_contracts && landlord.form_a_contracts.length > 0) {
-      return landlord.form_a_contracts.map(c => c.contract_number).filter(Boolean);
+      return landlord.form_a_contracts;
     }
     if (landlord.form_a_contract_number) {
-      return [landlord.form_a_contract_number];
+      return [{
+        contract_number: landlord.form_a_contract_number,
+        asking_price_aed: landlord.asking_price_aed,
+        mandate_expires_at: landlord.mandate_expires_at,
+      }];
     }
     return [];
   })();
+
+  // Helper to calculate expiry color and days remaining
+  const getExpiryColor = (expiryDate) => {
+    if (!expiryDate) return 'rgba(255,255,255,0.45)';
+    const expiry = new Date(expiryDate).getTime();
+    const now = new Date().getTime();
+    const daysRemaining = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    if (daysRemaining < 0) return 'rgb(239, 68, 68)'; // red - expired
+    if (daysRemaining <= 30) return 'rgb(217, 119, 6)'; // amber - expiring soon
+    return 'hsl(38 92% 50%)'; // gold - normal
+  };
+
+  // Format date as "DD Mon YYYY"
+  const formatExpiryDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = date.toLocaleDateString('en-GB', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  // Format price with commas
+  const formatPrice = (price) => {
+    if (!price) return 'N/A';
+    return price.toLocaleString('en-US');
+  };
 
   return (
     <div
@@ -188,12 +219,19 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </div>
       )}
 
-      {/* Form A contract numbers */}
-      {contractNumbers.length > 0 && (
-        <div className="mt-1.5">
-          <p className="text-[9px] font-medium" style={{ color: 'hsl(38 92% 50%)' }}>
-            {contractNumbers.join(', ')}
-          </p>
+      {/* Form A contracts with price and expiry */}
+      {contracts.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {contracts.map((contract, idx) => (
+            <div key={contract.contract_number || idx}>
+              <p className="text-[9px] font-medium" style={{ color: 'hsl(38 92% 50%)' }}>
+                {contract.contract_number || 'Unknown'}
+              </p>
+              <p className="text-[8px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at) }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
+              </p>
+            </div>
+          ))}
         </div>
       )}
 
