@@ -1,0 +1,62 @@
+{
+  "name": "MatterportSpace",
+  "type": "object",
+  "properties": {
+    "matterport_space_id": {
+      "type": "string",
+      "description": "Matterport's own Space ID (unique key from their API)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Space name as it appears in Matterport"
+    },
+    "tour_url": {
+      "type": "string",
+      "description": "The public 3D tour / Showcase URL"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Preview image URL"
+    },
+    "status": {
+      "type": "string",
+      "description": "Matterport processing status (e.g. active, processing)"
+    },
+    "floor_count": {
+      "type": "number",
+      "description": "Number of floors in the space"
+    },
+    "room_count": {
+      "type": "number",
+      "description": "Number of rooms in the space"
+    },
+    "scan_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the space was scanned"
+    },
+    "details_json": {
+      "type": "string",
+      "description": "Raw extra details from the API, stored as JSON string"
+    },
+    "linked_landlord_property_id": {
+      "type": "string",
+      "description": "Reference to LandlordProperty entity"
+    },
+    "linked_photography_task_id": {
+      "type": "string",
+      "description": "Reference to PhotographyTask entity"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the space was last synced from Matterport"
+    }
+  },
+  "required": [
+    "matterport_space_id",
+    "name",
+    "tour_url",
+    "status"
+  ]
+}
