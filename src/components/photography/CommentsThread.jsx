@@ -7,23 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 
+// Email to friendly name mapping - extend as needed
+const USER_NAMES = {
+  "dari@erudite-estate.com": "Dari",
+  "ahmad.badreddine198622@gmail.com": "Ahmad",
+};
+
+function getFriendlyName(email) {
+  if (USER_NAMES[email]) return USER_NAMES[email];
+  // Fallback: use part before @
+  return email.split('@')[0];
+}
+
 function CommentBubble({ comment }) {
   const isPhotographer = comment.author_role === 'photographer';
   const time = new Date(comment.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const friendlyName = getFriendlyName(comment.author_email);
+  const roleLabel = isPhotographer ? 'Photographer' : 'Agent';
   
   return (
-    <div className={`flex gap-1.5 ${isPhotographer ? 'justify-end' : 'justify-start'}`}>
-      {/* Avatar - Agent on left, Photographer on right */}
-      {!isPhotographer && (
+    <div className={`flex gap-1.5 ${isPhotographer ? 'justify-start' : 'justify-end'}`}>
+      {/* Avatar - Photographer on left, Agent on right */}
+      {isPhotographer && (
         <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-[9px] shrink-0 border border-amber-500/30">
-          {comment.author_email[0]?.toUpperCase()}
+          {friendlyName[0]?.toUpperCase()}
         </div>
       )}
       
-      <div className={`max-w-[80%] ${isPhotographer ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
-        {/* Author label */}
-        <span className={`text-[7px] font-semibold ${isPhotographer ? 'text-right' : 'text-left'}`} style={{ color: isPhotographer ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)' }}>
-          {isPhotographer ? 'Photographer' : 'Agent'}
+      <div className={`max-w-[80%] ${isPhotographer ? 'items-start' : 'items-end'} flex flex-col gap-0.5`}>
+        {/* Author label with friendly name */}
+        <span className={`text-[7px] font-semibold ${isPhotographer ? 'text-left' : 'text-right'}`} style={{ color: isPhotographer ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)' }}>
+          {friendlyName} ({roleLabel})
         </span>
         
         {/* Message bubble */}
@@ -38,14 +52,14 @@ function CommentBubble({ comment }) {
         </div>
         
         {/* Timestamp */}
-        <span className={`text-[7px] ${isPhotographer ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <span className={`text-[7px] ${isPhotographer ? 'text-left' : 'text-right'}`} style={{ color: 'rgba(255,255,255,0.4)' }}>
           {time}
         </span>
       </div>
       
-      {isPhotographer && (
+      {!isPhotographer && (
         <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-[9px] shrink-0 border border-emerald-500/30">
-          {comment.author_email[0]?.toUpperCase()}
+          {friendlyName[0]?.toUpperCase()}
         </div>
       )}
     </div>
