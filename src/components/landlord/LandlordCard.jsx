@@ -150,6 +150,15 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     return price.toLocaleString('en-US');
   };
 
+  // Calculate and format commission
+  const getCommissionInfo = (contract) => {
+    const commissionPct = contract.commission_pct_negotiated || landlord.commission_pct_negotiated;
+    const askingPrice = contract.asking_price_aed || landlord.asking_price_aed;
+    if (!commissionPct || !askingPrice) return null;
+    const commissionAmount = askingPrice * (commissionPct / 100);
+    return { pct: commissionPct, amount: commissionAmount };
+  };
+
   return (
     <div
       onClick={onClick}
@@ -230,6 +239,15 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
               <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>
                 AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at), fontWeight: 600 }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
               </p>
+              {(() => {
+                const commission = getCommissionInfo(contract);
+                if (!commission) return null;
+                return (
+                  <p className="text-[10px] font-medium mt-0.5" style={{ color: 'hsl(38 92% 55%)' }}>
+                    Commission: {commission.pct}% · AED {commission.amount.toLocaleString('en-US')}
+                  </p>
+                );
+              })()}
             </div>
           ))}
         </div>

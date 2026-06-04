@@ -349,6 +349,16 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
                           AED {(contract.asking_price_aed / 1000000).toFixed(2)}M
                         </div>
                       )}
+                      {(() => {
+                        const commissionPct = contract.commission_pct_negotiated || landlord.commission_pct_negotiated;
+                        if (!commissionPct || !contract.asking_price_aed) return null;
+                        const commissionAmount = contract.asking_price_aed * (commissionPct / 100);
+                        return (
+                          <div className="text-xs" style={{ color: 'hsl(38 92% 55%)', fontWeight: 600 }}>
+                            Commission: {commissionPct}% · AED {commissionAmount.toLocaleString('en-US')}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}
