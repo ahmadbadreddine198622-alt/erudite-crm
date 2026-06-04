@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -252,6 +252,30 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           </span>
         )}
       </div>
+
+      {/* Individual media badges - shown in ALL stages when links exist */}
+      {landlordTask && (
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
+          {landlordTask.tour_3d_link && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
+              <Box className="w-2 h-2" />
+              360
+            </span>
+          )}
+          {landlordTask.video_link && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-purple-500/15 text-purple-400 border-purple-500/30">
+              <Film className="w-2 h-2" />
+              Video
+            </span>
+          )}
+          {landlordTask.photos_link && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+              <Image className="w-2 h-2" />
+              Photos
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Project/ref tags */}
       {(landlord.project_name || landlord.unit_reference) && (
