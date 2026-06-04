@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X } from 'lucide-react';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +68,7 @@ export default function Landlords() {
   const [filterLayout, setFilterLayout] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
   const [filterAssignment, setFilterAssignment] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -189,6 +190,7 @@ export default function Landlords() {
 
   // Apply filters
   const filteredGroups = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     const result = {};
     STAGES.forEach(stage => {
       result[stage] = stageGroups[stage]
@@ -212,10 +214,20 @@ export default function Landlords() {
           if (filterAssignment === 'unassigned') return !l.assigned_agent_email;
           if (filterAssignment === 'assigned') return !!l.assigned_agent_email;
           return true;
+        })
+        .filter(l => {
+          if (!q) return true;
+          const name = (l.full_name_en || l.full_name || '').toLowerCase();
+          const unit = (l.unit_reference || '').toLowerCase();
+          const phone = (l.phone || '').toLowerCase();
+          const email = (l.email || '').toLowerCase();
+          const project = (l.project_name || '').toLowerCase();
+          const notes = (l.ai_rolling_summary || '').toLowerCase();
+          return name.includes(q) || unit.includes(q) || phone.includes(q) || email.includes(q) || project.includes(q) || notes.includes(q);
         });
     });
     return result;
-  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, landlordPropertyMap]);
+  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, searchQuery, landlordPropertyMap]);
 
   // Calculate metrics
   const totalPipeline = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -457,6 +469,27 @@ export default function Landlords() {
           />
         )}
 
+        {/* Search bar */}
+        <div className="relative mb-2 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by name, unit number, phone, email, project…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-8 py-2 text-xs rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Filters row + inline bulk toolbar */}
         <div className="flex gap-2 flex-wrap items-center">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
@@ -612,10 +645,10 @@ export default function Landlords() {
                 {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
               </div>
 
-              {/* Clear filters button — only shown when any new filter is active */}
-              {(filterFloor || filterLayout || filterLanguage || filterAssignment) && (
+              {/* Clear filters button — only shown when any filter is active */}
+              {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
                 <button
-                  onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); }}
+                  onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
                   className="text-xs px-2.5 py-1.5 rounded-lg transition-opacity opacity-70 hover:opacity-100"
                   style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
                 >
