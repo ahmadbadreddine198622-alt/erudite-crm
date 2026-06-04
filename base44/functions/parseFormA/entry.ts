@@ -87,6 +87,7 @@ function parseFormA(rawText) {
     noc_from_developer: f('Noc From\\s*Developer\\s+(Yes|No)'),
     is_seller_covering_marketing_fees: f('marketing fees\\?\\s+(Yes|No)'),
     commission_aed: f('Commission AED\\s+([\\d,]+(?:\\.\\d+)?)'),
+    commission_pct: f('Commission\\s+([\\d.]+)\\s*%'),
     title_deed_no: f('Title Deed #\\s+(\\d+/\\d+)'),
     sell_price_aed: f('Sell Price AED\\s+([\\d,]+\\.\\d{2})'),
     outstanding_service_charge_aed: f('Charge Amount AED\\s+([\\d,]+\\.\\d{2})'),
@@ -148,7 +149,7 @@ Deno.serve(async (req) => {
 
   if (body.debug === true) {
     return Response.json({
-      parser_version: 'v7-stage-advance',
+      parser_version: 'v9-form-a-contracts-list',
       extracted: { status: c.status, owner_name: c.owner_name, contract_number: c.contract_number, property_number: c.property_number, broker_name: c.broker_name },
       raw_text_first_2600: (rawText || '').slice(0, 2600),
       raw_text_length: (rawText || '').length,
@@ -170,9 +171,8 @@ Deno.serve(async (req) => {
   warnings.push('Owner contact (mobile/email/nationality/passport) is not present in this DLD format — owner matched by name + property identifiers only.');
 
   let match = { tier: null, via: null, landlord_id: null, landlord_name: null, landlord_stage: null };
-  const setMatch = (tier, via, L) => {
-    match = { tier, via, landlord_id: L.id, landlord_name: L.full_name_en, landlord_stage: L.stage || null };
-  };
+  let matchedLandlord = null;
+  const setMatch = (tier, via, L) => { match = { tier, via, landlord_id: L.id, landlord_name: L.full_name_en, landlord_stage: L.stage || null }; matchedLandlord = L; };
   let needsReview = null;
 
   if (c.contract_number) {
@@ -243,7 +243,40 @@ Deno.serve(async (req) => {
       mandate_expires_at: toISO(c.end_date),
       asking_price_aed: num(c.sell_price_aed),
       ...(handling_agent_email ? { assigned_agent_email: handling_agent_email } : {}),
+      ...(c.commission_pct ? { commission_pct_negotiated: num(c.commission_pct) } : {}),
     };
+
+    // ---- form_a_contracts list: append/update (dedupe by contract_number) ----
+    const newEntry = {
+      contract_number: c.contract_number,
+      unit: c.property_number || null,
+      pdf_url: fileUrl || null,
+      mandate_type: proposed_landlord_updates.mandate_type,
+      mandate_status: proposed_landlord_updates.mandate_status,
+      mandate_start_date: proposed_landlord_updates.mandate_start_date,
+      mandate_expires_at: proposed_landlord_updates.mandate_expires_at,
+      asking_price_aed: proposed_landlord_updates.asking_price_aed,
+    };
+    let contracts = Array.isArray(matchedLandlord && matchedLandlord.form_a_contracts)
+      ? matchedLandlord.form_a_contracts.slice()
+      : [];
+    // Migrate existing single-field mandate into the list if list is empty
+    if (contracts.length === 0 && matchedLandlord && matchedLandlord.form_a_contract_number) {
+      contracts.push({
+        contract_number: matchedLandlord.form_a_contract_number,
+        unit: matchedLandlord.unit_reference || null,
+        pdf_url: matchedLandlord.form_a_pdf_url || null,
+        mandate_type: matchedLandlord.mandate_type || null,
+        mandate_status: matchedLandlord.mandate_status || null,
+        mandate_start_date: matchedLandlord.mandate_start_date || null,
+        mandate_expires_at: matchedLandlord.mandate_expires_at || null,
+        asking_price_aed: (matchedLandlord.asking_price_aed != null ? matchedLandlord.asking_price_aed : null),
+      });
+    }
+    const exIdx = contracts.findIndex((e) => e && e.contract_number === newEntry.contract_number);
+    if (exIdx >= 0) contracts[exIdx] = newEntry;
+    else contracts.push(newEntry);
+    proposed_landlord_updates.form_a_contracts = contracts;
 
     // Stage auto-advance: only forward, never backward
     if (proposed_landlord_updates.mandate_status === 'form_a_signed') {
@@ -281,7 +314,7 @@ Deno.serve(async (req) => {
       written.stage_advanced_to = proposed_landlord_updates.stage || null;
     } catch (e) {
       return Response.json({
-        parser_version: 'v7-stage-advance',
+        parser_version: 'v9-form-a-contracts-list',
         mode: 'write_error',
         step: 'landlord_update',
         landlord_id: match.landlord_id,
@@ -314,7 +347,7 @@ Deno.serve(async (req) => {
   }
 
   return Response.json({
-    parser_version: 'v7-stage-advance',
+    parser_version: 'v9-form-a-contracts-list',
     mode: wantWrite ? 'written' : (needsReview && !match.tier ? 'needs_review' : 'preview_no_write'),
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
