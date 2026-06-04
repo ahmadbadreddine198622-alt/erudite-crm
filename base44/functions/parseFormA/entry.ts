@@ -1,15 +1,16 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { extractText, getDocumentProxy } from 'npm:unpdf';
 
-// PREVIEW/TEST ONLY — never writes. Parses a DLD Form A "Real Estate Brokerage
-// Contract" PDF and RETURNS proposed mandate updates as JSON. Real write is a
-// separate per-landlord approved step.
+// Parses a DLD Form A "Real Estate Brokerage Contract" PDF, matches the owner
+// to a Landlord, and returns proposed mandate updates. PREVIEW by default
+// (writes nothing); pass { confirm: true } to apply the mandate.
 //
-// OWNER (landlord) name comes ONLY from the "Owner Details" block.
-// BROKER name/office/ORN come ONLY from the "Seller Broker Details" block.
-// Landlord matching uses owner_name + property identifiers — NEVER the broker.
+// The write ALWAYS targets match.landlord_id (the parser's matched owner),
+// NEVER the upload-location landlord. OWNER name comes ONLY from "Owner Details";
+// BROKER name/office/ORN come ONLY from "Seller Broker Details". Matching uses
+// owner_name + property identifiers — NEVER the broker.
 //
-// Input (POST JSON or query): { file_url } or { text }.
+// Input (POST JSON): { file_url | text, confirm?, expected_landlord_id? }.
 
 const PAGE = 200;
 const ERUDITE_ORN = '29322';
@@ -205,14 +206,50 @@ Deno.serve(async (req) => {
   }
   const proposed_landlordproperty_updates = match.tier ? { title_deed_number: c.title_deed_no, is_off_plan: c.is_off_plan } : null;
 
+  // ---- write-target safety + optional confirm-gated write ----
+  // The write ALWAYS targets match.landlord_id (the parser's matched owner),
+  // NEVER the upload-location landlord. expected_landlord_id is the card the PDF
+  // was uploaded to; if it differs from the match it is flagged and ignored.
+  const expected_landlord_id = body.expected_landlord_id || null;
+  if (expected_landlord_id && match.tier && expected_landlord_id !== match.landlord_id) {
+    warnings.push(`Upload-location landlord (${expected_landlord_id}) differs from the MATCHED landlord (${match.landlord_id} / ${match.landlord_name}). The write targets the MATCHED landlord; the upload location is ignored.`);
+  }
+
+  const wantWrite = body.confirm === true;
+  if (wantWrite && (!match.tier || !match.landlord_id || !proposed_landlord_updates)) {
+    return Response.json({ mode: 'refused', reason: 'no_confident_match', match, warnings, note: 'No write — owner was not confidently matched.' });
+  }
+
+  let written: any = null;
+  if (wantWrite) {
+    written = { landlord_id: match.landlord_id, landlord_name: match.landlord_name, landlord_updated: false, landlordproperty_updated: false };
+    await svc.Landlord.update(match.landlord_id, proposed_landlord_updates);
+    written.landlord_updated = true;
+    if (proposed_landlordproperty_updates && c.property_number) {
+      const props = (await listAll(svc.Property, { unit_no: c.property_number }))
+        .filter((p: any) => !c.building_name || normName(p.building_name) === normName(c.building_name));
+      for (const p of props) {
+        const lps = await listAll(svc.LandlordProperty, { landlord_id: match.landlord_id, property_id: p.id });
+        if (lps.length) { await svc.LandlordProperty.update(lps[0].id, proposed_landlordproperty_updates); written.landlordproperty_updated = true; written.landlordproperty_id = lps[0].id; break; }
+      }
+      if (!written.landlordproperty_updated) warnings.push('Could not locate the matched landlord’s LandlordProperty row for this unit; title-deed/off-plan not written.');
+    }
+  }
+
   return Response.json({
-    mode: 'preview_no_write',
+    mode: wantWrite ? 'written' : 'preview_no_write',
     extracted: c,
     broker: { broker_name: c.broker_name, broker_office: c.broker_office, broker_orn: c.broker_orn, office_is_erudite: officeIsErudite, handling_agent_email },
     match: match.tier ? match : { tier: null, via: 'no_confident_match', candidates },
+    will_write_to: match.tier ? { landlord_id: match.landlord_id, landlord_name: match.landlord_name, matched_via: match.via, tier: match.tier } : null,
+    upload_location_landlord_id: expected_landlord_id,
+    ignored_upload_location: !!(expected_landlord_id && match.tier && expected_landlord_id !== match.landlord_id),
     proposed_landlord_updates,
     proposed_landlordproperty_updates,
+    written,
     warnings,
-    note: 'Nothing was written. Approve a real write separately, per landlord.',
+    note: wantWrite
+      ? `Mandate written to the MATCHED landlord ${match.landlord_name} (${match.landlord_id}). Upload location was not used as the write target.`
+      : 'Nothing written. Pass { confirm: true } to write to the MATCHED landlord shown in will_write_to (never the upload card).',
   });
 });
