@@ -385,6 +385,32 @@ export default function Landlords() {
             <div>
               <h1 className="text-xl font-semibold">Landlord Pipeline</h1>
               <p className="text-xs text-muted-foreground">Agent's A-to-Z Mandate Acquisition Engine</p>
+              {/* Project label - derived from visible landlords */}
+              {(() => {
+                const projectNames = allFilteredLandlords
+                  .map(l => l.project_name)
+                  .filter(name => name && name.trim() !== '');
+                const uniqueProjects = [...new Set(projectNames)];
+                const projectLabel = uniqueProjects.length === 1
+                  ? uniqueProjects[0]
+                  : uniqueProjects.length > 1
+                    ? `${uniqueProjects.length} Projects`
+                    : 'No Project';
+                return (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Project:</span>
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-md"
+                      style={{
+                        background: 'hsl(38 92% 50%)',
+                        color: 'hsl(222 47% 11%)',
+                      }}
+                    >
+                      {projectLabel}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
             {/* Action buttons next to title - always visible */}
             <div className="flex gap-2 ml-6">
