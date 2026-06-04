@@ -8,7 +8,7 @@
     },
     "lead_id": {
       "type": "string",
-      "description": "Related Lead ID"
+      "description": "Related Lead ID (optional)"
     },
     "wa_message_id": {
       "type": "string",
@@ -76,7 +76,6 @@
   },
   "required": [
     "conversation_id",
-    "lead_id",
     "direction",
     "body",
     "timestamp"

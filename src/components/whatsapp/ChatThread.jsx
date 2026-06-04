@@ -73,6 +73,8 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     }
   };
 
+  const idsKey = finalIds.slice().sort().join(',');
+
   useEffect(() => {
     if (!validConversationId && finalIds.length === 0) {
       setMessages([]);
@@ -82,7 +84,7 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     setIsLoading(true);
     setMessages([]);
     loadMessages();
-  }, [validConversationId, finalIds.length]);
+  }, [idsKey]);
 
   // Real-time subscription to new messages
   useEffect(() => {
@@ -103,11 +105,12 @@ export default function ChatThread({ conversationId, allConversationIds }) {
     return () => unsub();
   }, []);
 
-  // Polling fallback - reduced to 5 seconds to avoid rate limits
+  // Polling fallback - only poll when a conversation is open
   useEffect(() => {
-    const interval = setInterval(loadMessages, 5000);
+    if (!validConversationId) return;
+    const interval = setInterval(loadMessages, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [idsKey]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

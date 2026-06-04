@@ -114,20 +114,15 @@ export default function WhatsAppInbox() {
     return () => unsub();
   }, [queryClient]);
 
-  // Real-time subscription to new messages — refetch conversations to re-sort
+  // Real-time subscription to new messages — immediately refetch conversations to re-sort
   useEffect(() => {
     const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      if (event.data?.conversation_id) {
-        // Force reload of messages for this specific conversation
-        queryClient.invalidateQueries({ queryKey: ['wa_messages', event.data.conversation_id] });
-        // Also invalidate ALL message queries to catch any ChatThread watching this conversation
-        queryClient.invalidateQueries({ queryKey: ['wa_messages'] });
-        // Invalidate conversations so list re-sorts with latest message on top
-        queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
-      }
+      // Always refetch conversations so list re-sorts with latest on top
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     });
     return () => unsub();
-  }, [queryClient]);
+  }, [queryClient, refetch]);
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
