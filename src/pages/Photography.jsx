@@ -50,17 +50,19 @@ function PhotographyCard({ item, refetch }) {
   const [videoLink, setVideoLink] = useState(item.video_link || '');
   const [photosLink, setPhotosLink] = useState(item.photos_link || '');
   const [tour3dLink, setTour3dLink] = useState(item.tour_3d_link || '');
-  const [savingFields, setSavingFields] = useState(false);
 
   const handleSaveLinks = () => {
-    const updates = {
-      tour_3d_link: tour3dLink,
-      video_link: videoLink,
-      photos_link: photosLink,
-    };
-    setSavingFields(true);
+    const updates = {};
+    if (tour3dLink) updates.tour_3d_link = tour3dLink;
+    if (videoLink) updates.video_link = videoLink;
+    if (photosLink) updates.photos_link = photosLink;
+    
+    if (Object.keys(updates).length === 0) {
+      toast.error('Please enter at least one link');
+      return;
+    }
+    
     updateFieldsMutation.mutate({ task_id: item.task_id, updates });
-    setSavingFields(false);
   };
 
   const advanceMutation = useMutation({
@@ -96,12 +98,10 @@ function PhotographyCard({ item, refetch }) {
       updates.completion_notes = completionNotes;
     }
     if (Object.keys(updates).length === 0) return;
-    setSavingFields(true);
     updateFieldsMutation.mutate({ task_id: item.task_id, updates });
-    setSavingFields(false);
   };
 
-  const isSaving = advanceMutation.isPending || savingFields;
+  const isSaving = advanceMutation.isPending || updateFieldsMutation.isPending;
 
   return (
     <Card className="glass-card mb-3 last:mb-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -330,7 +330,7 @@ function PhotographyCard({ item, refetch }) {
             disabled={isSaving}
             className="w-full h-7 text-[10px]"
           >
-            {savingFields ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save links'}
+            {updateFieldsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save links'}
           </Button>
           {(item.task_stage === 'editing' || item.task_stage === 'complete') && (
             <Button
@@ -340,7 +340,7 @@ function PhotographyCard({ item, refetch }) {
               disabled={isSaving}
               className="w-full h-7 text-[10px]"
             >
-              {savingFields ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save fields'}
+              {updateFieldsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save fields'}
             </Button>
           )}
         </div>
