@@ -226,71 +226,93 @@ export default function PropertyFinderDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredListings.map((listing) => (
-                <TableRow key={listing.id}>
-                  <TableCell className="font-medium max-w-[200px] truncate">
-                    {listing.title || 'Untitled'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        listing.status === 'active'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+              {filteredListings.map((listing) => {
+                const isLive = listing.status === 'active' && listing.pf_url;
+                
+                return (
+                  <TableRow 
+                    key={listing.id}
+                    className={isLive ? 'cursor-pointer hover:bg-white/8' : ''}
+                    onClick={() => {
+                      if (isLive) {
+                        window.open(listing.pf_url, '_blank', 'noopener,noreferrer');
                       }
-                    >
-                      {listing.status === 'active' ? 'Live' : 'Archived'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {formatPrice(listing.price)}
-                  </TableCell>
-                  <TableCell className="capitalize">
-                    {listing.listing_type || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {listing.bedrooms !== undefined && listing.bedrooms !== null
-                      ? listing.bedrooms === 0
-                        ? 'Studio'
-                        : listing.bedrooms
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {listing.area_sqft ? `${listing.area_sqft.toLocaleString()} sqft` : 'N/A'}
-                  </TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {listing.agent_name || 'N/A'}
-                  </TableCell>
-                  {listings.some(l => l.quality_score) && (
+                    }}
+                  >
+                    <TableCell className="font-medium max-w-[200px] truncate">
+                      <div className="flex items-center gap-2">
+                        <span className={isLive ? 'text-accent' : ''}>
+                          {listing.title || 'Untitled'}
+                        </span>
+                        {isLive && <ExternalLink className="w-3 h-3 text-accent/60 flex-shrink-0" />}
+                      </div>
+                    </TableCell>
                     <TableCell>
-                      {listing.quality_score ? (
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          {listing.quality_score}
-                        </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          listing.status === 'active'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                        }
+                      >
+                        {listing.status === 'active' ? 'Live' : 'Archived'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatPrice(listing.price)}
+                    </TableCell>
+                    <TableCell className="capitalize">
+                      {listing.listing_type || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {listing.bedrooms !== undefined && listing.bedrooms !== null
+                        ? listing.bedrooms === 0
+                          ? 'Studio'
+                          : listing.bedrooms
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {listing.area_sqft ? `${listing.area_sqft.toLocaleString()} sqft` : 'N/A'}
+                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate">
+                      {listing.agent_name || 'N/A'}
+                    </TableCell>
+                    {listings.some(l => l.quality_score) && (
+                      <TableCell>
+                        {listing.quality_score ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                            {listing.quality_score}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell className="text-right">
+                      {listing.pf_url ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(listing.pf_url, '_blank', 'noopener,noreferrer');
+                          }}
+                        >
+                          View on PF
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <Badge variant="outline" className="bg-slate-500/10 text-slate-400 border-slate-500/30 text-xs">
+                          Not live on PF
+                        </Badge>
                       )}
                     </TableCell>
-                  )}
-                  <TableCell className="text-right">
-                    {listing.pf_url ? (
-                      <a
-                        href={listing.pf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
-                      >
-                        View
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           {filteredListings.length === 0 && (
