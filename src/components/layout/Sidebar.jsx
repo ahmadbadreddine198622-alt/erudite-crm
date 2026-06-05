@@ -6,7 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera, PhoneCall
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, Shield
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -62,6 +62,7 @@ const navItems = [
   { label: 'Photography',         icon: Camera,          path: '/photography',         gradient: 'from-rose-500 to-pink-700' },
   { label: 'Matterport Sync',     icon: Camera,          path: '/matterport-sync',     gradient: 'from-amber-500 to-orange-700', adminOnly: true },
   { label: 'Twilio Hub',          icon: PhoneCall,       path: '/twilio',              gradient: 'from-red-500 to-red-800', adminOnly: true },
+  { label: 'Policies & HR',       icon: Shield,          path: '/policies',            gradient: 'from-indigo-500 to-violet-800' },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
