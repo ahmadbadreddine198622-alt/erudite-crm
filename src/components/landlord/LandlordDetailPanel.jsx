@@ -1099,7 +1099,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-[520px] overflow-y-auto p-0">
+      <SheetContent className="w-full sm:max-w-[900px] overflow-y-auto p-0">
         {renderContent()}
       </SheetContent>
     </Sheet>
