@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import jsPDF from 'npm:jspdf@4.0.0';
 
 const GOLD = '#c9a85c';
 const GREEN = '#3fcf8e';
@@ -85,45 +86,176 @@ function ChipGroup({ options, value, onChange, multi = false }) {
   );
 }
 
-function generatePDF(listing) {
-  const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
-  const html = `
-  <html><head><meta charset="utf-8"/>
-  <style>
-    body { font-family: Inter, sans-serif; background: #fff; color: #111; margin: 0; padding: 40px; }
-    .header { background: #0a1320; color: #c9a85c; padding: 24px 32px; border-radius: 10px; margin-bottom: 28px; }
-    .header h1 { font-size: 22px; margin: 0 0 4px; }
-    .header .ref { font-size: 12px; opacity: 0.7; font-family: monospace; }
-    .price { font-size: 28px; font-weight: 700; color: #c9a85c; margin: 0 0 24px; }
-    table { width: 100%; border-collapse: collapse; }
-    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #e8e8e8; }
-    td:first-child { color: #666; width: 40%; }
-    td:last-child { font-weight: 600; }
-    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 10px; color: #888; line-height: 1.6; }
-  </style></head>
-  <body>
-    <div class="header">
-      <h1>${listing.title || `${listing.property_type} in ${listing.location}`}</h1>
-      <div class="ref">REF: ${listing.reference_number || listing.pf_listing_id}</div>
-    </div>
-    <div class="price">${formatPrice(listing.price)}</div>
-    <table>
-      <tr><td>Location</td><td>${listing.location || '-'}, Dubai</td></tr>
-      <tr><td>Type</td><td style="text-transform:capitalize">${listing.property_type || '-'}</td></tr>
-      <tr><td>Bedrooms</td><td>${beds}</td></tr>
-      <tr><td>Bathrooms</td><td>${listing.bathrooms || '-'}</td></tr>
-      <tr><td>Size</td><td>${listing.area_sqft ? listing.area_sqft.toLocaleString() + ' sq ft' : '-'}</td></tr>
-      <tr><td>Status</td><td>${listing.status === 'active' ? 'Live' : 'Inactive'}</td></tr>
-    </table>
-    <div class="footer">
-      ERUDITE PROPERTY REAL ESTATE, Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE.<br/>
-      T: +971 58 180 6000 | E: info@erudite-estate.com | W: www.eruditeproperty.com — TRN/VAT Reg No: 104029757200003
-    </div>
-  </body></html>`;
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.onload = () => { win.print(); };
+async function generatePDF(listing) {
+  try {
+    const doc = new jsPDF({ format: 'a4', orientation: 'portrait' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    const GOLD = '#c9a85c';
+    const DARK = '#0a1320';
+    const beds = listing.bedrooms === 0 ? 'Studio' : (listing.bedrooms || '-');
+    const title = listing.title || `${listing.property_type || 'Property'} in ${listing.location || 'Dubai'}`;
+    const ref = listing.reference_number || listing.pf_listing_id || 'N/A';
+    
+    // Header band with branding
+    doc.setFillColor(DARK);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    // Gold accent line
+    doc.setDrawColor(GOLD);
+    doc.setLineWidth(3);
+    doc.line(0, 35, pageWidth, 35);
+    
+    // Company name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(GOLD);
+    doc.text('ERUDITE REAL ESTATE', 15, 15);
+    
+    // Logo placeholder (text-based)
+    doc.setFontSize(10);
+    doc.setTextColor(200, 200, 200);
+    doc.text('Premium Property Services', 15, 23);
+    
+    // Hero image (if available)
+    let imageHeight = 0;
+    if (listing.images && listing.images[0]) {
+      try {
+        const imgData = await loadImageAsDataURL(listing.images[0]);
+        if (imgData) {
+          const imgWidth = pageWidth - 30;
+          const imgRatio = imgData.height / imgData.width;
+          imageHeight = Math.min(imgWidth * imgRatio, 120);
+          doc.addImage(imgData, 'JPEG', 15, 45, imgWidth, imageHeight, undefined, 'FAST');
+        }
+      } catch (imgErr) {
+        console.warn('Image load failed, skipping:', imgErr.message);
+      }
+    }
+    
+    const contentStartY = 50 + imageHeight;
+    
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    const titleLines = doc.splitTextToSize(title, pageWidth - 30);
+    doc.text(titleLines, 15, contentStartY);
+    
+    // Price
+    const priceY = contentStartY + (titleLines.length * 5) + 8;
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(GOLD);
+    doc.text(formatPrice(listing.price), 15, priceY);
+    
+    // Specs table
+    const specsY = priceY + 12;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    
+    const specs = [
+      { label: 'Location', value: `${listing.location || '-'}, Dubai` },
+      { label: 'Property Type', value: (listing.property_type || '-').replace('_', ' ').toUpperCase() },
+      { label: 'Bedrooms', value: String(beds) },
+      { label: 'Bathrooms', value: String(listing.bathrooms || '-') },
+      { label: 'Size', value: listing.area_sqft ? `${listing.area_sqft.toLocaleString()} sq ft` : '-' },
+      { label: 'Type', value: (listing.listing_type || 'sale').toUpperCase() },
+      { label: 'Furnishing', value: (listing.furnishing || 'Not specified').replace('_', ' ').toUpperCase() },
+      { label: 'Reference', value: ref },
+    ];
+    
+    let currentY = specsY;
+    const columnX = 15;
+    const labelWidth = 50;
+    
+    specs.forEach((spec, idx) => {
+      if (idx > 0 && idx % 4 === 0) {
+        currentY += 8;
+      }
+      const col = Math.floor(idx % 4);
+      const x = columnX + (col * ((pageWidth - 30) / 4));
+      
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text(spec.label, x, currentY);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text(spec.value, x, currentY + 5);
+    });
+    
+    // Description
+    const descY = currentY + 20;
+    if (listing.description) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Description', 15, descY);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      const descLines = doc.splitTextToSize(listing.description, pageWidth - 30);
+      const maxDescLines = 8;
+      const truncatedDesc = descLines.slice(0, maxDescLines);
+      doc.text(truncatedDesc, 15, descY + 7);
+    }
+    
+    // Agent info
+    const agentY = pageHeight - 35;
+    if (listing.agent_name) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Listing Agent: ${listing.agent_name}`, 15, agentY);
+    }
+    
+    // Footer
+    doc.setFillColor(DARK);
+    doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+    
+    doc.setFontSize(8);
+    doc.setTextColor(180, 180, 180);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ERUDITE PROPERTY REAL ESTATE | Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE', pageWidth / 2, pageHeight - 12, { align: 'center' });
+    doc.setTextColor(GOLD);
+    doc.text('+971 58 180 6000 | info@erudite-estate.com | TRN: 104029757200003', pageWidth / 2, pageHeight - 7, { align: 'center' });
+    
+    // Auto-download
+    const filename = `Erudite-${ref.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    doc.save(filename);
+    
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    toast.error('Failed to generate brochure. Please try again.');
+  }
+}
+
+// Helper: load image as data URL with cross-origin handling
+async function loadImageAsDataURL(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        resolve({ data: dataUrl, width: img.width, height: img.height });
+      } catch (e) {
+        reject(new Error('Canvas export failed'));
+      }
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = url;
+  });
 }
 
 function ListingCard({ listing }) {
@@ -177,13 +309,14 @@ function ListingCard({ listing }) {
         <div className="flex items-center justify-between mt-2">
           <span className="text-sm font-bold" style={{ color: GOLD }}>{formatPrice(listing.price)}</span>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => generatePDF(listing)} title="Download PDF"
+            <button onClick={(e) => { e.stopPropagation(); generatePDF(listing); }} title="Download brochure"
               className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
               style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}>
               <FileDown className="w-3.5 h-3.5" />
             </button>
             {listing.pf_url && (
               <a href={listing.pf_url} target="_blank" rel="noopener noreferrer" title="Open in Property Finder"
+                onClick={(e) => e.stopPropagation()}
                 className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
                 style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}>
                 <ExternalLink className="w-3.5 h-3.5" />

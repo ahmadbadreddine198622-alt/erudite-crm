@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ExternalLink, Home, TrendingUp, Building, DollarSign, Star, Archive, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Home, TrendingUp, Building, DollarSign, Star, Archive, CheckCircle2, FileDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import jsPDF from 'npm:jspdf@4.0.0';
 
 export default function PropertyFinderDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -62,6 +64,171 @@ export default function PropertyFinderDashboard() {
     if (price >= 1000000) return `AED ${(price / 1000000).toFixed(2)}M`;
     if (price >= 1000) return `AED ${(price / 1000).toFixed(0)}K`;
     return `AED ${price}`;
+  };
+
+  // Helper: load image as data URL with cross-origin handling
+  const loadImageAsDataURL = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          resolve({ data: dataUrl, width: img.width, height: img.height });
+        } catch (e) {
+          reject(new Error('Canvas export failed'));
+        }
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = url;
+    });
+  };
+
+  const generatePDF = async (listing) => {
+    try {
+      const doc = new jsPDF({ format: 'a4', orientation: 'portrait' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      const GOLD = '#c9a85c';
+      const DARK = '#0a1320';
+      const beds = listing.bedrooms === 0 ? 'Studio' : (listing.bedrooms || '-');
+      const title = listing.title || `${listing.property_type || 'Property'} in ${listing.location || 'Dubai'}`;
+      const ref = listing.reference_number || listing.pf_listing_id || 'N/A';
+      
+      // Header band with branding
+      doc.setFillColor(DARK);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      
+      // Gold accent line
+      doc.setDrawColor(GOLD);
+      doc.setLineWidth(3);
+      doc.line(0, 35, pageWidth, 35);
+      
+      // Company name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(GOLD);
+      doc.text('ERUDITE REAL ESTATE', 15, 15);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(200, 200, 200);
+      doc.text('Premium Property Services', 15, 23);
+      
+      // Hero image
+      let imageHeight = 0;
+      if (listing.images && listing.images[0]) {
+        try {
+          const imgData = await loadImageAsDataURL(listing.images[0]);
+          if (imgData) {
+            const imgWidth = pageWidth - 30;
+            const imgRatio = imgData.height / imgData.width;
+            imageHeight = Math.min(imgWidth * imgRatio, 120);
+            doc.addImage(imgData.data, 'JPEG', 15, 45, imgWidth, imageHeight, undefined, 'FAST');
+          }
+        } catch (imgErr) {
+          console.warn('Image load failed, skipping:', imgErr.message);
+        }
+      }
+      
+      const contentStartY = 50 + imageHeight;
+      
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      const titleLines = doc.splitTextToSize(title, pageWidth - 30);
+      doc.text(titleLines, 15, contentStartY);
+      
+      // Price
+      const priceY = contentStartY + (titleLines.length * 5) + 8;
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(GOLD);
+      doc.text(formatPrice(listing.price), 15, priceY);
+      
+      // Specs
+      const specsY = priceY + 12;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      
+      const specs = [
+        { label: 'Location', value: `${listing.location || '-'}, Dubai` },
+        { label: 'Type', value: (listing.property_type || '-').replace('_', ' ').toUpperCase() },
+        { label: 'Bedrooms', value: String(beds) },
+        { label: 'Bathrooms', value: String(listing.bathrooms || '-') },
+        { label: 'Size', value: listing.area_sqft ? `${listing.area_sqft.toLocaleString()} sq ft` : '-' },
+        { label: 'Listing', value: (listing.listing_type || 'sale').toUpperCase() },
+        { label: 'Furnishing', value: (listing.furnishing || 'Not specified').replace('_', ' ').toUpperCase() },
+        { label: 'Reference', value: ref },
+      ];
+      
+      let currentY = specsY;
+      specs.forEach((spec, idx) => {
+        if (idx > 0 && idx % 4 === 0) currentY += 8;
+        const col = idx % 4;
+        const x = 15 + (col * ((pageWidth - 30) / 4));
+        
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(spec.label, x, currentY);
+        
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(spec.value, x, currentY + 5);
+      });
+      
+      // Description
+      const descY = currentY + 20;
+      if (listing.description) {
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('Description', 15, descY);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        const descLines = doc.splitTextToSize(listing.description, pageWidth - 30);
+        const truncatedDesc = descLines.slice(0, 8);
+        doc.text(truncatedDesc, 15, descY + 7);
+      }
+      
+      // Agent
+      const agentY = pageHeight - 35;
+      if (listing.agent_name) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Listing Agent: ${listing.agent_name}`, 15, agentY);
+      }
+      
+      // Footer
+      doc.setFillColor(DARK);
+      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      
+      doc.setFontSize(8);
+      doc.setTextColor(180, 180, 180);
+      doc.setFont('helvetica', 'normal');
+      doc.text('ERUDITE PROPERTY REAL ESTATE | Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, UAE', pageWidth / 2, pageHeight - 12, { align: 'center' });
+      doc.setTextColor(GOLD);
+      doc.text('+971 58 180 6000 | info@erudite-estate.com | TRN: 104029757200003', pageWidth / 2, pageHeight - 7, { align: 'center' });
+      
+      // Auto-download
+      const filename = `Erudite-${ref.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+      doc.save(filename);
+      
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      toast.error('Failed to generate brochure. Please try again.');
+    }
   };
 
   return (
@@ -222,7 +389,7 @@ export default function PropertyFinderDashboard() {
                 {listings.some(l => l.quality_score) && (
                   <TableHead className="text-muted-foreground">Quality</TableHead>
                 )}
-                <TableHead className="text-muted-foreground text-right">Link</TableHead>
+                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -291,24 +458,39 @@ export default function PropertyFinderDashboard() {
                       </TableCell>
                     )}
                     <TableCell className="text-right">
-                      {listing.pf_url ? (
+                      <div className="flex items-center justify-end gap-1.5">
                         <Button
                           size="sm"
                           variant="outline"
                           className="gap-1 h-7 text-xs"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(listing.pf_url, '_blank', 'noopener,noreferrer');
+                            generatePDF(listing);
                           }}
+                          title="Download brochure"
                         >
-                          View on PF
-                          <ExternalLink className="w-3 h-3" />
+                          <FileDown className="w-3 h-3" />
+                          Brochure
                         </Button>
-                      ) : (
-                        <Badge variant="outline" className="bg-slate-500/10 text-slate-400 border-slate-500/30 text-xs">
-                          Not live on PF
-                        </Badge>
-                      )}
+                        {listing.pf_url ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(listing.pf_url, '_blank', 'noopener,noreferrer');
+                            }}
+                          >
+                            View on PF
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="bg-slate-500/10 text-slate-400 border-slate-500/30 text-xs h-7">
+                            Not live
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
