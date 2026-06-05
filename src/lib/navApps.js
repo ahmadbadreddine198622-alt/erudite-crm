@@ -63,6 +63,7 @@ export const ALL_APPS = [
   { label: 'Brand Settings',     icon: Target,         path: '/brand-settings',      gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Photography',        icon: Camera,         path: '/photography',         gradient: 'from-rose-500 to-pink-700',             glowColor: 'rgba(244,63,94,0.40)' },
   { label: 'Matterport Sync',    icon: ImageIcon,      path: '/matterport-sync',     gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
+  { label: 'Policies & HR',      icon: Shield,         path: '/policies',            gradient: 'from-indigo-500 to-violet-800',          glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Twilio Hub',         icon: PhoneCall,      path: '/twilio',              gradient: 'from-red-500 to-red-800',               glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'PF Agent Profile',   icon: UserCircle,     path: '/property-finder',     gradient: 'from-red-500 to-rose-700',              glowColor: 'rgba(239,68,68,0.40)', href: 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264' },
 ];

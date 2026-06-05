@@ -1,0 +1,41 @@
+{
+  "name": "PolicyAcknowledgment",
+  "type": "object",
+  "properties": {
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent who acknowledged"
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "Display name of the agent"
+    },
+    "policy_id": {
+      "type": "string",
+      "description": "FK to CompanyPolicy entity"
+    },
+    "policy_title": {
+      "type": "string",
+      "description": "Cached policy title at time of acknowledgment"
+    },
+    "policy_version": {
+      "type": "string",
+      "description": "Cached policy version at time of acknowledgment"
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of acknowledgment"
+    },
+    "agent_brn": {
+      "type": "string",
+      "description": "Agent BRN (RERA Broker Registration Number)"
+    }
+  },
+  "required": [
+    "agent_email",
+    "policy_id",
+    "acknowledged_at"
+  ]
+}

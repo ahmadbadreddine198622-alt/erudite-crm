@@ -41,12 +41,10 @@
     },
     "counterparty_last_update_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Last time counterparty responded or updated"
+      "format": "date-time"
     },
     "lead_source": {
-      "type": "string",
-      "description": "Cached from Lead.source for filtering"
+      "type": "string"
     },
     "deal_type": {
       "type": "string",
@@ -118,8 +116,7 @@
     },
     "last_contact_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Last time agent contacted client"
+      "format": "date-time"
     },
     "deal_value": {
       "type": "number"
@@ -141,13 +138,11 @@
         "cancelled",
         "cleared"
       ],
-      "default": "not_required",
-      "description": "Status of client cheque(s)"
+      "default": "not_required"
     },
     "cheque_due_date": {
       "type": "string",
-      "format": "date",
-      "description": "When cheque was/is due"
+      "format": "date"
     },
     "cheque_amount": {
       "type": "number"
@@ -164,18 +159,15 @@
         "form_i_signed",
         "expired"
       ],
-      "default": "none",
-      "description": "Status of Form F / MOU / Form I"
+      "default": "none"
     },
     "form_expiry_date": {
       "type": "string",
-      "format": "date",
-      "description": "When the current form expires"
+      "format": "date"
     },
     "dld_transfer_date": {
       "type": "string",
-      "format": "date",
-      "description": "Planned/actual DLD transfer date"
+      "format": "date"
     },
     "dld_transfer_done": {
       "type": "boolean",
@@ -191,8 +183,7 @@
         "declined",
         "in_progress"
       ],
-      "default": "not_required",
-      "description": "Buyer financing / mortgage status"
+      "default": "not_required"
     },
     "noc_status": {
       "type": "string",
@@ -352,6 +343,34 @@
     },
     "review_reason": {
       "type": "string"
+    },
+    "second_agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Second agent on deal \u2014 triggers Form I auto-generation requirement"
+    },
+    "second_agent_name": {
+      "type": "string",
+      "description": "Display name of the second agent"
+    },
+    "is_dual_agency": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the same agent represents both buyer and seller \u2014 disclosure required"
+    },
+    "dual_agency_disclosed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Agent has confirmed dual-agency disclosure to both parties"
+    },
+    "form_i_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set to true when a second agent is added \u2014 Form I must be generated"
+    },
+    "form_i_pdf_url": {
+      "type": "string",
+      "description": "URL of the generated Form I PDF"
     }
   },
   "required": [

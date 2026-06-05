@@ -1,0 +1,53 @@
+{
+  "name": "CompanyPolicy",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Policy title"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Listing & Commission",
+        "HR",
+        "Compliance",
+        "Operations"
+      ],
+      "description": "Policy category"
+    },
+    "body": {
+      "type": "string",
+      "description": "Full policy content (markdown/rich text)"
+    },
+    "version": {
+      "type": "string",
+      "description": "Policy version e.g. v1.0"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the policy becomes effective"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Draft",
+        "Archived"
+      ],
+      "default": "Draft",
+      "description": "Policy lifecycle status"
+    },
+    "requires_acknowledgment": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether agents must explicitly acknowledge this policy"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "status"
+  ]
+}

@@ -135,6 +135,30 @@
     "views_count": {
       "type": "number",
       "default": 0
+    },
+    "trakheesi_permit_no": {
+      "type": "string",
+      "description": "Trakheesi (DLD) permit number \u2014 required before listing can leave open pool"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when listing was claimed by an agent"
+    },
+    "permit_deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deadline to submit Trakheesi permit (claimed_at + 48h). Auto-reverts to open pool if missed."
+    },
+    "listing_pool_status": {
+      "type": "string",
+      "enum": [
+        "open_pool",
+        "claimed",
+        "listed"
+      ],
+      "default": "open_pool",
+      "description": "Section 9 pool status. Cannot advance from open_pool without trakheesi_permit_no."
     }
   },
   "required": [

@@ -80,6 +80,7 @@ import InviteAgents from '@/pages/InviteAgents';
 import Photography from '@/pages/Photography';
 import TwilioHub from '@/pages/TwilioHub';
 import MatterportSync from '@/pages/MatterportSync';
+import Policies from '@/pages/Policies';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -175,6 +176,7 @@ const AuthenticatedApp = () => {
         <Route path="/photography" element={<Photography />} />
         <Route path="/twilio" element={<TwilioHub />} />
         <Route path="/matterport-sync" element={<MatterportSync />} />
+        <Route path="/policies" element={<Policies />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
