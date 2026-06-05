@@ -17,7 +17,8 @@
         "emirates_id",
         "noc",
         "noc_landlord",
-        "form_a"
+        "form_a",
+        "ownership_proof"
       ],
       "description": "Type of required document"
     },

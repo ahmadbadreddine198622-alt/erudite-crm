@@ -12,6 +12,7 @@ const DOC_LABELS = {
   noc: 'NOC from Developer',
   noc_landlord: 'NOC from Landlord',
   form_a: 'Form A',
+  ownership_proof: 'Title Deed / Oqood',
 };
 
 const STATUS_CONFIG = {
