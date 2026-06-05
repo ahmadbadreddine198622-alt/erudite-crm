@@ -173,25 +173,33 @@ function mapPFListingToCRM(pfListing, urlStats) {
   // Also check state.stage for status mapping
   const stageRaw = String(pfListing?.state?.stage || pfListing?.state || '').toLowerCase();
 
-  // Extract numeric PF listing ID from reference (e.g. "erudite-3366406" → "3366406")
-  let numericPFId = null;
+  // Extract PF listing ID for URL building (support both numeric IDs and ULIDs)
+  let pfIdForUrl = null;
   if (listingRef) {
+    // Try to extract numeric suffix first (e.g. "erudite-3366406" → "3366406")
     const parts = listingRef.split('-');
     const lastPart = parts[parts.length - 1];
-    if (/^\d+$/.test(lastPart)) numericPFId = lastPart;
+    if (/^\d+$/.test(lastPart)) {
+      pfIdForUrl = lastPart;
+    } else if (/^[0-9A-Z]{20,}$/.test(listingRef)) {
+      // ULID format (e.g. "01KB7VQPKD29V12J616MKKNFE1") — use full ID
+      pfIdForUrl = listingRef;
+    }
   }
-  // Fallback: check if the raw id is numeric
-  if (!numericPFId && listingId && /^\d+$/.test(listingId)) numericPFId = listingId;
+  // Fallback: check if the raw id is a valid PF ID format
+  if (!pfIdForUrl && listingId && (/^\d+$/.test(listingId) || /^[0-9A-Z]{20,}$/.test(listingId))) {
+    pfIdForUrl = listingId;
+  }
 
-  // Build URL if live on PF (via portals.isLive) AND we have a numeric ID
-  const pfUrl = (isLiveOnPF && numericPFId)
-    ? `https://www.propertyfinder.ae/property-detail/${numericPFId}`
+  // Build URL for all listings with valid PF ID (live or not — takendown listings still have PF pages)
+  const pfUrl = pfIdForUrl
+    ? `https://www.propertyfinder.ae/property-detail/${pfIdForUrl}`
     : null;
 
   // Track URL outcomes for diagnostics
   if (urlStats) {
-    if (pfUrl) urlStats.from_api++;
-    else if (!isLiveOnPF && numericPFId) urlStats.numeric_fallback++; // has ID but not live
+    if (pfUrl && isLiveOnPF) urlStats.from_api++;
+    else if (pfUrl && !isLiveOnPF) urlStats.numeric_fallback++; // has URL but not currently live
     else urlStats.hidden++;
   }
 
@@ -219,14 +227,15 @@ function mapPFListingToCRM(pfListing, urlStats) {
   }
 
   // Map PF status → entity enum (use state.stage)
+  // Only mark as inactive if explicitly sold/rented/expired; otherwise default to active
   const statusMap = {
     'published': 'active', 'live': 'active', 'active': 'active',
-    'takendown': 'inactive', 'taken_down': 'inactive',
+    'takendown': 'active', 'taken_down': 'active',  // Temporarily unpublished but still active listing
     'draft': 'draft', 'expired': 'expired',
     'under_offer': 'under_offer', 'sold': 'sold', 'rented': 'rented',
-    'inactive': 'inactive',
+    'inactive': 'active',  // Default to active unless explicitly sold/rented/expired
   };
-  const status = statusMap[(pfStatus || '').toLowerCase()] || 'inactive';
+  const status = statusMap[(pfStatus || '').toLowerCase()] || 'active';
 
   // Extract agent info from assignedTo
   const agentName = pfListing.assignedTo?.name || '';
