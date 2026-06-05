@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
@@ -84,6 +84,39 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   
   const mediaStatus = getMediaStatus();
   const showMediaBadge = landlord.stage === 'photographer_scheduling';
+  const isDocStage = landlord.stage === 'photographer_scheduling';
+
+  // Fetch documents only for cards in the photographer_scheduling stage
+  const { data: docsResponse } = useQuery({
+    queryKey: ['landlord-docs', landlord.id],
+    queryFn: () => base44.functions.invoke('getLandlordDocuments', { landlord_id: landlord.id }),
+    enabled: isDocStage,
+    staleTime: 60_000,
+  });
+
+  const docBadge = (() => {
+    if (!isDocStage) return null;
+    const docs = docsResponse?.data?.documents || [];
+    const byType = {};
+    for (const d of docs) byType[d.document_type] = d.status;
+
+    const isReceived = (type) => byType[type] === 'received' || byType[type] === 'verified';
+    const isVerified = (type) => byType[type] === 'verified';
+
+    const identityReceived = isReceived('passport') || isReceived('emirates_id');
+    const identityVerified = isVerified('passport') || isVerified('emirates_id');
+    const ownershipReceived = isReceived('ownership_proof');
+    const ownershipVerified = isVerified('ownership_proof');
+    const formAReceived = isReceived('form_a');
+    const formAVerified = isVerified('form_a');
+
+    const allVerified = identityVerified && ownershipVerified && formAVerified;
+    const allReceived = identityReceived && ownershipReceived && formAReceived;
+
+    if (allVerified) return { label: 'Docs verified', green: true };
+    if (allReceived) return { label: 'Docs ready for review', green: false };
+    return null;
+  })();
 
   const e164 = normalizePhone(landlord.phone);
   const askingPrice = landlord.asking_price_history?.[0]?.price;
@@ -249,6 +282,12 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
             {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
             {mediaStatus.label}
+          </span>
+        )}
+        {docBadge && (
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+            <FileCheck className="w-2 h-2" />
+            {docBadge.label}
           </span>
         )}
       </div>
