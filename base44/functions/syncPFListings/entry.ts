@@ -374,8 +374,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build dedup map of existing PFListing rows by listing_id (with deadline guard)
+    // Build dedup map of existing PFListing rows by pf_listing_id (with deadline guard)
+    // CRITICAL: Use pf_listing_id as primary key to prevent duplicates
     const existingMap = {};
+    const existingByRefMap = {}; // Secondary index by reference_number
     let exPage = 0;
     const exPageSize = 500;
     let dedupTimedOut = false;
@@ -389,11 +391,19 @@ Deno.serve(async (req) => {
         {}, '-updated_date', exPageSize, exPage * exPageSize
       );
       for (const l of batch) {
-        if (l.pf_listing_id) existingMap[l.pf_listing_id] = l;
+        // Primary key: pf_listing_id
+        if (l.pf_listing_id) {
+          existingMap[l.pf_listing_id] = l;
+        }
+        // Secondary key: reference_number (for fallback matching)
+        if (l.reference_number && !existingByRefMap[l.reference_number]) {
+          existingByRefMap[l.reference_number] = l;
+        }
       }
       if (batch.length < exPageSize) break;
       exPage++;
     }
+    console.log(`PF_DEDUP_MAP: Built map with ${Object.keys(existingMap).length} unique pf_listing_ids`);
 
     // Chunked page-by-page loop
     let page = resumeFromPage;
@@ -484,10 +494,20 @@ Deno.serve(async (req) => {
             let retryCount = 0;
             while (!writeSuccess && retryCount < 3) {
               try {
-                if (existingMap[mapped.pf_listing_id]) {
-                  await base44.asServiceRole.entities.PFListing.update(existingMap[mapped.pf_listing_id].id, mapped);
+                // CRITICAL: Always check for existing record by pf_listing_id FIRST
+                // If found, UPDATE it. Only CREATE if no existing record matches.
+                const existingById = existingMap[mapped.pf_listing_id];
+                const existingByRef = mapped.reference_number ? existingByRefMap[mapped.reference_number] : null;
+                const existing = existingById || existingByRef;
+                
+                if (existing) {
+                  // UPDATE existing record
+                  await base44.asServiceRole.entities.PFListing.update(existing.id, mapped);
                   updated++;
+                  // Update the map to track this record for future pages
+                  existingMap[mapped.pf_listing_id] = existing;
                 } else {
+                  // CREATE new record (only if no existing match)
                   const newRow = await base44.asServiceRole.entities.PFListing.create(mapped);
                   existingMap[mapped.pf_listing_id] = newRow || { id: undefined };
                   created++;
