@@ -525,6 +525,14 @@ export default function Dashboard() {
           <UserCircle className="w-4 h-4" />
           PF Agent Profile
         </button>
+        <button
+          onClick={() => navigate('/policies')}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+          style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}
+        >
+          <Shield className="w-4 h-4" />
+          Policies & HR
+        </button>
       </div>
 
       {/* Property Finder Listings */}
