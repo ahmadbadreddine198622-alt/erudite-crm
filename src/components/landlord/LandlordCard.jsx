@@ -86,17 +86,17 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   const showMediaBadge = landlord.stage === 'photographer_scheduling';
   const isDocStage = landlord.stage === 'photographer_scheduling';
 
-  // Fetch documents only for cards in the photographer_scheduling stage
-  const { data: docsResponse } = useQuery({
-    queryKey: ['landlord-docs', landlord.id],
-    queryFn: () => base44.functions.invoke('getLandlordDocuments', { landlord_id: landlord.id }),
+  // Fetch documents directly from entity for cards in the photographer_scheduling stage
+  const { data: rawDocs = [] } = useQuery({
+    queryKey: ['landlord-docs-entity', landlord.id],
+    queryFn: () => base44.entities.LandlordDocument.filter({ landlord_id: landlord.id }),
     enabled: isDocStage,
     staleTime: 60_000,
   });
 
   const docBadge = (() => {
     if (!isDocStage) return null;
-    const docs = docsResponse?.data?.documents || [];
+    const docs = rawDocs;
     const byType = {};
     for (const d of docs) byType[d.document_type] = d.status;
 
