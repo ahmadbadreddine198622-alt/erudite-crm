@@ -78,14 +78,16 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4"
+      style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Modal container — full screen on mobile, large centered on desktop */}
+      {/* Modal container — full screen on mobile, wide centered modal on desktop */}
       <div
-        className="relative flex flex-col w-full h-full md:rounded-2xl md:max-w-7xl md:h-[92vh] overflow-hidden"
+        className="relative flex flex-col w-full h-full md:rounded-2xl md:h-[92vh] overflow-hidden"
         style={{
+          width: '100%',
+          maxWidth: 'min(90vw, 1400px)',
           background: 'hsl(222 47% 9%)',
           border: '1px solid rgba(255,255,255,0.1)',
           boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
@@ -156,11 +158,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
         </div>
 
         {/* ── Body — 3-column on desktop, stacked on mobile ── */}
-        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+        <div
+          className="flex-1 min-h-0 flex flex-col md:flex-row"
+          style={{ overflow: 'hidden' }}
+        >
 
-          {/* ── Zone 1: Property / Unit Info ── */}
+          {/* ── Zone 1: Property / Unit Info (~28%) ── */}
           <div
-            className="md:w-[28%] shrink-0 overflow-y-auto p-5 space-y-4"
+            className="overflow-y-auto p-5 space-y-4 w-full md:w-[28%] md:shrink-0"
             style={{ borderRight: '1px solid rgba(255,255,255,0.07)' }}
           >
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Unit & Property</p>
@@ -231,9 +236,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             </div>
           </div>
 
-          {/* ── Zone 2: Readiness & Documents ── */}
+          {/* ── Zone 2: Readiness & Documents (~28%) ── */}
           <div
-            className="md:w-[28%] shrink-0 overflow-y-auto"
+            className="overflow-y-auto w-full md:w-[28%] md:shrink-0"
             style={{ borderRight: '1px solid rgba(255,255,255,0.07)' }}
           >
             <div className="p-5 space-y-4">
@@ -251,8 +256,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             </div>
           </div>
 
-          {/* ── Zone 3: AI Content & Comments ── */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* ── Zone 3: AI Content & Comments (~44%) ── */}
+          <div className="overflow-y-auto p-5 space-y-6 w-full md:flex-1" style={{ minWidth: 0 }}>
             <Tabs defaultValue="listing-copy">
               <TabsList className="mb-4">
                 <TabsTrigger value="listing-copy" className="text-xs">Listing Copy</TabsTrigger>
