@@ -36,6 +36,7 @@ import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
+import ListingCopyManager from './ListingCopyManager';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -983,6 +984,16 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
             <TabsContent value="unit" className="space-y-3">
               <UnitPassport landlordId={landlord.id} />
+              <div
+                className="rounded-xl p-4 border"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <ListingCopyManager
+                  landlordId={landlord.id}
+                  landlordPropertyId={landlordPropertyId}
+                  landlordProperty={landlordProperty}
+                />
+              </div>
             </TabsContent>
 
             <TabsContent value="negotiation" className="space-y-3">
