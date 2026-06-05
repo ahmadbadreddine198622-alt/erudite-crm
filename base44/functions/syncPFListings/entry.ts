@@ -191,15 +191,15 @@ function mapPFListingToCRM(pfListing, urlStats) {
     pfIdForUrl = listingId;
   }
 
-  // Build URL for all listings with valid PF ID (live or not — takendown listings still have PF pages)
-  const pfUrl = pfIdForUrl
+  // Build public PF URL ONLY if live on PF (via portals.isLive) AND we have a valid ID
+  const pfUrl = (isLiveOnPF && pfIdForUrl)
     ? `https://www.propertyfinder.ae/property-detail/${pfIdForUrl}`
     : null;
 
   // Track URL outcomes for diagnostics
   if (urlStats) {
-    if (pfUrl && isLiveOnPF) urlStats.from_api++;
-    else if (pfUrl && !isLiveOnPF) urlStats.numeric_fallback++; // has URL but not currently live
+    if (pfUrl) urlStats.from_api++;
+    else if (!isLiveOnPF && pfIdForUrl) urlStats.numeric_fallback++; // has ID but not live
     else urlStats.hidden++;
   }
 
@@ -226,16 +226,9 @@ function mapPFListingToCRM(pfListing, urlStats) {
     if (!isNaN(n)) bathrooms = n;
   }
 
-  // Map PF status → entity enum (use state.stage)
-  // Only mark as inactive if explicitly sold/rented/expired; otherwise default to active
-  const statusMap = {
-    'published': 'active', 'live': 'active', 'active': 'active',
-    'takendown': 'active', 'taken_down': 'active',  // Temporarily unpublished but still active listing
-    'draft': 'draft', 'expired': 'expired',
-    'under_offer': 'under_offer', 'sold': 'sold', 'rented': 'rented',
-    'inactive': 'active',  // Default to active unless explicitly sold/rented/expired
-  };
-  const status = statusMap[(pfStatus || '').toLowerCase()] || 'active';
+  // Map status based on portals.propertyfinder.isLive (authoritative signal)
+  // Only live listings are "active"; takendown/archived are "inactive"
+  const status = isLiveOnPF ? 'active' : 'inactive';
 
   // Extract agent info from assignedTo
   const agentName = pfListing.assignedTo?.name || '';
