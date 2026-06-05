@@ -35,6 +35,7 @@ import WhisperPanel from './WhisperPanel';
 import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
+import ListingReadiness from './ListingReadiness';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -546,6 +547,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             />
           </div>
         )}
+
+        {/* Listing Readiness */}
+        <ListingReadiness
+          landlord={landlord}
+          landlordPropertyId={landlordPropertyId}
+          photographyTask={existingTask}
+        />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
