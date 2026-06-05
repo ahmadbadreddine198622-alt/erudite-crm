@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -514,6 +514,16 @@ export default function Dashboard() {
         >
           <UserCheck className="w-4 h-4" />
           Assign Leads
+        </button>
+        <button
+          onClick={() => {
+            window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
+          }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+          style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+        >
+          <UserCircle className="w-4 h-4" />
+          PF Agent Profile
         </button>
       </div>
 
