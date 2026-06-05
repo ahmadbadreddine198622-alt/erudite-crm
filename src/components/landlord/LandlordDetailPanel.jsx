@@ -3,7 +3,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate } from 'lucide-react';
 import CommentsThread from "@/components/photography/CommentsThread";
 
 const STAGE_LABELS = {
@@ -43,6 +43,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const useFullDrawer = fullScreenOnMobile && isMobile;
   const [whisperOpen, setWhisperOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
+  const [floorPlanUploading, setFloorPlanUploading] = useState(false);
+  const [floorPlanUrl, setFloorPlanUrl] = useState('');
+  const [floorPlanUrlInput, setFloorPlanUrlInput] = useState(false);
+  const floorPlanInputRef = useRef(null);
   const [lbaResult, setLbaResult] = useState(null);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailTo, setEmailTo] = useState('');
@@ -136,6 +140,36 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     } finally {
       setFormAUploading(false);
       if (formAInputRef.current) formAInputRef.current.value = '';
+    }
+  };
+
+  const handleFloorPlanUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFloorPlanUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.LandlordProperty.update(landlordPropertyId, { floor_plan_url: file_url, has_floor_plan: true });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties', landlord.id] });
+      toast.success('Floor plan uploaded');
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      setFloorPlanUploading(false);
+      if (floorPlanInputRef.current) floorPlanInputRef.current.value = '';
+    }
+  };
+
+  const handleFloorPlanUrlSave = async () => {
+    if (!floorPlanUrl.trim()) return;
+    try {
+      await base44.entities.LandlordProperty.update(landlordPropertyId, { floor_plan_url: floorPlanUrl.trim(), has_floor_plan: true });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties', landlord.id] });
+      setFloorPlanUrlInput(false);
+      setFloorPlanUrl('');
+      toast.success('Floor plan link saved');
+    } catch (err) {
+      toast.error('Save failed: ' + err.message);
     }
   };
 
@@ -660,6 +694,63 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
+            {/* Floor Plan Upload (agent) */}
+            {landlordProperty && (
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>Floor Plan</p>
+                    {landlordProperty.floor_plan_url && (
+                      <a
+                        href={landlordProperty.floor_plan_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> View
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input ref={floorPlanInputRef} type="file" className="hidden" onChange={handleFloorPlanUpload} />
+                    <button
+                      onClick={() => floorPlanInputRef.current?.click()}
+                      disabled={floorPlanUploading || !landlordPropertyId}
+                      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-white/20 hover:bg-white/10 transition-colors disabled:opacity-50"
+                    >
+                      {floorPlanUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {landlordProperty.floor_plan_url ? 'Replace' : 'Upload'}
+                    </button>
+                    <button
+                      onClick={() => setFloorPlanUrlInput(!floorPlanUrlInput)}
+                      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
+                    >
+                      Link
+                    </button>
+                  </div>
+                </div>
+                {floorPlanUrlInput && (
+                  <div className="flex gap-1.5 mt-1">
+                    <input
+                      type="url"
+                      placeholder="Paste floor plan URL…"
+                      value={floorPlanUrl}
+                      onChange={(e) => setFloorPlanUrl(e.target.value)}
+                      className="flex-1 px-2 py-1 text-xs rounded-md"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                    />
+                    <button
+                      onClick={handleFloorPlanUrlSave}
+                      className="text-[11px] px-2.5 py-1 rounded-md border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Media for listing */}
             {existingTask && (
               <div className="pt-2 border-t border-white/10 space-y-2">
@@ -730,6 +821,18 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                       <Image className="w-3 h-3" />
                       <ExternalLink className="w-3 h-3" />
                       Photos
+                    </a>
+                  )}
+                  {landlordProperty?.floor_plan_url && (
+                    <a
+                      href={landlordProperty.floor_plan_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline flex items-center gap-1"
+                    >
+                      <LayoutTemplate className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3" />
+                      Floor Plan
                     </a>
                   )}
                 </div>
