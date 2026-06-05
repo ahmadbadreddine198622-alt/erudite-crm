@@ -37,6 +37,7 @@ import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
+import GroupBlurbGenerator from './GroupBlurbGenerator';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -993,6 +994,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                   landlordPropertyId={landlordPropertyId}
                   landlordProperty={landlordProperty}
                 />
+              </div>
+              <div
+                className="rounded-xl p-4 border"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <GroupBlurbGenerator landlordId={landlord.id} />
               </div>
             </TabsContent>
 
