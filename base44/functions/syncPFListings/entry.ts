@@ -166,14 +166,12 @@ function mapPFListingToCRM(pfListing, urlStats) {
   const bedroomsRaw = pickBedrooms(pfListing.bedrooms);
   const sizeSqft = pickSize(pfListing);
 
-  // The PF Atlas API does NOT return a URL field. The only way to build
-  // a valid PF listing URL is from the numeric ID embedded in the reference field.
-  // Reference format: "{agency}-{numericId}" e.g. "erudite-3366406" → numericId = "3366406"
-  // Only listings where portals.propertyfinder.isLive === true are actually live on PF.ae.
-
-  // Use the listing's own state to determine if it's published/live on PF.ae
+  // CRITICAL FIX: Use portals.propertyfinder.isLive to determine if listing is live on PF.ae
+  // The state.stage field can be "takendown" even for listings that should be live
+  const isLiveOnPF = pfListing.portals?.propertyfinder?.isLive === true;
+  
+  // Also check state.stage for status mapping
   const stageRaw = String(pfListing?.state?.stage || pfListing?.state || '').toLowerCase();
-  const isLiveOnPF = ['published', 'live', 'active'].includes(stageRaw);
 
   // Extract numeric PF listing ID from reference (e.g. "erudite-3366406" → "3366406")
   let numericPFId = null;
@@ -185,7 +183,7 @@ function mapPFListingToCRM(pfListing, urlStats) {
   // Fallback: check if the raw id is numeric
   if (!numericPFId && listingId && /^\d+$/.test(listingId)) numericPFId = listingId;
 
-  // Only build URL if live on PF AND we have a numeric ID
+  // Build URL if live on PF (via portals.isLive) AND we have a numeric ID
   const pfUrl = (isLiveOnPF && numericPFId)
     ? `https://www.propertyfinder.ae/property-detail/${numericPFId}`
     : null;
@@ -198,7 +196,6 @@ function mapPFListingToCRM(pfListing, urlStats) {
   }
 
   // Map offering_type → listing_type enum (sale | rent)
-  // Also check top-level purpose/offering_type fields on the raw listing as fallback
   const topLevelOffering = normalizeOffering(pfListing.purpose || pfListing.offering_type || pfListing.category);
   const resolvedOffering = (offering_type === 'rent' || offering_type === 'sale') ? offering_type : (topLevelOffering || 'sale');
   const listing_type = resolvedOffering;
@@ -221,7 +218,7 @@ function mapPFListingToCRM(pfListing, urlStats) {
     if (!isNaN(n)) bathrooms = n;
   }
 
-  // Map PF status → entity enum
+  // Map PF status → entity enum (use state.stage)
   const statusMap = {
     'published': 'active', 'live': 'active', 'active': 'active',
     'takendown': 'inactive', 'taken_down': 'inactive',
@@ -231,20 +228,67 @@ function mapPFListingToCRM(pfListing, urlStats) {
   };
   const status = statusMap[(pfStatus || '').toLowerCase()] || 'inactive';
 
+  // Extract agent info from assignedTo
+  const agentName = pfListing.assignedTo?.name || '';
+  const agentEmail = pfListing.assignedTo?.email || '';
+
+  // Extract building/unit info
+  const buildingName = pfListing.location?.building?.name || pfListing.buildingName || '';
+  const unitNumber = pfListing.unitNumber || '';
+  const floorNumber = pfListing.floorNumber || null;
+
+  // Get description (PF API returns it as {en: "...", ar: "..."} object)
+  let description = '';
+  if (pfListing.description) {
+    if (typeof pfListing.description === 'string') {
+      description = pfListing.description;
+    } else if (typeof pfListing.description === 'object') {
+      description = pfListing.description.en || pfListing.description.ar || '';
+    }
+  }
+
+  // Get developer
+  const developer = pfListing.developer || '';
+
+  // Get location details (community/area name)
+  const communityName = pfListing.location?.name || location || '';
+
+  // Get furnishing type
+  const furnishingType = pfListing.furnishingType ? 
+    (pfListing.furnishingType === 'furnished' ? 'furnished' : 
+     pfListing.furnishingType === 'semiFurnished' ? 'semi_furnished' : 'unfurnished') 
+    : undefined;
+
+  // Get completion status
+  const completionStatus = pfListing.projectStatus === 'ready' ? 'ready' : 
+    (pfListing.projectStatus === 'offplan' ? 'off_plan' : undefined);
+
   return {
     pf_listing_id: listingId,
     reference_number: listingRef || undefined,
     title: title || undefined,
+    description: description || undefined,
     images: imageUrl ? [imageUrl] : undefined,
     listing_type,
     price: (typeof price === 'number') ? price : undefined,
-    location: location || undefined,
+    location: communityName || undefined,
+    building_name: buildingName || undefined,
+    address: unitNumber ? `${unitNumber}, ${communityName}` : undefined,
+    unit_number: unitNumber || undefined,
+    floor_number: floorNumber || undefined,
     bedrooms,
     bathrooms,
     area_sqft: sizeSqft,
     property_type: propertyType || undefined,
+    furnishing: furnishingType,
+    completion_status: completionStatus,
+    developer: developer || undefined,
+    agent_name: agentName || undefined,
+    agent_email: agentEmail || undefined,
     status,
     pf_url: pfUrl || undefined,
+    featured: pfListing.featured || false,
+    verified: pfListing.verified || false,
     last_synced_at: new Date().toISOString(),
   };
 }

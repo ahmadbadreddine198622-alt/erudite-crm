@@ -19,7 +19,8 @@
       "description": "Listing title"
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "description": "Full property description from Property Finder"
     },
     "property_type": {
       "type": "string",
@@ -70,10 +71,16 @@
       "default": "Dubai"
     },
     "building_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Building name from Property Finder"
     },
     "address": {
-      "type": "string"
+      "type": "string",
+      "description": "Full address from Property Finder"
+    },
+    "unit_number": {
+      "type": "string",
+      "description": "Unit number from Property Finder"
     },
     "latitude": {
       "type": "number"
@@ -131,30 +138,41 @@
       "description": "RERA/Trakheesi permit number"
     },
     "developer": {
-      "type": "string"
+      "type": "string",
+      "description": "Developer name from Property Finder"
     },
     "agent_email": {
       "type": "string",
-      "format": "email"
+      "format": "email",
+      "description": "Assigned agent email from Property Finder"
     },
     "agent_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Assigned agent name from Property Finder"
     },
     "agency_name": {
       "type": "string"
     },
     "views_count": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Portal views (requires separate PF analytics endpoint - not mapped in syncPFListings)"
     },
     "leads_count": {
       "type": "number",
       "default": 0,
-      "description": "Number of leads generated from this listing"
+      "description": "Number of leads generated from this listing (requires separate PF analytics endpoint)"
     },
     "inquiries_count": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Number of inquiries (requires separate PF analytics endpoint)"
+    },
+    "quality_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Property Finder quality score (0-100)"
     },
     "published_at": {
       "type": "string",
