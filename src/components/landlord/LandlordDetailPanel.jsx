@@ -34,6 +34,7 @@ import CoalitionMap from './CoalitionMap';
 import WhisperPanel from './WhisperPanel';
 import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
+import DocumentChecklist from './DocumentChecklist';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -912,7 +913,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-2">
-              <p className="text-xs text-muted-foreground">Document checklist will appear here once stage S8 is entered.</p>
+              <DocumentChecklist landlordId={landlord.id} />
             </TabsContent>
 
             <TabsContent value="ai" className="space-y-3">
