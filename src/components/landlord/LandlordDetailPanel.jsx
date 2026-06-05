@@ -89,15 +89,17 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
       <div
         style={{
           width: '90vw',
-          maxWidth: '80rem',   /* = max-w-7xl */
+          maxWidth: '80rem',
           height: '92vh',
-          background: 'hsl(222 47% 9%)',
+          minHeight: 0,
+          background: 'hsl(222, 47%, 9%)',
           border: '1px solid rgba(255,255,255,0.1)',
           boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
           borderRadius: '1rem',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          color: 'rgba(255,255,255,0.9)',
         }}
       >
         {/* ── HEADER (fixed height, never shrinks) ── */}
@@ -110,6 +112,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             padding: '12px 24px',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(255,255,255,0.03)',
+            color: 'rgba(255,255,255,0.9)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -170,11 +173,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
         */}
         <div
           style={{
-            flex: '1 1 0',
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: 0,
             minHeight: 0,
             display: 'flex',
             flexDirection: 'row',
             overflow: 'hidden',
+            background: 'hsl(222, 47%, 9%)',
           }}
         >
           {/* ── COLUMN 1: Unit info + Media (~28%) ── */}
@@ -182,12 +188,15 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             style={{
               width: '28%',
               flexShrink: 0,
+              height: '100%',
               overflowY: 'auto',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
               borderRight: '1px solid rgba(255,255,255,0.07)',
+              background: 'hsl(222, 47%, 9%)',
+              color: 'rgba(255,255,255,0.9)',
             }}
           >
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Unit &amp; Property</p>
@@ -261,12 +270,15 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
             style={{
               width: '28%',
               flexShrink: 0,
+              height: '100%',
               overflowY: 'auto',
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
               borderRight: '1px solid rgba(255,255,255,0.07)',
+              background: 'hsl(222, 47%, 9%)',
+              color: 'rgba(255,255,255,0.9)',
             }}
           >
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Listing Readiness</p>
@@ -285,10 +297,15 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate 
           {/* ── COLUMN 3: AI tools + Comments (flex-1, remaining width) ── */}
           <div
             style={{
-              flex: '1 1 0',
+              flexGrow: 1,
+              flexShrink: 1,
+              flexBasis: 0,
               minWidth: 0,
+              height: '100%',
               overflowY: 'auto',
               padding: '20px',
+              background: 'hsl(222, 47%, 9%)',
+              color: 'rgba(255,255,255,0.9)',
             }}
           >
             <Tabs defaultValue="listing-copy">
