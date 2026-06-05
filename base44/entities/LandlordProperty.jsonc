@@ -154,6 +154,23 @@
       "type": "boolean",
       "default": false,
       "description": "Whether NOC from developer has been obtained"
+    },
+    "listing_title": {
+      "type": "string",
+      "description": "AI-generated or manually chosen listing title"
+    },
+    "listing_description": {
+      "type": "string",
+      "description": "AI-generated or manually chosen listing description"
+    },
+    "listing_angle": {
+      "type": "string",
+      "enum": [
+        "luxury",
+        "investment",
+        "family"
+      ],
+      "description": "The angle/tone chosen for the listing copy"
     }
   },
   "required": [
