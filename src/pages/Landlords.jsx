@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
-import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
+import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel.jsx';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
