@@ -1,0 +1,56 @@
+{
+  "name": "LandlordDocument",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Reference to Landlord entity"
+    },
+    "landlord_property_id": {
+      "type": "string",
+      "description": "Reference to LandlordProperty entity"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "passport",
+        "emirates_id",
+        "noc",
+        "form_a"
+      ],
+      "description": "Type of required document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "received",
+        "verified"
+      ],
+      "default": "missing",
+      "description": "Current verification status"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the uploaded document"
+    },
+    "verified_by_email": {
+      "type": "string",
+      "description": "Email of the admin who verified the document"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the document was verified"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the document"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "document_type",
+    "status"
+  ]
+}
