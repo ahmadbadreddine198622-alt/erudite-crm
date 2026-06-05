@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2, CheckCircle2, Star, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, CheckCircle2, Star, TrendingUp, Users, RefreshCw, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ANGLE_CONFIG = {
@@ -41,6 +41,17 @@ export default function ListingCopyManager({ landlordId, landlordPropertyId, lan
   const [edits, setEdits] = useState({});
   const [generating, setGenerating] = useState(false);
   const [savingAngle, setSavingAngle] = useState(null);
+  const [copiedAngle, setCopiedAngle] = useState(null);
+
+  const handleCopy = async (angle) => {
+    const edited = edits[angle] || {};
+    const opt = options?.find(o => o.angle === angle);
+    const title = edited.title ?? opt?.title ?? '';
+    const description = edited.description ?? opt?.description ?? '';
+    await navigator.clipboard.writeText(`${title}\n\n${description}`);
+    setCopiedAngle(angle);
+    setTimeout(() => setCopiedAngle(null), 1500);
+  };
   const [savedInfo, setSavedInfo] = useState(
     savedAngle ? { angle: savedAngle, title: savedTitle, description: savedDescription } : null
   );
@@ -174,16 +185,29 @@ export default function ListingCopyManager({ landlordId, landlordPropertyId, lan
                       </Badge>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSave(opt.angle)}
-                    disabled={isSaving || savingAngle !== null}
-                    className="gap-1.5 text-xs h-7"
-                  >
-                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                    {isSaving ? 'Saving…' : isSaved ? 'Re-save' : 'Use this one'}
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleCopy(opt.angle)}
+                      className="gap-1 text-xs h-7 px-2"
+                      style={{ color: copiedAngle === opt.angle ? 'rgb(52,211,153)' : 'rgba(255,255,255,0.5)' }}
+                      title="Copy title + description"
+                    >
+                      {copiedAngle === opt.angle ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedAngle === opt.angle ? 'Copied' : 'Copy'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSave(opt.angle)}
+                      disabled={isSaving || savingAngle !== null}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                      {isSaving ? 'Saving…' : isSaved ? 'Re-save' : 'Use this one'}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Editable title */}
