@@ -16,6 +16,7 @@
         "passport",
         "emirates_id",
         "noc",
+        "noc_landlord",
         "form_a"
       ],
       "description": "Type of required document"

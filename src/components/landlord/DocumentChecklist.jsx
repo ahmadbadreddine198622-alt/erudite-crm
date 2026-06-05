@@ -10,6 +10,7 @@ const DOC_LABELS = {
   passport: 'Passport',
   emirates_id: 'Emirates ID',
   noc: 'NOC from Developer',
+  noc_landlord: 'NOC from Landlord',
   form_a: 'Form A',
 };
 

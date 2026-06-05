@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const ALLOWED_TYPES = ['passport', 'emirates_id', 'noc', 'form_a'];
+const ALLOWED_TYPES = ['passport', 'emirates_id', 'noc', 'noc_landlord', 'form_a'];
 const ALLOWED_STATUSES = ['missing', 'received', 'verified'];
 
 Deno.serve(async (req) => {

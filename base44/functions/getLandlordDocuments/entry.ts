@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const DOCUMENT_TYPES = ['passport', 'emirates_id', 'noc', 'form_a'];
+const DOCUMENT_TYPES = ['passport', 'emirates_id', 'noc', 'noc_landlord', 'form_a'];
 
 Deno.serve(async (req) => {
   try {
