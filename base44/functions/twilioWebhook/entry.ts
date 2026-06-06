@@ -134,8 +134,17 @@ Deno.serve(async (req) => {
       ? new URLSearchParams(await req.text())
       : new URLSearchParams();
 
-    // Twilio webhooks don't carry Base44 auth — use service role directly
-    const base44 = createClientFromRequest(req);
+    // Twilio calls this without normal auth headers — inject app ID header so SDK initializes
+    const modifiedReq = new Request(req.url, {
+      method: req.method,
+      headers: (() => {
+        const h = new Headers(req.headers);
+        h.set('Base44-App-Id', Deno.env.get('BASE44_APP_ID') || '');
+        return h;
+      })(),
+      body: req.body,
+    });
+    const base44 = createClientFromRequest(modifiedReq);
     const serviceRole = base44.asServiceRole;
 
     if (type === 'bridge') {
