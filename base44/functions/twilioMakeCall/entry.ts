@@ -69,17 +69,12 @@ Deno.serve(async (req) => {
     const statusCb = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
     const recordCb = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
 
-    // Build TwiML inline — dials the customer directly, no bridge
+    // Build TwiML inline — simple direct dial, no nested attributes
     const recordAttr = recordCalls
       ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
       : '';
 
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${voiceNumber}" timeout="30" timeLimit="14400"${recordAttr} action="${statusCb}" method="POST">
-    <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${to_phone}</Number>
-  </Dial>
-</Response>`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Dial callerId="${voiceNumber}" timeout="30"${recordAttr} action="${statusCb}" method="POST">${to_phone}</Dial></Response>`;
 
     const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
 

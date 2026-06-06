@@ -82,19 +82,31 @@ Deno.serve(async (req) => {
     return new Response('', { status: 204 });
   }
 
-  // ── Main TwiML dial handler ──────────────────────────────────────────────
+  // ── Main TwiML dial handler (browser SDK calls only) ────────────────────
   try {
-    const form = await req.formData();
-    const to = form.get('To') || url.searchParams.get('To') || '';
-    // call_log_id can come via custom params from the browser SDK
-    const callLogId = url.searchParams.get('call_log_id') || form.get('call_log_id') || form.get('call_log_id') || '';
+    let formTo = '';
+    let formCallLogId = '';
+    try {
+      const contentType = req.headers.get('content-type') || '';
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        const text = await req.text();
+        const p = new URLSearchParams(text);
+        formTo = p.get('To') || '';
+        formCallLogId = p.get('call_log_id') || '';
+      }
+    } catch (_) {}
 
-    const { sid, token, voiceNumber, recordCalls } = await getCreds(serviceRole);
+    const to = formTo || url.searchParams.get('To') || '';
+    const callLogId = url.searchParams.get('call_log_id') || formCallLogId || '';
+
+    // If no To — this is an outbound-API call hitting the Voice URL. Just return empty TwiML.
     if (!to) {
-      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Missing destination number.</Say></Response>`, {
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
         headers: { 'Content-Type': 'text/xml' },
       });
     }
+
+    const { voiceNumber, recordCalls } = await getCreds(serviceRole);
 
     const origin = url.origin;
     const statusCb = `${origin}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLogId}`;
@@ -107,12 +119,10 @@ Deno.serve(async (req) => {
       recordCalls ? `record="record-from-answer-dual" recordingStatusCallback="${recordCb}"` : '',
     ].filter(Boolean).join(' ');
 
-    const numberAttrs = `statusCallback="${statusCb}" statusCallbackEvent="completed"`;
-
-    let twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial ${dialAttrs}>
-    <Number ${numberAttrs}>${to}</Number>
+    <Number statusCallback="${statusCb}" statusCallbackEvent="completed">${to}</Number>
   </Dial>
 </Response>`;
 
@@ -121,8 +131,9 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('twilioVoiceWebhook error:', error);
+    // Return empty TwiML — never play an error message to the caller
     return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Say>An error occurred.</Say></Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
       { headers: { 'Content-Type': 'text/xml' } }
     );
   }
