@@ -160,7 +160,12 @@ Deno.serve(async (req) => {
       status: agentData.status || 'queued',
     });
 
-    return Response.json({ ok: true, call_sid: agentData.sid, call_log_id: callLog.id });
+    return Response.json({
+      ok: true,
+      agent_call_sid: agentData.sid,
+      customer_call_sid: customerData.sid,
+      call_log_id: callLog.id,
+    });
 
   } catch (error) {
     console.error('twilioMakeCall error:', error);
