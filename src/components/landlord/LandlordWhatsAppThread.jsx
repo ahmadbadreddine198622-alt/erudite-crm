@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, MessageSquare, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -39,6 +39,28 @@ export default function LandlordWhatsAppThread({ landlord }) {
     },
   });
 
+  const stats = useMemo(() => {
+    if (!messages.length) return null;
+    const total = messages.length;
+    // avg response time: time between consecutive messages that switch direction
+    const gaps = [];
+    for (let i = 1; i < messages.length; i++) {
+      const prev = messages[i - 1];
+      const curr = messages[i];
+      if (prev.direction !== curr.direction && prev.timestamp && curr.timestamp) {
+        const diff = new Date(curr.timestamp) - new Date(prev.timestamp);
+        if (diff > 0 && diff < 86400000 * 3) gaps.push(diff); // ignore > 3 days
+      }
+    }
+    const avgMs = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+    let avgLabel = null;
+    if (avgMs !== null) {
+      const mins = Math.round(avgMs / 60000);
+      avgLabel = mins < 60 ? `${mins}m` : `${Math.round(mins / 60)}h`;
+    }
+    return { total, avgLabel };
+  }, [messages]);
+
   const fmt = (ts) => {
     try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ts || ''; }
   };
@@ -53,6 +75,20 @@ export default function LandlordWhatsAppThread({ landlord }) {
 
   return (
     <div className="flex flex-col h-[420px]">
+      {stats && (
+        <div className="flex items-center gap-4 px-1 pb-2 border-b border-white/10 mb-2">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span className="font-semibold text-foreground">{stats.total}</span> messages
+          </span>
+          {stats.avgLabel && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              avg response <span className="font-semibold text-foreground">{stats.avgLabel}</span>
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto space-y-2 p-1">
         {isLoading ? (
           <div className="text-sm text-muted-foreground text-center py-8">Loading conversation…</div>
