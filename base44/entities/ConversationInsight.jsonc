@@ -1,0 +1,78 @@
+{
+  "name": "ConversationInsight",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK \u2192 Landlord"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI summary of the conversation"
+    },
+    "conversation_stage": {
+      "type": "string",
+      "description": "AI's read of where things stand"
+    },
+    "temperature": {
+      "type": "string",
+      "enum": [
+        "hot",
+        "warm",
+        "cold"
+      ],
+      "description": "Landlord interest level"
+    },
+    "key_facts": {
+      "type": "string",
+      "description": "Price expectations, timeline, objections mentioned (JSON or text)"
+    },
+    "outstanding_items": {
+      "type": "string",
+      "description": "What's unresolved"
+    },
+    "language": {
+      "type": "string",
+      "description": "Detected language of the conversation"
+    },
+    "suggestions": {
+      "type": "array",
+      "description": "AI-suggested actions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "followup",
+              "meeting",
+              "viewing",
+              "call"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "suggested_message": {
+            "type": "string"
+          },
+          "suggested_datetime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "last_analyzed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the analysis was last run"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}

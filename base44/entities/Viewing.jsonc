@@ -1,0 +1,40 @@
+{
+  "name": "Viewing",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK \u2192 Landlord"
+    },
+    "title": {
+      "type": "string",
+      "description": "Viewing title"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the viewing is scheduled"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "done",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if created from an AI suggestion"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}
