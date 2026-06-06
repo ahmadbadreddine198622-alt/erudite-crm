@@ -44,10 +44,15 @@ Deno.serve(async (req) => {
       credential: {
         id: c.id,
         account_sid: c.account_sid,
+        auth_token: c.auth_token,
         label: c.label || 'Twilio Account',
         voice_number: c.voice_number,
         sms_number: c.sms_number,
+        agent_phone: c.agent_phone || '',
         record_calls: c.record_calls,
+        api_key_sid: c.api_key_sid || '',
+        api_key_secret: c.api_key_secret || '',
+        twiml_app_sid: c.twiml_app_sid || '',
       },
     });
   } catch (error) {

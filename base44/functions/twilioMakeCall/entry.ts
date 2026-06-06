@@ -74,21 +74,41 @@ Deno.serve(async (req) => {
     }
 
     const callerNumber = from_phone || voiceNumber;
+    const agentPhone = c?.agent_phone || null;
     const baseUrl = new URL(req.url).origin;
     const statusCallback = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
+    const recordingCallback = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
 
+    // Two-leg bridge: 
+    //   Leg A — Twilio calls the AGENT's real phone first
+    //   On answer — TwiML dials the CUSTOMER and bridges audio
+    // If no agent_phone configured, fall back to calling customer directly
+    // (audio won't work without an agent leg, so we warn via Say)
     const callBody = new URLSearchParams({
-      To: to_phone,
-      From: callerNumber,
-      Twiml: `<Response><Say>Connecting your call.</Say><Dial>${to_phone}</Dial></Response>`,
       StatusCallback: statusCallback,
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
     });
 
-    if (recordCalls) {
-      callBody.append('Record', 'true');
-      callBody.append('RecordingStatusCallback', `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`);
+    if (agentPhone) {
+      // Two-leg bridge:
+      // 1. Twilio calls the agent's real phone
+      // 2. When agent answers, twilioMakeBridge TwiML dials the customer and bridges audio
+      const bridgeUrl = `${baseUrl}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(callerNumber)}&log=${callLog.id}&base=${encodeURIComponent(baseUrl)}&record=${recordCalls}`;
+      callBody.append('To', agentPhone);
+      callBody.append('From', callerNumber);
+      callBody.append('Twiml', `<Response><Dial callerId="${callerNumber}" timeout="30"><Number url="${bridgeUrl}">${agentPhone}</Number></Dial></Response>`);
+    } else {
+      // No agent phone configured — direct call to customer only.
+      // NOTE: without an agent leg, there will be no audio for the agent.
+      // Set agent_phone in TwilioHub settings for two-way audio.
+      callBody.append('To', to_phone);
+      callBody.append('From', callerNumber);
+      callBody.append('Twiml',
+        `<Response><Dial callerId="${callerNumber}" timeout="30"` +
+        (recordCalls ? ` record="record-from-answer-dual" recordingStatusCallback="${recordingCallback}"` : '') +
+        `><Number statusCallback="${statusCallback}" statusCallbackEvent="completed">${to_phone}</Number></Dial></Response>`
+      );
     }
 
     console.log('Calling Twilio API:', { to: to_phone, from: callerNumber });

@@ -35,8 +35,19 @@ function PhoneNumberCard({ number }) {
   );
 }
 
-function ConnectionSetup({ onSaved }) {
-  const [form, setForm] = useState({ account_sid: '', auth_token: '', voice_number: '', sms_number: '', label: 'Main Account', record_calls: true, api_key_sid: '', api_key_secret: '', twiml_app_sid: '' });
+function ConnectionSetup({ onSaved, existingCredential }) {
+  const [form, setForm] = useState({
+    account_sid: existingCredential?.account_sid || '',
+    auth_token: existingCredential?.auth_token || '',
+    voice_number: existingCredential?.voice_number || '',
+    sms_number: existingCredential?.sms_number || '',
+    agent_phone: existingCredential?.agent_phone || '',
+    label: existingCredential?.label || 'Main Account',
+    record_calls: existingCredential?.record_calls ?? true,
+    api_key_sid: existingCredential?.api_key_sid || '',
+    api_key_secret: existingCredential?.api_key_secret || '',
+    twiml_app_sid: existingCredential?.twiml_app_sid || '',
+  });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -90,6 +101,16 @@ function ConnectionSetup({ onSaved }) {
           {field('voice_number', 'Default Voice Number (CallerID)', '+971XXXXXXXXX')}
           {field('sms_number', 'Default SMS Number', '+971XXXXXXXXX')}
           {field('label', 'Label', 'e.g. Dubai Office')}
+        </div>
+
+        <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+          <p className="text-xs font-semibold text-emerald-300">📞 Your Phone Number (for Server-Side Calls)</p>
+          <p className="text-[11px] text-muted-foreground">
+            For two-way audio on server-side calls, Twilio will ring <strong>your phone</strong> first — when you pick up, it bridges you to the customer. Without this, server-side calls will have no audio.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {field('agent_phone', 'Agent Phone Number', '+971XXXXXXXXX')}
+          </div>
         </div>
 
         <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
@@ -309,7 +330,7 @@ export default function TwilioHub() {
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <ConnectionSetup onSaved={() => { queryClient.invalidateQueries(['twilio-numbers']); refetch(); }} />
+            <ConnectionSetup existingCredential={credential} onSaved={() => { queryClient.invalidateQueries(['twilio-numbers']); refetch(); }} />
           </TabsContent>
         </Tabs>
       )}
