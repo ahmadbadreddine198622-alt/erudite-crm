@@ -45,20 +45,31 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
       toast.success('Landlord created');
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create landlord');
+      const msg = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Unknown error';
+      console.error('[AddLandlordDialog] Landlord.create failed:', error);
+      toast.error(`Failed to create landlord: ${msg}`);
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.full_name_en || !formData.phone || !formData.assigned_agent_email || !formData.project_id) {
-      toast.error('Name, phone, agent email and project are required');
+    if (!formData.full_name_en.trim() || !formData.phone.trim() || !formData.assigned_agent_email.trim()) {
+      toast.error('Full name, phone, and assigned agent are required');
       return;
     }
-    createMutation.mutate({
-      ...formData,
-      stage: 'sourced',
-    });
+    // Clean payload: valid stage enum + omit empty optional fields (an empty
+    // email / project_id can fail validation and cause a silent DB rejection).
+    const payload = {
+      full_name_en: formData.full_name_en.trim(),
+      phone: formData.phone.trim(),
+      assigned_agent_email: formData.assigned_agent_email.trim(),
+      source: formData.source,
+      landlord_archetype: formData.landlord_archetype,
+      stage: 'initial_contact',   // was 'sourced' (invalid enum) -> silent rejection
+    };
+    if (formData.email.trim()) payload.email = formData.email.trim();
+    if (formData.project_id) payload.project_id = formData.project_id;
+    createMutation.mutate(payload);
   };
 
   return (
@@ -130,7 +141,7 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Project *</label>
+            <label className="text-sm font-medium">Project</label>
             <select
               value={formData.project_id}
               onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
