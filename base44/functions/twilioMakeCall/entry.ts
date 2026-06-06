@@ -1,20 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Simple two-leg call:
- * 1. Twilio calls the agent's real phone
- * 2. When agent picks up, Twilio dials the customer and bridges them
- * 
+ * Proper two-leg bridge call:
+ * 1. Twilio calls agent's real phone number
+ * 2. When agent picks up, twilioMakeBridge webhook fires → dials customer → bridges audio
+ *
  * Body: { lead_id, to_phone, from_phone, lead_name }
  */
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
-    const { lead_id, to_phone, from_phone, lead_name } = body;
-
-    if (!to_phone) return Response.json({ error: 'to_phone required' }, { status: 400 });
 
     let agentEmail = '';
     try {
@@ -22,23 +17,30 @@ Deno.serve(async (req) => {
       agentEmail = user?.email || '';
     } catch (_) {}
 
+    const body = await req.json();
+    const { lead_id, to_phone, from_phone, lead_name } = body;
+
+    if (!to_phone) {
+      return Response.json({ error: 'to_phone is required' }, { status: 400 });
+    }
+
     // Load credentials from DB
     const credsList = await base44.asServiceRole.entities.TwilioCredential.list();
     const c = credsList?.[0];
-    const sid = c?.account_sid;
-    const token = c?.auth_token;
+    const accountSid = c?.account_sid;
+    const authToken = c?.auth_token;
     const voiceNumber = c?.voice_number || from_phone;
     const agentPhone = c?.agent_phone;
     const recordCalls = c?.record_calls ?? true;
 
-    if (!sid || !token) {
+    if (!accountSid || !authToken) {
       return Response.json({ error: 'Twilio not configured. Go to Twilio Hub → Settings.' }, { status: 400 });
     }
     if (!agentPhone) {
-      return Response.json({ error: 'Agent phone not set. Go to Twilio Hub → Settings and enter your mobile number.' }, { status: 400 });
+      return Response.json({ error: 'Agent phone not set. Go to Twilio Hub → Settings and enter your real mobile number (e.g. +971501234567).' }, { status: 400 });
     }
     if (agentPhone === voiceNumber) {
-      return Response.json({ error: 'Agent phone cannot be the same as your Twilio number. Enter your real mobile number in Twilio Hub → Settings.' }, { status: 400 });
+      return Response.json({ error: 'Agent phone cannot be the same as your Twilio number (+' + voiceNumber + '). Enter your personal mobile number in Twilio Hub → Settings.' }, { status: 400 });
     }
 
     // Pre-create call log
@@ -53,57 +55,59 @@ Deno.serve(async (req) => {
       twilio_number_used: voiceNumber,
     });
 
-    // Log activity
+    // Log activity on lead
     if (lead_id) {
       base44.asServiceRole.entities.Activity.create({
         lead_id,
         type: 'call',
+        direction: 'outbound',
         title: `Outbound call to ${lead_name || to_phone}`,
+        status: 'in_progress',
         source: 'call_log',
         agent_email: agentEmail,
         metadata: { call_log_id: callLog.id },
       }).catch(() => {});
     }
 
+    // Build URLs
     const baseUrl = new URL(req.url).origin;
     const statusCb = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
-    const recordCb = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
+    // When agent picks up their phone, twilioMakeBridge fires and dials the customer
+    const bridgeUrl = `${baseUrl}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(voiceNumber)}&log=${callLog.id}&base=${encodeURIComponent(baseUrl)}&record=${recordCalls}`;
 
-    // TwiML: when agent picks up, immediately dial the customer
-    const recordAttr = recordCalls
-      ? ` record="record-from-answer" recordingStatusCallback="${recordCb}"`
-      : '';
+    const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
 
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${voiceNumber}" timeout="30"${recordAttr} action="${statusCb}">
-    <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed">${to_phone}</Number>
-  </Dial>
-</Response>`;
-
-    // Call the agent's phone first, use TwiML to bridge to customer
-    const authHeader = `Basic ${btoa(`${sid}:${token}`)}`;
-    const callBody = new URLSearchParams({
+    // Step 1: Call the agent's real phone. On answer → execute bridgeUrl TwiML
+    const callParams = new URLSearchParams({
       To: agentPhone,
       From: voiceNumber,
-      Twiml: twiml,
+      Url: bridgeUrl,                              // TwiML served by twilioMakeBridge
+      Method: 'GET',
       StatusCallback: statusCb,
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
     });
 
-    const twRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
-      method: 'POST',
-      headers: { Authorization: authHeader, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: callBody,
-    });
+    console.log(`[twilioMakeCall] Calling agent ${agentPhone} → will bridge to customer ${to_phone}`);
+
+    const twRes = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: callParams,
+      }
+    );
 
     const twData = await twRes.json();
-    console.log('Twilio call response:', twRes.status, JSON.stringify(twData));
+    console.log(`[twilioMakeCall] Twilio response: ${twRes.status}`, JSON.stringify(twData));
 
     if (!twRes.ok) {
       await base44.asServiceRole.entities.CallLog.update(callLog.id, { status: 'failed' });
-      return Response.json({ error: twData?.message || 'Twilio API error' }, { status: 500 });
+      return Response.json({ error: twData?.message || `Twilio API error: ${twRes.status}` }, { status: 500 });
     }
 
     await base44.asServiceRole.entities.CallLog.update(callLog.id, {
@@ -115,10 +119,12 @@ Deno.serve(async (req) => {
       ok: true,
       call_sid: twData.sid,
       call_log_id: callLog.id,
+      agent_phone: agentPhone,
+      customer_phone: to_phone,
     });
 
   } catch (error) {
-    console.error('twilioMakeCall error:', error);
+    console.error('[twilioMakeCall] error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

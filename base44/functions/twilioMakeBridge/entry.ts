@@ -1,8 +1,6 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-
 /**
  * Called by Twilio when the AGENT's phone answers.
- * Returns TwiML that dials the CUSTOMER and bridges audio.
+ * Silently dials the CUSTOMER and bridges audio — no announcement.
  * Query params: customer, caller, log, base, record
  */
 Deno.serve(async (req) => {
@@ -18,14 +16,14 @@ Deno.serve(async (req) => {
     const recordCb = `${base}/functions/twilioWebhook?type=recording&call_log_id=${logId}`;
 
     const recordAttrs = record
-      ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}"`
+      ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
       : '';
 
+    // Dial customer directly — no <Say>, no music, pure audio bridge
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>Connecting you to the customer now.</Say>
-  <Dial callerId="${caller}" timeout="30"${recordAttrs}>
-    <Number statusCallback="${statusCb}" statusCallbackEvent="completed">${customer}</Number>
+  <Dial callerId="${caller}" timeout="30" timeLimit="14400"${recordAttrs} action="${statusCb}" method="POST">
+    <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${customer}</Number>
   </Dial>
 </Response>`;
 
@@ -33,7 +31,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('twilioMakeBridge error:', error);
     return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Say>Bridge error.</Say></Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`,
       { headers: { 'Content-Type': 'text/xml' } }
     );
   }
