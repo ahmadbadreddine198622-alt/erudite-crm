@@ -130,7 +130,10 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
           setServerCallSid(callRes.data?.call_sid || '');
           setPhase('server_call');
         } else {
-          throw new Error(callRes.data?.error || 'Call failed');
+          const errMsg = callRes.data?.error || 'Call failed';
+          setErrorMsg(errMsg);
+          setPhase('dial');
+          return;
         }
         return;
       }

@@ -79,63 +79,88 @@ Deno.serve(async (req) => {
     const statusCallback = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
     const recordingCallback = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
 
-    // Two-leg bridge: 
-    //   Leg A — Twilio calls the AGENT's real phone first
-    //   On answer — TwiML dials the CUSTOMER and bridges audio
-    // If no agent_phone configured, fall back to calling customer directly
-    // (audio won't work without an agent leg, so we warn via Say)
+    if (!agentPhone) {
+      await base44.asServiceRole.entities.CallLog.update(callLog.id, { status: 'failed' });
+      return Response.json({
+        error: 'Agent phone not configured. Please go to Twilio Hub → Settings and enter your mobile number in "Agent Phone Number". This is required for two-way audio.'
+      }, { status: 400 });
+    }
+
+    // Two-leg conference bridge:
+    // 1. Twilio calls the AGENT's phone
+    // 2. Agent answers → joins a named conference room
+    // 3. Twilio simultaneously calls the CUSTOMER → joins the same conference room
+    // Both parties can hear each other through the conference
+    const confName = `call_${callLog.id}`;
+    const recordAttrs = recordCalls
+      ? ` record="record-from-start" recordingStatusCallback="${recordingCallback}"`
+      : '';
+
+    // TwiML for agent leg: join conference
+    const agentTwiml = `<Response><Say>Connecting your call now.</Say><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="true" beep="false"${recordAttrs}>${confName}</Conference></Dial></Response>`;
+
+    // TwiML for customer leg: join same conference (waits for agent)
+    const customerTwiml = `<Response><Dial><Conference startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${confName}</Conference></Dial></Response>`;
+
     const callBody = new URLSearchParams({
       StatusCallback: statusCallback,
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
     });
 
-    if (agentPhone) {
-      // Two-leg bridge:
-      // 1. Twilio calls the agent's real phone
-      // 2. When agent answers, twilioMakeBridge TwiML dials the customer and bridges audio
-      const bridgeUrl = `${baseUrl}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(callerNumber)}&log=${callLog.id}&base=${encodeURIComponent(baseUrl)}&record=${recordCalls}`;
-      callBody.append('To', agentPhone);
-      callBody.append('From', callerNumber);
-      callBody.append('Twiml', `<Response><Dial callerId="${callerNumber}" timeout="30"><Number url="${bridgeUrl}">${agentPhone}</Number></Dial></Response>`);
-    } else {
-      // No agent phone configured — direct call to customer only.
-      // NOTE: without an agent leg, there will be no audio for the agent.
-      // Set agent_phone in TwilioHub settings for two-way audio.
-      callBody.append('To', to_phone);
-      callBody.append('From', callerNumber);
-      callBody.append('Twiml',
-        `<Response><Dial callerId="${callerNumber}" timeout="30"` +
-        (recordCalls ? ` record="record-from-answer-dual" recordingStatusCallback="${recordingCallback}"` : '') +
-        `><Number statusCallback="${statusCallback}" statusCallbackEvent="completed">${to_phone}</Number></Dial></Response>`
-      );
-    }
+    console.log('Calling Twilio API (conference bridge):', { agent: agentPhone, customer: to_phone, conf: confName });
 
-    console.log('Calling Twilio API:', { to: to_phone, from: callerNumber });
+    const authHeader = `Basic ${btoa(`${sid}:${token}`)}`;
 
-    const tw = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${btoa(`${sid}:${token}`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: callBody,
+    // Leg 1: Call agent's phone → join conference as host
+    const agentBody = new URLSearchParams({
+      To: agentPhone,
+      From: callerNumber,
+      Twiml: agentTwiml,
+      StatusCallback: statusCallback,
+      StatusCallbackEvent: 'initiated ringing answered completed',
+      StatusCallbackMethod: 'POST',
     });
 
-    const twData = await tw.json();
-    console.log('Twilio response:', tw.status, JSON.stringify(twData));
+    const twAgent = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
+      method: 'POST',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: agentBody,
+    });
+    const agentData = await twAgent.json();
+    console.log('Agent leg response:', twAgent.status, agentData?.sid, agentData?.status);
 
-    if (!tw.ok) {
+    if (!twAgent.ok) {
       await base44.asServiceRole.entities.CallLog.update(callLog.id, { status: 'failed' });
-      return Response.json({ error: twData?.message || 'Twilio call failed' }, { status: 500 });
+      return Response.json({ error: agentData?.message || 'Failed to call agent phone' }, { status: 500 });
+    }
+
+    // Leg 2: Call customer's phone → join same conference
+    const customerBody = new URLSearchParams({
+      To: to_phone,
+      From: callerNumber,
+      Twiml: customerTwiml,
+    });
+
+    const twCustomer = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
+      method: 'POST',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: customerBody,
+    });
+    const customerData = await twCustomer.json();
+    console.log('Customer leg response:', twCustomer.status, customerData?.sid, customerData?.status);
+
+    if (!twCustomer.ok) {
+      await base44.asServiceRole.entities.CallLog.update(callLog.id, { status: 'failed' });
+      return Response.json({ error: customerData?.message || 'Failed to call customer' }, { status: 500 });
     }
 
     await base44.asServiceRole.entities.CallLog.update(callLog.id, {
-      twilio_call_sid: twData.sid,
-      status: twData.status || 'queued',
+      twilio_call_sid: agentData.sid,
+      status: agentData.status || 'queued',
     });
 
-    return Response.json({ ok: true, call_sid: twData.sid, call_log_id: callLog.id });
+    return Response.json({ ok: true, call_sid: agentData.sid, call_log_id: callLog.id });
 
   } catch (error) {
     console.error('twilioMakeCall error:', error);
