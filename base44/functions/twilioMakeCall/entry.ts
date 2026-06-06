@@ -1,11 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Direct outbound call: Twilio dials the customer directly.
- * No bridge, no agent phone needed.
- * The TwiML URL simply dials the customer — Twilio connects the call.
+ * Creates a CallLog record for browser-based calling.
+ * Does NOT place a REST API call — the browser SDK handles the actual calling.
  *
- * Body: { lead_id, to_phone, from_phone, lead_name }
+ * Body: { lead_id, to_phone, from_phone, lead_name, browser_mode }
  */
 Deno.serve(async (req) => {
   try {
@@ -18,7 +17,7 @@ Deno.serve(async (req) => {
     } catch (_) {}
 
     const body = await req.json();
-    const { lead_id, to_phone, from_phone, lead_name } = body;
+    const { lead_id, to_phone, from_phone, lead_name, browser_mode } = body;
 
     if (!to_phone) {
       return Response.json({ error: 'to_phone is required' }, { status: 400 });
@@ -27,19 +26,13 @@ Deno.serve(async (req) => {
     // Load credentials from DB
     const credsList = await base44.asServiceRole.entities.TwilioCredential.list();
     const c = credsList?.[0];
-    const accountSid = c?.account_sid;
-    const authToken = c?.auth_token;
     const voiceNumber = c?.voice_number || from_phone;
-    const recordCalls = c?.record_calls ?? true;
 
-    if (!accountSid || !authToken) {
-      return Response.json({ error: 'Twilio not configured. Go to Twilio Hub → Settings.' }, { status: 400 });
-    }
     if (!voiceNumber) {
       return Response.json({ error: 'No voice number configured. Go to Twilio Hub → Settings.' }, { status: 400 });
     }
 
-    // Pre-create call log
+    // Pre-create call log for tracking
     const callLog = await base44.asServiceRole.entities.CallLog.create({
       lead_id: lead_id || null,
       direction: 'outbound',
@@ -65,66 +58,10 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    const baseUrl = new URL(req.url).origin;
-    const statusCb = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
-    const recordCb = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
-
-    // Build TwiML inline — no action attribute, status tracked via StatusCallback only
-    const recordAttr = recordCalls
-      ? ` recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
-      : '';
-
-    // No record="..." on <Dial> — use StatusCallback at the call level instead
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Dial callerId="${voiceNumber}" timeout="30">${to_phone}</Dial></Response>`;
-
-    const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
-
-    // Inline TwiML — pass it directly so no webhook is needed
-    const callParams = new URLSearchParams({
-      To: to_phone,
-      From: voiceNumber,
-      Twiml: twiml,
-      StatusCallback: statusCb,
-      StatusCallbackEvent: 'initiated ringing answered completed',
-      StatusCallbackMethod: 'POST',
-    });
-
-    if (recordCalls) {
-      callParams.set('Record', 'true');
-      callParams.set('RecordingStatusCallback', recordCb);
-      callParams.set('RecordingStatusCallbackMethod', 'POST');
-    }
-
-    console.log(`[twilioMakeCall] Calling customer ${to_phone} directly from ${voiceNumber}`);
-
-    const twRes = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: authHeader,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: callParams,
-      }
-    );
-
-    const twData = await twRes.json();
-    console.log(`[twilioMakeCall] Twilio response: ${twRes.status}`, JSON.stringify(twData));
-
-    if (!twRes.ok) {
-      await base44.asServiceRole.entities.CallLog.update(callLog.id, { status: 'failed' });
-      return Response.json({ error: twData?.message || `Twilio API error: ${twRes.status}` }, { status: 500 });
-    }
-
-    await base44.asServiceRole.entities.CallLog.update(callLog.id, {
-      twilio_call_sid: twData.sid,
-      status: twData.status || 'queued',
-    });
+    console.log(`[twilioMakeCall] Created call log for browser call to ${to_phone} from ${voiceNumber}`);
 
     return Response.json({
       ok: true,
-      call_sid: twData.sid,
       call_log_id: callLog.id,
       customer_phone: to_phone,
     });

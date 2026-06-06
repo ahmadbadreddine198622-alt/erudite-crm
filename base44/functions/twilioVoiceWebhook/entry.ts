@@ -33,10 +33,16 @@ Deno.serve(async (req) => {
       const callSid = form.get('CallSid');
       const status = form.get('CallStatus');
       const duration = form.get('CallDuration');
-      const callLogId = url.searchParams.get('call_log_id');
+      let callLogId = url.searchParams.get('call_log_id');
+
+      // Find by callSid if no callLogId
+      if (!callLogId && callSid) {
+        const logs = await base44.asServiceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
+        if (logs?.[0]) callLogId = logs[0].id;
+      }
 
       if (callLogId) {
-        const update = { status };
+        const update = { status, twilio_call_sid: callSid || undefined };
         if (duration) update.duration_seconds = parseInt(duration, 10);
         if (['completed', 'failed', 'busy', 'no-answer'].includes(status)) {
           update.ended_at = new Date().toISOString();
@@ -86,6 +92,8 @@ Deno.serve(async (req) => {
   try {
     let formTo = '';
     let formCallLogId = '';
+    let formLeadId = '';
+    let formLeadName = '';
     try {
       const contentType = req.headers.get('content-type') || '';
       if (contentType.includes('application/x-www-form-urlencoded')) {
@@ -93,11 +101,15 @@ Deno.serve(async (req) => {
         const p = new URLSearchParams(text);
         formTo = p.get('To') || '';
         formCallLogId = p.get('call_log_id') || '';
+        formLeadId = p.get('lead_id') || '';
+        formLeadName = p.get('lead_name') || '';
       }
     } catch (_) {}
 
     const to = formTo || url.searchParams.get('To') || '';
-    const callLogId = url.searchParams.get('call_log_id') || formCallLogId || '';
+    let callLogId = url.searchParams.get('call_log_id') || formCallLogId || '';
+    const leadId = formLeadId || url.searchParams.get('lead_id') || '';
+    const leadName = formLeadName || url.searchParams.get('lead_name') || '';
 
     // If no To — this is an outbound-API call hitting the Voice URL. Just return empty TwiML.
     if (!to) {
@@ -106,23 +118,49 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Create CallLog if not already created by twilioMakeCall
+    let agentEmail = '';
+    try {
+      const user = await base44.auth.me();
+      agentEmail = user?.email || '';
+    } catch (_) {}
+
+    if (!callLogId) {
+      const { voiceNumber } = await getCreds(serviceRole);
+      const newLog = await serviceRole.entities.CallLog.create({
+        lead_id: leadId || null,
+        direction: 'outbound',
+        from_number: voiceNumber || '',
+        to_number: to,
+        agent_email: agentEmail,
+        status: 'queued',
+        started_at: new Date().toISOString(),
+        twilio_number_used: voiceNumber || '',
+      });
+      callLogId = newLog.id;
+    }
+
     const { voiceNumber, recordCalls } = await getCreds(serviceRole);
 
     const origin = url.origin;
     const statusCb = `${origin}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLogId}`;
     const recordCb = `${origin}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLogId}`;
 
+    const recordAttr = recordCalls
+      ? ` recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
+      : '';
+
+    // No action attribute - status tracked via StatusCallback on <Number> only
     const dialAttrs = [
       `callerId="${voiceNumber || ''}"`,
       `timeout="30"`,
-      `action="${statusCb}"`,
-      recordCalls ? `record="record-from-answer-dual" recordingStatusCallback="${recordCb}"` : '',
+      recordAttr.trim(),
     ].filter(Boolean).join(' ');
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial ${dialAttrs}>
-    <Number statusCallback="${statusCb}" statusCallbackEvent="completed">${to}</Number>
+    <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${to}</Number>
   </Dial>
 </Response>`;
 
