@@ -103,9 +103,15 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
     setErrorMsg('');
 
     try {
-      // 1. Try to get browser voice token
-      const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
-      const tokenData = tokenRes.data;
+      // 1. Try to get browser voice token (may fail if SDK not configured)
+      let tokenData = null;
+      try {
+        const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
+        tokenData = tokenRes.data;
+      } catch (_tokenErr) {
+        // Token fetch failed — fall through to server-side call
+        tokenData = { browser_calling_unavailable: true };
+      }
 
       // ── Fallback: browser SDK not configured → use server-side call ──────
       if (tokenData?.browser_calling_unavailable || !tokenData?.token) {
@@ -119,7 +125,7 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
         });
         if (callRes.data?.ok) {
           setPhase('server_call');
-          toast.success('Call initiated — your Twilio number will bridge to ' + dialTo);
+          toast.success('Call initiated — Twilio is dialing ' + dialTo);
         } else {
           throw new Error(callRes.data?.error || 'Call failed');
         }
