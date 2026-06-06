@@ -1,0 +1,53 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord entity"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Digits-only normalized number, e.g. 971544661177 (no +, no @s.whatsapp.net)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "incoming",
+        "outgoing"
+      ],
+      "description": "incoming = landlord sent, outgoing = agent sent"
+    },
+    "text": {
+      "type": "string",
+      "description": "Message body text"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was sent/received"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "read",
+        "received"
+      ],
+      "default": "sent",
+      "description": "Message delivery status"
+    },
+    "wa_message_id": {
+      "type": "string",
+      "description": "WhatsApp message ID \u2014 used for deduplication"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "phone",
+    "direction",
+    "text",
+    "timestamp"
+  ]
+}
