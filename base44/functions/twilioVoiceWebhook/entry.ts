@@ -8,8 +8,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Also handles status callbacks to update CallLog.
  */
 
-async function getCreds(base44) {
-  const list = await base44.asServiceRole.entities.TwilioCredential.list();
+async function getCreds(serviceRole) {
+  const list = await serviceRole.entities.TwilioCredential.list();
   const c = list?.[0];
   return {
     sid: c?.account_sid || Deno.env.get('TWILIO_SID'),
@@ -20,7 +20,9 @@ async function getCreds(base44) {
 }
 
 Deno.serve(async (req) => {
+  // Twilio calls this without Base44 auth headers — always use asServiceRole
   const base44 = createClientFromRequest(req);
+  const serviceRole = base44.asServiceRole;
   const url = new URL(req.url);
   const type = url.searchParams.get('type') || 'dial';
 
@@ -86,7 +88,7 @@ Deno.serve(async (req) => {
     const to = form.get('To') || url.searchParams.get('To') || '';
     const callLogId = url.searchParams.get('call_log_id') || form.get('call_log_id') || '';
 
-    const { sid, token, voiceNumber, recordCalls } = await getCreds(base44);
+    const { sid, token, voiceNumber, recordCalls } = await getCreds(serviceRole);
     if (!to) {
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Missing destination number.</Say></Response>`, {
         headers: { 'Content-Type': 'text/xml' },

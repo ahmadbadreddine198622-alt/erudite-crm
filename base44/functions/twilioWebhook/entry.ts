@@ -1,16 +1,17 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Twilio webhook router. Handles three event types via ?type= query:
- *   - bridge   → returns TwiML to dial the lead's number after agent answers
- *   - status   → updates CallLog status (ringing/in-progress/completed)
- *   - recording → fetches recording URL + kicks off transcription
- *   - sms      → inbound SMS → create Activity + Lead if new
+ * Twilio webhook router. Handles event types via ?type= query:
+ *   - bridge     → TwiML to dial the lead's number after agent answers
+ *   - status     → updates CallLog status
+ *   - recording  → saves recording URL to CallLog + Activity
+ *   - sms        → inbound SMS → create Activity
  *
- * No client auth — Twilio signs the request; we validate the X-Twilio-Signature.
+ * NOTE: Twilio calls this webhook WITHOUT Base44 auth headers.
+ * We must use asServiceRole for all DB operations.
  */
 
-function twimlBridge(to: string, record: boolean) {
+function twimlBridge(to, record) {
   const recordAttr = record ? ' record="record-from-answer-dual"' : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -19,54 +20,56 @@ function twimlBridge(to: string, record: boolean) {
 </Response>`;
 }
 
-async function handleStatus(base44: any, params: any, call_log_id: string | null) {
+async function handleStatus(serviceRole, params, call_log_id) {
   const status = params.get('CallStatus');
   const callSid = params.get('CallSid');
   const duration = parseInt(params.get('CallDuration') || '0', 10);
 
-  if (!call_log_id) {
-    const matches = await base44.asServiceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
-    if (matches?.[0]) call_log_id = matches[0].id;
+  let logId = call_log_id;
+  if (!logId && callSid) {
+    const matches = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
+    if (matches?.[0]) logId = matches[0].id;
   }
-  if (!call_log_id) return;
+  if (!logId) return;
 
-  const update: any = { status };
+  const update = { status };
   if (status === 'completed') {
     update.ended_at = new Date().toISOString();
-    update.duration_seconds = duration;
+    if (duration) update.duration_seconds = duration;
   }
-  await base44.asServiceRole.entities.CallLog.update(call_log_id, update);
+  await serviceRole.entities.CallLog.update(logId, update);
 }
 
-async function handleRecording(base44: any, params: any, call_log_id: string | null) {
+async function handleRecording(serviceRole, params, call_log_id) {
   const recordingUrl = params.get('RecordingUrl');
   const callSid = params.get('CallSid');
   if (!recordingUrl) return;
 
+  let logId = call_log_id;
   let callLog = null;
-  if (!call_log_id) {
-    const matches = await base44.asServiceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
-    if (matches?.[0]) { call_log_id = matches[0].id; callLog = matches[0]; }
-  } else {
-    const logs = await base44.asServiceRole.entities.CallLog.filter({ id: call_log_id });
+
+  if (!logId && callSid) {
+    const matches = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
+    if (matches?.[0]) { logId = matches[0].id; callLog = matches[0]; }
+  } else if (logId) {
+    const logs = await serviceRole.entities.CallLog.filter({ id: logId });
     callLog = logs?.[0] || null;
   }
-  if (!call_log_id) return;
+  if (!logId) return;
 
   const mp3Url = `${recordingUrl}.mp3`;
-  await base44.asServiceRole.entities.CallLog.update(call_log_id, { recording_url: mp3Url });
+  await serviceRole.entities.CallLog.update(logId, { recording_url: mp3Url });
 
-  // Backfill the Activity record with the recording URL
+  // Backfill Activity with recording link
   if (callLog?.lead_id) {
     try {
-      const activities = await base44.asServiceRole.entities.Activity.filter({
+      const activities = await serviceRole.entities.Activity.filter({
         lead_id: callLog.lead_id,
         type: 'call',
       });
-      // Find the activity linked to this call log
-      const activity = activities?.find(a => a.metadata?.call_log_id === call_log_id);
+      const activity = activities?.find(a => a.metadata?.call_log_id === logId);
       if (activity) {
-        await base44.asServiceRole.entities.Activity.update(activity.id, {
+        await serviceRole.entities.Activity.update(activity.id, {
           description: (activity.description || '') + `\n\n🎙️ [Listen to recording](${mp3Url})`,
           attachments: [
             ...(activity.attachments || []),
@@ -78,35 +81,33 @@ async function handleRecording(base44: any, params: any, call_log_id: string | n
     } catch (_) { /* non-fatal */ }
   }
 
-  // Trigger AI processing (transcribe + summarize) asynchronously
+  // Trigger transcription asynchronously
   try {
-    await base44.functions.processVoiceMessage({
-      call_log_id,
+    await serviceRole.functions.invoke('processVoiceMessage', {
+      call_log_id: logId,
       recording_url: mp3Url
     });
-  } catch (_) { /* non-fatal */ }
+  } catch (_) {}
 }
 
-async function handleInboundSMS(base44: any, params: any) {
+async function handleInboundSMS(serviceRole, params) {
   const from = params.get('From');
   const body = params.get('Body');
   if (!from || !body) return Response.json({ ok: true });
 
-  // Match lead by phone
-  const leads = await base44.asServiceRole.entities.Lead.filter({ phone: from });
+  const leads = await serviceRole.entities.Lead.filter({ phone: from });
   let lead = leads?.[0];
 
   if (!lead) {
-    lead = await base44.asServiceRole.entities.Lead.create({
+    lead = await serviceRole.entities.Lead.create({
       name: `SMS from ${from}`,
       phone: from,
       source: 'sms',
       stage: 'new',
-      created_date: new Date().toISOString()
     });
   }
 
-  await base44.asServiceRole.entities.Activity.create({
+  await serviceRole.entities.Activity.create({
     lead_id: lead.id,
     type: 'sms',
     direction: 'inbound',
@@ -116,7 +117,6 @@ async function handleInboundSMS(base44: any, params: any) {
     source: 'twilio'
   });
 
-  // Auto-reply TwiML (optional)
   return new Response(
     `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
     { headers: { 'Content-Type': 'text/xml' } }
@@ -134,7 +134,9 @@ Deno.serve(async (req) => {
       ? new URLSearchParams(await req.text())
       : new URLSearchParams();
 
+    // Twilio webhooks don't carry Base44 auth — use service role directly
     const base44 = createClientFromRequest(req);
+    const serviceRole = base44.asServiceRole;
 
     if (type === 'bridge') {
       const to = url.searchParams.get('to');
@@ -146,21 +148,21 @@ Deno.serve(async (req) => {
     }
 
     if (type === 'status') {
-      await handleStatus(base44, params, call_log_id);
+      await handleStatus(serviceRole, params, call_log_id);
       return Response.json({ ok: true });
     }
 
     if (type === 'recording') {
-      await handleRecording(base44, params, call_log_id);
+      await handleRecording(serviceRole, params, call_log_id);
       return Response.json({ ok: true });
     }
 
     if (type === 'sms') {
-      return await handleInboundSMS(base44, params);
+      return await handleInboundSMS(serviceRole, params);
     }
 
     return Response.json({ error: 'unknown type' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('twilioWebhook error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
