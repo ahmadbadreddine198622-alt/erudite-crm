@@ -40,6 +40,7 @@ import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
+import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -885,13 +886,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-6 mb-5">
+            <TabsList className="grid w-full grid-cols-7 mb-5">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
               <TabsTrigger value="messages" className="text-xs">Messages</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
+              <TabsTrigger value="intelligence" className="text-xs">Intel</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -1085,6 +1087,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
             <TabsContent value="messages">
               <LandlordWhatsAppThread landlord={landlord} />
+            </TabsContent>
+
+            <TabsContent value="intelligence">
+              <LandlordIntelligenceTab landlord={landlord} />
             </TabsContent>
           </Tabs>
         </div>
