@@ -141,6 +141,13 @@ Deno.serve(async (req) => {
 
   console.log(`[evolutionWebhook] Created Message ${message.id} (landlord ${landlord ? landlord.id : 'none'})`);
 
+  // Fire-and-forget AI analysis trigger (matched landlords only). NOT awaited:
+  // message save already succeeded above; analysis runs separately and is
+  // debounced inside analyzeLandlordConversation. Never blocks/fails the webhook.
+  if (landlord) {
+    serviceRole.functions.invoke('analyzeLandlordConversation', { landlord_id: landlord.id }).catch(() => {});
+  }
+
   return Response.json({
     status: 'ok',
     matched: !!landlord,
