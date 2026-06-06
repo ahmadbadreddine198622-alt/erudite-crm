@@ -58,14 +58,21 @@ Deno.serve(async (req) => {
     try {
       const form = await req.formData();
       const recordingUrl = form.get('RecordingUrl');
-      const callLogId = url.searchParams.get('call_log_id');
+      const callSid = form.get('CallSid');
+      let callLogId = url.searchParams.get('call_log_id');
+
+      // Find by callSid if no callLogId
+      if (!callLogId && callSid) {
+        const logs = await base44.asServiceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
+        if (logs?.[0]) callLogId = logs[0].id;
+      }
+
       if (callLogId && recordingUrl) {
         const mp3Url = recordingUrl + '.mp3';
         await base44.asServiceRole.entities.CallLog.update(callLogId, { recording_url: mp3Url });
 
         // Backfill Activity with recording link
-        const logs = await base44.asServiceRole.entities.CallLog.filter({ id: callLogId });
-        const callLog = logs?.[0];
+        const callLog = await base44.asServiceRole.entities.CallLog.filter({ id: callLogId }).then(r => r?.[0]);
         if (callLog?.lead_id) {
           const activities = await base44.asServiceRole.entities.Activity.filter({
             lead_id: callLog.lead_id,
