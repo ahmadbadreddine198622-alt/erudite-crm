@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const secret = url.searchParams.get('secret') || req.headers.get('x-evolution-secret') || '';
   const expectedSecret = Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || '';
-  if (expectedSecret && secret !== expectedSecret) {
+  if (!expectedSecret || secret !== expectedSecret) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
