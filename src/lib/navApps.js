@@ -4,7 +4,7 @@
  */
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, MessageCircle, Inbox, BarChart3, UserCheck, FileSignature,
+  Bell, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
   Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
@@ -19,6 +19,7 @@ export const ALL_APPS = [
   { label: 'Projects',           icon: FolderOpen,     path: '/projects',            gradient: 'from-teal-500 to-teal-800',        glowColor: 'rgba(20,184,166,0.40)' },
   { label: 'WhatsApp',           icon: MessageCircle,  path: '/whatsapp',            gradient: 'from-green-500 to-green-800',      glowColor: 'rgba(34,197,94,0.40)', badgeKey: 'whatsapp' },
   { label: 'Inbox',              icon: Inbox,          path: '/inbox',               gradient: 'from-blue-600 to-indigo-800',      glowColor: 'rgba(99,102,241,0.40)' },
+  { label: 'Messages',           icon: MessageSquare,  path: '/messages',            gradient: 'from-green-600 to-emerald-800',    glowColor: 'rgba(16,185,129,0.40)' },
   { label: 'Reminders',          icon: Bell,           path: '/reminders',           gradient: 'from-rose-500 to-red-700',         glowColor: 'rgba(244,63,94,0.40)', badgeKey: 'reminders' },
   { label: 'Analytics',          icon: BarChart3,      path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800',   glowColor: 'rgba(168,85,247,0.40)' },
   { label: 'Sales Analytics',    icon: BarChart3,      path: '/sales-analytics',     gradient: 'from-pink-500 to-rose-700',        glowColor: 'rgba(236,72,153,0.40)' },
