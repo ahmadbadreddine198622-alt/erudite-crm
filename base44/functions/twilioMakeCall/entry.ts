@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
     // TwiML for agent leg: join conference
     const agentTwiml = `<Response><Say>Connecting your call now.</Say><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="true" beep="false"${recordAttrs}>${confName}</Conference></Dial></Response>`;
 
-    // TwiML for customer leg: join same conference (waits for agent)
-    const customerTwiml = `<Response><Dial><Conference startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${confName}</Conference></Dial></Response>`;
+    // TwiML for customer leg: join same conference (no hold music, no beep)
+    const customerTwiml = `<Response><Dial><Conference startConferenceOnEnter="false" endConferenceOnExit="true" beep="false" waitUrl="">${confName}</Conference></Dial></Response>`;
 
     const callBody = new URLSearchParams({
       StatusCallback: statusCallback,
