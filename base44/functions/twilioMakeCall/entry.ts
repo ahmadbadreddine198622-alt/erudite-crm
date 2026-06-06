@@ -69,12 +69,13 @@ Deno.serve(async (req) => {
     const statusCb = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
     const recordCb = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
 
-    // Build TwiML inline — simple direct dial, no nested attributes
+    // Build TwiML inline — no action attribute, status tracked via StatusCallback only
     const recordAttr = recordCalls
-      ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
+      ? ` recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
       : '';
 
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Dial callerId="${voiceNumber}" timeout="30"${recordAttr} action="${statusCb}" method="POST">${to_phone}</Dial></Response>`;
+    // No record="..." on <Dial> — use StatusCallback at the call level instead
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Dial callerId="${voiceNumber}" timeout="30">${to_phone}</Dial></Response>`;
 
     const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
 
@@ -87,6 +88,12 @@ Deno.serve(async (req) => {
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
     });
+
+    if (recordCalls) {
+      callParams.set('Record', 'true');
+      callParams.set('RecordingStatusCallback', recordCb);
+      callParams.set('RecordingStatusCallbackMethod', 'POST');
+    }
 
     console.log(`[twilioMakeCall] Calling customer ${to_phone} directly from ${voiceNumber}`);
 
