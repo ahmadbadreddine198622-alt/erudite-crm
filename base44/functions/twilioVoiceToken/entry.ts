@@ -1,19 +1,18 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-
-/**
- * Mint a short-lived access token so the browser Twilio Voice SDK can make
- * calls FROM the agent's browser (no agent phone needed). Used by the
- * BrowserCallWidget component.
- *
- * The agent calls /functions/twilioVoiceToken, gets a JWT, initializes
- * Twilio.Device with it, then can call .connect({ params: { To: leadPhone } }).
- */
-
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { createHmac } from 'node:crypto';
 
-function jwt(header: any, payload: any, secret: string) {
-  const b64 = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const data = `${b64(header)}.${b64(payload)}`;
+/**
+ * Mint a short-lived Twilio Access Token so the browser Voice SDK can place calls.
+ * Requires TwilioCredential with: account_sid, api_key_sid, api_key_secret, twiml_app_sid
+ */
+
+function b64url(obj) {
+  return btoa(JSON.stringify(obj))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function makeJwt(header, payload, secret) {
+  const data = `${b64url(header)}.${b64url(payload)}`;
   const sig = createHmac('sha256', secret).update(data).digest('base64')
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   return `${data}.${sig}`;
@@ -25,20 +24,23 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const c = (await base44.asServiceRole.entities.TwilioCredential.list())?.[0];
-    const accountSid = c?.account_sid || Deno.env.get('TWILIO_SID');
-    const apiKeySid = c?.api_key_sid || Deno.env.get('TWILIO_API_KEY_SID');
+    const list = await base44.asServiceRole.entities.TwilioCredential.list();
+    const c = list?.[0];
+    const accountSid   = c?.account_sid   || Deno.env.get('TWILIO_SID');
+    const apiKeySid    = c?.api_key_sid    || Deno.env.get('TWILIO_API_KEY_SID');
     const apiKeySecret = c?.api_key_secret || Deno.env.get('TWILIO_API_KEY_SECRET');
-    const twimlAppSid = c?.twiml_app_sid || Deno.env.get('TWILIO_TWIML_APP_SID');
+    const twimlAppSid  = c?.twiml_app_sid  || Deno.env.get('TWILIO_TWIML_APP_SID');
 
     if (!accountSid || !apiKeySid || !apiKeySecret || !twimlAppSid) {
-      return Response.json({ error: 'Twilio Voice SDK not configured (need api_key_sid, api_key_secret, twiml_app_sid)' }, { status: 500 });
+      return Response.json({
+        error: 'Twilio Voice SDK not fully configured. Need account_sid, api_key_sid, api_key_secret, twiml_app_sid in TwilioCredential.'
+      }, { status: 500 });
     }
 
-    const identity = user.email.replace(/[^a-z0-9_-]/gi, '_');
+    const identity = user.email.replace(/[^a-z0-9_\-]/gi, '_');
     const now = Math.floor(Date.now() / 1000);
 
-    const token = jwt(
+    const token = makeJwt(
       { alg: 'HS256', typ: 'JWT', cty: 'twilio-fpa;v=1' },
       {
         jti: `${apiKeySid}-${now}`,
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
     );
 
     return Response.json({ token, identity, ttl: 3600 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('twilioVoiceToken error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -36,7 +36,7 @@ function PhoneNumberCard({ number }) {
 }
 
 function ConnectionSetup({ onSaved }) {
-  const [form, setForm] = useState({ account_sid: '', auth_token: '', voice_number: '', sms_number: '', label: 'Main Account', record_calls: true });
+  const [form, setForm] = useState({ account_sid: '', auth_token: '', voice_number: '', sms_number: '', label: 'Main Account', record_calls: true, api_key_sid: '', api_key_secret: '', twiml_app_sid: '' });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -87,9 +87,21 @@ function ConnectionSetup({ onSaved }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {field('account_sid', 'Account SID *', 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')}
           {field('auth_token', 'Auth Token *', 'Your Twilio Auth Token', 'password')}
-          {field('voice_number', 'Default Voice Number', '+971XXXXXXXXX')}
+          {field('voice_number', 'Default Voice Number (CallerID)', '+971XXXXXXXXX')}
           {field('sms_number', 'Default SMS Number', '+971XXXXXXXXX')}
           {field('label', 'Label', 'e.g. Dubai Office')}
+        </div>
+
+        <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <p className="text-xs font-semibold text-indigo-300">🎧 Browser Dialer (required for in-browser audio calls)</p>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Create an API Key at <a href="https://console.twilio.com/us1/account/keys-credentials/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">Twilio Console → API Keys</a> and a TwiML App at <a href="https://console.twilio.com/us1/develop/voice/manage/twiml-apps" target="_blank" rel="noopener noreferrer" className="text-accent underline">TwiML Apps</a> — set its Voice URL to your <code className="text-xs bg-white/10 px-1 rounded">/functions/twilioVoiceWebhook</code> endpoint.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {field('api_key_sid', 'API Key SID', 'SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')}
+            {field('api_key_secret', 'API Key Secret', 'Your API Key Secret', 'password')}
+            {field('twiml_app_sid', 'TwiML App SID', 'APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <input

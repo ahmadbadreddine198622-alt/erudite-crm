@@ -1,21 +1,21 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Server-side click-to-call. Initiates a Twilio call FROM the agent's phone
- * (registered on the user record) TO the lead — Twilio bridges the two.
+ * Two modes:
+ * 1. browser_mode=true  → only creates a CallLog + Activity (browser SDK places the actual call)
+ * 2. browser_mode=false → server-side click-to-call (Twilio REST dials agent phone then bridges)
  *
- * Body: { lead_id, to_phone, from_phone?, lead_name? }
- * Returns: { call_sid, call_log_id }
+ * Body: { lead_id, to_phone, from_phone, lead_name, browser_mode? }
  */
 
-async function getCreds(base44: any) {
+async function getCreds(base44) {
   const list = await base44.asServiceRole.entities.TwilioCredential.list();
   const c = list?.[0];
   return {
     sid: c?.account_sid || Deno.env.get('TWILIO_SID'),
     token: c?.auth_token || Deno.env.get('TWILIO_TOKEN'),
     voiceNumber: c?.voice_number || Deno.env.get('TWILIO_VOICE_NUMBER'),
-    recordCalls: c?.record_calls ?? true
+    recordCalls: c?.record_calls ?? true,
   };
 }
 
@@ -25,54 +25,72 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { lead_id, to_phone, from_phone, lead_name } = await req.json();
+    const body = await req.json();
+    const { lead_id, to_phone, from_phone, lead_name, browser_mode } = body;
     if (!to_phone) return Response.json({ error: 'to_phone required' }, { status: 400 });
 
+    // Pre-create the CallLog
+    const callLog = await base44.asServiceRole.entities.CallLog.create({
+      lead_id: lead_id || null,
+      direction: 'outbound',
+      from_number: from_phone || '',
+      to_number: to_phone,
+      agent_email: user.email,
+      status: 'queued',
+      started_at: new Date().toISOString(),
+    });
+
+    // Log activity
+    if (lead_id) {
+      try {
+        await base44.asServiceRole.entities.Activity.create({
+          lead_id,
+          type: 'call',
+          title: `Outbound call to ${lead_name || to_phone}`,
+          description: browser_mode ? 'Call initiated via browser dialer' : 'Call initiated via Twilio click-to-call',
+          source: 'twilio',
+          agent_email: user.email,
+          metadata: { call_log_id: callLog.id }
+        });
+      } catch (_) {}
+    }
+
+    // Browser mode: return the log ID so the SDK can reference it
+    if (browser_mode) {
+      return Response.json({ ok: true, call_log_id: callLog.id });
+    }
+
+    // ── Server-side REST call (legacy) ──────────────────────────────────────
     const { sid, token, voiceNumber, recordCalls } = await getCreds(base44);
     if (!sid || !token || !voiceNumber) {
       return Response.json({ error: 'Twilio not configured' }, { status: 500 });
     }
 
-    // Agent phone — fallback to Twilio number if not on profile
     const agentPhone = from_phone || user.phone || voiceNumber;
-
-    // Pre-create the CallLog so the webhook can find it via call_sid update later
-    const callLog = await base44.asServiceRole.entities.CallLog.create({
-      lead_id,
-      direction: 'outbound',
-      from_number: agentPhone,
-      to_number: to_phone,
-      agent_email: user.email,
-      status: 'queued',
-      started_at: new Date().toISOString()
-    });
-
-    // Twilio REST: POST /2010-04-01/Accounts/{sid}/Calls.json
-    // We use the "agent connects" pattern: Twilio dials the agent first, then bridges to the lead via TwiML
     const baseUrl = new URL(req.url).origin;
     const statusCallback = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
     const twimlUrl = `${baseUrl}/functions/twilioWebhook?type=bridge&to=${encodeURIComponent(to_phone)}&record=${recordCalls ? '1' : '0'}`;
 
-    const body = new URLSearchParams({
+    const callBody = new URLSearchParams({
       To: agentPhone,
       From: voiceNumber,
       Url: twimlUrl,
       StatusCallback: statusCallback,
       StatusCallbackEvent: 'initiated ringing answered completed',
-      StatusCallbackMethod: 'POST'
+      StatusCallbackMethod: 'POST',
     });
     if (recordCalls) {
-      body.append('Record', 'true');
-      body.append('RecordingStatusCallback', `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`);
+      callBody.append('Record', 'true');
+      callBody.append('RecordingStatusCallback', `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`);
     }
 
     const tw = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${btoa(`${sid}:${token}`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body
+      body: callBody,
     });
 
     if (!tw.ok) {
@@ -84,23 +102,8 @@ Deno.serve(async (req) => {
     const data = await tw.json();
     await base44.asServiceRole.entities.CallLog.update(callLog.id, { twilio_call_sid: data.sid });
 
-    // Log activity
-    if (lead_id) {
-      try {
-        await base44.asServiceRole.entities.Activity.create({
-          lead_id,
-          type: 'call',
-          title: `Outbound call to ${lead_name || to_phone}`,
-          description: 'Call initiated via Twilio click-to-call',
-          source: 'twilio',
-          agent_email: user.email,
-          metadata: { twilio_call_sid: data.sid, call_log_id: callLog.id }
-        });
-      } catch (_) { /* non-fatal */ }
-    }
-
     return Response.json({ ok: true, call_sid: data.sid, call_log_id: callLog.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error('twilioMakeCall error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
