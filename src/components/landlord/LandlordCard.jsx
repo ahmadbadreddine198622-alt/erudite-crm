@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
+import { useState } from 'react';
 
 const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
@@ -63,6 +64,7 @@ const STAGE_LABELS = {
 };
 
 export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [] }) {
+  const [twilioCalling, setTwilioCalling] = useState(false);
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
@@ -132,13 +134,41 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     onError: (err) => toast.error('Delete failed: ' + (err?.message || 'unknown error')),
   });
 
-  const handleCall = (e) => {
+  const handleCall = async (e) => {
     e.stopPropagation();
     if (!e164) {
       toast.error('No valid phone number');
       return;
     }
-    window.location.href = `tel:${e164}`;
+    setTwilioCalling(true);
+    try {
+      // Get first available Twilio number
+      const numsRes = await base44.functions.invoke('getTwilioNumbers', {});
+      const nums = numsRes.data?.numbers || [];
+      if (!nums.length) {
+        toast.error('No Twilio numbers configured');
+        setTwilioCalling(false);
+        return;
+      }
+      const fromPhone = nums[0].phone_number;
+
+      const res = await base44.functions.invoke('twilioMakeCall', {
+        lead_id: landlord.id,
+        to_phone: e164,
+        from_phone: fromPhone,
+        lead_name: landlord.full_name_en || landlord.full_name,
+      });
+
+      if (res.data?.ok) {
+        toast.success(`📞 Calling ${landlord.full_name_en || landlord.phone}…`);
+      } else {
+        toast.error(res.data?.error || 'Call failed');
+      }
+    } catch (err) {
+      toast.error('Call failed: ' + (err?.message || 'unknown error'));
+    } finally {
+      setTwilioCalling(false);
+    }
   };
 
   const handleWhatsApp = (e) => {
@@ -408,10 +438,15 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           <button
             type="button"
             onClick={handleCall}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
-            title="Call"
+            disabled={twilioCalling || !e164}
+            className="flex items-center justify-center w-5 h-5 rounded hover:bg-blue-500/15 transition-colors disabled:opacity-40"
+            title={e164 ? 'Call via Twilio' : 'No phone number'}
+            style={{ color: twilioCalling ? '#60a5fa' : '#3b82f6' }}
           >
-            <Phone className="w-2.5 h-2.5" />
+            {twilioCalling
+              ? <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              : <Phone className="w-2.5 h-2.5" />
+            }
           </button>
           <button
             type="button"

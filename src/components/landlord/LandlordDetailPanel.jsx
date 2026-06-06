@@ -606,6 +606,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span>{landlord.phone || 'No phone'}</span>
+              {landlord.phone && (
+                <TwilioCallDialog
+                  lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
+                  size="sm"
+                  iconOnly={false}
+                />
+              )}
             </div>
             {landlord.additional_phones && landlord.additional_phones.length > 0 && (
               <div className="space-y-2 pl-6">
