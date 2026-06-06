@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Proper two-leg bridge call:
- * 1. Twilio calls agent's real phone number
- * 2. When agent picks up, twilioMakeBridge webhook fires → dials customer → bridges audio
+ * Direct outbound call: Twilio dials the customer directly.
+ * No bridge, no agent phone needed.
+ * The TwiML URL simply dials the customer — Twilio connects the call.
  *
  * Body: { lead_id, to_phone, from_phone, lead_name }
  */
@@ -30,17 +30,13 @@ Deno.serve(async (req) => {
     const accountSid = c?.account_sid;
     const authToken = c?.auth_token;
     const voiceNumber = c?.voice_number || from_phone;
-    const agentPhone = c?.agent_phone;
     const recordCalls = c?.record_calls ?? true;
 
     if (!accountSid || !authToken) {
       return Response.json({ error: 'Twilio not configured. Go to Twilio Hub → Settings.' }, { status: 400 });
     }
-    if (!agentPhone) {
-      return Response.json({ error: 'Agent phone not set. Go to Twilio Hub → Settings and enter your real mobile number (e.g. +971501234567).' }, { status: 400 });
-    }
-    if (agentPhone === voiceNumber) {
-      return Response.json({ error: 'Agent phone cannot be the same as your Twilio number (+' + voiceNumber + '). Enter your personal mobile number in Twilio Hub → Settings.' }, { status: 400 });
+    if (!voiceNumber) {
+      return Response.json({ error: 'No voice number configured. Go to Twilio Hub → Settings.' }, { status: 400 });
     }
 
     // Pre-create call log
@@ -69,26 +65,35 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    // Build URLs
     const baseUrl = new URL(req.url).origin;
     const statusCb = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
-    // When agent picks up their phone, twilioMakeBridge fires and dials the customer
-    const bridgeUrl = `${baseUrl}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(voiceNumber)}&log=${callLog.id}&base=${encodeURIComponent(baseUrl)}&record=${recordCalls}`;
+    const recordCb = `${baseUrl}/functions/twilioWebhook?type=recording&call_log_id=${callLog.id}`;
+
+    // Build TwiML inline — dials the customer directly, no bridge
+    const recordAttr = recordCalls
+      ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
+      : '';
+
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${voiceNumber}" timeout="30" timeLimit="14400"${recordAttr} action="${statusCb}" method="POST">
+    <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${to_phone}</Number>
+  </Dial>
+</Response>`;
 
     const authHeader = `Basic ${btoa(`${accountSid}:${authToken}`)}`;
 
-    // Step 1: Call the agent's real phone. On answer → execute bridgeUrl TwiML
+    // Inline TwiML — pass it directly so no webhook is needed
     const callParams = new URLSearchParams({
-      To: agentPhone,
+      To: to_phone,
       From: voiceNumber,
-      Url: bridgeUrl,                              // TwiML served by twilioMakeBridge
-      Method: 'GET',
+      Twiml: twiml,
       StatusCallback: statusCb,
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
     });
 
-    console.log(`[twilioMakeCall] Calling agent ${agentPhone} → will bridge to customer ${to_phone}`);
+    console.log(`[twilioMakeCall] Calling customer ${to_phone} directly from ${voiceNumber}`);
 
     const twRes = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json`,
@@ -119,7 +124,6 @@ Deno.serve(async (req) => {
       ok: true,
       call_sid: twData.sid,
       call_log_id: callLog.id,
-      agent_phone: agentPhone,
       customer_phone: to_phone,
     });
 
