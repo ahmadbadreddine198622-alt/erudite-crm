@@ -120,16 +120,17 @@ Deno.serve(async (req) => {
   // Match landlord across all three phone fields
   const landlord = await findLandlordByPhone(serviceRole, digitsPhone);
 
-  if (!landlord) {
-    console.log(`[evolutionWebhook] No landlord matched for phone ${digitsPhone}`);
-    return Response.json({ status: 'no_landlord_match', phone: digitsPhone });
+  // No-match is no longer a drop: we still record the message with landlord_id=null
+  // so it shows in the global inbox as "Unmatched". Matching logic above is unchanged.
+  if (landlord) {
+    console.log(`[evolutionWebhook] Matched landlord ${landlord.id} (${landlord.full_name_en})`);
+  } else {
+    console.log(`[evolutionWebhook] No landlord matched for phone ${digitsPhone} — recording as Unmatched`);
   }
 
-  console.log(`[evolutionWebhook] Matched landlord ${landlord.id} (${landlord.full_name_en})`);
-
-  // Create Message record
+  // Create a Message record for EVERY incoming message (matched or not).
   const message = await serviceRole.entities.Message.create({
-    landlord_id: landlord.id,
+    landlord_id: landlord ? landlord.id : null,
     phone: digitsPhone,
     direction: 'incoming',
     text,
@@ -138,12 +139,13 @@ Deno.serve(async (req) => {
     wa_message_id: waMessageId || null,
   });
 
-  console.log(`[evolutionWebhook] Created Message ${message.id} for landlord ${landlord.id}`);
+  console.log(`[evolutionWebhook] Created Message ${message.id} (landlord ${landlord ? landlord.id : 'none'})`);
 
   return Response.json({
     status: 'ok',
+    matched: !!landlord,
     message_id: message.id,
-    landlord_id: landlord.id,
-    landlord_name: landlord.full_name_en,
+    landlord_id: landlord ? landlord.id : null,
+    landlord_name: landlord ? landlord.full_name_en : null,
   });
 });
