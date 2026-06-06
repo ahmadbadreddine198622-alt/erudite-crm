@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate } from 'lucide-react';
+import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CommentsThread from "@/components/photography/CommentsThread";
 
 const STAGE_LABELS = {
@@ -322,6 +323,11 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             </div>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
+            <TwilioCallDialog
+              lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
+              size="icon"
+              iconOnly
+            />
             <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
               <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
             </Button>
