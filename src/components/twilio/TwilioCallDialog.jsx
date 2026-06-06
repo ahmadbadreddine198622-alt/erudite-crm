@@ -2,9 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Delete } from 'lucide-react';
+import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Mic, MicOff, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+/**
+ * Browser-based Twilio Voice call dialog.
+ * Uses @twilio/voice-sdk — talks through browser mic/speaker directly.
+ * Customer's phone rings, agent speaks through computer — no agent phone needed.
+ */
 export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
   const [open, setOpen] = useState(false);
   const [numbers, setNumbers] = useState([]);
@@ -12,17 +17,16 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
   const [loadingNumbers, setLoadingNumbers] = useState(false);
   const [manualNumber, setManualNumber] = useState('');
 
-  // phase: dial | calling | active | ended
-  const [phase, setPhase] = useState('dial');
+  // phase: idle | init | calling | active | ended
+  const [phase, setPhase] = useState('idle');
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
-  const [callSid, setCallSid] = useState('');
-  const [dialPadInput, setDialPadInput] = useState('');
+  const [muted, setMuted] = useState(false);
 
+  const deviceRef = useRef(null);
+  const callRef = useRef(null);
   const timerRef = useRef(null);
-  const pollRef = useRef(null);
-  const phaseRef = useRef(phase);
-  phaseRef.current = phase;
+  const setupDoneRef = useRef(false);
 
   const targetPhone = lead?.phone || contact?.phone || '';
   const targetName = lead?.full_name || lead?.full_name_en || lead?.name || contact?.full_name || contact?.name || targetPhone;
@@ -38,7 +42,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
           setNumbers(nums);
           if (nums.length > 0) setSelectedNumber(nums[0].phone_number);
         })
-        .catch(() => toast.error('Could not load Twilio numbers'))
+        .catch(() => {})
         .finally(() => setLoadingNumbers(false));
     }
   }, [open]);
@@ -54,78 +58,150 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
-  // Poll call status to auto-detect connect/end
-  const startPolling = useCallback((sid) => {
-    clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
-      const p = phaseRef.current;
-      if (!['calling', 'active'].includes(p)) {
-        clearInterval(pollRef.current);
-        return;
-      }
-      try {
-        const res = await base44.functions.invoke('twilioGetCallStatus', { call_sid: sid });
-        const status = res.data?.status;
-        if (status === 'in-progress' && p === 'calling') {
-          setPhase('active');
-        } else if (['completed', 'failed', 'busy', 'no-answer', 'canceled'].includes(status)) {
-          clearInterval(pollRef.current);
-          setPhase('ended');
-        }
-      } catch (_) {}
-    }, 3000);
+  const destroyDevice = useCallback(() => {
+    if (callRef.current) {
+      try { callRef.current.disconnect(); } catch (_) {}
+      callRef.current = null;
+    }
+    if (deviceRef.current) {
+      try { deviceRef.current.destroy(); } catch (_) {}
+      deviceRef.current = null;
+    }
+    setupDoneRef.current = false;
   }, []);
 
   const fullReset = useCallback(() => {
+    destroyDevice();
     clearInterval(timerRef.current);
-    clearInterval(pollRef.current);
-    setPhase('dial');
+    setPhase('idle');
     setElapsed(0);
     setErrorMsg('');
-    setCallSid('');
-    setDialPadInput('');
-  }, []);
+    setMuted(false);
+  }, [destroyDevice]);
 
-  useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
+  useEffect(() => {
+    if (!open) fullReset();
+  }, [open, fullReset]);
+
+  // Pre-create call log in DB
+  const createCallLog = async (toPhone, fromPhone, agentEmail) => {
+    const callLog = await base44.asServiceRole?.entities?.CallLog?.create?.({
+      lead_id: leadId || null,
+      direction: 'outbound',
+      from_number: fromPhone,
+      to_number: toPhone,
+      agent_email: agentEmail,
+      status: 'queued',
+      started_at: new Date().toISOString(),
+      twilio_number_used: fromPhone,
+    }).catch(() => null);
+    return callLog;
+  };
 
   const handleCall = async () => {
     const dialTo = manualNumber.trim() || targetPhone;
-    if (!dialTo) return toast.error('No phone number');
-    if (!selectedNumber) return toast.error('Select a Twilio number first');
+    if (!dialTo) return toast.error('No phone number to call');
+    if (!selectedNumber) return toast.error('Select a caller ID number first');
 
-    setPhase('calling');
+    setPhase('init');
     setErrorMsg('');
 
     try {
-      const res = await base44.functions.invoke('twilioMakeCall', {
-        lead_id: leadId,
-        to_phone: dialTo,
-        from_phone: selectedNumber,
-        lead_name: targetName,
-      });
+      // Get browser voice token from backend
+      const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
+      const tokenData = tokenRes.data;
 
-      const data = res.data;
-      if (!data?.ok) {
-        setErrorMsg(data?.error || 'Call failed');
-        setPhase('dial');
+      if (tokenData?.browser_calling_unavailable) {
+        setErrorMsg('Browser calling not configured. Go to Twilio Hub → Settings and fill in API Key SID, API Key Secret, and TwiML App SID.');
+        setPhase('idle');
+        return;
+      }
+      if (!tokenData?.token) {
+        setErrorMsg(tokenData?.error || 'Could not get voice token');
+        setPhase('idle');
         return;
       }
 
-      setCallSid(data.call_sid || '');
-      if (data.call_sid) startPolling(data.call_sid);
+      // Dynamically import the Twilio Voice SDK
+      const { Device } = await import('@twilio/voice-sdk');
+
+      // Destroy any previous device
+      destroyDevice();
+
+      const device = new Device(tokenData.token, {
+        logLevel: 1,
+        codecPreferences: ['opus', 'pcmu'],
+        sounds: {}, // no built-in sounds
+      });
+
+      deviceRef.current = device;
+
+      await device.register();
+
+      // Create call log
+      let callLogId = null;
+      try {
+        const res = await base44.functions.invoke('twilioMakeCall', {
+          lead_id: leadId,
+          to_phone: dialTo,
+          from_phone: selectedNumber,
+          lead_name: targetName,
+          browser_mode: true,
+        });
+        callLogId = res.data?.call_log_id;
+      } catch (_) {}
+
+      setPhase('calling');
+
+      // Place outgoing call through browser SDK
+      const call = await device.connect({
+        params: {
+          To: dialTo,
+          CallerId: selectedNumber,
+          call_log_id: callLogId || '',
+        },
+      });
+
+      callRef.current = call;
+
+      call.on('ringing', () => setPhase('calling'));
+      call.on('accept', () => setPhase('active'));
+      call.on('disconnect', () => {
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('cancel', () => {
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('error', (err) => {
+        console.error('Twilio call error:', err);
+        setErrorMsg(err?.message || 'Call error');
+        setPhase('ended');
+        destroyDevice();
+      });
 
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || 'Failed to place call';
-      setErrorMsg(msg);
-      setPhase('dial');
+      console.error('handleCall error:', err);
+      setErrorMsg(err?.message || 'Failed to place call');
+      setPhase('idle');
+      destroyDevice();
     }
   };
 
-  const handleHangup = async () => {
-    clearInterval(pollRef.current);
+  const handleHangup = () => {
+    if (callRef.current) {
+      try { callRef.current.disconnect(); } catch (_) {}
+    }
     setPhase('ended');
-    if (callSid) {
-      base44.functions.invoke('twilioHangupCall', { call_sid: callSid }).catch(() => {});
+    destroyDevice();
+  };
+
+  const toggleMute = () => {
+    if (callRef.current) {
+      const next = !muted;
+      callRef.current.mute(next);
+      setMuted(next);
     }
   };
 
@@ -139,25 +215,27 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
-      if (!v && ['calling', 'active'].includes(phase)) return;
+      if (!v && ['init', 'calling', 'active'].includes(phase)) return; // block close during call
       setOpen(v);
     }}>
       <button
         onClick={() => setOpen(true)}
-        disabled={!targetPhone && !manualNumber}
         title={`Call ${targetName}`}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-40"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95"
         style={{ background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)' }}
       >
         <Phone className="w-3 h-3" />
         {!iconOnly && 'Call'}
       </button>
 
-      <DialogContent className="p-0 overflow-hidden" style={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 360, borderRadius: 24 }}>
+      <DialogContent
+        className="p-0 overflow-hidden"
+        style={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
+      >
         <DialogTitle className="sr-only">Call {targetName}</DialogTitle>
 
-        {/* DIAL */}
-        {phase === 'dial' && (
+        {/* ── IDLE: dial screen ── */}
+        {phase === 'idle' && (
           <div className="p-6 space-y-5">
             <div className="text-center pt-2">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
@@ -167,26 +245,34 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               {targetName && targetName !== targetPhone && (
                 <p className="font-semibold text-white text-lg">{targetName}</p>
               )}
-              <p className="text-sm font-mono text-blue-300 mt-1">{dialTo || 'Enter number below'}</p>
+              <p className="text-sm font-mono mt-1" style={{ color: '#60a5fa' }}>
+                {dialTo || 'Enter a number below'}
+              </p>
             </div>
 
-            <input
-              type="tel"
-              placeholder="+971XXXXXXXXX"
-              value={manualNumber}
-              onChange={e => setManualNumber(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-            />
+            {/* Manual number override */}
+            {!targetPhone && (
+              <input
+                type="tel"
+                placeholder="+971XXXXXXXXX"
+                value={manualNumber}
+                onChange={e => setManualNumber(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              />
+            )}
 
+            {/* Caller ID */}
             <div>
-              <label className="text-[11px] font-medium mb-1.5 block" style={{ color: 'rgba(255,255,255,0.45)' }}>CALLER ID</label>
+              <label className="text-[11px] font-medium mb-1.5 block uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Caller ID
+              </label>
               {loadingNumbers ? (
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
                 </div>
               ) : numbers.length === 0 ? (
-                <p className="text-xs text-amber-400">No numbers found — check Twilio Hub settings.</p>
+                <p className="text-xs text-amber-400">No numbers — check Twilio Hub settings.</p>
               ) : (
                 <Select value={selectedNumber} onValueChange={setSelectedNumber}>
                   <SelectTrigger style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }}>
@@ -203,8 +289,15 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               )}
             </div>
 
+            <div className="flex items-center gap-2 text-[11px] rounded-lg px-3 py-2"
+              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: 'rgba(255,255,255,0.5)' }}>
+              <Mic className="w-3 h-3 text-emerald-400 shrink-0" />
+              Calls through your browser mic & speakers — no phone needed
+            </div>
+
             {errorMsg && (
-              <div className="text-xs text-red-300 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <div className="text-xs text-red-300 px-3 py-2 rounded-xl text-center"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 {errorMsg}
               </div>
             )}
@@ -220,7 +313,16 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
           </div>
         )}
 
-        {/* CALLING — waiting for agent to pick up */}
+        {/* ── INIT: setting up SDK ── */}
+        {phase === 'init' && (
+          <div className="px-6 py-12 flex flex-col items-center gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
+            <p className="text-white font-semibold">Setting up call…</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>Connecting to Twilio</p>
+          </div>
+        )}
+
+        {/* ── CALLING: ringing ── */}
         {phase === 'calling' && (
           <div className="px-6 py-10 flex flex-col items-center gap-5">
             <div className="relative">
@@ -230,13 +332,10 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               </div>
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/30 animate-ping" />
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-amber-400 font-bold text-sm uppercase tracking-widest">Calling…</p>
+            <div className="text-center space-y-1">
+              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">Ringing…</p>
               <p className="text-white text-xl font-bold">{targetName}</p>
               <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialTo}</p>
-              <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                📱 Your phone will ring — pick up to connect with the customer
-              </p>
             </div>
             <button onClick={handleHangup}
               className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -246,16 +345,17 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
           </div>
         )}
 
-        {/* ACTIVE — on call */}
+        {/* ── ACTIVE: on call ── */}
         {phase === 'active' && (
           <div className="flex flex-col" style={{ background: '#0a1628' }}>
-            <div className="flex flex-col items-center pt-8 pb-3 px-6 gap-2">
+            <div className="flex flex-col items-center pt-8 pb-4 px-6 gap-2">
               <div className="relative mb-1">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.45)' }}>
                   <Phone className="w-9 h-9 text-green-400" />
                 </div>
-                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-green-400 border-2" style={{ borderColor: '#0a1628' }} />
+                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-green-400 border-2"
+                  style={{ borderColor: '#0a1628' }} />
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -265,47 +365,45 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               <p className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>{dialTo}</p>
               <div className="flex items-center gap-1.5 mt-1">
                 <Clock className="w-3.5 h-3.5 text-white/40" />
-                <span className="text-xl font-mono font-bold text-white">{formatTime(elapsed)}</span>
+                <span className="text-2xl font-mono font-bold text-white">{formatTime(elapsed)}</span>
               </div>
             </div>
 
-            {/* Keypad */}
-            <div className="mx-6 mb-2 flex items-center justify-between px-4 py-2 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', minHeight: 40 }}>
-              <span className="text-lg font-mono tracking-widest text-white">
-                {dialPadInput || <span style={{ color: 'rgba(255,255,255,0.2)' }}>Keypad</span>}
-              </span>
-              {dialPadInput && (
-                <button onClick={() => setDialPadInput(p => p.slice(0, -1))}>
-                  <Delete className="w-4 h-4 text-white/60" />
+            {/* Mute + Hangup */}
+            <div className="flex items-center justify-center gap-6 pb-8 pt-2">
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={toggleMute}
+                  className="w-14 h-14 rounded-full flex items-center justify-center transition-all"
+                  style={{
+                    background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)',
+                    border: `1px solid ${muted ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                  }}>
+                  {muted ? <MicOff className="w-6 h-6 text-red-400" /> : <Mic className="w-6 h-6 text-white/70" />}
                 </button>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2 px-6 py-2">
-              {['1','2','3','4','5','6','7','8','9','*','0','#'].map(k => (
-                <button key={k} onClick={() => setDialPadInput(p => p + k)}
-                  className="h-11 rounded-2xl text-base font-semibold text-white flex flex-col items-center justify-center transition-all active:scale-95"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {k}
-                  <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    {{'2':'ABC','3':'DEF','4':'GHI','5':'JKL','6':'MNO','7':'PQRS','8':'TUV','9':'WXYZ'}[k]||''}
-                  </span>
-                </button>
-              ))}
-            </div>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{muted ? 'Unmute' : 'Mute'}</span>
+              </div>
 
-            <div className="flex flex-col items-center gap-1.5 py-5">
-              <button onClick={handleHangup}
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 24px rgba(239,68,68,0.5)' }}>
-                <PhoneOff className="w-7 h-7 text-white" />
-              </button>
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>End Call</span>
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={handleHangup}
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 24px rgba(239,68,68,0.5)' }}>
+                  <PhoneOff className="w-7 h-7 text-white" />
+                </button>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>End Call</span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <Volume2 className="w-6 h-6 text-white/30" />
+                </div>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>Speaker</span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ENDED */}
+        {/* ── ENDED ── */}
         {phase === 'ended' && (
           <div className="px-6 py-10 flex flex-col items-center gap-5">
             <div className="w-20 h-20 rounded-full flex items-center justify-center"
@@ -315,11 +413,11 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
             <div className="text-center space-y-1">
               <p className="text-xl font-semibold text-white">{targetName || dialTo}</p>
               {elapsed > 0 && <p className="text-sm font-mono text-white/40">Duration: {formatTime(elapsed)}</p>}
-              {errorMsg && <p className="text-xs text-red-400 mt-1">{errorMsg}</p>}
               <p className="text-sm text-slate-400">Call ended</p>
+              {errorMsg && <p className="text-xs text-red-400 mt-1">{errorMsg}</p>}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setPhase('dial'); setErrorMsg(''); }}
+              <button onClick={() => { setPhase('idle'); setErrorMsg(''); }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold"
                 style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}>
                 Call Again

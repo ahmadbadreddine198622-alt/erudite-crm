@@ -86,7 +86,8 @@ Deno.serve(async (req) => {
   try {
     const form = await req.formData();
     const to = form.get('To') || url.searchParams.get('To') || '';
-    const callLogId = url.searchParams.get('call_log_id') || form.get('call_log_id') || '';
+    // call_log_id can come via custom params from the browser SDK
+    const callLogId = url.searchParams.get('call_log_id') || form.get('call_log_id') || form.get('call_log_id') || '';
 
     const { sid, token, voiceNumber, recordCalls } = await getCreds(serviceRole);
     if (!to) {
