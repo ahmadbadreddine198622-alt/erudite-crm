@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
     const body = await req.json();
-    const { account_sid, auth_token, voice_number, sms_number, record_calls, api_key_sid, api_key_secret, twiml_app_sid, label } = body;
+    const { account_sid, auth_token, voice_number, sms_number, record_calls, api_key_sid, api_key_secret, twiml_app_sid, label, agent_phone } = body;
 
     if (!account_sid || !auth_token) {
       return Response.json({ error: 'account_sid and auth_token required' }, { status: 400 });
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     }
 
     const existing = await base44.asServiceRole.entities.TwilioCredential.list();
-    const payload = { account_sid, auth_token, voice_number, sms_number, record_calls: record_calls ?? true, api_key_sid, api_key_secret, twiml_app_sid, label };
+    const payload = { account_sid, auth_token, voice_number, sms_number, agent_phone: agent_phone || '', record_calls: record_calls ?? true, api_key_sid, api_key_secret, twiml_app_sid, label };
 
     let credential;
     if (existing?.[0]) {
