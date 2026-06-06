@@ -33,6 +33,7 @@ import PricingPressureMeter from './PricingPressureMeter';
 import PortfolioRadar from './PortfolioRadar';
 import CoalitionMap from './CoalitionMap';
 import WhisperPanel from './WhisperPanel';
+import LandlordWhatsAppThread from './LandlordWhatsAppThread';
 import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
@@ -884,11 +885,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-5 mb-5">
+            <TabsList className="grid w-full grid-cols-6 mb-5">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
+              <TabsTrigger value="messages" className="text-xs">Messages</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
 
@@ -1079,6 +1081,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <LandlordWhatsAppThread landlord={landlord} />
             </TabsContent>
           </Tabs>
         </div>
