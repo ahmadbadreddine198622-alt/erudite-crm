@@ -8,8 +8,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Body: { lead_id, to_phone, from_phone, lead_name, browser_mode? }
  */
 
-async function getCreds(base44) {
-  const list = await base44.asServiceRole.entities.TwilioCredential.list();
+async function getCreds(serviceRole) {
+  const list = await serviceRole.entities.TwilioCredential.list();
   const c = list?.[0];
   return {
     sid: c?.account_sid || Deno.env.get('TWILIO_SID'),
@@ -22,8 +22,10 @@ async function getCreds(base44) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Try to get user — but don't fail hard if headers missing (Twilio callbacks won't have them)
+    let user = null;
+    try { user = await base44.auth.me(); } catch (_) {}
 
     const body = await req.json();
     const { lead_id, to_phone, from_phone, lead_name, browser_mode } = body;
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
       direction: 'outbound',
       from_number: from_phone || '',
       to_number: to_phone,
-      agent_email: user.email,
+      agent_email: user?.email || '',
       status: 'queued',
       started_at: new Date().toISOString(),
     });
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
           title: `Outbound call to ${lead_name || to_phone}`,
           description: browser_mode ? 'Call initiated via browser dialer' : 'Call initiated via Twilio click-to-call',
           source: 'twilio',
-          agent_email: user.email,
+          agent_email: user?.email || '',
           metadata: { call_log_id: callLog.id }
         });
       } catch (_) {}
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Server-side REST call (legacy) ──────────────────────────────────────
-    const { sid, token, voiceNumber, recordCalls } = await getCreds(base44);
+    const { sid, token, voiceNumber, recordCalls } = await getCreds(base44.asServiceRole);
     if (!sid || !token || !voiceNumber) {
       return Response.json({ error: 'Twilio not configured' }, { status: 500 });
     }

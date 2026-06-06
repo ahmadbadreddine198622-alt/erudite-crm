@@ -118,8 +118,8 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
           browser_mode: false,
         });
         if (callRes.data?.ok) {
-          setPhase('active');
-          toast.success('Call initiated — your phone will ring first, then connect to ' + dialTo);
+          setPhase('server_call');
+          toast.success('Call initiated — your Twilio number will bridge to ' + dialTo);
         } else {
           throw new Error(callRes.data?.error || 'Call failed');
         }
@@ -468,6 +468,37 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
                 Transfer
               </button>
             )}
+          </div>
+        )}
+
+        {/* ── SERVER-SIDE CALL (no browser audio) ────────────────────────── */}
+        {phase === 'server_call' && (
+          <div className="px-6 py-10 flex flex-col items-center gap-5">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.35)' }}>
+                <Phone className="w-10 h-10 text-green-400" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-green-500/25 animate-ping" />
+            </div>
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[11px] uppercase tracking-widest font-bold text-green-400">Call Initiated</span>
+              </div>
+              <p className="text-xl font-semibold text-white">{targetName || dialTo}</p>
+              <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialTo}</p>
+              <p className="text-xs mt-2 px-4 text-center" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                Twilio is dialing the number directly. The call is active on the network.
+              </p>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}
+            >
+              Close
+            </button>
           </div>
         )}
 
