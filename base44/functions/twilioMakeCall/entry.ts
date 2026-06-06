@@ -68,15 +68,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Twilio not configured' }, { status: 500 });
     }
 
-    const agentPhone = from_phone || user.phone || voiceNumber;
+    const callerNumber = from_phone || voiceNumber;
     const baseUrl = new URL(req.url).origin;
     const statusCallback = `${baseUrl}/functions/twilioWebhook?type=status&call_log_id=${callLog.id}`;
-    const twimlUrl = `${baseUrl}/functions/twilioWebhook?type=bridge&to=${encodeURIComponent(to_phone)}&record=${recordCalls ? '1' : '0'}`;
 
+    // Dial the lead directly: From = our Twilio number, To = lead's number
     const callBody = new URLSearchParams({
-      To: agentPhone,
-      From: voiceNumber,
-      Url: twimlUrl,
+      To: to_phone,
+      From: callerNumber,
       StatusCallback: statusCallback,
       StatusCallbackEvent: 'initiated ringing answered completed',
       StatusCallbackMethod: 'POST',
