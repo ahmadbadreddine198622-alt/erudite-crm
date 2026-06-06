@@ -43,21 +43,46 @@ async function handleRecording(base44: any, params: any, call_log_id: string | n
   const callSid = params.get('CallSid');
   if (!recordingUrl) return;
 
+  let callLog = null;
   if (!call_log_id) {
     const matches = await base44.asServiceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
-    if (matches?.[0]) call_log_id = matches[0].id;
+    if (matches?.[0]) { call_log_id = matches[0].id; callLog = matches[0]; }
+  } else {
+    const logs = await base44.asServiceRole.entities.CallLog.filter({ id: call_log_id });
+    callLog = logs?.[0] || null;
   }
   if (!call_log_id) return;
 
-  await base44.asServiceRole.entities.CallLog.update(call_log_id, {
-    recording_url: `${recordingUrl}.mp3`
-  });
+  const mp3Url = `${recordingUrl}.mp3`;
+  await base44.asServiceRole.entities.CallLog.update(call_log_id, { recording_url: mp3Url });
+
+  // Backfill the Activity record with the recording URL
+  if (callLog?.lead_id) {
+    try {
+      const activities = await base44.asServiceRole.entities.Activity.filter({
+        lead_id: callLog.lead_id,
+        type: 'call',
+      });
+      // Find the activity linked to this call log
+      const activity = activities?.find(a => a.metadata?.call_log_id === call_log_id);
+      if (activity) {
+        await base44.asServiceRole.entities.Activity.update(activity.id, {
+          description: (activity.description || '') + `\n\n🎙️ [Listen to recording](${mp3Url})`,
+          attachments: [
+            ...(activity.attachments || []),
+            { file_url: mp3Url, file_name: 'call_recording.mp3', file_type: 'audio/mpeg' }
+          ],
+          metadata: { ...activity.metadata, recording_url: mp3Url }
+        });
+      }
+    } catch (_) { /* non-fatal */ }
+  }
 
   // Trigger AI processing (transcribe + summarize) asynchronously
   try {
     await base44.functions.processVoiceMessage({
       call_log_id,
-      recording_url: `${recordingUrl}.mp3`
+      recording_url: mp3Url
     });
   } catch (_) { /* non-fatal */ }
 }

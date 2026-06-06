@@ -52,9 +52,29 @@ Deno.serve(async (req) => {
       const recordingUrl = form.get('RecordingUrl');
       const callLogId = url.searchParams.get('call_log_id');
       if (callLogId && recordingUrl) {
-        await base44.asServiceRole.entities.CallLog.update(callLogId, {
-          recording_url: recordingUrl + '.mp3',
-        });
+        const mp3Url = recordingUrl + '.mp3';
+        await base44.asServiceRole.entities.CallLog.update(callLogId, { recording_url: mp3Url });
+
+        // Backfill Activity with recording link
+        const logs = await base44.asServiceRole.entities.CallLog.filter({ id: callLogId });
+        const callLog = logs?.[0];
+        if (callLog?.lead_id) {
+          const activities = await base44.asServiceRole.entities.Activity.filter({
+            lead_id: callLog.lead_id,
+            type: 'call',
+          });
+          const activity = activities?.find(a => a.metadata?.call_log_id === callLogId);
+          if (activity) {
+            await base44.asServiceRole.entities.Activity.update(activity.id, {
+              description: (activity.description || '') + `\n\n🎙️ [Listen to recording](${mp3Url})`,
+              attachments: [
+                ...(activity.attachments || []),
+                { file_url: mp3Url, file_name: 'call_recording.mp3', file_type: 'audio/mpeg' }
+              ],
+              metadata: { ...activity.metadata, recording_url: mp3Url }
+            });
+          }
+        }
       }
     } catch (_) {}
     return new Response('', { status: 204 });
@@ -81,11 +101,10 @@ Deno.serve(async (req) => {
       `callerId="${voiceNumber || ''}"`,
       `timeout="30"`,
       `action="${statusCb}"`,
-    ].join(' ');
+      recordCalls ? `record="record-from-answer-dual" recordingStatusCallback="${recordCb}"` : '',
+    ].filter(Boolean).join(' ');
 
-    const numberAttrs = recordCalls
-      ? `statusCallback="${statusCb}" statusCallbackEvent="completed"`
-      : '';
+    const numberAttrs = `statusCallback="${statusCb}" statusCallbackEvent="completed"`;
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
