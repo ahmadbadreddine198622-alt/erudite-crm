@@ -123,12 +123,31 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       destroyDevice();
 
       const device = new Device(tokenData.token, {
-        logLevel: 1,
+        logLevel: 2,
         codecPreferences: ['opus', 'pcmu'],
+        closeProtection: false,
       });
       deviceRef.current = device;
 
+      // Handle device errors before registration
+      device.on('error', (err) => {
+        console.error('[Twilio Device Error]', err);
+        setErrorMsg(`Device error: ${err.message || 'Unknown error'}`);
+        setPhase('idle');
+        destroyDevice();
+      });
+
       await device.register();
+
+      console.log('[Twilio] Device registered, identity:', tokenData.identity);
+
+      device.on('registered', () => {
+        console.log('[Twilio] Device successfully registered');
+      });
+
+      device.on('unregistered', () => {
+        console.log('[Twilio] Device unregistered');
+      });
 
       // Step 3: Create call log for tracking (optional, won't block if fails)
       let callLogId = '';
@@ -162,8 +181,16 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
       call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
       call.on('error', (err) => {
-        console.error('Twilio call error:', err);
-        setErrorMsg(err?.message || 'Call error');
+        console.error('[Twilio Call Error]', err.code, err.message);
+        let msg = err.message || 'Call error';
+        if (err.code === 53000) {
+          msg = 'Connection error — Check Twilio Hub settings: API Key SID, API Key Secret, and TwiML App SID must be correct. The TwiML App Voice URL should be: ' + window.location.origin + '/functions/twilioVoiceWebhook';
+        } else if (err.code === 31201) {
+          msg = 'ACL token error — Token expired or invalid. Please refresh and try again.';
+        } else if (err.code === 31203) {
+          msg = 'Authentication error — Check Twilio credentials in Twilio Hub.';
+        }
+        setErrorMsg(msg);
         setPhase('ended');
         destroyDevice();
       });
@@ -291,6 +318,17 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               <div className="text-xs text-red-300 px-3 py-2 rounded-xl text-center"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 {errorMsg}
+                {errorMsg.includes('Connection error') && (
+                  <div className="mt-2 pt-2 border-t border-red-500/20">
+                    <p className="text-[10px] mb-1">Quick fix checklist:</p>
+                    <ul className="text-[10px] text-left space-y-0.5 opacity-80">
+                      <li>• Go to Twilio Hub → Settings</li>
+                      <li>• Verify API Key SID & Secret are filled</li>
+                      <li>• Verify TwiML App SID is filled</li>
+                      <li>• In Twilio Console, check the TwiML App's Voice URL is:<br/><code className="block mt-1 px-1 py-0.5 bg-red-500/10 rounded text-[9px] break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/functions/twilioVoiceWebhook</code></li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
