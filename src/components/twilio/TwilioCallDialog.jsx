@@ -103,10 +103,30 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
     setErrorMsg('');
 
     try {
-      // 1. Get access token
+      // 1. Try to get browser voice token
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
-      const token = tokenRes.data?.token;
-      if (!token) throw new Error(tokenRes.data?.error || 'Could not get voice token');
+      const tokenData = tokenRes.data;
+
+      // ── Fallback: browser SDK not configured → use server-side call ──────
+      if (tokenData?.browser_calling_unavailable || !tokenData?.token) {
+        setPhase('ringing');
+        const callRes = await base44.functions.invoke('twilioMakeCall', {
+          lead_id: leadId,
+          to_phone: dialTo,
+          from_phone: selectedNumber,
+          lead_name: targetName,
+          browser_mode: false,
+        });
+        if (callRes.data?.ok) {
+          setPhase('active');
+          toast.success('Call initiated — your phone will ring first, then connect to ' + dialTo);
+        } else {
+          throw new Error(callRes.data?.error || 'Call failed');
+        }
+        return;
+      }
+
+      const token = tokenData.token;
 
       // 2. Create the Twilio Device
       const Device = await getTwilioDevice();
@@ -131,13 +151,12 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
           to_phone: dialTo,
           from_phone: selectedNumber,
           lead_name: targetName,
-          browser_mode: true, // flag so the function only creates the log, doesn't REST-dial
+          browser_mode: true,
         });
         callLogId = logRes.data?.call_log_id;
       } catch (_) {}
 
-      // 5. Connect the call via browser SDK
-      // The TwiML app (twiml_app_sid) must point to /functions/twilioVoiceWebhook
+      // 5. Connect via browser SDK
       const call = await device.connect({
         params: {
           To: dialTo,
@@ -160,7 +179,6 @@ export default function TwilioCallDialog({ lead, contact, size = 'sm', iconOnly 
       });
       call.on('cancel', () => setPhase('ended'));
 
-      // If no accept event in 30s, still show active
       setTimeout(() => {
         if (callRef.current && phase === 'ringing') setPhase('active');
       }, 30000);

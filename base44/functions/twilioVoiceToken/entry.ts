@@ -33,8 +33,9 @@ Deno.serve(async (req) => {
 
     if (!accountSid || !apiKeySid || !apiKeySecret || !twimlAppSid) {
       return Response.json({
-        error: 'Twilio Voice SDK not fully configured. Need account_sid, api_key_sid, api_key_secret, twiml_app_sid in TwilioCredential.'
-      }, { status: 500 });
+        browser_calling_unavailable: true,
+        error: 'Browser calling not configured — API Key SID, API Key Secret, and TwiML App SID are required. Configure them in Twilio Hub → Settings.'
+      }, { status: 200 });
     }
 
     const identity = user.email.replace(/[^a-z0-9_\-]/gi, '_');
