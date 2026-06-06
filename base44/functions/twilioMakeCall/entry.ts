@@ -87,20 +87,18 @@ Deno.serve(async (req) => {
     }
 
     // Two-leg conference bridge:
-    // 1. Twilio calls the AGENT's phone
-    // 2. Agent answers → joins a named conference room
-    // 3. Twilio simultaneously calls the CUSTOMER → joins the same conference room
-    // Both parties can hear each other through the conference
+    // Agent leg: startConferenceOnEnter=true, endConferenceOnExit=true (agent leaving ends call)
+    // Customer leg: startConferenceOnEnter=true, endConferenceOnExit=false (customer hanging up does NOT end call)
     const confName = `call_${callLog.id}`;
     const recordAttrs = recordCalls
       ? ` record="record-from-start" recordingStatusCallback="${recordingCallback}"`
       : '';
 
-    // TwiML for agent leg: join conference
-    const agentTwiml = `<Response><Say>Connecting your call now.</Say><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="true" beep="false"${recordAttrs}>${confName}</Conference></Dial></Response>`;
+    // Agent leg: joins and starts the conference; when agent hangs up, conference ends
+    const agentTwiml = `<Response><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="true" beep="false"${recordAttrs} statusCallbackEvent="start end join leave" statusCallback="${statusCallback}">${confName}</Conference></Dial></Response>`;
 
-    // TwiML for customer leg: join same conference (no hold music, no beep)
-    const customerTwiml = `<Response><Dial><Conference startConferenceOnEnter="false" endConferenceOnExit="true" beep="false" waitUrl="">${confName}</Conference></Dial></Response>`;
+    // Customer leg: joins immediately (no waiting), customer hanging up does NOT end conference
+    const customerTwiml = `<Response><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="false" beep="false" waitUrl="">${confName}</Conference></Dial></Response>`;
 
     const callBody = new URLSearchParams({
       StatusCallback: statusCallback,

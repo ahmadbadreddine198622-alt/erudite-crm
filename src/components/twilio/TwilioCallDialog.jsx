@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Phone, Loader2, PhoneCall, PhoneOff, Mic, MicOff,
-  Volume2, VolumeX, Clock, Delete, CheckCircle2
+  Volume2, VolumeX, Clock, Delete
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -15,14 +15,18 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
   const [loadingNumbers, setLoadingNumbers] = useState(false);
   const [manualNumber, setManualNumber] = useState('');
 
-  // phase: dial | placing | ringing_agent | ringing_customer | connected | ended
+  // phase: dial | placing | ringing | connected | ended
   const [phase, setPhase] = useState('dial');
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [callSids, setCallSids] = useState({ agent: '', customer: '', log: '' });
   const [dialPadInput, setDialPadInput] = useState('');
+  const [statusMsg, setStatusMsg] = useState('');
 
   const timerRef = useRef(null);
+  const pollRef = useRef(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   const targetPhone = lead?.phone || contact?.phone || '';
   const targetName = lead?.full_name || lead?.full_name_en || lead?.name || contact?.full_name || contact?.name || targetPhone;
@@ -43,7 +47,46 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
     }
   }, [open]);
 
-  // ── Timer (starts when connected) ────────────────────────────────────────
+  // ── Poll Twilio call status ──────────────────────────────────────────────
+  const startPolling = useCallback((agentSid, customerSid, logId) => {
+    clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      if (!['ringing', 'connected'].includes(phaseRef.current)) {
+        clearInterval(pollRef.current);
+        return;
+      }
+      try {
+        // Check agent call status
+        const agentRes = await base44.functions.invoke('twilioGetCallStatus', { call_sid: agentSid });
+        const agentStatus = agentRes.data?.status;
+
+        // Check customer call status
+        const custRes = await base44.functions.invoke('twilioGetCallStatus', { call_sid: customerSid });
+        const custStatus = custRes.data?.status;
+
+        // Agent answered → connected
+        if (agentStatus === 'in-progress' && phaseRef.current === 'ringing') {
+          setPhase('connected');
+          setStatusMsg('');
+        }
+
+        // Agent hung up → end call
+        if (['completed', 'failed', 'busy', 'no-answer', 'canceled'].includes(agentStatus)) {
+          clearInterval(pollRef.current);
+          setPhase('ended');
+          return;
+        }
+
+        // Customer status for display only
+        if (custStatus === 'in-progress' && phaseRef.current === 'ringing') {
+          setStatusMsg('Customer answered');
+        }
+
+      } catch (_) {}
+    }, 3000);
+  }, []);
+
+  // ── Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase === 'connected') {
       setElapsed(0);
@@ -57,11 +100,13 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
   // ── Reset on close ───────────────────────────────────────────────────────
   const fullReset = useCallback(() => {
     clearInterval(timerRef.current);
+    clearInterval(pollRef.current);
     setPhase('dial');
     setElapsed(0);
     setErrorMsg('');
     setCallSids({ agent: '', customer: '', log: '' });
     setDialPadInput('');
+    setStatusMsg('');
   }, []);
 
   useEffect(() => {
@@ -93,25 +138,16 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         return;
       }
 
-      setCallSids({
+      const sids = {
         agent: data.agent_call_sid || '',
         customer: data.customer_call_sid || '',
         log: data.call_log_id || '',
-      });
+      };
+      setCallSids(sids);
+      setPhase('ringing');
 
-      // Phase 1: ringing the agent's phone
-      setPhase('ringing_agent');
-
-      // After 8s assume agent answered, move to ringing_customer
-      // (Twilio will call customer simultaneously but we reflect UX progression)
-      setTimeout(() => {
-        setPhase(p => p === 'ringing_agent' ? 'ringing_customer' : p);
-      }, 8000);
-
-      // After 30s assume connected
-      setTimeout(() => {
-        setPhase(p => (p === 'ringing_agent' || p === 'ringing_customer') ? 'connected' : p);
-      }, 30000);
+      // Start polling for real status updates
+      if (sids.agent) startPolling(sids.agent, sids.customer, sids.log);
 
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || 'Failed to place call';
@@ -120,14 +156,16 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
     }
   };
 
-  // ── Hang up — kill both legs ─────────────────────────────────────────────
+  // ── Hang up — kills agent leg (which ends conference) ────────────────────
   const handleHangup = async () => {
+    clearInterval(pollRef.current);
     setPhase('ended');
+    // Kill both legs to be safe
     const { agent, customer } = callSids;
-    const hangupPromises = [];
-    if (agent) hangupPromises.push(base44.functions.invoke('twilioHangupCall', { call_sid: agent }).catch(() => {}));
-    if (customer) hangupPromises.push(base44.functions.invoke('twilioHangupCall', { call_sid: customer }).catch(() => {}));
-    await Promise.all(hangupPromises);
+    const tasks = [];
+    if (agent) tasks.push(base44.functions.invoke('twilioHangupCall', { call_sid: agent }).catch(() => {}));
+    if (customer) tasks.push(base44.functions.invoke('twilioHangupCall', { call_sid: customer }).catch(() => {}));
+    await Promise.all(tasks);
   };
 
   const formatTime = (s) => {
@@ -137,11 +175,11 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
   };
 
   const dialTo = manualNumber.trim() || targetPhone;
-  const isActive = ['ringing_agent', 'ringing_customer', 'connected', 'placing'].includes(phase);
+  const isActive = ['placing', 'ringing', 'connected'].includes(phase);
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
-      if (!v && isActive) return; // prevent closing mid-call
+      if (!v && isActive) return;
       setOpen(v);
     }}>
       {/* Trigger */}
@@ -217,7 +255,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
             </div>
 
             {errorMsg && (
-              <p className="text-xs text-red-400 text-center px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)' }}>{errorMsg}</p>
+              <p className="text-xs text-red-400 text-center px-2 py-1.5 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)' }}>{errorMsg}</p>
             )}
 
             <button
@@ -234,58 +272,34 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
 
         {/* ── PLACING ───────────────────────────────────────────────────── */}
         {phase === 'placing' && (
-          <div className="px-6 py-12 flex flex-col items-center gap-5">
+          <div className="px-6 py-14 flex flex-col items-center gap-5">
             <Loader2 className="w-12 h-12 text-blue-400 animate-spin" />
             <p className="text-white font-semibold text-lg">Starting call…</p>
             <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>Connecting to Twilio</p>
           </div>
         )}
 
-        {/* ── RINGING AGENT ─────────────────────────────────────────────── */}
-        {phase === 'ringing_agent' && (
+        {/* ── RINGING ───────────────────────────────────────────────────── */}
+        {phase === 'ringing' && (
           <div className="px-6 py-10 flex flex-col items-center gap-5">
             <div className="relative">
               <div className="w-24 h-24 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(250,180,40,0.12)', border: '2px solid rgba(250,180,40,0.4)' }}>
-                <Phone className="w-10 h-10 text-amber-400" />
+                <PhoneCall className="w-10 h-10 text-amber-400" />
               </div>
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/20 animate-ping" />
             </div>
             <div className="text-center space-y-1">
-              <p className="text-amber-400 font-bold text-sm uppercase tracking-widest">Ringing your phone…</p>
-              <p className="text-white text-base">Pick up to connect to the customer</p>
-              <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialTo}</p>
-            </div>
-            <button onClick={handleHangup}
-              className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
-              <PhoneOff className="w-6 h-6 text-white" />
-            </button>
-            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Tap to cancel</p>
-          </div>
-        )}
-
-        {/* ── RINGING CUSTOMER ──────────────────────────────────────────── */}
-        {phase === 'ringing_customer' && (
-          <div className="px-6 py-10 flex flex-col items-center gap-5">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.35)' }}>
-                <PhoneCall className="w-10 h-10 text-green-400" />
-              </div>
-              <div className="absolute inset-0 rounded-full border-2 border-green-400/20 animate-ping" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-green-400 font-bold text-sm uppercase tracking-widest">Calling customer…</p>
+              <p className="text-amber-400 font-bold text-sm uppercase tracking-widest">Ringing…</p>
               <p className="text-white text-lg font-semibold">{targetName}</p>
               <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialTo}</p>
+              {statusMsg && (
+                <p className="text-xs text-green-400 mt-1">{statusMsg}</p>
+              )}
             </div>
-            <button onClick={() => setPhase('connected')}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-green-400"
-              style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-              <CheckCircle2 className="w-4 h-4 inline mr-1.5" />
-              Customer answered
-            </button>
+            <p className="text-[11px] text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Your phone will ring first — pick up to speak with the customer
+            </p>
             <button onClick={handleHangup}
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
               style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
@@ -297,7 +311,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         {/* ── CONNECTED ─────────────────────────────────────────────────── */}
         {phase === 'connected' && (
           <div className="flex flex-col" style={{ background: '#0a1628' }}>
-            <div className="flex flex-col items-center pt-8 pb-4 px-6 gap-2">
+            <div className="flex flex-col items-center pt-8 pb-3 px-6 gap-2">
               <div className="relative mb-1">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.45)' }}>
@@ -344,7 +358,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               ))}
             </div>
 
-            {/* Hang up */}
+            {/* End Call */}
             <div className="flex items-center justify-center py-5">
               <div className="flex flex-col items-center gap-1.5">
                 <button onClick={handleHangup}
