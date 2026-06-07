@@ -50,6 +50,32 @@ export default function WhatsAppInbox() {
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
   const queryClient = useQueryClient();
+  const conversationListRef = useRef(null);
+  const prevScrollPosition = useRef(0);
+
+  // Internal numbers - our own lines that should never appear as leads
+  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000'];
+  const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
+  
+  // Preserve scroll position when conversations refresh
+  useEffect(() => {
+    if (conversationListRef.current) {
+      conversationListRef.current.scrollTop = prevScrollPosition.current;
+    }
+  }, [filtered.length]);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (conversationListRef.current) {
+        prevScrollPosition.current = conversationListRef.current.scrollTop;
+      }
+    };
+    const ref = conversationListRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', handleScroll);
+      return () => ref.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   // Conversations with real-time refetch — 10s polling
   const { data: conversations = [], isLoading, refetch } = useQuery({
@@ -263,6 +289,10 @@ export default function WhatsAppInbox() {
 
   // Filter + search - Strict agent isolation
   const filtered = normalizedConversations.filter(c => {
+    // Exclude internal test conversations (our own numbers)
+    const phone = c.wa_phone_e164 || c.phone_number || '';
+    if (isInternalNumber(phone)) return false;
+    
     // Check if current user has admin/manager permissions
     const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
     
@@ -278,7 +308,6 @@ export default function WhatsAppInbox() {
     const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
     
     const lead = leads.find(l => l.id === c.lead_id);
-    const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
     const matchesFilter =
@@ -289,9 +318,12 @@ export default function WhatsAppInbox() {
     return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
   });
 
-  const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  // Exclude internal conversations from metrics
+  const externalConversations = normalizedConversations.filter(c => !isInternalNumber(c.wa_phone_e164 || c.phone_number || ''));
+  
+  const unreadTotal = externalConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const now = new Date();
-  const conversationsToday = normalizedConversations.filter(c => {
+  const conversationsToday = externalConversations.filter(c => {
     if (!c.first_message_at) return false;
     const msgDate = new Date(c.first_message_at);
     const today = new Date();
@@ -299,13 +331,13 @@ export default function WhatsAppInbox() {
     return msgDate >= today;
   }).length;
   const avgResponseTime = (() => {
-    const withResponse = normalizedConversations.filter(c => c.first_response_seconds && c.first_response_seconds > 0);
+    const withResponse = externalConversations.filter(c => c.first_response_seconds && c.first_response_seconds > 0);
     if (withResponse.length === 0) return 0;
     const totalSeconds = withResponse.reduce((sum, c) => sum + c.first_response_seconds, 0);
     return Math.round(totalSeconds / withResponse.length / 60); // minutes
   })();
-  const slaBreaches = normalizedConversations.filter(c => c.sla_breached === true).length;
-  const unresolvedCount = normalizedConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
+  const slaBreaches = externalConversations.filter(c => c.sla_breached === true).length;
+  const unresolvedCount = externalConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
     mutationFn: ({ message, channel }) =>
@@ -775,8 +807,8 @@ export default function WhatsAppInbox() {
           )}
         </div>
 
-        {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Conversation list - preserve scroll position */}
+        <div className="flex-1 overflow-y-auto" ref={conversationListRef}>
           {isLoading ? (
             <div className="flex items-center justify-center h-20">
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -791,6 +823,8 @@ export default function WhatsAppInbox() {
             filtered.map(conv => {
                const lead = leads.find(l => l.id === conv.lead_id) || findLeadByPhone(conv);
                const landlord = findLandlordByPhone(conv);
+               const phone = conv.wa_phone_e164 || conv.phone_number || '';
+               const isInternal = isInternalNumber(phone);
                return (
                 <ConversationItem
                   key={conv.id}
@@ -799,6 +833,7 @@ export default function WhatsAppInbox() {
                   landlord={landlord}
                   selected={conv.id === selectedConvId}
                   onClick={() => handleSelectConv(conv.id)}
+                  isInternal={isInternal}
                 />
               );
             })

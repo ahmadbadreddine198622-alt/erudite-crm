@@ -33,8 +33,62 @@ const statusDot = {
   blocked: 'bg-red-600',
 };
 
-export default function ConversationItem({ conv, lead, landlord, selected, onClick }) {
+export default function ConversationItem({ conv, lead, landlord, selected, onClick, isInternal = false }) {
   const displayPhone = conv.wa_phone_e164 || conv.phone_number || '';
+  
+  // Internal test conversations - our own numbers
+  if (isInternal) {
+    const name = 'Internal Test';
+    const initials = 'IT';
+    const timeAgo = conv.last_message_at
+      ? formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })
+      : '';
+    const channel = conv.channel || 'business';
+    
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          'w-full text-left px-3.5 py-3 transition-all duration-200 border-b',
+          selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
+        )}
+        style={{
+          background: selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderColor: 'rgba(255,255,255,0.04)',
+          borderLeft: selected ? '3px solid rgba(245,159,10,0.6)' : '3px solid transparent',
+          opacity: 0.6
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn('w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-bold shrink-0 relative border-2', 'bg-gray-500')} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-0.5">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className="text-sm font-bold truncate leading-snug" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  {name}
+                  <span className="text-[9px] font-normal ml-1 px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">Test</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
+                {channel === 'business' ? (
+                  <Building2 className="w-3 h-3 text-emerald-400" title="Business line" />
+                ) : (
+                  <User className="w-3 h-3 text-blue-400" title="Personal line" />
+                )}
+              </div>
+            </div>
+            <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{conv.last_message || '—'}</p>
+          </div>
+        </div>
+      </button>
+    );
+  }
+  
   // Priority: landlord name > lead name > wa_display_name (WhatsApp profile) > phone
   const name = landlord?.full_name_en || lead?.full_name || conv.wa_display_name || displayPhone;
   const isWhatsAppProfile = conv.wa_display_name && !landlord && !lead;

@@ -88,7 +88,27 @@ Deno.serve(async (req) => {
   const waId = (evoBody && (evoBody.key?.id || evoBody.message?.key?.id)) || null;
   let message;
   try {
-    message = await svc.entities.Message.create({
+    // Find the conversation for this landlord
+    const conversations = await svc.entities.WhatsAppConversation.filter({ landlord_id });
+    const conversation = conversations[0];
+    
+    // Create WhatsAppMessage record (used by the inbox UI)
+    message = await svc.entities.WhatsAppMessage.create({
+      conversation_id: conversation?.id || null,
+      lead_id: null, // Not a lead, it's a landlord
+      direction: 'outbound',
+      body: String(text),
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      wa_message_id: waId,
+      from_number: channel === 'business' ? '+971582806000' : '+971581806000',
+      to_number: '+' + number,
+      channel: channel,
+      media_type: 'none',
+    });
+    
+    // Also create legacy Message record for backward compatibility
+    await svc.entities.Message.create({
       landlord_id,
       phone: number,
       direction: 'outgoing',

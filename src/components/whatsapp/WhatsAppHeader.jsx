@@ -16,8 +16,15 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
   const flag = countryFlag(conversation.country_code);
   const entityType = landlord ? 'landlord' : lead ? 'lead' : 'unknown';
   const stage = landlord?.stage || lead?.stage;
+  
+  // Contact name resolution: prefer matched entity name, then WhatsApp display name, then ~WhatsApp name if available
   const displayName = landlord?.full_name_en || lead?.full_name || conversation.wa_display_name || conversation.wa_phone_e164;
+  const showWhatsAppName = !landlord && !lead && conversation.wa_display_name && conversation.wa_display_name !== conversation.wa_phone_e164;
   const isMatched = !!(landlord || lead);
+  
+  // Channel attribution - show which of OUR lines the contact wrote to
+  const ourLineNumber = conversation.channel === 'business' ? '+971582806000' : '+971581806000';
+  const channelLabel = conversation.channel === 'business' ? 'Business' : 'Personal';
 
   const copyPhone = () => {
     navigator.clipboard.writeText(conversation.wa_phone_e164 || conversation.phone_number || '');
@@ -71,9 +78,15 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
               {copied ? <Check className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
               {conversation.wa_phone_e164 || conversation.phone_number}
             </button>
-            <span className="flex items-center gap-1">
+            {showWhatsAppName && (
+              <span className="flex items-center gap-1" title="WhatsApp name from synced contacts">
+                <User className="w-3 h-3" />
+                ~{conversation.wa_display_name}
+              </span>
+            )}
+            <span className="flex items-center gap-1" title={`Contact wrote to our ${channelLabel} line`}>
               {conversation.channel === 'business' ? <Building2 className="w-3 h-3 text-emerald-400" /> : <UserCheck className="w-3 h-3 text-blue-400" />}
-              {conversation.channel === 'business' ? 'Business' : 'Personal'}
+              {channelLabel} ({ourLineNumber})
             </span>
             {conversation.wa_last_seen_at && (
               <span>· Last seen {timeAgo(conversation.wa_last_seen_at)}</span>

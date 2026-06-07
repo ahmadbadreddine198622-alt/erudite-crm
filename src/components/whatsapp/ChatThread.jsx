@@ -213,7 +213,9 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 }
 
 function MessageBubble({ msg, contactName }) {
+  // Normalize direction: inbound/incoming = left-aligned, outbound/outgoing = right-aligned
   const isOutbound = msg.direction === 'outbound' || msg.direction === 'outgoing';
+  const isInbound = msg.direction === 'inbound' || msg.direction === 'incoming';
   const isPending = msg.status === 'pending';
   const channel = msg.channel || 'personal';
   const channelColor = channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)';
@@ -259,7 +261,7 @@ function MessageBubble({ msg, contactName }) {
 
   return (
     <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div className="max-w-[72%]">
+      <div className={cn('max-w-[65%]', 'break-words')}>
         {!isOutbound && contactName && (
           <p className="text-[10px] font-semibold mb-0.5 px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{contactName}</p>
         )}
@@ -269,9 +271,11 @@ function MessageBubble({ msg, contactName }) {
             background: isOutbound ? 'hsl(222 47% 15%)' : 'hsl(222 47% 18%)',
             border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
             borderLeft: !isOutbound ? `3px solid ${channelColor}` : 'none',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
-          <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.95)', fontSize: '15px', lineHeight: '1.5' }}>
+          <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.95)', fontSize: '15px', lineHeight: '1.5', wordBreak: 'break-word' }}>
             {displayBody}
           </p>
           <div className={cn('text-[9px] mt-1.5 font-medium flex items-center gap-1.5', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
