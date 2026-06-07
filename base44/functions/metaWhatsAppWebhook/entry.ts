@@ -50,15 +50,7 @@ async function findLandlordByDigits(svc, digitsPhone) {
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
-  // ── Auth: secret query param ───────────────────────────────────────────────
-  const secret = (url.searchParams.get('secret') || '').trim();
-  const expectedSecret = (Deno.env.get('META_WEBHOOK_SECRET') || '').trim();
-  if (!expectedSecret || secret !== expectedSecret) {
-    console.log(`[metaWhatsAppWebhook] Unauthorized: secret="${secret}"`);
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  // ── GET: Meta verification handshake ──────────────────────────────────────
+  // ── GET: Meta verification handshake (NO auth required for verification) ──
   if (req.method === 'GET') {
     const mode = url.searchParams.get('hub.mode');
     const verifyToken = (url.searchParams.get('hub.verify_token') || '').trim();
@@ -69,6 +61,14 @@ Deno.serve(async (req) => {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
     return new Response('Forbidden', { status: 403 });
+  }
+
+  // ── POST: Auth: secret query param ───────────────────────────────────────────────
+  const secret = (url.searchParams.get('secret') || '').trim();
+  const expectedSecret = (Deno.env.get('META_WEBHOOK_SECRET') || '').trim();
+  if (!expectedSecret || secret !== expectedSecret) {
+    console.log(`[metaWhatsAppWebhook] Unauthorized: secret="${secret}"`);
+    return new Response('Unauthorized', { status: 401 });
   }
 
   // ── POST: message events ───────────────────────────────────────────────────
