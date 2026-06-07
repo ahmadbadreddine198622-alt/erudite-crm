@@ -87,11 +87,15 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   // });
   // return () => unsub();
 
+  // NOTE: Base44 realtime is unavailable on this plan (no live socket), so the
+  // WhatsAppMessage.subscribe() that used to be here never fired — removed it.
+  // Realtime can be re-added here if the plan gains support. Open-thread freshness
+  // comes from this 2s poll, paused when the tab is hidden (no background load).
   useEffect(() => {
     if (!validConversationId) return;
     const interval = setInterval(() => {
       if (!document.hidden) loadMessages();
-    }, 2000); // 2s polling for open thread (faster message appearance)
+    }, 2000);
     return () => clearInterval(interval);
   }, [idsKey]);
 
