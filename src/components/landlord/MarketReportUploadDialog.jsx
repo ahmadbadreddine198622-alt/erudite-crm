@@ -21,41 +21,55 @@ export default function MarketReportUploadDialog({ open, onClose, onSuccess }) {
   const uploadMutation = useMutation({
     mutationFn: async ({ pdfFile, project }) => {
       console.log('[Upload] Starting upload for project:', project);
+      console.log('[Upload] File:', pdfFile.name, pdfFile.size, 'bytes');
       
-      // Upload PDF
-      const uploadRes = await base44.integrations.Core.UploadFile({
-        file: pdfFile,
-      });
-      console.log('[Upload] File uploaded:', uploadRes);
+      try {
+        // Upload PDF
+        console.log('[Upload] Step 1: Uploading file...');
+        const uploadRes = await base44.integrations.Core.UploadFile({
+          file: pdfFile,
+        });
+        console.log('[Upload] File uploaded:', uploadRes);
+        console.log('[Upload] File URL:', uploadRes?.data?.file_url);
 
-      if (!uploadRes?.data?.file_url) {
-        throw new Error('File upload failed');
+        if (!uploadRes?.data?.file_url) {
+          console.error('[Upload] No file_url in response');
+          throw new Error('File upload failed - no URL returned');
+        }
+
+        // Create MarketReport entity
+        console.log('[Upload] Step 2: Creating MarketReport entity...');
+        const reportRes = await base44.entities.MarketReport.create({
+          project_name: project,
+          report_file_url: uploadRes.data.file_url,
+          report_date: new Date().toISOString().split('T')[0],
+          source: 'dxb_interact',
+          status: 'uploaded',
+        });
+        console.log('[Upload] MarketReport created:', reportRes);
+        console.log('[Upload] Report ID:', reportRes?.id);
+
+        if (!reportRes?.id) {
+          console.error('[Upload] No ID in MarketReport response');
+          throw new Error('MarketReport creation failed - no ID returned');
+        }
+
+        // Trigger analysis
+        console.log('[Upload] Step 3: Invoking analyzeDXBReport...');
+        const analysisRes = await base44.functions.invoke('analyzeDXBReport', {
+          market_report_id: reportRes.id,
+        });
+        console.log('[Upload] Analysis response:', analysisRes);
+
+        return { reportId: reportRes.id, fileName: pdfFile.name };
+      } catch (err) {
+        console.error('[Upload] Full error:', err);
+        console.error('[Upload] Error stack:', err.stack);
+        throw err;
       }
-
-      // Create MarketReport entity
-      const reportRes = await base44.entities.MarketReport.create({
-        project_name: project,
-        report_file_url: uploadRes.data.file_url,
-        report_date: new Date().toISOString().split('T')[0],
-        source: 'dxb_interact',
-        status: 'uploaded',
-      });
-      console.log('[Upload] MarketReport created:', reportRes);
-
-      if (!reportRes?.id) {
-        throw new Error('MarketReport creation failed - no ID returned');
-      }
-
-      // Trigger analysis
-      console.log('[Upload] Invoking analyzeDXBReport with ID:', reportRes.id);
-      const analysisRes = await base44.functions.invoke('analyzeDXBReport', {
-        market_report_id: reportRes.id,
-      });
-      console.log('[Upload] Analysis response:', analysisRes);
-
-      return { reportId: reportRes.id, fileName: pdfFile.name };
     },
     onSuccess: (data) => {
+      console.log('[Upload] Success:', data);
       toast.success(`Report uploaded and analysis started for ${projectName}`);
       queryClient.invalidateQueries({ queryKey: ['market_reports'] });
       setFile(null);
@@ -64,7 +78,12 @@ export default function MarketReportUploadDialog({ open, onClose, onSuccess }) {
       onClose();
     },
     onError: (error) => {
-      console.error('Upload error:', error);
+      console.error('[Upload] onError:', error);
+      console.error('[Upload] Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response?.data,
+      });
       const msg = error?.message || error?.response?.data?.error || 'Upload failed. Check console for details.';
       toast.error(msg);
     },
