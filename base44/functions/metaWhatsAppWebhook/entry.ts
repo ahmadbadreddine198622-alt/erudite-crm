@@ -40,16 +40,7 @@ Deno.serve(async (req) => {
     const challenge = url.searchParams.get('hub.challenge');
     const expectedVerifyToken = (Deno.env.get('META_VERIFY_TOKEN') || '').trim();
 
-    const expLen = expectedVerifyToken.length;
-    const expEdge = `${expectedVerifyToken.slice(0,2)}..${expectedVerifyToken.slice(-2)}`;
-    const expCodes = `first=${expectedVerifyToken.charCodeAt(0)} last=${expectedVerifyToken.charCodeAt(expLen-1)}`;
-    const incLen = verifyToken.length;
-    const incEdge = `${verifyToken.slice(0,2)}..${verifyToken.slice(-2)}`;
-    const incCodes = `first=${verifyToken.charCodeAt(0)} last=${verifyToken.charCodeAt(incLen-1)}`;
     console.log(`[metaWhatsAppWebhook] GET verify: mode=${mode} verify_token="${verifyToken}" challenge="${challenge}"`);
-    console.log(`[DEBUG-expected] len=${expLen} edge="${expEdge}" codes=${expCodes}`);
-    console.log(`[DEBUG-incoming] len=${incLen} edge="${incEdge}" codes=${incCodes}`);
-    console.log(`[DEBUG-match] ${verifyToken === expectedVerifyToken}`);
 
     if (mode === 'subscribe' && verifyToken === expectedVerifyToken && challenge) {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
