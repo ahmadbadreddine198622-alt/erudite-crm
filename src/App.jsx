@@ -68,6 +68,7 @@ import GoogleDrive from '@/pages/GoogleDrive';
 import Notes from '@/pages/Notes';
 import Negotiations from '@/pages/Negotiations';
 import FollowUps from '@/pages/FollowUps';
+import FollowUpCalendar from '@/pages/FollowUpCalendar';
 import Viewings from '@/pages/Viewings';
 import EmailTemplates from '@/pages/EmailTemplates';
 import Broadcasts from '@/pages/Broadcasts';
