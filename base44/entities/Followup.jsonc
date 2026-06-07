@@ -28,6 +28,28 @@
       ],
       "default": "pending"
     },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "default": "normal"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "follow_up",
+        "renewal"
+      ],
+      "default": "follow_up",
+      "description": "follow_up = standard follow-up; renewal = long-horizon renewal reminder"
+    },
+    "agent_email": {
+      "type": "string",
+      "description": "Assigned agent email"
+    },
     "created_from_ai": {
       "type": "boolean",
       "default": false,

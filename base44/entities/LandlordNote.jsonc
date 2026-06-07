@@ -1,0 +1,30 @@
+{
+  "name": "LandlordNote",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email of the user who wrote the note"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string",
+      "description": "Note content (multiline)"
+    },
+    "pinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pinned notes always appear at the top"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "body"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "LandlordAppointment",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "agent_email": {
+      "type": "string"
+    },
+    "datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "default": 30
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "call",
+        "viewing",
+        "meeting"
+      ],
+      "default": "call"
+    },
+    "location": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "completed",
+        "cancelled",
+        "no_show"
+      ],
+      "default": "scheduled"
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID if synced"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "datetime",
+    "type"
+  ]
+}
