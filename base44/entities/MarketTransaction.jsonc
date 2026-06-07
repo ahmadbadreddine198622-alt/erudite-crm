@@ -1,0 +1,65 @@
+{
+  "name": "MarketTransaction",
+  "type": "object",
+  "properties": {
+    "market_report_id": {
+      "type": "string",
+      "description": "FK to MarketReport entity"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Building/project name"
+    },
+    "unit_number": {
+      "type": "string",
+      "description": "Unit number/floor"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of transaction"
+    },
+    "price_aed": {
+      "type": "number",
+      "description": "Sale price in AED"
+    },
+    "area_sqft": {
+      "type": "number",
+      "description": "Built-up area in sqft"
+    },
+    "price_per_sqft": {
+      "type": "number",
+      "description": "Price per sqft in AED"
+    },
+    "bedrooms": {
+      "type": "string",
+      "enum": [
+        "studio",
+        "1br",
+        "2br",
+        "3br",
+        "4plus"
+      ],
+      "description": "Unit configuration"
+    },
+    "sale_status": {
+      "type": "string",
+      "enum": [
+        "offplan",
+        "ready"
+      ],
+      "description": "Off-plan or ready property"
+    },
+    "is_post_event": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if transaction occurred after DXB Interact (2026-02-28)"
+    }
+  },
+  "required": [
+    "market_report_id",
+    "project_name",
+    "transaction_date",
+    "price_aed"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "MarketReport",
+  "type": "object",
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "Building/project name"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "dxb_interact"
+      ],
+      "default": "dxb_interact",
+      "description": "Report source"
+    },
+    "report_file_url": {
+      "type": "string",
+      "description": "Base44 storage URL for the uploaded report PDF"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the report"
+    },
+    "market_event_date": {
+      "type": "string",
+      "format": "date",
+      "default": "2026-02-28",
+      "description": "DXB Interact market event date for pre/post analysis"
+    },
+    "transactions_count": {
+      "type": "number",
+      "description": "Total number of transactions in the report"
+    },
+    "median_price_aed": {
+      "type": "number",
+      "description": "Median sale price in AED"
+    },
+    "median_price_sqft": {
+      "type": "number",
+      "description": "Median price per sqft in AED"
+    },
+    "median_price_sqft_pre_event": {
+      "type": "number",
+      "description": "Median price per sqft before market event"
+    },
+    "median_price_sqft_post_event": {
+      "type": "number",
+      "description": "Median price per sqft after market event"
+    },
+    "analysis_summary": {
+      "type": "string",
+      "description": "AI-generated analysis summary of the report"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploaded",
+        "extracting",
+        "analyzed",
+        "failed"
+      ],
+      "default": "uploaded",
+      "description": "Processing status"
+    }
+  },
+  "required": [
+    "project_name",
+    "source",
+    "report_file_url",
+    "report_date"
+  ]
+}

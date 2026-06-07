@@ -171,6 +171,32 @@
         "family"
       ],
       "description": "The angle/tone chosen for the listing copy"
+    },
+    "ai_estimated_value_aed": {
+      "type": "number",
+      "description": "AI-estimated market value in AED based on DXB Interact transactions"
+    },
+    "ai_estimated_price_sqft": {
+      "type": "number",
+      "description": "AI-estimated price per sqft in AED"
+    },
+    "ai_valuation_confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "description": "Confidence level of the AI valuation"
+    },
+    "ai_valuation_basis": {
+      "type": "string",
+      "description": "Explanation of how the valuation was derived (comps used, market trends)"
+    },
+    "ai_valuation_updated_at": {
+      "type": "string",
+      "format": "date",
+      "description": "When the AI valuation was last updated"
     }
   },
   "required": [
