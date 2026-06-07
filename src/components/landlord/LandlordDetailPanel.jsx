@@ -64,6 +64,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const formAInputRef = useRef(null);
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [contactForm, setContactForm] = useState({});
+  const [mediaOpen, setMediaOpen] = useState(true);
 
   const STAGE_OPTIONS = [
     'initial_contact',
@@ -843,8 +844,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             {/* Media for listing */}
             {existingTask && (
               <div className="pt-2 border-t border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>Media for listing</p>
+                <button
+                  onClick={() => setMediaOpen(!mediaOpen)}
+                  className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>Media for listing</p>
+                    {mediaOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </div>
                   {(() => {
                     const isHandedToListing = existingTask.task_stage === 'handed_to_listing';
                     const hasAllLinks = existingTask.tour_3d_link && existingTask.video_link && existingTask.photos_link;
@@ -873,58 +880,60 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                       </Badge>
                     );
                   })()}
-                </div>
+                </button>
                 
-                <div className="space-y-1.5 pl-1">
-                  {existingTask?.tour_3d_link && (
-                    <a
-                      href={existingTask.tour_3d_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Camera className="w-3 h-3" />
-                      <ExternalLink className="w-3 h-3" />
-                      3D Tour
-                    </a>
-                  )}
-                  {existingTask?.video_link && (
-                    <a
-                      href={existingTask.video_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Film className="w-3 h-3" />
-                      <ExternalLink className="w-3 h-3" />
-                      Video
-                    </a>
-                  )}
-                  {existingTask?.photos_link && (
-                    <a
-                      href={existingTask.photos_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Image className="w-3 h-3" />
-                      <ExternalLink className="w-3 h-3" />
-                      Photos
-                    </a>
-                  )}
-                  {landlordProperty?.floor_plan_url && (
-                    <a
-                      href={landlordProperty.floor_plan_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <LayoutTemplate className="w-3 h-3" />
-                      <ExternalLink className="w-3 h-3" />
-                      Floor Plan
-                    </a>
-                  )}
-                </div>
+                {mediaOpen && (
+                  <div className="space-y-1.5 pl-1 animate-in fade-in duration-200">
+                    {existingTask?.tour_3d_link && (
+                      <a
+                        href={existingTask.tour_3d_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Camera className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
+                        3D Tour
+                      </a>
+                    )}
+                    {existingTask?.video_link && (
+                      <a
+                        href={existingTask.video_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Film className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
+                        Video
+                      </a>
+                    )}
+                    {existingTask?.photos_link && (
+                      <a
+                        href={existingTask.photos_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        <Image className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
+                        Photos
+                      </a>
+                    )}
+                    {landlordProperty?.floor_plan_url && (
+                      <a
+                        href={landlordProperty.floor_plan_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        <LayoutTemplate className="w-3 h-3" />
+                        <ExternalLink className="w-3 h-3" />
+                        Floor Plan
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
