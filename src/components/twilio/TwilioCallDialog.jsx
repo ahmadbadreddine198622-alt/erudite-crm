@@ -129,7 +129,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       });
       deviceRef.current = device;
 
-      // Handle device errors before registration
+      // Handle device errors
       device.on('error', (err) => {
         console.error('[Twilio Device Error]', err);
         setErrorMsg(`Device error: ${err.message || 'Unknown error'}`);
@@ -137,7 +137,15 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         destroyDevice();
       });
 
-      await device.register();
+      try {
+        await device.register();
+      } catch (regErr) {
+        console.error('[Twilio] Registration failed:', regErr);
+        setErrorMsg(`Registration failed: ${regErr?.message || 'Could not register device with Twilio'}`);
+        setPhase('idle');
+        destroyDevice();
+        return;
+      }
 
       console.log('[Twilio] Device registered, identity:', tokenData.identity);
 
@@ -176,10 +184,24 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       callRef.current = call;
       setPhase('calling');
 
-      call.on('ringing', () => setPhase('calling'));
-      call.on('accept', () => setPhase('active'));
-      call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
-      call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
+      call.on('ringing', () => {
+        console.log('[Twilio Call] Ringing');
+        setPhase('calling');
+      });
+      call.on('accept', () => {
+        console.log('[Twilio Call] Accepted');
+        setPhase('active');
+      });
+      call.on('disconnect', () => {
+        console.log('[Twilio Call] Disconnected');
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('cancel', () => {
+        console.log('[Twilio Call] Cancelled');
+        setPhase('ended');
+        destroyDevice();
+      });
       call.on('error', (err) => {
         console.error('[Twilio Call Error]', err.code, err.message);
         let msg = err.message || 'Call error';
