@@ -68,7 +68,6 @@ import GoogleDrive from '@/pages/GoogleDrive';
 import Notes from '@/pages/Notes';
 import Negotiations from '@/pages/Negotiations';
 import FollowUps from '@/pages/FollowUps';
-import FollowUpCalendar from '@/pages/FollowUpCalendar';
 import Viewings from '@/pages/Viewings';
 import EmailTemplates from '@/pages/EmailTemplates';
 import Broadcasts from '@/pages/Broadcasts';
@@ -166,7 +165,6 @@ const AuthenticatedApp = () => {
         <Route path="/notes" element={<Notes />} />
         <Route path="/negotiations" element={<Negotiations />} />
         <Route path="/follow-ups" element={<FollowUps />} />
-        <Route path="/followup-calendar" element={<FollowUpCalendar />} />
         <Route path="/viewings" element={<Viewings />} />
         <Route path="/email-templates" element={<EmailTemplates />} />
         <Route path="/broadcasts" element={<Broadcasts />} />
