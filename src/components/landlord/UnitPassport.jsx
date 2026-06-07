@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Building2, Layers, SquareStack, Bed, Ruler, DollarSign, Key, Home,
-  ShieldCheck, ShieldAlert, Camera, FileText, AlertTriangle, CheckCircle2, Clock, Ban
+  ShieldCheck, ShieldAlert, Camera, FileText, AlertTriangle, CheckCircle2, Clock, Ban, MapPin, ExternalLink
 } from 'lucide-react';
 
 // Derive floor from unit_no: "2511" → 25, "713" → 7, "313" → 3
@@ -221,6 +221,47 @@ export default function UnitPassport({ landlordId }) {
                   highlight={link.currently_occupied ? 'text-amber-400' : 'text-emerald-400'}
                 />
               )}
+
+              {/* Google Maps Location */}
+              {prop && (prop.latitude || prop.location || prop.address || prop.building_name) && (() => {
+                const mapsQuery = prop.latitude && prop.longitude
+                  ? `${prop.latitude},${prop.longitude}`
+                  : encodeURIComponent([prop.building_name, prop.location, prop.address, 'Dubai'].filter(Boolean).join(', '));
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+                const displayLabel = [prop.building_name, prop.location, prop.address].filter(Boolean).join(', ') || 'View on Google Maps';
+                return (
+                  <div className="py-2 border-b border-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-red-400" />
+                        Location
+                      </div>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors max-w-[60%] text-right truncate"
+                      >
+                        <span className="truncate">{displayLabel}</span>
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                      </a>
+                    </div>
+                    {prop.latitude && prop.longitude && (
+                      <div className="mt-2 rounded-lg overflow-hidden" style={{ height: '120px' }}>
+                        <iframe
+                          title="Property Location"
+                          width="100%"
+                          height="120"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          allowFullScreen
+                          src={`https://maps.google.com/maps?q=${prop.latitude},${prop.longitude}&z=16&output=embed`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Documents & Media */}
               {link.title_deed_number && (
