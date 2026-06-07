@@ -43,6 +43,7 @@ import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import LandlordConversationPanel from './LandlordConversationPanel';
+import FollowUpsPanel from './FollowUpsPanel';
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -945,6 +946,11 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Conversation + AI Insights */}
           <LandlordConversationPanel landlord={landlord} />
+
+          {/* Follow-ups Panel */}
+          <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <FollowUpsPanel landlordId={landlord.id} />
+          </div>
 
           {/* Metrics Grid */}
           <div className="px-6 py-5 grid grid-cols-4 gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

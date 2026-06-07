@@ -45,11 +45,18 @@ export default function ScheduleFollowUpDialog({ landlord, open, onClose }) {
         created_source: 'manual',
         stage_at_creation: landlord.stage,
       };
-      return await base44.entities.FollowUp.create(payload);
+      const created = await base44.entities.FollowUp.create(payload);
+      try {
+        await base44.functions.invoke('syncFollowUpCalendar', { follow_up_id: created.id, action: 'create' });
+      } catch (e) {
+        console.warn('Calendar sync failed:', e.message);
+      }
+      return created;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['followups', landlord.id] });
-      toast.success('Follow-up scheduled');
+      qc.invalidateQueries({ queryKey: ['landlord-followups', landlord.id] });
+      toast.success('Follow-up scheduled and added to calendar');
       setFormData({ type: 'callback', scheduled_at: '', notes: '', notify_landlord: true });
       onClose();
     },
