@@ -958,11 +958,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-5 mb-5">
+            <TabsList className="grid w-full grid-cols-6 mb-5">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
+              <TabsTrigger value="messages" className="text-xs">Messages</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
 
@@ -1117,6 +1118,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
             <TabsContent value="documents" className="space-y-2">
               <DocumentChecklist landlordId={landlord.id} />
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <LandlordWhatsAppThread landlord={landlord} />
             </TabsContent>
 
             <TabsContent value="ai" className="space-y-4">
