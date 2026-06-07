@@ -181,6 +181,12 @@ Deno.serve(async (req) => {
           media_type: msg.type !== 'text' ? msg.type : 'none',
           channel: 'business'
         };
+        console.log('[whatsappWebhook] Creating business inbound message:', {
+          wa_message_id: waMessageId,
+          from: e164Phone,
+          body: bodyText.slice(0, 80),
+          channel: 'business'
+        });
         if (routeResult?.routed_entity_id) inboundRecord.lead_id = routeResult.routed_entity_id;
         messageRecord = await base44.asServiceRole.entities.WhatsAppMessage.create(inboundRecord);
         console.log('✅ Message created:', messageRecord.id, 'conversation:', conv.id);

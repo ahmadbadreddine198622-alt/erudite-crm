@@ -3,13 +3,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    
+    // Allow webhook calls (no user auth needed for background processing)
     const { conversation_id, message_id, audio_url, from_number } = await req.json();
+    
+    if (!message_id || !audio_url) {
+      return Response.json({ error: 'message_id and audio_url required' }, { status: 400 });
+    }
 
     // Download audio from WhatsApp
     const audioResponse = await fetch(audio_url, {

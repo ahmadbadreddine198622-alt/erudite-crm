@@ -157,8 +157,8 @@ async function deadLetter(serviceRole, payload) {
   }
 }
 
-// Retry-on-429 wrapper: 3 attempts, exp backoff (400ms, 800ms). Non-429 rethrows.
-async function withRetry(fn, attempts = 3) {
+// Retry-on-429 wrapper: 6 attempts, exp backoff (500ms, 1s, 2s, 4s, 8s). Non-429 rethrows.
+async function withRetry(fn, attempts = 6) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
     try {
@@ -167,8 +167,13 @@ async function withRetry(fn, attempts = 3) {
       lastErr = e;
       const msg = String(e?.message || e);
       const is429 = e?.status === 429 || /rate limit|429|too many requests/i.test(msg);
-      if (!is429 || i === attempts) throw e;
-      await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i - 1)));
+      if (!is429 || i === attempts) {
+        console.warn(`[withRetry] failed after ${i} attempts: ${msg}`);
+        throw e;
+      }
+      const delay = 500 * Math.pow(2, i - 1);
+      console.log(`[withRetry] 429 detected, waiting ${delay}ms (attempt ${i}/${attempts})`);
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
   throw lastErr;
