@@ -78,4 +78,35 @@ Expect `{"status":"ok",...}` and a new `Message`. Re-run with the same `id` → 
 
 ---
 
-## PHASE 2–5 — (added as each phase is built/verified)
+## PHASE 2 — Voice intelligence
+
+**Prereq:** `OPENAI_API_KEY` set ✅. Apply `SCHEMA_CHANGES.md` Phase 2 (Message transcript fields),
+then deploy `transcribeVoiceMessage`. The chain is automatic: webhook → `processInboundMedia`
+(downloads audio, sets `media_url`) → fires `transcribeVoiceMessage`.
+
+### 2.1 English voice note
+- Send a voice note in English to the personal line.
+- Expect on the `Message` row within ~30s: `transcript` populated, `transcript_lang=en`,
+  `transcript_status=done`, `translated_text` empty, and `text` becomes `🎤 <transcript>`.
+
+### 2.2 Non-English voice note (auto-detect + translation)
+- Send a voice note in **Arabic**, **Russian**, and **French** (one each).
+- Expect: `transcript` in the original language, `transcript_lang` = `ar`/`ru`/`fr`,
+  `translated_text` = English translation, `transcript_status=done`, and `text` shows
+  `🎤 <original>` then a second line `— <english>`.
+
+### 2.3 Graceful degradation / retry
+- The message must already exist as a voice note (Phase 1) regardless of transcription outcome.
+- Simulate failure (e.g. temporarily wrong audio) → `transcript_status=failed`,
+  `transcript_retry_count` increments, `transcript_error` set; the message + `media_url` remain intact.
+- Re-invoke `transcribeVoiceMessage` with `{ message_id }` → it retries and reaches `done`.
+
+### 2.4 Idempotency
+- Re-invoke on an already-done message → returns `{ status: 'already_done' }`, no duplicate work.
+
+### Cost note
+Whisper ≈ $0.006/min; a month of voice notes is a few dollars. Translation uses `gpt-4o-mini` (cents).
+
+---
+
+## PHASE 3–5 — (added as each phase is built/verified)

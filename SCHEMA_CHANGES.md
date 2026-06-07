@@ -51,7 +51,7 @@ Required: none (best-effort log).
 
 ---
 
-## PHASE 2 — Voice intelligence  *(fields listed now; functions land in Phase 2)*
+## PHASE 2 — Voice intelligence  ✅ APPLY NOW (function `transcribeVoiceMessage` is built)
 
 ### `Message` entity — ADD fields
 | Field | Type | Notes |
@@ -60,7 +60,12 @@ Required: none (best-effort log).
 | `transcript_lang` | string | ISO-639-1 detected language (`ar`/`en`/`ru`/`fr`/…) |
 | `translated_text` | string | English translation (only when `transcript_lang` ≠ `en`) |
 | `transcript_status` | string | enum: `pending` \| `done` \| `failed` |
-| `transcript_retry_count` | number (default `0`) | |
+| `transcript_retry_count` | number (default `0`) | inline attempts used; lets a sweep retry |
+| `transcript_error` | string | last transcription error (truncated) |
+
+> Apply these **before** pasting `transcribeVoiceMessage` (Base44 drops unknown fields).
+> No new entity. `processInboundMedia` already fires `transcribeVoiceMessage` after a
+> voice note's audio is downloaded — no change to Phase 1 functions needed.
 
 ---
 
