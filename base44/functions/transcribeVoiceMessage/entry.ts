@@ -28,7 +28,7 @@ async function whisperTranscribe(apiKey, blob, filename) {
   const fd = new FormData();
   fd.append('file', blob, filename);
   fd.append('model', 'whisper-1');
-  fd.append('response_format', 'verbose_json'); // gives detected `language`
+  fd.append('response_format', 'verbose_json');
   const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}` },
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   const svc = base44.asServiceRole;
 
   let body = {};
-  try { body = await req.json(); } catch (_) { /* none */ }
+  try { body = await req.json(); } catch (_) {}
   const messageId = body.message_id;
   if (!messageId) return Response.json({ error: 'message_id required' }, { status: 400 });
 
