@@ -6,12 +6,14 @@
       "type": "string"
     },
     "name": {
-      "type": "string"
+      "type": "string",
+      "description": "Name or descriptor e.g. 'Wife', 'Brother Mohammed', 'Lawyer'"
     },
     "role": {
       "type": "string",
       "enum": [
         "spouse",
+        "sibling",
         "business_partner",
         "lawyer",
         "financial_advisor",
@@ -19,15 +21,27 @@
         "parent",
         "property_manager",
         "company_director",
-        "trustee"
+        "trustee",
+        "other"
       ],
       "default": "spouse"
+    },
+    "influence": {
+      "type": "string",
+      "enum": [
+        "decision_maker",
+        "influencer",
+        "blocker",
+        "neutral"
+      ],
+      "default": "neutral",
+      "description": "How this person influences the deal"
     },
     "decision_power": {
       "type": "number",
       "minimum": 0,
       "maximum": 100,
-      "description": "Influence percentage"
+      "description": "Influence percentage 0-100"
     },
     "sentiment": {
       "type": "string",
@@ -44,6 +58,23 @@
       "type": "number",
       "minimum": -1,
       "maximum": 1
+    },
+    "supporting_quote": {
+      "type": "string",
+      "description": "Exact quote from conversation that revealed this person"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Manual notes about this stakeholder"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "auto"
+      ],
+      "default": "manual",
+      "description": "manual = added by agent; auto = AI-detected from messages"
     },
     "last_engaged_at": {
       "type": "string",
@@ -71,6 +102,10 @@
     "claude_strategy": {
       "type": "string",
       "description": "How to influence this person"
+    },
+    "influence_priority": {
+      "type": "number",
+      "description": "Manual sort order"
     }
   },
   "required": [

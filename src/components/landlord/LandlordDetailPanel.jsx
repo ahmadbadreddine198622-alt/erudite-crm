@@ -3,7 +3,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CommentsThread from "@/components/photography/CommentsThread";
 
@@ -41,7 +42,7 @@ import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
-import LandlordConversationPanel from './LandlordConversationPanel';
+
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
   const queryClient = useQueryClient();
@@ -938,20 +939,35 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             )}
           </div>
 
-          {/* Conversation + AI Insights */}
-          <LandlordConversationPanel landlord={landlord} />
+          {/* AI Insights */}
+          <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <LandlordIntelligenceTab landlord={landlord} />
+          </div>
 
           {/* Metrics Grid */}
           <div className="px-6 py-5 grid grid-cols-4 gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             {[
-              { label: 'Trust Score', value: landlord.trust_score || 0 },
-              { label: 'Responsiveness', value: landlord.responsiveness_score || 0 },
-              { label: 'Mandate Win', value: landlord.mandate_win_probability ? `${(landlord.mandate_win_probability * 100).toFixed(0)}%` : '—' },
-              { label: 'Urgency', value: landlord.urgency_score || 0 },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              { label: 'Trust', value: landlord.trust_score != null ? landlord.trust_score : '—', rationale: landlord.trust_score_rationale },
+              { label: 'Response', value: landlord.responsiveness_score != null ? landlord.responsiveness_score : '—', rationale: landlord.responsiveness_score ? 'Computed from average reply time & reply rate in the message thread.' : null },
+              { label: 'Mandate Win', value: landlord.mandate_win_probability != null ? `${(landlord.mandate_win_probability * 100).toFixed(0)}%` : '—', rationale: landlord.mandate_win_rationale },
+              { label: 'Urgency', value: landlord.urgency_score != null ? landlord.urgency_score : '—', rationale: landlord.urgency_score_rationale },
+            ].map(({ label, value, rationale }) => (
+              <div key={label} className="rounded-xl p-3 text-center relative" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.07em' }}>{label}</p>
                 <p className="text-xl font-bold tabular-nums" style={{ color: 'hsl(38 92% 55%)' }}>{value}</p>
+                {rationale && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="absolute top-1.5 right-1.5 p-0.5 rounded hover:bg-white/10 transition-colors">
+                        <Info className="w-2.5 h-2.5 text-muted-foreground" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-3 text-xs" style={{ background: 'hsl(222 47% 13%)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
+                      <p className="text-[9px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'hsl(38 92% 55%)' }}>{label} Rationale</p>
+                      {rationale}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
             ))}
           </div>
