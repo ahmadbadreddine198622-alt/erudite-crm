@@ -322,13 +322,15 @@ Deno.serve(async (req) => {
     const message = await withRetry(() => serviceRole.entities.Message.create(record));
     console.log(`[evolutionWebhook] Created Message ${message.id} (landlord=${landlord ? landlord.id : 'none'}, type=${parsed.msgType})`);
 
-    if (parsed.media) {
-      serviceRole.functions.invoke('processInboundMedia', {
-        message_id: message.id,
-        instance: instanceName,
-        wa_message_id: waMessageId,
-      }).catch(() => {});
-    }
+    // Transcription DISABLED — do not invoke processVoiceMessage
+    // Re-enable when OPENAI_API_KEY is configured:
+    // if (parsed.media) {
+    //   serviceRole.functions.invoke('processInboundMedia', {
+    //     message_id: message.id,
+    //     instance: instanceName,
+    //     wa_message_id: waMessageId,
+    //   }).catch(() => {});
+    // }
 
     if (landlord) {
       serviceRole.functions.invoke('analyzeLandlordConversation', { landlord_id: landlord.id }).catch(() => {});

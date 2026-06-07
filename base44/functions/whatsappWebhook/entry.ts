@@ -227,16 +227,16 @@ Deno.serve(async (req) => {
         } catch (err) { console.warn('conversation routing update failed', err); }
       }
 
-      // ---- Voice transcription (fire-and-forget) ----
-      if (isVoiceMessage && msg.audio?.id && messageRecord) {
-        const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
-        base44.asServiceRole.functions.invoke('processVoiceMessage', {
-          conversation_id: conv.id,
-          message_id: messageRecord.id,
-          audio_url: audioUrl,
-          from_number: e164Phone
-        }).catch(() => {});
-      }
+      // ---- Voice transcription DISABLED — re-enable when OPENAI_API_KEY is configured ----
+      // if (isVoiceMessage && msg.audio?.id && messageRecord) {
+      //   const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
+      //   base44.asServiceRole.functions.invoke('processVoiceMessage', {
+      //     conversation_id: conv.id,
+      //     message_id: messageRecord.id,
+      //     audio_url: audioUrl,
+      //     from_number: e164Phone
+      //   }).catch(() => {});
+      // }
 
       // ---- Background AI enrichment ----
       base44.asServiceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Loader2 } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const LANGUAGE_BADGES = {
@@ -20,7 +20,7 @@ export default function VoiceMessageBubble({ message, isOutbound }) {
   const transcript = message.transcript;
   const transcriptLang = message.transcript_lang;
   const translatedText = message.translated_text;
-  const transcriptStatus = message.transcript_status;
+  // transcriptStatus unused — transcription disabled
   const mediaDuration = message.media_duration;
 
   useEffect(() => {
@@ -69,49 +69,7 @@ export default function VoiceMessageBubble({ message, isOutbound }) {
 
   const langBadge = LANGUAGE_BADGES[transcriptLang] || { label: transcriptLang?.toUpperCase() || '??', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' };
 
-  // Pending transcription - shimmer
-  if (transcriptStatus === 'pending' || !transcriptStatus) {
-    return (
-      <div className="space-y-2">
-        <div className={cn('rounded-xl px-3 py-2.5', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-[#C9A24B]/20 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-[#C9A24B] animate-spin" />
-            </div>
-            <div className="flex-1">
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#C9A24B]/50 w-1/3 animate-pulse" />
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-white/50">Transcribing…</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Failed transcription - just show player
-  if (transcriptStatus === 'failed') {
-    return (
-      <div className={cn('rounded-xl px-3 py-2.5', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}>
-        <audio ref={audioRef} src={mediaUrl} className="hidden" />
-        <div className="flex items-center gap-3">
-          <button
-            onClick={togglePlay}
-            className="w-10 h-10 rounded-full bg-[#C9A24B]/20 hover:bg-[#C9A24B]/30 flex items-center justify-center transition-colors"
-          >
-            {isPlaying ? <Pause className="w-5 h-5 text-[#C9A24B]" /> : <Play className="w-5 h-5 text-[#C9A24B] ml-0.5" />}
-          </button>
-          <div className="flex-1">
-            <div className="h-1 bg-white/10 rounded-full" />
-          </div>
-          <span className="text-xs text-white/50">{mediaDuration ? formatTime(mediaDuration) : '0:00'}</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Successful transcription
+  // Voice message player (transcription shown below if available)
   return (
     <div className="space-y-2">
       <div className={cn('rounded-xl px-3 py-2.5', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}>

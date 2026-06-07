@@ -252,16 +252,16 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // ── Voice transcription (fire-and-forget) ─────────────────────
-              if (isVoiceMessage && msg.audio?.id && messageRecord) {
-                const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
-                svc.functions.invoke('processVoiceMessage', {
-                  conversation_id: conv.id,
-                  message_id: messageRecord.id,
-                  audio_url: audioUrl,
-                  from_number: e164Phone,
-                }).catch(() => {});
-              }
+              // ── Voice transcription DISABLED — re-enable when OPENAI_API_KEY is configured ─────────────────────
+              // if (isVoiceMessage && msg.audio?.id && messageRecord) {
+              //   const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
+              //   svc.functions.invoke('processVoiceMessage', {
+              //     conversation_id: conv.id,
+              //     message_id: messageRecord.id,
+              //     audio_url: audioUrl,
+              //     from_number: e164Phone,
+              //   }).catch(() => {});
+              // }
 
               // ── Background enrichment ──────────────────────────────────────
               svc.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
