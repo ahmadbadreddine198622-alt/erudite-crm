@@ -51,6 +51,38 @@ export default function WhatsAppInbox() {
   const [showInternalNote, setShowInternalNote] = useState(false);
   const queryClient = useQueryClient();
 
+  // Conversations with real-time refetch — 10s polling
+  const { data: conversations = [], isLoading, refetch } = useQuery({
+    queryKey: ['wa_conversations'],
+    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
+    refetchInterval: 10000,
+  });
+
+  // Normalize phone numbers and dedupe conversations
+  const normalizedConversations = (() => {
+    const map = new Map();
+    conversations.forEach(conv => {
+      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+      const existing = map.get(normalizedPhone);
+      if (!existing) {
+        map.set(normalizedPhone, conv);
+      } else {
+        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
+        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
+        if (newTime > existingTime) {
+          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
+        } else {
+          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
+  })();
+
   // Desktop notifications
   const notificationHook = useDesktopNotifications({
     conversations: normalizedConversations,
@@ -106,13 +138,6 @@ export default function WhatsAppInbox() {
     toast.success('Copied!');
     setTimeout(() => setCopied(false), 2000);
   };
-
-  // Conversations with real-time refetch — 10s polling
-  const { data: conversations = [], isLoading, refetch } = useQuery({
-    queryKey: ['wa_conversations'],
-    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
-    refetchInterval: 10000,
-  });
 
   // Auto-select conversation from ?phone= URL param
   useEffect(() => {
@@ -195,7 +220,6 @@ export default function WhatsAppInbox() {
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
   });
 
-  // Normalize phone numbers and dedupe conversations
   // Find lead by normalized phone match
   const findLeadByPhone = (conv) => {
     const normalizedConvPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
@@ -220,30 +244,6 @@ export default function WhatsAppInbox() {
       return false;
     });
   };
-
-  const normalizedConversations = (() => {
-    const map = new Map();
-    conversations.forEach(conv => {
-      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-      const existing = map.get(normalizedPhone);
-      if (!existing) {
-        map.set(normalizedPhone, conv);
-      } else {
-        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
-        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
-        if (newTime > existingTime) {
-          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
-        } else {
-          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
-        }
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => {
-      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-      return tb - ta;
-    });
-  })();
 
   const selectedConv = normalizedConversations.find(c => c.id === selectedConvId) || null;
   const selectedLead = selectedConv ? (leads.find(l => l.id === selectedConv?.lead_id) || findLeadByPhone(selectedConv)) : null;
