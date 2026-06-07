@@ -973,7 +973,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="overview" className="px-6 py-5">
+          <Tabs defaultValue="messages" className="px-6 py-5">
             <TabsList className="grid w-full grid-cols-6 mb-5">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
