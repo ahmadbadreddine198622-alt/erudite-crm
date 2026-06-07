@@ -29,6 +29,24 @@ function normalizePhone(raw) {
   return c;
 }
 
+// Strip leading + so we can compare against stored E.164 digits (same logic as evolutionWebhook)
+function stripPlus(raw) {
+  if (!raw) return '';
+  return String(raw).replace(/^\+/, '').trim();
+}
+
+// Priority: match sender against Landlord records (phone, whatsapp, additional_phones)
+async function findLandlordByDigits(svc, digitsPhone) {
+  const all = await svc.entities.Landlord.list('-created_date', 2000).catch(() => []);
+  for (const landlord of all) {
+    if (stripPlus(landlord.phone) === digitsPhone) return landlord;
+    if (stripPlus(landlord.whatsapp) === digitsPhone) return landlord;
+    const extras = Array.isArray(landlord.additional_phones) ? landlord.additional_phones : [];
+    if (extras.some(e => stripPlus(e) === digitsPhone)) return landlord;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
@@ -108,7 +126,34 @@ Deno.serve(async (req) => {
 
               console.log(`[metaWhatsAppWebhook] from=${e164Phone} type=${msg.type} text="${bodyText.slice(0, 80)}"`);
 
-              // ── Dedupe ────────────────────────────────────────────────────
+              // ── PRIORITY: landlord match → Message entity, skip lead inbox ──
+              const digitsPhone = fromNumber.replace(/^\+/, '').trim();
+              const matchedLandlord = await findLandlordByDigits(svc, digitsPhone);
+              if (matchedLandlord) {
+                console.log(`[metaWhatsAppWebhook] Landlord match ${matchedLandlord.id} (${matchedLandlord.full_name_en}) — routing to Message entity, skipping lead inbox`);
+                // Dedupe by wa_message_id in Message entity
+                const dupMsg = await svc.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => []);
+                if (dupMsg.length > 0) {
+                  console.log(`[metaWhatsAppWebhook] duplicate wa_message_id=${waMessageId} in Message, skipping`);
+                  continue;
+                }
+                await svc.entities.Message.create({
+                  landlord_id: matchedLandlord.id,
+                  phone: digitsPhone,
+                  direction: 'incoming',
+                  text: bodyText,
+                  timestamp,
+                  status: 'received',
+                  wa_message_id: waMessageId || null,
+                  channel: 'api',
+                });
+                console.log(`[metaWhatsAppWebhook] ✅ Landlord Message saved (api channel) for landlord ${matchedLandlord.id}`);
+                // Fire AI analysis but NO auto-reply — landlords must not receive the lead welcome message
+                svc.functions.invoke('analyzeLandlordConversation', { landlord_id: matchedLandlord.id }).catch(() => {});
+                continue; // skip the entire lead-inbox pipeline below
+              }
+
+              // ── Dedupe (lead inbox path) ──────────────────────────────────
               const dup = await svc.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId });
               if (dup.length > 0) {
                 console.log(`[metaWhatsAppWebhook] duplicate wa_message_id=${waMessageId}, skipping`);

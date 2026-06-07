@@ -18,6 +18,14 @@ function Section({ title, children }) {
   );
 }
 
+// Channel preference persisted per landlord in localStorage
+function getStoredChannel(landlordId) {
+  try { return localStorage.getItem(`channel_${landlordId}`) || 'personal'; } catch { return 'personal'; }
+}
+function setStoredChannel(landlordId, ch) {
+  try { localStorage.setItem(`channel_${landlordId}`, ch); } catch {}
+}
+
 export default function LandlordConversationPanel({ landlord }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
@@ -25,6 +33,14 @@ export default function LandlordConversationPanel({ landlord }) {
   const bottomRef = useRef(null);
   const [showNewPill, setShowNewPill] = useState(false);
   const prevCountRef = useRef(0);
+  const [channel, setChannel] = useState(() => getStoredChannel(landlord?.id));
+  const [blockedWindow, setBlockedWindow] = useState(false); // API 24h window blocked
+
+  // Reset channel prefs when landlord changes
+  useEffect(() => {
+    setChannel(getStoredChannel(landlord?.id));
+    setBlockedWindow(false);
+  }, [landlord?.id]);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['landlord-messages', landlord?.id],
@@ -76,13 +92,58 @@ export default function LandlordConversationPanel({ landlord }) {
     }
   }, [messages.length]);
 
+  const switchToPersonal = () => {
+    setChannel('personal');
+    setStoredChannel(landlord?.id, 'personal');
+    setBlockedWindow(false);
+  };
+
   const sendMutation = useMutation({
-    mutationFn: (msg) => base44.functions.invoke('sendEvolutionMessage', { landlord_id: landlord.id, text: msg }),
+    mutationFn: async (msg) => {
+      if (channel === 'personal') {
+        // Existing personal channel — sendEvolutionMessage, unchanged
+        return base44.functions.invoke('sendEvolutionMessage', { landlord_id: landlord.id, text: msg });
+      } else {
+        // API channel — sendApiWhatsApp directly with the landlord's phone
+        const phone = String(landlord.phone || landlord.whatsapp || '').replace(/\D/g, '');
+        if (!phone) throw new Error('Landlord has no phone number');
+        const res = await base44.functions.invoke('sendApiWhatsApp', {
+          phone,
+          message: msg,
+          message_kind: 'freeform',
+          skip_quiet_check: true, // human typing, not automation
+        });
+        const result = res?.data ?? res;
+        if (result?.status === 'blocked_window') {
+          // Surface the 24h window notice — do NOT throw, just return so onSuccess can handle it
+          return { __blocked_window: true };
+        }
+        if (result?.status !== 'sent') {
+          throw new Error(result?.error || 'API send failed');
+        }
+        // Save Message record so it appears in the landlord thread
+        await base44.entities.Message.create({
+          landlord_id: landlord.id,
+          phone: String(landlord.phone || landlord.whatsapp || '').replace(/\D/g, ''),
+          direction: 'outgoing',
+          text: msg,
+          timestamp: new Date().toISOString(),
+          status: 'sent',
+          channel: 'api',
+        });
+        return result;
+      }
+    },
     onSuccess: (res) => {
       const data = res?.data ?? res;
+      // 24h window blocked — show inline notice, don't clear text
+      if (data?.__blocked_window || res?.__blocked_window) {
+        setBlockedWindow(true);
+        return;
+      }
       if (data?.error) { toast.error(`Send failed: ${data.error}${data.detail ? ' — ' + data.detail : ''}`); return; }
+      setBlockedWindow(false);
       setText('');
-      // Immediately refetch so the sent bubble appears without waiting for the next poll cycle
       qc.invalidateQueries({ queryKey: ['landlord-messages', landlord.id] });
       toast.success('Message sent');
     },
@@ -105,6 +166,13 @@ export default function LandlordConversationPanel({ landlord }) {
 
   const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ts || ''; } };
 
+  const toggleChannel = () => {
+    const next = channel === 'personal' ? 'api' : 'personal';
+    setChannel(next);
+    setStoredChannel(landlord?.id, next);
+    setBlockedWindow(false);
+  };
+
   const submit = (e) => {
     e.preventDefault();
     const t = text.trim();
@@ -120,8 +188,23 @@ export default function LandlordConversationPanel({ landlord }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       {/* LEFT: WhatsApp thread */}
       <div className="flex flex-col h-[460px] rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-2 mb-2 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
-          <Send className="w-4 h-4" /> WhatsApp
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Send className="w-4 h-4" /> WhatsApp
+          </div>
+          {/* Channel toggle */}
+          <button
+            type="button"
+            onClick={toggleChannel}
+            title="Toggle send channel"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+            style={channel === 'personal'
+              ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }
+              : { background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)', border: '1px solid rgba(245,158,11,0.3)' }
+            }
+          >
+            {channel === 'personal' ? '📱 Personal' : '☁️ Business'}
+          </button>
         </div>
         <div className="flex-1 relative min-h-0">
           <div ref={scrollContainerRef} className="h-full overflow-y-auto space-y-2 p-1">
@@ -132,9 +215,25 @@ export default function LandlordConversationPanel({ landlord }) {
             ) : (
               messages.map((m) => {
                 const out = m.direction === 'outgoing';
+                const isApi = m.channel === 'api';
                 return (
                   <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${out ? 'text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}
+                      style={out
+                        ? isApi
+                          ? { background: 'rgba(245,158,11,0.25)', borderLeft: '3px solid hsl(38 92% 50%)' }
+                          : { background: 'rgba(16,185,129,0.7)' }
+                        : isApi
+                          ? { background: 'rgba(245,158,11,0.08)', borderLeft: '2px solid rgba(245,158,11,0.4)' }
+                          : {}
+                      }
+                    >
+                      {isApi && (
+                        <div className="text-[9px] font-semibold uppercase mb-0.5" style={{ color: out ? 'rgba(255,255,255,0.65)' : 'rgba(245,158,11,0.8)' }}>
+                          ☁️ Business
+                        </div>
+                      )}
                       <div className="whitespace-pre-wrap break-words">{m.text}</div>
                       <div className={`mt-1 text-[10px] ${out ? 'text-white/70' : 'text-muted-foreground'}`}>
                         {fmt(m.timestamp)}{m.status ? ` · ${m.status}` : ''}
@@ -156,11 +255,20 @@ export default function LandlordConversationPanel({ landlord }) {
             </button>
           )}
         </div>
+        {/* 24h window blocked notice */}
+        {blockedWindow && (
+          <div className="mx-1 mb-2 rounded-lg px-3 py-2 text-[11px] leading-relaxed" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: 'hsl(38 92% 65%)' }}>
+            ⚠️ This contact hasn't messaged the Business number in 24h — Meta only allows template messages.{' '}
+            <button type="button" onClick={switchToPersonal} className="underline font-semibold" style={{ color: '#34d399' }}>
+              Switch to Personal instead?
+            </button>
+          </div>
+        )}
         <form onSubmit={submit} className="flex items-center gap-2 pt-2 border-t border-white/10">
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={landlord?.phone ? 'Type a WhatsApp reply…' : 'No phone number on file'}
+            placeholder={landlord?.phone ? `Type a reply via ${channel === 'personal' ? 'Personal' : 'Business'}…` : 'No phone number on file'}
             disabled={!landlord?.phone || sendMutation.isPending}
           />
           <Button type="submit" disabled={!text.trim() || sendMutation.isPending}>

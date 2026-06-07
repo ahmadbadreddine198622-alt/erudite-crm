@@ -41,6 +41,15 @@
     "wa_message_id": {
       "type": "string",
       "description": "WhatsApp message ID \u2014 used for deduplication"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "api"
+      ],
+      "default": "personal",
+      "description": "Which WhatsApp channel delivered this message: personal (erudite_whatsapp / +971581806000) or api (Meta Cloud / +971582806000)"
     }
   },
   "required": [
