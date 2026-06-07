@@ -20,10 +20,13 @@ export default function MarketReportUploadDialog({ open, onClose, onSuccess }) {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ pdfFile, project }) => {
+      console.log('[Upload] Starting upload for project:', project);
+      
       // Upload PDF
       const uploadRes = await base44.integrations.Core.UploadFile({
         file: pdfFile,
       });
+      console.log('[Upload] File uploaded:', uploadRes);
 
       if (!uploadRes?.data?.file_url) {
         throw new Error('File upload failed');
@@ -37,11 +40,18 @@ export default function MarketReportUploadDialog({ open, onClose, onSuccess }) {
         source: 'dxb_interact',
         status: 'uploaded',
       });
+      console.log('[Upload] MarketReport created:', reportRes);
+
+      if (!reportRes?.id) {
+        throw new Error('MarketReport creation failed - no ID returned');
+      }
 
       // Trigger analysis
-      await base44.functions.invoke('analyzeDXBReport', {
+      console.log('[Upload] Invoking analyzeDXBReport with ID:', reportRes.id);
+      const analysisRes = await base44.functions.invoke('analyzeDXBReport', {
         market_report_id: reportRes.id,
       });
+      console.log('[Upload] Analysis response:', analysisRes);
 
       return { reportId: reportRes.id, fileName: pdfFile.name };
     },
