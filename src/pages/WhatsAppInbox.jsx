@@ -289,37 +289,6 @@ export default function WhatsAppInbox() {
     return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
   });
 
-  // Keyboard navigation - must be after filtered definition
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only if not typing in input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
-      const currentIndex = filtered.findIndex(c => c.id === selectedConvId);
-      
-      if (e.key === 'ArrowDown' && currentIndex < filtered.length - 1) {
-        e.preventDefault();
-        handleSelectConv(filtered[currentIndex + 1].id);
-      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
-        e.preventDefault();
-        handleSelectConv(filtered[currentIndex - 1].id);
-      } else if (e.key === 'Enter' && selectedConvId) {
-        e.preventDefault();
-        // Focus message input
-        const input = document.querySelector('textarea[placeholder*="Type a message"]');
-        input?.focus();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        // Focus search
-        const searchInput = document.querySelector('input[placeholder*="Search conversations"]');
-        searchInput?.focus();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [filtered, selectedConvId, handleSelectConv]);
-
   const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const now = new Date();
   const conversationsToday = normalizedConversations.filter(c => {
@@ -426,6 +395,37 @@ export default function WhatsAppInbox() {
     queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     setSelectedConvId(convId);
   };
+
+  // Keyboard navigation - must be after all function definitions
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only if not typing in input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      const currentIndex = filtered.findIndex(c => c.id === selectedConvId);
+      
+      if (e.key === 'ArrowDown' && currentIndex < filtered.length - 1) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex + 1].id);
+      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex - 1].id);
+      } else if (e.key === 'Enter' && selectedConvId) {
+        e.preventDefault();
+        // Focus message input
+        const input = document.querySelector('textarea[placeholder*="Type a message"]');
+        input?.focus();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        // Focus search
+        const searchInput = document.querySelector('input[placeholder*="Search conversations"]');
+        searchInput?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filtered, selectedConvId, handleSelectConv]);
 
   if (isMobile) {
     return <MobileInbox />;
