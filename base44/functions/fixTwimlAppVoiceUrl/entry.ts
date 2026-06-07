@@ -15,22 +15,20 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Missing Twilio credentials' }, { status: 400 });
   }
 
-  // Determine the correct voice URL from the current request origin
-  const url = new URL(req.url);
-  const correctVoiceUrl = `${url.origin}/functions/twilioVoiceWebhook`;
+  // Use the stable app domain (not the per-function Deno URL which changes on each deploy)
+  const correctVoiceUrl = 'https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook';
 
-  // Update the TwiML App via Twilio REST API
-  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Applications/${twimlAppSid}.json`;
-  const body = new URLSearchParams({ VoiceUrl: correctVoiceUrl, VoiceMethod: 'POST' });
-
-  const res = await fetch(twilioUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  });
+  const res = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Applications/${twimlAppSid}.json`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ VoiceUrl: correctVoiceUrl, VoiceMethod: 'POST' }).toString(),
+    }
+  );
 
   const data = await res.json();
   if (!res.ok) {
@@ -40,7 +38,6 @@ Deno.serve(async (req) => {
   return Response.json({
     success: true,
     voice_url_set: correctVoiceUrl,
-    twiml_app_sid: twimlAppSid,
-    twilio_response: { friendly_name: data.friendly_name, voice_url: data.voice_url },
+    voice_url_confirmed: data.voice_url,
   });
 });
