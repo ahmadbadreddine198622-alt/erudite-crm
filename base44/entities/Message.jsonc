@@ -45,11 +45,11 @@
     "channel": {
       "type": "string",
       "enum": [
-        "personal",
-        "api"
+        "business",
+        "personal"
       ],
       "default": "personal",
-      "description": "Which WhatsApp channel delivered this message: personal (erudite_whatsapp / +971581806000) or api (Meta Cloud / +971582806000)"
+      "description": "Which WhatsApp channel: business (erudite / Meta Cloud / +971582806000) or personal (erudite_whatsapp / Baileys / +971581806000)"
     }
   },
   "required": [

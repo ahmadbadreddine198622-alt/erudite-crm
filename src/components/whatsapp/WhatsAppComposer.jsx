@@ -5,10 +5,11 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 import TemplatesModal from "@/components/whatsapp/TemplatesModal";
+import ChannelSwitcher from "@/components/whatsapp/ChannelSwitcher";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord }) {
+export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord, selectedChannel, onChannelChange }) {
   const [text, setText] = useState("");
   const [showAssistant, setShowAssistant] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -87,6 +88,14 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           ))}
         </div>
       )}
+
+      {/* Channel switcher */}
+      <div className="px-3 pt-2 pb-1">
+        <ChannelSwitcher
+          selectedChannel={selectedChannel || 'business'}
+          onChannelChange={onChannelChange}
+        />
+      </div>
 
       {/* Composer row */}
       <div className="flex items-end gap-2 px-3 py-2">

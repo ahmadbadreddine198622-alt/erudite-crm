@@ -109,8 +109,9 @@ Deno.serve(async (req) => {
     '[media]';
 
   const instanceName = (body?.instance || '').toLowerCase();
+  const channel = instanceName === 'erudite' ? 'business' : 'personal';
 
-  console.log(`[evolutionWebhook] instance=${instanceName} from=${digitsPhone} msgId=${waMessageId} text="${text.slice(0, 80)}"`);
+  console.log(`[evolutionWebhook] instance=${instanceName} channel=${channel} from=${digitsPhone} msgId=${waMessageId} text="${text.slice(0, 80)}"`);
 
   // ── API channel: erudite instance (+971582806000) ────────────────────────
   // Save to ApiInboxMessage and stop — do NOT touch Message or landlord chat.
@@ -182,6 +183,7 @@ Deno.serve(async (req) => {
     timestamp,
     status: 'received',
     wa_message_id: waMessageId || null,
+    channel: channel,
   });
 
   console.log(`[evolutionWebhook] Created Message ${message.id} (landlord ${landlord ? landlord.id : 'none'})`);

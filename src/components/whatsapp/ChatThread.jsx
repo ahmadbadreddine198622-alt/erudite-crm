@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, RefreshCw, ChevronDown } from 'lucide-react';
+import { Loader2, RefreshCw, ChevronDown, Building2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
@@ -220,8 +220,11 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 }
 
 function MessageBubble({ msg, contactName }) {
-  const isOutbound = msg.direction === 'outbound';
+  const isOutbound = msg.direction === 'outbound' || msg.direction === 'outgoing';
   const isPending = msg.status === 'pending';
+  const channel = msg.channel || 'personal';
+  const channelColor = channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)';
+  const ChannelIcon = channel === 'business' ? Building2 : User;
 
   if (msg.media_type === 'audio' && msg.transcription) {
     return (
@@ -252,6 +255,7 @@ function MessageBubble({ msg, contactName }) {
           style={{
             background: isOutbound ? 'rgba(245,159,10,0.15)' : 'rgba(255,255,255,0.08)',
             border: isOutbound ? '1px solid rgba(245,159,10,0.3)' : '1px solid rgba(255,255,255,0.12)',
+            borderLeft: !isOutbound ? `3px solid ${channelColor}` : 'none',
           }}
         >
           <p className="leading-relaxed whitespace-pre-wrap" style={{ color: isOutbound ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.9)' }}>
@@ -260,7 +264,13 @@ function MessageBubble({ msg, contactName }) {
           <div className={cn('text-[9px] mt-1 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: isPending ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.45)' }}>
             {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
             {isOutbound && (
-              <span>{isPending ? '⏱' : msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
+              <>
+                <span>{isPending ? '⏱' : msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
+                <span className="flex items-center gap-0.5 opacity-70">
+                  <ChannelIcon className="w-2.5 h-2.5" />
+                  {channel === 'business' ? 'B' : 'P'}
+                </span>
+              </>
             )}
           </div>
         </div>

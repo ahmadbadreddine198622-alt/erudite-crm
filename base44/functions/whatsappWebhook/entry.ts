@@ -178,7 +178,8 @@ Deno.serve(async (req) => {
           timestamp,
           from_number: e164Phone,
           to_number: value.metadata?.display_phone_number || '',
-          media_type: msg.type !== 'text' ? msg.type : 'none'
+          media_type: msg.type !== 'text' ? msg.type : 'none',
+          channel: 'business'
         };
         if (routeResult?.routed_entity_id) inboundRecord.lead_id = routeResult.routed_entity_id;
         messageRecord = await base44.asServiceRole.entities.WhatsAppMessage.create(inboundRecord);

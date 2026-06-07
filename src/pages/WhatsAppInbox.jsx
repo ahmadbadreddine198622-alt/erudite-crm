@@ -38,12 +38,14 @@ export default function WhatsAppInbox() {
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all');
   const [filterAssignedAgent, setFilterAssignedAgent] = useState('');
+  const [filterChannel, setFilterChannel] = useState('all');
   const [setupStatus, setSetupStatus] = useState('idle');
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
   const [copied, setCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [optimisticMessages, setOptimisticMessages] = useState({});
+  const [selectedChannel, setSelectedChannel] = useState('business');
   const queryClient = useQueryClient();
 
   const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
@@ -260,6 +262,8 @@ export default function WhatsAppInbox() {
     // Admin/manager can filter by agent, but regular agents can only see their own
     const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
     
+    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
+    
     const lead = leads.find(l => l.id === c.lead_id);
     const phone = c.wa_phone_e164 || c.phone_number || '';
     const name = lead?.full_name || c.wa_display_name || phone;
@@ -269,7 +273,7 @@ export default function WhatsAppInbox() {
       filter === 'unread' ? (c.unread_count || 0) > 0 :
       filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
       filter === 'resolved' ? c.status === 'resolved' : true;
-    return matchesSearch && matchesFilter && matchesAgent;
+    return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
   });
 
   const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
@@ -291,12 +295,11 @@ export default function WhatsAppInbox() {
   const unresolvedCount = normalizedConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
-    mutationFn: ({ message }) =>
-      base44.functions.invoke('sendWhatsAppMessageFromCRM', { 
-        conversation_id: selectedConvId,
-        phone_number: selectedConv?.wa_phone_e164 || selectedConv?.phone_number,
-        message_text: message,
-        media_type: 'text'
+    mutationFn: ({ message, channel }) =>
+      base44.functions.invoke('sendMultiChannelWhatsApp', { 
+        landlord_id: selectedLead?.id,
+        text: message,
+        channel: channel || 'business'
       }),
     onSuccess: (res) => {
       setOptimisticMessages(prev => {
@@ -339,9 +342,10 @@ export default function WhatsAppInbox() {
         timestamp: now,
         status: 'pending',
         conversation_id: selectedConvId,
+        channel: selectedChannel,
       }
     }));
-    sendMutation.mutate({ message: trimmed });
+    sendMutation.mutate({ message: trimmed, channel: selectedChannel });
   };
 
   const handleScheduleSend = (text, _minutes) => {
@@ -360,6 +364,11 @@ export default function WhatsAppInbox() {
     if (conv?.unread_count > 0) {
       base44.entities.WhatsAppConversation.update(convId, { unread_count: 0 });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+    }
+    // Auto-detect channel from last message
+    if (selectedConv) {
+      const lastMsgChannel = selectedConv.last_message_channel || 'business';
+      setSelectedChannel(lastMsgChannel);
     }
   };
 
@@ -659,21 +668,39 @@ export default function WhatsAppInbox() {
             />
           </div>
           {/* Filter pills */}
-          <div className="flex gap-1 flex-wrap">
-            {['all', 'unread', 'open', 'resolved'].map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors"
-                style={{
-                  background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
-                  color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.7)',
-                  border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <div className="flex gap-1 flex-wrap">
+              {['all', 'unread', 'open', 'resolved'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
+                    color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.7)',
+                    border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              {['all', 'business', 'personal'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setFilterChannel(c)}
+                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors border"
+                  style={{
+                    background: filterChannel === c ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)',
+                    color: filterChannel === c ? 'white' : 'rgba(255,255,255,0.7)',
+                    border: filterChannel === c ? (c === 'business' ? '1px solid hsl(152 69% 40%)' : c === 'personal' ? '1px solid hsl(217 91% 60%)' : '1px solid hsl(38 92% 50%)') : '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  {c === 'all' ? 'All Channels' : c === 'business' ? '🏢 Business' : '👤 Personal'}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Team member filter - Admin/Managers only */}
@@ -785,6 +812,8 @@ export default function WhatsAppInbox() {
               onSend={handleSend}
               onSendProperty={() => setShowInsights(true)}
               onScheduleSend={handleScheduleSend}
+              selectedChannel={selectedChannel}
+              onChannelChange={setSelectedChannel}
             />
           </div>
 
