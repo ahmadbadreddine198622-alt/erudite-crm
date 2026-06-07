@@ -71,6 +71,27 @@ Deno.serve(async (req) => {
 
   const event = body?.event;
 
+  // Handle message status updates (delivery/read receipts)
+  if (event === 'messages.update') {
+    const updates = Array.isArray(body?.data) ? body.data : (body?.data ? [body.data] : []);
+    for (const update of updates) {
+      const waId = update?.key?.id || update?.id;
+      // ack: 0=pending, 1=sent, 2=delivered, 3=read
+      const ack = update?.update?.status ?? update?.ack;
+      if (!waId) continue;
+      const ACK_MAP = { 0: 'sent', 1: 'sent', 2: 'delivered', 3: 'read' };
+      const newStatus = ACK_MAP[ack] || null;
+      if (!newStatus) continue;
+      // Find the message by wa_message_id and update its status
+      const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
+      if (existing?.length > 0) {
+        await serviceRole.entities.Message.update(existing[0].id, { status: newStatus });
+        console.log(`[evolutionWebhook] Updated message ${existing[0].id} status to ${newStatus}`);
+      }
+    }
+    return Response.json({ status: 'ok', event: 'messages.update' });
+  }
+
   // Only handle incoming text/media messages
   if (event !== 'messages.upsert') {
     return Response.json({ status: 'ignored', event });
