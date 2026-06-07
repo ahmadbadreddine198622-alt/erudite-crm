@@ -154,9 +154,10 @@ export default function WhatsAppInbox() {
     if (match) setSelectedConvId(match.id);
   }, [phoneParam, conversations]);
 
-  // NOTE: Realtime subscriptions are not functional on this Base44 plan.
-  // These calls are retained as placeholders and can be re-enabled if the plan gains support.
-  // Currently, all conversation/message updates arrive via polling only.
+  // Realtime is unavailable on this plan (no live socket), so these two .subscribe()
+  // effects never fired and only added request churn. Removed — re-add if the plan
+  // gains realtime. Sidebar freshness comes from the 15s poll (paused when hidden);
+  // the open thread polls every 2s.
   // const unsubConv = base44.entities.WhatsAppConversation.subscribe((event) => {
   //   queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
   // });
