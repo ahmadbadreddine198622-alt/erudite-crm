@@ -25,9 +25,23 @@ export default function FollowUpCalendar() {
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'week'
   const [selectedStatus, setSelectedStatus] = useState('all');
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: followups = [], isLoading } = useQuery({
     queryKey: ['followups'],
-    queryFn: () => base44.entities.FollowUp.list('-scheduled_at', 500),
+    queryFn: async () => {
+      const all = await base44.entities.FollowUp.list('-scheduled_at', 500);
+      // Filter to current user's assigned landlords if not admin
+      if (currentUser?.role !== 'admin') {
+        const landlords = await base44.entities.Landlord.list();
+        const userLandlordIds = landlords.filter(l => l.assigned_agent_email === currentUser?.email).map(l => l.id);
+        return all.filter(f => userLandlordIds.includes(f.landlord_id));
+      }
+      return all;
+    },
   });
 
   const { data: landlords = [] } = useQuery({
@@ -42,8 +56,12 @@ export default function FollowUpCalendar() {
   }, [landlords]);
 
   const filteredFollowups = useMemo(() => {
-    if (selectedStatus === 'all') return followups;
-    return followups.filter(f => f.status === selectedStatus);
+    let filtered = followups;
+    if (selectedStatus === 'all') filtered = followups;
+    else filtered = followups.filter(f => f.status === selectedStatus);
+    
+    // Sort by time
+    return filtered.sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
   }, [followups, selectedStatus]);
 
   const days = useMemo(() => {
@@ -144,7 +162,7 @@ export default function FollowUpCalendar() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-5 gap-3 mb-4">
           {['pending', 'done', 'missed', 'cancelled'].map(status => {
             const count = followups.filter(f => f.status === status).length;
             return (
@@ -160,6 +178,18 @@ export default function FollowUpCalendar() {
               </div>
             );
           })}
+          <div className="rounded-xl p-3 border bg-accent/10 text-accent border-accent/30">
+            <div className="flex items-center gap-2 mb-1">
+              <ClipboardList className="w-4 h-4" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider">Today</span>
+            </div>
+            <p className="text-2xl font-bold">
+              {followups.filter(f => {
+                const fDate = parseISO(f.scheduled_at);
+                return isToday(fDate);
+              }).length}
+            </p>
+          </div>
         </div>
       </div>
 
