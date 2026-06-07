@@ -3,7 +3,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CommentsThread from "@/components/photography/CommentsThread";
 
@@ -60,6 +60,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const [emailSending, setEmailSending] = useState(false);
   const [agreementEmailSending, setAgreementEmailSending] = useState(false);
   const formAInputRef = useRef(null);
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [contactForm, setContactForm] = useState({});
 
   const STAGE_OPTIONS = [
     'initial_contact',
@@ -248,6 +250,17 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     { email: 'dari@erudite-estate.com', name: 'Dari' },
     { email: 'ahmad.badreddine198622@gmail.com', name: 'Ahmad Badreddine' },
   ];
+
+  const editContactMutation = useMutation({
+    mutationFn: (data) => base44.entities.Landlord.update(landlord.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      onUpdate?.();
+      setEditContactOpen(false);
+      toast.success('Contact updated');
+    },
+    onError: (e) => toast.error('Failed to save: ' + e.message),
+  });
 
   const orchestrateMutation = useMutation({
     mutationFn: () => base44.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }),
@@ -605,6 +618,61 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         <div className="flex-1 overflow-y-auto">
           {/* Quick Info */}
           <div className="px-6 py-5 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Edit Contact */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Contact Info</p>
+              <button
+                onClick={() => {
+                  setContactForm({
+                    full_name_en: landlord.full_name_en || '',
+                    phone: landlord.phone || '',
+                    whatsapp: landlord.whatsapp || '',
+                    email: landlord.email || '',
+                  });
+                  setEditContactOpen(!editContactOpen);
+                }}
+                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
+                style={{ color: editContactOpen ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.55)' }}
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+            </div>
+
+            {editContactOpen && (
+              <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {[
+                  { key: 'full_name_en', label: 'Name', type: 'text', placeholder: 'Full name (EN)' },
+                  { key: 'phone', label: 'Phone', type: 'tel', placeholder: '+971…' },
+                  { key: 'whatsapp', label: 'WhatsApp', type: 'tel', placeholder: '+971… (if different)' },
+                  { key: 'email', label: 'Email', type: 'email', placeholder: 'email@example.com' },
+                ].map(({ key, label, type, placeholder }) => (
+                  <div key={key}>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">{label}</label>
+                    <input
+                      type={type}
+                      placeholder={placeholder}
+                      value={contactForm[key] || ''}
+                      onChange={(e) => setContactForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="w-full px-2 py-1.5 text-xs rounded-md"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                    />
+                  </div>
+                ))}
+                <div className="flex justify-end gap-2 pt-1">
+                  <button onClick={() => setEditContactOpen(false)} className="text-xs px-2.5 py-1 rounded-md border border-white/15 hover:bg-white/8 transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>Cancel</button>
+                  <button
+                    onClick={() => editContactMutation.mutate(contactForm)}
+                    disabled={editContactMutation.isPending}
+                    className="flex items-center gap-1 text-xs px-3 py-1 rounded-md transition-colors disabled:opacity-50"
+                    style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)', fontWeight: 600 }}
+                  >
+                    {editContactMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span>{landlord.phone || 'No phone'}</span>
