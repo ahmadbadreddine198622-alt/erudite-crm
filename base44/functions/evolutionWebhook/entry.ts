@@ -189,6 +189,27 @@ async function deadLetter(serviceRole, payload) {
   }
 }
 
+/**
+ * Retry-on-429 wrapper for Base44 entity writes. Bursts (e.g. many messages.delete
+ * in one payload) can trip Base44's rate limiter; without this they dead-letter.
+ * 3 attempts, exponential backoff (400ms, 800ms). Non-429 errors rethrow immediately.
+ */
+async function withRetry(fn, attempts = 3) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e);
+      const is429 = e?.status === 429 || /rate limit|429|too many requests/i.test(msg);
+      if (!is429 || i === attempts) throw e;
+      await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i - 1)));
+    }
+  }
+  throw lastErr;
+}
+
 // ── handler ──────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   const url = new URL(req.url);
@@ -224,9 +245,9 @@ Deno.serve(async (req) => {
         const rawStatus = u?.update?.status ?? u?.status;
         const mapped = mapStatus(rawStatus);
         if (!waId || !mapped) continue;
-        const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
+        const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waId }));
         if (existing?.[0]) {
-          await serviceRole.entities.Message.update(existing[0].id, { status: mapped });
+          await withRetry(() => serviceRole.entities.Message.update(existing[0].id, { status: mapped }));
           touched++;
         }
       }
@@ -241,8 +262,8 @@ Deno.serve(async (req) => {
       for (const d of dels) {
         const waId = d?.key?.id || d?.id;
         if (!waId) continue;
-        const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
-        if (existing?.[0]) { await serviceRole.entities.Message.update(existing[0].id, { is_deleted: true }); touched++; }
+        const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waId }));
+        if (existing?.[0]) { await withRetry(() => serviceRole.entities.Message.update(existing[0].id, { is_deleted: true })); touched++; }
       }
       console.log(`[evolutionWebhook] event=messages.delete instance=${instanceName} deleted=${touched}`);
       return Response.json({ status: 'deleted', count: touched });
@@ -275,14 +296,14 @@ Deno.serve(async (req) => {
 
     // Reaction → attach to the target message, do not create a new row
     if (parsed.reaction?.target_wa_id) {
-      const tgt = await serviceRole.entities.Message.filter({ wa_message_id: parsed.reaction.target_wa_id });
-      if (tgt?.[0]) await serviceRole.entities.Message.update(tgt[0].id, { reaction: parsed.reaction.emoji });
+      const tgt = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: parsed.reaction.target_wa_id }));
+      if (tgt?.[0]) await withRetry(() => serviceRole.entities.Message.update(tgt[0].id, { reaction: parsed.reaction.emoji }));
       return Response.json({ status: 'reaction_recorded', emoji: parsed.reaction.emoji });
     }
     // Deletion via protocolMessage REVOKE
     if (parsed.deletion_target) {
-      const tgt = await serviceRole.entities.Message.filter({ wa_message_id: parsed.deletion_target });
-      if (tgt?.[0]) await serviceRole.entities.Message.update(tgt[0].id, { is_deleted: true });
+      const tgt = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: parsed.deletion_target }));
+      if (tgt?.[0]) await withRetry(() => serviceRole.entities.Message.update(tgt[0].id, { is_deleted: true }));
       return Response.json({ status: 'deletion_recorded' });
     }
 
@@ -290,7 +311,7 @@ Deno.serve(async (req) => {
     if (instanceName === 'erudite') {
       const landlordMatch = await findLandlordByPhone(serviceRole, digitsPhone);
       const leadMatch = landlordMatch ? null : await findLeadByPhone(serviceRole, digitsPhone);
-      await serviceRole.entities.ApiInboxMessage.create({
+      await withRetry(() => serviceRole.entities.ApiInboxMessage.create({
         sender_phone: digitsPhone,
         message_text: parsed.text,
         message_type: parsed.msgType,
@@ -302,13 +323,13 @@ Deno.serve(async (req) => {
         linked_landlord_name: landlordMatch ? (landlordMatch.full_name_en || landlordMatch.full_name) : null,
         linked_lead_id: leadMatch?.id || null,
         linked_lead_name: leadMatch?.full_name || null,
-      });
+      }));
       return Response.json({ status: 'api_inbox_saved', matched_landlord: !!landlordMatch, matched_lead: !!leadMatch });
     }
 
     // ── PERSONAL channel (erudite_whatsapp / Baileys) → Message ───────────
     if (waMessageId) {
-      const existing = await serviceRole.entities.Message.filter({ wa_message_id: waMessageId });
+      const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waMessageId }));
       if (existing?.length > 0) return Response.json({ status: 'duplicate', wa_message_id: waMessageId });
     }
 
@@ -323,7 +344,7 @@ Deno.serve(async (req) => {
       status: 'received',
       wa_message_id: waMessageId || null,
       channel,
-      msg_type: parsed.msgType,
+      message_type: parsed.msgType,
     };
     if (parsed.caption) record.caption = parsed.caption;
     if (parsed.reply_to_wa_id) record.reply_to_wa_id = parsed.reply_to_wa_id;
@@ -338,7 +359,7 @@ Deno.serve(async (req) => {
       record.media_status = 'pending';  // processInboundMedia will download + persist
     }
 
-    const message = await serviceRole.entities.Message.create(record);
+    const message = await withRetry(() => serviceRole.entities.Message.create(record));
     console.log(`[evolutionWebhook] Created Message ${message.id} (landlord=${landlord ? landlord.id : 'none'}, type=${parsed.msgType})`);
 
     // Async: download media (and, for voice notes, transcribe). Never blocks the webhook.
