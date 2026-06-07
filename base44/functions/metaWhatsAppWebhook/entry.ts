@@ -126,41 +126,20 @@ Deno.serve(async (req) => {
 
               console.log(`[metaWhatsAppWebhook] from=${e164Phone} type=${msg.type} text="${bodyText.slice(0, 80)}"`);
 
-              // ── PRIORITY: landlord match → Message entity, skip lead inbox ──
+              // ── PRIORITY: landlord match — dual-write to BOTH entities ──
               const digitsPhone = fromNumber.replace(/^\+/, '').trim();
               const matchedLandlord = await findLandlordByDigits(svc, digitsPhone);
-              if (matchedLandlord) {
-                console.log(`[metaWhatsAppWebhook] Landlord match ${matchedLandlord.id} (${matchedLandlord.full_name_en}) — routing to Message entity, skipping lead inbox`);
-                // Dedupe by wa_message_id in Message entity
-                const dupMsg = await svc.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => []);
-                if (dupMsg.length > 0) {
-                  console.log(`[metaWhatsAppWebhook] duplicate wa_message_id=${waMessageId} in Message, skipping`);
-                  continue;
-                }
-                await svc.entities.Message.create({
-                  landlord_id: matchedLandlord.id,
-                  phone: digitsPhone,
-                  direction: 'incoming',
-                  text: bodyText,
-                  timestamp,
-                  status: 'received',
-                  wa_message_id: waMessageId || null,
-                  channel: 'api',
-                });
-                console.log(`[metaWhatsAppWebhook] ✅ Landlord Message saved (api channel) for landlord ${matchedLandlord.id}`);
-                // Fire AI analysis but NO auto-reply — landlords must not receive the lead welcome message
-                svc.functions.invoke('analyzeLandlordConversation', { landlord_id: matchedLandlord.id }).catch(() => {});
-                continue; // skip the entire lead-inbox pipeline below
-              }
-
-              // ── Dedupe (lead inbox path) ──────────────────────────────────
-              const dup = await svc.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId });
-              if (dup.length > 0) {
+              
+              // Dedupe checks for BOTH entities (canonical WhatsAppMessage + legacy Message)
+              const dupWAMsg = await svc.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId }).catch(() => []);
+              const dupMsg = await svc.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => []);
+              if (dupWAMsg.length > 0 || dupMsg.length > 0) {
                 console.log(`[metaWhatsAppWebhook] duplicate wa_message_id=${waMessageId}, skipping`);
                 continue;
               }
 
-              // ── Find or create WhatsAppConversation ───────────────────────
+              // ── Canonical: ALWAYS write to WhatsAppMessage (all messages) ──────────────────────────────────
+              // Find or create WhatsAppConversation
               let conv = null;
               const convsByE164 = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone }).catch(() => []);
               conv = convsByE164?.[0] || null;
@@ -192,7 +171,41 @@ Deno.serve(async (req) => {
                 }).catch(err => console.warn('conv update failed', err));
               }
 
-              // ── Route through Aurora ───────────────────────────────────────
+              const waMessageRecord = {
+                conversation_id: conv.id,
+                wa_message_id: waMessageId,
+                direction: 'inbound',
+                body: bodyText,
+                status: 'delivered',
+                timestamp,
+                from_number: e164Phone,
+                to_number: value.metadata?.display_phone_number || '',
+                media_type: msg.type !== 'text' ? msg.type : 'none',
+                channel: 'business' // ✅ All Meta inbound = business channel
+              };
+              if (matchedLandlord) waMessageRecord.lead_id = matchedLandlord.id; // temporary link until landlord_id field added
+              
+              const messageRecord = await svc.entities.WhatsAppMessage.create(waMessageRecord);
+              console.log(`[metaWhatsAppWebhook] ✅ WhatsAppMessage ${messageRecord.id} saved (channel=business)`);
+
+              // ── Legacy backup: ALSO write to Message entity if landlord-matched ─────────────────────────
+              if (matchedLandlord) {
+                await svc.entities.Message.create({
+                  landlord_id: matchedLandlord.id,
+                  phone: digitsPhone,
+                  direction: 'incoming',
+                  text: bodyText,
+                  timestamp,
+                  status: 'received',
+                  wa_message_id: waMessageId || null,
+                  channel: 'business', // ✅ Consistent channel
+                });
+                console.log(`[metaWhatsAppWebhook] ✅ Message (legacy) saved for landlord ${matchedLandlord.id}`);
+                // Fire AI analysis but NO auto-reply — landlords must not receive the lead welcome message
+                svc.functions.invoke('analyzeLandlordConversation', { landlord_id: matchedLandlord.id }).catch(() => {});
+              }
+
+              // ── Route through Aurora (skip auto-reply for landlords) ───────────────────────────────────────
               let recentThread = [];
               try {
                 const prior = await svc.entities.WhatsAppMessage.filter({ conversation_id: conv.id }, '-timestamp', 10);
@@ -214,25 +227,9 @@ Deno.serve(async (req) => {
                 console.error('[metaWhatsAppWebhook] routeWhatsAppMessage failed', err);
               }
 
-              // ── Persist WhatsAppMessage ────────────────────────────────────
-              const inboundRecord = {
-                conversation_id: conv.id,
-                wa_message_id: waMessageId,
-                direction: 'inbound',
-                body: bodyText,
-                status: 'delivered',
-                timestamp,
-                from_number: e164Phone,
-                to_number: value.metadata?.display_phone_number || '',
-                media_type: msg.type !== 'text' ? msg.type : 'none',
-                channel: 'business'
-              };
-              if (routeResult?.routed_entity_id) inboundRecord.lead_id = routeResult.routed_entity_id;
-              const messageRecord = await svc.entities.WhatsAppMessage.create(inboundRecord);
-              console.log(`[metaWhatsAppWebhook] ✅ Message ${messageRecord.id} saved, conv=${conv.id}`);
-
-              // ── Update conversation with routing result ────────────────────
-              if (routeResult?.routed_entity_id) {
+              // ── Update conversation with routing result ────────────────────────────────────────────────────
+              if (routeResult?.routed_entity_id && !matchedLandlord) {
+                // Skip routing updates for landlord messages (they're already linked above)
                 const convUpdate = {};
                 if (routeResult.routed_entity_type === 'landlord') convUpdate.landlord_id = routeResult.routed_entity_id;
                 else if (routeResult.routed_entity_type === 'lead') convUpdate.lead_id = routeResult.routed_entity_id;
@@ -263,7 +260,7 @@ Deno.serve(async (req) => {
               //   }).catch(() => {});
               // }
 
-              // ── Background enrichment ──────────────────────────────────────
+              // ── Background enrichment ──────────────────────────────────────────────────────────────────────
               svc.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
               svc.functions.invoke('executeAutomationRules', { conversation_id: conv.id }).catch(() => {});
 
