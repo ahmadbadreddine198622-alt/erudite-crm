@@ -173,16 +173,42 @@ function mapStatus(s) {
   return null;
 }
 
+/**
+ * Retry a Base44 operation with exponential backoff on 429 rate limit.
+ * @param {Function} operation - Async function to retry
+ * @param {number} maxAttempts - Maximum retry attempts (default: 3)
+ * @returns {Promise<any>} - Result of the operation
+ */
+async function retryWithBackoff(operation, maxAttempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (e) {
+      lastError = e;
+      const isRateLimit = e?.status === 429 || e?.data?.error_type === 'HTTPException' || String(e.message).includes('Rate limit');
+      if (!isRateLimit || attempt === maxAttempts) {
+        throw e;
+      }
+      const delayMs = Math.pow(2, attempt) * 100; // 200ms, 400ms, 800ms
+      console.log(`[retryWithBackoff] attempt=${attempt}/${maxAttempts} rate_limit=true retry_in=${delayMs}ms`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function deadLetter(serviceRole, payload) {
   try {
-    await serviceRole.entities.WebhookDeadLetter.create({
-      source: 'evolution',
-      event: payload.event || '',
-      instance: payload.instance || '',
-      wa_message_id: payload.wa_message_id || '',
-      stage: payload.stage || '',
-      error: String(payload.error || '').slice(0, 1000),
-      raw_payload: payload.raw || null,
+    await retryWithBackoff(async () => {
+      return serviceRole.entities.WebhookDeadLetter.create({
+        source: 'evolution',
+        event: payload.event || '',
+        instance: payload.instance || '',
+        wa_message_id: payload.wa_message_id || '',
+        stage: payload.stage || '',
+        error: String(payload.error || '').slice(0, 1000),
+        raw_payload: payload.raw || null,
+      });
     });
   } catch (e) {
     console.error('[evolutionWebhook][DEAD-LETTER-FALLBACK]', JSON.stringify({ err: String(e), origErr: payload.error }));
@@ -226,7 +252,9 @@ Deno.serve(async (req) => {
         if (!waId || !mapped) continue;
         const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
         if (existing?.[0]) {
-          await serviceRole.entities.Message.update(existing[0].id, { status: mapped });
+          await retryWithBackoff(async () => {
+            return serviceRole.entities.Message.update(existing[0].id, { status: mapped });
+          });
           touched++;
         }
       }
@@ -242,7 +270,12 @@ Deno.serve(async (req) => {
         const waId = d?.key?.id || d?.id;
         if (!waId) continue;
         const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
-        if (existing?.[0]) { await serviceRole.entities.Message.update(existing[0].id, { is_deleted: true }); touched++; }
+        if (existing?.[0]) {
+          await retryWithBackoff(async () => {
+            return serviceRole.entities.Message.update(existing[0].id, { is_deleted: true });
+          });
+          touched++;
+        }
       }
       console.log(`[evolutionWebhook] event=messages.delete instance=${instanceName} deleted=${touched}`);
       return Response.json({ status: 'deleted', count: touched });
@@ -338,7 +371,9 @@ Deno.serve(async (req) => {
       record.media_status = 'pending';  // processInboundMedia will download + persist
     }
 
-    const message = await serviceRole.entities.Message.create(record);
+    const message = await retryWithBackoff(async () => {
+      return serviceRole.entities.Message.create(record);
+    });
     console.log(`[evolutionWebhook] Created Message ${message.id} (landlord=${landlord ? landlord.id : 'none'}, type=${parsed.msgType})`);
 
     // Async: download media (and, for voice notes, transcribe). Never blocks the webhook.
