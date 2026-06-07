@@ -4,7 +4,7 @@
   "properties": {
     "landlord_id": {
       "type": "string",
-      "description": "FK to Landlord entity"
+      "description": "FK to Landlord entity (optional - null for unmatched numbers)"
     },
     "phone": {
       "type": "string",
@@ -140,7 +140,6 @@
     }
   },
   "required": [
-    "landlord_id",
     "phone",
     "direction",
     "text",
