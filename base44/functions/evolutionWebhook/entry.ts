@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
 
   // Extract message text from various Evolution message types
   const msgObj = data.message || {};
+  const msgType = Object.keys(msgObj)[0] || 'unknown';
   const text =
     msgObj.conversation ||
     msgObj.extendedTextMessage?.text ||
@@ -107,8 +108,52 @@ Deno.serve(async (req) => {
     (msgObj.audioMessage ? '🎤 Voice message' : null) ||
     '[media]';
 
-  console.log(`[evolutionWebhook] from=${digitsPhone} msgId=${waMessageId} text="${text.slice(0, 80)}"`);
+  const instanceName = (body?.instance || '').toLowerCase();
 
+  console.log(`[evolutionWebhook] instance=${instanceName} from=${digitsPhone} msgId=${waMessageId} text="${text.slice(0, 80)}"`);
+
+  // ── API channel: erudite instance (+971582806000) ────────────────────────
+  // Save to ApiInboxMessage and stop — do NOT touch Message or landlord chat.
+  if (instanceName === 'erudite') {
+    // Try to match landlord
+    const landlordMatch = await findLandlordByPhone(serviceRole, digitsPhone);
+
+    // Try to match lead
+    let leadMatch = null;
+    if (!landlordMatch) {
+      const allLeads = await serviceRole.entities.Lead.list('-created_date', 2000);
+      for (const lead of allLeads) {
+        const lp = stripPlus(lead.phone);
+        const lw = stripPlus(lead.whatsapp);
+        if ((lp && lp === digitsPhone) || (lw && lw === digitsPhone)) {
+          leadMatch = lead;
+          break;
+        }
+      }
+    }
+
+    await serviceRole.entities.ApiInboxMessage.create({
+      sender_phone: digitsPhone,
+      message_text: text,
+      message_type: msgType,
+      received_at: timestamp,
+      instance_name: instanceName,
+      raw_payload: body,
+      status: 'new',
+      linked_landlord_id: landlordMatch ? landlordMatch.id : null,
+      linked_landlord_name: landlordMatch ? (landlordMatch.full_name_en || landlordMatch.full_name) : null,
+      linked_lead_id: leadMatch ? leadMatch.id : null,
+      linked_lead_name: leadMatch ? leadMatch.full_name : null,
+    });
+
+    return Response.json({
+      status: 'api_inbox_saved',
+      matched_landlord: !!landlordMatch,
+      matched_lead: !!leadMatch,
+    });
+  }
+
+  // ── Personal channel: erudite_whatsapp instance ──────────────────────────
   // Deduplicate by wa_message_id
   if (waMessageId) {
     const existing = await serviceRole.entities.Message.filter({ wa_message_id: waMessageId });

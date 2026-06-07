@@ -1,0 +1,61 @@
+{
+  "name": "ApiInboxMessage",
+  "type": "object",
+  "properties": {
+    "sender_phone": {
+      "type": "string",
+      "description": "Sender phone number (digits only, no +)"
+    },
+    "message_text": {
+      "type": "string",
+      "description": "Text content of the message"
+    },
+    "message_type": {
+      "type": "string",
+      "description": "Type of message: text, image, audio, video, document, etc."
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was received"
+    },
+    "instance_name": {
+      "type": "string",
+      "description": "Evolution API instance that received the message"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Full raw webhook payload from Evolution API"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "handled"
+      ],
+      "default": "new",
+      "description": "Processing status"
+    },
+    "linked_landlord_id": {
+      "type": "string",
+      "description": "Matched Landlord ID if found"
+    },
+    "linked_landlord_name": {
+      "type": "string",
+      "description": "Cached landlord name"
+    },
+    "linked_lead_id": {
+      "type": "string",
+      "description": "Matched Lead ID if found"
+    },
+    "linked_lead_name": {
+      "type": "string",
+      "description": "Cached lead name"
+    }
+  },
+  "required": [
+    "sender_phone",
+    "received_at",
+    "instance_name"
+  ]
+}

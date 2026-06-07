@@ -82,6 +82,7 @@ import Photography from '@/pages/Photography';
 import TwilioHub from '@/pages/TwilioHub';
 import MatterportSync from '@/pages/MatterportSync';
 import Policies from '@/pages/Policies';
+import ApiInbox from '@/pages/ApiInbox';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -179,6 +180,7 @@ const AuthenticatedApp = () => {
         <Route path="/twilio" element={<TwilioHub />} />
         <Route path="/matterport-sync" element={<MatterportSync />} />
         <Route path="/policies" element={<Policies />} />
+        <Route path="/api-inbox" element={<ApiInbox />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
