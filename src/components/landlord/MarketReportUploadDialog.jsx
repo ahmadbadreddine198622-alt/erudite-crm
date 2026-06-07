@@ -54,7 +54,9 @@ export default function MarketReportUploadDialog({ open, onClose, onSuccess }) {
       onClose();
     },
     onError: (error) => {
-      toast.error(error?.message || 'Upload failed');
+      console.error('Upload error:', error);
+      const msg = error?.message || error?.response?.data?.error || 'Upload failed. Check console for details.';
+      toast.error(msg);
     },
   });
 
