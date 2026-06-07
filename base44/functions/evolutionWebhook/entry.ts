@@ -244,7 +244,6 @@ Deno.serve(async (req) => {
 
     if (remoteJid.includes('@g.us')) return Response.json({ status: 'skipped_group' });
     if (remoteJid.includes('@broadcast') || remoteJid === 'status@broadcast') return Response.json({ status: 'skipped_broadcast' });
-    if (fromMe) return Response.json({ status: 'skipped_outgoing' });
 
     const digitsPhone = jidToDigits(remoteJid);
     if (!digitsPhone) return Response.json({ status: 'no_phone' });
@@ -294,7 +293,7 @@ Deno.serve(async (req) => {
     const record = {
       landlord_id: landlord ? landlord.id : null,
       phone: digitsPhone,
-      direction: 'incoming',
+      direction: fromMe ? 'outbound' : 'incoming',
       text: parsed.text,
       timestamp,
       status: 'received',

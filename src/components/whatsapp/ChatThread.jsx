@@ -34,7 +34,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
       const results = await Promise.all(
         ids.map(async id => {
           try {
-            const res = await base44.entities.Message.filter({ phone: id }, '-timestamp', 500);
+            const res = await base44.entities.WhatsAppMessage.filter({ from_number: id }, '-timestamp', 500);
             return Array.isArray(res) ? res : [];
           } catch (err) {
             return [];
@@ -76,9 +76,9 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   }, [idsKey]);
 
   useEffect(() => {
-    const unsub = base44.entities.Message.subscribe((event) => {
+    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
       const ids = idsRef.current;
-      const msgPhone = event.data?.phone;
+      const msgPhone = event.data?.from_number || event.data?.to_number;
       if (Array.isArray(ids) && msgPhone && ids.includes(msgPhone)) {
         setTimeout(() => loadMessages(), 500);
       }
@@ -197,8 +197,8 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 }
 
 function MessageBubble({ msg, contactName, onImageClick }) {
-  const isOutbound = msg.direction === 'outgoing';
-  const isInbound = msg.direction === 'incoming';
+  const isOutbound = msg.direction === 'outbound';
+  const isInbound = msg.direction === 'inbound';
   const channel = msg.channel || 'personal';
   const channelColor = channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)';
   const ChannelIcon = channel === 'business' ? Building2 : User;
@@ -350,9 +350,9 @@ function MessageBubble({ msg, contactName, onImageClick }) {
           <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
         )}
         <div
-          className={cn('rounded-2xl px-4 py-2.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#243044]' : 'rounded-bl-none bg-[#1A2230]')}
+          className={cn('rounded-2xl px-4 py-2.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#0F6B3D]' : 'rounded-bl-none bg-[#1F4A3D]')}
           style={{
-            border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
+            border: isOutbound ? '1px solid hsl(152 69% 40%)/30' : '1px solid hsl(152 69% 40%)/20',
             borderLeft: !isOutbound ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` : 'none',
           }}
         >
