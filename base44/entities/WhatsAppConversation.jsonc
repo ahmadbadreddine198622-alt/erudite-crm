@@ -338,6 +338,15 @@
           "type": "string"
         }
       }
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "business",
+        "personal"
+      ],
+      "default": "personal",
+      "description": "Which WhatsApp channel: business (Meta Cloud) or personal (Evolution)"
     }
   },
   "required": [
