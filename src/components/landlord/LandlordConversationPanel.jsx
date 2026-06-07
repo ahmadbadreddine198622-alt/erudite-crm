@@ -125,7 +125,11 @@ export default function LandlordConversationPanel({ landlord }) {
           </div>
           <div className="flex items-center gap-2">
             {temp && (
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" style={{ color: TEMP_COLOR[temp] || '#aaa', border: `1px solid ${TEMP_COLOR[temp] || '#aaa'}` }}>{temp}</span>
+              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                temp === 'hot' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                temp === 'warm' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                'bg-blue-500/15 text-blue-400 border-blue-500/30'
+              }`}>{temp}</span>
             )}
             <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => analyzeMutation.mutate()} disabled={analyzeMutation.isPending || messages.length === 0} title="Re-analyze conversation">
               {analyzeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
