@@ -4,7 +4,7 @@
   "properties": {
     "recipient_phone": {
       "type": "string",
-      "description": "E.164 phone number"
+      "description": "E.164 or digits-only phone number"
     },
     "recipient_name": {
       "type": "string"
@@ -18,10 +18,23 @@
     "message_body": {
       "type": "string"
     },
+    "message_kind": {
+      "type": "string",
+      "enum": [
+        "freeform",
+        "template"
+      ],
+      "default": "freeform",
+      "description": "freeform = subject to 24h window; template = exempt"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Meta template name (if message_kind=template)"
+    },
     "scheduled_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When to send the message"
+      "description": "When to send"
     },
     "status": {
       "type": "string",
@@ -29,23 +42,31 @@
         "pending",
         "sent",
         "failed",
-        "cancelled"
+        "cancelled",
+        "blocked_window",
+        "queued_quiet"
       ],
-      "default": "pending"
+      "default": "pending",
+      "description": "blocked_window = outside 24h reply window; queued_quiet = held for quiet hours"
     },
     "sent_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "retry_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to retry after first failure"
+    },
+    "retry_count": {
+      "type": "number",
+      "default": 0
     },
     "error_message": {
       "type": "string"
     },
     "created_by_email": {
       "type": "string"
-    },
-    "template_name": {
-      "type": "string",
-      "description": "Optional label for the message type"
     }
   },
   "required": [

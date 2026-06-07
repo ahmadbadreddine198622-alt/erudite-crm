@@ -118,22 +118,26 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Send via WhatsApp
-      try {
-        await base44.functions.invoke('sendWhatsAppMessageFromCRM', {
-          phone_number: landlord.whatsapp || landlord.phone,
-          message_text: message,
-          media_type: 'text'
-        });
-        chasedCount++;
+      // ── Rule 1: API channel only for automations ────────────────────────────
+      // Send via sendApiWhatsApp (API channel, +971582806000)
+      // Rules 3, 4, 7, 8 enforced inside sendApiWhatsApp
+      const phone = String(landlord.whatsapp || landlord.phone || '').replace(/\D/g, '');
+      const sendRes = await base44.asServiceRole.functions.invoke('sendApiWhatsApp', {
+        phone,
+        message,
+        message_kind: 'freeform',
+        retry_count: 0,
+      });
+      const sendResult = sendRes?.data || sendRes;
+      const sendStatus = sendResult?.status;
 
+      if (sendStatus === 'sent') {
+        chasedCount++;
         await base44.asServiceRole.entities.DocumentChecklistItem.update(doc.id, {
           reminder_count: (doc.reminder_count || 0) + 1,
           last_reminder_at: new Date().toISOString(),
           escalation_level: newLevel
         });
-
-        // Activity log
         try {
           await base44.asServiceRole.entities.Activity.create({
             lead_id: doc.landlord_id,
@@ -145,11 +149,19 @@ Deno.serve(async (req) => {
             source: 'automation'
           });
         } catch {}
-
-        results.push({ doc_id: doc.id, landlord: landlord.full_name_en, doc: docLabel, level: newLevel });
-      } catch (err: any) {
-        console.error('chase send failed:', err);
-        results.push({ doc_id: doc.id, error: err.message });
+        results.push({ doc_id: doc.id, landlord: landlord.full_name_en, doc: docLabel, level: newLevel, status: 'sent' });
+      } else if (sendStatus === 'blocked_window') {
+        // Rule 3: outside 24h window — surface alert, do not count as chased
+        skippedCount++;
+        results.push({ doc_id: doc.id, landlord: landlord.full_name_en, doc: docLabel, status: 'blocked_window' });
+      } else if (sendStatus === 'queued_quiet') {
+        // Rule 8: quiet hours — skip this run, scheduler will retry
+        skippedCount++;
+        results.push({ doc_id: doc.id, landlord: landlord.full_name_en, doc: docLabel, status: 'queued_quiet' });
+      } else {
+        // Rule 7: failure — sendApiWhatsApp handles retry/alert
+        console.error('chase send failed:', sendResult);
+        results.push({ doc_id: doc.id, error: sendResult?.error || 'send failed', status: sendStatus });
       }
     }
 
