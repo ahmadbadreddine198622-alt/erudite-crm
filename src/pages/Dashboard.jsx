@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -18,6 +18,7 @@ import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -180,6 +181,43 @@ export default function Dashboard() {
     queryKey: ['wa-conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
   });
+
+  const { data: landlords = [] } = useQuery({
+    queryKey: ['landlords'],
+    queryFn: () => base44.entities.Landlord.list(),
+  });
+
+  const landlordMap = {};
+  landlords.forEach(l => { landlordMap[l.id] = l; });
+
+  const { data: followups = [] } = useQuery({
+    queryKey: ['dashboard-followups'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      if (!user) return [];
+      const allFollowups = await base44.entities.FollowUp.list('-scheduled_at', 100);
+      // Filter by user's assigned landlords
+      return allFollowups.filter(f => {
+        const landlord = landlordMap[f.landlord_id];
+        return landlord && landlord.assigned_agent_email === user.email;
+      }).slice(0, 10);
+    },
+    enabled: landlords.length > 0,
+  });
+
+  const todayFollowups = followups.filter(f => {
+    const fDate = new Date(f.scheduled_at);
+    const today = new Date();
+    return fDate.getDate() === today.getDate() && 
+           fDate.getMonth() === today.getMonth() && 
+           fDate.getFullYear() === today.getFullYear();
+  });
+
+  const upcomingFollowups = followups.filter(f => {
+    const fDate = new Date(f.scheduled_at);
+    const today = new Date();
+    return fDate > today;
+  }).slice(0, 5);
 
   const badges = {
     leads:     leads.filter(l => l.status === 'active').length,
@@ -534,6 +572,136 @@ export default function Dashboard() {
           Policies & HR
         </button>
       </div>
+
+      {/* Follow-up Calendar Widget */}
+      <EruditeCard className="w-full max-w-5xl mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>Today's Follow-ups</h3>
+              <p className="text-xs text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/followup-calendar')}
+            className="text-xs px-3 py-1.5 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
+            style={{ color: 'rgba(255,255,255,0.7)' }}
+          >
+            View Calendar
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="rounded-xl p-3 border" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Clock className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 55%)' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(38 92% 55%)' }}>Pending</span>
+            </div>
+            <p className="text-xl font-bold" style={{ color: 'hsl(38 92% 55%)' }}>
+              {todayFollowups.filter(f => f.status === 'pending').length}
+            </p>
+          </div>
+          <div className="rounded-xl p-3 border" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#10b981' }}>Done</span>
+            </div>
+            <p className="text-xl font-bold" style={{ color: '#10b981' }}>
+              {todayFollowups.filter(f => f.status === 'done').length}
+            </p>
+          </div>
+          <div className="rounded-xl p-3 border" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertCircle className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#ef4444' }}>Missed</span>
+            </div>
+            <p className="text-xl font-bold" style={{ color: '#ef4444' }}>
+              {todayFollowups.filter(f => f.status === 'missed').length}
+            </p>
+          </div>
+        </div>
+
+        {todayFollowups.length > 0 ? (
+          <div className="space-y-2">
+            {todayFollowups.slice(0, 4).map(f => {
+              const landlord = landlordMap[f.landlord_id];
+              return (
+                <a
+                  key={f.id}
+                  href={`/landlords?selected=${f.landlord_id}`}
+                  className="flex items-center justify-between p-2.5 rounded-lg border transition-all hover:scale-[1.01]"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-2 h-2 rounded-full ${
+                      f.status === 'pending' ? 'bg-amber-500' :
+                      f.status === 'done' ? 'bg-emerald-500' :
+                      f.status === 'missed' ? 'bg-red-500' : 'bg-slate-500'
+                    }`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                        {landlord?.full_name_en || 'Unknown'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {f.type} · {format(new Date(f.scheduled_at), 'HH:mm')}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0.5 ${
+                    f.status === 'pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' :
+                    f.status === 'done' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' :
+                    f.status === 'missed' ? 'bg-red-500/10 text-red-600 border-red-500/30' :
+                    'bg-slate-500/10 text-slate-600 border-slate-500/30'
+                  }`}>
+                    {f.status}
+                  </Badge>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <Calendar className="w-8 h-8 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.2)' }} />
+            <p className="text-xs text-muted-foreground">No follow-ups scheduled for today</p>
+          </div>
+        )}
+
+        {upcomingFollowups.length > 0 && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Upcoming</p>
+            <div className="space-y-1.5">
+              {upcomingFollowups.map(f => {
+                const landlord = landlordMap[f.landlord_id];
+                return (
+                  <a
+                    key={f.id}
+                    href={`/landlords?selected=${f.landlord_id}`}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        f.status === 'pending' ? 'bg-amber-500' :
+                        f.status === 'done' ? 'bg-emerald-500' : 'bg-slate-500'
+                      }`} />
+                      <div className="min-w-0">
+                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                          {landlord?.full_name_en || 'Unknown'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {format(new Date(f.scheduled_at), 'MMM d, HH:mm')}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </EruditeCard>
 
       {/* Property Finder Listings */}
       <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
