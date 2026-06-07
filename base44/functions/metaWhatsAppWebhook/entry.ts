@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const mode = url.searchParams.get('hub.mode');
     const verifyToken = (url.searchParams.get('hub.verify_token') || '').trim();
     const challenge = url.searchParams.get('hub.challenge');
-    const expectedVerifyToken = (Deno.env.get('META_VERIFY_TOKEN') || '').trim();
+    const expectedVerifyToken = (Deno.env.get('WHATSAPP_VERIFY_TOKEN') || '').trim();
     console.log(`[metaWhatsAppWebhook] GET verify: mode=${mode} token="${verifyToken}" expected="${expectedVerifyToken}" challenge="${challenge}" match=${verifyToken === expectedVerifyToken}`);
     if (mode === 'subscribe' && verifyToken === expectedVerifyToken && challenge) {
       console.log(`[metaWhatsAppWebhook] ✅ Verification successful, returning challenge: ${challenge}`);
