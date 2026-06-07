@@ -57,11 +57,11 @@ export default function WhatsAppInbox() {
   const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
-  // Conversations with real-time refetch — 10s polling
+  // Conversations list polling — 15s interval (reduced load, acceptable latency for list)
   const { data: conversations = [], isLoading, refetch } = useQuery({
     queryKey: ['wa_conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
-    refetchInterval: 10000,
+    refetchInterval: 15000,
   });
 
   // Normalize phone numbers and dedupe conversations
@@ -154,23 +154,17 @@ export default function WhatsAppInbox() {
     if (match) setSelectedConvId(match.id);
   }, [phoneParam, conversations]);
 
-  // Real-time subscription to conversation changes
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppConversation.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
-    });
-    return () => unsub();
-  }, [queryClient]);
-
-  // Real-time subscription to new messages — immediately refetch conversations to re-sort
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      // Always refetch conversations so list re-sorts with latest on top
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
-    });
-    return () => unsub();
-  }, [queryClient, refetch]);
+  // NOTE: Realtime subscriptions are not functional on this Base44 plan.
+  // These calls are retained as placeholders and can be re-enabled if the plan gains support.
+  // Currently, all conversation/message updates arrive via polling only.
+  // const unsubConv = base44.entities.WhatsAppConversation.subscribe((event) => {
+  //   queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+  // });
+  // const unsubMsg = base44.entities.WhatsAppMessage.subscribe((event) => {
+  //   refetch();
+  //   queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+  // });
+  // return () => { unsubConv(); unsubMsg(); };
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],

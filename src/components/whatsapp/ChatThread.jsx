@@ -75,22 +75,23 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     loadMessages();
   }, [idsKey]);
 
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      const ids = idsRef.current;
-      const msgConvId = event.data?.conversation_id;
-      if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
-        setTimeout(() => loadMessages(), 500);
-      }
-    });
-    return () => unsub();
-  }, []);
+  // NOTE: Realtime subscriptions are not functional on this Base44 plan.
+  // This code is retained as a placeholder and can be re-enabled if the plan gains support.
+  // Currently, all message updates arrive via polling only (see interval below).
+  // const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
+  //   const ids = idsRef.current;
+  //   const msgConvId = event.data?.conversation_id;
+  //   if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
+  //     setTimeout(() => loadMessages(), 500);
+  //   }
+  // });
+  // return () => unsub();
 
   useEffect(() => {
     if (!validConversationId) return;
     const interval = setInterval(() => {
       if (!document.hidden) loadMessages();
-    }, 5000);
+    }, 2000); // 2s polling for open thread (faster message appearance)
     return () => clearInterval(interval);
   }, [idsKey]);
 
