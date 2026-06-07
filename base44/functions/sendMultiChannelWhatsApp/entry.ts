@@ -116,33 +116,57 @@ Deno.serve(async (req) => {
       conversation = conversations[0];
     }
     
-    // Create WhatsAppMessage record (used by the inbox UI)
-    message = await svc.entities.WhatsAppMessage.create({
-      conversation_id: conversation?.id || conversation_id || null,
-      lead_id: null,
-      landlord_id: landlord_id || null,
-      direction: 'outbound',
-      body: String(text),
-      timestamp: new Date().toISOString(),
-      status: 'sent',
-      wa_message_id: waId,
-      from_number: channel === 'business' ? '+971582806000' : '+971581806000',
-      to_number: '+' + number,
-      channel: channel,
-      media_type: 'none',
-    });
+    // Dedupe WhatsAppMessage by wa_message_id before creating
+    let whatsAppMessageExists = false;
+    if (waId) {
+      const existingWAMsg = await svc.entities.WhatsAppMessage.filter({ wa_message_id: waId });
+      whatsAppMessageExists = existingWAMsg && existingWAMsg.length > 0;
+    }
     
-    // Also create legacy Message record for backward compatibility
-    await svc.entities.Message.create({
-      landlord_id: landlord_id || null,
-      phone: number,
-      direction: 'outgoing',
-      text: String(text),
-      timestamp: new Date().toISOString(),
-      status: 'sent',
-      wa_message_id: waId,
-      channel: channel,
-    });
+    // Create WhatsAppMessage record (used by the inbox UI) - skip if duplicate
+    if (!whatsAppMessageExists) {
+      message = await svc.entities.WhatsAppMessage.create({
+        conversation_id: conversation?.id || conversation_id || null,
+        lead_id: null,
+        landlord_id: landlord_id || null,
+        direction: 'outbound',
+        body: String(text),
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+        wa_message_id: waId,
+        from_number: channel === 'business' ? '+971582806000' : '+971581806000',
+        to_number: '+' + number,
+        channel: channel,
+        media_type: 'none',
+      });
+    } else {
+      message = existingWAMsg[0];
+    }
+    
+    // Dedupe Message (backup) by wa_message_id before creating
+    if (waId) {
+      const existingMsg = await svc.entities.Message.filter({ wa_message_id: waId });
+      if (!existingMsg || existingMsg.length === 0) {
+        // Also create legacy Message record for backward compatibility
+        await svc.entities.Message.create({
+          landlord_id: landlord_id || null,
+          phone: number,
+          direction: 'outgoing',
+          text: String(text),
+          timestamp: new Date().toISOString(),
+          status: 'sent',
+          wa_message_id: waId,
+          channel: channel,
+        });
+      }
+    }
+    
+    // Update conversation channel if not already set
+    if (conversation && conversation.id) {
+      if (!conversation.channel) {
+        await svc.entities.WhatsAppConversation.update(conversation.id, { channel });
+      }
+    }
   } catch (e) {
     return Response.json({
       status: 'sent_but_not_recorded',
