@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+/**
+ * sendWhatsAppMessage — sends via the META CLOUD API channel (erudite, +971582806000).
+ * Used for WhatsAppConversation-linked sends (lead/buyer conversations in the inbox).
+ * For landlord chat use sendEvolutionMessage (PERSONAL channel).
+ * For automated system messages use sendApiWhatsApp.
+ */
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 

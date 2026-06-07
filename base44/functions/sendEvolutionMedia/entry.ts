@@ -32,15 +32,16 @@ Deno.serve(async (req) => {
   const digitsPhone = stripPlus(rawPhone);
   const remoteJid = `${digitsPhone}@s.whatsapp.net`;
 
+  // PERSONAL channel — landlord/client media only
+  const PERSONAL_INSTANCE = 'erudite_whatsapp'; // number: +971581806000
   const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL');
   const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
-  const INSTANCE = 'erudite_whatsapp';
 
   if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
     return Response.json({ error: 'Evolution API not configured' }, { status: 500 });
   }
 
-  const endpoint = `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE}`;
+  const endpoint = `${EVOLUTION_API_URL}/message/sendMedia/${PERSONAL_INSTANCE}`;
 
   const payload = {
     number: remoteJid,
