@@ -42,6 +42,8 @@ export default function WhatsAppInbox() {
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [optimisticMessages, setOptimisticMessages] = useState({});
   const queryClient = useQueryClient();
 
   const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
@@ -90,11 +92,11 @@ export default function WhatsAppInbox() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Conversations with real-time refetch
+  // Conversations with real-time refetch — 10s polling
   const { data: conversations = [], isLoading, refetch } = useQuery({
     queryKey: ['wa_conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
-    refetchInterval: 5000,
+    refetchInterval: 10000,
   });
 
   // Auto-select conversation from ?phone= URL param
@@ -296,11 +298,21 @@ export default function WhatsAppInbox() {
         message_text: message,
         media_type: 'text'
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      setOptimisticMessages(prev => {
+        const next = { ...prev };
+        delete next[selectedConvId];
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ['wa_messages', selectedConvId] });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     },
     onError: (err) => {
+      setOptimisticMessages(prev => {
+        const next = { ...prev };
+        delete next[selectedConvId];
+        return next;
+      });
       toast.error(err?.response?.data?.error || 'Failed to send message');
     },
   });
@@ -315,7 +327,21 @@ export default function WhatsAppInbox() {
 
   const handleSend = (text) => {
     if (!text?.trim() || !selectedConvId) return;
-    sendMutation.mutate({ message: text.trim() });
+    const trimmed = text.trim();
+    // Optimistic update — add pending message
+    const now = new Date().toISOString();
+    setOptimisticMessages(prev => ({
+      ...prev,
+      [selectedConvId]: {
+        id: `pending-${Date.now()}`,
+        direction: 'outbound',
+        body: trimmed,
+        timestamp: now,
+        status: 'pending',
+        conversation_id: selectedConvId,
+      }
+    }));
+    sendMutation.mutate({ message: trimmed });
   };
 
   const handleScheduleSend = (text, _minutes) => {
@@ -534,7 +560,7 @@ export default function WhatsAppInbox() {
         onConversationCreated={handleNewConvCreated}
       />
       {/* Sidebar — conversation list */}
-      <div className="w-80 border-r flex flex-col shrink-0">
+      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} border-r flex flex-col shrink-0 transition-all duration-300 overflow-hidden`}>
         {/* Management Intelligence Strip */}
         <div className="grid grid-cols-4 gap-2 p-3" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="text-center">
@@ -703,6 +729,14 @@ export default function WhatsAppInbox() {
       {/* Main chat area */}
       {selectedConv ? (
         <div className="flex flex-1 min-w-0">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-10 flex items-center justify-center border-l opacity-0 hover:opacity-100 transition-opacity shrink-0"
+            style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            <span className="text-xs font-bold">{sidebarOpen ? '‹' : '›'}</span>
+          </button>
           <div className="flex flex-col flex-1 min-w-0">
             <WhatsAppHeader
               conversation={selectedConv}
@@ -735,6 +769,7 @@ export default function WhatsAppInbox() {
               conversationId={selectedConvId}
               allConversationIds={[selectedConvId, ...(Array.isArray(selectedConv?.merged_conv_ids) ? selectedConv.merged_conv_ids.filter(id => id && id !== selectedConvId) : [])]}
               contactName={selectedLead?.full_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
+              optimisticMessage={optimisticMessages[selectedConvId]}
             />
 
             {/* Tags row */}
@@ -753,9 +788,16 @@ export default function WhatsAppInbox() {
             />
           </div>
 
-          {/* AI Insights sidebar */}
+          {/* AI Insights sidebar — collapsible */}
           {showInsights && (
-            <div className="w-72 border-l shrink-0 overflow-y-auto p-3 space-y-4">
+            <div className="w-72 border-l shrink-0 overflow-y-auto p-3 space-y-4 relative">
+              <button
+                onClick={() => setShowInsights(false)}
+                className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100 transition-opacity"
+                title="Close panel"
+              >
+                ✕
+              </button>
               <LeadScoreCard score={selectedScore} conversation={selectedConv} />
               <AIInsightsPanel
                 conversation={selectedConv}

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
 
-export default function ChatThread({ conversationId, allConversationIds, contactName }) {
+export default function ChatThread({ conversationId, allConversationIds, contactName, optimisticMessage }) {
   const bottomRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [messages, setMessages] = useState([]);
@@ -130,16 +130,16 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   }, []);
 
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 && !optimisticMessage) return;
     const newMessages = messages.length > prevMessageCountRef.current;
     prevMessageCountRef.current = messages.length;
-    if (!newMessages) return;
+    if (!newMessages && !optimisticMessage) return;
     if (isNearBottom()) {
-      scrollToBottom();
+      scrollToBottom('auto');
     } else {
       setShowNewPill(true);
     }
-  }, [messages.length]);
+  }, [messages.length, optimisticMessage]);
 
   if (isLoading) {
     return (
@@ -154,7 +154,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     loadMessages();
   };
 
-  if (!messages.length) {
+  if (!messages.length && !optimisticMessage) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
         No messages yet
@@ -162,7 +162,8 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     );
   }
 
-  const grouped = messages.reduce((acc, msg) => {
+  const allMessages = optimisticMessage ? [...messages, optimisticMessage] : messages;
+  const grouped = allMessages.reduce((acc, msg) => {
     if (!msg.timestamp) return acc;
     const day = format(new Date(msg.timestamp), 'dd MMM yyyy');
     if (!acc[day]) acc[day] = [];
@@ -220,6 +221,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 
 function MessageBubble({ msg, contactName }) {
   const isOutbound = msg.direction === 'outbound';
+  const isPending = msg.status === 'pending';
 
   if (msg.media_type === 'audio' && msg.transcription) {
     return (
@@ -255,10 +257,10 @@ function MessageBubble({ msg, contactName }) {
           <p className="leading-relaxed whitespace-pre-wrap" style={{ color: isOutbound ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.9)' }}>
             {displayBody}
           </p>
-          <div className={cn('text-[9px] mt-1 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <div className={cn('text-[9px] mt-1 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: isPending ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.45)' }}>
             {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
             {isOutbound && (
-              <span>{msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
+              <span>{isPending ? '⏱' : msg.status === 'read' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>
             )}
           </div>
         </div>
