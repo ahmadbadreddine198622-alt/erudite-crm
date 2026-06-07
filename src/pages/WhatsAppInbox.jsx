@@ -342,6 +342,7 @@ export default function WhatsAppInbox() {
   const sendMutation = useMutation({
     mutationFn: ({ message, channel }) =>
       base44.functions.invoke('sendMultiChannelWhatsApp', { 
+        conversation_id: selectedConvId,
         landlord_id: selectedLead?.id,
         text: message,
         channel: channel || 'business'

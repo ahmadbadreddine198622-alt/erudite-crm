@@ -34,11 +34,13 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch (_) { /* none */ }
   
   const landlord_id = body.landlord_id;
+  const conversation_id = body.conversation_id;
   const text = body.text;
   const channel = body.channel || 'personal';
   
-  if (!landlord_id || !text || !String(text).trim()) {
-    return Response.json({ error: 'landlord_id and non-empty text are required' }, { status: 400 });
+  // Support both landlord_id OR conversation_id - at least one required
+  if ((!landlord_id && !conversation_id) || !text || !String(text).trim()) {
+    return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
   }
 
   if (!['business', 'personal'].includes(channel)) {
@@ -55,12 +57,25 @@ Deno.serve(async (req) => {
   }
 
   const svc = base44.asServiceRole;
-  const llList = await svc.entities.Landlord.filter({ id: landlord_id });
-  const landlord = llList && llList[0];
-  if (!landlord) return Response.json({ error: 'Landlord not found', landlord_id }, { status: 404 });
-
-  const number = toDigits(landlord.phone);
-  if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
+  let landlord = null;
+  let number = null;
+  
+  // If landlord_id provided, fetch landlord
+  if (landlord_id) {
+    const llList = await svc.entities.Landlord.filter({ id: landlord_id });
+    landlord = llList && llList[0];
+    if (!landlord) return Response.json({ error: 'Landlord not found', landlord_id }, { status: 404 });
+    number = toDigits(landlord.phone);
+    if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
+  } 
+  // If conversation_id provided, get phone from conversation
+  else if (conversation_id) {
+    const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
+    const conv = convList && convList[0];
+    if (!conv) return Response.json({ error: 'Conversation not found', conversation_id }, { status: 404 });
+    number = toDigits(conv.wa_phone_e164 || conv.phone_number);
+    if (!number) return Response.json({ error: 'Conversation has no phone number', conversation_id }, { status: 422 });
+  }
 
   const instanceName = INSTANCE_MAP[channel];
   
@@ -88,14 +103,24 @@ Deno.serve(async (req) => {
   const waId = (evoBody && (evoBody.key?.id || evoBody.message?.key?.id)) || null;
   let message;
   try {
-    // Find the conversation for this landlord
-    const conversations = await svc.entities.WhatsAppConversation.filter({ landlord_id });
-    const conversation = conversations[0];
+    let conversation = null;
+    
+    // If conversation_id provided, use it directly
+    if (conversation_id) {
+      const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
+      conversation = convList && convList[0];
+    }
+    // Otherwise find by landlord_id
+    else if (landlord_id) {
+      const conversations = await svc.entities.WhatsAppConversation.filter({ landlord_id });
+      conversation = conversations[0];
+    }
     
     // Create WhatsAppMessage record (used by the inbox UI)
     message = await svc.entities.WhatsAppMessage.create({
-      conversation_id: conversation?.id || null,
-      lead_id: null, // Not a lead, it's a landlord
+      conversation_id: conversation?.id || conversation_id || null,
+      lead_id: null,
+      landlord_id: landlord_id || null,
       direction: 'outbound',
       body: String(text),
       timestamp: new Date().toISOString(),
@@ -109,7 +134,7 @@ Deno.serve(async (req) => {
     
     // Also create legacy Message record for backward compatibility
     await svc.entities.Message.create({
-      landlord_id,
+      landlord_id: landlord_id || null,
       phone: number,
       direction: 'outgoing',
       text: String(text),
@@ -126,5 +151,5 @@ Deno.serve(async (req) => {
     }, { status: 207 });
   }
 
-  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel });
+  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel, conversation_id: conversation_id || conversation?.id });
 });
