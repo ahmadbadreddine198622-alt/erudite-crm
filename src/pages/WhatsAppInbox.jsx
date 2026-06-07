@@ -56,26 +56,6 @@ export default function WhatsAppInbox() {
   // Internal numbers - our own lines that should never appear as leads
   const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
-  
-  // Preserve scroll position when conversations refresh
-  useEffect(() => {
-    if (conversationListRef.current) {
-      conversationListRef.current.scrollTop = prevScrollPosition.current;
-    }
-  }, [filtered.length]);
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      if (conversationListRef.current) {
-        prevScrollPosition.current = conversationListRef.current.scrollTop;
-      }
-    };
-    const ref = conversationListRef.current;
-    if (ref) {
-      ref.addEventListener('scroll', handleScroll);
-      return () => ref.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
 
   // Conversations with real-time refetch — 10s polling
   const { data: conversations = [], isLoading, refetch } = useQuery({
@@ -317,6 +297,26 @@ export default function WhatsAppInbox() {
       filter === 'resolved' ? c.status === 'resolved' : true;
     return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
   });
+
+  // Preserve scroll position when conversations refresh
+  useEffect(() => {
+    if (conversationListRef.current) {
+      conversationListRef.current.scrollTop = prevScrollPosition.current;
+    }
+  }, [filtered.length]);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      if (conversationListRef.current) {
+        prevScrollPosition.current = conversationListRef.current.scrollTop;
+      }
+    };
+    const ref = conversationListRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', handleScroll);
+      return () => ref.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   // Exclude internal conversations from metrics
   const externalConversations = normalizedConversations.filter(c => !isInternalNumber(c.wa_phone_e164 || c.phone_number || ''));
