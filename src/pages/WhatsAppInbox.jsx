@@ -261,6 +261,34 @@ export default function WhatsAppInbox() {
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
 
+  // Filter + search - Strict agent isolation
+  const filtered = normalizedConversations.filter(c => {
+    // Check if current user has admin/manager permissions
+    const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
+    
+    if (!isAdmin && currentUser) {
+      // Regular agents: ONLY see conversations explicitly assigned to them
+      if (!c.assigned_agent_email) return false; // Hide unassigned
+      if (c.assigned_agent_email !== currentUser.email) return false; // Hide others'
+    }
+    
+    // Admin/manager can filter by agent, but regular agents can only see their own
+    const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
+    
+    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
+    
+    const lead = leads.find(l => l.id === c.lead_id);
+    const phone = c.wa_phone_e164 || c.phone_number || '';
+    const name = lead?.full_name || c.wa_display_name || phone;
+    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
+    const matchesFilter =
+      filter === 'all' ? true :
+      filter === 'unread' ? (c.unread_count || 0) > 0 :
+      filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
+      filter === 'resolved' ? c.status === 'resolved' : true;
+    return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
+  });
+
   // Keyboard navigation - must be after filtered definition
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -291,34 +319,6 @@ export default function WhatsAppInbox() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [filtered, selectedConvId, handleSelectConv]);
-
-  // Filter + search - Strict agent isolation
-  const filtered = normalizedConversations.filter(c => {
-    // Check if current user has admin/manager permissions
-    const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
-    
-    if (!isAdmin && currentUser) {
-      // Regular agents: ONLY see conversations explicitly assigned to them
-      if (!c.assigned_agent_email) return false; // Hide unassigned
-      if (c.assigned_agent_email !== currentUser.email) return false; // Hide others'
-    }
-    
-    // Admin/manager can filter by agent, but regular agents can only see their own
-    const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
-    
-    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
-    
-    const lead = leads.find(l => l.id === c.lead_id);
-    const phone = c.wa_phone_e164 || c.phone_number || '';
-    const name = lead?.full_name || c.wa_display_name || phone;
-    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
-    const matchesFilter =
-      filter === 'all' ? true :
-      filter === 'unread' ? (c.unread_count || 0) > 0 :
-      filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
-      filter === 'resolved' ? c.status === 'resolved' : true;
-    return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
-  });
 
   const unreadTotal = normalizedConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const now = new Date();
