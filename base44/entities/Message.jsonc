@@ -137,6 +137,37 @@
       "type": "boolean",
       "default": false,
       "description": "True if audio is a PTT voice note"
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Original-language transcript of voice message"
+    },
+    "transcript_lang": {
+      "type": "string",
+      "description": "Detected ISO language code (ar/en/ru/fr)"
+    },
+    "translated_text": {
+      "type": "string",
+      "description": "English translation (only when not English)"
+    },
+    "transcript_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "done",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Transcription status"
+    },
+    "transcript_retry_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of transcription retry attempts"
+    },
+    "transcript_error": {
+      "type": "string",
+      "description": "Last transcription error message"
     }
   },
   "required": [
