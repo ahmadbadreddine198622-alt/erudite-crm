@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, MessageSquare, Clock } from 'lucide-react';
+import { Send, Loader2, MessageSquare, Clock, Check, CheckCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -97,12 +97,17 @@ export default function LandlordWhatsAppThread({ landlord }) {
         ) : (
           messages.map((m) => {
             const out = m.direction === 'outgoing';
+            const StatusIcon = m.status === 'read' || m.status === 'delivered' ? CheckCheck : Check;
+            const statusColor = m.status === 'read' ? 'text-blue-300' : m.status === 'delivered' ? 'text-emerald-300' : 'text-white/50';
             return (
               <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
                   <div className="whitespace-pre-wrap break-words">{m.text}</div>
-                  <div className={`mt-1 text-[10px] ${out ? 'text-white/70' : 'text-muted-foreground'}`}>
-                    {fmt(m.timestamp)}{m.status ? ` · ${m.status}` : ''}
+                  <div className={`mt-1 text-[10px] flex items-center gap-1.5 ${out ? 'text-white/70' : 'text-muted-foreground'} ${out ? 'justify-end' : ''}`}>
+                    {fmt(m.timestamp)}
+                    {out && (
+                      <StatusIcon className={`w-3 h-3 ${statusColor}`} />
+                    )}
                   </div>
                 </div>
               </div>
