@@ -57,11 +57,12 @@ export default function WhatsAppInbox() {
   const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
-  // Conversations with real-time refetch — 10s polling
+  // Sidebar conversation list — 15s polling, paused when the tab isn't focused/visible.
   const { data: conversations = [], isLoading, refetch } = useQuery({
     queryKey: ['wa_conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
-    refetchInterval: 10000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false, // stop polling when tab not visible
   });
 
   // Normalize phone numbers and dedupe conversations
@@ -154,23 +155,10 @@ export default function WhatsAppInbox() {
     if (match) setSelectedConvId(match.id);
   }, [phoneParam, conversations]);
 
-  // Real-time subscription to conversation changes
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppConversation.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
-    });
-    return () => unsub();
-  }, [queryClient]);
-
-  // Real-time subscription to new messages — immediately refetch conversations to re-sort
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      // Always refetch conversations so list re-sorts with latest on top
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
-    });
-    return () => unsub();
-  }, [queryClient, refetch]);
+  // Realtime is unavailable on this plan (no live socket), so these two
+  // WhatsAppConversation/WhatsAppMessage .subscribe() effects never fired and only
+  // added request churn. Removed. Sidebar freshness now comes from the 15s poll
+  // above (paused when the tab is hidden); the open thread polls every 2s.
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],

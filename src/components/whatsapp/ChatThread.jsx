@@ -75,22 +75,15 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     loadMessages();
   }, [idsKey]);
 
-  useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      const ids = idsRef.current;
-      const msgConvId = event.data?.conversation_id;
-      if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
-        setTimeout(() => loadMessages(), 500);
-      }
-    });
-    return () => unsub();
-  }, []);
-
+  // NOTE: Base44 realtime is unavailable on this plan (no live socket), so the
+  // WhatsAppMessage.subscribe() that used to be here never fired — removed it.
+  // Freshness for the OPEN thread comes from this 2s poll, paused when the tab
+  // is hidden (no fetch when not visible => no background DB load).
   useEffect(() => {
     if (!validConversationId) return;
     const interval = setInterval(() => {
       if (!document.hidden) loadMessages();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [idsKey]);
 
