@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, RefreshCw, ChevronDown, Building2, User } from 'lucide-react';
+import { Loader2, Building2, User, Play, Pause, FileText, MapPin, Download, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
@@ -12,9 +12,9 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [showNewPill, setShowNewPill] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   const prevMessageCountRef = useRef(0);
 
-  // CRITICAL: Normalize all inputs to arrays at the component boundary
   const normalizedAllIds = Array.isArray(allConversationIds) ? allConversationIds : [];
   const validConversationId = (typeof conversationId === 'string' && conversationId) ? conversationId : null;
   const idsToUse = normalizedAllIds.length > 0 ? normalizedAllIds : (validConversationId ? [validConversationId] : []);
@@ -31,29 +31,18 @@ export default function ChatThread({ conversationId, allConversationIds, contact
       return;
     }
     try {
-      // Load messages for all conversation IDs (including merged ones)
       const results = await Promise.all(
         ids.map(async id => {
           try {
-            const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 500);
+            const res = await base44.entities.Message.filter({ phone: id }, '-timestamp', 500);
             return Array.isArray(res) ? res : [];
           } catch (err) {
-            // Silent fail for rate limits
-            if (err?.response?.status === 429) {
-              console.log('Rate limited, skipping...');
-            } else {
-              console.warn('Failed to load messages for conversation', id, err);
-            }
             return [];
           }
         })
       );
       const all = results.flat();
-      if (all.length > 0) {
-        console.log(`Loaded ${all.length} total messages for ${ids.length} conversation(s)`);
-      }
       
-      // Deduplicate by message ID
       const seen = new Set();
       const deduped = all.filter(m => {
         if (!m || !m.id) return false;
@@ -62,14 +51,11 @@ export default function ChatThread({ conversationId, allConversationIds, contact
         return true;
       });
       
-      // Sort by timestamp (oldest first)
       deduped.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      console.log(`After dedup: ${deduped.length} messages, inbound: ${deduped.filter(m => m.direction === 'inbound').length}, outbound: ${deduped.filter(m => m.direction === 'outbound').length}`);
       
       setMessages(deduped);
       setLastRefresh(new Date());
     } catch (err) {
-      console.error('Failed to load messages:', err);
       setMessages([]);
     } finally {
       setIsLoading(false);
@@ -89,26 +75,17 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     loadMessages();
   }, [idsKey]);
 
-  // Real-time subscription to new messages
   useEffect(() => {
-    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
-      // Only reload if this message belongs to the current conversation(s)
+    const unsub = base44.entities.Message.subscribe((event) => {
       const ids = idsRef.current;
-      const msgConvId = event.data?.conversation_id;
-      
-      if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
-        // Debounce rapid updates
-        setTimeout(() => {
-          console.log('New message detected, reloading thread...');
-          loadMessages();
-        }, 500);
+      const msgPhone = event.data?.phone;
+      if (Array.isArray(ids) && msgPhone && ids.includes(msgPhone)) {
+        setTimeout(() => loadMessages(), 500);
       }
     });
-    
     return () => unsub();
   }, []);
 
-  // Polling — 5s, foreground only
   useEffect(() => {
     if (!validConversationId) return;
     const interval = setInterval(() => {
@@ -117,7 +94,6 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     return () => clearInterval(interval);
   }, [idsKey]);
 
-  // Smart scroll: only auto-scroll if near bottom; otherwise show pill
   const isNearBottom = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return true;
@@ -144,19 +120,14 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <Loader2 className="w-5 h-5 animate-spin text-white/40" />
       </div>
     );
   }
 
-  const handleManualRefresh = () => {
-    setIsLoading(true);
-    loadMessages();
-  };
-
   if (!messages.length && !optimisticMessage) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <div className="flex-1 flex items-center justify-center text-sm text-white/40">
         No messages yet
       </div>
     );
@@ -173,13 +144,12 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      {/* Live indicator strip */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-white/10 bg-white/5">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Live</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#C9A24B] animate-pulse" />
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-white/50">Live</span>
           {lastRefresh && (
-            <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span className="text-[9px] text-white/40">
               · Synced {format(lastRefresh, 'HH:mm')}
             </span>
           )}
@@ -190,40 +160,214 @@ export default function ChatThread({ conversationId, allConversationIds, contact
         {Object.entries(grouped).map(([day, msgs]) => (
           <div key={day}>
             <div className="flex justify-center my-3">
-              <span className="text-[10px] font-medium px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>{day}</span>
+              <span className="text-[10px] font-medium px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white/70">{day}</span>
             </div>
             {msgs.map(msg => (
-              <MessageBubble key={msg.id} msg={msg} contactName={contactName} />
+              <MessageBubble 
+                key={msg.id} 
+                msg={msg} 
+                contactName={contactName}
+                onImageClick={setEnlargedImage}
+              />
             ))}
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
+
       {showNewPill && (
         <button
           onClick={() => scrollToBottom()}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10 transition-all"
-          style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10 transition-all bg-[#C9A24B] text-[#0F1419]"
         >
           <ChevronDown className="w-3.5 h-3.5" /> New message
         </button>
+      )}
+
+      {enlargedImage && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setEnlargedImage(null)}>
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
+          <img src={enlargedImage} alt="Enlarged" className="max-w-full max-h-full object-contain" />
+        </div>
       )}
     </div>
   );
 }
 
-function MessageBubble({ msg, contactName }) {
-  // Normalize direction: inbound/incoming = left-aligned, outbound/outgoing = right-aligned
-  const isOutbound = msg.direction === 'outbound' || msg.direction === 'outgoing';
-  const isInbound = msg.direction === 'inbound' || msg.direction === 'incoming';
-  const isPending = msg.status === 'pending';
+function MessageBubble({ msg, contactName, onImageClick }) {
+  const isOutbound = msg.direction === 'outgoing';
+  const isInbound = msg.direction === 'incoming';
   const channel = msg.channel || 'personal';
   const channelColor = channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)';
   const ChannelIcon = channel === 'business' ? Building2 : User;
 
-  // Status icon mapping
+  // Deleted message
+  if (msg.is_deleted) {
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[65%]">
+          <div
+            className="rounded-xl px-4 py-3 italic"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <p className="text-sm text-white/40">This message was deleted</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Voice note
+  if (msg.media_type === 'audio' || msg.is_voice_note) {
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          {!isOutbound && contactName && (
+            <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
+          )}
+          <VoiceMessageBubble message={msg} isOutbound={isOutbound} />
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Image
+  if (msg.media_type === 'image' && msg.media_url) {
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          <div
+            className={cn('rounded-xl overflow-hidden', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            {msg.caption && <p className="px-3 pt-2.5 pb-2 text-sm text-white/90">{msg.caption}</p>}
+            <img
+              src={msg.media_url}
+              alt={msg.caption || 'Image'}
+              className="w-full max-w-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => onImageClick?.(msg.media_url)}
+            />
+          </div>
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Video
+  if (msg.media_type === 'video' && msg.media_url) {
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          <div
+            className={cn('rounded-xl overflow-hidden relative', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            {msg.caption && <p className="px-3 pt-2.5 pb-2 text-sm text-white/90">{msg.caption}</p>}
+            <div className="relative">
+              <video src={msg.media_url} className="w-full max-w-sm" controls />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-12 h-12 rounded-full bg-[#C9A24B]/80 flex items-center justify-center">
+                  <Play className="w-6 h-6 text-[#0F1419] ml-0.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Document
+  if (msg.media_type === 'document' && msg.media_url) {
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          <div
+            className={cn('rounded-xl p-3', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 text-[#C9A24B]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-white/90 truncate">{msg.media_filename || 'Document'}</p>
+                <p className="text-xs text-white/50">{msg.media_mime || 'Unknown'}</p>
+              </div>
+              <a
+                href={msg.media_url}
+                download={msg.media_filename}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <Download className="w-4 h-4 text-white/70" />
+              </a>
+            </div>
+          </div>
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Location
+  if (msg.location_json) {
+    const location = typeof msg.location_json === 'string' ? JSON.parse(msg.location_json) : msg.location_json;
+    return (
+      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[72%]">
+          <div
+            className={cn('rounded-xl p-3', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5 text-[#C9A24B]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white/90">{location.name || 'Location'}</p>
+                <p className="text-xs text-white/50 mt-0.5">
+                  {location.lat?.toFixed(4)}, {location.lng?.toFixed(4)}
+                </p>
+              </div>
+            </div>
+          </div>
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Regular text message
+  return (
+    <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
+      <div className={cn('max-w-[65%]', 'break-words')}>
+        {!isOutbound && contactName && (
+          <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
+        )}
+        <div
+          className={cn('rounded-2xl px-4 py-2.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#243044]' : 'rounded-bl-none bg-[#1A2230]')}
+          style={{
+            border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
+            borderLeft: !isOutbound ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` : 'none',
+          }}
+        >
+          <p className="leading-relaxed text-white/95" style={{ fontSize: '15px', lineHeight: '1.5' }}>
+            {msg.text}
+          </p>
+          <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageFooter({ msg, isOutbound, ChannelIcon, channel }) {
   const getStatusIcon = () => {
-    if (isPending) return { icon: '⏱', color: 'rgba(255,255,255,0.35)', title: 'Pending' };
     if (msg.status === 'failed') return { icon: '⚠️', color: 'rgb(244,63,94)', title: 'Failed' };
     if (msg.status === 'read') return { icon: '✓✓', color: 'hsl(152 69% 40%)', title: 'Read' };
     if (msg.status === 'delivered') return { icon: '✓✓', color: 'rgba(255,255,255,0.5)', title: 'Delivered' };
@@ -232,69 +376,21 @@ function MessageBubble({ msg, contactName }) {
 
   const statusIcon = getStatusIcon();
 
-  if (msg.media_type === 'audio' && msg.transcription) {
-    return (
-      <div className={cn('flex mb-3', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
-          {!isOutbound && contactName && (
-            <p className="text-[10px] font-semibold mb-0.5 px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{contactName}</p>
-          )}
-          <VoiceMessageBubble message={msg} />
-          <div className={cn('text-[10px] mt-1 flex items-center gap-1.5', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
-            {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
-            {isOutbound && (
-              <>
-                <span style={{ color: statusIcon.color }} title={statusIcon.title}>{statusIcon.icon}</span>
-                <span className="flex items-center gap-0.5 opacity-70">
-                  <ChannelIcon className="w-2.5 h-2.5" />
-                  {channel === 'business' ? 'Business' : 'Personal'}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const displayBody = msg.body || (msg.media_type && msg.media_type !== 'none' ? `[${msg.media_type}]` : '');
-
   return (
-    <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[65%]', 'break-words')}>
-        {!isOutbound && contactName && (
-          <p className="text-[10px] font-semibold mb-0.5 px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{contactName}</p>
-        )}
-        <div
-          className={cn('rounded-2xl px-4 py-2.5 text-sm shadow-md backdrop-blur-xl', isOutbound ? 'rounded-br-none' : 'rounded-bl-none')}
-          style={{
-            background: isOutbound ? 'hsl(222 47% 15%)' : 'hsl(222 47% 18%)',
-            border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
-            borderLeft: !isOutbound ? `3px solid ${channelColor}` : 'none',
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-          }}
-        >
-          <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.95)', fontSize: '15px', lineHeight: '1.5', wordBreak: 'break-word' }}>
-            {displayBody}
-          </p>
-          <div className={cn('text-[9px] mt-1.5 font-medium flex items-center gap-1.5', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
-            {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
-            {isOutbound && (
-              <>
-                <span style={{ color: statusIcon.color }} title={statusIcon.title}>{statusIcon.icon}</span>
-                {msg.status === 'failed' && (
-                  <button className="text-[9px] underline hover:text-red-400" title="Retry sending">Retry</button>
-                )}
-                <span className="flex items-center gap-0.5 opacity-70">
-                  <ChannelIcon className="w-2.5 h-2.5" />
-                  {channel === 'business' ? 'Business' : 'Personal'}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className={cn('text-[9px] mt-1.5 font-medium flex items-center gap-1.5', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
+      {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
+      {isOutbound && (
+        <>
+          <span style={{ color: statusIcon.color }} title={statusIcon.title}>{statusIcon.icon}</span>
+          {msg.status === 'failed' && (
+            <button className="text-[9px] underline hover:text-red-400" title="Retry sending">Retry</button>
+          )}
+          <span className="flex items-center gap-0.5 opacity-70">
+            <ChannelIcon className="w-2.5 h-2.5" />
+            {channel === 'business' ? 'Business' : 'Personal'}
+          </span>
+        </>
+      )}
     </div>
   );
 }

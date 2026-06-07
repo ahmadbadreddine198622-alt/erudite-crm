@@ -155,7 +155,9 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
               )}
             </div>
           </div>
-          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>{conv.last_message || '—'}</p>
+          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            {conv.last_message?.startsWith('🎤') ? conv.last_message : (conv.last_message || '—')}
+          </p>
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {stage && (
               <span className="text-[9px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
