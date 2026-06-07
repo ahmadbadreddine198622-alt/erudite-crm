@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare, Settings, Zap, FileText, Bot, Phone, Wifi, CheckCircle2, Copy, Check } from 'lucide-react';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
+import NotificationSettings from '@/components/whatsapp/NotificationSettings';
+import useDesktopNotifications from '@/components/whatsapp/useDesktopNotifications';
 import WhatsAppHeader from '@/components/whatsapp/WhatsAppHeader';
 import ChatThread from '@/components/whatsapp/ChatThread';
 import AIInsightsPanel from '@/components/whatsapp/AIInsightsPanel';
@@ -46,7 +48,18 @@ export default function WhatsAppInbox() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [optimisticMessages, setOptimisticMessages] = useState({});
   const [selectedChannel, setSelectedChannel] = useState('business');
+  const [showInternalNote, setShowInternalNote] = useState(false);
   const queryClient = useQueryClient();
+
+  // Desktop notifications
+  const notificationHook = useDesktopNotifications({
+    conversations: normalizedConversations,
+    selectedConvId,
+    onNotificationClick: (convId) => {
+      setSelectedConvId(convId);
+      window.focus();
+    },
+  });
 
   const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
 
@@ -109,6 +122,37 @@ export default function WhatsAppInbox() {
     );
     if (match) setSelectedConvId(match.id);
   }, [phoneParam, conversations]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only if not typing in input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      const currentIndex = filtered.findIndex(c => c.id === selectedConvId);
+      
+      if (e.key === 'ArrowDown' && currentIndex < filtered.length - 1) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex + 1].id);
+      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex - 1].id);
+      } else if (e.key === 'Enter' && selectedConvId) {
+        e.preventDefault();
+        // Focus message input
+        const input = document.querySelector('textarea[placeholder*="Type a message"]');
+        input?.focus();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        // Focus search
+        const searchInput = document.querySelector('input[placeholder*="Search conversations"]');
+        searchInput?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filtered, selectedConvId]);
 
   // Real-time subscription to conversation changes
   useEffect(() => {
@@ -570,6 +614,15 @@ export default function WhatsAppInbox() {
       />
       {/* Sidebar — conversation list */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} border-r flex flex-col shrink-0 transition-all duration-300 overflow-hidden`}>
+        {/* Live indicator */}
+        <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Live</span>
+          </div>
+          <NotificationSettings notificationHook={notificationHook} />
+        </div>
+
         {/* Management Intelligence Strip */}
         <div className="grid grid-cols-4 gap-2 p-3" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="text-center">
