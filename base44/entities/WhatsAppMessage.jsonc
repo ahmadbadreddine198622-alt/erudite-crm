@@ -72,6 +72,24 @@
     "translations": {
       "type": "object",
       "description": "Object with language codes as keys and translations as values"
+    },
+    "is_deleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if message was deleted/revoked"
+    },
+    "reaction": {
+      "type": "string",
+      "description": "Reaction emoji"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "business",
+        "personal"
+      ],
+      "default": "personal",
+      "description": "Which WhatsApp channel"
     }
   },
   "required": [

@@ -34,7 +34,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
       const results = await Promise.all(
         ids.map(async id => {
           try {
-            const res = await base44.entities.Message.filter({ phone: id }, '-timestamp', 500);
+            const res = await base44.entities.WhatsAppMessage.filter({ conversation_id: id }, '-timestamp', 500);
             return Array.isArray(res) ? res : [];
           } catch (err) {
             return [];
@@ -76,10 +76,10 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   }, [idsKey]);
 
   useEffect(() => {
-    const unsub = base44.entities.Message.subscribe((event) => {
+    const unsub = base44.entities.WhatsAppMessage.subscribe((event) => {
       const ids = idsRef.current;
-      const msgPhone = event.data?.phone;
-      if (Array.isArray(ids) && msgPhone && ids.includes(msgPhone)) {
+      const msgConvId = event.data?.conversation_id;
+      if (Array.isArray(ids) && msgConvId && ids.includes(msgConvId)) {
         setTimeout(() => loadMessages(), 500);
       }
     });
@@ -197,10 +197,9 @@ export default function ChatThread({ conversationId, allConversationIds, contact
 }
 
 function MessageBubble({ msg, contactName, onImageClick }) {
-  const isOutbound = msg.direction === 'outgoing';
-  const isInbound = msg.direction === 'incoming';
+  const isOutbound = msg.direction === 'outbound';
+  const isInbound = msg.direction === 'inbound';
   const channel = msg.channel || 'personal';
-  const channelColor = channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)';
   const ChannelIcon = channel === 'business' ? Building2 : User;
 
   // Deleted message
@@ -357,7 +356,7 @@ function MessageBubble({ msg, contactName, onImageClick }) {
           }}
         >
           <p className="leading-relaxed text-white/95" style={{ fontSize: '15px', lineHeight: '1.5' }}>
-            {msg.text}
+            {msg.body}
           </p>
           <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
         </div>
@@ -387,7 +386,7 @@ function MessageFooter({ msg, isOutbound, ChannelIcon, channel }) {
           )}
           <span className="flex items-center gap-0.5 opacity-70">
             <ChannelIcon className="w-2.5 h-2.5" />
-            {channel === 'business' ? 'Business' : 'Personal'}
+            {msg.channel === 'business' ? 'Business' : 'Personal'}
           </span>
         </>
       )}
