@@ -118,11 +118,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Send via API channel (automated reminder — never mixes into personal chat thread)
+      // Send via WhatsApp
       try {
-        await base44.asServiceRole.functions.invoke('sendApiWhatsApp', {
-          phone_e164: landlord.whatsapp || landlord.phone,
-          message,
+        await base44.functions.invoke('sendWhatsAppMessageFromCRM', {
+          phone_number: landlord.whatsapp || landlord.phone,
+          message_text: message,
+          media_type: 'text'
         });
         chasedCount++;
 

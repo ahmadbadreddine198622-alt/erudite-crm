@@ -187,9 +187,9 @@ Deno.serve(async (req) => {
     const withinHours = isBusinessHours();
 
     if (withinHours) {
-      // Send immediately via API channel (automated message — never uses personal channel)
-      await base44.asServiceRole.functions.invoke('sendApiWhatsApp', {
-        phone_e164,
+      // Send immediately
+      await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+        phone_number: phone_e164,
         message,
       });
 

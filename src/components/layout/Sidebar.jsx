@@ -6,7 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, Shield, Calendar
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, Shield
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -53,7 +53,6 @@ const navItems = [
   // ERUDITE OS Modules
   { label: 'Negotiations',        icon: Handshake,       path: '/negotiations',        gradient: 'from-amber-500 to-orange-700' },
   { label: 'Follow Ups',          icon: Repeat,          path: '/follow-ups',          gradient: 'from-rose-500 to-pink-700' },
-  { label: 'Follow-up Calendar',  icon: Calendar,        path: '/followup-calendar',   gradient: 'from-pink-500 to-rose-700' },
   { label: 'Viewings',            icon: Eye,             path: '/viewings',            gradient: 'from-blue-500 to-indigo-700' },
   { label: 'Email Templates',     icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
   { label: 'Broadcasts',          icon: Megaphone,       path: '/broadcasts',          gradient: 'from-purple-500 to-violet-700' },

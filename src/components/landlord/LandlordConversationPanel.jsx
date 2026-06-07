@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Send, Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import LandlordWhatsAppThread from './LandlordWhatsAppThread';
 
 const TEMP_COLOR = { hot: '#ef4444', warm: '#f59e0b', cold: '#60a5fa' };
 
@@ -20,6 +20,13 @@ function Section({ title, children }) {
 
 export default function LandlordConversationPanel({ landlord }) {
   const qc = useQueryClient();
+  const [text, setText] = useState('');
+
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ['landlord-messages', landlord?.id],
+    queryFn: () => base44.entities.Message.filter({ landlord_id: landlord.id }, 'timestamp', 500),
+    enabled: !!landlord?.id,
+  });
 
   const { data: insight, isLoading: insightLoading } = useQuery({
     queryKey: ['landlord-insight', landlord?.id],
@@ -30,10 +37,19 @@ export default function LandlordConversationPanel({ landlord }) {
     enabled: !!landlord?.id,
   });
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['landlord-messages', landlord?.id],
-    queryFn: () => base44.entities.Message.filter({ landlord_id: landlord.id }, 'timestamp', 500),
-    enabled: !!landlord?.id,
+  const sendMutation = useMutation({
+    mutationFn: (msg) => base44.functions.invoke('sendEvolutionMessage', { landlord_id: landlord.id, text: msg }),
+    onSuccess: (res) => {
+      const data = res?.data ?? res;
+      if (data?.error) { toast.error(`Send failed: ${data.error}${data.detail ? ' — ' + data.detail : ''}`); return; }
+      setText('');
+      qc.invalidateQueries({ queryKey: ['landlord-messages', landlord.id] });
+      toast.success('Message sent');
+    },
+    onError: (e) => {
+      const msg = e?.response?.data?.error || e?.response?.data?.detail || e?.message || 'Unknown error';
+      toast.error(`Send failed: ${msg}`);
+    },
   });
 
   const analyzeMutation = useMutation({
@@ -49,14 +65,56 @@ export default function LandlordConversationPanel({ landlord }) {
 
   const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ts || ''; } };
 
+  const submit = (e) => {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t) return;
+    if (!landlord?.phone) { toast.error('This landlord has no phone number to message.'); return; }
+    sendMutation.mutate(t);
+  };
+
   const temp = insight?.temperature;
   const suggestions = Array.isArray(insight?.suggestions) ? insight.suggestions : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      {/* LEFT: WhatsApp thread — full featured */}
-      <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <LandlordWhatsAppThread landlord={landlord} />
+      {/* LEFT: WhatsApp thread */}
+      <div className="flex flex-col h-[460px] rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-2 mb-2 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          <Send className="w-4 h-4" /> WhatsApp
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-2 p-1">
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground text-center py-8">Loading…</div>
+          ) : messages.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-8">No messages yet.</div>
+          ) : (
+            messages.map((m) => {
+              const out = m.direction === 'outgoing';
+              return (
+                <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
+                    <div className="whitespace-pre-wrap break-words">{m.text}</div>
+                    <div className={`mt-1 text-[10px] ${out ? 'text-white/70' : 'text-muted-foreground'}`}>
+                      {fmt(m.timestamp)}{m.status ? ` · ${m.status}` : ''}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <form onSubmit={submit} className="flex items-center gap-2 pt-2 border-t border-white/10">
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={landlord?.phone ? 'Type a WhatsApp reply…' : 'No phone number on file'}
+            disabled={!landlord?.phone || sendMutation.isPending}
+          />
+          <Button type="submit" disabled={!text.trim() || sendMutation.isPending}>
+            {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </Button>
+        </form>
       </div>
 
       {/* RIGHT: AI insights */}
@@ -106,7 +164,7 @@ export default function LandlordConversationPanel({ landlord }) {
                       {s.suggested_message && (
                         <>
                           <p className="mt-1 italic" style={{ color: 'rgba(255,255,255,0.85)' }}>"{s.suggested_message}"</p>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 mt-1 text-[11px]" onClick={() => navigator.clipboard?.writeText(s.suggested_message).then(() => toast.success('Copied to clipboard'))}>Copy reply</Button>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 mt-1 text-[11px]" onClick={() => setText(s.suggested_message)}>Use this reply</Button>
                         </>
                       )}
                     </div>

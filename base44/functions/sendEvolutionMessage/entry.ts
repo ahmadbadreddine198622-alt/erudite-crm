@@ -1,18 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-/**
- * sendEvolutionMessage — sends a WhatsApp text via the PERSONAL channel (Evolution API).
- *
- * PERSONAL channel: instance=erudite_whatsapp, number=+971581806000 (Ahmad's personal work WA).
- * Use this for ALL landlord/client conversations from the Landlord Center chat panel.
- * NEVER use this for automated system messages — use sendApiWhatsApp for those.
- */
+// Sends an outgoing WhatsApp message to a landlord via the Evolution API, then
+// records it as a Message (direction: 'outgoing') so the thread stays complete.
+// Named sendEvolutionMessage to avoid clobbering the existing (Meta Cloud API)
+// sendWhatsAppMessage function. Reads Evolution config from Base44 secrets:
+//   EVOLUTION_API_URL, EVOLUTION_API_KEY  (set these in Base44 — not hardcoded)
+// Endpoint: POST {EVOLUTION_API_URL}/message/sendText/{INSTANCE}  body { number, text }
 
-// PERSONAL channel config
-const PERSONAL_CHANNEL = {
-  instance: 'erudite_whatsapp',
-  number: '+971581806000',
-};
+const INSTANCE = 'erudite_whatsapp'; // Evolution instance (number 971581806000)
 
 function toDigits(raw) {
   return String(raw || '').replace(/\D/g, '');
@@ -49,8 +44,8 @@ Deno.serve(async (req) => {
   const number = toDigits(landlord.phone);
   if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
 
-  // ---- send via Evolution API (v2 send-text) on PERSONAL channel ----
-  const sendUrl = `${apiUrl}/message/sendText/${PERSONAL_CHANNEL.instance}`;
+  // ---- send via Evolution API (v2 send-text) ----
+  const sendUrl = `${apiUrl}/message/sendText/${INSTANCE}`;
   let evoStatus = 0;
   let evoBody = null;
   try {

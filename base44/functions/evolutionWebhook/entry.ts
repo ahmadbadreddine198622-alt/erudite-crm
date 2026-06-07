@@ -3,17 +3,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 /**
  * Evolution API (VPS) webhook receiver.
  *
- * Channel routing by instance name:
- *   PERSONAL channel: instance="erudite_whatsapp", number=+971581806000
- *     → Landlord/client conversations. Incoming messages matched to Landlord records.
- *   API channel:      instance="erudite", number=+971582806000 (Meta Cloud API)
- *     → Automated/system messages only. Incoming events on this instance are ignored
- *       (they are delivery receipts for system sends, not landlord conversations).
- *
  * POST body from Evolution:
  * {
  *   event: "messages.upsert",
- *   instance: "erudite_whatsapp",   ← always check this
+ *   instance: "...",
  *   data: {
  *     key: { remoteJid: "971544661177@s.whatsapp.net", fromMe: false, id: "ABCD..." },
  *     message: { conversation: "Hello" },
@@ -21,10 +14,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  *     pushName: "John"
  *   }
  * }
+ *
+ * Matching rule:
+ *   remoteJid  →  strip "@s.whatsapp.net"  →  digits-only phone (e.g. "971544661177")
+ *   Landlord.phone     "+971544661177" →  strip "+"  → "971544661177"  ✓
+ *   Landlord.whatsapp  "+971544661177" →  strip "+"  → "971544661177"  ✓
+ *   Landlord.additional_phones[]       →  strip "+"  → check each     ✓
  */
-
-// Channel constants
-const PERSONAL_INSTANCE = 'erudite_whatsapp'; // Ahmad's personal WA — landlord conversations
 
 function stripPlus(raw) {
   if (!raw) return '';
@@ -74,44 +70,10 @@ Deno.serve(async (req) => {
   const serviceRole = base44.asServiceRole;
 
   const event = body?.event;
-  const instance = body?.instance || '';
-
-  // Route by instance — only the PERSONAL channel carries landlord conversations.
-  // The API channel (instance="erudite") only receives delivery receipts for system sends;
-  // we acknowledge them but don't create landlord message records for those.
-  const isPersonalChannel = instance === PERSONAL_INSTANCE;
-
-  // Handle message status updates (delivery/read receipts)
-  if (event === 'messages.update') {
-    const updates = Array.isArray(body?.data) ? body.data : (body?.data ? [body.data] : []);
-    for (const update of updates) {
-      const waId = update?.key?.id || update?.id;
-      // ack: 0=pending, 1=sent, 2=delivered, 3=read
-      const ack = update?.update?.status ?? update?.ack;
-      if (!waId) continue;
-      const ACK_MAP = { 0: 'sent', 1: 'sent', 2: 'delivered', 3: 'read' };
-      const newStatus = ACK_MAP[ack] || null;
-      if (!newStatus) continue;
-      // Find the message by wa_message_id and update its status
-      const existing = await serviceRole.entities.Message.filter({ wa_message_id: waId });
-      if (existing?.length > 0) {
-        await serviceRole.entities.Message.update(existing[0].id, { status: newStatus });
-        console.log(`[evolutionWebhook] Updated message ${existing[0].id} status to ${newStatus}`);
-      }
-    }
-    return Response.json({ status: 'ok', event: 'messages.update' });
-  }
 
   // Only handle incoming text/media messages
   if (event !== 'messages.upsert') {
     return Response.json({ status: 'ignored', event });
-  }
-
-  // Only create landlord message records for the PERSONAL channel.
-  // Events from other instances (e.g. "erudite" API channel) are acknowledged but not processed.
-  if (!isPersonalChannel) {
-    console.log(`[evolutionWebhook] Ignoring upsert from non-personal instance="${instance}"`);
-    return Response.json({ status: 'ignored', reason: 'non_personal_instance', instance });
   }
 
   const data = body?.data;

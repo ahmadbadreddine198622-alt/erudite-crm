@@ -3,6 +3,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (user?.role !== 'admin') {
+      return Response.json({ error: 'Admin only' }, { status: 403 });
+    }
 
     const now = new Date().toISOString();
     const pending = await base44.asServiceRole.entities.ScheduledMessage.filter({
@@ -13,18 +17,40 @@ Deno.serve(async (req) => {
     const results = { sent: 0, failed: 0, skipped: pending.length - due.length };
 
     for (const msg of due) {
-      // All scheduled messages go through the API channel — never the personal channel
-      const res = await base44.asServiceRole.functions.invoke('sendApiWhatsApp', {
-        phone_e164: msg.recipient_phone,
-        message: msg.message_body,
-      });
+      const phoneNumber = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+      const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
 
-      const sent = res?.status === 'sent';
-      await base44.asServiceRole.entities.ScheduledMessage.update(msg.id, sent
-        ? { status: 'sent', sent_at: new Date().toISOString() }
-        : { status: 'failed', error_message: res?.error || 'sendApiWhatsApp failed' }
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${phoneNumber}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: msg.recipient_phone,
+            type: 'text',
+            text: { body: msg.message_body }
+          })
+        }
       );
-      if (sent) results.sent++; else results.failed++;
+
+      if (response.ok) {
+        await base44.asServiceRole.entities.ScheduledMessage.update(msg.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        });
+        results.sent++;
+      } else {
+        const err = await response.json();
+        await base44.asServiceRole.entities.ScheduledMessage.update(msg.id, {
+          status: 'failed',
+          error_message: err?.error?.message || 'Unknown error'
+        });
+        results.failed++;
+      }
     }
 
     return Response.json({ success: true, ...results });
