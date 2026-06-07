@@ -3,9 +3,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, CalendarPlus } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CommentsThread from "@/components/photography/CommentsThread";
+import ScheduleFollowUpDialog from '@/components/followup/ScheduleFollowUpDialog';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -63,6 +64,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const formAInputRef = useRef(null);
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [contactForm, setContactForm] = useState({});
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
 
   const STAGE_OPTIONS = [
     'initial_contact',
@@ -352,6 +354,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             </Button>
             <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
               <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-400' : 'text-muted-foreground'}`} />
+            </Button>
+            <Button variant="outline" size="sm" className="ml-2 gap-1.5" onClick={() => setShowFollowUpDialog(true)}>
+              <CalendarPlus className="w-3.5 h-3.5" /> Schedule Follow-up
             </Button>
           </div>
         </div>
@@ -1163,6 +1168,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           </Tabs>
         </div>
+
+        {/* Schedule Follow-up Dialog */}
+        <ScheduleFollowUpDialog
+          landlord={landlord}
+          open={showFollowUpDialog}
+          onClose={() => setShowFollowUpDialog(false)}
+        />
       </>
     );
   };

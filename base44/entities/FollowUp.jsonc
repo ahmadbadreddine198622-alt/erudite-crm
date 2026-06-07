@@ -1,0 +1,71 @@
+{
+  "name": "FollowUp",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord entity"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "callback",
+        "appointment",
+        "task"
+      ],
+      "description": "Type of follow-up"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the follow-up is scheduled"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "done",
+        "missed",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Follow-up status"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about the follow-up"
+    },
+    "created_source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "auto_rule"
+      ],
+      "default": "manual",
+      "description": "How the follow-up was created"
+    },
+    "stage_at_creation": {
+      "type": "string",
+      "description": "Landlord's pipeline stage when follow-up was created"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once the 30-min-before reminder fires"
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID for sync"
+    },
+    "notify_landlord": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether landlord gets WhatsApp reminder"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "type",
+    "scheduled_at"
+  ]
+}
