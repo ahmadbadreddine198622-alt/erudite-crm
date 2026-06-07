@@ -148,37 +148,6 @@ export default function WhatsAppInbox() {
     if (match) setSelectedConvId(match.id);
   }, [phoneParam, conversations]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only if not typing in input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
-      const currentIndex = filtered.findIndex(c => c.id === selectedConvId);
-      
-      if (e.key === 'ArrowDown' && currentIndex < filtered.length - 1) {
-        e.preventDefault();
-        handleSelectConv(filtered[currentIndex + 1].id);
-      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
-        e.preventDefault();
-        handleSelectConv(filtered[currentIndex - 1].id);
-      } else if (e.key === 'Enter' && selectedConvId) {
-        e.preventDefault();
-        // Focus message input
-        const input = document.querySelector('textarea[placeholder*="Type a message"]');
-        input?.focus();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        // Focus search
-        const searchInput = document.querySelector('input[placeholder*="Search conversations"]');
-        searchInput?.focus();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [filtered, selectedConvId]);
-
   // Real-time subscription to conversation changes
   useEffect(() => {
     const unsub = base44.entities.WhatsAppConversation.subscribe((event) => {
@@ -291,6 +260,37 @@ export default function WhatsAppInbox() {
     }
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
+
+  // Keyboard navigation - must be after filtered definition
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only if not typing in input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      const currentIndex = filtered.findIndex(c => c.id === selectedConvId);
+      
+      if (e.key === 'ArrowDown' && currentIndex < filtered.length - 1) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex + 1].id);
+      } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+        e.preventDefault();
+        handleSelectConv(filtered[currentIndex - 1].id);
+      } else if (e.key === 'Enter' && selectedConvId) {
+        e.preventDefault();
+        // Focus message input
+        const input = document.querySelector('textarea[placeholder*="Type a message"]');
+        input?.focus();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        // Focus search
+        const searchInput = document.querySelector('input[placeholder*="Search conversations"]');
+        searchInput?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filtered, selectedConvId, handleSelectConv]);
 
   // Filter + search - Strict agent isolation
   const filtered = normalizedConversations.filter(c => {
