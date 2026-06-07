@@ -1,0 +1,40 @@
+{
+  "name": "WebhookDeadLetter",
+  "type": "object",
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Webhook source (e.g., 'evolution', 'meta')"
+    },
+    "event": {
+      "type": "string",
+      "description": "Event type (e.g., 'messages.upsert', 'messages.update')"
+    },
+    "instance": {
+      "type": "string",
+      "description": "Evolution instance name"
+    },
+    "wa_message_id": {
+      "type": "string",
+      "description": "WhatsApp message ID if available"
+    },
+    "stage": {
+      "type": "string",
+      "description": "Processing stage where error occurred"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message (truncated to 1000 chars)"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Full raw webhook payload for debugging/replay"
+    }
+  },
+  "required": [
+    "source",
+    "event",
+    "stage",
+    "error"
+  ]
+}

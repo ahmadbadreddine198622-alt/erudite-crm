@@ -33,7 +33,8 @@
         "sent",
         "delivered",
         "read",
-        "received"
+        "received",
+        "failed"
       ],
       "default": "sent",
       "description": "Message delivery status"
@@ -50,6 +51,92 @@
       ],
       "default": "personal",
       "description": "Which WhatsApp channel: business (erudite / Meta Cloud / +971582806000) or personal (erudite_whatsapp / Baileys / +971581806000)"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "Base44 storage URL for downloaded media"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video",
+        "audio",
+        "document",
+        "sticker",
+        "none"
+      ],
+      "default": "none",
+      "description": "Type of media attachment"
+    },
+    "media_mime": {
+      "type": "string",
+      "description": "MIME type of the media"
+    },
+    "media_filename": {
+      "type": "string",
+      "description": "Original filename of the media"
+    },
+    "media_duration": {
+      "type": "number",
+      "description": "Duration in seconds (for audio/video)"
+    },
+    "media_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready",
+        "download_failed",
+        "upload_failed"
+      ],
+      "default": "pending",
+      "description": "Media download/upload status"
+    },
+    "media_retry_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of download retry attempts"
+    },
+    "media_error": {
+      "type": "string",
+      "description": "Error message if media download failed"
+    },
+    "is_deleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if message was deleted/revoked"
+    },
+    "message_type": {
+      "type": "string",
+      "description": "Evolution message type (conversation, imageMessage, audioMessage, etc.)"
+    },
+    "reply_to_wa_id": {
+      "type": "string",
+      "description": "WhatsApp message ID this message is replying to"
+    },
+    "location_json": {
+      "type": "object",
+      "description": "Location data {lat, lng, name}"
+    },
+    "contacts_json": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Contact cards array"
+    },
+    "reaction": {
+      "type": "string",
+      "description": "Reaction emoji"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Caption for media messages"
+    },
+    "is_voice_note": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if audio is a PTT voice note"
     }
   },
   "required": [
