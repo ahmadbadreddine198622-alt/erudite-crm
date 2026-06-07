@@ -1,15 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
 
 export default function ChatThread({ conversationId, allConversationIds, contactName }) {
   const bottomRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [showNewPill, setShowNewPill] = useState(false);
+  const prevMessageCountRef = useRef(0);
 
   // CRITICAL: Normalize all inputs to arrays at the component boundary
   const normalizedAllIds = Array.isArray(allConversationIds) ? allConversationIds : [];
@@ -105,15 +108,37 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     return () => unsub();
   }, []);
 
-  // Polling fallback - only poll when a conversation is open
+  // Polling — 5s, foreground only
   useEffect(() => {
     if (!validConversationId) return;
-    const interval = setInterval(loadMessages, 8000);
+    const interval = setInterval(() => {
+      if (!document.hidden) loadMessages();
+    }, 5000);
     return () => clearInterval(interval);
   }, [idsKey]);
 
+  // Smart scroll: only auto-scroll if near bottom; otherwise show pill
+  const isNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+
+  const scrollToBottom = useCallback((behavior = 'smooth') => {
+    bottomRef.current?.scrollIntoView({ behavior });
+    setShowNewPill(false);
+  }, []);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) return;
+    const newMessages = messages.length > prevMessageCountRef.current;
+    prevMessageCountRef.current = messages.length;
+    if (!newMessages) return;
+    if (isNearBottom()) {
+      scrollToBottom();
+    } else {
+      setShowNewPill(true);
+    }
   }, [messages.length]);
 
   if (isLoading) {
@@ -146,7 +171,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   }, {});
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 relative">
       <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
         <div className="flex items-center gap-2">
           {lastRefresh && (
@@ -167,7 +192,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 relative" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
         {Object.entries(grouped).map(([day, msgs]) => (
           <div key={day}>
             <div className="flex justify-center my-3">
@@ -180,6 +205,15 @@ export default function ChatThread({ conversationId, allConversationIds, contact
         ))}
         <div ref={bottomRef} />
       </div>
+      {showNewPill && (
+        <button
+          onClick={() => scrollToBottom()}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10 transition-all"
+          style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}
+        >
+          <ChevronDown className="w-3.5 h-3.5" /> New message
+        </button>
+      )}
     </div>
   );
 }

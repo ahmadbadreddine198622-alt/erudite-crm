@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Send, Loader2, Sparkles, RefreshCw, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -21,11 +21,17 @@ function Section({ title, children }) {
 export default function LandlordConversationPanel({ landlord }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
+  const scrollContainerRef = useRef(null);
+  const bottomRef = useRef(null);
+  const [showNewPill, setShowNewPill] = useState(false);
+  const prevCountRef = useRef(0);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['landlord-messages', landlord?.id],
     queryFn: () => base44.entities.Message.filter({ landlord_id: landlord.id }, 'timestamp', 500),
     enabled: !!landlord?.id,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
   const { data: insight, isLoading: insightLoading } = useQuery({
@@ -37,12 +43,46 @@ export default function LandlordConversationPanel({ landlord }) {
     enabled: !!landlord?.id,
   });
 
+  // Smart scroll helpers
+  const isNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+
+  const scrollToBottom = useCallback((behavior = 'smooth') => {
+    bottomRef.current?.scrollIntoView({ behavior });
+    setShowNewPill(false);
+  }, []);
+
+  // On initial load, jump to bottom immediately (no animation)
+  useEffect(() => {
+    if (messages.length > 0 && prevCountRef.current === 0) {
+      scrollToBottom('instant');
+      prevCountRef.current = messages.length;
+    }
+  }, [messages.length]);
+
+  // On subsequent new messages, smart scroll
+  useEffect(() => {
+    if (messages.length <= prevCountRef.current) return;
+    const isNew = prevCountRef.current > 0; // skip the initial load case handled above
+    prevCountRef.current = messages.length;
+    if (!isNew) return;
+    if (isNearBottom()) {
+      scrollToBottom();
+    } else {
+      setShowNewPill(true);
+    }
+  }, [messages.length]);
+
   const sendMutation = useMutation({
     mutationFn: (msg) => base44.functions.invoke('sendEvolutionMessage', { landlord_id: landlord.id, text: msg }),
     onSuccess: (res) => {
       const data = res?.data ?? res;
       if (data?.error) { toast.error(`Send failed: ${data.error}${data.detail ? ' — ' + data.detail : ''}`); return; }
       setText('');
+      // Immediately refetch so the sent bubble appears without waiting for the next poll cycle
       qc.invalidateQueries({ queryKey: ['landlord-messages', landlord.id] });
       toast.success('Message sent');
     },
@@ -83,25 +123,37 @@ export default function LandlordConversationPanel({ landlord }) {
         <div className="flex items-center gap-2 mb-2 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
           <Send className="w-4 h-4" /> WhatsApp
         </div>
-        <div className="flex-1 overflow-y-auto space-y-2 p-1">
-          {isLoading ? (
-            <div className="text-sm text-muted-foreground text-center py-8">Loading…</div>
-          ) : messages.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center py-8">No messages yet.</div>
-          ) : (
-            messages.map((m) => {
-              const out = m.direction === 'outgoing';
-              return (
-                <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
-                    <div className="whitespace-pre-wrap break-words">{m.text}</div>
-                    <div className={`mt-1 text-[10px] ${out ? 'text-white/70' : 'text-muted-foreground'}`}>
-                      {fmt(m.timestamp)}{m.status ? ` · ${m.status}` : ''}
+        <div className="flex-1 relative min-h-0">
+          <div ref={scrollContainerRef} className="h-full overflow-y-auto space-y-2 p-1">
+            {isLoading ? (
+              <div className="text-sm text-muted-foreground text-center py-8">Loading…</div>
+            ) : messages.length === 0 ? (
+              <div className="text-sm text-muted-foreground text-center py-8">No messages yet.</div>
+            ) : (
+              messages.map((m) => {
+                const out = m.direction === 'outgoing';
+                return (
+                  <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
+                      <div className="whitespace-pre-wrap break-words">{m.text}</div>
+                      <div className={`mt-1 text-[10px] ${out ? 'text-white/70' : 'text-muted-foreground'}`}>
+                        {fmt(m.timestamp)}{m.status ? ` · ${m.status}` : ''}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )}
+            <div ref={bottomRef} />
+          </div>
+          {showNewPill && (
+            <button
+              onClick={() => scrollToBottom()}
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg z-10"
+              style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}
+            >
+              <ChevronDown className="w-3.5 h-3.5" /> New message
+            </button>
           )}
         </div>
         <form onSubmit={submit} className="flex items-center gap-2 pt-2 border-t border-white/10">
