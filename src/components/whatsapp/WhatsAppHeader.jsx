@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Phone, Pin, Star, Flag, MoreVertical, UserCheck, Shield, Briefcase, Building2, ExternalLink, Check, User, Home } from 'lucide-react';
+import { Phone, Video, Calendar, Home, MapPin, FileText, DollarSign, Languages, Pin, Clock, MessageSquare, Star, Flag, MoreVertical, UserCheck, Shield, Briefcase, Building2, ExternalLink, Copy, Check, User } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
 import { toast } from 'sonner';
 import ScoreBadge from "@/components/ScoreBadge";
 import StagePipeline from "@/components/StagePipeline";
@@ -104,6 +103,58 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
+          {!isMatched ? (
+            <>
+              <Button size="sm" variant="outline" onClick={() => onAction('create_lead')} className="gap-1.5 text-xs">
+                <Home className="w-3 h-3" /> Create Lead
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onAction('link_contact')} className="gap-1.5 text-xs">
+                <UserCheck className="w-3 h-3" /> Link Contact
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" onClick={() => onAction('open_profile')} className="gap-1.5 text-xs">
+                <ExternalLink className="w-3 h-3" /> Full Profile
+              </Button>
+            </>
+          )}
+
+          {/* Assign to Agent Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 h-8">
+                <UserCheck className="w-3 h-3" />
+                Assign
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
+              {teamMembers && teamMembers.length > 0 ? (
+                teamMembers.map(tm => (
+                  <DropdownMenuItem
+                    key={tm.email}
+                    onClick={() => onAction("assign_agent", { email: tm.email, full_name: tm.full_name })}
+                    className="flex items-center gap-2 cursor-pointer"
+                    style={{ color: 'rgba(255,255,255,0.9)' }}
+                  >
+                    <Avatar className="w-5 h-5">
+                      <AvatarFallback className="text-[9px]" style={{ background: 'rgba(255,255,255,0.1)' }}>{(tm.full_name || tm.email).slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{tm.full_name || tm.email}</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{tm.email}</p>
+                    </div>
+                    {conversation.assigned_agent_email === tm.email && (
+                      <span className="text-[10px] text-green-500 font-medium">Assigned</span>
+                    )}
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem disabled style={{ color: 'rgba(255,255,255,0.5)' }}>No team members</DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -120,7 +171,7 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
               <DropdownMenuItem onClick={() => onAction("mark_resolved")} style={{ color: 'rgba(255,255,255,0.9)' }}>
                 <Check className="w-4 h-4 mr-2" /> Mark resolved
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAction("block")} style={{ color: 'rgb(248,113,113)' }}>
+              <DropdownMenuItem onClick={() => onAction("block")} className="text-red-400" style={{ color: 'rgba(255,255,255,0.9)' }}>
                 <Flag className="w-4 h-4 mr-2" /> Block & report
               </DropdownMenuItem>
             </DropdownMenuContent>

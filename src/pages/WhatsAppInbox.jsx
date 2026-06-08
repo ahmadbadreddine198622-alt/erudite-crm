@@ -40,7 +40,7 @@ export default function WhatsAppInbox() {
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all');
   const [filterAssignedAgent, setFilterAssignedAgent] = useState('');
-  const [filterChannel, setFilterChannel] = useState('business');
+  const [filterChannel, setFilterChannel] = useState('all');
   const [setupStatus, setSetupStatus] = useState('idle');
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
@@ -49,10 +49,6 @@ export default function WhatsAppInbox() {
   const [optimisticMessages, setOptimisticMessages] = useState({});
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
-  const [showAgentFilter, setShowAgentFilter] = useState(false);
-  const searchInputRef = useRef(null);
-  
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -68,12 +64,30 @@ export default function WhatsAppInbox() {
     refetchInterval: 15000,
   });
 
-  // Keep conversations separate per channel — no cross-channel deduplication
-  const normalizedConversations = [...conversations].sort((a, b) => {
-    const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-    const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-    return tb - ta;
-  });
+  // Normalize phone numbers and dedupe conversations
+  const normalizedConversations = (() => {
+    const map = new Map();
+    conversations.forEach(conv => {
+      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
+      const existing = map.get(normalizedPhone);
+      if (!existing) {
+        map.set(normalizedPhone, conv);
+      } else {
+        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
+        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
+        if (newTime > existingTime) {
+          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
+        } else {
+          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
+  })();
 
   // Desktop notifications
   const notificationHook = useDesktopNotifications({
@@ -266,8 +280,7 @@ export default function WhatsAppInbox() {
     // Admin/manager can filter by agent, but regular agents can only see their own
     const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
     
-    // Strict channel isolation — only show conversations for the active channel
-    const matchesChannel = filterChannel === 'business' ? c.channel === 'business' : c.channel !== 'business';
+    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
     
     const lead = leads.find(l => l.id === c.lead_id);
     const name = lead?.full_name || c.wa_display_name || phone;
@@ -630,11 +643,12 @@ export default function WhatsAppInbox() {
       {/* Sidebar — conversation list */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} border-r flex flex-col shrink-0 transition-all duration-300 overflow-hidden`}>
         {/* Live indicator */}
-        <div className="flex items-center px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Live</span>
           </div>
+          <NotificationSettings notificationHook={notificationHook} />
         </div>
 
         {/* Management Intelligence Strip */}
@@ -677,7 +691,7 @@ export default function WhatsAppInbox() {
                 <Badge className="text-xs px-1.5 py-0" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}>{unreadTotal}</Badge>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex gap-1">
               <Button
                 size="sm"
                 className="h-8 text-xs px-2.5"
@@ -690,10 +704,9 @@ export default function WhatsAppInbox() {
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
               <Button 
-                size="icon"
+                size="sm" 
                 variant="ghost" 
-                className="h-8 w-8"
-                title="Fetch Names"
+                className="h-8 px-2.5 text-xs gap-1"
                 onClick={async () => {
                   try {
                     const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', {});
@@ -704,37 +717,12 @@ export default function WhatsAppInbox() {
                   }
                 }}
               >
-                <Bot className="w-3.5 h-3.5" />
+                <Bot className="w-3.5 h-3.5" /> Fetch Names
               </Button>
-              {/* Expandable search */}
-              <div className="flex items-center">
-                {searchExpanded ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      ref={searchInputRef}
-                      autoFocus
-                      placeholder="Search..."
-                      className="h-8 w-32 px-2 text-xs rounded-lg outline-none"
-                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      onBlur={() => { if (!search) setSearchExpanded(false); }}
-                      onKeyDown={e => { if (e.key === 'Escape') { setSearch(''); setSearchExpanded(false); } }}
-                    />
-                    {search && (
-                      <button onClick={() => { setSearch(''); setSearchExpanded(false); }} className="text-xs opacity-50 hover:opacity-100">✕</button>
-                    )}
-                  </div>
-                ) : (
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}>
-                    <Search className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
               <Button
-                size="icon"
+                size="sm"
                 variant="ghost"
-                className="h-8 w-8"
+                className="h-8 px-2.5"
                 onClick={() => setActiveTab('settings')}
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -743,17 +731,26 @@ export default function WhatsAppInbox() {
                 href="https://web.whatsapp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
-                style={{ border: '1px solid rgba(37,211,102,0.3)' }}
-                title="Open WhatsApp Web"
+                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+                style={{ color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
               >
-                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                <ExternalLink className="w-3 h-3" /> WA Web
               </a>
             </div>
           </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              className="pl-9 h-9 text-sm"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           {/* Filter pills */}
           <div className="space-y-2">
-            <div className="flex gap-1 flex-wrap items-center">
+            <div className="flex gap-1 flex-wrap">
               {['all', 'unread', 'open', 'resolved'].map(f => (
                 <button
                   key={f}
@@ -768,82 +765,42 @@ export default function WhatsAppInbox() {
                   {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}
-              {/* Team filter icon — Admin/Managers only */}
-              {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
-                <div className="relative ml-auto">
-                  <button
-                    onClick={() => setShowAgentFilter(prev => !prev)}
-                    className="flex items-center justify-center h-6 w-6 rounded-lg transition-colors"
-                    title={filterAssignedAgent ? `Agent: ${teamMembers.find(t=>t.email===filterAssignedAgent)?.full_name || filterAssignedAgent}` : 'Filter by agent'}
-                    style={{
-                      background: filterAssignedAgent ? 'hsl(38 92% 50% / 0.2)' : 'rgba(255,255,255,0.05)',
-                      border: filterAssignedAgent ? '1px solid hsl(38 92% 50% / 0.5)' : '1px solid rgba(255,255,255,0.1)',
-                      color: filterAssignedAgent ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.6)',
-                    }}
-                  >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                  </button>
-                  {showAgentFilter && (
-                    <div className="absolute right-0 top-8 z-50 rounded-lg shadow-xl min-w-[160px] overflow-hidden"
-                      style={{ background: 'hsl(222 47% 13%)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                      {[{ email: '', full_name: 'All Team Members' }, ...teamMembers].map(tm => (
-                        <button
-                          key={tm.email}
-                          onClick={() => { setFilterAssignedAgent(tm.email); setShowAgentFilter(false); }}
-                          className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/10"
-                          style={{ color: filterAssignedAgent === tm.email ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.85)' }}
-                        >
-                          {tm.full_name || tm.email}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-            {/* Channel tabs */}
-            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-              {[
-                { key: 'business', label: 'Business', sub: '+971 582 806 000', activeColor: '#10b981' },
-                { key: 'personal', label: 'Personal', sub: '+971 581 806 000', activeColor: '#3b82f6' },
-              ].map((ch, i) => {
-                const chUnread = normalizedConversations.filter(c => {
-                  const phone = c.wa_phone_e164 || c.phone_number || '';
-                  if (isInternalNumber(phone)) return false;
-                  return ch.key === 'business' ? c.channel === 'business' : c.channel !== 'business';
-                }).reduce((s, c) => s + (c.unread_count || 0), 0);
-                const isActive = filterChannel === ch.key;
-                return (
-                  <button
-                    key={ch.key}
-                    onClick={() => { setFilterChannel(ch.key); setSelectedConvId(null); }}
-                    className="flex-1 flex flex-col items-center gap-0 transition-all"
-                    style={{
-                      padding: '5px',
-                      background: isActive ? `${ch.activeColor}22` : 'rgba(255,255,255,0.03)',
-                      borderRight: i === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                      borderBottom: isActive ? `2px solid ${ch.activeColor}` : '2px solid transparent',
-                    }}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold" style={{ color: isActive ? ch.activeColor : 'rgba(255,255,255,0.6)' }}>
-                        {ch.label}
-                      </span>
-                      {chUnread > 0 && (
-                        <span className="text-[8px] font-bold px-1 py-0 rounded-full"
-                          style={{ background: ch.activeColor, color: 'white' }}>
-                          {chUnread}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{ch.sub}</span>
-                  </button>
-                );
-              })}
+            <div className="flex gap-1 flex-wrap">
+              {['all', 'business', 'personal'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setFilterChannel(c)}
+                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors border"
+                  style={{
+                    background: filterChannel === c ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)',
+                    color: filterChannel === c ? 'white' : 'rgba(255,255,255,0.7)',
+                    border: filterChannel === c ? (c === 'business' ? '1px solid hsl(152 69% 40%)' : c === 'personal' ? '1px solid hsl(217 91% 60%)' : '1px solid hsl(38 92% 50%)') : '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  {c === 'all' ? 'All Channels' : c === 'business' ? '🏢 Business' : '👤 Personal'}
+                </button>
+              ))}
             </div>
           </div>
 
-
+          {/* Team member filter - Admin/Managers only */}
+          {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Filter by Agent</label>
+              <select
+                value={filterAssignedAgent}
+                onChange={(e) => setFilterAssignedAgent(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Team Members</option>
+                {teamMembers.map(tm => (
+                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Conversation list - preserve scroll position */}
