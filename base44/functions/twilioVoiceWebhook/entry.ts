@@ -32,21 +32,29 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const type = url.searchParams.get('type') || 'dial';
 
-  // ── Status callback from Twilio ──────────────────────────────────────────
+  // ── Status callback from Twilio (no auth needed — Twilio POST) ──────────
   if (type === 'status') {
     try {
-      const form = await req.formData();
-      const callSid = form.get('CallSid');
-      const status = form.get('CallStatus');
-      const duration = form.get('CallDuration');
-      let callLogId = url.searchParams.get('call_log_id');
+      let params;
+      const ct = req.headers.get('content-type') || '';
+      if (ct.includes('application/x-www-form-urlencoded')) {
+        params = new URLSearchParams(await req.text());
+      } else {
+        params = new URLSearchParams();
+      }
+      const callSid = params.get('CallSid') || '';
+      const status = params.get('CallStatus') || '';
+      const duration = params.get('CallDuration') || '';
+      let callLogId = url.searchParams.get('call_log_id') || '';
+
+      console.log(`[twilioVoiceWebhook] status: callSid=${callSid} status=${status} duration=${duration} logId=${callLogId}`);
 
       if (!callLogId && callSid) {
         const logs = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
         if (logs?.[0]) callLogId = logs[0].id;
       }
 
-      if (callLogId) {
+      if (callLogId && status) {
         const update = { status };
         if (callSid) update.twilio_call_sid = callSid;
         if (duration) update.duration_seconds = parseInt(duration, 10);
@@ -54,21 +62,31 @@ Deno.serve(async (req) => {
           update.ended_at = new Date().toISOString();
         }
         await serviceRole.entities.CallLog.update(callLogId, update);
-        console.log(`[twilioVoiceWebhook] Status update: ${status} for log ${callLogId}`);
+        console.log(`[twilioVoiceWebhook] ✅ Status updated: ${status} for log ${callLogId}`);
+      } else {
+        console.warn(`[twilioVoiceWebhook] status: no logId (callSid=${callSid}) or no status`);
       }
     } catch (err) {
       console.error('[twilioVoiceWebhook] status error:', err.message);
     }
-    return new Response('', { status: 204 });
+    return new Response('', { status: 200 });
   }
 
   // ── Recording callback ───────────────────────────────────────────────────
   if (type === 'recording') {
     try {
-      const form = await req.formData();
-      const recordingUrl = form.get('RecordingUrl');
-      const callSid = form.get('CallSid');
-      let callLogId = url.searchParams.get('call_log_id');
+      let params;
+      const ct = req.headers.get('content-type') || '';
+      if (ct.includes('application/x-www-form-urlencoded')) {
+        params = new URLSearchParams(await req.text());
+      } else {
+        params = new URLSearchParams();
+      }
+      const recordingUrl = params.get('RecordingUrl') || '';
+      const callSid = params.get('CallSid') || '';
+      let callLogId = url.searchParams.get('call_log_id') || '';
+
+      console.log(`[twilioVoiceWebhook] recording: callSid=${callSid} url=${recordingUrl} logId=${callLogId}`);
 
       if (!callLogId && callSid) {
         const logs = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
@@ -78,35 +96,33 @@ Deno.serve(async (req) => {
       if (callLogId && recordingUrl) {
         const mp3Url = recordingUrl + '.mp3';
         await serviceRole.entities.CallLog.update(callLogId, { recording_url: mp3Url });
-        console.log(`[twilioVoiceWebhook] Recording saved: ${mp3Url} for log ${callLogId}`);
+        console.log(`[twilioVoiceWebhook] ✅ Recording saved: ${mp3Url} for log ${callLogId}`);
 
-        // Backfill Activity with recording link
+        // Backfill Activity with recording link (works for both lead_id and landlord_id)
         const logRecords = await serviceRole.entities.CallLog.filter({ id: callLogId });
         const callLog = logRecords?.[0];
-        if (callLog?.lead_id) {
-          const activities = await serviceRole.entities.Activity.filter({
-            lead_id: callLog.lead_id,
-            type: 'call',
-          });
+        const entityField = callLog?.lead_id ? 'lead_id' : callLog?.landlord_id ? 'landlord_id' : null;
+        const entityId = callLog?.lead_id || callLog?.landlord_id;
+        if (entityField && entityId) {
+          const activities = await serviceRole.entities.Activity.filter({ [entityField]: entityId, type: 'call' });
           const activity = activities?.find(a => a.metadata?.call_log_id === callLogId);
           if (activity) {
             await serviceRole.entities.Activity.update(activity.id, {
               status: 'completed',
               completed_at: new Date().toISOString(),
               description: (activity.description || '') + `\n\n🎙️ [Listen to recording](${mp3Url})`,
-              attachments: [
-                ...(activity.attachments || []),
-                { file_url: mp3Url, file_name: 'call_recording.mp3', file_type: 'audio/mpeg' }
-              ],
+              attachments: [...(activity.attachments || []), { file_url: mp3Url, file_name: 'call_recording.mp3', file_type: 'audio/mpeg' }],
               metadata: { ...activity.metadata, recording_url: mp3Url }
             });
           }
         }
+      } else {
+        console.warn(`[twilioVoiceWebhook] recording: missing logId or recordingUrl`);
       }
     } catch (err) {
       console.error('[twilioVoiceWebhook] recording error:', err.message);
     }
-    return new Response('', { status: 204 });
+    return new Response('', { status: 200 });
   }
 
   // ── Server-side outbound call via Twilio REST API ────────────────────────

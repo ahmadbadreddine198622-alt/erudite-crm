@@ -129,12 +129,14 @@ Deno.serve(async (req) => {
     const type = url.searchParams.get('type');
     const call_log_id = url.searchParams.get('call_log_id');
 
+    // Read body ONCE before creating SDK client
     const contentType = req.headers.get('content-type') || '';
-    const params = contentType.includes('application/x-www-form-urlencoded')
-      ? new URLSearchParams(await req.text())
-      : new URLSearchParams();
+    const rawBody = contentType.includes('application/x-www-form-urlencoded')
+      ? await req.text()
+      : '';
+    const params = new URLSearchParams(rawBody);
 
-    // Twilio calls this without normal auth headers — inject app ID header so SDK initializes
+    // Twilio calls without auth — inject app ID so SDK initializes
     const modifiedReq = new Request(req.url, {
       method: req.method,
       headers: (() => {
@@ -142,7 +144,7 @@ Deno.serve(async (req) => {
         h.set('Base44-App-Id', Deno.env.get('BASE44_APP_ID') || '');
         return h;
       })(),
-      body: req.body,
+      body: rawBody || null,
     });
     const base44 = createClientFromRequest(modifiedReq);
     const serviceRole = base44.asServiceRole;
