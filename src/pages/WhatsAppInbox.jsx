@@ -49,6 +49,8 @@ export default function WhatsAppInbox() {
   const [optimisticMessages, setOptimisticMessages] = useState({});
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef(null);
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -673,7 +675,7 @@ export default function WhatsAppInbox() {
                 <Badge className="text-xs px-1.5 py-0" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}>{unreadTotal}</Badge>
               )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex items-center gap-1">
               <Button
                 size="sm"
                 className="h-8 text-xs px-2.5"
@@ -686,12 +688,13 @@ export default function WhatsAppInbox() {
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
               <Button 
-                size="sm" 
+                size="icon"
                 variant="ghost" 
-                className="h-8 px-2.5 text-xs gap-1"
+                className="h-8 w-8"
+                title="Fetch Names"
                 onClick={async () => {
                   try {
-                    const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', {});
+                    const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', { channel: filterChannel });
                     toast.success(res.data?.summary || 'Profile refresh complete');
                     refetch();
                   } catch (err) {
@@ -699,12 +702,37 @@ export default function WhatsAppInbox() {
                   }
                 }}
               >
-                <Bot className="w-3.5 h-3.5" /> Fetch Names
+                <Bot className="w-3.5 h-3.5" />
               </Button>
+              {/* Expandable search */}
+              <div className="flex items-center">
+                {searchExpanded ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      ref={searchInputRef}
+                      autoFocus
+                      placeholder="Search..."
+                      className="h-8 w-32 px-2 text-xs rounded-lg outline-none"
+                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      onBlur={() => { if (!search) setSearchExpanded(false); }}
+                      onKeyDown={e => { if (e.key === 'Escape') { setSearch(''); setSearchExpanded(false); } }}
+                    />
+                    {search && (
+                      <button onClick={() => { setSearch(''); setSearchExpanded(false); }} className="text-xs opacity-50 hover:opacity-100">✕</button>
+                    )}
+                  </div>
+                ) : (
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}>
+                    <Search className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
               <Button
-                size="sm"
+                size="icon"
                 variant="ghost"
-                className="h-8 px-2.5"
+                className="h-8 w-8"
                 onClick={() => setActiveTab('settings')}
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -713,22 +741,13 @@ export default function WhatsAppInbox() {
                 href="https://web.whatsapp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
-                style={{ color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
+                className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
+                style={{ border: '1px solid rgba(37,211,102,0.3)' }}
+                title="Open WhatsApp Web"
               >
-                <ExternalLink className="w-3 h-3" /> WA Web
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               </a>
             </div>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search conversations..."
-              className="pl-9 h-9 text-sm"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
           </div>
           {/* Filter pills */}
           <div className="space-y-2">
@@ -749,7 +768,7 @@ export default function WhatsAppInbox() {
               ))}
             </div>
             {/* Channel tabs */}
-            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
               {[
                 { key: 'business', label: 'Business', sub: '+971 582 806 000', activeColor: '#10b981' },
                 { key: 'personal', label: 'Personal', sub: '+971 581 806 000', activeColor: '#3b82f6' },
@@ -764,25 +783,26 @@ export default function WhatsAppInbox() {
                   <button
                     key={ch.key}
                     onClick={() => { setFilterChannel(ch.key); setSelectedConvId(null); }}
-                    className="flex-1 py-2.5 px-3 flex flex-col items-center gap-0.5 transition-all"
+                    className="flex-1 flex flex-col items-center gap-0 transition-all"
                     style={{
+                      padding: '5px',
                       background: isActive ? `${ch.activeColor}22` : 'rgba(255,255,255,0.03)',
                       borderRight: i === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none',
                       borderBottom: isActive ? `2px solid ${ch.activeColor}` : '2px solid transparent',
                     }}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold" style={{ color: isActive ? ch.activeColor : 'rgba(255,255,255,0.6)' }}>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold" style={{ color: isActive ? ch.activeColor : 'rgba(255,255,255,0.6)' }}>
                         {ch.label}
                       </span>
                       {chUnread > 0 && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center"
+                        <span className="text-[8px] font-bold px-1 py-0 rounded-full"
                           style={{ background: ch.activeColor, color: 'white' }}>
                           {chUnread}
                         </span>
                       )}
                     </div>
-                    <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{ch.sub}</span>
+                    <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{ch.sub}</span>
                   </button>
                 );
               })}
@@ -792,7 +812,6 @@ export default function WhatsAppInbox() {
           {/* Team member filter - Admin/Managers only */}
           {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Filter by Agent</label>
               <select
                 value={filterAssignedAgent}
                 onChange={(e) => setFilterAssignedAgent(e.target.value)}
