@@ -243,20 +243,20 @@ Deno.serve(async (req) => {
 
   // ── Main TwiML dial handler (browser SDK calls only) ────────────────────
   try {
-    let formTo = '';
-    let formCallLogId = '';
+    // Parse form body from Twilio browser SDK (application/x-www-form-urlencoded)
+    let formParams = new URLSearchParams();
     try {
       const contentType = req.headers.get('content-type') || '';
       if (contentType.includes('application/x-www-form-urlencoded')) {
-        const text = await req.text();
-        const p = new URLSearchParams(text);
-        formTo = p.get('To') || '';
-        formCallLogId = p.get('call_log_id') || '';
+        formParams = new URLSearchParams(await req.text());
       }
     } catch (_) {}
 
-    const to = formTo || url.searchParams.get('To') || '';
-    let callLogId = url.searchParams.get('call_log_id') || formCallLogId || '';
+    const to = formParams.get('To') || url.searchParams.get('To') || '';
+    const callerId = formParams.get('CallerId') || formParams.get('From') || '';
+    let callLogId = formParams.get('call_log_id') || url.searchParams.get('call_log_id') || '';
+
+    console.log(`[twilioVoiceWebhook] dial: to=${to} callerId=${callerId} callLogId=${callLogId}`);
 
     if (!to) {
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
@@ -264,35 +264,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create CallLog if not already created
-    if (!callLogId) {
-      const { voiceNumber } = await getCreds(serviceRole);
-      const newLog = await serviceRole.entities.CallLog.create({
-        direction: 'outbound',
-        from_number: voiceNumber || '',
-        to_number: to,
-        status: 'queued',
-        started_at: new Date().toISOString(),
-        twilio_number_used: voiceNumber || '',
-      });
-      callLogId = newLog.id;
+    const { voiceNumber, recordCalls } = await getCreds(serviceRole);
+    const callerIdToUse = callerId || voiceNumber || '';
+
+    // Update call log with real caller info (created by twilioMakeCall in browser_mode)
+    if (callLogId) {
+      serviceRole.entities.CallLog.update(callLogId, {
+        from_number: callerIdToUse,
+        twilio_number_used: callerIdToUse,
+        status: 'ringing',
+      }).catch(() => {});
     }
 
-    const { voiceNumber, recordCalls } = await getCreds(serviceRole);
-
-    // Always use PUBLIC_BASE for callbacks so Twilio can reach them
     const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLogId}`;
     const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLogId}`;
 
-    const recordAttr = recordCalls
-      ? ` recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
-      : '';
-
-    const dialAttrs = [
-      `callerId="${voiceNumber || ''}"`,
-      `timeout="30"`,
-      recordAttr.trim(),
-    ].filter(Boolean).join(' ');
+    let dialAttrs = `callerId="${callerIdToUse}" timeout="60"`;
+    if (recordCalls) {
+      dialAttrs += ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`;
+    }
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

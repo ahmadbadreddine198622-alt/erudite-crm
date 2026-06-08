@@ -2,43 +2,42 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Edit2 } from 'lucide-react';
+import { Phone, Loader2, PhoneOff, Clock, Mic, MicOff, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
- * Outbound call dialog.
- *
- * HOW IT WORKS:
- *  1. You click "Call" → Twilio calls YOUR mobile (+agent_phone)
- *  2. You answer your phone → Twilio connects you to the customer
- *  3. Both of you speak normally on real mobile audio
- *  4. Call is recorded and logged automatically
+ * Browser-based calling using Twilio Voice SDK.
+ * Your laptop mic + speakers → direct call to customer.
+ * No bridge, no mobile phone needed.
  */
 export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = false }) {
   const [open, setOpen] = useState(false);
   const [numbers, setNumbers] = useState([]);
   const [selectedNumber, setSelectedNumber] = useState('');
-  const [agentPhone, setAgentPhone] = useState('');
   const [loadingNumbers, setLoadingNumbers] = useState(false);
   const [dialNumber, setDialNumber] = useState('');
 
-  // phase: idle | init | ringing_agent | ringing_customer | active | ended
+  // phase: idle | initializing | ringing | active | ended
   const [phase, setPhase] = useState('idle');
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
-  const [callLogId, setCallLogId] = useState('');
+  const [muted, setMuted] = useState(false);
 
+  const deviceRef = useRef(null);
+  const callRef = useRef(null);
   const timerRef = useRef(null);
-  const pollRef = useRef(null);
+  const callLogIdRef = useRef('');
 
   const entity = lead || landlord || contact;
   const defaultPhone = entity?.phone || entity?.whatsapp || '';
-  const targetName = lead?.full_name || lead?.full_name_en || lead?.name ||
+  const targetName =
+    lead?.full_name || lead?.full_name_en || lead?.name ||
     landlord?.full_name_en || landlord?.first_name ||
     contact?.full_name || contact?.name || defaultPhone;
   const leadId = lead?.id || null;
   const landlordId = landlord?.id || null;
 
+  // Load phone numbers when dialog opens
   useEffect(() => {
     if (!open) return;
     setDialNumber(defaultPhone);
@@ -46,15 +45,14 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
     base44.functions.invoke('getTwilioNumbers', {})
       .then(res => {
         const nums = res.data?.numbers || [];
-        const c = res.data?.credential || {};
         setNumbers(nums);
-        setAgentPhone(c.agent_phone || '');
         if (nums.length > 0) setSelectedNumber(nums[0].phone_number);
       })
       .catch(() => {})
       .finally(() => setLoadingNumbers(false));
   }, [open]);
 
+  // Timer while active
   useEffect(() => {
     if (phase === 'active') {
       setElapsed(0);
@@ -65,89 +63,133 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
-  const stopPoll = () => clearInterval(pollRef.current);
+  const destroyDevice = useCallback(() => {
+    if (callRef.current) {
+      try { callRef.current.disconnect(); } catch (_) {}
+      callRef.current = null;
+    }
+    if (deviceRef.current) {
+      try { deviceRef.current.destroy(); } catch (_) {}
+      deviceRef.current = null;
+    }
+  }, []);
 
   const fullReset = useCallback(() => {
-    stopPoll();
+    destroyDevice();
     clearInterval(timerRef.current);
     setPhase('idle');
     setElapsed(0);
     setErrorMsg('');
-    setCallLogId('');
-  }, []);
+    setMuted(false);
+    callLogIdRef.current = '';
+  }, [destroyDevice]);
 
   useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
-
-  const pollCallLog = (logId) => {
-    let attempts = 0;
-    pollRef.current = setInterval(async () => {
-      attempts++;
-      if (attempts > 80) { stopPoll(); return; } // 4 min max
-      try {
-        const logs = await base44.entities.CallLog.filter({ id: logId });
-        const log = logs?.[0];
-        if (!log) return;
-        const s = log.status;
-        if (s === 'in-progress' || s === 'answered') {
-          setPhase('active');
-        } else if (['completed', 'failed', 'busy', 'no-answer'].includes(s)) {
-          setPhase('ended');
-          stopPoll();
-        }
-      } catch (_) {}
-    }, 3000);
-  };
 
   const handleCall = async () => {
     const toPhone = dialNumber.trim();
     if (!toPhone) return toast.error('Enter a phone number');
-    if (!agentPhone) return toast.error('Set your agent phone in Twilio Hub → Settings first');
 
-    setPhase('init');
+    setPhase('initializing');
     setErrorMsg('');
 
     try {
-      const res = await base44.functions.invoke('twilioMakeCall', {
+      // 1. Get Twilio access token
+      const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
+      const { token, browser_calling_unavailable, error: tokenError } = tokenRes.data || {};
+
+      if (browser_calling_unavailable || tokenError || !token) {
+        setErrorMsg(tokenError || 'Browser calling not configured. Add API Key SID, API Key Secret & TwiML App SID in Twilio Hub → Settings.');
+        setPhase('idle');
+        return;
+      }
+
+      // 2. Create call log
+      const logRes = await base44.functions.invoke('twilioMakeCall', {
         lead_id: leadId,
         landlord_id: landlordId,
         to_phone: toPhone,
         from_phone: selectedNumber,
         lead_name: targetName,
-        browser_mode: false,
+        browser_mode: true,
+      });
+      callLogIdRef.current = logRes.data?.call_log_id || '';
+
+      // 3. Load Twilio Voice SDK dynamically
+      const { Device } = await import('@twilio/voice-sdk');
+
+      // 4. Initialize device
+      const device = new Device(token, {
+        logLevel: 1,
+        codecPreferences: ['opus', 'pcmu'],
+      });
+      deviceRef.current = device;
+
+      await device.register();
+
+      // 5. Place the call — passes To and CallerId to TwiML app
+      const call = await device.connect({
+        params: {
+          To: toPhone,
+          CallerId: selectedNumber,
+          call_log_id: callLogIdRef.current,
+        },
+      });
+      callRef.current = call;
+
+      setPhase('ringing');
+
+      call.on('ringing', () => setPhase('ringing'));
+      call.on('accept', () => setPhase('active'));
+      call.on('disconnect', () => {
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('cancel', () => {
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('reject', () => {
+        setPhase('ended');
+        destroyDevice();
+      });
+      call.on('error', (err) => {
+        setErrorMsg(err?.message || 'Call error');
+        setPhase('ended');
+        destroyDevice();
       });
 
-      const data = res.data;
-      if (data?.error) {
-        setErrorMsg(data.error + (data.code ? ` (code ${data.code})` : ''));
-        setPhase('idle');
-        return;
-      }
-
-      setCallLogId(data.call_log_id || '');
-      setPhase('ringing_agent');
-      if (data.call_log_id) pollCallLog(data.call_log_id);
-
     } catch (err) {
-      setErrorMsg(err?.response?.data?.error || err.message || 'Failed to place call');
+      console.error('[TwilioCallDialog] error:', err);
+      setErrorMsg(err?.message || 'Failed to start call');
       setPhase('idle');
+      destroyDevice();
     }
   };
 
-  const handleHangup = async () => {
-    stopPoll();
-    // Try to cancel/hangup via Twilio if we have a log
-    if (callLogId) {
-      base44.functions.invoke('twilioHangupCall', { call_log_id: callLogId }).catch(() => {});
+  const handleHangup = () => {
+    if (callRef.current) {
+      try { callRef.current.disconnect(); } catch (_) {}
     }
     setPhase('ended');
-    clearInterval(timerRef.current);
+    destroyDevice();
   };
 
-  const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const toggleMute = () => {
+    if (!callRef.current) return;
+    const next = !muted;
+    callRef.current.mute(next);
+    setMuted(next);
+  };
+
+  const fmt = (s) =>
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const isInCall = ['ringing', 'active'].includes(phase);
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
-      if (!v && ['init', 'ringing_agent', 'ringing_customer', 'active'].includes(phase)) return;
+      if (!v && isInCall) return; // don't close mid-call
       setOpen(v);
     }}>
       <button
@@ -177,17 +219,15 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
               {targetName && targetName !== defaultPhone && (
                 <p className="font-semibold text-white text-base">{targetName}</p>
               )}
-              {agentPhone && (
-                <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  📱 Will ring your phone: {agentPhone}
-                </p>
-              )}
+              <p className="text-[11px] mt-1 flex items-center justify-center gap-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <Volume2 className="w-3 h-3" /> Calling via browser (mic + speakers)
+              </p>
             </div>
 
             {/* Number to call */}
             <div>
-              <label className="text-[11px] font-medium mb-1.5 flex items-center gap-1 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                <Edit2 className="w-3 h-3" /> Customer Number
+              <label className="text-[11px] font-medium mb-1.5 block uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Customer Number
               </label>
               <input
                 type="tel"
@@ -197,26 +237,19 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
                 className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
               />
-              {defaultPhone && dialNumber !== defaultPhone && (
-                <button onClick={() => setDialNumber(defaultPhone)}
-                  className="text-[11px] mt-1 underline"
-                  style={{ color: 'rgba(100,160,255,0.7)' }}>
-                  Reset to {defaultPhone}
-                </button>
-              )}
             </div>
 
-            {/* Caller ID (Twilio number) */}
+            {/* Caller ID */}
             <div>
               <label className="text-[11px] font-medium mb-1.5 block uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Caller ID (Twilio Number)
+                Caller ID (shows to customer)
               </label>
               {loadingNumbers ? (
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
                 </div>
               ) : numbers.length === 0 ? (
-                <p className="text-xs text-amber-400">No numbers — check Twilio Hub settings.</p>
+                <p className="text-xs text-amber-400">No Twilio numbers — check Twilio Hub settings.</p>
               ) : (
                 <Select value={selectedNumber} onValueChange={setSelectedNumber}>
                   <SelectTrigger style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }}>
@@ -233,22 +266,15 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
               )}
             </div>
 
-            {!agentPhone && !loadingNumbers && (
-              <div className="text-xs text-amber-300 px-3 py-2 rounded-xl text-center"
-                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                ⚠️ Set your mobile number in <strong>Twilio Hub → Settings → Agent Phone</strong> to enable calling.
-              </div>
-            )}
-
             {errorMsg && (
-              <div className="text-xs text-red-300 px-3 py-2 rounded-xl text-center"
+              <div className="text-xs text-red-300 px-3 py-2 rounded-xl"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 {errorMsg}
               </div>
             )}
 
             <button
-              disabled={!dialNumber.trim() || loadingNumbers || !agentPhone}
+              disabled={!dialNumber.trim() || loadingNumbers}
               onClick={handleCall}
               className="w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2 text-base disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}
@@ -258,31 +284,32 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
           </div>
         )}
 
-        {/* ── INIT ── */}
-        {phase === 'init' && (
+        {/* ── INITIALIZING ── */}
+        {phase === 'initializing' && (
           <div className="px-6 py-12 flex flex-col items-center gap-4">
             <Loader2 className="w-10 h-10 animate-spin text-green-400" />
-            <p className="text-white font-semibold">Placing call…</p>
+            <p className="text-white font-semibold">Connecting…</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Initializing browser audio
+            </p>
           </div>
         )}
 
-        {/* ── RINGING AGENT ── */}
-        {phase === 'ringing_agent' && (
+        {/* ── RINGING ── */}
+        {phase === 'ringing' && (
           <div className="px-6 py-10 flex flex-col items-center gap-5">
             <div className="relative">
               <div className="w-24 h-24 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(250,180,40,0.12)', border: '2px solid rgba(250,180,40,0.4)' }}>
-                <PhoneCall className="w-11 h-11 text-amber-400" />
+                <Phone className="w-11 h-11 text-amber-400" />
               </div>
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/30 animate-ping" />
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">Step 1 of 2</p>
-              <p className="text-white text-xl font-bold">Your phone is ringing</p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{agentPhone}</p>
-              <p className="text-xs px-4 text-center mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Answer your phone — Twilio will then connect you to {targetName}
-              </p>
+            <div className="text-center space-y-1">
+              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">Calling</p>
+              <p className="text-white text-xl font-bold">{targetName}</p>
+              <p className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>{dialNumber}</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Ringing…</p>
             </div>
             <button onClick={handleHangup}
               className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -315,7 +342,27 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
                 <span className="text-2xl font-mono font-bold text-white">{fmt(elapsed)}</span>
               </div>
             </div>
-            <div className="flex items-center justify-center pb-8 pt-2">
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-8 pb-8 pt-4">
+              {/* Mute */}
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={toggleMute}
+                  className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
+                  style={{
+                    background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
+                    border: `1px solid ${muted ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                  }}>
+                  {muted
+                    ? <MicOff className="w-5 h-5 text-red-400" />
+                    : <Mic className="w-5 h-5 text-white/60" />}
+                </button>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {muted ? 'Unmute' : 'Mute'}
+                </span>
+              </div>
+
+              {/* Hang up */}
               <div className="flex flex-col items-center gap-1">
                 <button onClick={handleHangup}
                   className="w-16 h-16 rounded-full flex items-center justify-center"
