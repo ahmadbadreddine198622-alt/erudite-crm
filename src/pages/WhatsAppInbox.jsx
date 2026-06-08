@@ -40,7 +40,7 @@ export default function WhatsAppInbox() {
   const [showInsights, setShowInsights] = useState(true);
   const [filter, setFilter] = useState('all');
   const [filterAssignedAgent, setFilterAssignedAgent] = useState('');
-  const [filterChannel, setFilterChannel] = useState('all');
+  const [filterChannel, setFilterChannel] = useState('business');
   const [setupStatus, setSetupStatus] = useState('idle');
   const [phoneInfo, setPhoneInfo] = useState(null);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
@@ -64,30 +64,12 @@ export default function WhatsAppInbox() {
     refetchInterval: 15000,
   });
 
-  // Normalize phone numbers and dedupe conversations
-  const normalizedConversations = (() => {
-    const map = new Map();
-    conversations.forEach(conv => {
-      const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-      const existing = map.get(normalizedPhone);
-      if (!existing) {
-        map.set(normalizedPhone, conv);
-      } else {
-        const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
-        const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
-        if (newTime > existingTime) {
-          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
-        } else {
-          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
-        }
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => {
-      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-      return tb - ta;
-    });
-  })();
+  // Keep conversations separate per channel — no cross-channel deduplication
+  const normalizedConversations = [...conversations].sort((a, b) => {
+    const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+    const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+    return tb - ta;
+  });
 
   // Desktop notifications
   const notificationHook = useDesktopNotifications({
@@ -280,7 +262,8 @@ export default function WhatsAppInbox() {
     // Admin/manager can filter by agent, but regular agents can only see their own
     const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
     
-    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
+    // Strict channel isolation — only show conversations for the active channel
+    const matchesChannel = filterChannel === 'business' ? c.channel === 'business' : c.channel !== 'business';
     
     const lead = leads.find(l => l.id === c.lead_id);
     const name = lead?.full_name || c.wa_display_name || phone;
@@ -766,21 +749,40 @@ export default function WhatsAppInbox() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1 flex-wrap">
-              {['all', 'business', 'personal'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setFilterChannel(c)}
-                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors border"
-                  style={{
-                    background: filterChannel === c ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)',
-                    color: filterChannel === c ? 'white' : 'rgba(255,255,255,0.7)',
-                    border: filterChannel === c ? (c === 'business' ? '1px solid hsl(152 69% 40%)' : c === 'personal' ? '1px solid hsl(217 91% 60%)' : '1px solid hsl(38 92% 50%)') : '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
-                  {c === 'all' ? 'All Channels' : c === 'business' ? '🏢 Business' : '👤 Personal'}
-                </button>
-              ))}
+            {/* Channel profile switcher */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {[
+                { key: 'business', label: 'Business', emoji: '🏢', number: '+971 58 280 6000', color: 'hsl(152 69% 40%)' },
+                { key: 'personal', label: 'Personal', emoji: '👤', number: '+971 58 180 6000', color: 'hsl(217 91% 60%)' },
+              ].map(ch => {
+                const chCount = normalizedConversations.filter(c => {
+                  const phone = c.wa_phone_e164 || c.phone_number || '';
+                  if (isInternalNumber(phone)) return false;
+                  return ch.key === 'business' ? c.channel === 'business' : c.channel !== 'business';
+                });
+                const chUnread = chCount.reduce((s, c) => s + (c.unread_count || 0), 0);
+                const isActive = filterChannel === ch.key;
+                return (
+                  <button
+                    key={ch.key}
+                    onClick={() => { setFilterChannel(ch.key); setSelectedConvId(null); }}
+                    className="flex flex-col items-center py-2 px-1 rounded-lg transition-all"
+                    style={{
+                      background: isActive ? ch.color : 'transparent',
+                      border: isActive ? `1px solid ${ch.color}` : '1px solid transparent',
+                    }}
+                  >
+                    <span className="text-base leading-none mb-0.5">{ch.emoji}</span>
+                    <span className="text-[11px] font-bold" style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.7)' }}>{ch.label}</span>
+                    <span className="text-[9px]" style={{ color: isActive ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>{ch.number}</span>
+                    {chUnread > 0 && (
+                      <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: isActive ? 'rgba(255,255,255,0.25)' : ch.color, color: 'white' }}>
+                        {chUnread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
