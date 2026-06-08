@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Video, Calendar, Home, MapPin, FileText, DollarSign, Languages, Pin, Clock, MessageSquare, Star, Flag, MoreVertical, UserCheck, Shield, Briefcase, Building2, ExternalLink, Copy, Check, User } from 'lucide-react';
+import { Phone, Home, Pin, Star, Flag, MoreVertical, UserCheck, Shield, Briefcase, Building2, ExternalLink, Check, User, Link } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,127 +34,98 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
   };
 
   return (
-    <div className="border-b shrink-0" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
-      {/* Row 1 — identity block */}
-      <div className="flex items-center gap-3 p-4">
-        <Avatar className="w-14 h-14 border-2" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+    <div className="border-b shrink-0 px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center gap-2.5">
+        {/* Avatar */}
+        <Avatar className="w-9 h-9 shrink-0 border" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
           <AvatarImage src={conversation.wa_profile_pic_url} />
-          <AvatarFallback className="text-lg">{(displayName || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="text-xs">{(displayName || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h2 className="font-display font-semibold text-lg truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>
-              {displayName}
-            </h2>
-            {isMatched && (
-              <Badge className={`text-xs border ${
-                entityType === 'landlord' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-              }`}>
-                {entityType === 'landlord' ? <><Briefcase className="w-3 h-3 mr-1" /> Landlord</> : <><Home className="w-3 h-3 mr-1" /> Lead</>}
-              </Badge>
-            )}
-            {stage && (
-              <Badge variant="outline" className="text-xs border-white/20 text-white/70">
-                {stage.replace(/_/g, ' ')}
-              </Badge>
-            )}
-            {flag && <span title={conversation.country_code} className="text-lg">{flag}</span>}
-            {conversation.wa_verified && <Shield className="w-4 h-4 text-green-500" />}
-            {conversation.is_vip && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
-            {conversation.is_starred && <Pin className="w-4 h-4 text-amber-400 fill-amber-400" />}
-            {conversation.spam_score > 60 && (
-              <Badge variant="destructive" className="text-xs">Spam {conversation.spam_score}</Badge>
-            )}
-            <ScoreBadge score={lead?.ai_lead_score} trend={lead?.ai_score_trend} />
-          </div>
+        {/* Name + meta — all in one line */}
+        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>
+            {displayName}
+          </span>
+          {flag && <span className="text-sm">{flag}</span>}
+          {conversation.wa_verified && <Shield className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+          {conversation.is_vip && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />}
 
-          <div className="flex items-center gap-2 text-xs flex-wrap" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            <button
-              onClick={copyPhone}
-              className="flex items-center gap-1 hover:text-accent transition-colors"
-              title="Copy phone number"
-            >
-              {copied ? <Check className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
-              {conversation.wa_phone_e164 || conversation.phone_number}
-            </button>
-            <span className="text-white/20">·</span>
-            <span className="flex items-center gap-1" title={`Contact wrote to our ${channelLabel} line`}>
-              {conversation.channel === 'business' ? <Building2 className="w-3 h-3 text-emerald-400" /> : <UserCheck className="w-3 h-3 text-blue-400" />}
-              <span style={{ color: conversation.channel === 'business' ? 'rgb(52,211,153)' : 'rgb(96,165,250)' }}>{channelLabel}</span>
-              <span className="text-white/40">({ourLineNumber})</span>
-            </span>
-            <span className="text-white/20">·</span>
-            {!isMatched ? (
-              <span className="text-amber-400 font-medium">Unlinked</span>
-            ) : (
-              <span className="text-emerald-400 font-medium">{entityType === 'landlord' ? 'Landlord' : 'Lead'}</span>
-            )}
-            {showWhatsAppName && (
-              <><span className="text-white/20">·</span><span className="flex items-center gap-1"><User className="w-3 h-3" />~{conversation.wa_display_name}</span></>
-            )}
-            {conversation.wa_last_seen_at && <><span className="text-white/20">·</span><span>Last seen {timeAgo(conversation.wa_last_seen_at)}</span></>}
-            {conversation.detected_language && <><span className="text-white/20">·</span><span>{conversation.detected_language.toUpperCase()}</span></>}
-            {lead?.source && <><span className="text-white/20">·</span><span>Source: {lead.source.replace(/_/g, ' ')}</span></>}
-          </div>
+          <span className="text-white/20 text-xs">·</span>
+
+          {/* Phone */}
+          <button onClick={copyPhone} className="flex items-center gap-1 text-xs hover:text-accent transition-colors shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} title="Copy">
+            {copied ? <Check className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
+            {conversation.wa_phone_e164 || conversation.phone_number}
+          </button>
+
+          <span className="text-white/20 text-xs">·</span>
+
+          {/* Channel */}
+          <span className="flex items-center gap-1 text-xs shrink-0" title={`Our ${channelLabel} line: ${ourLineNumber}`}>
+            {conversation.channel === 'business'
+              ? <Building2 className="w-3 h-3 text-emerald-400" />
+              : <UserCheck className="w-3 h-3 text-blue-400" />}
+            <span style={{ color: conversation.channel === 'business' ? 'rgb(52,211,153)' : 'rgb(96,165,250)' }}>{channelLabel}</span>
+          </span>
+
+          <span className="text-white/20 text-xs">·</span>
+
+          {/* Linked status */}
+          {!isMatched
+            ? <span className="text-xs font-medium text-amber-400 shrink-0">Unlinked</span>
+            : <span className="text-xs font-medium text-emerald-400 shrink-0">{entityType === 'landlord' ? 'Landlord' : 'Lead'}</span>
+          }
+
+          {stage && <Badge variant="outline" className="text-[10px] border-white/20 text-white/60 h-4 px-1.5">{stage.replace(/_/g, ' ')}</Badge>}
+          <ScoreBadge score={lead?.ai_lead_score} trend={lead?.ai_score_trend} />
         </div>
 
         <SLATimer dueAt={conversation.sla_due_at} breached={conversation.sla_breached} />
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        {/* Icon-only action buttons */}
+        <div className="flex items-center gap-1 shrink-0">
           {!isMatched ? (
             <>
-              <Button size="sm" variant="outline" onClick={() => onAction('create_lead')} className="gap-1.5 text-xs">
-                <Home className="w-3 h-3" /> Create Lead
+              <Button size="icon" variant="ghost" className="h-8 w-8" title="Create Lead" onClick={() => onAction('create_lead')}>
+                <Home className="w-4 h-4" />
               </Button>
-              <Button size="sm" variant="outline" onClick={() => onAction('link_contact')} className="gap-1.5 text-xs">
-                <UserCheck className="w-3 h-3" /> Link Contact
+              <Button size="icon" variant="ghost" className="h-8 w-8" title="Link Contact" onClick={() => onAction('link_contact')}>
+                <Link className="w-4 h-4" />
               </Button>
             </>
           ) : (
-            <>
-              <Button size="sm" variant="outline" onClick={() => onAction('open_profile')} className="gap-1.5 text-xs">
-                <ExternalLink className="w-3 h-3" /> Full Profile
-              </Button>
-            </>
+            <Button size="icon" variant="ghost" className="h-8 w-8" title="Full Profile" onClick={() => onAction('open_profile')}>
+              <ExternalLink className="w-4 h-4" />
+            </Button>
           )}
 
-          {/* Assign to Agent Dropdown */}
+          {/* Assign */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 h-8">
-                <UserCheck className="w-3 h-3" />
-                Assign
+              <Button variant="ghost" size="icon" className="h-8 w-8" title="Assign to agent">
+                <UserCheck className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
-              {teamMembers && teamMembers.length > 0 ? (
-                teamMembers.map(tm => (
-                  <DropdownMenuItem
-                    key={tm.email}
-                    onClick={() => onAction("assign_agent", { email: tm.email, full_name: tm.full_name })}
-                    className="flex items-center gap-2 cursor-pointer"
-                    style={{ color: 'rgba(255,255,255,0.9)' }}
-                  >
-                    <Avatar className="w-5 h-5">
-                      <AvatarFallback className="text-[9px]" style={{ background: 'rgba(255,255,255,0.1)' }}>{(tm.full_name || tm.email).slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tm.full_name || tm.email}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{tm.email}</p>
-                    </div>
-                    {conversation.assigned_agent_email === tm.email && (
-                      <span className="text-[10px] text-green-500 font-medium">Assigned</span>
-                    )}
-                  </DropdownMenuItem>
-                ))
-              ) : (
+              {teamMembers?.length > 0 ? teamMembers.map(tm => (
+                <DropdownMenuItem key={tm.email} onClick={() => onAction("assign_agent", { email: tm.email, full_name: tm.full_name })} className="flex items-center gap-2 cursor-pointer" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                  <Avatar className="w-5 h-5">
+                    <AvatarFallback className="text-[9px]" style={{ background: 'rgba(255,255,255,0.1)' }}>{(tm.full_name || tm.email).slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{tm.full_name || tm.email}</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{tm.email}</p>
+                  </div>
+                  {conversation.assigned_agent_email === tm.email && <span className="text-[10px] text-green-500 font-medium">Assigned</span>}
+                </DropdownMenuItem>
+              )) : (
                 <DropdownMenuItem disabled style={{ color: 'rgba(255,255,255,0.5)' }}>No team members</DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* More */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -166,12 +137,12 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
                 <Star className="w-4 h-4 mr-2" /> {conversation.is_vip ? "Remove VIP" : "Mark VIP"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onAction("toggle_star")} style={{ color: 'rgba(255,255,255,0.9)' }}>
-                <Pin className="w-4 h-4 mr-2" /> {conversation.is_starred ? "Unstar" : "Star conversation"}
+                <Pin className="w-4 h-4 mr-2" /> {conversation.is_starred ? "Unstar" : "Star"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onAction("mark_resolved")} style={{ color: 'rgba(255,255,255,0.9)' }}>
                 <Check className="w-4 h-4 mr-2" /> Mark resolved
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAction("block")} className="text-red-400" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <DropdownMenuItem onClick={() => onAction("block")} style={{ color: 'rgb(248,113,113)' }}>
                 <Flag className="w-4 h-4 mr-2" /> Block & report
               </DropdownMenuItem>
             </DropdownMenuContent>
