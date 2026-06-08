@@ -1,15 +1,19 @@
 /**
  * Called by Twilio when the AGENT's phone answers.
- * Silently dials the CUSTOMER and bridges audio — no announcement.
- * Query params: customer, caller, log, base, record
+ * Returns TwiML that immediately dials the CUSTOMER.
+ * No announcement, no hold music — pure audio bridge.
+ *
+ * Query params: customer, caller, log, record
  */
+
+const PUBLIC_BASE = 'https://dubai-estate-pro.base44.app';
+
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const customer = url.searchParams.get('customer') || '';
     const caller = url.searchParams.get('caller') || '';
     const logId = url.searchParams.get('log') || '';
-    const base = url.searchParams.get('base') || 'https://dubai-estate-pro.base44.app';
     const record = url.searchParams.get('record') === 'true';
 
     console.log(`[twilioMakeBridge] customer=${customer} caller=${caller} logId=${logId} record=${record}`);
@@ -22,24 +26,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    const statusCb = `${base}/functions/twilioVoiceWebhook?type=status&call_log_id=${logId}`;
-    const recordCb = `${base}/functions/twilioVoiceWebhook?type=recording&call_log_id=${logId}`;
+    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${logId}`;
+    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${logId}`;
 
-    const recordAttrs = record
-      ? ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`
-      : '';
+    // Build <Dial> attributes
+    let dialAttrs = `callerId="${caller}" timeout="60" timeLimit="14400" action="${statusCb}" method="POST"`;
+    if (record) {
+      dialAttrs += ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`;
+    }
 
-    // Dial customer directly — no <Say>, no music, pure audio bridge
+    // Dial customer — no announcement, instant connection
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${caller}" timeout="30" timeLimit="14400"${recordAttrs} action="${statusCb}" method="POST">
+  <Dial ${dialAttrs}>
     <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${customer}</Number>
   </Dial>
 </Response>`;
 
     return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } });
+
   } catch (error) {
-    console.error('twilioMakeBridge error:', error);
+    console.error('[twilioMakeBridge] error:', error);
     return new Response(
       `<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`,
       { headers: { 'Content-Type': 'text/xml' } }

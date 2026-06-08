@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
         params = new URLSearchParams();
       }
       const callSid = params.get('CallSid') || '';
-      const status = params.get('CallStatus') || '';
-      const duration = params.get('CallDuration') || '';
+      // Twilio sends CallStatus for top-level call, DialCallStatus for <Dial> action callback
+      const status = params.get('CallStatus') || params.get('DialCallStatus') || '';
+      const duration = params.get('CallDuration') || params.get('DialCallDuration') || '';
       let callLogId = url.searchParams.get('call_log_id') || '';
 
       console.log(`[twilioVoiceWebhook] status: callSid=${callSid} status=${status} duration=${duration} logId=${callLogId}`);
