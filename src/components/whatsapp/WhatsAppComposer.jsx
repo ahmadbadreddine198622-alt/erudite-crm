@@ -178,41 +178,32 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       )}
 
       {/* Quick Actions Toolbar */}
-      <div className="flex items-center gap-0.5 px-3 pb-2 pt-0 flex-wrap">
+      <div className="flex items-center gap-0.5 px-3 pb-2 pt-0">
         {/* Templates button */}
-        <button
-          type="button"
+        <IconToolButton
+          icon={Zap}
+          title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
           onClick={() => setShowTemplates(true)}
-          title="WhatsApp Templates"
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
-          style={{
-            color: windowLocked ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)',
-            background: windowLocked ? 'rgba(245,159,10,0.1)' : 'transparent',
-            border: windowLocked ? '1px solid rgba(245,159,10,0.25)' : '1px solid transparent',
-          }}
-          onMouseEnter={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
-          onMouseLeave={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span className="text-[11px]">Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}</span>
-        </button>
+          active={windowLocked}
+          activeColor="hsl(38 92% 55%)"
+        />
 
         {!windowLocked && (
           <>
-            <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
-            <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
-            <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setText)} />
+            <IconToolButton icon={Wand2} title="AI Reply" onClick={() => setShowAssistant(!showAssistant)} active={showAssistant} />
+            <IconToolButton icon={Home} title="Send Property" onClick={onSendProperty} />
+            <IconToolButton icon={Languages} title="Translate to Arabic" onClick={() => previewTranslate(text, setText)} />
             
             {/* Insert Name Token */}
             <Popover open={showNameToken} onOpenChange={setShowNameToken}>
               <PopoverTrigger asChild>
-                <button type="button" className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
+                <button type="button" title="Insert Name"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg transition"
                   style={{ color: 'rgba(255,255,255,0.45)' }}
                   onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
                   onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
                 >
                   <UserCheck className="w-3.5 h-3.5" />
-                  <span className="text-[11px]">Insert Name</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
@@ -232,25 +223,27 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
             <button
               type="button"
               onClick={() => setIsInternalNote(!isInternalNote)}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition ${
-                isInternalNote ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'text-white/45 hover:text-white/80'
-              }`}
-              title="Internal note (saved to timeline, not sent)"
+              title="Internal Note (not sent)"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition"
+              style={{
+                color: isInternalNote ? '#facc15' : 'rgba(255,255,255,0.45)',
+                background: isInternalNote ? 'rgba(234,179,8,0.15)' : 'transparent',
+                border: isInternalNote ? '1px solid rgba(234,179,8,0.3)' : '1px solid transparent',
+              }}
             >
               <FileText className="w-3.5 h-3.5" />
-              <span className="text-[11px]">Internal Note</span>
             </button>
 
             <div className="ml-auto">
               <Popover>
                 <PopoverTrigger asChild>
-                  <button type="button" className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition"
+                  <button type="button" title="Schedule Send"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg transition"
                     style={{ color: 'rgba(255,255,255,0.45)' }}
                     onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
                     onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Schedule</span>
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
@@ -282,15 +275,18 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   );
 }
 
-function ToolButton({ icon: Icon, label, onClick }) {
+function IconToolButton({ icon: Icon, title, onClick, active, activeColor }) {
   return (
-    <button type="button" onClick={onClick}
-      className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
-      style={{ color: 'rgba(255,255,255,0.45)' }}
-      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+    <button type="button" onClick={onClick} title={title}
+      className="w-7 h-7 flex items-center justify-center rounded-lg transition"
+      style={{
+        color: active ? (activeColor || 'hsl(38 92% 55%)') : 'rgba(255,255,255,0.45)',
+        background: active ? 'rgba(245,159,10,0.1)' : 'transparent',
+      }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; }}
     >
-      <Icon className="w-3.5 h-3.5" /> <span className="text-[11px]">{label}</span>
+      <Icon className="w-3.5 h-3.5" />
     </button>
   );
 }
