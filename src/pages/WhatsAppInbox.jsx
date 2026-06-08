@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare, Settings, Zap, FileText, Bot, Phone, Wifi, CheckCircle2, Copy, Check } from 'lucide-react';
+import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare, Settings, Zap, FileText, Bot, Phone, Wifi, CheckCircle2, Copy, Check, Users } from 'lucide-react';
+import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
 import NotificationSettings from '@/components/whatsapp/NotificationSettings';
 import useDesktopNotifications from '@/components/whatsapp/useDesktopNotifications';
@@ -49,6 +50,7 @@ export default function WhatsAppInbox() {
   const [optimisticMessages, setOptimisticMessages] = useState({});
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
+  const [showAgentSearch, setShowAgentSearch] = useState(false);
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -700,13 +702,14 @@ export default function WhatsAppInbox() {
               >
                 + New
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => refetch()}>
+              <Button size="icon" variant="ghost" className="h-8 w-8" title="Refresh" onClick={() => refetch()}>
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
               <Button 
-                size="sm" 
+                size="icon"
                 variant="ghost" 
-                className="h-8 px-2.5 text-xs gap-1"
+                className="h-8 w-8"
+                title="Fetch WhatsApp Names"
                 onClick={async () => {
                   try {
                     const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', {});
@@ -717,12 +720,26 @@ export default function WhatsAppInbox() {
                   }
                 }}
               >
-                <Bot className="w-3.5 h-3.5" /> Fetch Names
+                <Bot className="w-3.5 h-3.5" />
               </Button>
+              {/* Agent filter icon — expands inline search */}
+              {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  title="Filter by Agent"
+                  onClick={() => setShowAgentSearch(v => !v)}
+                  style={filterAssignedAgent ? { color: 'hsl(38 92% 50%)' } : {}}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                </Button>
+              )}
               <Button
-                size="sm"
+                size="icon"
                 variant="ghost"
-                className="h-8 px-2.5"
+                className="h-8 w-8"
+                title="Settings"
                 onClick={() => setActiveTab('settings')}
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -731,22 +748,38 @@ export default function WhatsAppInbox() {
                 href="https://web.whatsapp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
-                style={{ color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
+                className="flex items-center justify-center h-8 w-8 rounded-md transition-colors hover:bg-white/10"
+                title="Open WhatsApp Web"
               >
-                <ExternalLink className="w-3 h-3" /> WA Web
+                <WhatsAppIcon size={16} color="hsl(38 92% 50%)" />
               </a>
             </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search conversations..."
-              className="pl-9 h-9 text-sm"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div className="space-y-1.5">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search conversations..."
+                className="pl-9 h-9 text-sm"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            {/* Agent filter — expands when icon clicked */}
+            {showAgentSearch && (currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+              <select
+                value={filterAssignedAgent}
+                onChange={(e) => setFilterAssignedAgent(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+              >
+                <option value="">All Team Members</option>
+                {teamMembers.map(tm => (
+                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
+                ))}
+              </select>
+            )}
           </div>
           {/* Filter pills */}
           <div className="space-y-2">
@@ -784,23 +817,7 @@ export default function WhatsAppInbox() {
             </div>
           </div>
 
-          {/* Team member filter - Admin/Managers only */}
-          {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Filter by Agent</label>
-              <select
-                value={filterAssignedAgent}
-                onChange={(e) => setFilterAssignedAgent(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Team Members</option>
-                {teamMembers.map(tm => (
-                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
-                ))}
-              </select>
-            </div>
-          )}
+
         </div>
 
         {/* Conversation list - preserve scroll position */}
