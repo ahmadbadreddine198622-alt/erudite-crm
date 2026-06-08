@@ -105,19 +105,11 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
       )}
 
-      {/* Channel switcher */}
-      <div className="px-3 pt-2 pb-1">
-        <ChannelSwitcher
-          selectedChannel={selectedChannel || 'business'}
-          onChannelChange={onChannelChange}
-        />
-      </div>
-
       {/* Internal note mode banner */}
       {isInternalNote && (
         <div className="px-3 py-1.5 flex items-center gap-2" style={{ background: 'rgba(255,191,0,0.08)', borderBottom: '1px solid rgba(255,191,0,0.2)' }}>
           <Lock className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
-          <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>Internal note mode — this will NOT be sent to WhatsApp</p>
+          <p className="text-xs font-medium flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>Internal note mode — NOT sent to WhatsApp</p>
           <button onClick={() => setIsInternalNote(false)} className="text-xs underline" style={{ color: 'hsl(38 92% 50%)' }}>Exit</button>
         </div>
       )}
@@ -177,49 +169,51 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         />
       )}
 
-      {/* Quick Actions Toolbar */}
-      <div className="flex items-center gap-0.5 px-3 pb-2 pt-0 flex-wrap">
-        {/* Templates button */}
-        <button
-          type="button"
+      {/* Combined channel switcher + action icons row */}
+      <div className="flex items-center gap-1.5 px-3 pb-2 pt-1 flex-wrap">
+        {/* Channel switcher */}
+        <ChannelSwitcher
+          selectedChannel={selectedChannel || 'business'}
+          onChannelChange={onChannelChange}
+        />
+
+        <div className="w-px h-5 mx-0.5 shrink-0" style={{ background: 'rgba(255,255,255,0.12)' }} />
+
+        {/* Templates */}
+        <IconBtn
+          icon={Zap}
+          title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
           onClick={() => setShowTemplates(true)}
-          title="WhatsApp Templates"
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
-          style={{
-            color: windowLocked ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)',
-            background: windowLocked ? 'rgba(245,159,10,0.1)' : 'transparent',
-            border: windowLocked ? '1px solid rgba(245,159,10,0.25)' : '1px solid transparent',
-          }}
-          onMouseEnter={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
-          onMouseLeave={e => { if (!windowLocked) e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span className="text-[11px]">Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}</span>
-        </button>
+          active={windowLocked}
+          activeColor="hsl(38 92% 55%)"
+        />
 
         {!windowLocked && (
           <>
-            <ToolButton icon={Wand2} label="AI Reply" onClick={() => setShowAssistant(!showAssistant)} />
-            <ToolButton icon={Home} label="Property" onClick={onSendProperty} />
-            <ToolButton icon={Languages} label="Translate" onClick={() => previewTranslate(text, setText)} />
-            
-            {/* Insert Name Token */}
+            {/* AI Reply */}
+            <IconBtn icon={Wand2} title="AI Reply" onClick={() => setShowAssistant(!showAssistant)} active={showAssistant} />
+
+            {/* Property */}
+            <IconBtn icon={Home} title="Property" onClick={onSendProperty} />
+
+            {/* Translate */}
+            <IconBtn icon={Languages} title="Translate" onClick={() => previewTranslate(text, setText)} />
+
+            {/* Insert Name */}
             <Popover open={showNameToken} onOpenChange={setShowNameToken}>
               <PopoverTrigger asChild>
-                <button type="button" className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
+                <button type="button" title="Insert Name"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition"
                   style={{ color: 'rgba(255,255,255,0.45)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.9)'}
                   onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
                 >
                   <UserCheck className="w-3.5 h-3.5" />
-                  <span className="text-[11px]">Insert Name</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
                 <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Insert contact name</p>
-                <button
-                  type="button"
-                  onClick={insertNameToken}
+                <button type="button" onClick={insertNameToken}
                   className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-white/10 transition"
                   style={{ color: 'rgba(255,255,255,0.8)' }}
                 >
@@ -228,44 +222,39 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
               </PopoverContent>
             </Popover>
 
-            {/* Internal Note Mode */}
-            <button
-              type="button"
+            {/* Internal Note */}
+            <IconBtn
+              icon={FileText}
+              title="Internal Note"
               onClick={() => setIsInternalNote(!isInternalNote)}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition ${
-                isInternalNote ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'text-white/45 hover:text-white/80'
-              }`}
-              title="Internal note (saved to timeline, not sent)"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="text-[11px]">Internal Note</span>
-            </button>
+              active={isInternalNote}
+              activeColor="rgb(250,204,21)"
+            />
 
-            <div className="ml-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition"
-                    style={{ color: 'rgba(255,255,255,0.45)' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+            {/* Schedule */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" title="Schedule"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.9)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Schedule send</p>
+                {[15, 60, 240, 1440].map(min => (
+                  <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
+                    className="w-full text-left px-2 py-1 hover:bg-white/10 text-xs rounded transition"
+                    style={{ color: 'rgba(255,255,255,0.8)' }}
                   >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Schedule</span>
+                    In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
                   </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Schedule send</p>
-                  {[15, 60, 240, 1440].map(min => (
-                    <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
-                      className="w-full text-left px-2 py-1 hover:bg-white/10 text-xs rounded transition"
-                      style={{ color: 'rgba(255,255,255,0.8)' }}
-                    >
-                      In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-            </div>
+                ))}
+              </PopoverContent>
+            </Popover>
           </>
         )}
       </div>
@@ -282,15 +271,16 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   );
 }
 
-function ToolButton({ icon: Icon, label, onClick }) {
+function IconBtn({ icon: Icon, title, onClick, active, activeColor }) {
+  const color = active ? (activeColor || 'hsl(38 92% 55%)') : 'rgba(255,255,255,0.45)';
   return (
-    <button type="button" onClick={onClick}
-      className="flex items-center gap-1 px-2 py-1.5 rounded-lg transition"
-      style={{ color: 'rgba(255,255,255,0.45)' }}
-      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+    <button type="button" onClick={onClick} title={title}
+      className="w-7 h-7 rounded-lg flex items-center justify-center transition"
+      style={{ color, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; }}
     >
-      <Icon className="w-3.5 h-3.5" /> <span className="text-[11px]">{label}</span>
+      <Icon className="w-3.5 h-3.5" />
     </button>
   );
 }

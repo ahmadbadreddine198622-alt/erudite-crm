@@ -51,6 +51,7 @@ export default function WhatsAppInbox() {
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
   const [showAgentSearch, setShowAgentSearch] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -722,6 +723,17 @@ export default function WhatsAppInbox() {
               >
                 <Bot className="w-3.5 h-3.5" />
               </Button>
+              {/* Search icon */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title="Search conversations"
+                onClick={() => setShowSearch(v => !v)}
+                style={showSearch || search ? { color: 'hsl(38 92% 50%)' } : {}}
+              >
+                <Search className="w-3.5 h-3.5" />
+              </Button>
               {/* Agent filter icon — expands inline search */}
               {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
                 <Button
@@ -755,32 +767,37 @@ export default function WhatsAppInbox() {
               </a>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search conversations..."
-                className="pl-9 h-9 text-sm"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+          {/* Expandable search + agent filter */}
+          {(showSearch || search || showAgentSearch) && (
+            <div className="space-y-1.5">
+              {(showSearch || search) && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    placeholder="Search conversations..."
+                    className="pl-9 h-9 text-sm"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+              )}
+              {showAgentSearch && (currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+                <select
+                  value={filterAssignedAgent}
+                  onChange={(e) => setFilterAssignedAgent(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Team Members</option>
+                  {teamMembers.map(tm => (
+                    <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
+                  ))}
+                </select>
+              )}
             </div>
-            {/* Agent filter — expands when icon clicked */}
-            {showAgentSearch && (currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
-              <select
-                value={filterAssignedAgent}
-                onChange={(e) => setFilterAssignedAgent(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Team Members</option>
-                {teamMembers.map(tm => (
-                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
-                ))}
-              </select>
-            )}
-          </div>
+          )}
           {/* Filter pills */}
           <div className="space-y-2">
             <div className="flex gap-1 flex-wrap">
