@@ -50,6 +50,7 @@ export default function WhatsAppInbox() {
   const [selectedChannel, setSelectedChannel] = useState('business');
   const [showInternalNote, setShowInternalNote] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [showAgentFilter, setShowAgentFilter] = useState(false);
   const searchInputRef = useRef(null);
   
   const queryClient = useQueryClient();
@@ -752,7 +753,7 @@ export default function WhatsAppInbox() {
           </div>
           {/* Filter pills */}
           <div className="space-y-2">
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1 flex-wrap items-center">
               {['all', 'unread', 'open', 'resolved'].map(f => (
                 <button
                   key={f}
@@ -767,6 +768,38 @@ export default function WhatsAppInbox() {
                   {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}
+              {/* Team filter icon — Admin/Managers only */}
+              {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => setShowAgentFilter(prev => !prev)}
+                    className="flex items-center justify-center h-6 w-6 rounded-lg transition-colors"
+                    title={filterAssignedAgent ? `Agent: ${teamMembers.find(t=>t.email===filterAssignedAgent)?.full_name || filterAssignedAgent}` : 'Filter by agent'}
+                    style={{
+                      background: filterAssignedAgent ? 'hsl(38 92% 50% / 0.2)' : 'rgba(255,255,255,0.05)',
+                      border: filterAssignedAgent ? '1px solid hsl(38 92% 50% / 0.5)' : '1px solid rgba(255,255,255,0.1)',
+                      color: filterAssignedAgent ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  </button>
+                  {showAgentFilter && (
+                    <div className="absolute right-0 top-8 z-50 rounded-lg shadow-xl min-w-[160px] overflow-hidden"
+                      style={{ background: 'hsl(222 47% 13%)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                      {[{ email: '', full_name: 'All Team Members' }, ...teamMembers].map(tm => (
+                        <button
+                          key={tm.email}
+                          onClick={() => { setFilterAssignedAgent(tm.email); setShowAgentFilter(false); }}
+                          className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/10"
+                          style={{ color: filterAssignedAgent === tm.email ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.85)' }}
+                        >
+                          {tm.full_name || tm.email}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Channel tabs */}
             <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -810,22 +843,7 @@ export default function WhatsAppInbox() {
             </div>
           </div>
 
-          {/* Team member filter - Admin/Managers only */}
-          {(currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team) && (
-            <div className="space-y-1">
-              <select
-                value={filterAssignedAgent}
-                onChange={(e) => setFilterAssignedAgent(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Team Members</option>
-                {teamMembers.map(tm => (
-                  <option key={tm.email} value={tm.email}>{tm.full_name || tm.email}</option>
-                ))}
-              </select>
-            </div>
-          )}
+
         </div>
 
         {/* Conversation list - preserve scroll position */}
