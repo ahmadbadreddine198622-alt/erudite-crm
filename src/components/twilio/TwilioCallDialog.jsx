@@ -2,49 +2,46 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Mic, MicOff, Edit2 } from 'lucide-react';
+import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Mic, MicOff, Edit2, Smartphone, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
- * Browser-based outbound call via Twilio Voice SDK.
- *
- * Flow:
- *   1. Get voice token from twilioVoiceToken (creates browser identity)
- *   2. Register Twilio Device in browser
- *   3. device.connect({ To: customerPhone, CallerId: ourTwilioNumber })
- *      → Twilio calls twilioVoiceWebhook (TwiML App Voice URL)
- *      → webhook returns TwiML <Dial> which rings the customer
- *      → agent hears/speaks through browser mic/speakers
- *
- * No server-side REST call to Calls.json — the browser SDK does it.
+ * Outbound call dialog — supports two modes:
+ *   1. Browser mode  → Twilio Voice SDK in browser (requires API Key + TwiML App)
+ *   2. Phone bridge  → Twilio calls YOUR phone first, then bridges to customer
  */
-export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
+export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = false }) {
   const [open, setOpen] = useState(false);
   const [numbers, setNumbers] = useState([]);
   const [selectedNumber, setSelectedNumber] = useState('');
   const [loadingNumbers, setLoadingNumbers] = useState(false);
   const [dialNumber, setDialNumber] = useState('');
+  const [callMode, setCallMode] = useState('phone'); // 'browser' | 'phone'
 
   // phase: idle | init | calling | active | ended
   const [phase, setPhase] = useState('idle');
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [muted, setMuted] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const deviceRef = useRef(null);
   const callRef = useRef(null);
   const timerRef = useRef(null);
 
-  const defaultPhone = lead?.phone || contact?.phone || '';
-  const targetName = lead?.full_name || lead?.full_name_en || lead?.name || contact?.full_name || contact?.name || defaultPhone;
-  const leadId = lead?.id || contact?.id;
+  const entity = lead || landlord || contact;
+  const defaultPhone = entity?.phone || entity?.whatsapp || '';
+  const targetName = lead?.full_name || lead?.full_name_en || lead?.name ||
+    landlord?.full_name_en || landlord?.first_name ||
+    contact?.full_name || contact?.name || defaultPhone;
+  const leadId = lead?.id || null;
+  const landlordId = landlord?.id || null;
+  const entityId = leadId || landlordId || contact?.id || null;
 
-  // Set dial number when dialog opens
   useEffect(() => {
     if (open) setDialNumber(defaultPhone);
   }, [open]);
 
-  // Load Twilio numbers on open
   useEffect(() => {
     if (open && numbers.length === 0) {
       setLoadingNumbers(true);
@@ -53,13 +50,17 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
           const nums = res.data?.numbers || [];
           setNumbers(nums);
           if (nums.length > 0) setSelectedNumber(nums[0].phone_number);
+          // Default to phone bridge if no API key configured
+          const cred = res.data?.credential;
+          if (!cred?.api_key_sid || !cred?.api_key_secret || !cred?.twiml_app_sid) {
+            setCallMode('phone');
+          }
         })
         .catch(() => {})
         .finally(() => setLoadingNumbers(false));
     }
   }, [open]);
 
-  // Timer when active
   useEffect(() => {
     if (phase === 'active') {
       setElapsed(0);
@@ -88,13 +89,71 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
     setElapsed(0);
     setErrorMsg('');
     setMuted(false);
+    setStatusMsg('');
   }, [destroyDevice]);
 
   useEffect(() => {
     if (!open) fullReset();
   }, [open, fullReset]);
 
-  const handleCall = async () => {
+  // ── Phone Bridge Mode ──────────────────────────────────────────────────────
+  const handlePhoneCall = async () => {
+    const toPhone = dialNumber.trim();
+    if (!toPhone) return toast.error('Enter a phone number to call');
+
+    setPhase('init');
+    setErrorMsg('');
+    setStatusMsg('Placing call via Twilio…');
+
+    try {
+      const res = await base44.functions.invoke('twilioMakeCall', {
+        lead_id: leadId,
+        landlord_id: landlordId,
+        to_phone: toPhone,
+        from_phone: selectedNumber,
+        lead_name: targetName,
+        browser_mode: false,
+      });
+
+      const data = res.data;
+      if (data?.error) {
+        setErrorMsg(data.error);
+        setPhase('idle');
+        return;
+      }
+
+      setPhase('calling');
+      setStatusMsg(data.message || 'Your phone will ring shortly…');
+
+      // Poll for call status every 3s
+      const callLogId = data.call_log_id;
+      if (callLogId) {
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+          if (attempts > 40) { clearInterval(poll); return; } // 2 min max
+          try {
+            const logs = await base44.entities.CallLog.filter({ id: callLogId });
+            const log = logs?.[0];
+            if (log?.status === 'in-progress' || log?.status === 'answered') {
+              setPhase('active');
+              clearInterval(poll);
+            } else if (['completed', 'failed', 'busy', 'no-answer'].includes(log?.status)) {
+              setPhase('ended');
+              clearInterval(poll);
+            }
+          } catch (_) {}
+        }, 3000);
+      }
+
+    } catch (err) {
+      setErrorMsg(err?.response?.data?.error || err.message || 'Failed to place call');
+      setPhase('idle');
+    }
+  };
+
+  // ── Browser SDK Mode ───────────────────────────────────────────────────────
+  const handleBrowserCall = async () => {
     const toPhone = dialNumber.trim();
     if (!toPhone) return toast.error('Enter a phone number to call');
     if (!selectedNumber) return toast.error('Select a caller ID number first');
@@ -103,12 +162,11 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
     setErrorMsg('');
 
     try {
-      // Step 1: Get browser voice token
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
       const tokenData = tokenRes.data;
 
       if (tokenData?.browser_calling_unavailable) {
-        setErrorMsg('Browser calling not configured. Go to Twilio Hub → Settings and fill in API Key SID, API Key Secret, and TwiML App SID.');
+        setErrorMsg('Browser calling not configured. Go to Twilio Hub → Settings and fill in API Key SID, API Key Secret, and TwiML App SID. Or switch to Phone Bridge mode.');
         setPhase('idle');
         return;
       }
@@ -118,7 +176,6 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         return;
       }
 
-      // Step 2: Init Twilio Device
       const { Device } = await import('@twilio/voice-sdk');
       destroyDevice();
 
@@ -129,7 +186,6 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       });
       deviceRef.current = device;
 
-      // Handle device errors before registration
       device.on('error', (err) => {
         console.error('[Twilio Device Error]', err);
         setErrorMsg(`Device error: ${err.message || 'Unknown error'}`);
@@ -139,21 +195,11 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
 
       await device.register();
 
-      console.log('[Twilio] Device registered, identity:', tokenData.identity);
-
-      device.on('registered', () => {
-        console.log('[Twilio] Device successfully registered');
-      });
-
-      device.on('unregistered', () => {
-        console.log('[Twilio] Device unregistered');
-      });
-
-      // Step 3: Create call log for tracking (optional, won't block if fails)
       let callLogId = '';
       try {
         const logRes = await base44.functions.invoke('twilioMakeCall', {
-          lead_id: leadId || null,
+          lead_id: leadId,
+          landlord_id: landlordId,
           to_phone: toPhone,
           from_phone: selectedNumber,
           lead_name: targetName,
@@ -162,9 +208,6 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         callLogId = logRes.data?.call_log_id || '';
       } catch (_) {}
 
-      // Step 4: Connect — browser SDK calls twilioVoiceWebhook (TwiML App Voice URL)
-      // which returns TwiML <Dial> ringing toPhone.
-      // Agent hears/speaks through browser. ONE call, no double ring.
       const call = await device.connect({
         params: {
           To: toPhone,
@@ -184,11 +227,11 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
         console.error('[Twilio Call Error]', err.code, err.message);
         let msg = err.message || 'Call error';
         if (err.code === 53000) {
-          msg = 'Connection error — Check Twilio Hub settings: API Key SID, API Key Secret, and TwiML App SID must be correct. The TwiML App Voice URL should be: ' + window.location.origin + '/functions/twilioVoiceWebhook';
+          msg = 'Connection error — check Twilio Hub settings (API Key SID, Secret, TwiML App SID). Or use Phone Bridge mode instead.';
         } else if (err.code === 31201) {
-          msg = 'ACL token error — Token expired or invalid. Please refresh and try again.';
+          msg = 'ACL token error — token expired. Refresh and try again.';
         } else if (err.code === 31203) {
-          msg = 'Authentication error — Check Twilio credentials in Twilio Hub.';
+          msg = 'Authentication error — check Twilio credentials.';
         }
         setErrorMsg(msg);
         setPhase('ended');
@@ -196,12 +239,14 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
       });
 
     } catch (err) {
-      console.error('handleCall error:', err);
+      console.error('handleBrowserCall error:', err);
       setErrorMsg(err?.message || 'Failed to place call');
       setPhase('idle');
       destroyDevice();
     }
   };
+
+  const handleCall = () => callMode === 'browser' ? handleBrowserCall() : handlePhoneCall();
 
   const handleHangup = () => {
     if (callRef.current) {
@@ -242,7 +287,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
 
       <DialogContent
         className="p-0 overflow-hidden"
-        style={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
+        style={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 360, borderRadius: 24 }}
       >
         <DialogTitle className="sr-only">Call {targetName}</DialogTitle>
 
@@ -259,7 +304,41 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               )}
             </div>
 
-            {/* Always-editable number field */}
+            {/* Call mode toggle */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setCallMode('phone')}
+                className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all"
+                style={{
+                  background: callMode === 'phone' ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${callMode === 'phone' ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: callMode === 'phone' ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                <Smartphone className="w-4 h-4" />
+                Phone Bridge
+              </button>
+              <button
+                onClick={() => setCallMode('browser')}
+                className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all"
+                style={{
+                  background: callMode === 'browser' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${callMode === 'browser' ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: callMode === 'browser' ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                <Monitor className="w-4 h-4" />
+                Browser Audio
+              </button>
+            </div>
+
+            <div className="text-[11px] text-center px-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {callMode === 'phone'
+                ? '📱 Twilio calls your mobile → connects to customer. Best quality.'
+                : '🎧 Audio through browser mic & speakers.'}
+            </div>
+
+            {/* Number to call */}
             <div>
               <label className="text-[11px] font-medium mb-1.5 flex items-center gap-1 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 <Edit2 className="w-3 h-3" /> Number to Call
@@ -284,7 +363,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
             {/* Caller ID */}
             <div>
               <label className="text-[11px] font-medium mb-1.5 block uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Caller ID (Your Number)
+                Caller ID (Your Twilio Number)
               </label>
               {loadingNumbers ? (
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -308,32 +387,15 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] rounded-lg px-3 py-2"
-              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: 'rgba(255,255,255,0.5)' }}>
-              <Mic className="w-3 h-3 text-emerald-400 shrink-0" />
-              Calls through your browser mic & speakers — no phone needed
-            </div>
-
             {errorMsg && (
               <div className="text-xs text-red-300 px-3 py-2 rounded-xl text-center"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 {errorMsg}
-                {errorMsg.includes('Connection error') && (
-                  <div className="mt-2 pt-2 border-t border-red-500/20">
-                    <p className="text-[10px] mb-1">Quick fix checklist:</p>
-                    <ul className="text-[10px] text-left space-y-0.5 opacity-80">
-                      <li>• Go to Twilio Hub → Settings</li>
-                      <li>• Verify API Key SID & Secret are filled</li>
-                      <li>• Verify TwiML App SID is filled</li>
-                      <li>• In Twilio Console, check the TwiML App's Voice URL is:<br/><code className="block mt-1 px-1 py-0.5 bg-red-500/10 rounded text-[9px] break-all">{typeof window !== 'undefined' ? window.location.origin : ''}/functions/twilioVoiceWebhook</code></li>
-                    </ul>
-                  </div>
-                )}
               </div>
             )}
 
             <button
-              disabled={!selectedNumber || !dialNumber.trim()}
+              disabled={!dialNumber.trim() || loadingNumbers}
               onClick={handleCall}
               className="w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2 text-base disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}
@@ -348,7 +410,7 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
           <div className="px-6 py-12 flex flex-col items-center gap-4">
             <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
             <p className="text-white font-semibold">Setting up call…</p>
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>Connecting browser to Twilio</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>Connecting to Twilio</p>
           </div>
         )}
 
@@ -363,15 +425,27 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/30 animate-ping" />
             </div>
             <div className="text-center space-y-1">
-              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">Ringing…</p>
+              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">
+                {callMode === 'phone' ? 'Calling your phone…' : 'Ringing…'}
+              </p>
               <p className="text-white text-xl font-bold">{targetName}</p>
               <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialNumber}</p>
+              {statusMsg && (
+                <p className="text-xs mt-2 px-4 text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>{statusMsg}</p>
+              )}
             </div>
-            <button onClick={handleHangup}
-              className="w-14 h-14 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
-              <PhoneOff className="w-6 h-6 text-white" />
-            </button>
+            {callMode === 'browser' && (
+              <button onClick={handleHangup}
+                className="w-14 h-14 rounded-full flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
+                <PhoneOff className="w-6 h-6 text-white" />
+              </button>
+            )}
+            {callMode === 'phone' && (
+              <p className="text-[11px] text-center px-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                Answer your mobile to connect. This window will update automatically.
+              </p>
+            )}
           </div>
         )}
 
@@ -400,17 +474,19 @@ export default function TwilioCallDialog({ lead, contact, iconOnly = false }) {
             </div>
 
             <div className="flex items-center justify-center gap-6 pb-8 pt-2">
-              <div className="flex flex-col items-center gap-1">
-                <button onClick={toggleMute}
-                  className="w-14 h-14 rounded-full flex items-center justify-center transition-all"
-                  style={{
-                    background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)',
-                    border: `1px solid ${muted ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`,
-                  }}>
-                  {muted ? <MicOff className="w-6 h-6 text-red-400" /> : <Mic className="w-6 h-6 text-white/70" />}
-                </button>
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{muted ? 'Unmute' : 'Mute'}</span>
-              </div>
+              {callMode === 'browser' && (
+                <div className="flex flex-col items-center gap-1">
+                  <button onClick={toggleMute}
+                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all"
+                    style={{
+                      background: muted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)',
+                      border: `1px solid ${muted ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    }}>
+                    {muted ? <MicOff className="w-6 h-6 text-red-400" /> : <Mic className="w-6 h-6 text-white/70" />}
+                  </button>
+                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{muted ? 'Unmute' : 'Mute'}</span>
+                </div>
+              )}
 
               <div className="flex flex-col items-center gap-1">
                 <button onClick={handleHangup}

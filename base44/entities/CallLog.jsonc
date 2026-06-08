@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Related Lead ID"
     },
+    "landlord_id": {
+      "type": "string",
+      "description": "Related Landlord ID"
+    },
     "twilio_call_sid": {
       "type": "string",
       "description": "Twilio Call SID"

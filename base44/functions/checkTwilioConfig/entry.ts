@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     }
 
     // Check TwiML App
-    const expectedVoiceUrl = `${new URL(req.url).origin}/functions/twilioVoiceWebhook`;
+    const expectedVoiceUrl = `https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook`;
     if (twimlAppSid) {
       try {
         const appRes = await fetch(
