@@ -51,6 +51,7 @@ export default function WhatsAppInbox() {
   const [showInternalNote, setShowInternalNote] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const searchInputRef = useRef(null);
+  
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -694,7 +695,7 @@ export default function WhatsAppInbox() {
                 title="Fetch Names"
                 onClick={async () => {
                   try {
-                    const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', { channel: filterChannel });
+                    const res = await base44.functions.invoke('bulkFetchWhatsAppProfiles', {});
                     toast.success(res.data?.summary || 'Profile refresh complete');
                     refetch();
                   } catch (err) {
