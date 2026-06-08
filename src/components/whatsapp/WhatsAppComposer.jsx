@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, Zap, FileText, UserCheck } from "lucide-react";
+import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, Zap, FileText, UserCheck, Tag } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
@@ -105,12 +105,97 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
       )}
 
-      {/* Channel switcher */}
-      <div className="px-3 pt-2 pb-1">
+      {/* Channel switcher + all action icons in one row */}
+      <div className="flex items-center gap-1 px-3 pt-2 pb-1 flex-wrap">
+        {/* Business / Personal */}
         <ChannelSwitcher
           selectedChannel={selectedChannel || 'business'}
           onChannelChange={onChannelChange}
         />
+
+        {/* Divider */}
+        <div className="w-px h-4 mx-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+
+        {/* Templates */}
+        <IconToolButton
+          icon={Zap}
+          title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
+          onClick={() => setShowTemplates(true)}
+          active={windowLocked}
+          activeColor="hsl(38 92% 55%)"
+        />
+
+        {!windowLocked && (
+          <>
+            <IconToolButton icon={Wand2} title="AI Reply" onClick={() => setShowAssistant(!showAssistant)} active={showAssistant} />
+            <IconToolButton icon={Home} title="Send Property" onClick={onSendProperty} />
+            <IconToolButton icon={Languages} title="Translate to Arabic" onClick={() => previewTranslate(text, setText)} />
+
+            {/* Insert Name Token */}
+            <Popover open={showNameToken} onOpenChange={setShowNameToken}>
+              <PopoverTrigger asChild>
+                <button type="button" title="Insert Name"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg transition"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Insert contact name</p>
+                <button type="button" onClick={insertNameToken}
+                  className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-white/10 transition"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                >
+                  {contactName ? `{{${contactName}}}` : '{{contact_name}}'}
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            {/* Internal Note */}
+            <button type="button" onClick={() => setIsInternalNote(!isInternalNote)}
+              title="Internal Note (not sent)"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition"
+              style={{
+                color: isInternalNote ? '#facc15' : 'rgba(255,255,255,0.45)',
+                background: isInternalNote ? 'rgba(234,179,8,0.15)' : 'transparent',
+                border: isInternalNote ? '1px solid rgba(234,179,8,0.3)' : '1px solid transparent',
+              }}
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Tag */}
+            <IconToolButton icon={Tag} title="Add Tag" onClick={() => {}} />
+
+            {/* Schedule */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" title="Schedule Send"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg transition"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Schedule send</p>
+                {[15, 60, 240, 1440].map(min => (
+                  <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
+                    className="w-full text-left px-2 py-1 hover:bg-white/10 text-xs rounded transition"
+                    style={{ color: 'rgba(255,255,255,0.8)' }}
+                  >
+                    In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
       </div>
 
       {/* Internal note mode banner */}
@@ -176,92 +261,6 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           onInsertMessage={(draft) => { setText(draft); setShowAssistant(false); }}
         />
       )}
-
-      {/* Quick Actions Toolbar */}
-      <div className="flex items-center gap-0.5 px-3 pb-2 pt-0">
-        {/* Templates button */}
-        <IconToolButton
-          icon={Zap}
-          title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
-          onClick={() => setShowTemplates(true)}
-          active={windowLocked}
-          activeColor="hsl(38 92% 55%)"
-        />
-
-        {!windowLocked && (
-          <>
-            <IconToolButton icon={Wand2} title="AI Reply" onClick={() => setShowAssistant(!showAssistant)} active={showAssistant} />
-            <IconToolButton icon={Home} title="Send Property" onClick={onSendProperty} />
-            <IconToolButton icon={Languages} title="Translate to Arabic" onClick={() => previewTranslate(text, setText)} />
-            
-            {/* Insert Name Token */}
-            <Popover open={showNameToken} onOpenChange={setShowNameToken}>
-              <PopoverTrigger asChild>
-                <button type="button" title="Insert Name"
-                  className="w-7 h-7 flex items-center justify-center rounded-lg transition"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
-                <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Insert contact name</p>
-                <button
-                  type="button"
-                  onClick={insertNameToken}
-                  className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-white/10 transition"
-                  style={{ color: 'rgba(255,255,255,0.8)' }}
-                >
-                  {contactName ? `{{${contactName}}}` : '{{contact_name}}'}
-                </button>
-              </PopoverContent>
-            </Popover>
-
-            {/* Internal Note Mode */}
-            <button
-              type="button"
-              onClick={() => setIsInternalNote(!isInternalNote)}
-              title="Internal Note (not sent)"
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition"
-              style={{
-                color: isInternalNote ? '#facc15' : 'rgba(255,255,255,0.45)',
-                background: isInternalNote ? 'rgba(234,179,8,0.15)' : 'transparent',
-                border: isInternalNote ? '1px solid rgba(234,179,8,0.3)' : '1px solid transparent',
-              }}
-            >
-              <FileText className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="ml-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" title="Schedule Send"
-                    className="w-7 h-7 flex items-center justify-center rounded-lg transition"
-                    style={{ color: 'rgba(255,255,255,0.45)' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.8)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.9)' }}>Schedule send</p>
-                  {[15, 60, 240, 1440].map(min => (
-                    <button key={min} type="button" onClick={() => { onScheduleSend(text, min); setText(''); }}
-                      className="w-full text-left px-2 py-1 hover:bg-white/10 text-xs rounded transition"
-                      style={{ color: 'rgba(255,255,255,0.8)' }}
-                    >
-                      In {min < 60 ? `${min} min` : min < 1440 ? `${min / 60}h` : '1 day'}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* Templates Modal */}
       <TemplatesModal
