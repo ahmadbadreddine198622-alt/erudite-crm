@@ -749,37 +749,41 @@ export default function WhatsAppInbox() {
                 </button>
               ))}
             </div>
-            {/* Channel profile switcher */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {/* Channel tabs */}
+            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
               {[
-                { key: 'business', label: 'Business', emoji: '🏢', number: '+971 58 280 6000', color: 'hsl(152 69% 40%)' },
-                { key: 'personal', label: 'Personal', emoji: '👤', number: '+971 58 180 6000', color: 'hsl(217 91% 60%)' },
-              ].map(ch => {
-                const chCount = normalizedConversations.filter(c => {
+                { key: 'business', label: 'Business', sub: '+971 582 806 000', activeColor: '#10b981' },
+                { key: 'personal', label: 'Personal', sub: '+971 581 806 000', activeColor: '#3b82f6' },
+              ].map((ch, i) => {
+                const chUnread = normalizedConversations.filter(c => {
                   const phone = c.wa_phone_e164 || c.phone_number || '';
                   if (isInternalNumber(phone)) return false;
                   return ch.key === 'business' ? c.channel === 'business' : c.channel !== 'business';
-                });
-                const chUnread = chCount.reduce((s, c) => s + (c.unread_count || 0), 0);
+                }).reduce((s, c) => s + (c.unread_count || 0), 0);
                 const isActive = filterChannel === ch.key;
                 return (
                   <button
                     key={ch.key}
                     onClick={() => { setFilterChannel(ch.key); setSelectedConvId(null); }}
-                    className="flex flex-col items-center py-2 px-1 rounded-lg transition-all"
+                    className="flex-1 py-2.5 px-3 flex flex-col items-center gap-0.5 transition-all relative"
                     style={{
-                      background: isActive ? ch.color : 'transparent',
-                      border: isActive ? `1px solid ${ch.color}` : '1px solid transparent',
+                      background: isActive ? `${ch.activeColor}22` : 'rgba(255,255,255,0.03)',
+                      borderRight: i === 0 ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                      borderBottom: isActive ? `2px solid ${ch.activeColor}` : '2px solid transparent',
                     }}
                   >
-                    <span className="text-base leading-none mb-0.5">{ch.emoji}</span>
-                    <span className="text-[11px] font-bold" style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.7)' }}>{ch.label}</span>
-                    <span className="text-[9px]" style={{ color: isActive ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>{ch.number}</span>
-                    {chUnread > 0 && (
-                      <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: isActive ? 'rgba(255,255,255,0.25)' : ch.color, color: 'white' }}>
-                        {chUnread}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold" style={{ color: isActive ? ch.activeColor : 'rgba(255,255,255,0.6)' }}>
+                        {ch.label}
                       </span>
-                    )}
+                      {chUnread > 0 && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center"
+                          style={{ background: ch.activeColor, color: 'white' }}>
+                          {chUnread}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{ch.sub}</span>
                   </button>
                 );
               })}

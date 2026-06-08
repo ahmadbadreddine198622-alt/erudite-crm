@@ -102,13 +102,8 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
 
         <SLATimer dueAt={conversation.sla_due_at} breached={conversation.sla_breached} />
 
-        {/* Action buttons — kept minimal, main actions moved to right sidebar */}
+        {/* Action buttons */}
         <div className="flex items-center gap-2">
-          {isMatched && (
-            <Button size="sm" variant="outline" onClick={() => onAction('open_profile')} className="gap-1.5 text-xs">
-              <ExternalLink className="w-3 h-3" /> Profile
-            </Button>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
