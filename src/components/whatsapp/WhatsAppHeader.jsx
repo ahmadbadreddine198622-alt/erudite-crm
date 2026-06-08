@@ -69,7 +69,7 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
             <ScoreBadge score={lead?.ai_lead_score} trend={lead?.ai_score_trend} />
           </div>
 
-          <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <div className="flex items-center gap-2 text-xs flex-wrap" style={{ color: 'rgba(255,255,255,0.55)' }}>
             <button
               onClick={copyPhone}
               className="flex items-center gap-1 hover:text-accent transition-colors"
@@ -78,24 +78,24 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
               {copied ? <Check className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
               {conversation.wa_phone_e164 || conversation.phone_number}
             </button>
-            {showWhatsAppName && (
-              <span className="flex items-center gap-1" title="WhatsApp name from synced contacts">
-                <User className="w-3 h-3" />
-                ~{conversation.wa_display_name}
-              </span>
-            )}
+            <span className="text-white/20">·</span>
             <span className="flex items-center gap-1" title={`Contact wrote to our ${channelLabel} line`}>
               {conversation.channel === 'business' ? <Building2 className="w-3 h-3 text-emerald-400" /> : <UserCheck className="w-3 h-3 text-blue-400" />}
-              {channelLabel} ({ourLineNumber})
+              <span style={{ color: conversation.channel === 'business' ? 'rgb(52,211,153)' : 'rgb(96,165,250)' }}>{channelLabel}</span>
+              <span className="text-white/40">({ourLineNumber})</span>
             </span>
-            {conversation.wa_last_seen_at && (
-              <span>· Last seen {timeAgo(conversation.wa_last_seen_at)}</span>
+            <span className="text-white/20">·</span>
+            {!isMatched ? (
+              <span className="text-amber-400 font-medium">Unlinked</span>
+            ) : (
+              <span className="text-emerald-400 font-medium">{entityType === 'landlord' ? 'Landlord' : 'Lead'}</span>
             )}
-            {conversation.detected_language && <span>· {conversation.detected_language.toUpperCase()}</span>}
-            {lead?.source && <span>· Source: {lead.source.replace(/_/g, ' ')}</span>}
-            {!isMatched && (
-              <span className="text-amber-400">· Unmatched number</span>
+            {showWhatsAppName && (
+              <><span className="text-white/20">·</span><span className="flex items-center gap-1"><User className="w-3 h-3" />~{conversation.wa_display_name}</span></>
             )}
+            {conversation.wa_last_seen_at && <><span className="text-white/20">·</span><span>Last seen {timeAgo(conversation.wa_last_seen_at)}</span></>}
+            {conversation.detected_language && <><span className="text-white/20">·</span><span>{conversation.detected_language.toUpperCase()}</span></>}
+            {lead?.source && <><span className="text-white/20">·</span><span>Source: {lead.source.replace(/_/g, ' ')}</span></>}
           </div>
         </div>
 
