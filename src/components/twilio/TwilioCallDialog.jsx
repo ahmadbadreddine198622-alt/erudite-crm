@@ -2,21 +2,25 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Mic, MicOff, Edit2, Smartphone, Monitor } from 'lucide-react';
+import { Phone, Loader2, PhoneCall, PhoneOff, Clock, Mic, MicOff, Edit2, Smartphone, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
- * Outbound call dialog — supports two modes:
- *   1. Browser mode  → Twilio Voice SDK in browser (requires API Key + TwiML App)
- *   2. Phone bridge  → Twilio calls YOUR phone first, then bridges to customer
+ * Outbound call dialog — three modes (auto-detected based on credentials):
+ *   1. Browser SDK  → dials customer directly via browser mic/speakers
+ *   2. Direct REST  → Twilio API calls customer directly (no agent phone needed)
+ *   3. Bridge       → Twilio calls agent's phone first, then bridges to customer
+ *
+ * Mode is selected by the user; defaults to best available option.
  */
 export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = false }) {
   const [open, setOpen] = useState(false);
+  const [cred, setCred] = useState(null);
   const [numbers, setNumbers] = useState([]);
   const [selectedNumber, setSelectedNumber] = useState('');
   const [loadingNumbers, setLoadingNumbers] = useState(false);
   const [dialNumber, setDialNumber] = useState('');
-  const [callMode, setCallMode] = useState('phone'); // 'browser' | 'phone'
+  const [callMode, setCallMode] = useState('direct'); // 'browser' | 'direct' | 'bridge'
 
   // phase: idle | init | calling | active | ended
   const [phase, setPhase] = useState('idle');
@@ -28,6 +32,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
   const deviceRef = useRef(null);
   const callRef = useRef(null);
   const timerRef = useRef(null);
+  const pollRef = useRef(null);
 
   const entity = lead || landlord || contact;
   const defaultPhone = entity?.phone || entity?.whatsapp || '';
@@ -36,29 +41,27 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
     contact?.full_name || contact?.name || defaultPhone;
   const leadId = lead?.id || null;
   const landlordId = landlord?.id || null;
-  const entityId = leadId || landlordId || contact?.id || null;
 
+  // Load creds + numbers when dialog opens
   useEffect(() => {
-    if (open) setDialNumber(defaultPhone);
-  }, [open]);
-
-  useEffect(() => {
-    if (open && numbers.length === 0) {
-      setLoadingNumbers(true);
-      base44.functions.invoke('getTwilioNumbers', {})
-        .then(res => {
-          const nums = res.data?.numbers || [];
-          setNumbers(nums);
-          if (nums.length > 0) setSelectedNumber(nums[0].phone_number);
-          // Default to phone bridge if no API key configured
-          const cred = res.data?.credential;
-          if (!cred?.api_key_sid || !cred?.api_key_secret || !cred?.twiml_app_sid) {
-            setCallMode('phone');
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLoadingNumbers(false));
-    }
+    if (!open) return;
+    setDialNumber(defaultPhone);
+    setLoadingNumbers(true);
+    base44.functions.invoke('getTwilioNumbers', {})
+      .then(res => {
+        const nums = res.data?.numbers || [];
+        const c = res.data?.credential || {};
+        setNumbers(nums);
+        setCred(c);
+        if (nums.length > 0) setSelectedNumber(nums[0].phone_number);
+        // Auto-select best mode
+        const hasBrowserCreds = c.api_key_sid && c.api_key_secret && c.twiml_app_sid;
+        if (hasBrowserCreds) setCallMode('browser');
+        else if (c.agent_phone) setCallMode('bridge');
+        else setCallMode('direct');
+      })
+      .catch(() => {})
+      .finally(() => setLoadingNumbers(false));
   }, [open]);
 
   useEffect(() => {
@@ -72,14 +75,9 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
   }, [phase]);
 
   const destroyDevice = useCallback(() => {
-    if (callRef.current) {
-      try { callRef.current.disconnect(); } catch (_) {}
-      callRef.current = null;
-    }
-    if (deviceRef.current) {
-      try { deviceRef.current.destroy(); } catch (_) {}
-      deviceRef.current = null;
-    }
+    if (callRef.current) { try { callRef.current.disconnect(); } catch (_) {} callRef.current = null; }
+    if (deviceRef.current) { try { deviceRef.current.destroy(); } catch (_) {} deviceRef.current = null; }
+    clearInterval(pollRef.current);
   }, []);
 
   const fullReset = useCallback(() => {
@@ -92,18 +90,36 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
     setStatusMsg('');
   }, [destroyDevice]);
 
-  useEffect(() => {
-    if (!open) fullReset();
-  }, [open, fullReset]);
+  useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
 
-  // ── Phone Bridge Mode ──────────────────────────────────────────────────────
-  const handlePhoneCall = async () => {
+  // ── Poll call log until status resolves ───────────────────────────────────
+  const pollCallLog = (callLogId) => {
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) { clearInterval(pollRef.current); return; }
+      try {
+        const logs = await base44.entities.CallLog.filter({ id: callLogId });
+        const log = logs?.[0];
+        if (!log) return;
+        if (log.status === 'in-progress' || log.status === 'answered') {
+          setPhase('active');
+          clearInterval(pollRef.current);
+        } else if (['completed', 'failed', 'busy', 'no-answer'].includes(log.status)) {
+          setPhase('ended');
+          clearInterval(pollRef.current);
+        }
+      } catch (_) {}
+    }, 3000);
+  };
+
+  // ── Direct / Bridge REST call ─────────────────────────────────────────────
+  const handleRestCall = async () => {
     const toPhone = dialNumber.trim();
     if (!toPhone) return toast.error('Enter a phone number to call');
-
     setPhase('init');
     setErrorMsg('');
-    setStatusMsg('Placing call via Twilio…');
+    setStatusMsg('Placing call…');
 
     try {
       const res = await base44.functions.invoke('twilioMakeCall', {
@@ -113,51 +129,26 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
         from_phone: selectedNumber,
         lead_name: targetName,
         browser_mode: false,
+        direct_only: callMode === 'direct',
       });
 
       const data = res.data;
-      if (data?.error) {
-        setErrorMsg(data.error);
-        setPhase('idle');
-        return;
-      }
+      if (data?.error) { setErrorMsg(data.error); setPhase('idle'); return; }
 
       setPhase('calling');
-      setStatusMsg(data.message || 'Your phone will ring shortly…');
-
-      // Poll for call status every 3s
-      const callLogId = data.call_log_id;
-      if (callLogId) {
-        let attempts = 0;
-        const poll = setInterval(async () => {
-          attempts++;
-          if (attempts > 40) { clearInterval(poll); return; } // 2 min max
-          try {
-            const logs = await base44.entities.CallLog.filter({ id: callLogId });
-            const log = logs?.[0];
-            if (log?.status === 'in-progress' || log?.status === 'answered') {
-              setPhase('active');
-              clearInterval(poll);
-            } else if (['completed', 'failed', 'busy', 'no-answer'].includes(log?.status)) {
-              setPhase('ended');
-              clearInterval(poll);
-            }
-          } catch (_) {}
-        }, 3000);
-      }
-
+      setStatusMsg(data.message || '');
+      if (data.call_log_id) pollCallLog(data.call_log_id);
     } catch (err) {
       setErrorMsg(err?.response?.data?.error || err.message || 'Failed to place call');
       setPhase('idle');
     }
   };
 
-  // ── Browser SDK Mode ───────────────────────────────────────────────────────
+  // ── Browser SDK call ──────────────────────────────────────────────────────
   const handleBrowserCall = async () => {
     const toPhone = dialNumber.trim();
     if (!toPhone) return toast.error('Enter a phone number to call');
     if (!selectedNumber) return toast.error('Select a caller ID number first');
-
     setPhase('init');
     setErrorMsg('');
 
@@ -165,57 +156,39 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
       const tokenData = tokenRes.data;
 
-      if (tokenData?.browser_calling_unavailable) {
-        setErrorMsg('Browser calling not configured. Go to Twilio Hub → Settings and fill in API Key SID, API Key Secret, and TwiML App SID. Or switch to Phone Bridge mode.');
-        setPhase('idle');
-        return;
-      }
-      if (!tokenData?.token) {
-        setErrorMsg(tokenData?.error || 'Could not get voice token');
-        setPhase('idle');
-        return;
+      if (tokenData?.browser_calling_unavailable || !tokenData?.token) {
+        // Fall back to direct REST call
+        setCallMode('direct');
+        return handleRestCall();
       }
 
       const { Device } = await import('@twilio/voice-sdk');
       destroyDevice();
 
-      const device = new Device(tokenData.token, {
-        logLevel: 2,
-        codecPreferences: ['opus', 'pcmu'],
-        closeProtection: false,
-      });
+      const device = new Device(tokenData.token, { logLevel: 2, codecPreferences: ['opus', 'pcmu'] });
       deviceRef.current = device;
 
       device.on('error', (err) => {
         console.error('[Twilio Device Error]', err);
-        setErrorMsg(`Device error: ${err.message || 'Unknown error'}`);
+        setErrorMsg(`Device error: ${err.message}`);
         setPhase('idle');
         destroyDevice();
       });
 
       await device.register();
 
+      // Create call log
       let callLogId = '';
       try {
         const logRes = await base44.functions.invoke('twilioMakeCall', {
-          lead_id: leadId,
-          landlord_id: landlordId,
-          to_phone: toPhone,
-          from_phone: selectedNumber,
-          lead_name: targetName,
-          browser_mode: true,
+          lead_id: leadId, landlord_id: landlordId,
+          to_phone: toPhone, from_phone: selectedNumber,
+          lead_name: targetName, browser_mode: true,
         });
         callLogId = logRes.data?.call_log_id || '';
       } catch (_) {}
 
-      const call = await device.connect({
-        params: {
-          To: toPhone,
-          CallerId: selectedNumber,
-          call_log_id: callLogId,
-        },
-      });
-
+      const call = await device.connect({ params: { To: toPhone, CallerId: selectedNumber, call_log_id: callLogId } });
       callRef.current = call;
       setPhase('calling');
 
@@ -224,51 +197,39 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
       call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
       call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
       call.on('error', (err) => {
-        console.error('[Twilio Call Error]', err.code, err.message);
         let msg = err.message || 'Call error';
-        if (err.code === 53000) {
-          msg = 'Connection error — check Twilio Hub settings (API Key SID, Secret, TwiML App SID). Or use Phone Bridge mode instead.';
-        } else if (err.code === 31201) {
-          msg = 'ACL token error — token expired. Refresh and try again.';
-        } else if (err.code === 31203) {
-          msg = 'Authentication error — check Twilio credentials.';
-        }
+        if (err.code === 53000) msg = 'Connection error — check Twilio Hub settings or switch to Direct mode.';
         setErrorMsg(msg);
         setPhase('ended');
         destroyDevice();
       });
-
     } catch (err) {
-      console.error('handleBrowserCall error:', err);
       setErrorMsg(err?.message || 'Failed to place call');
       setPhase('idle');
       destroyDevice();
     }
   };
 
-  const handleCall = () => callMode === 'browser' ? handleBrowserCall() : handlePhoneCall();
+  const handleCall = () => callMode === 'browser' ? handleBrowserCall() : handleRestCall();
 
   const handleHangup = () => {
-    if (callRef.current) {
-      try { callRef.current.disconnect(); } catch (_) {}
-    }
+    if (callRef.current) { try { callRef.current.disconnect(); } catch (_) {} }
+    clearInterval(pollRef.current);
     setPhase('ended');
     destroyDevice();
   };
 
   const toggleMute = () => {
-    if (callRef.current) {
-      const next = !muted;
-      callRef.current.mute(next);
-      setMuted(next);
-    }
+    if (callRef.current) { const n = !muted; callRef.current.mute(n); setMuted(n); }
   };
 
-  const formatTime = (s) => {
-    const m = Math.floor(s / 60).toString().padStart(2, '0');
-    const sec = (s % 60).toString().padStart(2, '0');
-    return `${m}:${sec}`;
-  };
+  const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const modes = [
+    { id: 'direct', label: 'Direct Call', sub: 'Twilio → Customer', icon: Zap, color: '#4ade80', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)' },
+    ...(cred?.api_key_sid ? [{ id: 'browser', label: 'Browser Audio', sub: 'Mic & Speakers', icon: Phone, color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.4)' }] : []),
+    ...(cred?.agent_phone ? [{ id: 'bridge', label: 'Phone Bridge', sub: `Via ${cred.agent_phone}`, icon: Smartphone, color: '#fb923c', bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.4)' }] : []),
+  ];
 
   return (
     <Dialog open={open} onOpenChange={(v) => {
@@ -294,49 +255,38 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
         {/* ── IDLE ── */}
         {phase === 'idle' && (
           <div className="p-6 space-y-4">
-            <div className="text-center pt-2">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+            <div className="text-center pt-1">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2"
                 style={{ background: 'rgba(59,130,246,0.15)', border: '2px solid rgba(59,130,246,0.3)' }}>
-                <Phone className="w-7 h-7 text-blue-400" />
+                <Phone className="w-6 h-6 text-blue-400" />
               </div>
               {targetName && targetName !== defaultPhone && (
-                <p className="font-semibold text-white text-lg">{targetName}</p>
+                <p className="font-semibold text-white text-base">{targetName}</p>
               )}
             </div>
 
-            {/* Call mode toggle */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setCallMode('phone')}
-                className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all"
-                style={{
-                  background: callMode === 'phone' ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${callMode === 'phone' ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                  color: callMode === 'phone' ? '#4ade80' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                <Smartphone className="w-4 h-4" />
-                Phone Bridge
-              </button>
-              <button
-                onClick={() => setCallMode('browser')}
-                className="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all"
-                style={{
-                  background: callMode === 'browser' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${callMode === 'browser' ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                  color: callMode === 'browser' ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                <Monitor className="w-4 h-4" />
-                Browser Audio
-              </button>
-            </div>
-
-            <div className="text-[11px] text-center px-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {callMode === 'phone'
-                ? '📱 Twilio calls your mobile → connects to customer. Best quality.'
-                : '🎧 Audio through browser mic & speakers.'}
-            </div>
+            {/* Mode selector */}
+            {modes.length > 1 && (
+              <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${modes.length}, 1fr)` }}>
+                {modes.map(m => {
+                  const Icon = m.icon;
+                  const active = callMode === m.id;
+                  return (
+                    <button key={m.id} onClick={() => setCallMode(m.id)}
+                      className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl text-xs font-medium transition-all"
+                      style={{
+                        background: active ? m.bg : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${active ? m.border : 'rgba(255,255,255,0.1)'}`,
+                        color: active ? m.color : 'rgba(255,255,255,0.4)',
+                      }}>
+                      <Icon className="w-4 h-4" />
+                      <span>{m.label}</span>
+                      <span className="text-[10px] opacity-70">{m.sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Number to call */}
             <div>
@@ -363,7 +313,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
             {/* Caller ID */}
             <div>
               <label className="text-[11px] font-medium mb-1.5 block uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Caller ID (Your Twilio Number)
+                Caller ID
               </label>
               {loadingNumbers ? (
                 <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -409,8 +359,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
         {phase === 'init' && (
           <div className="px-6 py-12 flex flex-col items-center gap-4">
             <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
-            <p className="text-white font-semibold">Setting up call…</p>
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>Connecting to Twilio</p>
+            <p className="text-white font-semibold">Connecting…</p>
           </div>
         )}
 
@@ -425,31 +374,22 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/30 animate-ping" />
             </div>
             <div className="text-center space-y-1">
-              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">
-                {callMode === 'phone' ? 'Calling your phone…' : 'Ringing…'}
-              </p>
+              <p className="text-amber-400 font-bold text-xs uppercase tracking-widest">Ringing…</p>
               <p className="text-white text-xl font-bold">{targetName}</p>
               <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{dialNumber}</p>
               {statusMsg && (
                 <p className="text-xs mt-2 px-4 text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>{statusMsg}</p>
               )}
             </div>
-            {callMode === 'browser' && (
-              <button onClick={handleHangup}
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
-                <PhoneOff className="w-6 h-6 text-white" />
-              </button>
-            )}
-            {callMode === 'phone' && (
-              <p className="text-[11px] text-center px-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                Answer your mobile to connect. This window will update automatically.
-              </p>
-            )}
+            <button onClick={handleHangup}
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }}>
+              <PhoneOff className="w-6 h-6 text-white" />
+            </button>
           </div>
         )}
 
-        {/* ── ACTIVE: on call ── */}
+        {/* ── ACTIVE ── */}
         {phase === 'active' && (
           <div className="flex flex-col" style={{ background: '#0a1628' }}>
             <div className="flex flex-col items-center pt-8 pb-4 px-6 gap-2">
@@ -472,7 +412,6 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
                 <span className="text-2xl font-mono font-bold text-white">{formatTime(elapsed)}</span>
               </div>
             </div>
-
             <div className="flex items-center justify-center gap-6 pb-8 pt-2">
               {callMode === 'browser' && (
                 <div className="flex flex-col items-center gap-1">
@@ -487,7 +426,6 @@ export default function TwilioCallDialog({ lead, landlord, contact, iconOnly = f
                   <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{muted ? 'Unmute' : 'Mute'}</span>
                 </div>
               )}
-
               <div className="flex flex-col items-center gap-1">
                 <button onClick={handleHangup}
                   className="w-16 h-16 rounded-full flex items-center justify-center"
