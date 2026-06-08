@@ -94,7 +94,7 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
             {conversation.detected_language && <span>· {conversation.detected_language.toUpperCase()}</span>}
             {lead?.source && <span>· Source: {lead.source.replace(/_/g, ' ')}</span>}
             {!isMatched && (
-              <span className="text-amber-400/60 text-[10px]">· Unlinked</span>
+              <span className="text-amber-400">· Unmatched number</span>
             )}
           </div>
         </div>
@@ -102,20 +102,20 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
         <SLATimer dueAt={conversation.sla_due_at} breached={conversation.sla_breached} />
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {!isMatched ? (
             <>
-              <Button size="icon" variant="outline" onClick={() => onAction('create_lead')} className="h-8 w-8" title="Create Lead">
-                <Home className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" onClick={() => onAction('create_lead')} className="gap-1.5 text-xs">
+                <Home className="w-3 h-3" /> Create Lead
               </Button>
-              <Button size="icon" variant="outline" onClick={() => onAction('link_contact')} className="h-8 w-8" title="Link Contact">
-                <UserCheck className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" onClick={() => onAction('link_contact')} className="gap-1.5 text-xs">
+                <UserCheck className="w-3 h-3" /> Link Contact
               </Button>
             </>
           ) : (
             <>
-              <Button size="icon" variant="outline" onClick={() => onAction('open_profile')} className="h-8 w-8" title="Full Profile">
-                <ExternalLink className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" onClick={() => onAction('open_profile')} className="gap-1.5 text-xs">
+                <ExternalLink className="w-3 h-3" /> Full Profile
               </Button>
             </>
           )}
@@ -123,8 +123,9 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
           {/* Assign to Agent Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8" title="Assign to Agent">
-                <UserCheck className="w-3.5 h-3.5" />
+              <Button variant="outline" size="sm" className="gap-1 h-8">
+                <UserCheck className="w-3 h-3" />
+                Assign
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>

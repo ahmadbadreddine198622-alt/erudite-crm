@@ -66,7 +66,7 @@ const navItems = [
   { label: 'Policies & HR',       icon: Shield,          path: '/policies',            gradient: 'from-indigo-500 to-violet-800' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onClose }) {
   const location = useLocation();
   const { isAdmin, permissions } = useCurrentUser();
 
@@ -78,74 +78,76 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[64px]">
-      {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-sidebar-border shrink-0">
+    <aside className={cn(
+      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
+      open ? "translate-x-0" : "-translate-x-full"
+    )}>
+      {/* Logo + close */}
+      <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
         <img
           src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
-          alt="Erudite"
-          className="h-8 w-8 object-contain invert"
+          alt="Erudite Property"
+          className="h-10 w-auto object-contain invert"
         />
+        <button
+          onClick={onClose}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Navigation — icon only with tooltip */}
-      <nav className="flex-1 py-3 flex flex-col items-center gap-1 overflow-y-auto overflow-x-visible">
+      {/* Navigation */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {visibleNav.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              title={item.label}
+              onClick={onClose}
               className={cn(
-                'group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200',
-                isActive ? 'text-white' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground'
+                'group flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                isActive
+                  ? 'text-white'
+                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/5'
               )}
               style={isActive ? {
-                background: 'rgba(245,158,11,0.15)',
-                boxShadow: '0 2px 12px rgba(245,158,11,0.2)',
-                border: '1px solid rgba(245,158,11,0.35)',
+                background: 'rgba(245,158,11,0.12)',
+                borderLeft: '3px solid hsl(38 92% 50%)',
+                paddingLeft: 'calc(0.5rem - 3px)',
+                boxShadow: '0 2px 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
               } : {}}
             >
               <LiquidGlassIcon
                 icon={item.icon}
                 gradient={item.gradient}
-                size={28}
+                size={32}
                 active={isActive}
+                className="flex-shrink-0"
               />
-              {/* Tooltip */}
-              <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[100]"
-                style={{ background: 'rgba(10,16,40,0.95)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
-                {item.label}
-              </span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div className="pb-3 flex flex-col items-center gap-1 border-t border-sidebar-border pt-2">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
         <Link
           to="/profile"
-          title="My Profile"
-          className="group relative flex items-center justify-center w-10 h-10 rounded-xl text-sidebar-foreground/50 hover:text-sidebar-foreground transition-all"
+          onClick={onClose}
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/40 w-full transition-all"
         >
-          <LiquidGlassIcon icon={User} gradient="from-slate-500 to-slate-700" size={28} />
-          <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[100]"
-            style={{ background: 'rgba(10,16,40,0.95)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            My Profile
-          </span>
+          <LiquidGlassIcon icon={User} gradient="from-slate-500 to-slate-700" size={32} className="flex-shrink-0" />
+          <span>My Profile</span>
         </Link>
         <button
           onClick={() => base44.auth.logout()}
-          title="Logout"
-          className="group relative flex items-center justify-center w-10 h-10 rounded-xl text-sidebar-foreground/50 hover:text-red-400 transition-all"
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-red-400 hover:bg-sidebar-accent/40 w-full transition-all"
         >
-          <LiquidGlassIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={28} />
-          <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[100]"
-            style={{ background: 'rgba(10,16,40,0.95)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            Logout
-          </span>
+          <LiquidGlassIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={32} className="flex-shrink-0" />
+          <span>Logout</span>
         </button>
       </div>
     </aside>
