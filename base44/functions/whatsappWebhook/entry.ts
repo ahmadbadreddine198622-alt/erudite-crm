@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
       const waMessageId = msg.id;
       const timestamp = new Date(parseInt(msg.timestamp) * 1000).toISOString();
       const isVoiceMessage = msg.type === 'audio' && msg.audio;
-      let bodyText = msg.text?.body || msg.caption || (isVoiceMessage ? '🎤 Voice message (transcribing…)' : `[${msg.type}]`);
+      const TYPE_LABELS = { audio: '🎤 Voice message', image: '📷 Photo', video: '🎥 Video', document: '📄 Document', sticker: '🩷 Sticker', location: '📍 Location', contacts: '👤 Contact' };
+      let bodyText = msg.text?.body || msg.caption || (isVoiceMessage ? '🎤 Voice message (transcribing…)' : (TYPE_LABELS[msg.type] || `[${msg.type}]`));
 
       const e164Phone = normalizePhone(fromNumber);
       
@@ -94,28 +95,38 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // ---- Find or create the WhatsAppConversation (by phone) ----
+      // ---- Find or create the WhatsAppConversation for the BUSINESS channel ----
       let conv = null;
+      // First: look for existing business conversation for this phone
       try {
-        const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+        const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel: 'business' });
         conv = convs?.[0] || null;
       } catch {}
-      // Legacy fallback: some old conversations stored phone in phone_number not wa_phone_e164
+      // Fallback: legacy conv with no channel set (first-ever message before channel separation)
       if (!conv) {
         try {
-          const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ phone_number: e164Phone });
+          const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+          const match = (convs || []).find(c => !c.channel);
+          conv = match || null;
+        } catch {}
+      }
+      // Last resort: phone_number field (very old records)
+      if (!conv) {
+        try {
+          const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ phone_number: e164Phone, channel: 'business' });
           conv = convs?.[0] || null;
         } catch {}
       }
 
       if (!conv) {
-        // Brand-new conversation — create stub
+        // Brand-new business conversation — create it
         try {
           conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
             wa_phone_e164: e164Phone,
             phone_number: e164Phone,
             wa_display_name: waDisplayName,
             status: 'new',
+            channel: 'business',
             first_message_at: timestamp,
             last_inbound_at: timestamp,
             last_message: bodyText,
@@ -131,11 +142,13 @@ Deno.serve(async (req) => {
         // Existing conversation — bump counters & update display name if missing
         try {
           await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, {
+            channel: 'business',
             status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
             wa_display_name: waDisplayName || conv.wa_display_name,
             last_inbound_at: timestamp,
             last_message: bodyText,
             last_message_at: timestamp,
+            last_message_channel: 'business',
             unread_count: (conv.unread_count || 0) + 1
           });
         } catch (err) { console.warn('conversation update failed', err); }
