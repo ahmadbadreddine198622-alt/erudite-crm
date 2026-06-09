@@ -1,9 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Evolution API (VPS) webhook receiver — PHASE 1: bulletproof ingestion.
- * (message_type field fix + 429 retry/backoff on all entity writes)
+ * Evolution API (VPS) webhook receiver.
+ *
+ * Handles TWO instances:
+ *   - "erudite"           → business WhatsApp number (+971582806000)
+ *   - "erudite_whatsapp"  → personal WhatsApp number (+971581806000)
+ *
+ * ALL inbound messages from both instances are stored in:
+ *   - WhatsAppMessage  (used by ChatThread / inbox UI)
+ *   - WhatsAppConversation  (one per contact phone number, per channel)
+ *   - Message  (legacy, kept for backward compat)
  */
+
+const BUSINESS_NUMBER = '+971582806000';
+const PERSONAL_NUMBER = '+971581806000';
 
 function stripPlus(raw) {
   if (!raw) return '';
@@ -15,31 +26,21 @@ function jidToDigits(jid) {
   return String(jid).split('@')[0].split(':')[0];
 }
 
+function normalizePhone(digits) {
+  if (!digits) return '';
+  if (digits.startsWith('+')) return digits;
+  if (digits.startsWith('00')) return '+' + digits.slice(2);
+  if (digits.startsWith('05') && digits.length === 10) return '+971' + digits.slice(1);
+  if (digits.startsWith('5') && digits.length === 9) return '+971' + digits;
+  if (digits.length >= 10) return '+' + digits;
+  return digits;
+}
+
 function tsToIso(rawTimestamp) {
   if (!rawTimestamp) return new Date().toISOString();
   const n = typeof rawTimestamp === 'number' ? rawTimestamp : parseInt(rawTimestamp, 10);
   if (!isNaN(n)) return new Date(n * 1000).toISOString();
   return new Date(rawTimestamp).toISOString();
-}
-
-async function findLandlordByPhone(serviceRole, digitsPhone) {
-  const all = await serviceRole.entities.Landlord.list('-created_date', 2000);
-  for (const landlord of all) {
-    if (stripPlus(landlord.phone) === digitsPhone) return landlord;
-    if (stripPlus(landlord.whatsapp) === digitsPhone) return landlord;
-    const extras = Array.isArray(landlord.additional_phones) ? landlord.additional_phones : [];
-    for (const extra of extras) if (stripPlus(extra) === digitsPhone) return landlord;
-  }
-  return null;
-}
-
-async function findLeadByPhone(serviceRole, digitsPhone) {
-  const all = await serviceRole.entities.Lead.list('-created_date', 2000);
-  for (const lead of all) {
-    if (stripPlus(lead.phone) === digitsPhone) return lead;
-    if (stripPlus(lead.whatsapp) === digitsPhone) return lead;
-  }
-  return null;
 }
 
 function parseMessage(rawMsgObj) {
@@ -157,7 +158,6 @@ async function deadLetter(serviceRole, payload) {
   }
 }
 
-// Retry-on-429 wrapper: 6 attempts, exp backoff (500ms, 1s, 2s, 4s, 8s). Non-429 rethrows.
 async function withRetry(fn, attempts = 6) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
@@ -172,11 +172,70 @@ async function withRetry(fn, attempts = 6) {
         throw e;
       }
       const delay = 500 * Math.pow(2, i - 1);
-      console.log(`[withRetry] 429 detected, waiting ${delay}ms (attempt ${i}/${attempts})`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
   throw lastErr;
+}
+
+/**
+ * Find or create a WhatsAppConversation for the given phone + channel.
+ * Returns the conversation record.
+ */
+async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel, bodyText, timestamp, waDisplayName }) {
+  // Try to find existing conversation for this phone on this channel
+  let conv = null;
+  try {
+    const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel });
+    conv = convs?.[0] || null;
+  } catch {}
+
+  // Fallback: match by phone only (if channel field not set)
+  if (!conv) {
+    try {
+      const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+      // Only reuse if it has no channel (legacy) or matches our channel
+      const match = (convs || []).find(c => !c.channel || c.channel === channel);
+      conv = match || null;
+    } catch {}
+  }
+
+  if (!conv) {
+    // Create new
+    try {
+      conv = await serviceRole.entities.WhatsAppConversation.create({
+        wa_phone_e164: e164Phone,
+        phone_number: e164Phone,
+        wa_display_name: waDisplayName,
+        status: 'new',
+        channel,
+        first_message_at: timestamp,
+        last_inbound_at: timestamp,
+        last_message: bodyText,
+        last_message_at: timestamp,
+        unread_count: 1,
+      });
+    } catch (err) {
+      console.error('[evolutionWebhook] conversation create failed:', err?.message);
+      return null;
+    }
+  } else {
+    try {
+      await serviceRole.entities.WhatsAppConversation.update(conv.id, {
+        status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
+        wa_display_name: waDisplayName || conv.wa_display_name,
+        last_inbound_at: timestamp,
+        last_message: bodyText,
+        last_message_at: timestamp,
+        last_message_channel: channel,
+        channel: conv.channel || channel,
+        unread_count: (conv.unread_count || 0) + 1,
+      });
+    } catch (err) {
+      console.warn('[evolutionWebhook] conversation update failed:', err?.message);
+    }
+  }
+  return conv;
 }
 
 Deno.serve(async (req) => {
@@ -201,9 +260,12 @@ Deno.serve(async (req) => {
 
   const event = body?.event || '';
   const instanceName = (body?.instance || '').toLowerCase();
+  // Both "erudite" (business Meta number) and "erudite_whatsapp" (personal) are handled
   const channel = instanceName === 'erudite' ? 'business' : 'personal';
+  const myNumber = channel === 'business' ? BUSINESS_NUMBER : PERSONAL_NUMBER;
 
   try {
+    // ---- Status updates ----
     if (event === 'messages.update' || event === 'messages.edit') {
       const updates = Array.isArray(body.data) ? body.data : [body.data];
       let touched = 0;
@@ -212,27 +274,35 @@ Deno.serve(async (req) => {
         const rawStatus = u?.update?.status ?? u?.status;
         const mapped = mapStatus(rawStatus);
         if (!waId || !mapped) continue;
-        const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waId }));
+        // Update in both Message and WhatsAppMessage
+        const [existing, existingWA] = await Promise.all([
+          withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waId })).catch(() => []),
+          withRetry(() => serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: waId })).catch(() => []),
+        ]);
         if (existing?.[0]) {
-          await withRetry(() => serviceRole.entities.Message.update(existing[0].id, { status: mapped }));
+          await withRetry(() => serviceRole.entities.Message.update(existing[0].id, { status: mapped })).catch(() => {});
           touched++;
         }
+        if (existingWA?.[0]) {
+          await withRetry(() => serviceRole.entities.WhatsAppMessage.update(existingWA[0].id, { status: mapped })).catch(() => {});
+        }
       }
-      console.log(`[evolutionWebhook] event=${event} instance=${instanceName} status_updates=${touched}`);
       return Response.json({ status: 'status_updated', count: touched });
     }
 
     if (event === 'messages.delete') {
       const dels = Array.isArray(body.data) ? body.data : [body.data];
-      let touched = 0;
       for (const d of dels) {
         const waId = d?.key?.id || d?.id;
         if (!waId) continue;
-        const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waId }));
-        if (existing?.[0]) { await withRetry(() => serviceRole.entities.Message.update(existing[0].id, { is_deleted: true })); touched++; }
+        const [existing, existingWA] = await Promise.all([
+          serviceRole.entities.Message.filter({ wa_message_id: waId }).catch(() => []),
+          serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: waId }).catch(() => []),
+        ]);
+        if (existing?.[0]) await serviceRole.entities.Message.update(existing[0].id, { is_deleted: true }).catch(() => {});
+        if (existingWA?.[0]) await serviceRole.entities.WhatsAppMessage.update(existingWA[0].id, { is_deleted: true }).catch(() => {});
       }
-      console.log(`[evolutionWebhook] event=messages.delete instance=${instanceName} deleted=${touched}`);
-      return Response.json({ status: 'deleted', count: touched });
+      return Response.json({ status: 'deleted' });
     }
 
     if (event !== 'messages.upsert') {
@@ -253,96 +323,140 @@ Deno.serve(async (req) => {
     const digitsPhone = jidToDigits(remoteJid);
     if (!digitsPhone) return Response.json({ status: 'no_phone' });
 
+    const e164Phone = normalizePhone(digitsPhone);
     const timestamp = tsToIso(data.messageTimestamp);
     const parsed = parseMessage(data.message);
 
-    console.log(`[evolutionWebhook] event=upsert instance=${instanceName} channel=${channel} from=${digitsPhone} type=${parsed.msgType} msgId=${waMessageId} hasMedia=${!!parsed.media}`);
+    // Extract display name from pushName (Evolution provides this)
+    const waDisplayName = data.pushName || data.verifiedBizName || '';
 
+    console.log(`[evolutionWebhook] event=upsert instance=${instanceName} channel=${channel} from=${digitsPhone} fromMe=${fromMe} type=${parsed.msgType} msgId=${waMessageId}`);
+
+    // Handle reactions and deletions from message content
     if (parsed.reaction?.target_wa_id) {
-      const tgt = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: parsed.reaction.target_wa_id }));
-      if (tgt?.[0]) await withRetry(() => serviceRole.entities.Message.update(tgt[0].id, { reaction: parsed.reaction.emoji }));
+      const [tgt, tgtWA] = await Promise.all([
+        serviceRole.entities.Message.filter({ wa_message_id: parsed.reaction.target_wa_id }).catch(() => []),
+        serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: parsed.reaction.target_wa_id }).catch(() => []),
+      ]);
+      if (tgt?.[0]) await serviceRole.entities.Message.update(tgt[0].id, { reaction: parsed.reaction.emoji }).catch(() => {});
+      if (tgtWA?.[0]) await serviceRole.entities.WhatsAppMessage.update(tgtWA[0].id, { reaction: parsed.reaction.emoji }).catch(() => {});
       return Response.json({ status: 'reaction_recorded', emoji: parsed.reaction.emoji });
     }
     if (parsed.deletion_target) {
-      const tgt = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: parsed.deletion_target }));
-      if (tgt?.[0]) await withRetry(() => serviceRole.entities.Message.update(tgt[0].id, { is_deleted: true }));
+      const [tgt, tgtWA] = await Promise.all([
+        serviceRole.entities.Message.filter({ wa_message_id: parsed.deletion_target }).catch(() => []),
+        serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: parsed.deletion_target }).catch(() => []),
+      ]);
+      if (tgt?.[0]) await serviceRole.entities.Message.update(tgt[0].id, { is_deleted: true }).catch(() => {});
+      if (tgtWA?.[0]) await serviceRole.entities.WhatsAppMessage.update(tgtWA[0].id, { is_deleted: true }).catch(() => {});
       return Response.json({ status: 'deletion_recorded' });
     }
 
-    if (instanceName === 'erudite') {
-      const landlordMatch = await findLandlordByPhone(serviceRole, digitsPhone);
-      const leadMatch = landlordMatch ? null : await findLeadByPhone(serviceRole, digitsPhone);
-      await withRetry(() => serviceRole.entities.ApiInboxMessage.create({
-        sender_phone: digitsPhone,
-        message_text: parsed.text,
-        message_type: parsed.msgType,
-        received_at: timestamp,
-        instance_name: instanceName,
-        raw_payload: body,
-        status: 'new',
-        linked_landlord_id: landlordMatch?.id || null,
-        linked_landlord_name: landlordMatch ? (landlordMatch.full_name_en || landlordMatch.full_name) : null,
-        linked_lead_id: leadMatch?.id || null,
-        linked_lead_name: leadMatch?.full_name || null,
-      }));
-      return Response.json({ status: 'api_inbox_saved', matched_landlord: !!landlordMatch, matched_lead: !!leadMatch });
-    }
-
+    // ---- Dedupe by wa_message_id ----
     if (waMessageId) {
-      const existing = await withRetry(() => serviceRole.entities.Message.filter({ wa_message_id: waMessageId }));
-      if (existing?.length > 0) return Response.json({ status: 'duplicate', wa_message_id: waMessageId });
+      const existingWA = await serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId }).catch(() => []);
+      if (existingWA?.length > 0) return Response.json({ status: 'duplicate', wa_message_id: waMessageId });
     }
 
-    const landlord = await findLandlordByPhone(serviceRole, digitsPhone);
-
-    const record = {
-      landlord_id: landlord ? landlord.id : null,
-      phone: digitsPhone,
-      direction: fromMe ? 'outbound' : 'incoming',
-      text: parsed.text,
-      timestamp,
-      status: 'received',
-      wa_message_id: waMessageId || null,
-      channel,
-      message_type: parsed.msgType,
-    };
-    if (parsed.caption) record.caption = parsed.caption;
-    if (parsed.reply_to_wa_id) record.reply_to_wa_id = parsed.reply_to_wa_id;
-    if (parsed.location) record.location_json = JSON.stringify(parsed.location);
-    if (parsed.contacts) record.contacts_json = JSON.stringify(parsed.contacts);
-    if (parsed.media) {
-      record.media_type = parsed.media.kind;
-      record.media_mime = parsed.media.mime || '';
-      if (parsed.media.duration != null) record.media_duration = parsed.media.duration;
-      if (parsed.media.fileName) record.media_filename = parsed.media.fileName;
-      record.is_voice_note = parsed.media.isVoiceNote === true;
-      record.media_status = 'pending';
+    // ---- Find/create WhatsAppConversation ----
+    // For outbound (fromMe), still find conv by e164 but don't bump unread
+    let conv = null;
+    if (fromMe) {
+      // For sent messages, just find the conversation — don't upsert inbound fields
+      try {
+        const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+        conv = convs?.[0] || null;
+      } catch {}
+    } else {
+      conv = await upsertConversation(serviceRole, {
+        e164Phone,
+        digitsPhone,
+        channel,
+        bodyText: parsed.text,
+        timestamp,
+        waDisplayName,
+      });
     }
 
-    const message = await withRetry(() => serviceRole.entities.Message.create(record));
-    console.log(`[evolutionWebhook] Created Message ${message.id} (landlord=${landlord ? landlord.id : 'none'}, type=${parsed.msgType})`);
+    if (!conv && fromMe) {
+      // Outbound without a conversation — skip recording in WhatsAppMessage
+      // (sendMultiChannelWhatsApp already records outbound)
+      console.log('[evolutionWebhook] Outbound message, no conversation found — skipping WA record');
+    }
 
-    // Transcription DISABLED — do not invoke processVoiceMessage
-    // Re-enable when OPENAI_API_KEY is configured:
-    // if (parsed.media) {
-    //   serviceRole.functions.invoke('processInboundMedia', {
-    //     message_id: message.id,
-    //     instance: instanceName,
-    //     wa_message_id: waMessageId,
-    //   }).catch(() => {});
-    // }
+    // ---- Persist WhatsAppMessage (the main inbox record) ----
+    let waMessage = null;
+    if (conv) {
+      try {
+        const waRecord = {
+          conversation_id: conv.id,
+          wa_message_id: waMessageId || null,
+          direction: fromMe ? 'outbound' : 'inbound',
+          body: parsed.text,
+          status: fromMe ? 'sent' : 'delivered',
+          timestamp,
+          from_number: fromMe ? myNumber : e164Phone,
+          to_number: fromMe ? e164Phone : myNumber,
+          channel,
+          media_type: parsed.media?.kind || 'none',
+        };
+        if (parsed.media?.kind === 'audio') {
+          waRecord.is_voice_note = parsed.media.isVoiceNote === true;
+        }
+        if (parsed.location) {
+          waRecord.location_json = JSON.stringify(parsed.location);
+        }
+        if (parsed.caption) {
+          waRecord.caption = parsed.caption;
+        }
+        // Skip recording outbound if sendMultiChannelWhatsApp already stored it
+        if (!fromMe) {
+          waMessage = await serviceRole.entities.WhatsAppMessage.create(waRecord);
+          console.log(`[evolutionWebhook] ✅ WhatsAppMessage created: ${waMessage.id} conv=${conv.id} channel=${channel}`);
+        }
+      } catch (err) {
+        console.error('[evolutionWebhook] WhatsAppMessage create failed:', err?.message);
+      }
+    }
 
-    if (landlord) {
-      serviceRole.functions.invoke('analyzeLandlordConversation', { landlord_id: landlord.id }).catch(() => {});
+    // ---- Legacy Message record (backward compat) ----
+    let legacyMessage = null;
+    if (!fromMe) {
+      try {
+        const existing = waMessageId
+          ? await serviceRole.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => [])
+          : [];
+        if (!existing?.length) {
+          legacyMessage = await serviceRole.entities.Message.create({
+            landlord_id: null,
+            phone: digitsPhone,
+            direction: 'incoming',
+            text: parsed.text,
+            timestamp,
+            status: 'received',
+            wa_message_id: waMessageId || null,
+            channel,
+            message_type: parsed.msgType,
+          });
+        }
+      } catch (err) {
+        console.warn('[evolutionWebhook] Legacy Message create failed:', err?.message);
+      }
+    }
+
+    // ---- Background: run AI enrichment for inbound messages ----
+    if (!fromMe && conv?.id) {
+      serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
     }
 
     return Response.json({
       status: 'ok',
-      matched: !!landlord,
-      message_id: message.id,
-      landlord_id: landlord ? landlord.id : null,
+      channel,
+      conversation_id: conv?.id || null,
+      wa_message_id: waMessage?.id || null,
+      legacy_message_id: legacyMessage?.id || null,
+      from_me: fromMe,
       type: parsed.msgType,
-      has_media: !!parsed.media,
     });
   } catch (e) {
     await deadLetter(serviceRole, {
