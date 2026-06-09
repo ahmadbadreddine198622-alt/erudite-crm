@@ -115,7 +115,9 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderColor: 'rgba(255,255,255,0.04)',
-        borderLeft: selected ? '3px solid rgba(245,159,10,0.6)' : '3px solid transparent',
+        borderLeft: selected
+          ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}`
+          : `3px solid ${channel === 'business' ? 'rgba(52,211,153,0.2)' : 'rgba(96,165,250,0.2)'}`,
       }}
     >
       <div className="flex items-center gap-3">

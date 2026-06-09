@@ -67,21 +67,24 @@ export default function WhatsAppInbox() {
     refetchInterval: 15000,
   });
 
-  // Normalize phone numbers and dedupe conversations
+  // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate
   const normalizedConversations = (() => {
     const map = new Map();
     conversations.forEach(conv => {
       const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
-      const existing = map.get(normalizedPhone);
+      const ch = conv.channel || 'personal';
+      const key = `${normalizedPhone}__${ch}`;
+      const existing = map.get(key);
       if (!existing) {
-        map.set(normalizedPhone, conv);
+        map.set(key, conv);
       } else {
+        // Keep the most-recently-active record; merge IDs within same channel only
         const existingTime = existing.last_message_at ? new Date(existing.last_message_at).getTime() : 0;
         const newTime = conv.last_message_at ? new Date(conv.last_message_at).getTime() : 0;
         if (newTime > existingTime) {
-          map.set(normalizedPhone, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
+          map.set(key, { ...conv, merged_conv_ids: [...(conv.merged_conv_ids || []), existing.id] });
         } else {
-          map.set(normalizedPhone, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
+          map.set(key, { ...existing, merged_conv_ids: [...(existing.merged_conv_ids || []), conv.id] });
         }
       }
     });
@@ -404,15 +407,14 @@ export default function WhatsAppInbox() {
 
   const handleSelectConv = (convId) => {
     setSelectedConvId(convId);
-    const conv = conversations.find(c => c.id === convId);
+    const conv = normalizedConversations.find(c => c.id === convId);
     if (conv?.unread_count > 0) {
       base44.entities.WhatsAppConversation.update(convId, { unread_count: 0 });
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     }
-    // Auto-detect channel from last message
-    if (selectedConv) {
-      const lastMsgChannel = selectedConv.last_message_channel || 'business';
-      setSelectedChannel(lastMsgChannel);
+    // Auto-set composer channel to match the conversation's channel
+    if (conv?.channel) {
+      setSelectedChannel(conv.channel);
     }
   };
 
@@ -908,7 +910,7 @@ export default function WhatsAppInbox() {
               </div>
             )}
 
-            {/* Messages — include all merged conversation IDs for full history */}
+            {/* Messages — merged_conv_ids only contains same-channel duplicates now */}
             <ChatThread
               key={selectedConvId}
               conversationId={selectedConvId}

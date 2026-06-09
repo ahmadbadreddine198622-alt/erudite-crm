@@ -197,15 +197,8 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
     conv = convs?.[0] || null;
   } catch {}
 
-  // Fallback: match by phone only for legacy records with no channel set
-  if (!conv) {
-    try {
-      const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
-      // ONLY reuse if it explicitly has no channel (legacy) — never steal from another channel
-      const match = (convs || []).find(c => !c.channel);
-      conv = match || null;
-    } catch {}
-  }
+  // No fallback to channel-less legacy records — always create a new one per channel
+  // (avoids business messages being swallowed by an old personal conversation)
 
   if (!conv) {
     // Create new
@@ -369,15 +362,10 @@ Deno.serve(async (req) => {
     // For outbound (fromMe), still find conv by e164 but don't bump unread
     let conv = null;
     if (fromMe) {
-      // For sent messages, find the conversation matching this channel
+      // For sent messages, find the conversation matching this exact channel only
       try {
         const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel });
         conv = convs?.[0] || null;
-        if (!conv) {
-          // Fallback: any conv for this phone (legacy)
-          const all = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
-          conv = all?.[0] || null;
-        }
       } catch {}
     } else {
       conv = await upsertConversation(serviceRole, {
