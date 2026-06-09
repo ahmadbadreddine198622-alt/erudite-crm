@@ -45,10 +45,17 @@ function tsToIso(rawTimestamp) {
 
 function parseMessage(rawMsgObj) {
   let m = rawMsgObj || {};
+  // Unwrap common wrapper types
   m = m.ephemeralMessage?.message || m.viewOnceMessage?.message || m.viewOnceMessageV2?.message
     || m.documentWithCaptionMessage?.message || m;
 
-  const type = Object.keys(m)[0] || 'unknown';
+  // Filter out noise-only keys so we get the actual content key
+  const NOISE_KEYS = new Set([
+    'messageContextInfo', 'senderKeyDistributionMessage', 'deviceSentMessage',
+    'messageStubType', 'messageStubParameters', 'clearChatMessage',
+  ]);
+  const keys = Object.keys(m).filter(k => !NOISE_KEYS.has(k));
+  const type = keys[0] || 'unknown';
   const out = {
     msgType: type, text: '', caption: '', media: null,
     reply_to_wa_id: '', reaction: null, deletion_target: '', location: null, contacts: null,
@@ -190,12 +197,12 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
     conv = convs?.[0] || null;
   } catch {}
 
-  // Fallback: match by phone only (if channel field not set)
+  // Fallback: match by phone only for legacy records with no channel set
   if (!conv) {
     try {
       const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
-      // Only reuse if it has no channel (legacy) or matches our channel
-      const match = (convs || []).find(c => !c.channel || c.channel === channel);
+      // ONLY reuse if it explicitly has no channel (legacy) — never steal from another channel
+      const match = (convs || []).find(c => !c.channel);
       conv = match || null;
     } catch {}
   }
@@ -362,10 +369,15 @@ Deno.serve(async (req) => {
     // For outbound (fromMe), still find conv by e164 but don't bump unread
     let conv = null;
     if (fromMe) {
-      // For sent messages, just find the conversation — don't upsert inbound fields
+      // For sent messages, find the conversation matching this channel
       try {
-        const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+        const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel });
         conv = convs?.[0] || null;
+        if (!conv) {
+          // Fallback: any conv for this phone (legacy)
+          const all = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
+          conv = all?.[0] || null;
+        }
       } catch {}
     } else {
       conv = await upsertConversation(serviceRole, {
