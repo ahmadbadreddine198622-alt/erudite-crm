@@ -77,30 +77,69 @@ Deno.serve(async (req) => {
     if (!number) return Response.json({ error: 'Conversation has no phone number', conversation_id }, { status: 422 });
   }
 
-  const instanceName = INSTANCE_MAP[channel];
-  
-  // ---- send via Evolution API (v2 send-text) ----
-  const sendUrl = `${apiUrl}/message/sendText/${instanceName}`;
+  // ---- Send via appropriate API depending on channel ----
   let evoStatus = 0;
   let evoBody = null;
-  try {
-    const resp = await fetch(sendUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: apiKey },
-      body: JSON.stringify({ number, text: String(text) }),
-    });
-    evoStatus = resp.status;
-    const raw = await resp.text();
-    try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
-    if (!resp.ok) {
-      return Response.json({ error: 'Evolution send failed', evolution_status: evoStatus, evolution_response: evoBody, send_url: sendUrl }, { status: 502 });
+
+  if (channel === 'business') {
+    // Business: send via Meta Cloud API
+    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    if (!phoneNumberId || !accessToken) {
+      return Response.json({ error: 'WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN secret missing' }, { status: 500 });
     }
-  } catch (e) {
-    return Response.json({ error: 'Could not reach Evolution API', detail: String(e && e.message ? e.message : e), send_url: sendUrl }, { status: 502 });
+    const metaPayload = {
+      messaging_product: 'whatsapp',
+      to: '+' + number,
+      type: 'text',
+      text: { body: String(text), preview_url: false },
+    };
+    try {
+      const resp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(metaPayload),
+      });
+      evoStatus = resp.status;
+      const raw = await resp.text();
+      try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
+      if (!resp.ok) {
+        return Response.json({ error: 'Meta API send failed', meta_status: evoStatus, meta_response: evoBody }, { status: 502 });
+      }
+    } catch (e) {
+      return Response.json({ error: 'Could not reach Meta API', detail: String(e?.message || e) }, { status: 502 });
+    }
+  } else {
+    // Personal: send via Evolution API
+    if (!apiUrl || !apiKey) {
+      return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
+    }
+    const instanceName = INSTANCE_MAP[channel];
+    const sendUrl = `${apiUrl}/message/sendText/${instanceName}`;
+    try {
+      const resp = await fetch(sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: apiKey },
+        body: JSON.stringify({ number, text: String(text) }),
+      });
+      evoStatus = resp.status;
+      const raw = await resp.text();
+      try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
+      if (!resp.ok) {
+        return Response.json({ error: 'Evolution send failed', evolution_status: evoStatus, evolution_response: evoBody, send_url: sendUrl }, { status: 502 });
+      }
+    } catch (e) {
+      return Response.json({ error: 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: 502 });
+    }
   }
 
   // ---- record the outgoing message so the thread stays complete ----
-  const waId = (evoBody && (evoBody.key?.id || evoBody.message?.key?.id)) || null;
+  // Meta returns { messages: [{ id }] }, Evolution returns { key: { id } }
+  const waId = (evoBody && (
+    evoBody.messages?.[0]?.id ||   // Meta Cloud API
+    evoBody.key?.id ||             // Evolution API
+    evoBody.message?.key?.id       // Evolution API (alt)
+  )) || null;
   let message;
   try {
     let conversation = null;
@@ -161,11 +200,15 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Update conversation channel if not already set
+    // Update conversation
     if (conversation && conversation.id) {
-      if (!conversation.channel) {
-        await svc.entities.WhatsAppConversation.update(conversation.id, { channel });
-      }
+      await svc.entities.WhatsAppConversation.update(conversation.id, {
+        channel: conversation.channel || channel,
+        last_message: String(text),
+        last_message_at: new Date().toISOString(),
+        last_outbound_at: new Date().toISOString(),
+        status: conversation.status === 'resolved' ? 'open' : (conversation.status || 'open'),
+      });
     }
   } catch (e) {
     return Response.json({
