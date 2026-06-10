@@ -103,19 +103,11 @@ function ConnectionSetup({ onSaved, existingCredential }) {
           {field('label', 'Label', 'e.g. Dubai Office')}
         </div>
 
-        <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
-          <p className="text-xs font-semibold text-emerald-300">📞 Your Real Mobile Number (REQUIRED for calls to work)</p>
-          <p className="text-[11px] text-muted-foreground">
-            When you click Call, Twilio rings <strong>your personal mobile phone</strong> first. When you pick up, it immediately dials the customer and bridges you together — full two-way audio.
+        <div className="rounded-xl p-4" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+          <p className="text-xs font-semibold text-emerald-300">✅ Browser Calling — No personal phone required</p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Calls go directly from your browser microphone to the customer. No bridge, no personal mobile needed.
           </p>
-          {form.agent_phone && form.agent_phone === form.voice_number && (
-            <div className="rounded-lg px-3 py-2 text-xs font-semibold text-red-300" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)' }}>
-              ⚠️ Agent phone is the same as your Twilio number! Calls will NOT work. Enter your personal mobile (e.g. +971501234567).
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {field('agent_phone', 'Your Personal Mobile Number', '+971XXXXXXXXX (e.g. your UAE mobile)')}
-          </div>
         </div>
 
         <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>

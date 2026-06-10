@@ -92,35 +92,32 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
         return;
       }
 
-      // 2. Create call log
-      const logRes = await base44.functions.invoke('twilioMakeCall', {
+      // 2. Load Twilio Voice SDK and init device
+      const { Device } = await import('@twilio/voice-sdk');
+      const device = new Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
+      deviceRef.current = device;
+
+      device.on('error', (err) => {
+        console.error('[TwilioCallDialog] Device error:', err?.message, err?.code);
+        setErrorMsg(`Error (${err?.code}): ${err?.message}`);
+        setPhase('ended');
+        destroyDevice();
+      });
+
+      // 3. Connect directly — NO register(), NO CallerId param (comes from TwiML App config)
+      const call = await device.connect({ params: { To: toPhone } });
+      callRef.current = call;
+      setPhase('ringing');
+
+      // 4. Create call log after connect (fire-and-forget)
+      base44.functions.invoke('twilioMakeCall', {
         lead_id: leadId,
         landlord_id: landlordId,
         to_phone: toPhone,
         from_phone: callerNumber,
         lead_name: targetName,
         browser_mode: true,
-      });
-      callLogIdRef.current = logRes.data?.call_log_id || '';
-
-      // 3. Load Twilio Voice SDK
-      const { Device } = await import('@twilio/voice-sdk');
-
-      // 4. Init device
-      const device = new Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
-      deviceRef.current = device;
-      await device.register();
-
-      // 5. Place call directly to customer
-      const call = await device.connect({
-        params: {
-          To: toPhone,
-          CallerId: callerNumber,
-          call_log_id: callLogIdRef.current,
-        },
-      });
-      callRef.current = call;
-      setPhase('ringing');
+      }).then(res => { callLogIdRef.current = res.data?.call_log_id || ''; }).catch(() => {});
 
       call.on('ringing', () => setPhase('ringing'));
       call.on('accept', () => setPhase('active'));
