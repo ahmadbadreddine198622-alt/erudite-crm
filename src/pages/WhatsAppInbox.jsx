@@ -912,11 +912,11 @@ export default function WhatsAppInbox() {
               </div>
             )}
 
-            {/* Messages — merged_conv_ids only contains same-channel duplicates now */}
+            {/* Messages — ONLY load messages from the selected conversation (no cross-channel merging) */}
             <ChatThread
               key={selectedConvId}
               conversationId={selectedConvId}
-              allConversationIds={[selectedConvId, ...(Array.isArray(selectedConv?.merged_conv_ids) ? selectedConv.merged_conv_ids.filter(id => id && id !== selectedConvId) : [])]}
+              allConversationIds={[selectedConvId]}
               contactName={selectedLead?.full_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
               optimisticMessage={optimisticMessages[selectedConvId]}
             />
