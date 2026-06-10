@@ -101,6 +101,7 @@ export default function FloatingDialer() {
       call.on('reject', () => { setPhase('ended'); destroyDevice(); });
       call.on('error', (err) => { setErrorMsg(err?.message || 'Call error'); setPhase('ended'); destroyDevice(); });
     } catch (err) {
+      console.error('[FloatingDialer] handleCall error:', err);
       setErrorMsg(err?.message || 'Failed to start call');
       setPhase('idle');
       destroyDevice();
