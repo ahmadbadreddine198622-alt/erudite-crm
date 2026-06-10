@@ -343,26 +343,35 @@ export default function WhatsAppInbox() {
   const unresolvedCount = externalConversations.filter(c => ['new', 'open', 'pending_agent', 'pending_customer'].includes(c.status)).length;
 
   const sendMutation = useMutation({
-    mutationFn: ({ message, channel }) =>
+    mutationFn: ({ message, channel, convId }) =>
       base44.functions.invoke('sendMultiChannelWhatsApp', { 
-        conversation_id: selectedConvId,
+        conversation_id: convId,
         landlord_id: selectedLead?.id,
         text: message,
         channel: channel || 'business'
       }),
-    onSuccess: (res) => {
+    onSuccess: (res, variables) => {
+      const { convId } = variables;
       setOptimisticMessages(prev => {
         const next = { ...prev };
-        delete next[selectedConvId];
+        delete next[convId];
         return next;
       });
-      queryClient.invalidateQueries({ queryKey: ['wa_messages', selectedConvId] });
+      // If backend created/used a different conversation (e.g. new business thread),
+      // switch the UI to that conversation so the user sees the right thread.
+      const returnedConvId = res?.data?.conversation_id;
+      if (returnedConvId && returnedConvId !== convId) {
+        setSelectedConvId(returnedConvId);
+        const returnedChannel = res?.data?.channel;
+        if (returnedChannel) setSelectedChannel(returnedChannel);
+      }
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     },
-    onError: (err) => {
+    onError: (err, variables) => {
+      const { convId } = variables;
       setOptimisticMessages(prev => {
         const next = { ...prev };
-        delete next[selectedConvId];
+        delete next[convId];
         return next;
       });
       toast.error(err?.response?.data?.error || 'Failed to send message');
@@ -380,21 +389,22 @@ export default function WhatsAppInbox() {
   const handleSend = (text) => {
     if (!text?.trim() || !selectedConvId) return;
     const trimmed = text.trim();
-    // Optimistic update — add pending message
+    const convId = selectedConvId;
+    // Optimistic update — add pending message to the current thread
     const now = new Date().toISOString();
     setOptimisticMessages(prev => ({
       ...prev,
-      [selectedConvId]: {
+      [convId]: {
         id: `pending-${Date.now()}`,
         direction: 'outbound',
         body: trimmed,
         timestamp: now,
         status: 'pending',
-        conversation_id: selectedConvId,
+        conversation_id: convId,
         channel: selectedChannel,
       }
     }));
-    sendMutation.mutate({ message: trimmed, channel: selectedChannel });
+    sendMutation.mutate({ message: trimmed, channel: selectedChannel, convId });
   };
 
   const handleScheduleSend = (text, _minutes) => {

@@ -144,36 +144,55 @@ Deno.serve(async (req) => {
   try {
     let conversation = null;
     
-    // If conversation_id provided, use it directly
+    // ALWAYS resolve the correct conversation for the requested channel.
+    // Even when conversation_id is provided, we must check whether its channel
+    // matches the requested channel. If not, find/create the correct one.
+    // This ensures business and personal threads are NEVER mixed.
+    
+    const e164 = '+' + number;
+
+    // Step 1: If conversation_id given, fetch it to get its phone
     if (conversation_id) {
       const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
-      conversation = convList && convList[0];
+      const srcConv = convList && convList[0];
+      if (srcConv) {
+        const srcPhone = toDigits(srcConv.wa_phone_e164 || srcConv.phone_number);
+        // Use same number as source conversation for lookup
+        number = srcPhone || number;
+      }
     }
-    // Otherwise find by phone + channel (most reliable — landlord_id may not be set on conv)
-    else if (landlord_id) {
-      // 1. Try exact phone+channel match
-      const e164 = '+' + number;
-      const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164, channel });
-      conversation = byPhoneAndChannel[0] || null;
-      // 2. Fallback: landlord_id match with correct channel
-      if (!conversation) {
-        const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
-        conversation = byLandlord[0] || null;
-      }
-      // 3. If still not found, create a new conversation for this channel
-      if (!conversation) {
-        const now = new Date().toISOString();
-        conversation = await svc.entities.WhatsAppConversation.create({
-          wa_phone_e164: '+' + number,
-          phone_number: '+' + number,
-          landlord_id: landlord_id || null,
-          status: 'open',
-          channel,
-          first_message_at: now,
-          last_message_at: now,
-          unread_count: 0,
-        });
-      }
+    
+    // Step 2: Find the conversation that matches phone + channel (strict)
+    const phoneE164 = '+' + number;
+    const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
+    conversation = byPhoneAndChannel[0] || null;
+
+    // Fallback: try digits-only phone_number field
+    if (!conversation) {
+      const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
+      conversation = byPhoneNumber[0] || null;
+    }
+
+    // Step 3: If landlord_id provided and still no match, try landlord + channel
+    if (!conversation && landlord_id) {
+      const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
+      conversation = byLandlord[0] || null;
+    }
+
+    // Step 4: Create a new conversation for this channel if none found
+    if (!conversation) {
+      const now = new Date().toISOString();
+      conversation = await svc.entities.WhatsAppConversation.create({
+        wa_phone_e164: phoneE164,
+        phone_number: phoneE164,
+        landlord_id: landlord_id || null,
+        lead_id: null,
+        status: 'open',
+        channel,
+        first_message_at: now,
+        last_message_at: now,
+        unread_count: 0,
+      });
     }
     
     // Dedupe WhatsAppMessage by wa_message_id before creating
