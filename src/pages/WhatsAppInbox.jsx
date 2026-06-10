@@ -928,6 +928,7 @@ export default function WhatsAppInbox() {
               allConversationIds={[selectedConvId]}
               contactName={selectedLead?.full_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
               optimisticMessage={optimisticMessages[selectedConvId]}
+              conversationChannel={selectedConv?.channel}
             />
 
             {/* Tags row */}

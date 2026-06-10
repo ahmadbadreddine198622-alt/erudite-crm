@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
 
-export default function ChatThread({ conversationId, allConversationIds, contactName, optimisticMessage }) {
+export default function ChatThread({ conversationId, allConversationIds, contactName, optimisticMessage, conversationChannel }) {
   const bottomRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [messages, setMessages] = useState([]);
@@ -173,6 +173,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
                 msg={msg} 
                 contactName={contactName}
                 onImageClick={setEnlargedImage}
+                conversationChannel={conversationChannel}
               />
             ))}
           </div>
@@ -201,10 +202,11 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   );
 }
 
-function MessageBubble({ msg, contactName, onImageClick }) {
+function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) {
   const isOutbound = msg.direction === 'outbound';
   const isInbound = msg.direction === 'inbound';
-  const channel = msg.channel || 'personal';
+  // For outbound messages, use the conversation's channel (more reliable than per-message field)
+  const channel = isOutbound ? (conversationChannel || msg.channel || 'personal') : (msg.channel || 'personal');
   const ChannelIcon = channel === 'business' ? Building2 : User;
 
   // Deleted message

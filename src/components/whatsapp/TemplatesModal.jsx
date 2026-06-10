@@ -137,7 +137,7 @@ function TemplateRow({ t, onSend }) {
   );
 }
 
-export default function TemplatesModal({ open, onClose, templates, onSelect }) {
+export default function TemplatesModal({ open, onClose, templates, onSelect, channel }) {
   const [search, setSearch] = useState("");
 
   const filtered = templates.filter(t =>
@@ -157,8 +157,19 @@ export default function TemplatesModal({ open, onClose, templates, onSelect }) {
         style={{ background: 'hsl(222 47% 10%)', border: '1px solid rgba(255,255,255,0.12)' }}
       >
         <DialogHeader className="px-5 pt-5 pb-0">
-          <DialogTitle className="text-base font-semibold" style={{ color: 'rgba(255,255,255,0.95)' }}>
+          <DialogTitle className="text-base font-semibold flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.95)' }}>
             WhatsApp Templates
+            {channel && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                style={{
+                  background: channel === 'business' ? 'hsl(152 69% 40% / 0.15)' : 'hsl(217 91% 60% / 0.15)',
+                  color: channel === 'business' ? 'hsl(152 69% 55%)' : 'hsl(217 91% 70%)',
+                  border: channel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
+                }}
+              >
+                {channel === 'business' ? '🏢 Business (Meta)' : '👤 Personal (Evolution)'}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 

@@ -307,6 +307,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         templates={displayTemplates}
         onSelect={async (t, comps, resolvedBody) => { await handleSendTemplate(t, comps, resolvedBody); }}
         isSending={isSendingTemplate}
+        channel={selectedChannel || conversation?.channel}
       />
     </div>
   );
