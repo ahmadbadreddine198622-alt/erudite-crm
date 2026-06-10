@@ -38,6 +38,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState('details');
   const queryClient = useQueryClient();
 
   const primaryPhone = lead.phone;
@@ -194,7 +195,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           </div>
         </SheetHeader>
 
-        <Tabs defaultValue="details" className="flex-1">
+        <Tabs value={activeDetailTab} onValueChange={setActiveDetailTab} className="flex-1">
           <TabsList className="w-full rounded-none border-b bg-transparent h-10 px-6 justify-start gap-4">
             <TabsTrigger value="details" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">Details</TabsTrigger>
             <TabsTrigger value="whatsapp" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
@@ -506,7 +507,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowWhatsAppPopup(true)}
+            onClick={() => setActiveDetailTab('whatsapp')}
             disabled={!primaryPhone}
             className="text-green-600 hover:text-green-700 hover:bg-green-50"
           >

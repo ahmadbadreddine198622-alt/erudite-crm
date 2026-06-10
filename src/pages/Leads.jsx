@@ -532,16 +532,14 @@ export default function Leads() {
                           </div>
                         )}
                         {lead.phone && (
-                          <a
-                            href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => setSelectedLead(lead)}
                             title={`WhatsApp ${name}`}
                             className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
                             style={{ background: 'rgba(37,211,102,0.18)', border: '1px solid rgba(37,211,102,0.35)' }}
                           >
                             <MessageCircle className="w-3.5 h-3.5" style={{ color: '#25D166' }} />
-                          </a>
+                          </button>
                         )}
                         {lead.phone && (
                           <a
