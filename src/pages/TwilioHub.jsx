@@ -120,8 +120,26 @@ function ConnectionSetup({ onSaved, existingCredential }) {
 
         <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
           <p className="text-xs font-semibold text-indigo-300">🎧 Browser Dialer (required for in-browser audio calls)</p>
+
+          {/* Critical warning about Standard API key */}
+          <div className="rounded-lg px-3 py-2.5 space-y-1" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)' }}>
+            <p className="text-xs font-bold text-red-300">⚠️ IMPORTANT: You must use a Standard API key — NOT a Restricted key</p>
+            <p className="text-[11px] text-red-200/70">
+              Restricted API keys cannot sign Voice tokens and will cause <strong>ConnectionError 53000</strong> in the browser dialer.
+              When creating the API key, select <strong>"Standard"</strong> key type (not Restricted).
+            </p>
+            <a
+              href="https://console.twilio.com/us1/account/keys-credentials/api-keys/create"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-red-300 underline font-medium mt-1"
+            >
+              Create a Standard API Key →
+            </a>
+          </div>
+
           <p className="text-[11px] text-muted-foreground mb-2">
-            Create an API Key at <a href="https://console.twilio.com/us1/account/keys-credentials/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">Twilio Console → API Keys</a> and a TwiML App at <a href="https://console.twilio.com/us1/develop/voice/manage/twiml-apps" target="_blank" rel="noopener noreferrer" className="text-accent underline">TwiML Apps</a> — set its Voice URL to your <code className="text-xs bg-white/10 px-1 rounded">/functions/twilioVoiceWebhook</code> endpoint.
+            Create a <strong>Standard</strong> API Key at <a href="https://console.twilio.com/us1/account/keys-credentials/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">Twilio Console → API Keys</a> and a TwiML App at <a href="https://console.twilio.com/us1/develop/voice/manage/twiml-apps" target="_blank" rel="noopener noreferrer" className="text-accent underline">TwiML Apps</a> — set its Voice URL to your <code className="text-xs bg-white/10 px-1 rounded">/functions/twilioVoiceWebhook</code> endpoint.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {field('api_key_sid', 'API Key SID', 'SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')}

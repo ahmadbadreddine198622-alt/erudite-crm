@@ -88,14 +88,16 @@ export default function FloatingDialer() {
       // Handle device-level errors
       device.on('error', (err) => {
         console.error('[FloatingDialer] Device error:', err?.message, err?.code);
-        setErrorMsg(`Device error (${err?.code || 'unknown'}): ${err?.message || 'Connection failed'}`);
-        setPhase('ended');
-        destroyDevice();
+        // 53000 on outbound-only device during idle is non-fatal — only fail if actively calling
+        if (callRef.current || phase === 'initializing') {
+          setErrorMsg(`Device error (${err?.code || 'unknown'}): ${err?.message || 'Connection failed'}`);
+          setPhase('ended');
+          destroyDevice();
+        }
       });
 
-      // Connect — pass only To. CallerId comes from the TwiML App voice number config.
-      // Do NOT pass CallerId here — it causes Twilio to reject the call if it doesn't
-      // match a verified caller ID on the account.
+      // For outbound-only (incomingAllow:false), we do NOT register.
+      // Just connect directly — the Device handles signaling internally for outbound.
       const call = await device.connect({ params: { To: toPhone } });
       callRef.current = call;
 
