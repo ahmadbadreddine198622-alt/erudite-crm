@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const mode = url.searchParams.get('hub.mode');
     const token = (url.searchParams.get('hub.verify_token') || '').trim();
     const challenge = url.searchParams.get('hub.challenge');
-    const verifyToken = (Deno.env.get('WHATSAPP_VERIFY_TOKEN') || Deno.env.get('META_VERIFY_TOKEN') || '').trim();
+    const verifyToken = (Deno.env.get('WHATSAPP_VERIFY_TOKEN') || Deno.env.get('META_VERIFY_TOKEN') || 'erudite_verify_2024').trim();
     console.log(`[whatsappWebhook] GET verify: mode=${mode} token_match=${token === verifyToken}`);
     if (mode === 'subscribe' && token === verifyToken && challenge) {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
