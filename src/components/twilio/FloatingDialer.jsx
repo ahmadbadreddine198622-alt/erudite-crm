@@ -81,17 +81,11 @@ export default function FloatingDialer() {
         setPhase('idle');
         return;
       }
-      const logRes = await base44.functions.invoke('twilioMakeCall', {
-        to_phone: toPhone,
-        from_phone: callerNumber,
-        browser_mode: true,
-      });
-      callLogIdRef.current = logRes.data?.call_log_id || '';
       const { Device } = await import('@twilio/voice-sdk');
       const device = new Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
       deviceRef.current = device;
 
-      // Handle device-level errors (e.g. signaling connection errors)
+      // Handle device-level errors
       device.on('error', (err) => {
         console.error('[FloatingDialer] Device error:', err?.message, err?.code);
         setErrorMsg(`Device error (${err?.code || 'unknown'}): ${err?.message || 'Connection failed'}`);
@@ -99,11 +93,20 @@ export default function FloatingDialer() {
         destroyDevice();
       });
 
-      // Do NOT call device.register() for outbound-only — it sets up inbound signaling
-      // which can cause ConnectionError 53000 if the TwiML App isn't configured for inbound.
-      // device.connect() handles the signaling channel automatically for outbound calls.
-      const call = await device.connect({ params: { To: toPhone, CallerId: callerNumber, call_log_id: callLogIdRef.current } });
+      // Connect — pass only To. CallerId comes from the TwiML App voice number config.
+      // Do NOT pass CallerId here — it causes Twilio to reject the call if it doesn't
+      // match a verified caller ID on the account.
+      const call = await device.connect({ params: { To: toPhone } });
       callRef.current = call;
+
+      // Create call log AFTER successful connect (not before, to avoid ghost "queued" entries)
+      base44.functions.invoke('twilioMakeCall', {
+        to_phone: toPhone,
+        from_phone: callerNumber,
+        browser_mode: true,
+      }).then(res => {
+        callLogIdRef.current = res.data?.call_log_id || '';
+      }).catch(() => {});
       setPhase('ringing');
       call.on('ringing', () => setPhase('ringing'));
       call.on('accept', () => setPhase('active'));

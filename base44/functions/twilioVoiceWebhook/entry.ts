@@ -43,16 +43,37 @@ Deno.serve(async (req) => {
         params = new URLSearchParams();
       }
       const callSid = params.get('CallSid') || '';
-      // Twilio sends CallStatus for top-level call, DialCallStatus for <Dial> action callback
       const status = params.get('CallStatus') || params.get('DialCallStatus') || '';
       const duration = params.get('CallDuration') || params.get('DialCallDuration') || '';
+      const toNumber = params.get('To') || '';
+      const fromNumber = params.get('From') || '';
       let callLogId = url.searchParams.get('call_log_id') || '';
 
-      console.log(`[twilioVoiceWebhook] status: callSid=${callSid} status=${status} duration=${duration} logId=${callLogId}`);
+      console.log(`[twilioVoiceWebhook] status: callSid=${callSid} status=${status} duration=${duration}`);
 
-      if (!callLogId && callSid) {
-        const logs = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid });
+      // Always try to find by callSid first
+      if (callSid) {
+        const logs = await serviceRole.entities.CallLog.filter({ twilio_call_sid: callSid }).catch(() => []);
         if (logs?.[0]) callLogId = logs[0].id;
+      }
+
+      // If no existing log (browser call), create one now from the status callback
+      if (!callLogId && callSid && toNumber && status !== 'initiated') {
+        try {
+          const newLog = await serviceRole.entities.CallLog.create({
+            twilio_call_sid: callSid,
+            direction: 'outbound',
+            from_number: fromNumber,
+            to_number: toNumber,
+            status: status || 'queued',
+            started_at: new Date().toISOString(),
+            twilio_number_used: fromNumber,
+          });
+          callLogId = newLog.id;
+          console.log(`[twilioVoiceWebhook] ✅ Auto-created CallLog id=${callLogId} for sid=${callSid}`);
+        } catch (createErr) {
+          console.warn('[twilioVoiceWebhook] auto-create log failed:', createErr?.message);
+        }
       }
 
       if (callLogId && status) {
@@ -253,10 +274,9 @@ Deno.serve(async (req) => {
     } catch (_) {}
 
     const to = formParams.get('To') || url.searchParams.get('To') || '';
-    const callerId = formParams.get('CallerId') || formParams.get('From') || '';
-    let callLogId = formParams.get('call_log_id') || url.searchParams.get('call_log_id') || '';
+    const callSid = formParams.get('CallSid') || '';
 
-    console.log(`[twilioVoiceWebhook] dial: to=${to} callerId=${callerId} callLogId=${callLogId}`);
+    console.log(`[twilioVoiceWebhook] dial: to=${to} callSid=${callSid}`);
 
     if (!to) {
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
@@ -265,21 +285,12 @@ Deno.serve(async (req) => {
     }
 
     const { voiceNumber, recordCalls } = await getCreds(serviceRole);
-    const callerIdToUse = callerId || voiceNumber || '';
 
-    // Update call log with real caller info (created by twilioMakeCall in browser_mode)
-    if (callLogId) {
-      serviceRole.entities.CallLog.update(callLogId, {
-        from_number: callerIdToUse,
-        twilio_number_used: callerIdToUse,
-        status: 'ringing',
-      }).catch(() => {});
-    }
+    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status`;
+    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording`;
 
-    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLogId}`;
-    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLogId}`;
-
-    let dialAttrs = `callerId="${callerIdToUse}" timeout="60"`;
+    // callerId must be a verified number on the account
+    let dialAttrs = `callerId="${voiceNumber}" timeout="60"`;
     if (recordCalls) {
       dialAttrs += ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`;
     }

@@ -36,9 +36,13 @@ Deno.serve(async (req) => {
     const AccessToken = twilio.jwt.AccessToken;
     const VoiceGrant = AccessToken.VoiceGrant;
 
+    // outbound-only — do NOT set incomingAllow:true
+    // incomingAllow causes the SDK to register as an inbound endpoint which
+    // triggers a persistent WebSocket signaling connection; if that fails it
+    // throws ConnectionError 53000 BEFORE the outbound call even starts.
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: twimlAppSid,
-      incomingAllow: true,
+      incomingAllow: false,
     });
 
     const token = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
