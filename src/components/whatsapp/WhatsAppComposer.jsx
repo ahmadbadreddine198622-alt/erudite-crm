@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, Zap, FileText, UserCheck } from "lucide-react";
+import { Send, Home, Clock, Languages, Paperclip, Wand2, Lock, Zap, FileText, UserCheck, Building2, User } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 import TemplatesModal from "@/components/whatsapp/TemplatesModal";
-import ChannelSwitcher from "@/components/whatsapp/ChannelSwitcher";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -16,6 +15,10 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
   const [showNameToken, setShowNameToken] = useState(false);
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+
+  // Determine if this is a new conversation (no messages sent yet from either channel)
+  const isNewConversation = !conversation?.last_outbound_at && !conversation?.last_message_at;
 
   const contactName = landlord?.full_name_en || lead?.full_name || conversation?.wa_display_name;
 
@@ -69,12 +72,26 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       setIsInternalNote(false);
       return;
     }
+    // If no channel is set yet (new conversation), show the channel picker first
+    if (!selectedChannel) {
+      setShowChannelPicker(true);
+      return;
+    }
     onSend(text.trim());
     setText("");
   };
 
+  const handleChannelSelect = (channel) => {
+    onChannelChange(channel);
+    setShowChannelPicker(false);
+    if (text.trim()) {
+      onSend(text.trim());
+      setText("");
+    }
+  };
+
   return (
-    <div className="border-t" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+    <div className="border-t relative" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
 
       {/* 24h window warning */}
       {windowLocked && (
@@ -111,14 +128,54 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         </div>
       )}
 
-      {/* Channel switcher + all action icons in one compact row */}
-      <div className="flex items-center gap-1 px-3 pt-2 pb-1 flex-wrap">
-        <ChannelSwitcher
-          selectedChannel={selectedChannel || 'business'}
-          onChannelChange={onChannelChange}
-        />
+      {/* Channel picker modal — shown on first send */}
+      {showChannelPicker && (
+        <div className="absolute inset-0 z-50 flex items-end justify-center pb-4 px-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm rounded-2xl p-5 space-y-4" style={{ background: 'hsl(222 47% 11%)', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <p className="text-sm font-semibold text-white text-center">Send from which number?</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>This chat will be pinned to the chosen number</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleChannelSelect('business')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border transition hover:scale-105"
+                style={{ background: 'hsl(152 69% 40% / 0.1)', borderColor: 'hsl(152 69% 40% / 0.4)' }}
+              >
+                <Building2 className="w-6 h-6" style={{ color: 'hsl(152 69% 55%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(152 69% 55%)' }}>Business</span>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971582806000</span>
+              </button>
+              <button
+                onClick={() => handleChannelSelect('personal')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border transition hover:scale-105"
+                style={{ background: 'hsl(217 91% 60% / 0.1)', borderColor: 'hsl(217 91% 60% / 0.4)' }}
+              >
+                <User className="w-6 h-6" style={{ color: 'hsl(217 91% 70%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(217 91% 70%)' }}>Personal</span>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971581806000</span>
+              </button>
+            </div>
+            <button onClick={() => setShowChannelPicker(false)} className="w-full text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
-        <div className="flex items-center gap-0.5 ml-1.5">
+      {/* Action icons row — no channel switcher */}
+      <div className="flex items-center gap-1 px-3 pt-2 pb-1 flex-wrap">
+        {/* Small channel indicator (read-only, shows which number is active) */}
+        {selectedChannel && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
+            style={{
+              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
+              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
+              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : 'hsl(217 91% 70%)',
+            }}
+          >
+            {selectedChannel === 'business' ? <Building2 className="w-3 h-3 mr-0.5" /> : <User className="w-3 h-3 mr-0.5" />}
+            {selectedChannel === 'business' ? 'Business' : 'Personal'}
+          </div>
+        )}
+
+        <div className="flex items-center gap-0.5">
           {/* Templates — always visible */}
           <ActionIcon
             icon={Zap}

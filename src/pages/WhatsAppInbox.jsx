@@ -48,7 +48,7 @@ export default function WhatsAppInbox() {
   const [copied, setCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [optimisticMessages, setOptimisticMessages] = useState({});
-  const [selectedChannel, setSelectedChannel] = useState('business');
+  const [selectedChannel, setSelectedChannel] = useState(null);
   const [showInternalNote, setShowInternalNote] = useState(false);
   const [showAgentSearch, setShowAgentSearch] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -415,9 +415,8 @@ export default function WhatsAppInbox() {
       queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
     }
     // Auto-set composer channel to match the conversation's channel
-    if (conv?.channel) {
-      setSelectedChannel(conv.channel);
-    }
+    // If no channel set, use null so the picker appears on first send
+    setSelectedChannel(conv?.channel || null);
   };
 
   const handleMarkResolved = () => {
