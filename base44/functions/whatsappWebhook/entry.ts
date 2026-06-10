@@ -1,25 +1,17 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * WhatsApp Cloud API webhook.
+ * whatsappWebhook — Meta Cloud API webhook for business number +971582806000
  *
- * GET  → Meta verification handshake
- * POST → message events + status updates
+ * This is the URL registered in Meta Developer Console.
+ * It saves messages to the DB FIRST, then fires background enrichment.
  *
- * Every inbound message is routed through `routeWhatsAppMessage` which:
- *   - Matches the sender against Lead / Landlord / Contact
- *   - If unknown → classifies intent and creates the right entity (Lead OR Landlord)
- *   - Auto-assigns an agent, triggers Aurora orchestrator, logs the activity
- *
- * This webhook is responsible for:
- *   - Verifying with Meta (GET)
- *   - Deduping by wa_message_id
- *   - Persisting the WhatsAppMessage + WhatsAppConversation records
- *   - Calling the router and saving its result back to the conversation
- *   - Handling voice messages (transcription) and message status callbacks
+ * GET  → Meta verification handshake (WHATSAPP_VERIFY_TOKEN)
+ * POST → Saves WhatsAppConversation (channel=business) + WhatsAppMessage immediately,
+ *        then fires routeWhatsAppMessage + enrichConversation in background.
  */
 
-function normalizePhone(raw: string): string {
+function normalizePhone(raw) {
   if (!raw) return '';
   let c = String(raw).replace(/[^\d+]/g, '');
   if (!c) return '';
@@ -34,240 +26,147 @@ function normalizePhone(raw: string): string {
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
-  // ----- GET: webhook verification handshake -----
+  // ── GET: Meta verification handshake ──────────────────────────────────────
   if (req.method === 'GET') {
     const mode = url.searchParams.get('hub.mode');
-    const token = url.searchParams.get('hub.verify_token');
+    const token = (url.searchParams.get('hub.verify_token') || '').trim();
     const challenge = url.searchParams.get('hub.challenge');
-    const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN');
+    const verifyToken = (Deno.env.get('WHATSAPP_VERIFY_TOKEN') || Deno.env.get('META_VERIFY_TOKEN') || '').trim();
+    console.log(`[whatsappWebhook] GET verify: mode=${mode} token_match=${token === verifyToken}`);
     if (mode === 'subscribe' && token === verifyToken && challenge) {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
     return new Response('Forbidden', { status: 403 });
   }
 
-  // ----- POST: messages + status updates -----
-  const body = await req.json();
+  // ── POST: Parse body ───────────────────────────────────────────────────────
+  let body;
+  try { body = await req.json(); } catch {
+    return new Response('OK', { status: 200 });
+  }
+
+  // Create SDK client from the live request
   const base44 = createClientFromRequest(req);
+  const svc = base44.asServiceRole;
 
-  const entry = body?.entry?.[0];
-  const change = entry?.changes?.[0];
-  const value = change?.value;
+  // Process synchronously so SDK client stays valid
+  // Meta allows up to 20s; we target < 3s by saving first and routing in background
+  try {
+    const entries = body?.entry || [];
+    for (const entry of entries) {
+      for (const change of (entry?.changes || [])) {
+        const value = change?.value || {};
 
-  // Status updates: delivered / read / failed
-  if (value?.statuses?.length) {
-    for (const status of value.statuses) {
-      try {
-        const msgs = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: status.id });
-        if (msgs.length > 0) {
-          await base44.asServiceRole.entities.WhatsAppMessage.update(msgs[0].id, { status: status.status });
-        }
-      } catch (err) { console.warn('status update failed', err); }
-    }
-    return Response.json({ status: 'ok', type: 'status_update' });
-  }
-
-  if (!value?.messages?.length) {
-    return Response.json({ status: 'no_messages' });
-  }
-
-  const results: any[] = [];
-
-  for (const msg of value.messages) {
-    try {
-      const fromNumber = msg.from;
-      const waMessageId = msg.id;
-      const timestamp = new Date(parseInt(msg.timestamp) * 1000).toISOString();
-      const isVoiceMessage = msg.type === 'audio' && msg.audio;
-      const TYPE_LABELS = { audio: '🎤 Voice message', image: '📷 Photo', video: '🎥 Video', document: '📄 Document', sticker: '🩷 Sticker', location: '📍 Location', contacts: '👤 Contact' };
-      let bodyText = msg.text?.body || msg.caption || (isVoiceMessage ? '🎤 Voice message (transcribing…)' : (TYPE_LABELS[msg.type] || `[${msg.type}]`));
-
-      const e164Phone = normalizePhone(fromNumber);
-      
-      // Extract sender's profile name from Meta's contact data
-      const senderProfile = value?.contacts?.find(c => c.wa_id === fromNumber);
-      const waDisplayName = senderProfile?.profile?.name || '';
-
-      // ---- Dedupe by wa_message_id (Meta retries the webhook on failure) ----
-      const dup = await base44.asServiceRole.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId });
-      if (dup.length > 0) {
-        results.push({ wa_message_id: waMessageId, status: 'duplicate' });
-        continue;
-      }
-
-      // ---- Find or create the WhatsAppConversation for the BUSINESS channel ----
-      let conv = null;
-      // First: look for existing business conversation for this phone
-      try {
-        const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel: 'business' });
-        conv = convs?.[0] || null;
-      } catch {}
-      // Fallback: legacy conv with no channel set (first-ever message before channel separation)
-      if (!conv) {
-        try {
-          const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone });
-          const match = (convs || []).find(c => !c.channel);
-          conv = match || null;
-        } catch {}
-      }
-      // Last resort: phone_number field (very old records)
-      if (!conv) {
-        try {
-          const convs = await base44.asServiceRole.entities.WhatsAppConversation.filter({ phone_number: e164Phone, channel: 'business' });
-          conv = convs?.[0] || null;
-        } catch {}
-      }
-
-      if (!conv) {
-        // Brand-new business conversation — create it
-        try {
-          conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
-            wa_phone_e164: e164Phone,
-            phone_number: e164Phone,
-            wa_display_name: waDisplayName,
-            status: 'new',
-            channel: 'business',
-            first_message_at: timestamp,
-            last_inbound_at: timestamp,
-            last_message: bodyText,
-            last_message_at: timestamp,
-            unread_count: 1
-          });
-        } catch (err) {
-          console.error('conversation create failed', err);
-          results.push({ wa_message_id: waMessageId, error: 'conversation_create_failed' });
+        // ── phone_number_id safety check ─────────────────────────────────────
+        const incomingPhoneNumberId = value?.metadata?.phone_number_id;
+        const expectedPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+        if (incomingPhoneNumberId && expectedPhoneNumberId && incomingPhoneNumberId !== expectedPhoneNumberId) {
+          console.log(`[whatsappWebhook] Skipping — phone_number_id mismatch: got ${incomingPhoneNumberId}, expected ${expectedPhoneNumberId}`);
           continue;
         }
-      } else {
-        // Existing conversation — bump counters & update display name if missing
-        try {
-          await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, {
-            channel: 'business',
-            status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
-            wa_display_name: waDisplayName || conv.wa_display_name,
-            last_inbound_at: timestamp,
-            last_message: bodyText,
-            last_message_at: timestamp,
-            last_message_channel: 'business',
-            unread_count: (conv.unread_count || 0) + 1
-          });
-        } catch (err) { console.warn('conversation update failed', err); }
-      }
 
-      // ---- Route the message through Aurora (Lead/Landlord matching + classification) ----
-      // Fetch up to 10 prior message bodies for thread context
-      let recentThread: string[] = [];
-      try {
-        const prior = await base44.asServiceRole.entities.WhatsAppMessage.filter(
-          { conversation_id: conv.id }, '-timestamp', 10
-        );
-        recentThread = prior.reverse().map((m: any) => `[${m.direction}] ${m.body}`);
-      } catch {}
+        // ── Status updates ────────────────────────────────────────────────────
+        for (const status of (value?.statuses || [])) {
+          try {
+            const msgs = await svc.entities.WhatsAppMessage.filter({ wa_message_id: status.id });
+            if (msgs.length > 0) {
+              await svc.entities.WhatsAppMessage.update(msgs[0].id, { status: status.status });
+            }
+          } catch (err) { console.warn('[whatsappWebhook] status update failed:', err?.message); }
+        }
 
-      let routeResult: any = null;
-      try {
-        const r = await base44.asServiceRole.functions.invoke('routeWhatsAppMessage', {
-          phone_e164: e164Phone,
-          message_text: bodyText,
-          message_id: waMessageId,
-          timestamp,
-          conversation_id: conv.id,
-          recent_thread: recentThread
-        });
-        routeResult = r?.data || r;
-      } catch (err) {
-        console.error('routeWhatsAppMessage failed', err);
-      }
+        if (!value?.messages?.length) continue;
 
-      // ---- Persist the WhatsApp message ----
-      let messageRecord = null;
-      try {
-        const inboundRecord: any = {
-          conversation_id: conv.id,
-          wa_message_id: waMessageId,
-          direction: 'inbound',
-          body: bodyText,
-          status: 'delivered',
-          timestamp,
-          from_number: e164Phone,
-          to_number: value.metadata?.display_phone_number || '',
-          media_type: msg.type !== 'text' ? msg.type : 'none',
-          channel: 'business'
-        };
-        console.log('[whatsappWebhook] Creating business inbound message:', {
-          wa_message_id: waMessageId,
-          from: e164Phone,
-          body: bodyText.slice(0, 80),
-          channel: 'business'
-        });
-        if (routeResult?.routed_entity_id) inboundRecord.lead_id = routeResult.routed_entity_id;
-        messageRecord = await base44.asServiceRole.entities.WhatsAppMessage.create(inboundRecord);
-        console.log('✅ Message created:', messageRecord.id, 'conversation:', conv.id);
-      } catch (err) { 
-        console.error('❌ message create failed:', err.message);
-        console.error('Details:', {
-          conversation_id: conv.id,
-          wa_message_id: waMessageId,
-          body: bodyText,
-          timestamp
-        });
-      }
+        // ── Inbound messages ──────────────────────────────────────────────────
+        for (const msg of value.messages) {
+          try {
+            const fromNumber = msg.from; // Meta sends digits only, no +
+            const waMessageId = msg.id;
+            const timestamp = new Date(parseInt(msg.timestamp) * 1000).toISOString();
+            const isVoice = msg.type === 'audio' && msg.audio;
+            const bodyText = msg.text?.body || msg.caption ||
+              (isVoice ? '🎤 Voice message' : `[${msg.type}]`);
 
-      // ---- Update conversation with routing result ----
-      if (routeResult?.routed_entity_id) {
-        try {
-          const convUpdate: any = {};
-          if (routeResult.routed_entity_type === 'landlord') {
-            convUpdate.landlord_id = routeResult.routed_entity_id;
-          } else if (routeResult.routed_entity_type === 'lead') {
-            convUpdate.lead_id = routeResult.routed_entity_id;
+            const e164Phone = normalizePhone(fromNumber);
+            const senderProfile = value?.contacts?.find(c => c.wa_id === fromNumber);
+            const waDisplayName = senderProfile?.profile?.name || '';
+
+            console.log(`[whatsappWebhook] INBOUND from=${e164Phone} type=${msg.type} msgId=${waMessageId} text="${bodyText.slice(0, 60)}"`);
+
+            // ── Dedupe by wa_message_id ──────────────────────────────────────
+            const dupWA = await svc.entities.WhatsAppMessage.filter({ wa_message_id: waMessageId }).catch(() => []);
+            if (dupWA.length > 0) {
+              console.log(`[whatsappWebhook] Duplicate msgId=${waMessageId}, skipping`);
+              continue;
+            }
+
+            // ── Find or create WhatsAppConversation — strictly channel=business ──
+            let conv = null;
+            const existing = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel: 'business' }).catch(() => []);
+            conv = existing?.[0] || null;
+
+            if (!conv) {
+              conv = await svc.entities.WhatsAppConversation.create({
+                wa_phone_e164: e164Phone,
+                phone_number: e164Phone,
+                wa_display_name: waDisplayName || e164Phone,
+                channel: 'business',
+                status: 'new',
+                first_message_at: timestamp,
+                last_inbound_at: timestamp,
+                last_message: bodyText,
+                last_message_at: timestamp,
+                unread_count: 1,
+              });
+              console.log(`[whatsappWebhook] ✅ Created new business conversation id=${conv.id} for ${e164Phone}`);
+            } else {
+              await svc.entities.WhatsAppConversation.update(conv.id, {
+                channel: 'business',
+                status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
+                wa_display_name: waDisplayName || conv.wa_display_name,
+                last_inbound_at: timestamp,
+                last_message: bodyText,
+                last_message_at: timestamp,
+                unread_count: (conv.unread_count || 0) + 1,
+              }).catch(err => console.warn('[whatsappWebhook] conv update failed:', err?.message));
+              console.log(`[whatsappWebhook] ✅ Updated business conversation id=${conv.id}`);
+            }
+
+            // ── Save WhatsAppMessage IMMEDIATELY (critical — do this before any slow calls) ──
+            const waMsg = await svc.entities.WhatsAppMessage.create({
+              conversation_id: conv.id,
+              wa_message_id: waMessageId,
+              direction: 'inbound',
+              body: bodyText,
+              status: 'delivered',
+              timestamp,
+              from_number: e164Phone,
+              to_number: value.metadata?.display_phone_number || '+971582806000',
+              media_type: msg.type !== 'text' ? msg.type : 'none',
+              channel: 'business',
+            });
+            console.log(`[whatsappWebhook] ✅ WhatsAppMessage saved id=${waMsg.id} conv=${conv.id}`);
+
+            // ── Background: route + enrich (slow AI calls — fire and forget) ────
+            svc.functions.invoke('routeWhatsAppMessage', {
+              phone_e164: e164Phone,
+              message_text: bodyText,
+              message_id: waMessageId,
+              timestamp,
+              conversation_id: conv.id,
+            }).catch(() => {});
+            svc.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
+            svc.functions.invoke('executeAutomationRules', { conversation_id: conv.id }).catch(() => {});
+
+          } catch (err) {
+            console.error('[whatsappWebhook] per-message error:', err?.message || err);
           }
-          if (routeResult.assigned_agent_email) {
-            convUpdate.assigned_agent_email = routeResult.assigned_agent_email;
-            convUpdate.assigned_at = timestamp;
-          }
-          if (routeResult.classification) {
-            convUpdate.detected_language = routeResult.classification.language;
-            convUpdate.ai_priority = routeResult.classification.urgency === 'urgent' ? 'urgent' :
-                                     routeResult.classification.urgency === 'high' ? 'high' :
-                                     routeResult.classification.urgency === 'low' ? 'low' : 'medium';
-            convUpdate.ai_intent = routeResult.classification.intent;
-            convUpdate.tags = ['auto_routed', routeResult.routed_entity_type, routeResult.classification.intent].filter(Boolean);
-          }
-          if (Object.keys(convUpdate).length > 0) {
-            await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, convUpdate);
-          }
-        } catch (err) { console.warn('conversation routing update failed', err); }
+        }
       }
-
-      // ---- Voice transcription DISABLED — re-enable when OPENAI_API_KEY is configured ----
-      // if (isVoiceMessage && msg.audio?.id && messageRecord) {
-      //   const audioUrl = `https://graph.facebook.com/v21.0/${msg.audio.id}?access_token=${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`;
-      //   base44.asServiceRole.functions.invoke('processVoiceMessage', {
-      //     conversation_id: conv.id,
-      //     message_id: messageRecord.id,
-      //     audio_url: audioUrl,
-      //     from_number: e164Phone
-      //   }).catch(() => {});
-      // }
-
-      // ---- Background AI enrichment ----
-      base44.asServiceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
-      base44.asServiceRole.functions.invoke('executeAutomationRules', { conversation_id: conv.id }).catch(() => {});
-
-      results.push({
-        wa_message_id: waMessageId,
-        status: 'routed',
-        routed_entity_type: routeResult?.routed_entity_type,
-        routed_entity_id: routeResult?.routed_entity_id,
-        created: routeResult?.created,
-        action: routeResult?.action_taken
-      });
-    } catch (err: any) {
-      console.error('per-message processing failed', err);
-      results.push({ error: err.message });
     }
+  } catch (err) {
+    console.error('[whatsappWebhook] processing error:', err?.message || err);
   }
 
-  return Response.json({ status: 'ok', processed: results.length, results });
+  return new Response('OK', { status: 200 });
 });
