@@ -90,7 +90,18 @@ export default function FloatingDialer() {
       const { Device } = await import('@twilio/voice-sdk');
       const device = new Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
       deviceRef.current = device;
-      await device.register();
+
+      // Handle device-level errors (e.g. signaling connection errors)
+      device.on('error', (err) => {
+        console.error('[FloatingDialer] Device error:', err?.message, err?.code);
+        setErrorMsg(`Device error (${err?.code || 'unknown'}): ${err?.message || 'Connection failed'}`);
+        setPhase('ended');
+        destroyDevice();
+      });
+
+      // Do NOT call device.register() for outbound-only — it sets up inbound signaling
+      // which can cause ConnectionError 53000 if the TwiML App isn't configured for inbound.
+      // device.connect() handles the signaling channel automatically for outbound calls.
       const call = await device.connect({ params: { To: toPhone, CallerId: callerNumber, call_log_id: callLogIdRef.current } });
       callRef.current = call;
       setPhase('ringing');
