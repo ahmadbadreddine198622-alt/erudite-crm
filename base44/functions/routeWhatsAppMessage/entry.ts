@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [] } = await req.json();
+    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [], wa_display_name } = await req.json();
     if (!phone_e164 || !message_text) {
       return Response.json({ error: 'phone_e164 and message_text required' }, { status: 400 });
     }
@@ -155,6 +155,14 @@ Deno.serve(async (req) => {
 
       try {
         const updates = { last_activity_at: timestamp, last_activity_type: 'whatsapp', last_touch_at: timestamp };
+        // If we now have a real WhatsApp display name and entity still has a fallback name, update it
+        if (wa_display_name) {
+          const currentName = e.full_name || e.full_name_en || e.name || '';
+          if (!currentName || currentName.startsWith('WhatsApp lead')) {
+            if (entityType === 'lead') updates.full_name = wa_display_name;
+            else if (entityType === 'landlord') { updates.full_name = wa_display_name; updates.full_name_en = wa_display_name; }
+          }
+        }
         if (entityType === 'lead') {
           await base44.asServiceRole.entities.Lead.update(e.id, updates);
         } else if (entityType === 'landlord') {
@@ -218,7 +226,8 @@ Deno.serve(async (req) => {
     // Determine department and pick the best available agent by capacity
     const department = DEPT_MAP[c?.intent] || 'Sales';
     const agentEmail = await pickAgent(base44, c?.language, department);
-    const name = c?.suggested_name || `WhatsApp lead ${normalized.slice(-4)}`;
+    // Priority: WhatsApp profile name > AI suggested name > phone fallback
+    const name = wa_display_name || c?.suggested_name || `WhatsApp lead ${normalized.slice(-4)}`;
 
     // ─────────────────────────────────────────────────────────────
     // CASE B1: Landlord intents → create Landlord record

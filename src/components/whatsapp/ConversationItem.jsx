@@ -89,8 +89,10 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     );
   }
   
-  // Priority: landlord name > lead name > wa_display_name (WhatsApp profile) > phone
-  const name = landlord?.full_name_en || lead?.full_name || conv.wa_display_name || displayPhone;
+  // Priority: landlord name > lead name > wa_display_name (WhatsApp profile, only if real) > phone
+  const rawWaName = conv.wa_display_name || '';
+  const isGenericName = !rawWaName || rawWaName.startsWith('WhatsApp lead') || rawWaName.startsWith('+');
+  const name = landlord?.full_name_en || lead?.full_name || (!isGenericName ? rawWaName : null) || displayPhone;
   const isWhatsAppProfile = conv.wa_display_name && !landlord && !lead;
   const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
   const timeAgo = conv.last_message_at

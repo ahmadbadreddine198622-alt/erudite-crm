@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
               conv = await svc.entities.WhatsAppConversation.create({
                 wa_phone_e164: e164Phone,
                 phone_number: e164Phone,
-                wa_display_name: waDisplayName || e164Phone,
+                wa_display_name: waDisplayName || '',
                 channel: 'business',
                 status: 'new',
                 first_message_at: timestamp,
@@ -154,6 +154,7 @@ Deno.serve(async (req) => {
               message_id: waMessageId,
               timestamp,
               conversation_id: conv.id,
+              wa_display_name: waDisplayName || '',
             }).catch(() => {});
             svc.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
             svc.functions.invoke('executeAutomationRules', { conversation_id: conv.id }).catch(() => {});

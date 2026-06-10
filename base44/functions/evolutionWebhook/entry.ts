@@ -444,8 +444,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Background: run AI enrichment for inbound messages ----
+    // ---- Background: route + enrich for inbound messages ----
     if (!fromMe && conv?.id) {
+      serviceRole.functions.invoke('routeWhatsAppMessage', {
+        phone_e164: e164Phone,
+        message_text: parsed.text,
+        message_id: waMessageId,
+        timestamp,
+        conversation_id: conv.id,
+        wa_display_name: waDisplayName || '',
+      }).catch(() => {});
       serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
     }
 
