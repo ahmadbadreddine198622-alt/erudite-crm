@@ -6,6 +6,7 @@ import MobileDock from './MobileDock';
 import CommandCenter from '@/components/shared/CommandCenter';
 
 import { Menu, UserPlus, Home } from 'lucide-react';
+import FloatingDialer from '@/components/twilio/FloatingDialer';
 import { useNavigate } from 'react-router-dom';
 
 export default function AppLayout() {
@@ -168,6 +169,7 @@ export default function AppLayout() {
       {commandOpen && <CommandCenter onClose={() => setCommandOpen(false)} />}
 
       <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
+      <FloatingDialer />
       <MobileDock />
     </div>
   );
