@@ -149,6 +149,13 @@ Deno.serve(async (req) => {
     // ─────────────────────────────────────────────────────────────
     const existing = await findExistingEntity(base44, normalized);
 
+    // Always update conversation wa_display_name if we have a real name
+    if (wa_display_name && conversation_id) {
+      base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {
+        wa_display_name: wa_display_name,
+      }).catch(() => {});
+    }
+
     if (existing) {
       const e = existing.entity;
       const entityType = existing.type;

@@ -120,10 +120,12 @@ Deno.serve(async (req) => {
               });
               console.log(`[whatsappWebhook] ✅ Created new business conversation id=${conv.id} for ${e164Phone}`);
             } else {
+              // Always overwrite wa_display_name if a real name arrives (not empty)
+              const nameUpdate = waDisplayName || conv.wa_display_name || '';
               await svc.entities.WhatsAppConversation.update(conv.id, {
                 channel: 'business',
                 status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
-                wa_display_name: waDisplayName || conv.wa_display_name,
+                wa_display_name: nameUpdate,
                 last_inbound_at: timestamp,
                 last_message: bodyText,
                 last_message_at: timestamp,
