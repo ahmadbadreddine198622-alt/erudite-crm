@@ -142,20 +142,17 @@ Deno.serve(async (req) => {
               }
 
               // ── Canonical: ALWAYS write to WhatsAppMessage (all messages) ──────────────────────────────────
-              // Find or create WhatsAppConversation
+              // Find or create WhatsAppConversation — ALWAYS filter by channel=business to avoid mixing with personal
               let conv = null;
-              const convsByE164 = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone }).catch(() => []);
+              const convsByE164 = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel: 'business' }).catch(() => []);
               conv = convsByE164?.[0] || null;
-              if (!conv) {
-                const convsByPhone = await svc.entities.WhatsAppConversation.filter({ phone_number: e164Phone }).catch(() => []);
-                conv = convsByPhone?.[0] || null;
-              }
 
               if (!conv) {
                 conv = await svc.entities.WhatsAppConversation.create({
                   wa_phone_e164: e164Phone,
                   phone_number: e164Phone,
                   wa_display_name: waDisplayName,
+                  channel: 'business',
                   status: 'new',
                   first_message_at: timestamp,
                   last_inbound_at: timestamp,
@@ -163,8 +160,10 @@ Deno.serve(async (req) => {
                   last_message_at: timestamp,
                   unread_count: 1,
                 });
+                console.log(`[metaWhatsAppWebhook] ✅ New business conversation created for ${e164Phone} id=${conv.id}`);
               } else {
                 await svc.entities.WhatsAppConversation.update(conv.id, {
+                  channel: 'business', // Ensure channel is always set correctly
                   status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
                   wa_display_name: waDisplayName || conv.wa_display_name,
                   last_inbound_at: timestamp,

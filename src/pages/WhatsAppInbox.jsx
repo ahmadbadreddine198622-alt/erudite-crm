@@ -278,15 +278,17 @@ export default function WhatsAppInbox() {
     const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
     
     if (!isAdmin && currentUser) {
-      // Regular agents: ONLY see conversations explicitly assigned to them
-      if (!c.assigned_agent_email) return false; // Hide unassigned
-      if (c.assigned_agent_email !== currentUser.email) return false; // Hide others'
+      // Regular agents: only see conversations assigned to them OR unassigned ones
+      if (c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
     }
     
     // Admin/manager can filter by agent, but regular agents can only see their own
     const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
     
-    const matchesChannel = filterChannel === 'all' ? true : filterChannel === 'business' ? c.channel === 'business' : c.channel === 'personal';
+    const matchesChannel = filterChannel === 'all' ? true
+      : filterChannel === 'business' ? (c.channel === 'business')
+      : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
+      : true;
     
     const lead = leads.find(l => l.id === c.lead_id);
     const name = lead?.full_name || c.wa_display_name || phone;

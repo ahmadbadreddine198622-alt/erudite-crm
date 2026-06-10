@@ -149,10 +149,31 @@ Deno.serve(async (req) => {
       const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
       conversation = convList && convList[0];
     }
-    // Otherwise find by landlord_id
+    // Otherwise find by phone + channel (most reliable — landlord_id may not be set on conv)
     else if (landlord_id) {
-      const conversations = await svc.entities.WhatsAppConversation.filter({ landlord_id });
-      conversation = conversations[0];
+      // 1. Try exact phone+channel match
+      const e164 = '+' + number;
+      const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: e164, channel });
+      conversation = byPhoneAndChannel[0] || null;
+      // 2. Fallback: landlord_id match with correct channel
+      if (!conversation) {
+        const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
+        conversation = byLandlord[0] || null;
+      }
+      // 3. If still not found, create a new conversation for this channel
+      if (!conversation) {
+        const now = new Date().toISOString();
+        conversation = await svc.entities.WhatsAppConversation.create({
+          wa_phone_e164: '+' + number,
+          phone_number: '+' + number,
+          landlord_id: landlord_id || null,
+          status: 'open',
+          channel,
+          first_message_at: now,
+          last_message_at: now,
+          unread_count: 0,
+        });
+      }
     }
     
     // Dedupe WhatsAppMessage by wa_message_id before creating
@@ -163,6 +184,8 @@ Deno.serve(async (req) => {
     }
     
     // Create WhatsAppMessage record (used by the inbox UI) - skip if duplicate
+    // Use the channel from the conversation if available (source of truth), fall back to request channel
+    const effectiveChannel = conversation?.channel || channel;
     if (!whatsAppMessageExists) {
       message = await svc.entities.WhatsAppMessage.create({
         conversation_id: conversation?.id || conversation_id || null,
@@ -173,9 +196,9 @@ Deno.serve(async (req) => {
         timestamp: new Date().toISOString(),
         status: 'sent',
         wa_message_id: waId,
-        from_number: channel === 'business' ? '+971582806000' : '+971581806000',
+        from_number: effectiveChannel === 'business' ? '+971582806000' : '+971581806000',
         to_number: '+' + number,
-        channel: channel,
+        channel: effectiveChannel,
         media_type: 'none',
       });
     } else {
@@ -200,10 +223,10 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Update conversation
+    // Update conversation — keep existing channel if set, don't overwrite it
     if (conversation && conversation.id) {
       await svc.entities.WhatsAppConversation.update(conversation.id, {
-        channel: conversation.channel || channel,
+        channel: conversation.channel || effectiveChannel,
         last_message: String(text),
         last_message_at: new Date().toISOString(),
         last_outbound_at: new Date().toISOString(),
