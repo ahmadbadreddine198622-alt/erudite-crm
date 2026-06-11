@@ -299,7 +299,7 @@ export default function ListingProduction() {
 
       // Special rule: reaching 'live' also advances the Landlord pipeline stage
       if (newStage === 'live' && item.landlord_id) {
-        await base44.entities.Landlord.update(item.landlord_id, { stage: 'listing_publication' });
+        await base44.entities.Landlord.update(item.landlord_id, { stage: 'final_confirmation' });
       }
     },
     onMutate: ({ item }) => setMovingId(item.landlord_id),
