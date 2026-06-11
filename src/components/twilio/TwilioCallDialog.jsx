@@ -108,7 +108,18 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
       device.on('error', (err) => {
         console.error('[TwilioCallDialog] Device error:', err?.message, err?.code);
-        setErrorMsg(`Error (${err?.code}): ${err?.message}`);
+        const code = err?.code;
+        let msg = err?.message || 'Call error';
+        if (code === 31005) {
+          msg = 'Gateway rejected the call. Check that your TwiML App Voice URL is set correctly in Twilio Hub → Settings.';
+        } else if (code === 31000 || code === 31003) {
+          msg = 'Connection error. Check your internet connection and try again.';
+        } else if (code === 31204 || code === 31205) {
+          msg = 'Authentication failed. Your call token may have expired — close and try again.';
+        } else if (code === 31002) {
+          msg = 'Account suspended or insufficient funds in your Twilio account.';
+        }
+        setErrorMsg(msg);
         setPhase('ended');
         destroyDevice();
       });
@@ -133,7 +144,14 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
       call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
       call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
       call.on('reject', () => { setPhase('ended'); destroyDevice(); });
-      call.on('error', (err) => { setErrorMsg(err?.message || 'Call error'); setPhase('ended'); destroyDevice(); });
+      call.on('error', (err) => {
+        const code = err?.code;
+        let msg = err?.message || 'Call error';
+        if (code === 31005) msg = 'Gateway rejected the call. Check that your TwiML App Voice URL is set correctly in Twilio Hub → Settings.';
+        setErrorMsg(msg);
+        setPhase('ended');
+        destroyDevice();
+      });
 
     } catch (err) {
       setErrorMsg(err?.message || 'Failed to start call');
