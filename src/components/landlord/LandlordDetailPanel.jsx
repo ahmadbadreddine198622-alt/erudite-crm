@@ -256,6 +256,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
   const LISTING_MANAGER_OPTIONS = [
     { email: 'ajwa@erudite-estate.com', name: 'Ajwa' },
+    { email: 'ahmad@erudite-estate.com', name: 'Ahmad' },
   ];
 
   const listingManagerMutation = useMutation({
