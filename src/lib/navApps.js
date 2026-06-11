@@ -69,6 +69,7 @@ export const ALL_APPS = [
   { label: 'Policies & HR',      icon: Shield,         path: '/policies',            gradient: 'from-indigo-500 to-violet-800',          glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Twilio Hub',         icon: PhoneCall,      path: '/twilio',              gradient: 'from-red-500 to-red-800',               glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'PF Agent Profile',   icon: UserCircle,     path: '/property-finder',     gradient: 'from-red-500 to-rose-700',              glowColor: 'rgba(239,68,68,0.40)', href: 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264' },
+  { label: 'Acknowledgements',   icon: FileText,       path: '/acknowledgements',    gradient: 'from-cyan-500 to-teal-700',             glowColor: 'rgba(6,182,212,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];

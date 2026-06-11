@@ -86,6 +86,7 @@ import AircallHub from '@/pages/AircallHub';
 import MatterportSync from '@/pages/MatterportSync';
 import Policies from '@/pages/Policies';
 import ApiInbox from '@/pages/ApiInbox';
+import Acknowledgements from '@/pages/Acknowledgements';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -187,6 +188,7 @@ const AuthenticatedApp = () => {
         <Route path="/matterport-sync" element={<MatterportSync />} />
         <Route path="/policies" element={<Policies />} />
         <Route path="/api-inbox" element={<ApiInbox />} />
+        <Route path="/acknowledgements" element={<Acknowledgements />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
