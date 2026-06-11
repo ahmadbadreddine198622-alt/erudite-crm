@@ -79,6 +79,7 @@ import BrandSettings from '@/pages/BrandSettings';
 import TeamActivityLog from '@/pages/TeamActivityLog';
 import InviteAgents from '@/pages/InviteAgents';
 import Photography from '@/pages/Photography';
+import ListingProduction from '@/pages/ListingProduction';
 import TwilioHub from '@/pages/TwilioHub';
 import MatterportSync from '@/pages/MatterportSync';
 import Policies from '@/pages/Policies';
@@ -177,6 +178,7 @@ const AuthenticatedApp = () => {
         <Route path="/team-activity" element={<TeamActivityLog />} />
         <Route path="/invite-agents" element={<InviteAgents />} />
         <Route path="/photography" element={<Photography />} />
+        <Route path="/listing-production" element={<ListingProduction />} />
         <Route path="/twilio" element={<TwilioHub />} />
         <Route path="/matterport-sync" element={<MatterportSync />} />
         <Route path="/policies" element={<Policies />} />
