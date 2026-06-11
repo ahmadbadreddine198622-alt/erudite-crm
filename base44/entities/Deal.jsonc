@@ -371,6 +371,94 @@
     "form_i_pdf_url": {
       "type": "string",
       "description": "URL of the generated Form I PDF"
+    },
+    "deal_reference": {
+      "type": "string",
+      "description": "Human-readable auto-sequential reference e.g. DEAL-0001"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to the listing-side Landlord record"
+    },
+    "landlord_property_id": {
+      "type": "string",
+      "description": "FK to the specific LandlordProperty (unit). Nullable."
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "cash_to_cash",
+        "cash_to_mortgage",
+        "mortgage_to_cash",
+        "mortgage_to_mortgage"
+      ],
+      "description": "Buyer-side first, seller-side second. Drives N/A logic on closing checklist steps."
+    },
+    "buyer_financing": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "mortgage"
+      ],
+      "description": "Drives N/A on buyer mortgage steps in closing checklist."
+    },
+    "seller_mortgage": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "mortgaged"
+      ],
+      "description": "Drives N/A on seller liability steps in closing checklist."
+    },
+    "closing_stage": {
+      "type": "string",
+      "enum": [
+        "offer_accepted",
+        "form_f_signed",
+        "deposit_secured",
+        "in_progress",
+        "managers_cheques_arranged",
+        "trustee_appointment_booked",
+        "transfer_at_trustee",
+        "title_deed_issued",
+        "handover_keys_dewa",
+        "commission_invoiced",
+        "closed"
+      ],
+      "default": "offer_accepted",
+      "description": "Linear closing spine for Dubai secondary/resale transactions."
+    },
+    "developer_noc_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "applied",
+        "issued"
+      ],
+      "default": "pending",
+      "description": "Developer NOC status for the unit being transferred."
+    },
+    "buyer_mortgage_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "preapproval",
+        "valuation",
+        "final_offer_letter",
+        "done"
+      ],
+      "default": "pending",
+      "description": "Buyer mortgage progression. N/A when buyer_financing = cash."
+    },
+    "seller_liability_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "settled",
+        "cleared"
+      ],
+      "default": "pending",
+      "description": "Seller mortgage/liability clearance status. N/A when seller_mortgage = clear."
     }
   },
   "required": [
