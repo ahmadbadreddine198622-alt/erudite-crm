@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
   </Dial>
 </Response>`;
 
-    console.log(`[twilioVoiceWebhook] TwiML dial: to=${to} callLogId=${callLogId}`);
+    console.log(`[twilioVoiceWebhook] TwiML dial: to=${to} callSid=${callSid}`);
     return new Response(twiml, {
       headers: { 'Content-Type': 'text/xml' },
     });
