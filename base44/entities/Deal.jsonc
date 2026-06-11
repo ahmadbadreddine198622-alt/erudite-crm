@@ -419,6 +419,34 @@
       ],
       "default": "pending",
       "description": "Seller mortgage/liability clearance status. N/A when seller_mortgage = clear."
+    },
+    "closing_substep": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "managers_cheques_arranged",
+        "trustee_appointment_booked",
+        "transfer_at_trustee",
+        "title_deed_issued",
+        "handover_keys_dewa",
+        "complete"
+      ],
+      "default": "not_started",
+      "description": "Trustee-day micro-step progression. Separate from the shared 'stage' enum \u2014 Closing page only. Do not modify 'stage'."
+    },
+    "trustee_office_name": {
+      "type": "string",
+      "description": "Name of the DLD trustee office handling the transfer."
+    },
+    "trustee_appointment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Scheduled date/time of the trustee appointment."
+    },
+    "managers_cheques_ready": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether all manager's cheques are arranged and ready for transfer day."
     }
   },
   "required": [

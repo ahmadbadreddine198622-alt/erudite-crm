@@ -13,8 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download, UserCheck, Briefcase
+  Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download, UserCheck, Briefcase, Link2
 } from 'lucide-react';
+import LinkToListingDialog from '@/components/leads/LinkToListingDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
@@ -519,6 +520,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             lead_id={lead.id} 
             lead_name={lead.name}
             property_title={lead.interested_properties?.[0] || 'Property'}
+          />
+          <LinkToListingDialog
+            lead={lead}
+            trigger={
+              <Button variant="outline" size="sm" className="text-amber-500 hover:text-amber-600 hover:bg-amber-50/10">
+                <Link2 className="w-4 h-4 mr-1" /> Link to Listing
+              </Button>
+            }
           />
           <Button
             variant="outline"
