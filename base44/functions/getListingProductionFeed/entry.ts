@@ -18,7 +18,17 @@ Deno.serve(async (req) => {
 
     const assigned = landlords.filter(l => l.listing_manager_email && l.listing_manager_email.trim() !== '');
 
-    const feed = assigned.map((ll) => {
+    // Check for archive mode (returns completed units only)
+    const url = new URL(req.url);
+    const archiveMode = url.searchParams.get('archive') === '1';
+
+    const feed = assigned
+      .filter((ll) => {
+        const lp = properties.find((p) => p.landlord_id === ll.id) || {};
+        const stage = lp.listing_production_stage || 'received';
+        return archiveMode ? stage === 'complete' : stage !== 'complete';
+      })
+      .map((ll) => {
       const lp = properties.find((p) => p.landlord_id === ll.id) || {};
 
       // Documents linked by landlord_id (landlord_property_id is null on all real records)
@@ -93,7 +103,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    return Response.json({ feed });
+    return Response.json({ feed, archive_mode: archiveMode });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

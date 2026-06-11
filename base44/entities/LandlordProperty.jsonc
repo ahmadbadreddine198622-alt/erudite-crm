@@ -193,7 +193,8 @@
         "photos_upload",
         "publishing",
         "verification",
-        "live"
+        "live",
+        "complete"
       ],
       "default": "received",
       "description": "Listing manager internal build workflow stage. Additive only \u2014 never rename or reorder."

@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   Home, Phone, Mail, MessageCircle, Camera, Disc, Film, FileText, CheckCircle2,
   Loader2, ChevronLeft, ChevronRight, DollarSign, User, MessageSquare, Send, ChevronDown,
-  Download, Calendar, Percent, ExternalLink, Building2
+  Download, Calendar, Percent, ExternalLink, Building2, Archive, LayoutDashboard, Trophy
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ const STAGE_COLUMNS = [
   'verification',
   'live',
 ];
+// 'complete' is intentionally excluded from active board — goes to archive
 
 const STAGE_LABELS = {
   received:         'Received',
@@ -167,10 +168,10 @@ function NotesThread({ item, refetch }) {
   );
 }
 
-function ListingCard({ item, onMove, isMoving, refetch }) {
+function ListingCard({ item, onMove, isMoving, refetch, showComplete = false, readOnly = false }) {
   const stageIdx = STAGE_COLUMNS.indexOf(item.listing_production_stage);
-  const canGoBack = stageIdx > 0;
-  const canGoFwd  = stageIdx < STAGE_COLUMNS.length - 1;
+  const canGoBack = !readOnly && stageIdx > 0;
+  const canGoFwd  = !readOnly && stageIdx < STAGE_COLUMNS.length - 1;
 
   const handleMove = (dir) => {
     const nextStage = STAGE_COLUMNS[stageIdx + dir];
@@ -194,22 +195,24 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
             )}
           </div>
           {/* Stage move controls */}
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => handleMove(-1)}
-              disabled={!canGoBack || isMoving}
-              className="w-6 h-6 rounded flex items-center justify-center transition hover:bg-white/10 disabled:opacity-25"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 text-white/60" />
-            </button>
-            <button
-              onClick={() => handleMove(1)}
-              disabled={!canGoFwd || isMoving}
-              className="w-6 h-6 rounded flex items-center justify-center transition hover:bg-white/10 disabled:opacity-25"
-            >
-              {isMoving ? <Loader2 className="w-3 h-3 animate-spin text-white/60" /> : <ChevronRight className="w-3.5 h-3.5 text-white/60" />}
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => handleMove(-1)}
+                disabled={!canGoBack || isMoving}
+                className="w-6 h-6 rounded flex items-center justify-center transition hover:bg-white/10 disabled:opacity-25"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 text-white/60" />
+              </button>
+              <button
+                onClick={() => handleMove(1)}
+                disabled={!canGoFwd || isMoving}
+                className="w-6 h-6 rounded flex items-center justify-center transition hover:bg-white/10 disabled:opacity-25"
+              >
+                {isMoving ? <Loader2 className="w-3 h-3 animate-spin text-white/60" /> : <ChevronRight className="w-3.5 h-3.5 text-white/60" />}
+              </button>
+            </div>
+          )}
         </div>
       </CardHeader>
 
@@ -355,6 +358,31 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         )}
 
+        {/* Complete / Archive button — only shown on active board for Live cards */}
+        {showComplete && item.listing_production_stage === 'live' && (
+          <div className="pt-2 border-t border-white/10">
+            <button
+              onClick={() => onMove(item, 'complete')}
+              disabled={isMoving}
+              className="w-full h-8 rounded-lg flex items-center justify-center gap-1.5 text-[11px] font-semibold transition disabled:opacity-30"
+              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
+            >
+              {isMoving
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Closing…</>
+                : <><Trophy className="w-3 h-3" /> Mark as Complete & Archive</>
+              }
+            </button>
+          </div>
+        )}
+
+        {/* Archive badge for completed cards */}
+        {readOnly && (
+          <div className="pt-2 border-t border-white/10 flex items-center gap-1.5">
+            <Archive className="w-3 h-3" style={{ color: '#4ade80' }} />
+            <span className="text-[10px] font-semibold" style={{ color: '#4ade80' }}>Deal Closed</span>
+          </div>
+        )}
+
         {/* Notes & Messages thread */}
         <NotesThread item={item} refetch={refetch} />
       </CardContent>
@@ -364,23 +392,28 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
 
 export default function ListingProduction() {
   const [movingId, setMovingId] = useState(null);
+  const [tab, setTab] = useState('active'); // 'active' | 'archive'
 
   const { data: feed = [], isLoading, refetch } = useQuery({
-    queryKey: ['listing-production-feed'],
+    queryKey: ['listing-production-feed', tab],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getListingProductionFeed', {});
+      const res = await base44.functions.invoke('getListingProductionFeed', { archive: tab === 'archive' ? '1' : '0' });
       return res.data?.feed || [];
     },
   });
 
   const moveMutation = useMutation({
     mutationFn: async ({ item, newStage }) => {
-      const updates = { listing_production_stage: newStage };
-      await base44.entities.LandlordProperty.update(item.landlord_property_id, updates);
-
-      // Special rule: reaching 'live' also advances the Landlord pipeline stage
+      await base44.entities.LandlordProperty.update(item.landlord_property_id, {
+        listing_production_stage: newStage,
+      });
+      // Live → kicks off marketing pipeline
       if (newStage === 'live' && item.landlord_id) {
-        await base44.entities.Landlord.update(item.landlord_id, { stage: 'final_confirmation' });
+        await base44.entities.Landlord.update(item.landlord_id, { stage: 'marketing_agents' });
+      }
+      // Complete → closes the deal, card moves to archive
+      if (newStage === 'complete' && item.landlord_id) {
+        await base44.entities.Landlord.update(item.landlord_id, { stage: 'deal_closed' });
       }
     },
     onMutate: ({ item }) => setMovingId(item.landlord_id),
@@ -392,7 +425,7 @@ export default function ListingProduction() {
     onSettled: () => setMovingId(null),
   });
 
-  // Group by stage
+  // Group by stage (active board only)
   const byStage = {};
   STAGE_COLUMNS.forEach(s => { byStage[s] = []; });
   feed.forEach(item => {
@@ -405,7 +438,7 @@ export default function ListingProduction() {
       <div className="page-root flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-3 border-accent/30 border-t-accent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Loading listing production board...</p>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -414,66 +447,113 @@ export default function ListingProduction() {
   return (
     <div className="page-root">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="page-title text-2xl font-semibold mb-1">Listing Production</h1>
-        <p className="page-subtitle">
-          {feed.length} unit{feed.length !== 1 ? 's' : ''} in queue — use arrows to advance through stages
-        </p>
-      </div>
+      <div className="mb-5 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title text-2xl font-semibold mb-1">Listing Production</h1>
+          <p className="page-subtitle">
+            {tab === 'active'
+              ? `${feed.length} unit${feed.length !== 1 ? 's' : ''} in queue`
+              : `${feed.length} completed unit${feed.length !== 1 ? 's' : ''} in archive`}
+          </p>
+        </div>
 
-      {/* Kanban */}
-      <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4 min-w-max">
-          {STAGE_COLUMNS.map(stage => {
-            const col = STAGE_COLORS[stage];
-            const cards = byStage[stage];
-            return (
-              <div key={stage} className="w-72 shrink-0">
-                {/* Column header */}
-                <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ background: col.text }} />
-                      <h2 className="font-semibold text-sm" style={{ color: col.text }}>
-                        {STAGE_LABELS[stage]}
-                      </h2>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px]"
-                      style={{ background: col.bg, border: `1px solid ${col.border}`, color: col.text }}
-                    >
-                      {cards.length}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Cards */}
-                <div>
-                  {cards.length === 0 ? (
-                    <div
-                      className="text-center py-8 text-[10px] text-muted-foreground"
-                      style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.08)' }}
-                    >
-                      No units
-                    </div>
-                  ) : (
-                    cards.map(item => (
-                      <ListingCard
-                        key={item.landlord_id}
-                        item={item}
-                        onMove={(it, newStage) => moveMutation.mutate({ item: it, newStage })}
-                        isMoving={movingId === item.landlord_id && moveMutation.isPending}
-                        refetch={refetch}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        {/* Tab switcher */}
+        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <button
+            onClick={() => setTab('active')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === 'active' ? 'text-black' : 'text-muted-foreground hover:text-white/70'}`}
+            style={tab === 'active' ? { background: 'hsl(38 92% 50%)' } : {}}
+          >
+            <LayoutDashboard className="w-3 h-3" /> Active Board
+          </button>
+          <button
+            onClick={() => setTab('archive')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${tab === 'archive' ? 'text-black' : 'text-muted-foreground hover:text-white/70'}`}
+            style={tab === 'archive' ? { background: 'hsl(38 92% 50%)' } : {}}
+          >
+            <Archive className="w-3 h-3" /> Archive
+          </button>
         </div>
       </div>
+
+      {/* ── ACTIVE KANBAN ── */}
+      {tab === 'active' && (
+        <div className="overflow-x-auto pb-2">
+          <div className="flex gap-4 min-w-max">
+            {STAGE_COLUMNS.map(stage => {
+              const col = STAGE_COLORS[stage];
+              const cards = byStage[stage];
+              return (
+                <div key={stage} className="w-72 shrink-0">
+                  <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: col.text }} />
+                        <h2 className="font-semibold text-sm" style={{ color: col.text }}>
+                          {STAGE_LABELS[stage]}
+                        </h2>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px]"
+                        style={{ background: col.bg, border: `1px solid ${col.border}`, color: col.text }}
+                      >
+                        {cards.length}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    {cards.length === 0 ? (
+                      <div
+                        className="text-center py-8 text-[10px] text-muted-foreground"
+                        style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.08)' }}
+                      >
+                        No units
+                      </div>
+                    ) : (
+                      cards.map(item => (
+                        <ListingCard
+                          key={item.landlord_id}
+                          item={item}
+                          onMove={(it, newStage) => moveMutation.mutate({ item: it, newStage })}
+                          isMoving={movingId === item.landlord_id && moveMutation.isPending}
+                          refetch={refetch}
+                          showComplete
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── ARCHIVE VIEW ── */}
+      {tab === 'archive' && (
+        <div>
+          {feed.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Archive className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No completed units yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {feed.map(item => (
+                <ListingCard
+                  key={item.landlord_id}
+                  item={item}
+                  onMove={() => {}}
+                  isMoving={false}
+                  refetch={refetch}
+                  readOnly
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
