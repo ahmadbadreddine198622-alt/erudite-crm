@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   Home, Phone, Mail, MessageCircle, Camera, Disc, Film, FileText, CheckCircle2,
   Loader2, ChevronLeft, ChevronRight, DollarSign, User, MessageSquare, Send, ChevronDown,
-  ExternalLink, Download, Image
+  Download
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -252,34 +252,11 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         )}
 
-        {/* Media section */}
-        <div className="pt-1 border-t border-white/10 space-y-2">
-          <p className="text-[9px] text-muted-foreground">Media</p>
-
-          {/* Floor Plan — clickable if URL exists, badge if not */}
+        {/* Media badges — 360/Drone/Video/Floor Plan (no URL fields exist, badges only) */}
+        <div className="pt-1 border-t border-white/10">
+          <p className="text-[9px] text-muted-foreground mb-1">Media</p>
           <div className="flex flex-wrap gap-1">
-            {item.floor_plan_url ? (
-              <a
-                href={item.floor_plan_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border transition hover:opacity-80"
-                style={{ borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.15)', color: '#a5b4fc' }}
-              >
-                <FileText className="w-2 h-2" /><ExternalLink className="w-2 h-2" /> Floor Plan
-              </a>
-            ) : (
-              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${item.has_floor_plan ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
-                {item.has_floor_plan ? <CheckCircle2 className="w-2 h-2" /> : <FileText className="w-2 h-2" />} Floor Plan
-              </span>
-            )}
-
-            {/* 360/Drone/Video — no URL fields exist yet, always badge */}
-            {[
-              { label: '360°', key: 'has_360_tour', icon: Disc },
-              { label: 'Drone', key: 'has_drone_footage', icon: Film },
-              { label: 'Video', key: 'has_video_walkthrough', icon: Camera },
-            ].map(({ label, key, icon: Icon }) => {
+            {MEDIA_FLAGS.map(({ label, key, icon: Icon }) => {
               const done = item[key] === true;
               return (
                 <span key={key} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${done ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
@@ -288,49 +265,30 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
               );
             })}
           </div>
-
-          {/* Document URLs from LandlordProperty (title deed, oqood, DLD, ownership proof) */}
-          {[
-            { label: 'Title Deed', url: item.title_deed_url },
-            { label: 'Oqood', url: item.oqood_url },
-            { label: 'DLD Record', url: item.dld_record_url },
-            { label: 'Ownership Proof', url: item.ownership_proof_doc_url },
-          ].filter(d => d.url).length > 0 && (
-            <div className="space-y-0.5">
-              <p className="text-[9px] text-muted-foreground">Property Docs</p>
-              <div className="flex flex-wrap gap-1">
-                {[
-                  { label: 'Title Deed', url: item.title_deed_url },
-                  { label: 'Oqood', url: item.oqood_url },
-                  { label: 'DLD Record', url: item.dld_record_url },
-                  { label: 'Ownership Proof', url: item.ownership_proof_doc_url },
-                ].filter(d => d.url).map(({ label, url }) => (
-                  <a key={label} href={url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
-                    style={{ background: 'rgba(245,158,11,0.1)', color: 'hsl(38 92% 60%)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Download className="w-2 h-2" /> {label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* LandlordDocument entity — uploaded files */}
-          {item.documents?.length > 0 && (
-            <div className="space-y-0.5">
-              <p className="text-[9px] text-muted-foreground">Documents</p>
-              <div className="flex flex-wrap gap-1">
-                {item.documents.map((doc, i) => (
-                  <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
-                    style={{ background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
-                    <Download className="w-2 h-2" /> {(doc.document_type || 'doc').replace(/_/g, ' ')}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Documents — Form A PDF + LandlordDocument files (real data confirmed) */}
+        {(item.form_a_pdf_url || item.documents?.length > 0) && (
+          <div className="pt-1 border-t border-white/10">
+            <p className="text-[9px] text-muted-foreground mb-1">Documents</p>
+            <div className="flex flex-wrap gap-1">
+              {item.form_a_pdf_url && (
+                <a href={item.form_a_pdf_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
+                  style={{ background: 'rgba(245,158,11,0.12)', color: 'hsl(38 92% 60%)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                  <FileText className="w-2 h-2" /> Form A
+                </a>
+              )}
+              {item.documents?.map((doc, i) => (
+                <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
+                  style={{ background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
+                  <Download className="w-2 h-2" /> {(doc.document_type || 'doc').replace(/_/g, ' ')}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes & Messages thread */}
         <NotesThread item={item} refetch={refetch} />

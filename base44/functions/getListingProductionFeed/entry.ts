@@ -21,14 +21,14 @@ Deno.serve(async (req) => {
     const feed = assigned.map((ll) => {
       const lp = properties.find((p) => p.landlord_id === ll.id) || {};
 
-      // Documents linked to this LandlordProperty — only those with a real file_url
-      const lpDocs = documents
-        .filter(d => d.landlord_property_id === lp.id && d.file_url)
+      // Documents linked by landlord_id (landlord_property_id is null on all real records)
+      // Only include records with a real file_url
+      const landlordDocs = documents
+        .filter(d => d.landlord_id === ll.id && d.file_url)
         .map(d => ({
           document_type: d.document_type,
           file_url: d.file_url,
           status: d.status,
-          notes: d.notes || null,
         }));
 
       return {
@@ -55,20 +55,16 @@ Deno.serve(async (req) => {
         // Permit number — check both entities
         permit_number: lp.permit_number || ll.permit_number || null,
 
+        // Form A PDF — real data confirmed on Landlord entity
+        form_a_pdf_url: ll.form_a_pdf_url || null,
+
         // Media flags (from LandlordProperty)
         photography_status: lp.photography_status || 'none',
         has_360_tour: lp.has_360_tour ?? false,
         has_drone_footage: lp.has_drone_footage ?? false,
         has_video_walkthrough: lp.has_video_walkthrough ?? false,
         has_floor_plan: lp.has_floor_plan ?? false,
-
-        // Media URLs — only fields that actually exist on LandlordProperty schema
-        // NOTE: 360/drone/video have NO URL fields on schema — flags only, no clickable asset possible yet
-        floor_plan_url: lp.floor_plan_url || null,
-        title_deed_url: lp.title_deed_url || null,
-        oqood_url: lp.oqood_url || null,
-        ownership_proof_doc_url: lp.ownership_proof_doc_url || null,
-        dld_record_url: lp.dld_record_url || null,
+        // NOTE: floor_plan_url, title_deed_url, oqood_url, dld_record_url — all null in real data, not returned
 
         // Listing production stage (default 'received' if missing)
         listing_production_stage: lp.listing_production_stage || 'received',
@@ -76,8 +72,8 @@ Deno.serve(async (req) => {
         // Comments thread
         listing_comments: lp.listing_comments || [],
 
-        // Documents from LandlordDocument entity (only those with real file_url)
-        documents: lpDocs,
+        // Real documents from LandlordDocument entity (joined by landlord_id, file_url confirmed real)
+        documents: landlordDocs,
       };
     });
 
