@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Home, User, Camera, CheckCircle2, Disc, Film, FileText, ExternalLink } from 'lucide-react';
+import { User, Camera, Disc, Film, FileText, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const LISTING_STAGE_LABELS = {
@@ -31,20 +31,6 @@ const PHOTO_STATUS_LABELS = {
   scheduled:         'Scheduled',
 };
 
-const LANDLORD_STAGE_LABELS = {
-  initial_contact:         'Initial Contact',
-  price_discovery:         'Price Discovery',
-  listing_commitment:      'Listing Commitment',
-  form_a_initiation:       'Form A Initiation',
-  form_a_signing:          'Form A Signing',
-  owner_documents:         'Owner Documents',
-  photos_videos:           'Photos / Videos',
-  photographer_scheduling: 'Photographer Scheduling',
-  listing_creation:        'Listing Creation',
-  internal_verification:   'Internal Verification',
-  listing_publication:     'Listing Publication',
-  final_confirmation:      'Final Confirmation',
-};
 
 const LISTING_STAGES = ['received','permit_creation','listing_drafting','photos_upload','publishing','verification','live'];
 const PHOTO_STATUSES = ['none','phone_quality','scheduled','professional_done'];

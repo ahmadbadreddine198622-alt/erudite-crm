@@ -10,8 +10,8 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const [landlords, properties] = await Promise.all([
-      base44.asServiceRole.entities.Landlord.list(),
-      base44.asServiceRole.entities.LandlordProperty.list(),
+      base44.asServiceRole.entities.Landlord.list('-updated_date', 500),
+      base44.asServiceRole.entities.LandlordProperty.list('-updated_date', 500),
     ]);
 
     const propByLandlord = {};
