@@ -16,6 +16,7 @@ export const ALL_APPS = [
   { label: 'Leads',              icon: Users,          path: '/leads',               gradient: 'from-emerald-500 to-emerald-800',  glowColor: 'rgba(16,185,129,0.40)', badgeKey: 'leads' },
   { label: 'Contacts',           icon: UserCheck,      path: '/contacts',            gradient: 'from-sky-500 to-cyan-800',         glowColor: 'rgba(14,165,233,0.40)' },
   { label: 'Landlords',          icon: Building2,      path: '/landlords',           gradient: 'from-amber-500 to-orange-700',     glowColor: 'rgba(245,158,11,0.40)' },
+  { label: 'Closing',            icon: Handshake,      path: '/closing',             gradient: 'from-emerald-500 to-green-800',    glowColor: 'rgba(16,185,129,0.40)' },
   { label: 'Projects',           icon: FolderOpen,     path: '/projects',            gradient: 'from-teal-500 to-teal-800',        glowColor: 'rgba(20,184,166,0.40)' },
   { label: 'WhatsApp',           icon: MessageCircle,  path: '/whatsapp',            gradient: 'from-green-500 to-green-800',      glowColor: 'rgba(34,197,94,0.40)', badgeKey: 'whatsapp' },
   { label: 'Inbox',              icon: Inbox,          path: '/inbox',               gradient: 'from-blue-600 to-indigo-800',      glowColor: 'rgba(99,102,241,0.40)' },

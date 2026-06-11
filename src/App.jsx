@@ -81,6 +81,7 @@ import InviteAgents from '@/pages/InviteAgents';
 import Photography from '@/pages/Photography';
 import ListingProduction from '@/pages/ListingProduction';
 import CommandCenter from '@/pages/CommandCenter';
+import Closing from '@/pages/Closing';
 import TwilioHub from '@/pages/TwilioHub';
 import AircallHub from '@/pages/AircallHub';
 import MatterportSync from '@/pages/MatterportSync';
@@ -183,12 +184,14 @@ const AuthenticatedApp = () => {
         <Route path="/photography" element={<Photography />} />
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/listing-production" element={<ListingProduction />} />
+        <Route path="/closing" element={<Closing />} />
         <Route path="/twilio" element={<TwilioHub />} />
         <Route path="/aircall" element={<AircallHub />} />
         <Route path="/matterport-sync" element={<MatterportSync />} />
         <Route path="/policies" element={<Policies />} />
         <Route path="/api-inbox" element={<ApiInbox />} />
         <Route path="/acknowledgements" element={<Acknowledgements />} />
+        <Route path="/closing" element={<Closing />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
