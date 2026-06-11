@@ -81,6 +81,15 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
     setPhase('initializing');
     setErrorMsg('');
 
+    // Request microphone permission explicitly before SDK init
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (micErr) {
+      setErrorMsg('Microphone access denied. Please allow microphone access in your browser settings (click the 🔒 icon in the address bar) and try again.');
+      setPhase('idle');
+      return;
+    }
+
     try {
       // 1. Get access token
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});

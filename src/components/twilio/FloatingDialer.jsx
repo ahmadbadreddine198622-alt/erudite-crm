@@ -74,6 +74,14 @@ export default function FloatingDialer() {
     setPhase('initializing');
     setErrorMsg('');
     try {
+      // Request microphone permission explicitly before SDK init
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (micErr) {
+      setErrorMsg('Microphone access denied. Allow mic access in your browser (click 🔒 in address bar) and try again.');
+      setPhase('idle');
+      return;
+    }
+    try {
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
       const { token, browser_calling_unavailable, error: tokenError } = tokenRes.data || {};
       if (browser_calling_unavailable || !token) {
