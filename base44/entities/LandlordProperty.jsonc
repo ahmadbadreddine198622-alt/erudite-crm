@@ -135,13 +135,25 @@
       "type": "boolean",
       "default": false
     },
+    "tour_360_url": {
+      "type": "string",
+      "description": "URL to the 360\u00b0 virtual tour"
+    },
     "has_drone_footage": {
       "type": "boolean",
       "default": false
     },
+    "drone_footage_url": {
+      "type": "string",
+      "description": "URL to drone footage video/file"
+    },
     "has_video_walkthrough": {
       "type": "boolean",
       "default": false
+    },
+    "video_walkthrough_url": {
+      "type": "string",
+      "description": "URL to video walkthrough"
     },
     "has_floor_plan": {
       "type": "boolean",

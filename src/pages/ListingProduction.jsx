@@ -43,10 +43,10 @@ const STAGE_COLORS = {
 };
 
 const MEDIA_FLAGS = [
-  { label: '360°', key: 'has_360_tour',        icon: Disc },
-  { label: 'Drone', key: 'has_drone_footage',   icon: Film },
-  { label: 'Video', key: 'has_video_walkthrough', icon: Camera },
-  { label: 'Floor Plan', key: 'has_floor_plan', icon: FileText },
+  { label: '360°',       key: 'has_360_tour',          urlKey: 'tour_360_url',         icon: Disc },
+  { label: 'Drone',      key: 'has_drone_footage',      urlKey: 'drone_footage_url',    icon: Film },
+  { label: 'Video',      key: 'has_video_walkthrough',  urlKey: 'video_walkthrough_url', icon: Camera },
+  { label: 'Floor Plan', key: 'has_floor_plan',         urlKey: 'floor_plan_url',       icon: FileText },
 ];
 
 function NotesThread({ item, refetch }) {
@@ -302,16 +302,22 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         )}
 
-        {/* Media badges — 360/Drone/Video/Floor Plan (no files exist, status indicators only) */}
+        {/* Media badges — clickable if URL exists */}
         <div className="pt-1 border-t border-white/10">
           <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Media</p>
           <div className="flex flex-wrap gap-1">
-            {MEDIA_FLAGS.map(({ label, key, icon: Icon }) => {
+            {MEDIA_FLAGS.map(({ label, key, urlKey, icon: Icon }) => {
               const done = item[key] === true;
-              return (
-                <span key={key} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${done ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-white/30'}`}>
-                  {done ? <CheckCircle2 className="w-2 h-2" /> : <Icon className="w-2 h-2" />} {label}
-                </span>
+              const url = item[urlKey];
+              const cls = `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${done ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-white/30'}`;
+              const inner = <>{done ? <CheckCircle2 className="w-2 h-2" /> : <Icon className="w-2 h-2" />} {label}</>;
+              return url ? (
+                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                  className={cls + ' cursor-pointer hover:opacity-80 transition'}>
+                  {inner}
+                </a>
+              ) : (
+                <span key={key} className={cls}>{inner}</span>
               );
             })}
           </div>

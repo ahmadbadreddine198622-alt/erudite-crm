@@ -71,12 +71,16 @@ Deno.serve(async (req) => {
         form_a_mandate_type: latestFormA?.mandate_type || ll.mandate_type || null,
         form_a_commission_pct: ll.commission_pct_negotiated || null,
 
-        // Media flags (from LandlordProperty) — badges only, no URL fields have real data
+        // Media flags + URLs (from LandlordProperty)
         photography_status: lp.photography_status || 'none',
         has_360_tour: lp.has_360_tour ?? false,
+        tour_360_url: lp.tour_360_url || null,
         has_drone_footage: lp.has_drone_footage ?? false,
+        drone_footage_url: lp.drone_footage_url || null,
         has_video_walkthrough: lp.has_video_walkthrough ?? false,
+        video_walkthrough_url: lp.video_walkthrough_url || null,
         has_floor_plan: lp.has_floor_plan ?? false,
+        floor_plan_url: lp.floor_plan_url || null,
 
         // Listing production stage (default 'received' if missing)
         listing_production_stage: lp.listing_production_stage || 'received',
