@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
+import AircallButton from '@/components/shared/AircallButton';
 import CommentsThread from "@/components/photography/CommentsThread";
 import ListingNotesThread from './ListingNotesThread';
 
@@ -369,12 +370,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </Select>
             </div>
           </div>
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <TwilioCallDialog
               lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
               size="icon"
               iconOnly
             />
+            <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
             <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
               <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
             </Button>
@@ -709,11 +711,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span>{landlord.phone || 'No phone'}</span>
               {landlord.phone && (
-                <TwilioCallDialog
-                  lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
-                  size="sm"
-                  iconOnly={false}
-                />
+                <div className="flex items-center gap-1.5">
+                  <TwilioCallDialog
+                    lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
+                    size="sm"
+                    iconOnly={false}
+                  />
+                  <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} />
+                </div>
               )}
             </div>
             {landlord.additional_phones && landlord.additional_phones.length > 0 && (

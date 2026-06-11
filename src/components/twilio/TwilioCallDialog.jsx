@@ -72,6 +72,11 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
     callLogIdRef.current = '';
   }, [destroyDevice]);
 
+  // Destroy device on unmount (component removed from DOM while call still active)
+  useEffect(() => {
+    return () => { destroyDevice(); };
+  }, [destroyDevice]);
+
   useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
 
   const TWIML_VOICE_URL = `${window.location.origin.replace(/^https?:\/\/[^.]+\./, 'https://functions.')}/twilioVoiceWebhook`;
