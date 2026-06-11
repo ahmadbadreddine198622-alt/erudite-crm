@@ -392,7 +392,7 @@
         "mortgage_to_cash",
         "mortgage_to_mortgage"
       ],
-      "description": "Buyer-side financing first, seller-side second. Drives N/A logic on closing checklist steps."
+      "description": "Buyer-side financing first, seller-side second. Drives N/A logic on closing checklist."
     },
     "buyer_financing": {
       "type": "string",
@@ -409,46 +409,6 @@
         "mortgaged"
       ],
       "description": "Drives N/A on seller liability steps in closing checklist."
-    },
-    "closing_stage": {
-      "type": "string",
-      "enum": [
-        "offer_accepted",
-        "form_f_signed",
-        "deposit_secured",
-        "in_progress",
-        "managers_cheques_arranged",
-        "trustee_appointment_booked",
-        "transfer_at_trustee",
-        "title_deed_issued",
-        "handover_keys_dewa",
-        "commission_invoiced",
-        "closed"
-      ],
-      "default": "offer_accepted",
-      "description": "Linear closing spine for Dubai secondary/resale transactions."
-    },
-    "developer_noc_status": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "applied",
-        "issued"
-      ],
-      "default": "pending",
-      "description": "Developer NOC status for the unit being transferred."
-    },
-    "buyer_mortgage_status": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "preapproval",
-        "valuation",
-        "final_offer_letter",
-        "done"
-      ],
-      "default": "pending",
-      "description": "Buyer mortgage progression. N/A when buyer_financing = cash."
     },
     "seller_liability_status": {
       "type": "string",
