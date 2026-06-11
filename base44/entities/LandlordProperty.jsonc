@@ -172,6 +172,20 @@
       ],
       "description": "The angle/tone chosen for the listing copy"
     },
+    "listing_production_stage": {
+      "type": "string",
+      "enum": [
+        "received",
+        "permit_creation",
+        "listing_drafting",
+        "photos_upload",
+        "publishing",
+        "verification",
+        "live"
+      ],
+      "default": "received",
+      "description": "Listing manager internal build workflow stage. Additive only \u2014 never rename or reorder."
+    },
     "ai_estimated_value_aed": {
       "type": "number",
       "description": "AI-estimated market value in AED based on DXB Interact transactions"

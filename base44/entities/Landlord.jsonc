@@ -117,6 +117,11 @@
       "type": "string",
       "format": "email"
     },
+    "listing_manager_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Listing manager responsible for this unit's listing build workflow. Source of truth for listing manager queue."
+    },
     "unit_reference": {
       "type": "string"
     },
