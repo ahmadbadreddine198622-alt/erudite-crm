@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import {
   Home, Phone, Mail, MessageCircle, Camera, Disc, Film, FileText, CheckCircle2,
   Loader2, ChevronLeft, ChevronRight, DollarSign, User, MessageSquare, Send, ChevronDown,
-  Download
+  Download, Calendar, Percent, ExternalLink, Building2
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from 'sonner';
@@ -214,15 +215,23 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         )}
 
-        {/* Agent */}
-        {item.assigned_agent_email && (
-          <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-            <User className="w-2.5 h-2.5" />
-            <span className="truncate">{item.assigned_agent_email}</span>
-          </div>
-        )}
+        {/* Assignment row — Agent + Listing Manager */}
+        <div className="flex flex-col gap-0.5 pt-1 border-t border-white/10">
+          {item.assigned_agent_email && (
+            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+              <User className="w-2.5 h-2.5 shrink-0 text-white/40" />
+              <span className="truncate">{item.assigned_agent_email}</span>
+            </div>
+          )}
+          {item.listing_manager_email && (
+            <div className="flex items-center gap-1.5 text-[9px]" style={{ color: 'hsl(38 92% 55%)' }}>
+              <Building2 className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate font-medium">{item.listing_manager_email}</span>
+            </div>
+          )}
+        </div>
 
-        {/* Price + Permit */}
+        {/* Price + Permit row */}
         <div className="flex flex-wrap gap-1.5">
           {item.asking_price_aed && (
             <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: 'hsl(38 92% 60%)', border: '1px solid rgba(245,158,11,0.2)' }}>
@@ -238,13 +247,10 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
         </div>
 
         {/* Contact */}
-        {(item.phone || item.whatsapp || item.email) && (
-          <div className="flex flex-wrap gap-2 text-[9px] text-muted-foreground pt-1 border-t border-white/10">
+        {(item.phone || item.email) && (
+          <div className="flex flex-wrap gap-2 text-[9px] text-muted-foreground">
             {item.phone && (
               <span className="flex items-center gap-0.5"><Phone className="w-2 h-2" />{item.phone}</span>
-            )}
-            {item.whatsapp && item.whatsapp !== item.phone && (
-              <span className="flex items-center gap-0.5"><MessageCircle className="w-2 h-2" />{item.whatsapp}</span>
             )}
             {item.email && (
               <span className="flex items-center gap-0.5 truncate"><Mail className="w-2 h-2" />{item.email}</span>
@@ -252,14 +258,49 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         )}
 
-        {/* Media badges — 360/Drone/Video/Floor Plan (no URL fields exist, badges only) */}
+        {/* Form A contract block */}
+        {(item.form_a_contract_number || item.form_a_expires_at || item.form_a_commission_pct || item.form_a_pdf_url) && (
+          <div className="pt-1 border-t border-white/10 rounded-lg px-2 py-1.5" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'hsl(38 92% 55%)' }}>Form A</span>
+              {item.form_a_pdf_url && (
+                <a href={item.form_a_pdf_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 text-[8px] transition hover:opacity-80"
+                  style={{ color: 'hsl(38 92% 60%)' }}>
+                  <ExternalLink className="w-2.5 h-2.5" /> Open PDF
+                </a>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+              {item.form_a_contract_number && (
+                <span className="text-[9px] text-white/70 font-mono">#{item.form_a_contract_number}</span>
+              )}
+              {item.form_a_mandate_type && (
+                <span className="text-[9px] text-white/50 capitalize">{item.form_a_mandate_type.replace(/_/g, ' ')}</span>
+              )}
+              {item.form_a_expires_at && (
+                <span className="flex items-center gap-0.5 text-[9px] text-white/50">
+                  <Calendar className="w-2 h-2" />
+                  Exp {format(new Date(item.form_a_expires_at), 'd MMM yyyy')}
+                </span>
+              )}
+              {item.form_a_commission_pct && (
+                <span className="flex items-center gap-0.5 text-[9px]" style={{ color: 'hsl(38 92% 60%)' }}>
+                  <Percent className="w-2 h-2" />{item.form_a_commission_pct}%
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Media badges — 360/Drone/Video/Floor Plan (no files exist, status indicators only) */}
         <div className="pt-1 border-t border-white/10">
-          <p className="text-[9px] text-muted-foreground mb-1">Media</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Media</p>
           <div className="flex flex-wrap gap-1">
             {MEDIA_FLAGS.map(({ label, key, icon: Icon }) => {
               const done = item[key] === true;
               return (
-                <span key={key} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${done ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
+                <span key={key} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-semibold border ${done ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-white/30'}`}>
                   {done ? <CheckCircle2 className="w-2 h-2" /> : <Icon className="w-2 h-2" />} {label}
                 </span>
               );
@@ -267,23 +308,20 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         </div>
 
-        {/* Documents — Form A PDF + LandlordDocument files (real data confirmed) */}
-        {(item.form_a_pdf_url || item.documents?.length > 0) && (
+        {/* Documents — LandlordDocument files (real data confirmed, joined by landlord_id) */}
+        {item.documents?.length > 0 && (
           <div className="pt-1 border-t border-white/10">
-            <p className="text-[9px] text-muted-foreground mb-1">Documents</p>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Documents</p>
             <div className="flex flex-wrap gap-1">
-              {item.form_a_pdf_url && (
-                <a href={item.form_a_pdf_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
-                  style={{ background: 'rgba(245,158,11,0.12)', color: 'hsl(38 92% 60%)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                  <FileText className="w-2 h-2" /> Form A
-                </a>
-              )}
-              {item.documents?.map((doc, i) => (
+              {item.documents.map((doc, i) => (
                 <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
                   style={{ background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
-                  <Download className="w-2 h-2" /> {(doc.document_type || 'doc').replace(/_/g, ' ')}
+                  <Download className="w-2 h-2" />
+                  {(doc.document_type || 'doc').replace(/_/g, ' ')}
+                  {doc.status && doc.status !== 'missing' && (
+                    <span className="ml-0.5 opacity-60">· {doc.status}</span>
+                  )}
                 </a>
               ))}
             </div>

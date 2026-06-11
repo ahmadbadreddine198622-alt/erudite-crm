@@ -31,6 +31,14 @@ Deno.serve(async (req) => {
           status: d.status,
         }));
 
+      // Form A contract details — pull from most recent entry in form_a_contracts[] if present,
+      // falling back to root-level fields. Exact field names from Landlord schema:
+      //   form_a_contract_number, form_a_pdf_url, mandate_expires_at, commission_pct_negotiated,
+      //   form_a_contracts[].contract_number, .pdf_url, .mandate_expires_at, .asking_price_aed, .mandate_type
+      const latestFormA = Array.isArray(ll.form_a_contracts) && ll.form_a_contracts.length > 0
+        ? ll.form_a_contracts[ll.form_a_contracts.length - 1]
+        : null;
+
       return {
         landlord_id: ll.id,
         landlord_property_id: lp.id || null,
@@ -55,16 +63,20 @@ Deno.serve(async (req) => {
         // Permit number — check both entities
         permit_number: lp.permit_number || ll.permit_number || null,
 
-        // Form A PDF — real data confirmed on Landlord entity
-        form_a_pdf_url: ll.form_a_pdf_url || null,
+        // Form A contract block (real data confirmed)
+        form_a_pdf_url: latestFormA?.pdf_url || ll.form_a_pdf_url || null,
+        form_a_contract_number: latestFormA?.contract_number || ll.form_a_contract_number || null,
+        form_a_expires_at: latestFormA?.mandate_expires_at || ll.mandate_expires_at || null,
+        form_a_price_aed: latestFormA?.asking_price_aed || ll.asking_price_aed || null,
+        form_a_mandate_type: latestFormA?.mandate_type || ll.mandate_type || null,
+        form_a_commission_pct: ll.commission_pct_negotiated || null,
 
-        // Media flags (from LandlordProperty)
+        // Media flags (from LandlordProperty) — badges only, no URL fields have real data
         photography_status: lp.photography_status || 'none',
         has_360_tour: lp.has_360_tour ?? false,
         has_drone_footage: lp.has_drone_footage ?? false,
         has_video_walkthrough: lp.has_video_walkthrough ?? false,
         has_floor_plan: lp.has_floor_plan ?? false,
-        // NOTE: floor_plan_url, title_deed_url, oqood_url, dld_record_url — all null in real data, not returned
 
         // Listing production stage (default 'received' if missing)
         listing_production_stage: lp.listing_production_stage || 'received',
