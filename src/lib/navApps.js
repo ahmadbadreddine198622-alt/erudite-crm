@@ -62,6 +62,7 @@ export const ALL_APPS = [
   { label: 'Buyer Match AI',     icon: UserSearch,     path: '/buyer-match-ai',      gradient: 'from-violet-500 to-fuchsia-700',       glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Closing AI',         icon: CheckCircle,    path: '/closing-ai',          gradient: 'from-emerald-500 to-green-700',         glowColor: 'rgba(16,185,129,0.40)' },
   { label: 'Brand Settings',     icon: Target,         path: '/brand-settings',      gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },
+  { label: 'Command Center',     icon: LayoutDashboard, path: '/command-center',     gradient: 'from-amber-400 to-yellow-600',           glowColor: 'rgba(245,158,11,0.50)' },
   { label: 'Listing Production', icon: KanbanSquare,   path: '/listing-production',  gradient: 'from-amber-500 to-yellow-600',          glowColor: 'rgba(245,158,11,0.45)' },
   { label: 'Photography',        icon: Camera,         path: '/photography',         gradient: 'from-rose-500 to-pink-700',             glowColor: 'rgba(244,63,94,0.40)' },
   { label: 'Matterport Sync',    icon: ImageIcon,      path: '/matterport-sync',     gradient: 'from-amber-500 to-orange-700',         glowColor: 'rgba(245,158,11,0.40)' },

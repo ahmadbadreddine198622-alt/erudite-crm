@@ -60,6 +60,7 @@ const navItems = [
   { label: 'Market Intelligence', icon: LineChart,       path: '/market-intelligence', gradient: 'from-indigo-500 to-blue-700' },
   { label: 'Buyer Match AI',      icon: UserSearch,      path: '/buyer-match-ai',      gradient: 'from-pink-500 to-rose-700' },
   { label: 'Closing AI',          icon: CheckCircle,     path: '/closing-ai',          gradient: 'from-green-500 to-emerald-700' },
+  { label: 'Command Center',      icon: LayoutDashboard, path: '/command-center',      gradient: 'from-amber-400 to-yellow-600', adminOnly: true },
   { label: 'Listing Production',  icon: KanbanSquare,    path: '/listing-production',  gradient: 'from-amber-500 to-yellow-600' },
   { label: 'Photography',         icon: Camera,          path: '/photography',         gradient: 'from-rose-500 to-pink-700' },
   { label: 'Matterport Sync',     icon: Camera,          path: '/matterport-sync',     gradient: 'from-amber-500 to-orange-700', adminOnly: true },
