@@ -308,22 +308,34 @@ function ListingCard({ item, onMove, isMoving, refetch }) {
           </div>
         </div>
 
-        {/* Documents — LandlordDocument files (real data confirmed, joined by landlord_id) */}
+        {/* Documents — LandlordDocument files (clickable PDF links when file_url exists) */}
         {item.documents?.length > 0 && (
           <div className="pt-1 border-t border-white/10">
             <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Documents</p>
             <div className="flex flex-wrap gap-1">
-              {item.documents.map((doc, i) => (
-                <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80"
-                  style={{ background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
-                  <Download className="w-2 h-2" />
-                  {(doc.document_type || 'doc').replace(/_/g, ' ')}
-                  {doc.status && doc.status !== 'missing' && (
-                    <span className="ml-0.5 opacity-60">· {doc.status}</span>
-                  )}
-                </a>
-              ))}
+              {item.documents.map((doc, i) => 
+                doc.file_url ? (
+                  <a key={i} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium transition hover:opacity-80 cursor-pointer"
+                    style={{ background: 'rgba(6,182,212,0.1)', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
+                    <Download className="w-2 h-2" />
+                    {(doc.document_type || 'doc').replace(/_/g, ' ')}
+                    {doc.status && doc.status !== 'missing' && (
+                      <span className="ml-0.5 opacity-60">· {doc.status}</span>
+                    )}
+                  </a>
+                ) : (
+                  <span key={i}
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium"
+                    style={{ background: 'rgba(6,182,212,0.05)', color: 'rgba(103,232,249,0.4)', border: '1px solid rgba(6,182,212,0.1)' }}>
+                    <Download className="w-2 h-2" />
+                    {(doc.document_type || 'doc').replace(/_/g, ' ')}
+                    {doc.status && doc.status !== 'missing' && (
+                      <span className="ml-0.5 opacity-60">· {doc.status}</span>
+                    )}
+                  </span>
+                )
+              )}
             </div>
           </div>
         )}
