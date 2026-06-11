@@ -40,6 +40,11 @@ const STAGES = [
   'internal_verification',
   'listing_publication',
   'final_confirmation',
+  'marketing_agents',
+  'marketing_network',
+  'open_house',
+  'client_blast',
+  'deal_closed',
 ];
 
 const STAGE_LABELS = {
@@ -55,6 +60,11 @@ const STAGE_LABELS = {
   internal_verification: 'Internal Verification',
   listing_publication: 'Listing Publication',
   final_confirmation: 'Final Landlord Confirmation',
+  marketing_agents: 'Marketing — Agents',
+  marketing_network: 'Marketing — Network',
+  open_house: 'Open House',
+  client_blast: 'Client Blast',
+  deal_closed: 'Deal Closed',
 };
 
 export default function Landlords() {
