@@ -7,6 +7,7 @@ import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCi
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CommentsThread from "@/components/photography/CommentsThread";
+import ListingNotesThread from './ListingNotesThread';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -990,7 +991,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
-            {/* Comments thread */}
+            {/* Photography comments thread */}
             {existingTask && landlordProperty && (
               <div className="pt-2 border-t border-white/10">
                 <CommentsThread
@@ -999,6 +1000,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 />
               </div>
             )}
+
+            {/* Agent ↔ Listing Manager shared notes thread */}
+            <ListingNotesThread
+              landlordProperty={landlordProperty}
+              landlordPropertyId={landlordPropertyId}
+              onRefetch={() => queryClient.invalidateQueries({ queryKey: ['landlord-properties', landlord.id] })}
+            />
           </div>
 
           {/* AI Insights */}

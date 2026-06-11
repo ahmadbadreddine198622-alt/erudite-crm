@@ -186,6 +186,28 @@
       "default": "received",
       "description": "Listing manager internal build workflow stage. Additive only \u2014 never rename or reorder."
     },
+    "listing_comments": {
+      "type": "array",
+      "description": "Agent\u2194Listing Manager communication thread. Append-only. Shared between Listing Production board and Landlord Detail Panel.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "author_email": {
+            "type": "string"
+          },
+          "author_name": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
     "ai_estimated_value_aed": {
       "type": "number",
       "description": "AI-estimated market value in AED based on DXB Interact transactions"
