@@ -148,7 +148,12 @@
         "listing_creation",
         "internal_verification",
         "listing_publication",
-        "final_confirmation"
+        "final_confirmation",
+        "marketing_agents",
+        "marketing_network",
+        "open_house",
+        "client_blast",
+        "deal_closed"
       ],
       "default": "initial_contact"
     },
