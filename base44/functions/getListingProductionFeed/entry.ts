@@ -52,6 +52,9 @@ Deno.serve(async (req) => {
 
         // Listing production stage (default 'received' if missing)
         listing_production_stage: lp.listing_production_stage || 'received',
+
+        // Comments thread
+        listing_comments: lp.listing_comments || [],
       };
     });
 

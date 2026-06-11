@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Home, Phone, Mail, MessageCircle, Camera, Disc, Film, FileText, CheckCircle2,
-  Loader2, ChevronLeft, ChevronRight, DollarSign, User
+  Loader2, ChevronLeft, ChevronRight, DollarSign, User, MessageSquare, Send, ChevronDown
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 const STAGE_COLUMNS = [
   'received',
@@ -46,7 +47,116 @@ const MEDIA_FLAGS = [
   { label: 'Floor Plan', key: 'has_floor_plan', icon: FileText },
 ];
 
-function ListingCard({ item, onMove, isMoving }) {
+function NotesThread({ item, refetch }) {
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState('');
+  const [posting, setPosting] = useState(false);
+  const bottomRef = useRef(null);
+
+  const comments = item.listing_comments || [];
+
+  // Scroll to bottom when opened or new comment added
+  useEffect(() => {
+    if (open && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [open, comments.length]);
+
+  const handlePost = async () => {
+    const text = body.trim();
+    if (!text) return;
+    setPosting(true);
+    try {
+      const user = await base44.auth.me();
+      const newEntry = {
+        author_email: user?.email || '',
+        author_name: user?.full_name || user?.email || 'Unknown',
+        body: text,
+        created_at: new Date().toISOString(),
+      };
+      const updated = [...comments, newEntry];
+      await base44.entities.LandlordProperty.update(item.landlord_property_id, {
+        listing_comments: updated,
+      });
+      setBody('');
+      refetch();
+    } catch (err) {
+      toast.error('Failed to post: ' + err.message);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <div className="pt-1.5 border-t border-white/10">
+      {/* Toggle header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between text-[9px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-white/70 transition py-0.5"
+      >
+        <span className="flex items-center gap-1">
+          <MessageSquare className="w-2.5 h-2.5" />
+          Notes &amp; Messages
+          {comments.length > 0 && (
+            <span className="ml-1 px-1 py-0 rounded-full text-[8px]" style={{ background: 'rgba(245,158,11,0.18)', color: 'hsl(38 92% 60%)' }}>
+              {comments.length}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="mt-1.5 space-y-1.5">
+          {/* Thread */}
+          {comments.length === 0 ? (
+            <p className="text-[9px] text-muted-foreground italic py-1">No messages yet.</p>
+          ) : (
+            <div className="max-h-36 overflow-y-auto space-y-1.5 pr-0.5">
+              {comments.map((c, i) => (
+                <div key={i} className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <span className="text-[9px] font-semibold truncate" style={{ color: 'hsl(38 92% 60%)' }}>
+                      {c.author_name || c.author_email || 'Unknown'}
+                    </span>
+                    <span className="text-[8px] text-muted-foreground shrink-0">
+                      {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ''}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-white/80 leading-snug break-words">{c.body}</p>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="flex gap-1.5 items-center">
+            <input
+              type="text"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handlePost()}
+              placeholder="Add a note…"
+              className="flex-1 h-7 px-2 rounded-lg text-[10px] outline-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+            />
+            <button
+              onClick={handlePost}
+              disabled={posting || !body.trim()}
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+              style={{ background: 'hsl(38 92% 50% / 0.2)', border: '1px solid hsl(38 92% 50% / 0.3)' }}
+            >
+              {posting ? <Loader2 className="w-3 h-3 animate-spin text-accent" /> : <Send className="w-3 h-3" style={{ color: 'hsl(38 92% 55%)' }} />}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListingCard({ item, onMove, isMoving, refetch }) {
   const stageIdx = STAGE_COLUMNS.indexOf(item.listing_production_stage);
   const canGoBack = stageIdx > 0;
   const canGoFwd  = stageIdx < STAGE_COLUMNS.length - 1;
@@ -163,6 +273,9 @@ function ListingCard({ item, onMove, isMoving }) {
             })}
           </div>
         </div>
+
+        {/* Notes & Messages thread */}
+        <NotesThread item={item} refetch={refetch} />
       </CardContent>
     </Card>
   );
@@ -270,6 +383,7 @@ export default function ListingProduction() {
                         item={item}
                         onMove={(it, newStage) => moveMutation.mutate({ item: it, newStage })}
                         isMoving={movingId === item.landlord_id && moveMutation.isPending}
+                        refetch={refetch}
                       />
                     ))
                   )}
