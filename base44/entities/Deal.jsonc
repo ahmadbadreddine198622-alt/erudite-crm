@@ -384,7 +384,7 @@
       "type": "string",
       "description": "FK to the specific LandlordProperty (unit). Nullable."
     },
-    "transaction_type": {
+    "financing_type": {
       "type": "string",
       "enum": [
         "cash_to_cash",
@@ -392,7 +392,7 @@
         "mortgage_to_cash",
         "mortgage_to_mortgage"
       ],
-      "description": "Buyer-side first, seller-side second. Drives N/A logic on closing checklist steps."
+      "description": "Buyer-side financing first, seller-side second. Drives N/A logic on closing checklist steps."
     },
     "buyer_financing": {
       "type": "string",
