@@ -13,7 +13,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
   const [dialNumber, setDialNumber] = useState('');
   const [callerNumber, setCallerNumber] = useState('');
 
-  // phase: idle | initializing | ringing | active | ended
+  // phase: idle | mic_denied | initializing | ringing | active | ended
   const [phase, setPhase] = useState('idle');
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -74,24 +74,32 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
   useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
 
+  const TWIML_VOICE_URL = `${window.location.origin.replace(/^https?:\/\/[^.]+\./, 'https://functions.')}/twilioVoiceWebhook`;
+
   const handleCall = async () => {
     const toPhone = dialNumber.trim();
     if (!toPhone) return toast.error('Enter a phone number');
 
-    setPhase('initializing');
     setErrorMsg('');
 
-    // Request microphone permission explicitly before SDK init
+    // 1. Check microphone permission FIRST — show dedicated screen if denied
     try {
+      const permResult = await navigator.permissions?.query({ name: 'microphone' }).catch(() => null);
+      if (permResult?.state === 'denied') {
+        setPhase('mic_denied');
+        return;
+      }
+      // Actively request mic — this triggers the browser permission prompt
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (micErr) {
-      setErrorMsg('Microphone access denied. Please allow microphone access in your browser settings (click the 🔒 icon in the address bar) and try again.');
-      setPhase('idle');
+      setPhase('mic_denied');
       return;
     }
 
+    setPhase('initializing');
+
     try {
-      // 1. Get access token
+      // 2. Get access token
       const tokenRes = await base44.functions.invoke('twilioVoiceToken', {});
       const { token, browser_calling_unavailable, error: tokenError } = tokenRes.data || {};
 
@@ -101,35 +109,39 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
         return;
       }
 
-      // 2. Load Twilio Voice SDK and init device
+      // 3. Load Twilio Voice SDK and init device
       const { Device } = await import('@twilio/voice-sdk');
       const device = new Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
       deviceRef.current = device;
 
-      device.on('error', (err) => {
+      const handleDeviceError = (err) => {
         console.error('[TwilioCallDialog] Device error:', err?.message, err?.code);
         const code = err?.code;
         let msg = err?.message || 'Call error';
         if (code === 31005) {
-          msg = 'Gateway rejected the call. Check that your TwiML App Voice URL is set correctly in Twilio Hub → Settings.';
+          msg = `Gateway error (31005): Your TwiML App Voice URL is not set or incorrect.\n\nIn Twilio Console → TwiML Apps, set the Voice URL to:\n${TWIML_VOICE_URL}`;
         } else if (code === 31000 || code === 31003) {
           msg = 'Connection error. Check your internet connection and try again.';
         } else if (code === 31204 || code === 31205) {
-          msg = 'Authentication failed. Your call token may have expired — close and try again.';
+          msg = 'Authentication failed. Close and try again.';
         } else if (code === 31002) {
           msg = 'Account suspended or insufficient funds in your Twilio account.';
+        } else if (code === 20101) {
+          msg = 'Invalid Access Token. Check your API Key SID / Secret in Twilio Hub → Settings.';
         }
         setErrorMsg(msg);
         setPhase('ended');
         destroyDevice();
-      });
+      };
 
-      // 3. Connect directly — NO register(), NO CallerId param (comes from TwiML App config)
+      device.on('error', handleDeviceError);
+
+      // 4. Connect directly — no register()
       const call = await device.connect({ params: { To: toPhone } });
       callRef.current = call;
       setPhase('ringing');
 
-      // 4. Create call log after connect (fire-and-forget)
+      // 5. Create call log (fire-and-forget)
       base44.functions.invoke('twilioMakeCall', {
         lead_id: leadId,
         landlord_id: landlordId,
@@ -144,14 +156,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
       call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
       call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
       call.on('reject', () => { setPhase('ended'); destroyDevice(); });
-      call.on('error', (err) => {
-        const code = err?.code;
-        let msg = err?.message || 'Call error';
-        if (code === 31005) msg = 'Gateway rejected the call. Check that your TwiML App Voice URL is set correctly in Twilio Hub → Settings.';
-        setErrorMsg(msg);
-        setPhase('ended');
-        destroyDevice();
-      });
+      call.on('error', handleDeviceError);
 
     } catch (err) {
       setErrorMsg(err?.message || 'Failed to start call');
@@ -251,6 +256,47 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
           </div>
         )}
 
+        {/* ── MIC DENIED ── */}
+        {phase === 'mic_denied' && (
+          <div className="px-6 py-10 flex flex-col items-center gap-5 text-center">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(239,68,68,0.12)', border: '2px solid rgba(239,68,68,0.3)' }}>
+              <MicOff className="w-9 h-9 text-red-400" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-white font-bold text-base">Microphone Access Required</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Your browser blocked microphone access. To enable calling:
+              </p>
+              <ol className="text-left text-xs space-y-1.5 mt-2" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <li>1. Click the <strong className="text-white">🔒 lock icon</strong> in your browser's address bar</li>
+                <li>2. Set <strong className="text-white">Microphone</strong> to <strong className="text-white">Allow</strong></li>
+                <li>3. Reload the page and try again</li>
+              </ol>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                    setPhase('idle');
+                  } catch (_) {
+                    // still denied — stay on this screen
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}>
+                Try Again
+              </button>
+              <button onClick={() => setOpen(false)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── INITIALIZING ── */}
         {phase === 'initializing' && (
           <div className="px-6 py-14 flex flex-col items-center gap-4">
@@ -337,11 +383,28 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
               style={{ background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.2)' }}>
               <PhoneOff className="w-9 h-9 text-slate-400" />
             </div>
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1 w-full">
               <p className="text-xl font-semibold text-white">{targetName || dialNumber}</p>
               {elapsed > 0 && <p className="text-sm font-mono text-white/40">Duration: {fmt(elapsed)}</p>}
               <p className="text-sm text-slate-400">Call ended</p>
-              {errorMsg && <p className="text-xs text-red-400 mt-1">{errorMsg}</p>}
+              {errorMsg && (
+                <div className="mt-2 text-left rounded-xl px-3 py-2.5 space-y-2"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {errorMsg.split('\n').map((line, i) =>
+                    line.startsWith('https://') ? (
+                      <div key={i} className="flex items-center gap-1.5 bg-black/20 rounded-lg px-2 py-1.5">
+                        <code className="text-[10px] text-amber-300 font-mono break-all flex-1">{line}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(line); toast.success('URL copied'); }}
+                          className="text-[9px] px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:bg-white/10 shrink-0">
+                          Copy
+                        </button>
+                      </div>
+                    ) : (
+                      <p key={i} className={`text-xs ${i === 0 ? 'text-red-400 font-semibold' : 'text-white/60'}`}>{line}</p>
+                    )
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-3">
               <button onClick={fullReset}
