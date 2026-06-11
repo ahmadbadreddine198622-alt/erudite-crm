@@ -82,6 +82,7 @@ import Photography from '@/pages/Photography';
 import ListingProduction from '@/pages/ListingProduction';
 import CommandCenter from '@/pages/CommandCenter';
 import TwilioHub from '@/pages/TwilioHub';
+import AircallHub from '@/pages/AircallHub';
 import MatterportSync from '@/pages/MatterportSync';
 import Policies from '@/pages/Policies';
 import ApiInbox from '@/pages/ApiInbox';
@@ -182,6 +183,7 @@ const AuthenticatedApp = () => {
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/listing-production" element={<ListingProduction />} />
         <Route path="/twilio" element={<TwilioHub />} />
+        <Route path="/aircall" element={<AircallHub />} />
         <Route path="/matterport-sync" element={<MatterportSync />} />
         <Route path="/policies" element={<Policies />} />
         <Route path="/api-inbox" element={<ApiInbox />} />
