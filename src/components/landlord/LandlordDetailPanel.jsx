@@ -254,6 +254,33 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
     { email: 'ahmad.badreddine198622@gmail.com', name: 'Ahmad Badreddine' },
   ];
 
+  const LISTING_MANAGER_OPTIONS = [
+    { email: 'ajwa@erudite-estate.com', name: 'Ajwa' },
+  ];
+
+  const listingManagerMutation = useMutation({
+    mutationFn: async (email) => {
+      // 1. Set listing_manager_email on Landlord
+      await base44.entities.Landlord.update(landlord.id, { listing_manager_email: email || null });
+
+      // 2. If assigning (not clearing), set listing_production_stage = 'received' only if unset
+      if (email && landlordPropertyId) {
+        if (!landlordProperty?.listing_production_stage) {
+          await base44.entities.LandlordProperty.update(landlordPropertyId, {
+            listing_production_stage: 'received',
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      queryClient.invalidateQueries({ queryKey: ['landlord-properties', landlord.id] });
+      onUpdate?.();
+      toast.success('Listing manager updated');
+    },
+    onError: (e) => toast.error('Failed: ' + e.message),
+  });
+
   const editContactMutation = useMutation({
     mutationFn: (data) => base44.entities.Landlord.update(landlord.id, data),
     onSuccess: () => {
@@ -740,6 +767,31 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                     <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Listing Manager Assignment */}
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-1">Listing Manager</p>
+                <select
+                  value={landlord.listing_manager_email || ''}
+                  onChange={(e) => listingManagerMutation.mutate(e.target.value)}
+                  disabled={listingManagerMutation.isPending}
+                  className="w-full px-2 py-1 text-xs rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">Unassigned</option>
+                  {LISTING_MANAGER_OPTIONS.map(m => (
+                    <option key={m.email} value={m.email}>{m.name}</option>
+                  ))}
+                </select>
+                {landlord.listing_manager_email && (
+                  <p className="text-[10px] mt-0.5" style={{ color: 'hsl(38 92% 55%)' }}>
+                    {listingManagerMutation.isPending ? 'Saving…' : `Assigned to ${LISTING_MANAGER_OPTIONS.find(m => m.email === landlord.listing_manager_email)?.name || landlord.listing_manager_email.split('@')[0]}`}
+                  </p>
+                )}
               </div>
             </div>
 

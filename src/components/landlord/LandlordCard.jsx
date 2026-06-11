@@ -412,6 +412,11 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             👤 {landlord.assigned_agent_email.split('@')[0]}
           </span>
         )}
+        {landlord.listing_manager_email && (
+          <span className="text-[7px] px-1 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 flex items-center gap-0.5">
+            📋 {landlord.listing_manager_email.split('@')[0]}
+          </span>
+        )}
       </div>
 
       {/* Bottom row: time + assign + actions */}
