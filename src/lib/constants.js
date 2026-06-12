@@ -1,3 +1,29 @@
+const isFilled = (v) => v !== null && v !== undefined && String(v).trim() !== '';
+
+export const COMPANY = {
+  name_en:       "ERUDITE REAL ESTATE",
+  name_ar:       "الإرودايت للعقارات",
+  establishment: "Erudite Property (Erudite Real Estate)",
+  address:       "Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, U.A.E.",
+  po_box:        "121828",
+  phone:         "+971 58 180 6000",
+  email:         "info@erudite-estate.com",
+  website:       "www.eruditeproperty.com",
+  orn:           "29322",
+  brn:           "34625",
+  ded:           "1032973",
+};
+
+export const COMPANY_LETTERHEAD = [
+  COMPANY.establishment,
+  COMPANY.address,
+  isFilled(COMPANY.po_box) ? "P.O. Box " + COMPANY.po_box : "",
+  COMPANY.phone,
+  COMPANY.email,
+  COMPANY.website,
+  `ORN ${COMPANY.orn}  |  BRN ${COMPANY.brn}  |  DED ${COMPANY.ded}`,
+].filter(isFilled);
+
 export const PIPELINE_STAGES = [
   { id: 'new_lead', label: 'New Lead', color: 'blue' },
   { id: 'contacted', label: 'Contacted', color: 'sky' },
