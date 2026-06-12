@@ -29,6 +29,11 @@
       "format": "date",
       "description": "Date written on the cheque face"
     },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the cheque was issued (distinct from cheque_date face date and received_date)"
+    },
     "received_date": {
       "type": "string",
       "format": "date",
@@ -97,6 +102,26 @@
     "cheque_image_url": {
       "type": "string",
       "description": "Base44 file-storage URL of a scan or photo of the physical cheque"
+    },
+    "is_stale": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set true by the scheduled job when the cheque reaches the UAE 6-month stale deadline"
+    },
+    "stale_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Computed stale deadline (cheque_date + 6 months); stored for display and sorting"
+    },
+    "due_reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Guards against duplicate due-date reminders for post-dated cheques"
+    },
+    "stale_reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Guards against duplicate stale-date reminder emails"
     }
   },
   "required": [
