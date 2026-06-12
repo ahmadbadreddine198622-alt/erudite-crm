@@ -9,8 +9,8 @@ import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2,
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
-import IOSFolder from '@/components/ui/IOSFolder.jsx';
-import IOSDock from '@/components/ui/IOSDock.jsx';
+import IOSFolder from '@/components/ui/IOSFolder';
+import IOSDock from '@/components/ui/IOSDock';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
