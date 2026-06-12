@@ -14,6 +14,13 @@ export const COMPANY = {
   ded:           "1032973",
 };
 
+export const COMPANY_BOTTOM_LINE = [
+  COMPANY.name_en,
+  COMPANY.address,
+  COMPANY.phone,
+  COMPANY.website,
+].filter(isFilled).join("   ·   ");
+
 export const COMPANY_LETTERHEAD = [
   COMPANY.establishment,
   COMPANY.address,
