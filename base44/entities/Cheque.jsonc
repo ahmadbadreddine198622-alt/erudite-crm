@@ -93,6 +93,10 @@
       "type": "boolean",
       "default": false,
       "description": "Whether an acknowledgement has been generated \u2014 set in Step 2"
+    },
+    "cheque_image_url": {
+      "type": "string",
+      "description": "Base44 file-storage URL of a scan or photo of the physical cheque"
     }
   },
   "required": [

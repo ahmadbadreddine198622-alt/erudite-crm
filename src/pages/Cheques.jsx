@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Plus, Search, X, Loader2, FileText } from 'lucide-react';
+import { Plus, Search, X, Loader2, FileText, Upload, ImageIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ const EMPTY_FORM = {
   linked_invoice_id: '',
   linked_landlord_id: '',
   notes: '',
+  cheque_image_url: '',
 };
 
 export default function Cheques() {
@@ -60,9 +61,11 @@ export default function Cheques() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [search, setSearch] = useState('');
+  const fileInputRef = useRef(null);
 
   // Pre-fill received_by_email from current user
   useEffect(() => {
@@ -125,7 +128,7 @@ export default function Cheques() {
         acknowledgement_generated: false,
       };
       // Remove empty optional fields
-      ['cheque_date', 'bank_name', 'linked_invoice_id', 'linked_landlord_id', 'notes', 'receipt_pdf_url'].forEach(k => {
+      ['cheque_date', 'bank_name', 'linked_invoice_id', 'linked_landlord_id', 'notes', 'receipt_pdf_url', 'cheque_image_url'].forEach(k => {
         if (!payload[k]) delete payload[k];
       });
       await base44.entities.Cheque.create(payload);
@@ -140,6 +143,22 @@ export default function Cheques() {
   };
 
   const sf = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, cheque_image_url: file_url }));
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="page-root">
@@ -223,6 +242,7 @@ export default function Cheques() {
                   <th className="text-left">Purpose</th>
                   <th className="text-left">Status</th>
                   <th className="text-left">Logged By</th>
+                  <th className="text-left">Scan</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,7 +257,16 @@ export default function Cheques() {
                     <td className="text-white/60 capitalize">{c.purpose ? LABEL(c.purpose) : '—'}</td>
                     <td><Pill value={c.status || 'received'} styleMap={STATUS_STYLE} /></td>
                     <td className="text-white/50 text-[11px]">{c.received_by_email ? c.received_by_email.split('@')[0] : '—'}</td>
-                  </tr>
+                    <td>
+                      {c.cheque_image_url ? (
+                        <a href={c.cheque_image_url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
+                          style={{ color: 'hsl(38 92% 55%)' }}>
+                          <ExternalLink className="w-3 h-3" />View
+                        </a>
+                      ) : null}
+                    </td>
+                    </tr>
                 ))}
               </tbody>
             </table>
@@ -335,6 +364,32 @@ export default function Cheques() {
                   <label className="field-label">Linked Landlord ID <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input value={form.linked_landlord_id} onChange={sf('linked_landlord_id')} placeholder="Landlord ID" className="field-input" />
                 </div>
+              </div>
+
+              {/* Cheque Scan */}
+              <div>
+                <label className="field-label">Cheque Scan / Photo <span className="text-muted-foreground font-normal normal-case">(optional)</span></label>
+                {form.cheque_image_url ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <ImageIcon className="w-4 h-4 shrink-0" style={{ color: 'hsl(38 92% 50%)' }} />
+                    <a href={form.cheque_image_url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs truncate flex-1" style={{ color: 'hsl(38 92% 60%)' }}>
+                      View uploaded scan
+                    </a>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, cheque_image_url: '' }))}
+                      className="text-muted-foreground hover:text-white transition">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    className="w-full py-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition disabled:opacity-50"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}>
+                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    {uploading ? 'Uploading…' : 'Upload image or PDF'}
+                  </button>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImageUpload} />
               </div>
 
               {/* Notes */}
