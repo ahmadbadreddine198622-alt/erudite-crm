@@ -157,14 +157,19 @@ export default function Acknowledgements() {
   const handleGeneratePdf = async (record) => {
     setGeneratingPdf(true);
     try {
-      const res = await base44.functions.invoke('generateAcknowledgementPDF', { acknowledgement_id: record.id });
+      const getAsset = (key) => { const v = localStorage.getItem(key); return v && v.trim() ? v : null; };
+
+      const res = await base44.functions.invoke('generateAcknowledgementPDF', {
+        acknowledgement_id: record.id,
+        logo_base64:        getAsset('erudite_logo'),
+        signature_base64:   getAsset('erudite_signature'),
+        stamp_base64:       getAsset('erudite_stamp'),
+      });
       const { pdf_base64, drive_url, filename } = res.data;
 
       // Trigger browser download
-      const byteChars = atob(pdf_base64);
-      const byteNums = new Uint8Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-      const blob = new Blob([byteNums], { type: 'application/pdf' });
+      const bytes = Uint8Array.from(atob(pdf_base64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
