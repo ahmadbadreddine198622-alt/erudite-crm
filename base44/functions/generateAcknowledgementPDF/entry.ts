@@ -283,12 +283,53 @@ Deno.serve(async (req) => {
     }
     if (!record) return new Response(JSON.stringify({ error: `Acknowledgement ${acknowledgement_id} not found` }), { status: 404, headers });
 
+    // Load CompanySettings for brand assets and company info
+    let cs = {};
+    try {
+      const csList = await base44.asServiceRole.entities.CompanySettings.list();
+      cs = csList?.[0] || {};
+    } catch {}
+
+    // Helper: return base64 from stored b64 field, or fetch from URL
+    const assetB64 = async (override, storedB64, url) => {
+      if (override) return override;
+      if (storedB64 && storedB64.trim()) return storedB64;
+      if (url && url.trim()) {
+        try {
+          const res = await fetch(url);
+          const buf = await res.arrayBuffer();
+          const mime = res.headers.get("content-type") || "image/png";
+          const b64 = encodeBase64(new Uint8Array(buf));
+          return `data:${mime};base64,${b64}`;
+        } catch {}
+      }
+      return null;
+    };
+
+    const [resolvedLogo, resolvedSig, resolvedStamp] = await Promise.all([
+      assetB64(logo_base64, cs.logo_base64, cs.logo_url),
+      assetB64(signature_base64, cs.signature_base64, cs.signature_url),
+      assetB64(stamp_base64, cs.stamp_base64, cs.stamp_url),
+    ]);
+
+    const company = {
+      name_en: cs.company_name_en || COMPANY.name_en,
+      name_ar: cs.company_name_ar || COMPANY.name_ar,
+      address: cs.address || COMPANY.address,
+      po_box:  cs.po_box  || COMPANY.po_box,
+      phone:   cs.phone   || COMPANY.phone,
+      email:   cs.email   || COMPANY.email,
+      website: cs.website || COMPANY.website,
+      orn:     cs.orn     || COMPANY.orn,
+      brn:     cs.brn     || COMPANY.brn,
+    };
+
     const bytes = await buildPdf({
       record,
-      company: COMPANY,
-      logoB64: logo_base64,
-      signatureB64: signature_base64,
-      stampB64: stamp_base64,
+      company,
+      logoB64: resolvedLogo,
+      signatureB64: resolvedSig,
+      stampB64: resolvedStamp,
     });
 
     if (!bytes || bytes.length === 0) {
