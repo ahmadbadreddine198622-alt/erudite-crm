@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Plus, Search, FileText, X, ChevronDown } from 'lucide-react';
+import { Plus, Search, FileText, X, ChevronDown, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -102,6 +102,7 @@ export default function Acknowledgements() {
   const [detailRecord, setDetailRecord] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['acknowledgements'],
@@ -150,6 +151,47 @@ export default function Acknowledgements() {
       toast.error('Failed to save: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGeneratePdf = async (record) => {
+    setGeneratingPdf(true);
+    try {
+      const res = await base44.functions.invoke('generateAcknowledgementPDF', { acknowledgement_id: record.id });
+      const { pdf_base64, drive_url, filename } = res.data;
+
+      // Trigger browser download
+      const byteChars = atob(pdf_base64);
+      const byteNums = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteNums], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `ACK-${record.ack_number || record.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Success toast with Drive link
+      toast.success(
+        drive_url
+          ? `PDF ready! View in Google Drive`
+          : 'PDF downloaded successfully',
+        drive_url ? {
+          action: { label: 'Open Drive', onClick: () => window.open(drive_url, '_blank') },
+          duration: 6000,
+        } : {}
+      );
+
+      // Refresh the record in the list and update detail view
+      await qc.invalidateQueries({ queryKey: ['acknowledgements'] });
+      // Fetch the updated record to refresh the detail panel
+      const updated = await base44.entities.Acknowledgement.get(record.id).catch(() => null);
+      if (updated) setDetailRecord(updated);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err.message || 'Failed to generate PDF');
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -478,6 +520,32 @@ export default function Acknowledgements() {
               )}
               {detailRecord.reference && <DetailRow label="Reference" value={detailRecord.reference} />}
               {detailRecord.issued_by_email && <DetailRow label="Issued By" value={detailRecord.issued_by_email} />}
+            </div>
+
+            {/* PDF Actions Footer */}
+            <div className="px-6 py-4 border-t flex flex-col gap-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+              <button
+                onClick={() => handleGeneratePdf(detailRecord)}
+                disabled={generatingPdf}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-95"
+                style={{ background: 'hsl(38 92% 50%)', color: '#1a1a2e' }}
+              >
+                {generatingPdf
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                  : <><Download className="w-4 h-4" /> Generate &amp; Download PDF</>
+                }
+              </button>
+              {detailRecord.pdf_url && (
+                <a
+                  href={detailRecord.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-xs font-medium transition-colors"
+                  style={{ color: 'hsl(38 92% 60%)' }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open saved PDF
+                </a>
+              )}
             </div>
           </div>
         </div>
