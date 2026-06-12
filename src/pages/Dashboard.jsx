@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,47 +22,12 @@ const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const legacyStorageKey = (email) => `dashboard_apps_${email || 'default'}`;
+const storageKey = (email) => `dashboard_apps_${email || 'default'}`;
 const LONG_PRESS_MS = 4000;
 const HOLD_CUE_MS = 2000;
 
-// ── Build the seeded ordered labels for a user ────────────────────────────────
-// Reads existing localStorage order if present, appends any new ALL_APPS labels.
-function buildSeedOrder(email) {
-  let base = ALL_APPS.map(a => a.label);
-  try {
-    const saved = localStorage.getItem(legacyStorageKey(email));
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const savedSet = new Set(parsed);
-        const extras = ALL_APPS.map(a => a.label).filter(l => !savedSet.has(l));
-        base = [...parsed, ...extras];
-      }
-    }
-  } catch {}
-  return base;
-}
-
-// ── Merge entity rows + ALL_APPS ──────────────────────────────────────────────
-// Returns ordered app objects with visuals from ALL_APPS.
-// Any ALL_APPS label missing a row is appended at the end.
-function mergeLayout(rows, allApps) {
-  const appByLabel = Object.fromEntries(allApps.map(a => [a.label, a]));
-  // Sort by position, filter dead labels
-  const ordered = rows
-    .filter(r => appByLabel[r.label])
-    .sort((a, b) => a.position - b.position)
-    .map(r => appByLabel[r.label]);
-
-  const rowLabels = new Set(rows.map(r => r.label));
-  const newApps = allApps.filter(a => !rowLabels.has(a.label));
-  return [...ordered, ...newApps];
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -76,8 +41,7 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const seedAttempted = useRef(false);
+  const [apps, setApps] = useState(() => ALL_APPS);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
@@ -153,77 +117,35 @@ export default function Dashboard() {
     setHoldCueActive(false);
   }, []);
 
-  // ── Entity: load this user's launcher layout ──────────────────────────────
-  const { data: iconRows = [], isLoading: rowsLoading } = useQuery({
-    queryKey: ['launcher-icons', userEmail],
-    queryFn: () => base44.entities.LauncherIcon.filter({ owner_email: userEmail }, 'position', 500),
-    enabled: !!userEmail,
-  });
-
-  // ── Seed: one-time per user if no rows exist ──────────────────────────────
+  // Load saved order from localStorage when we have the user email
   useEffect(() => {
-    if (!userEmail || rowsLoading || seedAttempted.current) return;
-    if (iconRows.length > 0) { seedAttempted.current = true; return; }
-    seedAttempted.current = true;
-    setSeeding(true);
-    const labels = buildSeedOrder(userEmail);
-    const rows = labels.map((label, idx) => ({ label, owner_email: userEmail, position: idx }));
-    base44.entities.LauncherIcon.bulkCreate(rows)
-      .then(() => qc.invalidateQueries({ queryKey: ['launcher-icons', userEmail] }))
-      .catch(() => {})
-      .finally(() => setSeeding(false));
-  }, [userEmail, rowsLoading, iconRows.length]);
+    if (!userEmail) return;
+    try {
+      const saved = localStorage.getItem(storageKey(userEmail));
+      if (saved) {
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        // Append any new apps not in saved order
+        const savedSet = new Set(labels);
+        const extras = ALL_APPS.filter(a => !savedSet.has(a.label));
+        if (resolved.length > 0) setApps([...resolved, ...extras]);
+      }
+    } catch {}
+  }, [userEmail]);
 
-  // ── Newly shipped apps (in ALL_APPS but no row for this user) ─────────────
-  useEffect(() => {
-    if (!userEmail || rowsLoading || iconRows.length === 0) return;
-    const rowLabels = new Set(iconRows.map(r => r.label));
-    const missing = ALL_APPS.filter(a => !rowLabels.has(a.label));
-    if (missing.length === 0) return;
-    const maxPos = Math.max(...iconRows.map(r => r.position), -1);
-    const newRows = missing.map((a, i) => ({ label: a.label, owner_email: userEmail, position: maxPos + 1 + i }));
-    base44.entities.LauncherIcon.bulkCreate(newRows)
-      .then(() => qc.invalidateQueries({ queryKey: ['launcher-icons', userEmail] }))
-      .catch(() => {});
-  }, [userEmail, rowsLoading, iconRows.length]);
-
-  // ── Derived ordered apps (merge entity order + ALL_APPS visuals) ──────────
-  const apps = (rowsLoading || iconRows.length === 0)
-    ? ALL_APPS   // fallback while loading/seeding so grid isn't empty
-    : mergeLayout(iconRows, ALL_APPS);
-
-  // ── Persist reorder to DB ─────────────────────────────────────────────────
-  const saveOrder = async (newApps) => {
-    const byLabel = Object.fromEntries(iconRows.map(r => [r.label, r]));
-    const updates = newApps.map((app, idx) => {
-      const row = byLabel[app.label];
-      if (row) return base44.entities.LauncherIcon.update(row.id, { position: idx });
-      return null;
-    }).filter(Boolean);
-    await Promise.all(updates);
-    qc.invalidateQueries({ queryKey: ['launcher-icons', userEmail] });
+  const saveOrder = (newApps) => {
+    setApps(newApps);
+    localStorage.setItem(storageKey(userEmail), JSON.stringify(newApps.map(a => a.label)));
   };
 
   const removeApp = (path) => {
     if (apps.length <= MIN_ITEMS) return;
-    const next = apps.filter(a => a.path !== path);
-    // Remove the entity row for this label
-    const app = apps.find(a => a.path === path);
-    if (app) {
-      const row = iconRows.find(r => r.label === app.label);
-      if (row) base44.entities.LauncherIcon.delete(row.id).then(() =>
-        qc.invalidateQueries({ queryKey: ['launcher-icons', userEmail] })
-      );
-    }
+    saveOrder(apps.filter(a => a.path !== path));
   };
 
   const addApp = (app) => {
-    const row = iconRows.find(r => r.label === app.label);
-    if (!row) {
-      const maxPos = Math.max(...iconRows.map(r => r.position), -1);
-      base44.entities.LauncherIcon.create({ label: app.label, owner_email: userEmail, position: maxPos + 1 })
-        .then(() => qc.invalidateQueries({ queryKey: ['launcher-icons', userEmail] }));
-    }
+    if (apps.find(a => a.label === app.label)) { setShowPicker(false); return; }
+    saveOrder([...apps, app]);
     setShowPicker(false);
   };
 
