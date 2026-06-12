@@ -67,6 +67,7 @@ const navItems = [
   { label: 'Twilio Hub',          icon: PhoneCall,       path: '/twilio',              gradient: 'from-red-500 to-red-800', adminOnly: true },
   { label: 'Policies & HR',       icon: Shield,          path: '/policies',            gradient: 'from-indigo-500 to-violet-800' },
   { label: 'Design System',       icon: Palette,         path: '/design-system',       gradient: 'from-fuchsia-500 to-purple-800', adminOnly: true },
+  { label: 'Company Settings',    icon: Building2,       path: '/company-settings',    gradient: 'from-amber-500 to-orange-700',  adminOnly: true },
 ];
 
 export default function Sidebar({ open = false, onClose }) {

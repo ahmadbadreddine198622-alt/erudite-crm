@@ -89,6 +89,7 @@ import Policies from '@/pages/Policies';
 import ApiInbox from '@/pages/ApiInbox';
 import Acknowledgements from '@/pages/Acknowledgements';
 import DesignSystem from '@/pages/DesignSystem';
+import CompanySettings from '@/pages/CompanySettings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -193,6 +194,7 @@ const AuthenticatedApp = () => {
         <Route path="/api-inbox" element={<ApiInbox />} />
         <Route path="/acknowledgements" element={<Acknowledgements />} />
         <Route path="/design-system" element={<DesignSystem />} />
+        <Route path="/company-settings" element={<CompanySettings />} />
         <Route path="/closing" element={<Closing />} />
       </Route>
       </Route>

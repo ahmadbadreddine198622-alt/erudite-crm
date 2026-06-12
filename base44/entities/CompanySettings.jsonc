@@ -1,0 +1,93 @@
+{
+  "name": "CompanySettings",
+  "type": "object",
+  "properties": {
+    "company_name_en": {
+      "type": "string",
+      "default": "ERUDITE REAL ESTATE"
+    },
+    "company_name_ar": {
+      "type": "string",
+      "default": "\u0627\u0644\u0625\u0631\u0648\u062f\u0627\u064a\u062a \u0644\u0644\u0639\u0642\u0627\u0631\u0627\u062a"
+    },
+    "establishment": {
+      "type": "string",
+      "default": "Erudite Property (Erudite Real Estate)"
+    },
+    "address": {
+      "type": "string",
+      "default": "Shop R-10, Marquise Square Tower, Marasi Drive, Business Bay, Dubai, U.A.E."
+    },
+    "po_box": {
+      "type": "string",
+      "default": "121828"
+    },
+    "phone": {
+      "type": "string",
+      "default": "+971 58 180 6000"
+    },
+    "whatsapp": {
+      "type": "string",
+      "default": "+971 58 180 6000"
+    },
+    "email": {
+      "type": "string",
+      "default": "info@erudite-estate.com"
+    },
+    "website": {
+      "type": "string",
+      "default": "www.eruditeproperty.com"
+    },
+    "orn": {
+      "type": "string",
+      "default": "29322"
+    },
+    "brn": {
+      "type": "string",
+      "default": "34625"
+    },
+    "ded_license": {
+      "type": "string",
+      "default": "1032973"
+    },
+    "trn": {
+      "type": "string",
+      "default": "104029757200003"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Uploaded logo file URL"
+    },
+    "logo_base64": {
+      "type": "string",
+      "description": "Base64-encoded logo for PDF embedding"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "Uploaded signature file URL"
+    },
+    "signature_base64": {
+      "type": "string",
+      "description": "Base64-encoded signature for PDF embedding"
+    },
+    "stamp_url": {
+      "type": "string",
+      "description": "Uploaded stamp file URL"
+    },
+    "stamp_base64": {
+      "type": "string",
+      "description": "Base64-encoded stamp for PDF embedding"
+    },
+    "brand_navy": {
+      "type": "string",
+      "default": "#0B1F3A"
+    },
+    "brand_gold": {
+      "type": "string",
+      "default": "#B8964B"
+    }
+  },
+  "required": [
+    "company_name_en"
+  ]
+}
