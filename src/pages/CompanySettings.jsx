@@ -13,7 +13,6 @@ const FIELDS = [
   { key: "address",         label: "Address" },
   { key: "po_box",          label: "P.O. Box" },
   { key: "phone",           label: "Phone" },
-  { key: "whatsapp",        label: "WhatsApp" },
   { key: "email",           label: "Email" },
   { key: "website",         label: "Website" },
   { key: "orn",             label: "ORN" },
@@ -25,35 +24,27 @@ const FIELDS = [
 ];
 
 const ASSETS = [
-  { key: "logo",      label: "Company Logo",  urlKey: "logo_url",      b64Key: "logo_base64" },
-  { key: "signature", label: "Signature",      urlKey: "signature_url", b64Key: "signature_base64" },
-  { key: "stamp",     label: "Official Stamp", urlKey: "stamp_url",     b64Key: "stamp_base64" },
+  { key: "logo",      label: "Company Logo",  urlKey: "logo_url" },
+  { key: "signature", label: "Signature",      urlKey: "signature_url" },
+  { key: "stamp",     label: "Official Stamp", urlKey: "stamp_url" },
 ];
 
-async function urlToBase64(url) {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
-
 export default function CompanySettingsPage() {
-  const [record, setRecord]     = useState(null);
-  const [form, setForm]         = useState({});
-  const [saving, setSaving]     = useState(false);
+  const [record, setRecord]       = useState(null);
+  const [form, setForm]           = useState({});
+  const [saving, setSaving]       = useState(false);
   const [uploading, setUploading] = useState({});
-  const fileRefs                = { logo: useRef(), signature: useRef(), stamp: useRef() };
+  const fileRefs = { logo: useRef(), signature: useRef(), stamp: useRef() };
 
-  useEffect(() => {
+  const loadRecord = () => {
     base44.entities.CompanySettings.list().then((rows) => {
       const row = rows[0] || {};
       setRecord(row);
       setForm(row);
     });
-  }, []);
+  };
+
+  useEffect(() => { loadRecord(); }, []);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -61,9 +52,8 @@ export default function CompanySettingsPage() {
     setUploading((u) => ({ ...u, [asset.key]: true }));
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const b64 = await urlToBase64(file_url);
-      setForm((f) => ({ ...f, [asset.urlKey]: file_url, [asset.b64Key]: b64 }));
-      toast.success(`${asset.label} uploaded`);
+      setForm((f) => ({ ...f, [asset.urlKey]: file_url }));
+      toast.success(`${asset.label} uploaded — click Save to persist`);
     } catch {
       toast.error(`Upload failed for ${asset.label}`);
     } finally {
@@ -81,6 +71,7 @@ export default function CompanySettingsPage() {
         setRecord(created);
       }
       toast.success("Company settings saved");
+      loadRecord();
     } catch {
       toast.error("Save failed");
     } finally {
@@ -97,14 +88,14 @@ export default function CompanySettingsPage() {
         </div>
         <div>
           <h1 className="page-title text-xl">Company Settings</h1>
-          <p className="page-subtitle">Single source of truth for identity & brand assets</p>
+          <p className="page-subtitle">Single source of truth for identity &amp; brand assets used in all PDFs</p>
         </div>
       </div>
 
       <div className="space-y-8">
         {/* Identity Fields */}
-        <section className="glass-card p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground/60 uppercase tracking-widest mb-4">Identity</h2>
+        <section className="glass-card p-6">
+          <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-5">Identity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {FIELDS.map(({ key, label }) => (
               <div key={key} className="space-y-1.5">
@@ -120,8 +111,8 @@ export default function CompanySettingsPage() {
         </section>
 
         {/* Brand Assets */}
-        <section className="glass-card p-6 space-y-6">
-          <h2 className="text-sm font-semibold text-foreground/60 uppercase tracking-widest">Brand Assets</h2>
+        <section className="glass-card p-6">
+          <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-5">Brand Assets</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {ASSETS.map((asset) => (
               <div key={asset.key} className="space-y-3">
@@ -154,6 +145,9 @@ export default function CompanySettingsPage() {
               </div>
             ))}
           </div>
+          <p className="text-[10px] text-muted-foreground mt-4">
+            Asset URLs are stored here. PDF functions fetch and convert to base64 at generation time.
+          </p>
         </section>
 
         {/* Save */}

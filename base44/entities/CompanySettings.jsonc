@@ -26,10 +26,6 @@
       "type": "string",
       "default": "+971 58 180 6000"
     },
-    "whatsapp": {
-      "type": "string",
-      "default": "+971 58 180 6000"
-    },
     "email": {
       "type": "string",
       "default": "info@erudite-estate.com"
@@ -56,27 +52,15 @@
     },
     "logo_url": {
       "type": "string",
-      "description": "Uploaded logo file URL"
-    },
-    "logo_base64": {
-      "type": "string",
-      "description": "Base64-encoded logo for PDF embedding"
+      "description": "Public URL of the company logo \u2014 PDF functions fetch and convert to base64 at generation time"
     },
     "signature_url": {
       "type": "string",
-      "description": "Uploaded signature file URL"
-    },
-    "signature_base64": {
-      "type": "string",
-      "description": "Base64-encoded signature for PDF embedding"
+      "description": "Public URL of the signature image"
     },
     "stamp_url": {
       "type": "string",
-      "description": "Uploaded stamp file URL"
-    },
-    "stamp_base64": {
-      "type": "string",
-      "description": "Base64-encoded stamp for PDF embedding"
+      "description": "Public URL of the company stamp image"
     },
     "brand_navy": {
       "type": "string",
