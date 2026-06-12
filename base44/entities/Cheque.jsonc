@@ -1,0 +1,104 @@
+{
+  "name": "Cheque",
+  "type": "object",
+  "permissions": {
+    "create": "admin",
+    "read": "admin",
+    "update": "admin",
+    "delete": "admin"
+  },
+  "properties": {
+    "cheque_number": {
+      "type": "string",
+      "description": "Cheque number as printed on the cheque face"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Name of the issuing bank"
+    },
+    "payer_name": {
+      "type": "string",
+      "description": "Name of the person / company who handed over the cheque"
+    },
+    "amount_aed": {
+      "type": "number",
+      "description": "Cheque face value in AED"
+    },
+    "cheque_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date written on the cheque face"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the cheque was physically received"
+    },
+    "received_by_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the admin who logged this cheque"
+    },
+    "cheque_type": {
+      "type": "string",
+      "enum": [
+        "current",
+        "post_dated"
+      ],
+      "default": "current",
+      "description": "Whether the cheque is current or post-dated"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "deposited",
+        "cleared",
+        "bounced",
+        "returned",
+        "cancelled"
+      ],
+      "default": "received",
+      "description": "Current lifecycle status of the cheque"
+    },
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "commission",
+        "rent",
+        "deposit",
+        "service_charge",
+        "other"
+      ],
+      "default": "other",
+      "description": "What the cheque is for"
+    },
+    "linked_invoice_id": {
+      "type": "string",
+      "description": "Optional loose reference to an Invoice ID"
+    },
+    "linked_landlord_id": {
+      "type": "string",
+      "description": "Optional loose reference to a Landlord ID"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes about this cheque"
+    },
+    "receipt_pdf_url": {
+      "type": "string",
+      "description": "Google Drive URL of the receipt PDF \u2014 populated in Step 2"
+    },
+    "acknowledgement_generated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an acknowledgement has been generated \u2014 set in Step 2"
+    }
+  },
+  "required": [
+    "cheque_number",
+    "payer_name",
+    "amount_aed",
+    "received_date"
+  ]
+}
