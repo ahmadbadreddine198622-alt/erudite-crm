@@ -36,7 +36,8 @@ import PricingPressureMeter from './PricingPressureMeter';
 import PortfolioRadar from './PortfolioRadar';
 import CoalitionMap from './CoalitionMap';
 import WhisperPanel from './WhisperPanel';
-import LandlordWhatsAppThread from './LandlordWhatsAppThread';
+import LandlordWhatsAppPanel from './LandlordWhatsAppPanel';
+import LandlordSMSPanel from './LandlordSMSPanel';
 import UnitPassport from './UnitPassport';
 import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
@@ -1049,12 +1050,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="messages" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-6 mb-5">
+            <TabsList className="grid w-full grid-cols-7 mb-5">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">Documents</TabsTrigger>
-              <TabsTrigger value="messages" className="text-xs">Messages</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="text-xs">WhatsApp</TabsTrigger>
+              <TabsTrigger value="sms" className="text-xs">SMS</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
 
@@ -1211,8 +1213,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <DocumentChecklist landlordId={landlord.id} />
             </TabsContent>
 
-            <TabsContent value="messages">
-              <LandlordWhatsAppThread landlord={landlord} />
+            <TabsContent value="whatsapp">
+              <LandlordWhatsAppPanel landlord={landlord} />
+            </TabsContent>
+
+            <TabsContent value="sms">
+              <LandlordSMSPanel landlord={landlord} />
             </TabsContent>
 
             <TabsContent value="ai" className="space-y-4">

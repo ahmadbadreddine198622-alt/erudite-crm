@@ -105,7 +105,7 @@ export default function WhatsAppInbox() {
     },
   });
 
-  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
+  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/metaWhatsAppWebhook`;
 
   // Fetch connection status
   React.useEffect(() => {
@@ -624,6 +624,7 @@ export default function WhatsAppInbox() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">Subscribe to webhook field: <code className="bg-muted px-1 rounded">messages</code></p>
+                  <p className="text-xs text-muted-foreground mt-1">⚠️ Make sure this exact URL is set in Meta → WhatsApp → Configuration → Webhook → Callback URL</p>
                 </div>
               </CardContent>
             </Card>
