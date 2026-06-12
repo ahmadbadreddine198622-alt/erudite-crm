@@ -41,7 +41,6 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [apps, setApps] = useState(() => ALL_APPS);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
@@ -117,7 +116,19 @@ export default function Dashboard() {
     setHoldCueActive(false);
   }, []);
 
-  // Load saved order from localStorage when we have the user email
+  const [apps, setApps] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey(''));
+      if (saved) {
+        const labels = JSON.parse(saved);
+        const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
+        if (resolved.length >= MIN_ITEMS) return resolved;
+      }
+    } catch {}
+    return ALL_APPS;
+  });
+
+  // Reload when we get user email
   useEffect(() => {
     if (!userEmail) return;
     try {
@@ -125,10 +136,7 @@ export default function Dashboard() {
       if (saved) {
         const labels = JSON.parse(saved);
         const resolved = labels.map(l => ALL_APPS.find(a => a.label === l)).filter(Boolean);
-        // Append any new apps not in saved order
-        const savedSet = new Set(labels);
-        const extras = ALL_APPS.filter(a => !savedSet.has(a.label));
-        if (resolved.length > 0) setApps([...resolved, ...extras]);
+        if (resolved.length >= MIN_ITEMS) setApps(resolved);
       }
     } catch {}
   }, [userEmail]);
@@ -144,13 +152,13 @@ export default function Dashboard() {
   };
 
   const addApp = (app) => {
-    if (apps.find(a => a.label === app.label)) { setShowPicker(false); return; }
+    if (apps.length >= MAX_ITEMS) return;
     saveOrder([...apps, app]);
     setShowPicker(false);
   };
 
   const onDragEnd = ({ source, destination }) => {
-    if (!destination || source.index === destination.index) return;
+    if (!destination) return;
     const next = [...apps];
     const [moved] = next.splice(source.index, 1);
     next.splice(destination.index, 0, moved);
@@ -478,17 +486,12 @@ export default function Dashboard() {
             )}
           </Droppable>
         </DragDropContext>
-
-
       </div>
 
       {/* Quick Navigation Buttons */}
       <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
         <button
-          onClick={() => {
-            console.log('Navigating to Landlord Pipeline');
-            navigate('/landlords');
-          }}
+          onClick={() => navigate('/landlords')}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
         >
@@ -496,10 +499,7 @@ export default function Dashboard() {
           Landlord Pipeline
         </button>
         <button
-          onClick={() => {
-            console.log('Navigating to Assign Leads');
-            navigate('/landlords');
-          }}
+          onClick={() => navigate('/landlords')}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
         >
@@ -507,9 +507,7 @@ export default function Dashboard() {
           Assign Leads
         </button>
         <button
-          onClick={() => {
-            window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
-          }}
+          onClick={() => window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer')}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
         >
