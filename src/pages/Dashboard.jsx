@@ -5,12 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Brain } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
-import IOSFolder from '@/components/ui/IOSFolder';
-import IOSDock from '@/components/ui/IOSDock';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
@@ -19,6 +17,7 @@ import PFListingsGrid from '@/components/properties/PFListingsGrid';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
+import { Brain } from 'lucide-react';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -143,71 +142,6 @@ export default function Dashboard() {
     } catch {}
   }, [userEmail]);
 
-  // iOS-style folder configuration
-  const folderConfig = [
-    {
-      name: 'Pipeline',
-      apps: ['Pipeline', 'Leads', 'Contacts', 'Offers', 'Negotiations', 'Deal Risk'],
-    },
-    {
-      name: 'Communication',
-      apps: ['WhatsApp', 'Inbox', 'Messages', 'WhatsApp Hub', 'Twilio Hub'],
-    },
-    {
-      name: 'Analytics',
-      apps: ['Analytics', 'Finance', 'Commissions', 'Sales Analytics', 'Leaderboard'],
-    },
-    {
-      name: 'Listings',
-      apps: ['Landlords', 'Listing Production', 'Property Finder', 'Projects', 'Photography'],
-    },
-    {
-      name: 'AI Tools',
-      apps: ['Claude AI', 'Buyer Match AI', 'Closing AI', 'Dubai Intelligence', 'Property Intel', 'Market Intelligence'],
-    },
-    {
-      name: 'Documents',
-      apps: ['Form A Referral', 'Form I Generator', 'Key Handover', 'Transfer Calculator', 'Lease Agreement', 'Tenancy Contracts'],
-    },
-    {
-      name: 'Management',
-      apps: ['Team', 'Team AI OS', 'Team Performance', 'Company Settings', 'Policies & HR'],
-    },
-  ];
-
-  // Dock apps (always visible at bottom)
-  const dockApps = ['Pipeline', 'Leads', 'WhatsApp', 'Landlords'];
-
-  // Build grid with folders
-  const buildGridWithFolders = () => {
-    const gridApps = apps.filter(a => !dockApps.includes(a.label));
-    const items = [];
-    let folderIndex = 0;
-
-    folderConfig.forEach(folder => {
-      const folderApps = gridApps.filter(a => folder.apps.includes(a.label));
-      if (folderApps.length > 0) {
-        items.push({
-          type: 'folder',
-          folder: folder,
-          apps: folderApps,
-        });
-        folderIndex++;
-      }
-    });
-
-    // Add remaining apps that aren't in folders
-    const folderedLabels = folderConfig.flatMap(f => f.apps);
-    const nonFolderApps = gridApps.filter(a => !folderedLabels.includes(a.label));
-    nonFolderApps.forEach(app => {
-      items.push({ type: 'app', app });
-    });
-
-    return items;
-  };
-
-  const gridItems = buildGridWithFolders();
-
   const saveOrder = (newApps) => {
     setApps(newApps);
     localStorage.setItem(storageKey(userEmail), JSON.stringify(newApps.map(a => a.label)));
@@ -263,15 +197,15 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-6 pt-12"
+      className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
       style={{
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #1a1a2e 40%, #2a1f1a 70%, #3d2f1f 100%)',
+        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
       {/* Logo */}
       {logoUrl && (
-        <div className="mb-4 mt-8">
-          <img src={logoUrl} alt="Erudite" className="h-10 object-contain" />
+        <div className="mb-6">
+          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
         </div>
       )}
 
@@ -461,91 +395,109 @@ export default function Dashboard() {
         </button>
       )}
 
-      {/* iOS Search Bar */}
-      <div className="relative mb-8 w-full max-w-sm px-4">
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full"
+      {/* Search */}
+      <div className="relative mb-10 w-full max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search apps"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
           style={{
-            background: 'rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.95)',
           }}
-        >
-          <Search className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search"
-            className="flex-1 bg-transparent text-sm outline-none text-white/90 placeholder:text-white/40"
-          />
-        </div>
+          onFocus={(e) => {
+            e.target.style.borderColor = 'hsl(38 92% 50%)';
+            e.target.style.background = 'rgba(255,255,255,0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.target.style.background = 'rgba(255,255,255,0.07)';
+          }}
+        />
       </div>
 
-      {/* iOS-style App Grid */}
-      <div className="ios-grid-enter w-full flex flex-col items-center pb-48">
-        <div className="w-full max-w-md grid grid-cols-4 gap-x-5 gap-y-6 px-4">
-          {gridItems.slice(0, 24).map((item, idx) => {
-            if (item.type === 'folder') {
-              return (
-                <IOSFolder
-                  key={item.folder.name}
-                  folderName={item.folder.name}
-                  apps={item.apps}
-                  tiltX={tilt.x}
-                  tiltY={tilt.y}
-                  index={idx}
-                  navigate={navigate}
-                />
-              );
-            } else {
-              const Icon = item.app.icon;
-              const badgeCount = item.app.badgeKey ? badges[item.app.badgeKey] : 0;
-              return (
-                <div
-                  key={item.app.path}
-                  onMouseDown={() => startPress(item.app.path)}
-                  onMouseUp={cancelPress}
-                  onMouseLeave={cancelPress}
-                  onTouchStart={() => startPress(item.app.path)}
-                  onTouchEnd={cancelPress}
-                  onClick={() => {
-                    item.app.href ? window.open(item.app.href, '_blank') : navigate(item.app.path);
-                  }}
-                  className="flex flex-col items-center gap-1.5 cursor-pointer select-none"
-                >
-                  <ExtremeLiquidIcon
-                    icon={Icon}
-                    gradient={item.app.gradient}
-                    glowColor={item.app.glowColor}
-                    tiltX={tilt.x}
-                    tiltY={tilt.y}
-                    index={idx}
-                    badge={badgeCount > 0 ? badgeCount : 0}
-                  />
-                  <span className="text-[11px] text-center leading-tight max-w-[64px] font-medium text-white/75">
-                    {item.app.label}
-                  </span>
-                </div>
-              );
-            }
-          })}
-        </div>
-      </div>
+      {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
+      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
+              >
+                {filtered.map((app, idx) => {
+                  const Icon = app.icon;
+                  const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+                  return (
+                    <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
+                      {(p, snapshot) => (
+                        <div
+                          ref={p.innerRef}
+                          {...p.draggableProps}
+                          {...p.dragHandleProps}
+                          onMouseDown={!editMode ? () => startPress(app.path) : undefined}
+                          onMouseUp={!editMode ? cancelPress : undefined}
+                          onMouseLeave={!editMode ? cancelPress : undefined}
+                          onTouchStart={!editMode ? () => startPress(app.path) : undefined}
+                          onTouchEnd={!editMode ? cancelPress : undefined}
+                          onClick={() => {
+                            if (editMode) return;
+                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
+                          }}
+                          className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
+                          style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : { position: 'relative' }}
+                        >
+                          {/* Remove badge */}
+                          {editMode && (
+                            <button
+                              onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
+                              className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
+                              style={{ fontSize: 12 }}
+                            >
+                              <Minus className="w-3 h-3 text-white" strokeWidth={3} />
+                            </button>
+                          )}
+                          <ExtremeLiquidIcon
+                            icon={Icon}
+                            gradient={app.gradient}
+                            glowColor={app.glowColor}
+                            tiltX={tilt.x}
+                            tiltY={tilt.y}
+                            index={idx}
+                            isDragging={snapshot.isDragging}
+                            active={editMode && !snapshot.isDragging}
+                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
+                          />
+                          <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
+                            {app.label}
+                          </span>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
 
-      {/* iOS Dock */}
-      <IOSDock
-        apps={dockApps.map(label => apps.find(a => a.label === label)).filter(Boolean)}
-        badgeCounts={badges}
-        tiltX={tilt.x}
-        tiltY={tilt.y}
-        navigate={navigate}
-      />
+
+      </div>
 
       {/* Quick Navigation Buttons */}
       <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
         <button
-          onClick={() => navigate('/landlords')}
+          onClick={() => {
+            console.log('Navigating to Landlord Pipeline');
+            navigate('/landlords');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
         >
@@ -553,7 +505,10 @@ export default function Dashboard() {
           Landlord Pipeline
         </button>
         <button
-          onClick={() => navigate('/landlords')}
+          onClick={() => {
+            console.log('Navigating to Assign Leads');
+            navigate('/landlords');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
           style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
         >
@@ -561,7 +516,9 @@ export default function Dashboard() {
           Assign Leads
         </button>
         <button
-          onClick={() => window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer')}
+          onClick={() => {
+            window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
         >

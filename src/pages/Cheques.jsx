@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Plus, Search, X, Loader2, FileText, Upload, ImageIcon, ExternalLink, AlertTriangle, Ban } from 'lucide-react';
+import { Plus, Search, X, Loader2, FileText, Upload, ImageIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -59,8 +59,6 @@ const EMPTY_FORM = {
 export default function Cheques() {
   const qc = useQueryClient();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(null); // cheque object or null
-  const [cancelling, setCancelling] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -87,25 +85,9 @@ export default function Cheques() {
     deposited: cheques.filter(c => c.status === 'deposited').length,
     cleared:   cheques.filter(c => c.status === 'cleared').length,
     bounced:   cheques.filter(c => c.status === 'bounced').length,
-    stale_pending: cheques.filter(c => c.is_stale && c.status !== 'cancelled').length,
     pending_total: cheques
       .filter(c => ['received', 'deposited'].includes(c.status))
       .reduce((s, c) => s + (c.amount_aed || 0), 0),
-  };
-
-  const handleConfirmCancellation = async () => {
-    if (!confirmCancel) return;
-    setCancelling(true);
-    try {
-      await base44.entities.Cheque.update(confirmCancel.id, { status: 'cancelled' });
-      toast.success(`Cheque #${confirmCancel.cheque_number} marked as cancelled`);
-      qc.invalidateQueries({ queryKey: ['cheques'] });
-      setConfirmCancel(null);
-    } catch (err) {
-      toast.error('Failed to cancel: ' + err.message);
-    } finally {
-      setCancelling(false);
-    }
   };
 
   // ─── Filtering ────────────────────────────────────────────────────────────
@@ -194,7 +176,7 @@ export default function Cheques() {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
           { label: 'Received',  value: kpi.received,  style: STATUS_STYLE.received },
           { label: 'Deposited', value: kpi.deposited, style: STATUS_STYLE.deposited },
@@ -206,15 +188,7 @@ export default function Cheques() {
             <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
           </div>
         ))}
-        {/* Stale KPI */}
-        <div className="glass-card px-4 py-3 text-center" style={kpi.stale_pending > 0 ? { border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.07)' } : {}}>
-          <p className="text-xl font-bold tabular-nums" style={{ color: kpi.stale_pending > 0 ? '#fca5a5' : 'rgba(148,163,184,0.6)' }}>{kpi.stale_pending}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-            {kpi.stale_pending > 0 && <AlertTriangle className="w-2.5 h-2.5 text-red-400" />}
-            Stale (action needed)
-          </p>
-        </div>
-        <div className="glass-card px-4 py-3 text-center">
+        <div className="glass-card px-4 py-3 text-center md:col-span-1">
           <p className="text-lg font-bold tabular-nums gold-text">{fmtAed(kpi.pending_total)}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Pending (Rcv + Dep)</p>
         </div>
@@ -269,54 +243,31 @@ export default function Cheques() {
                   <th className="text-left">Status</th>
                   <th className="text-left">Logged By</th>
                   <th className="text-left">Scan</th>
-                  <th className="text-left">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(c => {
-                  const isStaleActionable = c.is_stale && c.status !== 'cancelled';
-                  return (
-                    <tr key={c.id} style={isStaleActionable ? { background: 'rgba(239,68,68,0.04)' } : {}}>
-                      <td className="font-mono font-semibold text-white/90">{c.cheque_number || '—'}</td>
-                      <td className="font-medium text-white/90">{c.payer_name}</td>
-                      <td className="text-right tabular-nums font-semibold" style={{ color: 'hsl(38 92% 60%)' }}>{fmtAed(c.amount_aed)}</td>
-                      <td className="text-white/60">{c.bank_name || '—'}</td>
-                      <td className="text-white/70">{fmtDate(c.received_date)}</td>
-                      <td><Pill value={c.cheque_type || 'current'} styleMap={TYPE_STYLE} /></td>
-                      <td className="text-white/60 capitalize">{c.purpose ? LABEL(c.purpose) : '—'}</td>
-                      <td>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <Pill value={c.status || 'received'} styleMap={STATUS_STYLE} />
-                          {isStaleActionable && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border"
-                              style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.4)' }}>
-                              <AlertTriangle className="w-2.5 h-2.5" />STALE
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-white/50 text-[11px]">{c.received_by_email ? c.received_by_email.split('@')[0] : '—'}</td>
-                      <td>
-                        {c.cheque_image_url ? (
-                          <a href={c.cheque_image_url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
-                            style={{ color: 'hsl(38 92% 55%)' }}>
-                            <ExternalLink className="w-3 h-3" />View
-                          </a>
-                        ) : null}
-                      </td>
-                      <td>
-                        {isStaleActionable && (
-                          <button onClick={() => setConfirmCancel(c)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all active:scale-95 hover:opacity-90"
-                            style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>
-                            <Ban className="w-3 h-3" />Confirm Cancel
-                          </button>
-                        )}
-                      </td>
+                {filtered.map(c => (
+                  <tr key={c.id}>
+                    <td className="font-mono font-semibold text-white/90">{c.cheque_number || '—'}</td>
+                    <td className="font-medium text-white/90">{c.payer_name}</td>
+                    <td className="text-right tabular-nums font-semibold" style={{ color: 'hsl(38 92% 60%)' }}>{fmtAed(c.amount_aed)}</td>
+                    <td className="text-white/60">{c.bank_name || '—'}</td>
+                    <td className="text-white/70">{fmtDate(c.received_date)}</td>
+                    <td><Pill value={c.cheque_type || 'current'} styleMap={TYPE_STYLE} /></td>
+                    <td className="text-white/60 capitalize">{c.purpose ? LABEL(c.purpose) : '—'}</td>
+                    <td><Pill value={c.status || 'received'} styleMap={STATUS_STYLE} /></td>
+                    <td className="text-white/50 text-[11px]">{c.received_by_email ? c.received_by_email.split('@')[0] : '—'}</td>
+                    <td>
+                      {c.cheque_image_url ? (
+                        <a href={c.cheque_image_url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-medium transition-colors hover:opacity-80"
+                          style={{ color: 'hsl(38 92% 55%)' }}>
+                          <ExternalLink className="w-3 h-3" />View
+                        </a>
+                      ) : null}
+                    </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>
@@ -459,46 +410,6 @@ export default function Cheques() {
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-all active:scale-95"
                 style={{ background: 'hsl(38 92% 50%)', color: '#1a1a2e' }}>
                 {saving ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Saving…</span> : 'Log Cheque'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirm Cancellation Dialog ──────────────────────────────────────── */}
-      {confirmCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => !cancelling && setConfirmCancel(null)} />
-          <div className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl"
-            style={{ background: 'hsl(222 47% 10%)', border: '1px solid rgba(239,68,68,0.35)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-display font-semibold text-white text-base">Cancel Cheque?</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">This action cannot be undone.</p>
-              </div>
-            </div>
-            <p className="text-sm text-white/70 mb-1">
-              Cancel cheque <span className="font-mono font-semibold text-white">#{confirmCancel.cheque_number}</span> from <span className="font-medium text-white">{confirmCancel.payer_name}</span>?
-            </p>
-            <p className="text-xs text-white/40 mb-6">
-              This marks it <strong className="text-white/60">cancelled</strong> per the UAE 6-month stale cheque rule. The status is set to "Cancelled" immediately.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmCancel(null)} disabled={cancelling}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
-                Keep
-              </button>
-              <button onClick={handleConfirmCancellation} disabled={cancelling}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-all active:scale-95"
-                style={{ background: 'rgba(239,68,68,0.8)', color: 'white' }}>
-                {cancelling
-                  ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Cancelling…</span>
-                  : <span className="flex items-center justify-center gap-2"><Ban className="w-4 h-4" />Yes, Cancel Cheque</span>}
               </button>
             </div>
           </div>
