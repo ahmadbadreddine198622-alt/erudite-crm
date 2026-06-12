@@ -52,7 +52,7 @@
     },
     "logo_url": {
       "type": "string",
-      "description": "Public URL of the company logo \u2014 PDF functions fetch and convert to base64 at generation time"
+      "description": "Public URL of the company logo"
     },
     "signature_url": {
       "type": "string",
@@ -61,6 +61,18 @@
     "stamp_url": {
       "type": "string",
       "description": "Public URL of the company stamp image"
+    },
+    "logo_base64": {
+      "type": "string",
+      "description": "Base64 data URL of company logo \u2014 embedded directly by PDF functions"
+    },
+    "signature_base64": {
+      "type": "string",
+      "description": "Base64 data URL of signature"
+    },
+    "stamp_base64": {
+      "type": "string",
+      "description": "Base64 data URL of stamp"
     }
   },
   "required": []
