@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Plus, Search, FileText, X, ChevronDown, Download, ExternalLink, Loader2 } from 'lucide-react';
+import { Plus, Search, FileText, X, ChevronDown, Download, ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -551,6 +551,19 @@ export default function Acknowledgements() {
                   <ExternalLink className="w-3.5 h-3.5" /> Open saved PDF
                 </a>
               )}
+              <button
+                onClick={async () => {
+                  if (!confirm('Delete this acknowledgement? This cannot be undone.')) return;
+                  await base44.entities.Acknowledgement.delete(detailRecord.id);
+                  toast.success('Acknowledgement deleted');
+                  setDetailRecord(null);
+                  qc.invalidateQueries({ queryKey: ['acknowledgements'] });
+                }}
+                className="w-full py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
             </div>
           </div>
         </div>
