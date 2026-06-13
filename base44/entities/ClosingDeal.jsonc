@@ -18,6 +18,10 @@
       "type": "string",
       "description": "Human-readable property reference e.g. UNIT-1204-MARINA"
     },
+    "closing_project_id": {
+      "type": "string",
+      "description": "FK \u2192 Project entity \u2014 used as the match key for buyer\u2194seller attach. Must be non-empty for auto-attach to fire."
+    },
     "lead_name": {
       "type": "string",
       "description": "Cached buyer/lead name"
