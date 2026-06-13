@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign } from 'lucide-react';
+import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineBoard from '@/components/pipeline/PipelineBoard';
@@ -46,6 +47,10 @@ export default function Pipeline() {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [activeTab, setActiveTab] = useState('sale');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [agentFilter, setAgentFilter] = useState('');
+  const [languageFilter, setLanguageFilter] = useState('');
+  const [assignmentFilter, setAssignmentFilter] = useState('');
 
   const { user: currentUser, permissions } = useCurrentUser();
 
@@ -118,14 +123,30 @@ export default function Pipeline() {
   const activeLeads = useMemo(
     () => {
       let result = leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold');
-      // Role-based filtering
+      // Role-based filtering — must run before any user-facing filters
       if (currentUser && !permissions.view_all_pipeline) {
         result = result.filter(l => l.assigned_agent_email === currentUser.email);
       }
       if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
+      // Additional UI filters (applied within the role-scoped result)
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        result = result.filter(l =>
+          (l.full_name || l.name || '').toLowerCase().includes(q) ||
+          (l.first_name || '').toLowerCase().includes(q) ||
+          (l.last_name || '').toLowerCase().includes(q) ||
+          (l.email || '').toLowerCase().includes(q) ||
+          (l.phone || '').toLowerCase().includes(q) ||
+          (l.whatsapp || '').toLowerCase().includes(q)
+        );
+      }
+      if (agentFilter) result = result.filter(l => l.assigned_agent_email === agentFilter);
+      if (languageFilter) result = result.filter(l => l.preferred_language === languageFilter);
+      if (assignmentFilter === 'assigned') result = result.filter(l => !!l.assigned_agent_email);
+      if (assignmentFilter === 'unassigned') result = result.filter(l => !l.assigned_agent_email);
       return result;
     },
-    [leads, projectFilter, currentUser, permissions],
+    [leads, projectFilter, searchQuery, agentFilter, languageFilter, assignmentFilter, currentUser, permissions],
   );
 
   // Live lead for the open detail drawer — re-derived whenever the cache
@@ -306,6 +327,79 @@ export default function Pipeline() {
             </Select>
           )}
         </PageHeader>
+      </div>
+
+      {/* Filter row */}
+      <div className="px-8 pb-3 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search name, email, phone…"
+            className="pl-8 pr-7 py-2 text-xs rounded-lg w-52 outline-none"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Agent filter — only visible to admins (non-admins can only see their own leads anyway) */}
+        {permissions.view_all_pipeline && (
+          <select
+            value={agentFilter}
+            onChange={e => setAgentFilter(e.target.value)}
+            className="px-3 py-2 text-xs rounded-lg outline-none"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+          >
+            <option value="">All Agents</option>
+            {users.map(u => (
+              <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+            ))}
+          </select>
+        )}
+
+        <select
+          value={languageFilter}
+          onChange={e => setLanguageFilter(e.target.value)}
+          className="px-3 py-2 text-xs rounded-lg outline-none"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+        >
+          <option value="">All Languages</option>
+          <option value="en">English</option>
+          <option value="ar">Arabic</option>
+          <option value="fr">French</option>
+          <option value="ru">Russian</option>
+          <option value="zh">Chinese</option>
+          <option value="hi">Hindi</option>
+          <option value="ur">Urdu</option>
+          <option value="fa">Farsi</option>
+        </select>
+
+        <select
+          value={assignmentFilter}
+          onChange={e => setAssignmentFilter(e.target.value)}
+          className="px-3 py-2 text-xs rounded-lg outline-none"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+        >
+          <option value="">All Assignments</option>
+          <option value="assigned">Assigned</option>
+          <option value="unassigned">Unassigned</option>
+        </select>
+
+        {(searchQuery || agentFilter || languageFilter || assignmentFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setAgentFilter(''); setLanguageFilter(''); setAssignmentFilter(''); }}
+            className="text-xs px-2.5 py-1.5 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
+            style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-8 mt-0">

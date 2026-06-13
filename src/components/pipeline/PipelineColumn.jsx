@@ -18,25 +18,37 @@ export default function PipelineColumn({ stage, leads, getListing, onLeadClick, 
     >
       {/* Sticky header */}
       <div
-        className="sticky top-0 z-10 flex items-center gap-2 px-4 py-3"
+        className="sticky top-0 z-10 px-4 py-3"
         style={{
           background: 'rgba(8,11,18,0.7)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(245,159,10,0.2)',
         }}
       >
-        <h3
-          className="text-[10px] font-bold uppercase truncate"
-          style={{ fontFamily: 'var(--font-sans)', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.12em' }}
-        >
-          {stage.label}
-        </h3>
-        <span
-          className="ml-auto text-[11px] font-bold rounded-full min-w-[26px] h-[26px] px-2 flex items-center justify-center"
-          style={{ background: 'rgba(245,159,10,0.15)', color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
-        >
-          {leads.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <h3
+            className="text-[10px] font-bold uppercase truncate"
+            style={{ fontFamily: 'var(--font-sans)', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.12em' }}
+          >
+            {stage.label}
+          </h3>
+          <span
+            className="ml-auto text-[11px] font-bold rounded-full min-w-[26px] h-[26px] px-2 flex items-center justify-center"
+            style={{ background: 'rgba(245,159,10,0.15)', color: 'hsl(38 92% 50%)', border: '1px solid rgba(245,159,10,0.3)' }}
+          >
+            {leads.length}
+          </span>
+        </div>
+        {(() => {
+          const total = leads.reduce((s, l) => s + (l.deal_value_aed || 0), 0);
+          if (!total) return null;
+          const fmt = total >= 1_000_000
+            ? `AED ${(total / 1_000_000).toFixed(1)}M`
+            : total >= 1_000
+            ? `AED ${Math.round(total / 1_000)}K`
+            : `AED ${total}`;
+          return <p className="text-[10px] font-bold mt-0.5" style={{ color: 'hsl(38 92% 50%)' }}>{fmt}</p>;
+        })()}
       </div>
 
       {/* Droppable area */}
