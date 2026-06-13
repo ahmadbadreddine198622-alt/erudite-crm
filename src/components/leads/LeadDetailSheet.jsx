@@ -177,7 +177,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-4xl overflow-y-auto p-0">
+      <SheetContent side="left" className="w-full sm:max-w-4xl overflow-y-auto p-0">
         <SheetHeader className="p-6 pb-4" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent">
