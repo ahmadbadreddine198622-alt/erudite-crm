@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import {
   Plus, Search, X, Loader2, Building2, User, Users,
-  ArrowRight, Clock, DollarSign, CheckCircle2, Calendar, FileText
+  ArrowRight, Clock, DollarSign, CheckCircle2, Calendar, FileText, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ClosingDealSheet from '@/components/closing/ClosingDealSheet';
@@ -87,6 +87,19 @@ export default function ClosingHub() {
   const [reprFilter, setReprFilter] = useState('all');
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [showNew, setShowNew] = useState(false);
+  const [runningAI, setRunningAI] = useState(false);
+
+  const handleRunAI = async () => {
+    setRunningAI(true);
+    try {
+      await base44.functions.invoke('closingDealOrchestrator', {});
+      qc.invalidateQueries({ queryKey: ['closing_deals'] });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRunningAI(false);
+    }
+  };
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['closing_deals'],
@@ -132,11 +145,19 @@ export default function ClosingHub() {
           <h1 className="page-title text-2xl font-semibold mb-1">Closing Hub</h1>
           <p className="page-subtitle">{deals.length} deal{deals.length !== 1 ? 's' : ''} in closing pipeline</p>
         </div>
-        <button onClick={() => setShowNew(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
-          style={{ background: 'hsl(38 92% 50%)', color: '#1a1a2e' }}>
-          <Plus className="w-4 h-4" /> New Closing
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleRunAI} disabled={runningAI}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#c4b5fd' }}>
+            {runningAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {runningAI ? 'Running AI…' : 'Run AI'}
+          </button>
+          <button onClick={() => setShowNew(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            style={{ background: 'hsl(38 92% 50%)', color: '#1a1a2e' }}>
+            <Plus className="w-4 h-4" /> New Closing
+          </button>
+        </div>
       </div>
 
       {/* KPI strip */}
@@ -264,6 +285,34 @@ export default function ClosingHub() {
               <div className="mb-3">
                 <StageRail current={deal.stage || 'not_started'} />
               </div>
+
+              {/* AI risk + next action */}
+              {(deal.ai_risk_score != null || deal.ai_next_best_action) && (
+                <div className="mb-2 px-2 py-1.5 rounded-lg space-y-1"
+                  style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  {deal.ai_risk_score != null && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-3 h-3 flex-shrink-0"
+                        style={{ color: deal.ai_risk_score >= 70 ? '#fca5a5' : deal.ai_risk_score >= 40 ? '#fbbf24' : '#4ade80' }} />
+                      <span className="text-[10px] font-semibold"
+                        style={{ color: deal.ai_risk_score >= 70 ? '#fca5a5' : deal.ai_risk_score >= 40 ? '#fbbf24' : '#4ade80' }}>
+                        Risk: {deal.ai_risk_score}/100
+                      </span>
+                      {deal.ai_predicted_close_date && (
+                        <span className="text-[10px] text-muted-foreground ml-auto">
+                          Close ~{fmtDate(deal.ai_predicted_close_date)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {deal.ai_next_best_action && (
+                    <p className="text-[10px] leading-snug" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                      <span className="font-semibold" style={{ color: '#c4b5fd' }}>→ </span>
+                      {deal.ai_next_best_action}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Money + trustee */}
               <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>

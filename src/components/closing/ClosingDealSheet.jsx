@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Loader2, CheckCircle2, ArrowRight, Sparkles, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { CLOSING_STAGES } from '@/pages/ClosingHub';
 
@@ -27,6 +27,34 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
     commission_amount_buy_side_aed: deal.commission_amount_buy_side_aed || '',
   });
   const [saving, setSaving] = useState(false);
+  const [runningAI, setRunningAI] = useState(false);
+  const [aiData, setAiData] = useState({
+    ai_risk_score: deal.ai_risk_score ?? null,
+    ai_next_best_action: deal.ai_next_best_action ?? null,
+    ai_rolling_summary: deal.ai_rolling_summary ?? null,
+    ai_predicted_close_date: deal.ai_predicted_close_date ?? null,
+  });
+
+  const handleRunAI = async () => {
+    setRunningAI(true);
+    try {
+      const res = await base44.functions.invoke('closingDealOrchestrator', { deal_id: deal.id });
+      if (res.data?.ok) {
+        setAiData({
+          ai_risk_score: res.data.ai_risk_score,
+          ai_next_best_action: res.data.ai_next_best_action,
+          ai_rolling_summary: res.data.ai_rolling_summary,
+          ai_predicted_close_date: res.data.ai_predicted_close_date,
+        });
+        qc.invalidateQueries({ queryKey: ['closing_deals'] });
+        toast.success('AI analysis complete');
+      }
+    } catch (err) {
+      toast.error('AI failed: ' + err.message);
+    } finally {
+      setRunningAI(false);
+    }
+  };
 
   const sf = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const sn = k => e => setForm(f => ({ ...f, [k]: Number(e.target.value) }));
@@ -104,6 +132,58 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
         </div>
 
         <div className="flex-1 px-6 py-5 space-y-5">
+
+          {/* AI Panel */}
+          <div className="rounded-xl p-3 space-y-3"
+            style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)' }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" style={{ color: '#c4b5fd' }} />
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#c4b5fd' }}>AI Analysis</span>
+              </div>
+              <button onClick={handleRunAI} disabled={runningAI}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}>
+                {runningAI ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {runningAI ? 'Analysing…' : 'Run AI'}
+              </button>
+            </div>
+
+            {aiData.ai_risk_score != null && (
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0"
+                  style={{ color: aiData.ai_risk_score >= 70 ? '#fca5a5' : aiData.ai_risk_score >= 40 ? '#fbbf24' : '#4ade80' }} />
+                <span className="text-xs font-bold"
+                  style={{ color: aiData.ai_risk_score >= 70 ? '#fca5a5' : aiData.ai_risk_score >= 40 ? '#fbbf24' : '#4ade80' }}>
+                  Risk Score: {aiData.ai_risk_score}/100
+                </span>
+                {aiData.ai_predicted_close_date && (
+                  <span className="text-[10px] text-muted-foreground ml-auto">
+                    Predicted close: {aiData.ai_predicted_close_date}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {aiData.ai_next_best_action && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Next Best Action</p>
+                <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{aiData.ai_next_best_action}</p>
+              </div>
+            )}
+
+            {aiData.ai_rolling_summary && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Summary</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{aiData.ai_rolling_summary}</p>
+              </div>
+            )}
+
+            {!aiData.ai_risk_score && !aiData.ai_next_best_action && !runningAI && (
+              <p className="text-[11px] text-muted-foreground">No analysis yet — click Run AI to generate insights.</p>
+            )}
+          </div>
+
           {/* Stage rail */}
           <div>
             <label className="field-label">Closing Stage</label>

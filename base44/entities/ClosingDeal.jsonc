@@ -4,11 +4,11 @@
   "properties": {
     "lead_id": {
       "type": "string",
-      "description": "FK \u2192 Lead (buyer side). At least one of lead_id / landlord_id required."
+      "description": "FK \u2192 Lead (buyer side)"
     },
     "landlord_id": {
       "type": "string",
-      "description": "FK \u2192 Landlord (seller side). At least one of lead_id / landlord_id required."
+      "description": "FK \u2192 Landlord (seller side)"
     },
     "property_id": {
       "type": "string",
@@ -33,7 +33,7 @@
         "seller_side",
         "both"
       ],
-      "description": "Auto-derived: buyer_side if only lead_id, seller_side if only landlord_id, both if both present"
+      "description": "Auto-derived: buyer_side if only lead_id, seller_side if only landlord_id, both if both"
     },
     "deal_type": {
       "type": "string",
@@ -55,13 +55,11 @@
         "handover",
         "complete"
       ],
-      "default": "not_started",
-      "description": "Closing lifecycle stage"
+      "default": "not_started"
     },
     "stage_entered_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "When current stage was entered"
+      "format": "date-time"
     },
     "stage_history": {
       "type": "array",
@@ -83,8 +81,7 @@
       }
     },
     "deal_value_aed": {
-      "type": "number",
-      "description": "Total transaction value in AED"
+      "type": "number"
     },
     "commission_amount_aed": {
       "type": "number",
@@ -92,34 +89,29 @@
     },
     "commission_amount_buy_side_aed": {
       "type": "number",
-      "description": "Buy-side commission in AED (double-ended deals)"
+      "description": "Buy-side commission in AED"
     },
     "assigned_agent_email": {
       "type": "string",
-      "format": "email",
-      "description": "Primary agent handling this closing"
+      "format": "email"
     },
     "assigned_agent_name": {
       "type": "string"
     },
     "trustee_office": {
-      "type": "string",
-      "description": "Name of the DLD trustee office"
+      "type": "string"
     },
     "trustee_appointment_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Scheduled trustee appointment date/time"
+      "format": "date-time"
     },
     "cheques_received_count": {
       "type": "number",
-      "default": 0,
-      "description": "Number of manager's cheques received"
+      "default": 0
     },
     "cheques_required_count": {
       "type": "number",
-      "default": 0,
-      "description": "Total manager's cheques required"
+      "default": 0
     },
     "noc_status": {
       "type": "string",
@@ -132,12 +124,10 @@
       "default": "not_required"
     },
     "dld_transfer_ref": {
-      "type": "string",
-      "description": "DLD transfer reference number"
+      "type": "string"
     },
     "title_deed_number": {
-      "type": "string",
-      "description": "Issued title deed number"
+      "type": "string"
     },
     "title_deed_issued_at": {
       "type": "string",
@@ -152,7 +142,24 @@
     },
     "closing_reference": {
       "type": "string",
-      "description": "Auto-generated reference e.g. CLO-0001"
+      "description": "Auto-generated e.g. CLO-0001"
+    },
+    "ai_risk_score": {
+      "type": "number",
+      "description": "0-100 risk score computed by closingDealOrchestrator. 0 = on track, 100 = critical."
+    },
+    "ai_next_best_action": {
+      "type": "string",
+      "description": "Single most important next step \u2014 plain language, max 120 chars"
+    },
+    "ai_rolling_summary": {
+      "type": "string",
+      "description": "30-second plain-language handoff summary of where the deal stands"
+    },
+    "ai_predicted_close_date": {
+      "type": "string",
+      "format": "date",
+      "description": "AI-predicted date the deal reaches complete stage"
     }
   },
   "required": []
