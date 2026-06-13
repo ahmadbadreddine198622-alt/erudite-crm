@@ -15,6 +15,7 @@ import {
 import {
   Phone, Mail, MapPin, Calendar, MessageSquare, Send, Clock, Pencil, Trash2, Download, UserCheck, Briefcase, Link2
 } from 'lucide-react';
+import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import LinkToListingDialog from '@/components/leads/LinkToListingDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -536,6 +537,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           >
             <Download className="w-4 h-4 mr-1" /> Export VCF
           </Button>
+          <SendToClosingButton
+            leadId={lead.id}
+            propertyRef={lead.property_ref}
+          />
           <Button
             variant="outline"
             size="sm"

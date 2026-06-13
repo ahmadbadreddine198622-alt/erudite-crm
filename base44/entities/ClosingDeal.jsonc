@@ -1,0 +1,159 @@
+{
+  "name": "ClosingDeal",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "FK \u2192 Lead (buyer side). At least one of lead_id / landlord_id required."
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "FK \u2192 Landlord (seller side). At least one of lead_id / landlord_id required."
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Optional FK \u2192 Property / LandlordProperty"
+    },
+    "property_ref": {
+      "type": "string",
+      "description": "Human-readable property reference e.g. UNIT-1204-MARINA"
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached buyer/lead name"
+    },
+    "landlord_name": {
+      "type": "string",
+      "description": "Cached seller/landlord name"
+    },
+    "representation": {
+      "type": "string",
+      "enum": [
+        "buyer_side",
+        "seller_side",
+        "both"
+      ],
+      "description": "Auto-derived: buyer_side if only lead_id, seller_side if only landlord_id, both if both present"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "sale",
+        "rent"
+      ],
+      "default": "sale"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "cheques_ready",
+        "trustee_booked",
+        "at_trustee",
+        "transfer_done",
+        "title_issued",
+        "handover",
+        "complete"
+      ],
+      "default": "not_started",
+      "description": "Closing lifecycle stage"
+    },
+    "stage_entered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When current stage was entered"
+    },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "entered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exited_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "deal_value_aed": {
+      "type": "number",
+      "description": "Total transaction value in AED"
+    },
+    "commission_amount_aed": {
+      "type": "number",
+      "description": "Sell-side commission in AED"
+    },
+    "commission_amount_buy_side_aed": {
+      "type": "number",
+      "description": "Buy-side commission in AED (double-ended deals)"
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Primary agent handling this closing"
+    },
+    "assigned_agent_name": {
+      "type": "string"
+    },
+    "trustee_office": {
+      "type": "string",
+      "description": "Name of the DLD trustee office"
+    },
+    "trustee_appointment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Scheduled trustee appointment date/time"
+    },
+    "cheques_received_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of manager's cheques received"
+    },
+    "cheques_required_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total manager's cheques required"
+    },
+    "noc_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pending",
+        "received",
+        "rejected"
+      ],
+      "default": "not_required"
+    },
+    "dld_transfer_ref": {
+      "type": "string",
+      "description": "DLD transfer reference number"
+    },
+    "title_deed_number": {
+      "type": "string",
+      "description": "Issued title deed number"
+    },
+    "title_deed_issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "keys_handover_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "closing_reference": {
+      "type": "string",
+      "description": "Auto-generated reference e.g. CLO-0001"
+    }
+  },
+  "required": []
+}

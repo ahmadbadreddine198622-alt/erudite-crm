@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2 } from 'lucide-react';
+import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -418,6 +419,13 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           </span>
         )}
       </div>
+
+      {/* Send to Closing — only shown when at deal_closed stage */}
+      {landlord.stage === 'deal_closed' && (
+        <div className="mt-1.5" onClick={e => e.stopPropagation()}>
+          <SendToClosingButton landlordId={landlord.id} propertyRef={landlord.unit_reference} size="xs" />
+        </div>
+      )}
 
       {/* Bottom row: time + assign + actions */}
       <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>

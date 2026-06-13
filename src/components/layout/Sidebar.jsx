@@ -6,7 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, Shield, Palette, ReceiptText
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -69,6 +69,7 @@ const navItems = [
   { label: 'Design System',       icon: Palette,         path: '/design-system',       gradient: 'from-fuchsia-500 to-purple-800', adminOnly: true },
   { label: 'Company Settings',    icon: Building2,       path: '/company-settings',    gradient: 'from-amber-500 to-orange-700',  adminOnly: true },
   { label: 'Cheques',             icon: ReceiptText,     path: '/cheques',             gradient: 'from-indigo-500 to-violet-700', adminOnly: true },
+  { label: 'Closing Hub',         icon: CheckCircle2,    path: '/closing-hub',         gradient: 'from-emerald-500 to-green-700', adminOnly: true },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
