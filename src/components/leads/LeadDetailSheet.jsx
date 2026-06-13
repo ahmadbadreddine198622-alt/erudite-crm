@@ -35,6 +35,7 @@ import UniversalWhatsAppAction from '@/components/shared/UniversalWhatsAppAction
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CallLogPanel from '@/components/twilio/CallLogPanel';
+import LeadNotesTab from '@/components/leads/LeadNotesTab';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -215,6 +216,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <TabsTrigger value="calls" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">
               📞 Calls
             </TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">📋 Notes</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs h-full rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:text-foreground bg-transparent shadow-none px-0">Activity</TabsTrigger>
           </TabsList>
 
@@ -457,6 +459,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
           <TabsContent value="whatsapp" className="p-4 mt-0">
             <LeadWhatsAppTab lead={lead} />
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-0">
+            <LeadNotesTab lead={lead} />
           </TabsContent>
 
           <TabsContent value="calls" className="p-4 mt-0">
