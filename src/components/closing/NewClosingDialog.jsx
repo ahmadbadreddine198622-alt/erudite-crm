@@ -25,7 +25,7 @@ function deriveRepr(leadId, landlordId) {
   return 'buyer_side';
 }
 
-export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId, prefillLandlordId, prefillPropertyRef }) {
+export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId, prefillLandlordId, prefillPropertyRef, prefillProjectId }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -57,11 +57,11 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
       ...EMPTY,
       lead_id: prefillLeadId || '',
       landlord_id: prefillLandlordId || '',
-      property_ref: prefillPropertyRef || (landlord?.unit_reference || lead?.property_ref || ''),
+      property_ref: prefillPropertyRef || landlord?.unit_reference || lead?.closing_property_ref || '',
       deal_value_aed: lead?.deal_value_aed || landlord?.asking_price_aed || '',
       assigned_agent_email: lead?.assigned_agent_email || landlord?.assigned_agent_email || '',
     });
-  }, [open, prefillLeadId, prefillLandlordId]);
+  }, [open, prefillLeadId, prefillLandlordId, prefillPropertyRef, prefillProjectId]);
 
   if (!open) return null;
 
@@ -75,15 +75,20 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
       const landlord = landlords.find(l => l.id === form.landlord_id);
       const repr = deriveRepr(form.lead_id, form.landlord_id);
 
-      // Check if a ClosingDeal already exists for this property_ref — if so, attach to it
+      // Project-scoped, null-guarded attach: ONLY match when BOTH project IDs are non-empty and equal,
+      // AND normalized unit refs are equal. Two null/empty project IDs are never a match.
+      const normalize = s => (s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const formProjectId = (lead?.closing_project_id || landlord?.project_id || '').trim();
+      const formUnitRef = normalize(form.property_ref);
+
       let existing = null;
-      if (form.property_ref) {
+      if (formProjectId && formUnitRef) {
         const all = await base44.entities.ClosingDeal.list('-created_date', 200);
-        existing = all.find(d =>
-          d.property_ref === form.property_ref &&
-          d.stage !== 'complete' &&
-          d.id !== undefined
-        );
+        existing = all.find(d => {
+          const dProject = (d.closing_project_id || '').trim();
+          const dUnit = normalize(d.property_ref);
+          return dProject && dProject === formProjectId && dUnit === formUnitRef && d.stage !== 'complete';
+        });
       }
 
       if (existing) {
@@ -91,6 +96,8 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
         const updates = { representation: repr };
         if (form.lead_id && !existing.lead_id) { updates.lead_id = form.lead_id; updates.lead_name = lead?.full_name || lead?.name || ''; }
         if (form.landlord_id && !existing.landlord_id) { updates.landlord_id = form.landlord_id; updates.landlord_name = landlord?.full_name_en || landlord?.full_name || ''; }
+        // Ensure closing_project_id is stored on the deal if not already
+        if (formProjectId && !existing.closing_project_id) { updates.closing_project_id = formProjectId; }
         await base44.entities.ClosingDeal.update(existing.id, updates);
         toast.success('Attached to existing closing deal');
       } else {
@@ -102,6 +109,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
           lead_id: form.lead_id || undefined,
           landlord_id: form.landlord_id || undefined,
           property_ref: form.property_ref || undefined,
+          closing_project_id: formProjectId || undefined,
           lead_name: lead ? (lead.full_name || lead.name || '') : undefined,
           landlord_name: landlord ? (landlord.full_name_en || landlord.full_name || '') : undefined,
           representation: repr,

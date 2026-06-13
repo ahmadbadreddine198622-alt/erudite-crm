@@ -7,10 +7,11 @@ import NewClosingDialog from './NewClosingDialog';
  * Props:
  *   leadId          - if coming from buyer pipeline
  *   landlordId      - if coming from seller pipeline
- *   propertyRef     - optional pre-fill
+ *   propertyRef     - unit ref pre-fill (use lead.closing_property_ref or landlord.unit_reference)
+ *   projectId       - project pre-fill (use lead.closing_project_id or landlord.project_id)
  *   size            - 'sm' | 'xs' (default 'sm')
  */
-export default function SendToClosingButton({ leadId, landlordId, propertyRef, size = 'sm' }) {
+export default function SendToClosingButton({ leadId, landlordId, propertyRef, projectId, size = 'sm' }) {
   const [open, setOpen] = useState(false);
 
   const isXs = size === 'xs';
@@ -39,6 +40,7 @@ export default function SendToClosingButton({ leadId, landlordId, propertyRef, s
         prefillLeadId={leadId}
         prefillLandlordId={landlordId}
         prefillPropertyRef={propertyRef}
+        prefillProjectId={projectId}
         onSaved={() => setOpen(false)}
       />
     </>

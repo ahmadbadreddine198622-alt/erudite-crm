@@ -543,10 +543,13 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           >
             <Download className="w-4 h-4 mr-1" /> Export VCF
           </Button>
-          <SendToClosingButton
-            leadId={lead.id}
-            propertyRef={lead.property_ref}
-          />
+          {lead.stage === 'closing_dld' && (
+            <SendToClosingButton
+              leadId={lead.id}
+              propertyRef={lead.closing_property_ref}
+              projectId={lead.closing_project_id}
+            />
+          )}
           <Button
             variant="outline"
             size="sm"

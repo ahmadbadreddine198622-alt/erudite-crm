@@ -7,6 +7,7 @@ import { STAGES, DEFAULT_HEALTH_THRESHOLDS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 import { Calendar, Trash2, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
+import SendToClosingButton from '@/components/closing/SendToClosingButton';
 
 function formatTimeInStage(stageEnteredAt) {
   if (!stageEnteredAt) return '';
@@ -209,6 +210,18 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
           </span>
         )}
       </div>
+
+      {/* Send to Closing — only at closing_dld stage */}
+      {lead.stage === 'closing_dld' && (
+        <div className="pt-1.5 mt-1" onClick={e => e.stopPropagation()}>
+          <SendToClosingButton
+            leadId={lead.id}
+            propertyRef={lead.closing_property_ref}
+            projectId={lead.closing_project_id}
+            size="xs"
+          />
+        </div>
+      )}
 
       {/* LEVEL 6: Assign + Delete */}
       <div className="flex items-center gap-1.5 pt-1.5 mt-1 border-t border-white/8" onClick={e => e.stopPropagation()}>
