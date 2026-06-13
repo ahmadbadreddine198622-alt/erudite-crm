@@ -726,6 +726,14 @@
         "stale"
       ],
       "default": "pending"
+    },
+    "closing_property_ref": {
+      "type": "string",
+      "description": "Human-readable unit reference the buyer is transacting on (mirrors unit_reference on Landlord)"
+    },
+    "closing_project_id": {
+      "type": "string",
+      "description": "FK to Project entity (mirrors project_id on Landlord)"
     }
   },
   "required": [
