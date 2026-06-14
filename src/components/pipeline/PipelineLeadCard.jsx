@@ -67,6 +67,24 @@ const OFFERING_BADGE_COLORS = {
   rent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
+const SOURCE_BADGE = {
+  property_finder:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  whatsapp_campaign: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  bayut:             'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  website:           'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+  referral:          'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  instagram:         'bg-pink-500/15 text-pink-400 border-pink-500/30',
+  facebook:          'bg-blue-700/15 text-blue-300 border-blue-700/30',
+  tiktok:            'bg-slate-400/10 text-slate-200 border-slate-400/25',
+  google_ads:        'bg-red-500/15 text-red-400 border-red-500/30',
+  dubizzle:          'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  cold_call:         'bg-violet-500/15 text-violet-400 border-violet-500/30',
+  walk_in:           'bg-teal-500/15 text-teal-400 border-teal-500/30',
+  event:             'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+  portal_inquiry:    'bg-sky-500/15 text-sky-400 border-sky-500/30',
+};
+const SOURCE_BADGE_DEFAULT = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+
 const FINANCE_BADGE = {
   cash:        { label: 'Cash',     style: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
   mortgage:    { label: 'Mortgage', style: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
@@ -128,7 +146,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
       {/* Badges: source + stage + health + finance */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
         {lead.source && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-accent/10 text-accent border-accent/20">
+          <span className={`inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border ${SOURCE_BADGE[lead.source] || SOURCE_BADGE_DEFAULT}`}>
             {lead.source.replace(/_/g, ' ')}
           </span>
         )}
