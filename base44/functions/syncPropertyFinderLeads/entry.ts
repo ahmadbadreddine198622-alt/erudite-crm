@@ -55,7 +55,19 @@ async function fetchPFLeadsPage(token, page, perPage) {
   return await res.json();
 }
 
-function mapPFLeadToCRM(pfLead) {
+function resolveAgentEmail(pfLead, agentMap) {
+  const publicProfileId = pfLead.publicProfile?.id;
+  const fallbackEmail = 'ahmad@erudite-estate.com';
+  
+  if (publicProfileId && agentMap[publicProfileId]) {
+    return { email: agentMap[publicProfileId], unmapped: false };
+  } else if (publicProfileId) {
+    return { email: fallbackEmail, unmapped: true, publicProfileId };
+  }
+  return { email: fallbackEmail, unmapped: false };
+}
+
+function mapPFLeadToCRM(pfLead, agentMap) {
   const sender = pfLead.sender || {};
   const phoneContact = (sender.contacts || []).find(c => c.type === 'phone');
   const emailContact = (sender.contacts || []).find(c => c.type === 'email');
@@ -66,12 +78,17 @@ function mapPFLeadToCRM(pfLead) {
   const channel = pfLead.channel || 'unknown';
   const createdAt = pfLead.createdAt || '';
   
+  const { email: assigned_agent_email, unmapped, publicProfileId } = resolveAgentEmail(pfLead, agentMap);
+  
   // Build notes
   const notesParts = [
     `PF lead. id:${pfLeadId} | listing:${listingRef} | channel:${channel} | created:${createdAt}`,
   ];
   if (responseLink) {
     notesParts.push(`respond:${responseLink}`);
+  }
+  if (unmapped) {
+    notesParts.push(`[UNMAPPED PF profile ${publicProfileId}]`);
   }
   const notes = notesParts.join(' | ');
   
@@ -86,7 +103,7 @@ function mapPFLeadToCRM(pfLead) {
     intent: 'buyer',
     closing_property_ref: listingRef,
     notes: notes,
-    assigned_agent_email: 'ahmad.badreddine198622@gmail.com',
+    assigned_agent_email,
   };
 }
 
@@ -123,6 +140,7 @@ Deno.serve(async (req) => {
       created_count: 0,
       skipped_count: 0,
       failed_count: 0,
+      per_agent_counts: {},
       samples: [],
     };
 
@@ -139,12 +157,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch agent map once: publicProfile.id → email
+    let agentMap = {};
+    try {
+      agentMap = await fetchPFUsers(token);
+      console.log('[syncPFLeads] Agent map loaded:', Object.keys(agentMap).length, 'users');
+    } catch (err) {
+      console.error('[syncPFLeads] Failed to load agent map:', err.message);
+      agentMap = {};
+    }
+
     // Build dedup map of existing PF leads by pf_lead_id field
     const existingPFLeadIds = new Set();
     const existingLeads = await base44.asServiceRole.entities.Lead.filter({ source: 'property_finder' });
+    const existingLeadsMap = new Map();
     for (const lead of existingLeads) {
       if (lead.pf_lead_id) {
         existingPFLeadIds.add(lead.pf_lead_id);
+        existingLeadsMap.set(lead.pf_lead_id, lead);
       }
     }
     console.log(`[syncPFLeads] Found ${existingPFLeadIds.size} existing PF leads for dedup`);
@@ -177,22 +207,43 @@ Deno.serve(async (req) => {
         const batch = leads.slice(i, i + batchSize);
         const batchPromises = batch.map(async (pfLead) => {
           const pfLeadId = String(pfLead.id || '');
+          const publicProfileId = pfLead.publicProfile?.id;
+          const { email: correctAgentEmail } = resolveAgentEmail(pfLead, agentMap);
           
-          // Dedupe check
-          if (existingPFLeadIds.has(pfLeadId)) {
-            diagnostics.skipped_count++;
+          // Track per-agent counts
+          diagnostics.per_agent_counts[correctAgentEmail] = (diagnostics.per_agent_counts[correctAgentEmail] || 0) + 1;
+          
+          // Check if lead already exists
+          const existingLead = existingLeadsMap.get(pfLeadId);
+          if (existingLead) {
+            // UPDATE: correct the assigned_agent_email if it's wrong
+            if (existingLead.assigned_agent_email !== correctAgentEmail) {
+              try {
+                await withRetry(() =>
+                  base44.asServiceRole.entities.Lead.update(existingLead.id, {
+                    assigned_agent_email: correctAgentEmail,
+                  })
+                );
+                console.log('[syncPFLeads] Updated agent for', pfLeadId, ':', existingLead.assigned_agent_email, '→', correctAgentEmail);
+              } catch (err) {
+                console.error('[syncPFLeads] Update failed for', pfLeadId, ':', err.message);
+                diagnostics.failed_count++;
+              }
+            }
+            diagnostics.skipped_count++; // counted as "not created" but may have been updated
             return;
           }
           
-          // Map and create
+          // Create new lead
           try {
-            const crmData = mapPFLeadToCRM(pfLead);
+            const crmData = mapPFLeadToCRM(pfLead, agentMap);
             const newLead = await withRetry(() => 
               base44.asServiceRole.entities.Lead.create(crmData)
             );
             
             diagnostics.created_count++;
             existingPFLeadIds.add(pfLeadId);
+            existingLeadsMap.set(pfLeadId, newLead);
             
             // Collect samples (first 5)
             if (diagnostics.samples.length < 5) {
@@ -201,6 +252,7 @@ Deno.serve(async (req) => {
                 phone: crmData.phone,
                 closing_property_ref: crmData.closing_property_ref,
                 pf_lead_id: pfLeadId,
+                assigned_agent_email: crmData.assigned_agent_email,
               });
             }
           } catch (err) {
