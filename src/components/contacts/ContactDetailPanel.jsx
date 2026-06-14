@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import {
   Phone, Mail, MapPin, Building2, Hash, Paperclip,
   Plus, X, Save, Loader2, User, ChevronDown, ChevronUp, Edit3,
@@ -23,6 +24,7 @@ import PropertyLeadMatcher from '@/components/matching/PropertyLeadMatcher';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
 const PROJECT_LAYERS = [
   { id: 'peninsula-three', label: 'Peninsula Three' },
@@ -132,6 +134,9 @@ export default function ContactDetailPanel({ contactId, onClose }) {
   const [newCustomVal, setNewCustomVal] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+
+  const { getPhotoForPhone } = usePhotoByPhone();
+  const contactPhotoUrl = getPhotoForPhone(primaryPhone);
 
   const primaryPhone = draft?.phones?.[0]?.number || draft?.phone;
 
@@ -247,8 +252,11 @@ export default function ContactDetailPanel({ contactId, onClose }) {
       <div className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-[#F3F4F6]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
+            {contactPhotoUrl ? (
+              <img src={contactPhotoUrl} alt="" className="w-12 h-12 rounded-2xl object-cover border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            ) : null}
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+              className={cn('w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0', contactPhotoUrl ? 'hidden' : 'flex')}
               style={{ background: `hsl(${hue}, 60%, 55%)` }}
             >
               {initials}

@@ -19,6 +19,7 @@ import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import LinkToListingDialog from '@/components/leads/LinkToListingDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import LeadScoreBadge from '@/components/shared/LeadScoreBadge';
 import SourceBadge from '@/components/shared/SourceBadge';
 import WhatsAppPhone from '@/components/shared/WhatsAppPhone';
@@ -40,8 +41,11 @@ import FormFUpload from '@/components/leads/FormFUpload';
 import FormFParsePanel from '@/components/leads/FormFParsePanel';
 import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
 import IntentToggle from '@/components/leads/IntentToggle';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
+  const { getPhotoForPhone } = usePhotoByPhone();
+  const leadPhotoUrl = getPhotoForPhone(lead.phone || lead.whatsapp);
   const [note, setNote] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
@@ -179,7 +183,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
       <SheetContent side="left" className="w-full sm:max-w-4xl overflow-y-auto p-0">
         <SheetHeader className="p-6 pb-4" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent">
+            {leadPhotoUrl ? (
+              <img src={leadPhotoUrl} alt="" className="w-14 h-14 rounded-full object-cover border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            ) : null}
+            <div className={cn('w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent', leadPhotoUrl ? 'hidden' : 'flex')}>
               {lead.full_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
