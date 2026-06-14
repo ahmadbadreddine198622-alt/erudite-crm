@@ -143,14 +143,14 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
         style={{ background: 'hsl(222 47% 9%)', border: '1px solid rgba(255,255,255,0.12)' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center justify-between px-8 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <h2 className="font-display text-lg font-semibold text-white">New Closing Deal</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-white transition"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
           {/* Buyer (Lead) */}
           <div>
             <label className="field-label flex items-center gap-1.5"><User className="w-3 h-3 text-blue-400" /> Buyer (Lead)</label>
@@ -185,7 +185,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
           )}
 
           {/* Property ref + type */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="field-label">Property Reference</label>
               <input value={form.property_ref} onChange={sf('property_ref')} placeholder="e.g. UNIT-1204-MARINA" className="field-input" />
@@ -204,7 +204,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
             <label className="field-label">Deal Value (AED)</label>
             <input type="number" value={form.deal_value_aed} onChange={sf('deal_value_aed')} placeholder="0" className="field-input" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="field-label">Commission — Sell Side (AED)</label>
               <input type="number" value={form.commission_amount_aed} onChange={sf('commission_amount_aed')} placeholder="0" className="field-input" />
@@ -233,7 +233,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t flex gap-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="px-8 py-4 border-t flex gap-3 shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <button onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
