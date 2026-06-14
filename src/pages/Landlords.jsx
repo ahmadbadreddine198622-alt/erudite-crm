@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText } from 'lucide-react';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
+import ProjectSelectorWithUpload from '@/components/landlord/ProjectSelectorWithUpload';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -623,18 +624,11 @@ export default function Landlords() {
                 <option value="first_time_seller">First Time Seller</option>
                 <option value="portfolio_optimizer">Portfolio Optimizer</option>
               </select>
-              <select
+              <ProjectSelectorWithUpload
                 value={filterProject}
-                onChange={(e) => setFilterProject(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Projects</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-                <option value="unassigned">Unassigned</option>
-              </select>
+                onChange={(val) => setFilterProject(val || '')}
+                projects={projects}
+              />
 
               {/* Floor filter */}
               <select
