@@ -281,6 +281,119 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
   return conv;
 }
 
+/**
+ * Detect if message body is a Property Finder lead notification.
+ * Returns parsed { title, reference, url1, url2 } or null.
+ */
+function parsePropertyFinderLead(body) {
+  if (!body || typeof body !== 'string') return null;
+  // Must contain both markers
+  if (!body.includes('Property Finder') || !body.includes('Reference number:')) return null;
+
+  // Extract title: text after "*Title:*" up to "*Reference number:*"
+  const titleMatch = body.match(/\*Title:\*\s*(.+?)\s*\*Reference number:/s);
+  const title = titleMatch ? titleMatch[1].trim() : null;
+
+  // Extract reference: text after "*Reference number:*" up to "Use this link" or end
+  const refMatch = body.match(/\*Reference number:\*\s*(.+?)\s*(?:Use this link|$)/s);
+  const reference = refMatch ? refMatch[1].trim() : null;
+
+  if (!title || !reference) return null;
+
+  // Extract URLs
+  const urls = [];
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  let match;
+  while ((match = urlRegex.exec(body)) !== null) {
+    urls.push(match[1]);
+  }
+
+  // url1 = propertyfinder.ae/leads/... (respond link)
+  // url2 = propertyfinder.ae/to/... (view listing)
+  const url1 = urls.find(u => u.includes('propertyfinder.ae/leads/')) || urls[0];
+  const url2 = urls.find(u => u.includes('propertyfinder.ae/to/')) || urls[1];
+
+  return { title, reference, url1, url2 };
+}
+
+/**
+ * Auto-create a Lead from a Property Finder lead notification.
+ * Dedupes by closing_property_ref (reference number).
+ * Returns { created: boolean, lead_id: string, reference: string, title: string } or null.
+ */
+async function createLeadFromPFMessage(serviceRole, { body, conv, channel }) {
+  const parsed = parsePropertyFinderLead(body);
+  if (!parsed) return null;
+
+  const { title, reference, url1, url2 } = parsed;
+
+  // DEDUPE: check if Lead already exists with this reference
+  try {
+    const existingLeads = await serviceRole.entities.Lead.filter({ closing_property_ref: reference });
+    if (existingLeads?.length > 0) {
+      const existingLead = existingLeads[0];
+      console.log(`[PF Lead] Dedupe: Lead ${existingLead.id} already exists for reference ${reference}`);
+      
+      // Ensure conversation is linked to existing lead
+      if (conv && !conv.lead_id) {
+        try {
+          await serviceRole.entities.WhatsAppConversation.update(conv.id, { lead_id: existingLead.id });
+          console.log(`[PF Lead] Linked conversation ${conv.id} to existing Lead ${existingLead.id}`);
+        } catch (err) {
+          console.warn('[PF Lead] Failed to link conversation to existing lead:', err?.message);
+        }
+      }
+      
+      return { created: false, lead_id: existingLead.id, reference, title };
+    }
+  } catch (err) {
+    console.error('[PF Lead] Dedupe check failed:', err?.message);
+  }
+
+  // Determine assigned agent
+  let assignedAgentEmail = conv?.assigned_agent_email || null;
+  if (!assignedAgentEmail) {
+    // Fallback to default agent
+    assignedAgentEmail = 'ahmad.badreddine198622@gmail.com';
+  }
+
+  // Build notes
+  const notesParts = [`Property Finder lead. Reference: ${reference}`];
+  if (url1) notesParts.push(`Respond: ${url1}`);
+  if (url2) notesParts.push(`Listing: ${url2}`);
+  const notes = notesParts.join('\n');
+
+  // Create Lead
+  try {
+    const newLead = await serviceRole.entities.Lead.create({
+      full_name: title,
+      source: 'property_finder',
+      stage: 'intake_clarify',
+      closing_property_ref: reference,
+      notes,
+      assigned_agent_email: assignedAgentEmail,
+      intent: 'buyer',
+      status: 'active',
+    });
+    console.log(`[PF Lead] Created Lead ${newLead.id} for reference ${reference}`);
+
+    // Link conversation to new lead
+    if (conv && conv.id) {
+      try {
+        await serviceRole.entities.WhatsAppConversation.update(conv.id, { lead_id: newLead.id });
+        console.log(`[PF Lead] Linked conversation ${conv.id} to new Lead ${newLead.id}`);
+      } catch (err) {
+        console.warn('[PF Lead] Failed to link conversation to new lead:', err?.message);
+      }
+    }
+
+    return { created: true, lead_id: newLead.id, reference, title };
+  } catch (err) {
+    console.error('[PF Lead] Lead creation failed:', err?.message);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const secret = url.searchParams.get('secret') || req.headers.get('x-evolution-secret') || '';
@@ -510,6 +623,20 @@ Deno.serve(async (req) => {
         wa_display_name: waDisplayName || '',
       }).catch(() => {});
       serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
+      
+      // ---- Property Finder Lead Auto-Creation ----
+      // Check if this is a PF lead notification and auto-create Lead (deduped by reference)
+      createLeadFromPFMessage(serviceRole, {
+        body: parsed.text,
+        conv,
+        channel,
+      }).then((result) => {
+        if (result) {
+          console.log(`[PF Lead] Result: ${result.created ? 'created' : 'linked'} Lead ${result.lead_id} (${result.title}) - Ref: ${result.reference}`);
+        }
+      }).catch((err) => {
+        console.error('[PF Lead] Background processing failed:', err?.message);
+      });
     }
 
     return Response.json({
