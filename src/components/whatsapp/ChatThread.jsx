@@ -423,12 +423,42 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel, is
           }}
         >
           <p className="text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
-            {msg.body}
+            <MessageText text={msg.body} isOutbound={isOutbound} />
           </p>
           <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
         </div>
       </div>
     </div>
+  );
+}
+
+function MessageText({ text, isOutbound }) {
+  if (!text) return null;
+  
+  // URL regex pattern for http/https URLs
+  const urlRegex = /(https?:\/\/[^\s<]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline break-all"
+              style={{ color: isOutbound ? '#53bdeb' : 'hsl(38 92% 50%)' }}
+            >
+              {part}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </>
   );
 }
 
