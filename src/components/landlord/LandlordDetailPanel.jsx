@@ -349,24 +349,31 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             )}
             {/* Avatar */}
             {photoUrl ? (
-              <Dialog open={photoLightboxOpen} onOpenChange={setPhotoLightboxOpen}>
-                <DialogTrigger asChild>
-                  <button className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-white/20 hover:border-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50">
-                    <img src={photoUrl} alt="" className="w-full h-full object-cover" />
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl p-0 overflow-hidden" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-                  <div className="relative w-full h-[80vh] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.92)' }}>
-                    <img src={photoUrl} alt="" className="max-h-full max-w-full object-contain rounded-lg" />
-                    <button
-                      onClick={() => setPhotoLightboxOpen(false)}
-                      className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                    >
-                      <X className="w-5 h-5 text-white" />
-                    </button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <>
+                <button
+                  onClick={() => {
+                    console.log('[LandlordDetailPanel] Avatar clicked, photoUrl:', photoUrl);
+                    setPhotoLightboxOpen(true);
+                  }}
+                  className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-white/20 hover:border-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer"
+                  title="View full-size photo"
+                >
+                  <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                </button>
+                <Dialog open={photoLightboxOpen} onOpenChange={setPhotoLightboxOpen}>
+                  <DialogContent className="max-w-3xl p-0 overflow-hidden" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                    <div className="relative w-full h-[85vh] flex items-center justify-center bg-black/95 rounded-lg">
+                      <img src={photoUrl} alt="" className="max-h-full max-w-full object-contain" />
+                      <button
+                        onClick={() => setPhotoLightboxOpen(false)}
+                        className="absolute top-3 right-3 p-2 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
             ) : (
               <div className="w-11 h-11 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0 border border-accent/30">
                 {(landlord.full_name_en || landlord.full_name || '?')[0]?.toUpperCase()}
