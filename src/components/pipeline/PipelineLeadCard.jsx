@@ -113,11 +113,11 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
       {/* Top row: health status + avatar + name */}
       <div className="flex items-start gap-1.5 mb-1.5">
         <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-xs font-bold text-accent shrink-0">
-          {lead.name?.[0]?.toUpperCase() || '?'}
+          {lead.full_name?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 mb-0.5">
-            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.name || 'Unknown'}</p>
+            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.full_name || lead.phone || 'Unknown'}</p>
             {healthStatus && (
               <span className={`shrink-0 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${healthColors[healthStatus]} text-white`}>
                 {healthStatus}
@@ -128,7 +128,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
             <div className="mt-0.5" onClick={(e) => e.stopPropagation()}>
               <WhatsAppPhone
                 phone={lead.phone}
-                name={lead.name}
+                name={lead.full_name}
                 leadId={lead.id}
                 size="xs"
                 disabled={lead.do_not_contact}
@@ -257,7 +257,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
           type="button"
           title="Delete lead"
           onClick={() => {
-            if (window.confirm(`Delete ${lead.name || 'this lead'}? This can't be undone.`)) {
+            if (window.confirm(`Delete ${lead.full_name || lead.phone || 'this lead'}? This can't be undone.`)) {
               onDelete?.(lead.id);
             }
           }}

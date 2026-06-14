@@ -174,10 +174,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
         <SheetHeader className="p-6 pb-4" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent">
-              {lead.name?.[0]?.toUpperCase() || '?'}
+              {lead.full_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
-              <SheetTitle className="text-lg">{lead.full_name || lead.name}</SheetTitle>
+              <SheetTitle className="text-lg">{lead.full_name || lead.phone || 'Unknown'}</SheetTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
               <SourceBadge source={lead.source} />
               <LeadScoreBadge score={lead.lead_score} />
