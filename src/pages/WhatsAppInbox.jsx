@@ -651,7 +651,7 @@ export default function WhatsAppInbox() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background">
+    <div className="flex h-[100dvh] bg-background">
       <NewConversationDialog
         open={showNewConv}
         onClose={() => setShowNewConv(false)}
