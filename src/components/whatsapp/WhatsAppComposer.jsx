@@ -91,7 +91,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   };
 
   return (
-    <div className="border-t relative" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+    <div className="border-t relative flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
 
       {/* 24h window warning */}
       {windowLocked && (

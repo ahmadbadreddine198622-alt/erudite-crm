@@ -161,7 +161,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 relative" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-1 relative" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
         {Object.entries(grouped).map(([day, msgs]) => (
           <div key={day}>
             <div className="flex justify-center my-3">
@@ -351,7 +351,7 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Regular text message
   return (
     <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[70%]', 'break-words')}>
+      <div className={cn('max-w-[60%]', 'break-words')}>
         {!isOutbound && contactName && (
           <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
         )}
@@ -362,7 +362,7 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
             borderLeft: !isOutbound ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` : 'none',
           }}
         >
-          <p className="leading-relaxed text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
+          <p className="text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
             {msg.body}
           </p>
           <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />

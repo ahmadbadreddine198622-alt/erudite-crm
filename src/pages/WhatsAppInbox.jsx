@@ -894,7 +894,7 @@ export default function WhatsAppInbox() {
           >
             <span className="text-xs font-bold">{sidebarOpen ? '‹' : '›'}</span>
           </button>
-          <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
             <WhatsAppHeader
               conversation={selectedConv}
               lead={selectedLead}
