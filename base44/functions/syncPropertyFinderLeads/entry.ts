@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const maxPages = body.maxPages || 5; // Default: fetch 5 pages (250 leads)
-    const perPage = 50;
+    const perPage = 100; // Fetch 100 per page for efficiency
+    const MAX_LEADS = 1000; // Hard cap: only sync latest 1,000 leads
     
     const diagnostics = {
       pages_fetched: 0,
@@ -179,9 +179,9 @@ Deno.serve(async (req) => {
     }
     console.log(`[syncPFLeads] Found ${existingPFLeadIds.size} existing PF leads for dedup`);
 
-    // Fetch and process leads page by page
+    // Fetch and process leads page by page (newest-first, cap at 1,000)
     let page = 1;
-    while (page <= maxPages) {
+    while (diagnostics.total_leads_from_pf < MAX_LEADS) {
       let data;
       try {
         data = await fetchPFLeadsPage(token, page, perPage);
@@ -197,14 +197,18 @@ Deno.serve(async (req) => {
         break;
       }
       
+      // Cap at MAX_LEADS
+      const remaining = MAX_LEADS - diagnostics.total_leads_from_pf;
+      const leadsToProcess = leads.slice(0, remaining);
+      
       diagnostics.pages_fetched++;
-      diagnostics.total_leads_from_pf += leads.length;
-      console.log(`[syncPFLeads] Page ${page}: ${leads.length} leads`);
+      diagnostics.total_leads_from_pf += leadsToProcess.length;
+      console.log(`[syncPFLeads] Page ${page}: ${leadsToProcess.length} leads (total: ${diagnostics.total_leads_from_pf}/${MAX_LEADS})`);
       
       // Process leads in batches of 20 with throttling
       const batchSize = 20;
-      for (let i = 0; i < leads.length; i += batchSize) {
-        const batch = leads.slice(i, i + batchSize);
+      for (let i = 0; i < leadsToProcess.length; i += batchSize) {
+        const batch = leadsToProcess.slice(i, i + batchSize);
         const batchPromises = batch.map(async (pfLead) => {
           const pfLeadId = String(pfLead.id || '');
           const publicProfileId = pfLead.publicProfile?.id;
@@ -264,13 +268,17 @@ Deno.serve(async (req) => {
         await Promise.all(batchPromises);
         
         // Throttle between batches
-        if (page < maxPages || i + batchSize < leads.length) {
+        if (diagnostics.total_leads_from_pf < MAX_LEADS && i + batchSize < leadsToProcess.length) {
           await new Promise(r => setTimeout(r, 400));
         }
       }
       
-      // Check if there are more pages
-      if (leads.length < perPage) {
+      // Stop if we've hit the cap or got a partial page
+      if (diagnostics.total_leads_from_pf >= MAX_LEADS) {
+        console.log('[syncPFLeads] Reached 1,000 lead cap, stopping');
+        break;
+      }
+      if (leadsToProcess.length < perPage) {
         console.log('[syncPFLeads] Partial page, stopping');
         break;
       }
