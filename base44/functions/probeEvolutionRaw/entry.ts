@@ -24,31 +24,72 @@ Deno.serve(async (req) => {
       }, { status: 500 });
     }
 
-    // Determine instance name
-    let instanceName = evolutionInstance;
-    if (!instanceName) {
-      // Try to extract from URL (e.g., https://.../instance/erudite_whatsapp => erudite_whatsapp)
-      const urlMatch = evolutionApiUrl.match(/\/instance\/([^\/\?]+)/i);
-      if (urlMatch) {
-        instanceName = urlMatch[1];
-      } else {
-        return Response.json({
-          error: 'Cannot determine Evolution instance name',
-          secrets_present: {
-            EVOLUTION_API_URL: true,
-            EVOLUTION_API_KEY: true,
-            EVOLUTION_INSTANCE: false,
-          },
-          attempted_url: evolutionApiUrl,
-          note: 'Set EVOLUTION_INSTANCE secret with your Evolution instance name (e.g., "erudite_whatsapp"), or include /instance/{name} in EVOLUTION_API_URL.',
-        }, { status: 500 });
+    // Fetch instance list to find the correct personal WhatsApp instance
+    let availableInstances = [];
+    let detectedInstance = null;
+    
+    try {
+      const fetchInstancesRes = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, {
+        headers: { 'apikey': evolutionApiKey }
+      });
+      if (fetchInstancesRes.ok) {
+        availableInstances = await fetchInstancesRes.json();
+        if (Array.isArray(availableInstances) && availableInstances.length > 0) {
+          // Prefer connected personal WhatsApp instance (has ownerJid, no integration)
+          const personalInstance = availableInstances.find(i => 
+            i.connectionStatus === 'open' && 
+            i.ownerJid && 
+            !i.integration
+          );
+          detectedInstance = personalInstance || availableInstances.find(i => i.connectionStatus === 'open');
+        }
       }
+    } catch (e) {
+      // Will handle below
+    }
+    
+    // Use EVOLUTION_INSTANCE only if it matches an available instance name, otherwise use detected (personal WA preferred)
+    let instanceName = null;
+    const trimmedSecret = evolutionInstance ? evolutionInstance.trim() : null;
+    const secretMatchesInstance = trimmedSecret && availableInstances.some(i => i.name?.trim() === trimmedSecret);
+    
+    // Always use the personal WhatsApp instance (erudite_whatsapp) for these endpoints
+    // Business API instances don't support the same contact/profile picture endpoints
+    const personalInstance = availableInstances.find(i => 
+      i.connectionStatus === 'open' && 
+      i.ownerJid && 
+      i.integration === 'WHATSAPP-BAILEYS'
+    );
+    
+    if (personalInstance) {
+      instanceName = personalInstance.name?.trim();
+    } else if (secretMatchesInstance) {
+      instanceName = trimmedSecret;
+    } else if (detectedInstance) {
+      instanceName = detectedInstance.name?.trim();
+    }
+    
+    if (!instanceName) {
+      return Response.json({
+        error: 'Cannot determine Evolution instance name',
+        secrets_present: {
+          EVOLUTION_API_URL: true,
+          EVOLUTION_API_KEY: true,
+          EVOLUTION_INSTANCE: !!evolutionInstance,
+        },
+        available_instances: availableInstances.map(i => ({ name: i.name, connectionStatus: i.connectionStatus, ownerJid: i.ownerJid, integration: i.integration })),
+        detected_instance: detectedInstance,
+        note: 'Set EVOLUTION_INSTANCE secret with your Evolution instance NAME (e.g., "erudite_whatsapp"), not an ID.',
+      }, { status: 500 });
     }
 
     // Test phones (from our data, personal channel)
     const testPhones = ['+971585051345', '+9613785917'];
 
     const results = {};
+
+    // Include instance info in response
+    const instanceInfo = availableInstances.find(i => i.name === instanceName);
 
     for (const phone of testPhones) {
       const phoneClean = phone.replace('+', '');
@@ -192,6 +233,8 @@ Deno.serve(async (req) => {
     // Summary
     return Response.json({
       instance_used: instanceName,
+      instance_info: instanceInfo ? { connectionStatus: instanceInfo.connectionStatus, ownerJid: instanceInfo.ownerJid, integration: instanceInfo.integration } : null,
+      available_instances: availableInstances.map(i => ({ name: i.name, connectionStatus: i.connectionStatus, ownerJid: i.ownerJid, integration: i.integration })),
       secrets_present: {
         EVOLUTION_API_URL: true,
         EVOLUTION_API_KEY: true,
