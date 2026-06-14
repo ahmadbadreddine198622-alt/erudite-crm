@@ -451,21 +451,21 @@ export default function Landlords() {
                 <FileText className="w-4 h-4 text-purple-400" />
                 Market Report
               </Button>
+              <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Landlord
+              </Button>
               {/* Project thumbnail — shown when a single project with image is selected */}
               {selectedProject?.image_url && (
                 <img
                   src={selectedProject.image_url}
                   alt={selectedProject.name}
-                  className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20"
+                  className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20 ml-auto"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
                 />
               )}
-              <Button onClick={() => setShowNewDialog(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Landlord
-              </Button>
             </div>
           </div>
         </div>
