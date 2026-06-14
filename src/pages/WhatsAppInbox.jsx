@@ -700,8 +700,8 @@ export default function WhatsAppInbox() {
           </div>
         </div>
 
-        {/* Header */}
-        <div className="p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        {/* Header — compact single-row filters */}
+        <div className="p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {unreadTotal > 0 && (
@@ -812,40 +812,38 @@ export default function WhatsAppInbox() {
               )}
             </div>
           )}
-          {/* Filter pills */}
-          <div className="space-y-2">
-            <div className="flex gap-1 flex-wrap">
-              {['all', 'unread', 'open', 'resolved'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{
-                    background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
-                    color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.7)',
-                    border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
-                  {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              {['all', 'business', 'personal'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setFilterChannel(c)}
-                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium transition-colors border"
-                  style={{
-                    background: filterChannel === c ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)',
-                    color: filterChannel === c ? 'white' : 'rgba(255,255,255,0.7)',
-                    border: filterChannel === c ? (c === 'business' ? '1px solid hsl(152 69% 40%)' : c === 'personal' ? '1px solid hsl(217 91% 60%)' : '1px solid hsl(38 92% 50%)') : '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
-                  {c === 'all' ? 'All Channels' : c === 'business' ? '🏢 Business' : '👤 Personal'}
-                </button>
-              ))}
-            </div>
+          {/* Merged filter row — status + channel in one compact line */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+            {/* Status filters */}
+            {['all', 'unread', 'open', 'resolved'].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors"
+                style={{
+                  background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
+                  color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.7)',
+                  border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+            {/* Channel filters */}
+            {['all', 'business', 'personal'].map(c => (
+              <button
+                key={c}
+                onClick={() => setFilterChannel(c)}
+                className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors border"
+                style={{
+                  background: filterChannel === c ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)',
+                  color: filterChannel === c ? 'white' : 'rgba(255,255,255,0.7)',
+                  border: filterChannel === c ? (c === 'business' ? '1px solid hsl(152 69% 40%)' : c === 'personal' ? '1px solid hsl(217 91% 60%)' : '1px solid hsl(38 92% 50%)') : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : '👤 Personal'}
+              </button>
+            ))}
           </div>
 
 

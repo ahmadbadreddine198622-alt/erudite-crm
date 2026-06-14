@@ -47,11 +47,11 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     
     return (
       <button
-        onClick={onClick}
-        className={cn(
-          'w-full text-left px-3 py-2 transition-all duration-200 border-b',
-          selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
-        )}
+      onClick={onClick}
+      className={cn(
+        'w-full text-left px-2.5 py-1.5 transition-all duration-200 border-b',
+        selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
+      )}
         style={{
           background: selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
           backdropFilter: 'blur(16px)',
@@ -66,7 +66,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-1.5 mb-0.5">
+            <div className="flex items-start justify-between gap-1.5 mb-0">
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <span className="text-[13px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }} title={name}>
                   {name}
@@ -105,30 +105,30 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     : '';
   const priority = conv.ai_priority || conv.ai_urgency;
   const sentiment = conv.ai_sentiment || 'unknown';
-  // Prioritize lead's CRM tags first, then conversation tags
-  const allTags = [...(lead?.tags || []), ...(conv.manual_tags || []), ...(conv.ai_tags || [])].slice(0, 3);
+  // Prioritize lead's CRM tags first, then conversation tags — show ALL tags (wrap if needed)
+  const allTags = [...(lead?.tags || []), ...(conv.manual_tags || []), ...(conv.ai_tags || [])];
   const channel = conv.channel || 'business';
   const entityType = landlord ? 'landlord' : lead ? 'lead' : null;
   const stage = landlord?.stage || lead?.stage;
 
   return (
     <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-3 py-2 transition-all duration-200 border-b',
-        selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
-      )}
-      style={{
-        background: selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderColor: 'rgba(255,255,255,0.04)',
-        borderLeft: selected
-          ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}`
-          : `3px solid ${channel === 'business' ? 'rgba(52,211,153,0.2)' : 'rgba(96,165,250,0.2)'}`,
-      }}
+    onClick={onClick}
+    className={cn(
+      'w-full text-left px-2.5 py-1.5 transition-all duration-200 border-b',
+      selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
+    )}
+    style={{
+      background: selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      borderColor: 'rgba(255,255,255,0.04)',
+      borderLeft: selected
+        ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}`
+        : `3px solid ${channel === 'business' ? 'rgba(52,211,153,0.2)' : 'rgba(96,165,250,0.2)'}`,
+    }}
     >
-      <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2">
         <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2', avatarColor(name))} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
           {conv.wa_profile_pic_url
             ? <img src={conv.wa_profile_pic_url} alt={name} className="w-full h-full rounded-full object-cover" />
@@ -165,21 +165,21 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
               )}
             </div>
           </div>
-          <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {conv.last_message?.startsWith('🎤') ? conv.last_message : (conv.last_message || '—')}
           </p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             {stage && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+              <span className="text-[7px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
                 {stage.replace(/_/g, ' ')}
               </span>
             )}
             {allTags.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-0.5 flex-wrap">
                 {allTags.map((t, idx) => (
                   <span 
                     key={`${t}-${idx}`} 
-                    className="text-[8px] px-1.5 py-0.5 rounded-full font-medium border"
+                    className="text-[7px] px-1 py-0.5 rounded-full font-medium border"
                     style={{ 
                       background: idx === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
                       borderColor: idx === 0 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.12)',
