@@ -90,6 +90,10 @@
       ],
       "default": "personal",
       "description": "Which WhatsApp channel"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Full raw Evolution message payload for debugging unsupported types"
     }
   },
   "required": [
