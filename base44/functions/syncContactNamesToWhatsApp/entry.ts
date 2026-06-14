@@ -58,8 +58,22 @@ Deno.serve(async (req) => {
     // Step 2: Process each conversation individually with server-side Contact filter
     for (let i = 0; i < ALL_CONVERSATIONS.length; i++) {
       const conv = ALL_CONVERSATIONS[i];
+      // Access fields directly on conv (not conv.data) for list() results
       const convPhone = conv.wa_phone_e164 || conv.phone_number;
       const last9 = toLast9Digits(convPhone);
+      
+      const oldName = conv.wa_saved_name || null;
+
+      // Add debug sample for first 10 conversations
+      if (results.debugSamples.length < 10) {
+        results.debugSamples.push({
+          wa_phone_e164: convPhone,
+          normalized_key: last9,
+          contact_found: false,
+          contact_name: null,
+          old_wa_saved_name: oldName,
+        });
+      }
       
       if (!last9) {
         results.skipped++;
@@ -82,8 +96,8 @@ Deno.serve(async (req) => {
         if (contacts && contacts.length > 0) {
           // Verify match by normalizing contact's phone
           for (const contact of contacts) {
-            const contactPhoneLast9 = toLast9Digits(contact.data?.phone);
-            const contactWhatsappLast9 = toLast9Digits(contact.data?.whatsapp);
+            const contactPhoneLast9 = toLast9Digits(contact.phone);
+            const contactWhatsappLast9 = toLast9Digits(contact.whatsapp);
             if (contactPhoneLast9 === last9 || contactWhatsappLast9 === last9) {
               matchingContact = contact;
               contactFound = true;
@@ -95,19 +109,13 @@ Deno.serve(async (req) => {
         console.log(`Error querying contact for ${last9}: ${err.message}`);
       }
 
-      // Add debug sample for first 10 conversations
-      if (results.debugSamples.length < 10) {
-        results.debugSamples.push({
-          conv_phone: convPhone,
-          normalized_key: last9,
-          contact_found: contactFound,
-          contact_name: matchingContact?.data?.full_name || null,
-          old_wa_saved_name: oldName,
-        });
-      }
+      const newName = matchingContact?.full_name || null;
 
-      const newName = matchingContact?.data?.full_name || null;
-      const oldName = conv.wa_saved_name || null;
+      // Update debug sample with match info for first 10
+      if (results.debugSamples.length < 10) {
+        results.debugSamples[results.debugSamples.length - 1].contact_found = contactFound;
+        results.debugSamples[results.debugSamples.length - 1].contact_name = newName;
+      }
 
       if (!newName) {
         results.skipped++;
