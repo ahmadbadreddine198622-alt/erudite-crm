@@ -13,16 +13,18 @@ Deno.serve(async (req) => {
 
     // Step 1: Fetch the lookup JSON with retry logic (GitHub rate limit handling)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     let lookup;
     try {
       let res = await fetch(lookupUrl, { 
         signal: controller.signal,
         headers: { 'User-Agent': 'Erudite-CRM/1.0' }
       });
-      // Retry once on 403/429 (rate limit)
-      if ((res.status === 403 || res.status === 429) && res.headers.get('x-ratelimit-remaining') === '0') {
-        const retryAfter = parseInt(res.headers.get('retry-after') || '5', 10);
+      // Check if response is HTML error page or rate limit JSON
+      const contentType = res.headers.get('content-type') || '';
+      if (res.status === 403 || res.status === 429 || (res.status === 200 && contentType.includes('text/html'))) {
+        // GitHub rate limited - wait and retry
+        const retryAfter = parseInt(res.headers.get('retry-after') || '30', 10);
         await new Promise(r => setTimeout(r, retryAfter * 1000));
         res = await fetch(lookupUrl, { 
           signal: controller.signal,
@@ -31,9 +33,24 @@ Deno.serve(async (req) => {
       }
       clearTimeout(timeoutId);
       if (!res.ok) {
-        return Response.json({ error: `Failed to fetch lookup: ${res.status} ${res.statusText}` }, { status: 500 });
+        const body = await res.text().catch(() => '');
+        return Response.json({ error: `Failed to fetch lookup: ${res.status} ${res.statusText} - ${body.slice(0, 200)}` }, { status: 500 });
       }
-      lookup = await res.json();
+      // Double-check content type
+      const finalContentType = res.headers.get('content-type') || '';
+      if (finalContentType.includes('text/html')) {
+        return Response.json({ error: 'GitHub returned HTML instead of JSON (rate limited)' }, { status: 500 });
+      }
+      const text = await res.text();
+      // Check if GitHub returned an error JSON
+      if (text.includes('rate limit') || text.includes('Rate limit')) {
+        return Response.json({ error: 'GitHub rate limit active. Wait 5-10 minutes and retry.', details: text.slice(0, 500) }, { status: 500 });
+      }
+      try {
+        lookup = JSON.parse(text);
+      } catch (e) {
+        return Response.json({ error: `Invalid JSON: ${e.message}. Response: ${text.slice(0, 200)}` }, { status: 500 });
+      }
     } catch (err) {
       clearTimeout(timeoutId);
       return Response.json({ error: `Fetch timeout or error: ${err.message}` }, { status: 500 });
