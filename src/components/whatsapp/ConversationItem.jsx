@@ -49,7 +49,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
       <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2.5 py-1.5 transition-all duration-200 border-b',
+        'w-full text-left px-2 py-1.5 transition-all duration-200 border-b',
         selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
       )}
         style={{
@@ -61,28 +61,16 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           opacity: 0.6
         }}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2', 'bg-gray-500')} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-1.5 mb-0">
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="text-[13px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }} title={name}>
-                  {name}
-                  <span className="text-[8px] font-normal ml-1 px-1 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">Test</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
-                {channel === 'business' ? (
-                  <Building2 className="w-2.5 h-2.5 text-emerald-400" title="Business line" />
-                ) : (
-                  <User className="w-2.5 h-2.5 text-blue-400" title="Personal line" />
-                )}
-              </div>
+            <div className="flex items-start justify-between gap-1.5 mb-0.5">
+              <span className="text-[12px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }} title={name}>{name}</span>
+              <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.45)' }}>{timeAgo}</span>
             </div>
-            <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{conv.last_message || '—'}</p>
+            <p className="text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{conv.last_message || '—'}</p>
           </div>
         </div>
       </button>
@@ -115,7 +103,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     <button
     onClick={onClick}
     className={cn(
-      'w-full text-left px-2.5 py-1.5 transition-all duration-200 border-b',
+      'w-full text-left px-2 py-1.5 transition-all duration-200 border-b',
       selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
     )}
     style={{
@@ -136,61 +124,60 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           }
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-1.5 mb-0.5">
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="text-[13px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.95)' }} title={name}>
-                {name}
-                {entityType && (
-                  <span className={`text-[8px] font-normal ml-1 px-1 py-0.5 rounded border ${
-                    entityType === 'landlord' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                  }`}>
-                    {entityType === 'landlord' ? <><Briefcase className="w-2 h-2 inline mr-0.5" /> Landlord</> : <><Home className="w-2 h-2 inline mr-0.5" /> Lead</>}
-                  </span>
-                )}
-                {isWhatsAppProfile && <span className="text-[8px] font-normal ml-1 px-1 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">WA</span>}
-                {conv.is_starred && <Star className="inline w-3 h-3 fill-amber-400 text-amber-400 ml-0.5" />}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {conv.unread_count > 0 && (
-                <Badge className="text-[8px] px-1 py-0 min-w-[1.1rem] h-4.5" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11)' }}>
-                  {conv.unread_count > 9 ? '9+' : conv.unread_count}
-                </Badge>
-              )}
-              <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
-              {channel === 'business' ? (
-                <Building2 className="w-2.5 h-2.5 text-emerald-400" title="Business line" />
-              ) : (
-                <User className="w-2.5 h-2.5 text-blue-400" title="Personal line" />
-              )}
-            </div>
+          {/* Line 1: Name (left) + Time (right) */}
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className="text-[12px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }} title={name}>
+              {name}
+            </span>
+            <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.42)' }}>{timeAgo}</span>
           </div>
-          <p className="text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          {/* Line 2: Last message preview */}
+          <p className="text-[10px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.52)' }}>
             {conv.last_message?.startsWith('🎤') ? conv.last_message : (conv.last_message || '—')}
           </p>
-          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+          {/* Line 3: Entity badge + full CRM tags (wrap if needed) */}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {/* Entity type badge */}
+            {entityType && (
+              <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${
+                entityType === 'landlord' ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' : 'bg-blue-500/15 text-blue-400 border-blue-500/25'
+              }`}>
+                {entityType === 'landlord' ? 'Landlord' : 'Lead'}
+              </span>
+            )}
+            {/* Stage badge */}
             {stage && (
-              <span className="text-[7px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+              <span className="text-[8px] px-1.5 py-0.5 rounded border font-medium shrink-0" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.55)' }}>
                 {stage.replace(/_/g, ' ')}
               </span>
             )}
+            {/* CRM tags - full, not truncated */}
             {allTags.length > 0 && (
-              <div className="flex gap-0.5 flex-wrap">
-                {allTags.map((t, idx) => (
+              <div className="flex gap-0.5 flex-wrap flex-1">
+                {allTags.slice(0, 8).map((t, idx) => (
                   <span 
                     key={`${t}-${idx}`} 
-                    className="text-[7px] px-1 py-0.5 rounded-full font-medium border"
+                    className="text-[8px] px-1.5 py-0.5 rounded-full font-medium border shrink-0"
                     style={{ 
-                      background: idx === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
-                      borderColor: idx === 0 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.12)',
-                      color: idx === 0 ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.65)'
+                      background: idx === 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
+                      borderColor: idx === 0 ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.1)',
+                      color: idx === 0 ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.6)'
                     }}
                     title={t}
                   >
                     {t}
                   </span>
                 ))}
+                {allTags.length > 8 && (
+                  <span className="text-[8px] px-1 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)' }}>+{allTags.length - 8}</span>
+                )}
               </div>
+            )}
+            {/* Unread badge - aligned right */}
+            {conv.unread_count > 0 && (
+              <Badge className="text-[8px] px-1.5 py-0 min-w-[1.2rem] h-5 ml-auto" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11)' }}>
+                {conv.unread_count > 9 ? '9+' : conv.unread_count}
+              </Badge>
             )}
           </div>
         </div>
