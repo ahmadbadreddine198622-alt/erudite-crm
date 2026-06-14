@@ -38,7 +38,7 @@ export default function WhatsAppInbox() {
   const [showNewConv, setShowNewConv] = useState(false);
   const [activeTab, setActiveTab] = useState('inbox'); // inbox | settings | workflows | templates | automation
 
-  const [showInsights, setShowInsights] = useState(true);
+  const [showInsights, setShowInsights] = useState(false);
   const [filter, setFilter] = useState('all');
   const [filterAssignedAgent, setFilterAssignedAgent] = useState('');
   const [filterChannel, setFilterChannel] = useState('all');
@@ -658,7 +658,7 @@ export default function WhatsAppInbox() {
         onConversationCreated={handleNewConvCreated}
       />
       {/* Sidebar — conversation list */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} border-r flex flex-col shrink-0 transition-all duration-300 overflow-hidden`}>
+      <div className={`${sidebarOpen ? 'w-[420px]' : 'w-0'} border-r flex flex-col shrink-0 transition-all duration-300 overflow-hidden`}>
         {/* Live indicator */}
         <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-1.5">

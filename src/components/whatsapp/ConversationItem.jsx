@@ -49,7 +49,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
       <button
         onClick={onClick}
         className={cn(
-          'w-full text-left px-3.5 py-3 transition-all duration-200 border-b',
+          'w-full text-left px-3 py-2 transition-all duration-200 border-b',
           selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
         )}
         style={{
@@ -61,28 +61,28 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           opacity: 0.6
         }}
       >
-        <div className="flex items-center gap-3">
-          <div className={cn('w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-bold shrink-0 relative border-2', 'bg-gray-500')} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2', 'bg-gray-500')} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-0.5">
+            <div className="flex items-start justify-between gap-1.5 mb-0.5">
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="text-sm font-bold truncate leading-snug" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <span className="text-[13px] font-bold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   {name}
-                  <span className="text-[9px] font-normal ml-1 px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">Test</span>
+                  <span className="text-[8px] font-normal ml-1 px-1 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">Test</span>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
                 {channel === 'business' ? (
-                  <Building2 className="w-3 h-3 text-emerald-400" title="Business line" />
+                  <Building2 className="w-2.5 h-2.5 text-emerald-400" title="Business line" />
                 ) : (
-                  <User className="w-3 h-3 text-blue-400" title="Personal line" />
+                  <User className="w-2.5 h-2.5 text-blue-400" title="Personal line" />
                 )}
               </div>
             </div>
-            <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{conv.last_message || '—'}</p>
+            <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{conv.last_message || '—'}</p>
           </div>
         </div>
       </button>
@@ -114,7 +114,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3.5 py-3 transition-all duration-200 border-b',
+        'w-full text-left px-3 py-2 transition-all duration-200 border-b',
         selected ? 'ring-1 ring-accent/40' : 'hover:shadow-md',
       )}
       style={{
@@ -127,56 +127,56 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           : `3px solid ${channel === 'business' ? 'rgba(52,211,153,0.2)' : 'rgba(96,165,250,0.2)'}`,
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className={cn('w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-bold shrink-0 relative border-2', avatarColor(name))} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+      <div className="flex items-center gap-2.5">
+        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2', avatarColor(name))} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
           {conv.wa_profile_pic_url
             ? <img src={conv.wa_profile_pic_url} alt={name} className="w-full h-full rounded-full object-cover" />
             : (conv.unread_count > 0 ? String(conv.unread_count > 9 ? '9+' : conv.unread_count) : initials)
           }
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-0.5">
+          <div className="flex items-start justify-between gap-1.5 mb-0.5">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="text-sm font-bold truncate leading-snug" style={{ color: 'rgba(255,255,255,0.95)' }}>
+              <span className="text-[13px] font-bold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.95)' }}>
                 {name}
                 {entityType && (
-                  <span className={`text-[9px] font-normal ml-1 px-1.5 py-0.5 rounded border ${
+                  <span className={`text-[8px] font-normal ml-1 px-1 py-0.5 rounded border ${
                     entityType === 'landlord' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                   }`}>
                     {entityType === 'landlord' ? <><Briefcase className="w-2 h-2 inline mr-0.5" /> Landlord</> : <><Home className="w-2 h-2 inline mr-0.5" /> Lead</>}
                   </span>
                 )}
-                {isWhatsAppProfile && <span className="text-[9px] font-normal ml-1 px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">WA</span>}
-                {conv.is_starred && <Star className="inline w-3.5 h-3.5 fill-amber-400 text-amber-400 ml-0.5" />}
+                {isWhatsAppProfile && <span className="text-[8px] font-normal ml-1 px-1 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">WA</span>}
+                {conv.is_starred && <Star className="inline w-3 h-3 fill-amber-400 text-amber-400 ml-0.5" />}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               {conv.unread_count > 0 && (
-                <Badge className="text-[9px] px-1.5 py-0 min-w-[1.25rem] h-5" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11)' }}>
+                <Badge className="text-[8px] px-1 py-0 min-w-[1.1rem] h-4.5" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11)' }}>
                   {conv.unread_count > 9 ? '9+' : conv.unread_count}
                 </Badge>
               )}
-              <span className="text-[10px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
+              <span className="text-[9px] font-medium shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo}</span>
               {channel === 'business' ? (
-                <Building2 className="w-3 h-3 text-emerald-400" title="Business line" />
+                <Building2 className="w-2.5 h-2.5 text-emerald-400" title="Business line" />
               ) : (
-                <User className="w-3 h-3 text-blue-400" title="Personal line" />
+                <User className="w-2.5 h-2.5 text-blue-400" title="Personal line" />
               )}
             </div>
           </div>
-          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {conv.last_message?.startsWith('🎤') ? conv.last_message : (conv.last_message || '—')}
           </p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             {stage && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+              <span className="text-[8px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
                 {stage.replace(/_/g, ' ')}
               </span>
             )}
             {allTags.length > 0 && (
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {allTags.map(t => (
-                  <span key={t} className="text-[9px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>{t}</span>
+                  <span key={t} className="text-[8px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>{t}</span>
                 ))}
               </div>
             )}
