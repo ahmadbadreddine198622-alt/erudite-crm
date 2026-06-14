@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Search, X } from 'lucide-react';
+import { RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Search, X, Plus } from 'lucide-react';
+import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
@@ -51,6 +52,7 @@ export default function Pipeline() {
   const [agentFilter, setAgentFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
   const [assignmentFilter, setAssignmentFilter] = useState('');
+  const [showAddLead, setShowAddLead] = useState(false);
 
   const { user: currentUser, permissions } = useCurrentUser();
 
@@ -313,6 +315,13 @@ export default function Pipeline() {
               Last synced: {formatRelativeShort(lastSyncedAt) || 'never'}
             </div>
           )}
+          <Button
+            size="sm"
+            onClick={() => setShowAddLead(true)}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 h-8 gap-1.5 text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Lead
+          </Button>
           {projects.length > 0 && (
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="w-44 h-8 text-xs" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -474,6 +483,8 @@ export default function Pipeline() {
           )}
         </TabsContent>
       </Tabs>
+
+      <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
 
       {selectedLead && (
         <LeadDetailSheet
