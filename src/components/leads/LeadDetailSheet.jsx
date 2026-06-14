@@ -38,6 +38,7 @@ import CallLogPanel from '@/components/twilio/CallLogPanel';
 import LeadNotesTab from '@/components/leads/LeadNotesTab';
 import FormFUpload from '@/components/leads/FormFUpload';
 import FormFParsePanel from '@/components/leads/FormFParsePanel';
+import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -450,6 +451,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                 />
               </div>
             </section>
+
+            {/* Finance */}
+            <LeadFinancePanel
+              lead={lead}
+              onUpdate={(data) => updateMutation.mutate(data)}
+            />
 
             {/* Notes */}
             <section>

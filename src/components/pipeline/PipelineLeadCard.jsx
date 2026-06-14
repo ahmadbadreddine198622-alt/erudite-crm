@@ -68,6 +68,13 @@ const OFFERING_BADGE_COLORS = {
   rent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
+const FINANCE_BADGE = {
+  cash:        { label: 'Cash',     style: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  mortgage:    { label: 'Mortgage', style: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+  pre_approved:{ label: 'Pre-app',  style: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  mixed:       { label: 'Mixed',    style: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
+};
+
 export default function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete }) {
   const queryClient = useQueryClient();
   const projects = queryClient.getQueryData(['projects']) || [];
@@ -203,6 +210,11 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
       <div className="flex items-center gap-1 flex-wrap pt-1.5 border-t border-white/8">
         {lead.source && (
           <SourceBadge source={lead.source} />
+        )}
+        {lead.financing_type && FINANCE_BADGE[lead.financing_type] && (
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider ${FINANCE_BADGE[lead.financing_type].style}`}>
+            {FINANCE_BADGE[lead.financing_type].label}
+          </span>
         )}
         {STAGES[lead.stage]?.required_documents?.length > 0 && (
           <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/25 shrink-0">

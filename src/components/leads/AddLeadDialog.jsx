@@ -52,6 +52,7 @@ const INITIAL = {
   assigned_agent_email: '',
   deal_value_aed: '',
   project_id: '',
+  financing_type: 'unknown',
 };
 
 export default function AddLeadDialog({ open, onClose }) {
@@ -131,6 +132,7 @@ export default function AddLeadDialog({ open, onClose }) {
       assigned_agent_email: form.assigned_agent_email || undefined,
       deal_value_aed: form.deal_value_aed ? Number(form.deal_value_aed) : undefined,
       project_id: form.project_id || undefined,
+      financing_type: form.financing_type || 'unknown',
       stage: 'contact_identity',
       stage_entered_at: new Date().toISOString(),
     };
@@ -262,6 +264,21 @@ export default function AddLeadDialog({ open, onClose }) {
               <SelectContent>
                 <SelectItem value={null}>— Unassigned —</SelectItem>
                 {users.map(u => <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Financing type */}
+          <div>
+            <Label className="text-xs">Financing Type</Label>
+            <Select value={form.financing_type} onValueChange={set('financing_type')}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unknown">Unknown</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="mortgage">Mortgage</SelectItem>
+                <SelectItem value="pre_approved">Pre-approved</SelectItem>
+                <SelectItem value="mixed">Mixed</SelectItem>
               </SelectContent>
             </Select>
           </div>
