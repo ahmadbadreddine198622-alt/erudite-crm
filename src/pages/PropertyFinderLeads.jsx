@@ -20,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Phone, MessageCircle, Trash2, Search, ExternalLink } from "lucide-react";
+import { Phone, MessageCircle, Trash2, Search, ExternalLink, RefreshCw } from "lucide-react";
 import LetterAvatar from "@/components/shared/LetterAvatar";
+import { toast } from "sonner";
 
 const STAGE_COLORS = {
   intake_clarify: "bg-slate-500/10 text-slate-400 border-slate-500/20",
@@ -62,6 +63,7 @@ function extractPFLinks(notes) {
 export default function PropertyFinderLeads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [updatingStage, setUpdatingStage] = useState(null);
@@ -116,6 +118,28 @@ export default function PropertyFinderLeads() {
     }
   }
 
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const result = await base44.functions.invoke("syncPropertyFinderLeads", {});
+      const data = result.data;
+      const newCount = data.created_count || 0;
+      const updatedCount = data.skipped_count || 0;
+      
+      toast.success(
+        `Synced — ${newCount} new lead${newCount !== 1 ? "s" : ""}${updatedCount > 0 ? `, ${updatedCount} updated` : ""}`,
+        { duration: 3000 }
+      );
+      
+      await loadLeads();
+    } catch (err) {
+      console.error("Sync failed:", err);
+      toast.error("Sync failed — check console for details", { duration: 4000 });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   const filteredLeads = leads.filter((lead) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -157,6 +181,16 @@ export default function PropertyFinderLeads() {
                 {leads.length - filteredLeads.length} filtered out
               </span>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSync}
+              disabled={syncing}
+              className="h-7 gap-1.5 text-xs ml-auto"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Refresh"}
+            </Button>
           </div>
         </div>
 
