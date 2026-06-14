@@ -68,7 +68,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-1.5 mb-0.5">
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="text-[13px] font-bold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <span className="text-[13px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.6)' }} title={name}>
                   {name}
                   <span className="text-[8px] font-normal ml-1 px-1 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">Test</span>
                 </span>
@@ -105,7 +105,8 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     : '';
   const priority = conv.ai_priority || conv.ai_urgency;
   const sentiment = conv.ai_sentiment || 'unknown';
-  const allTags = [...(conv.ai_tags || []), ...(conv.manual_tags || [])].slice(0, 2);
+  // Prioritize lead's CRM tags first, then conversation tags
+  const allTags = [...(lead?.tags || []), ...(conv.manual_tags || []), ...(conv.ai_tags || [])].slice(0, 3);
   const channel = conv.channel || 'business';
   const entityType = landlord ? 'landlord' : lead ? 'lead' : null;
   const stage = landlord?.stage || lead?.stage;
@@ -137,7 +138,7 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1.5 mb-0.5">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="text-[13px] font-bold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.95)' }}>
+              <span className="text-[13px] font-semibold truncate leading-tight" style={{ color: 'rgba(255,255,255,0.95)' }} title={name}>
                 {name}
                 {entityType && (
                   <span className={`text-[8px] font-normal ml-1 px-1 py-0.5 rounded border ${
@@ -167,16 +168,27 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
           <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {conv.last_message?.startsWith('🎤') ? conv.last_message : (conv.last_message || '—')}
           </p>
-          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {stage && (
-              <span className="text-[8px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+              <span className="text-[8px] px-1.5 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
                 {stage.replace(/_/g, ' ')}
               </span>
             )}
             {allTags.length > 0 && (
-              <div className="flex gap-0.5">
-                {allTags.map(t => (
-                  <span key={t} className="text-[8px] px-1 py-0.5 rounded border font-medium" style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>{t}</span>
+              <div className="flex gap-1 flex-wrap">
+                {allTags.map((t, idx) => (
+                  <span 
+                    key={`${t}-${idx}`} 
+                    className="text-[8px] px-1.5 py-0.5 rounded-full font-medium border"
+                    style={{ 
+                      background: idx === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
+                      borderColor: idx === 0 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.12)',
+                      color: idx === 0 ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.65)'
+                    }}
+                    title={t}
+                  >
+                    {t}
+                  </span>
                 ))}
               </div>
             )}

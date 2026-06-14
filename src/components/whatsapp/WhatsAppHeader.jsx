@@ -83,6 +83,25 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
           {stage && <Badge variant="outline" className="text-[10px] border-white/20 text-white/60 h-4 px-1.5">{stage.replace(/_/g, ' ')}</Badge>}
           <ScoreBadge score={lead?.ai_lead_score} trend={lead?.ai_score_trend} />
         </div>
+        {/* CRM Tags row — second line for better visibility */}
+        {(lead?.tags && lead.tags.length > 0) && (
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap pl-1">
+            {lead.tags.slice(0, 5).map((tag, idx) => (
+              <span 
+                key={`${tag}-${idx}`} 
+                className="text-[9px] px-2 py-0.5 rounded-full font-medium border"
+                style={{ 
+                  background: 'rgba(245,158,11,0.15)',
+                  borderColor: 'rgba(245,158,11,0.3)',
+                  color: 'hsl(38 92% 60%)'
+                }}
+                title={tag}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <SLATimer dueAt={conversation.sla_due_at} breached={conversation.sla_breached} />
 
