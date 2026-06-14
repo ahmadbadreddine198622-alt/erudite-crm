@@ -734,6 +734,10 @@
     "closing_project_id": {
       "type": "string",
       "description": "FK to Project entity (mirrors project_id on Landlord)"
+    },
+    "form_f_url": {
+      "type": "string",
+      "description": "Base44 file-storage URL of the signed Form F document for this lead"
     }
   },
   "required": [
