@@ -39,6 +39,7 @@ import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
 import PropertyFinderDashboard from '@/pages/PropertyFinderDashboard';
+import PropertyFinderLeads from '@/pages/PropertyFinderLeads';
 import Landlords from '@/pages/Landlords';
 import Messages from '@/pages/Messages';
 import EmailAutomations from '@/pages/EmailAutomations';
@@ -147,6 +148,7 @@ const AuthenticatedApp = () => {
         <Route path="/claude-ai" element={<ClaudeAI />} />
         <Route path="/property-finder" element={<PropertyFinderSync />} />
         <Route path="/property-finder-dashboard" element={<PropertyFinderDashboard />} />
+        <Route path="/property-finder-leads" element={<PropertyFinderLeads />} />
         <Route path="/duplicates" element={<DuplicateDetector />} />
         <Route path="/email-automations" element={<EmailAutomations />} />
         <Route path="/projects" element={<Projects />} />
