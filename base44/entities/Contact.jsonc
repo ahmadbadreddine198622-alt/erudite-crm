@@ -1,0 +1,36 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Contact's full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Primary phone number"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email address"
+    },
+    "whatsapp": {
+      "type": "string",
+      "description": "WhatsApp number if different from phone"
+    },
+    "source": {
+      "type": "string",
+      "default": "phone_import",
+      "description": "Source of the contact (e.g., phone_import, manual)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes about this contact"
+    }
+  },
+  "required": [
+    "full_name",
+    "phone"
+  ]
+}
