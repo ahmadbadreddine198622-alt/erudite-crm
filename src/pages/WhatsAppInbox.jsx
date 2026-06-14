@@ -291,7 +291,7 @@ export default function WhatsAppInbox() {
       : true;
     
     const lead = leads.find(l => l.id === c.lead_id);
-    const name = lead?.full_name || c.wa_display_name || phone;
+    const name = lead?.full_name || c.wa_saved_name || c.wa_display_name || phone;
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
     const matchesFilter =
       filter === 'all' ? true :
@@ -822,7 +822,7 @@ export default function WhatsAppInbox() {
               key={selectedConvId}
               conversationId={selectedConvId}
               allConversationIds={[selectedConvId]}
-              contactName={selectedLead?.full_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
+              contactName={selectedLead?.full_name || selectedConv?.wa_saved_name || selectedConv?.wa_display_name || selectedConv?.wa_phone_e164}
               optimisticMessage={optimisticMessages[selectedConvId]}
               conversationChannel={selectedConv?.channel}
             />

@@ -78,12 +78,8 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
   }
   
   // Priority: landlord/lead name > wa_saved_name (imported from phone) > wa_display_name (pushName) > phone
-  const rawWaName = conv.wa_display_name || '';
-  const isGenericWaName = !rawWaName || rawWaName.startsWith('WhatsApp lead') || rawWaName.startsWith('+') || /^\d+$/.test(rawWaName.trim());
-  const cleanWaName = isGenericWaName ? '' : rawWaName;
-  const savedName = conv.wa_saved_name || '';
-  const name = landlord?.full_name_en || lead?.full_name || savedName || cleanWaName || displayPhone;
-  const isWhatsAppProfile = (savedName || cleanWaName) && !landlord && !lead;
+  const displayName = conv.wa_saved_name?.trim() || conv.wa_display_name?.trim() || displayPhone;
+  const name = landlord?.full_name_en || lead?.full_name || displayName;
   const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
   const timeAgo = conv.last_message_at
     ? formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })

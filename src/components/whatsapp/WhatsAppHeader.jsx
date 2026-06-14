@@ -18,12 +18,7 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
   const stage = landlord?.stage || lead?.stage;
   
   // Contact name resolution: entity name > wa_saved_name (imported) > wa_display_name (pushName) > phone
-  const rawWaName = conversation.wa_display_name || '';
-  const isGenericWaName = !rawWaName || rawWaName.startsWith('WhatsApp lead') || rawWaName.startsWith('+') || /^\d+$/.test(rawWaName.trim());
-  const cleanWaName = isGenericWaName ? '' : rawWaName;
-  const savedName = conversation.wa_saved_name || '';
-  const displayName = landlord?.full_name_en || lead?.full_name || savedName || cleanWaName || conversation.wa_phone_e164;
-  const showWhatsAppName = !landlord && !lead && !!(savedName || cleanWaName);
+  const displayName = landlord?.full_name_en || lead?.full_name || conversation.wa_saved_name?.trim() || conversation.wa_display_name?.trim() || conversation.wa_phone_e164;
   const isMatched = !!(landlord || lead);
   
   // Channel attribution - show which of OUR lines the contact wrote to

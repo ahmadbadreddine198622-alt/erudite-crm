@@ -9,11 +9,7 @@ import { cn } from '@/lib/utils';
 
 export default function ChatHeader({ lead, conversation, onAnalyze, onToggleInsights, analyzing, showingInsights }) {
   const displayPhone = conversation?.wa_phone_e164 || conversation?.phone_number || '';
-  const savedName = conversation?.wa_saved_name || '';
-  const rawWaName = conversation?.wa_display_name || '';
-  const isGenericWaName = !rawWaName || rawWaName.startsWith('WhatsApp lead') || rawWaName.startsWith('+') || /^\d+$/.test(rawWaName.trim());
-  const cleanWaName = isGenericWaName ? '' : rawWaName;
-  const name = lead?.full_name || savedName || cleanWaName || displayPhone;
+  const name = lead?.full_name || conversation?.wa_saved_name?.trim() || conversation?.wa_display_name?.trim() || displayPhone;
 
   // If conversation is routed to a Landlord, fetch them so we can show name + stage
   const { data: landlord } = useQuery({
