@@ -37,6 +37,21 @@ const STAGE_COLORS = {
   closed: "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
+const AGENT_NAMES = {
+  "ahmad@erudite-estate.com": "Ahmad",
+  "manu@erudite-estate.com": "Manuchehr",
+  "aizah@erudite-estate.com": "Aizah",
+  "alisher@erudite-estate.com": "Alisher",
+  "amna@erudite-estate.com": "Amna",
+};
+
+function getAgentName(email) {
+  if (!email) return "Unassigned";
+  const name = AGENT_NAMES[email];
+  if (name) return name;
+  return email.split("@")[0] || email;
+}
+
 const BUYER_STAGES = [
   "intake_clarify",
   "contact_identity",
