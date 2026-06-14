@@ -92,10 +92,6 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   // Get WhatsApp profile photo if available (matched by phone)
   const phoneForLookup = landlord.phone || landlord.whatsapp;
   const photoUrl = getPhotoForPhone ? getPhotoForPhone(phoneForLookup) : null;
-  // Debug: log for Stefan
-  if (landlord.full_name_en === 'Stefan') {
-    console.log('[LandlordCard] Stefan - phone:', phoneForLookup, 'photoUrl:', photoUrl, 'getPhotoForPhone:', !!getPhotoForPhone);
-  }
 
   // Fetch documents directly from entity for cards in the photographer_scheduling stage
   const { data: rawDocs = [] } = useQuery({

@@ -52,7 +52,6 @@ export function usePhotoByPhone() {
         }
 
         setPhotoMap(map);
-        console.log('[usePhotoByPhone] Map built with', Object.keys(map).length, 'entries. Sample keys:', Object.keys(map).slice(0, 5));
       } catch (err) {
         // Silent fail — all cards will fall back to letter circles
         console.warn('Failed to load WhatsApp profile photos:', err);

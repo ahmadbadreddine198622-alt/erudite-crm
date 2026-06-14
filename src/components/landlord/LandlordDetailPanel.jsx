@@ -3,6 +3,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
@@ -51,6 +52,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const useFullDrawer = fullScreenOnMobile && isMobile;
+  const { getPhotoForPhone } = usePhotoByPhone();
+  const photoUrl = getPhotoForPhone(landlord.phone || landlord.whatsapp);
   const [whisperOpen, setWhisperOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
   const [floorPlanUploading, setFloorPlanUploading] = useState(false);
@@ -341,6 +344,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <Badge className="bg-red-500 text-white border-0 animate-pulse shrink-0">
                 <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
               </Badge>
+            )}
+            {/* Avatar */}
+            {photoUrl ? (
+              <img src={photoUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-sm font-bold text-accent shrink-0">
+                {(landlord.full_name_en || landlord.full_name || '?')[0]?.toUpperCase()}
+              </div>
             )}
             <div className="min-w-0 flex-1">
               <h2 className="font-display font-semibold text-lg truncate" style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}>

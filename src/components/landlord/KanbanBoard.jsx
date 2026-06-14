@@ -18,10 +18,7 @@ export default function KanbanBoard({
   photographyTasks = [],
   getPhotoForPhone,
 }) {
-  // Debug: log when getPhotoForPhone changes
-  useEffect(() => {
-    console.log('[KanbanBoard] getPhotoForPhone received:', !!getPhotoForPhone);
-  }, [getPhotoForPhone]);
+
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const { draggableId, source, destination } = result;
