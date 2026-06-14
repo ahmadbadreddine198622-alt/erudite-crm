@@ -45,6 +45,10 @@
       "type": "string",
       "format": "email",
       "description": "Primary agent responsible for this project"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Public image URL for project thumbnail"
     }
   },
   "required": [
