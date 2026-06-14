@@ -132,6 +132,46 @@ function parseMessage(rawMsgObj) {
       }
       out.text = '';
       break;
+    case 'templateMessage': {
+      // Property Finder and other WhatsApp template messages
+      const tmpl = m.templateMessage?.hydratedTemplate || m.templateMessage?.hydratedFourRowTemplate;
+      if (tmpl) {
+        const lines = [];
+        // Prepend title if present
+        if (tmpl.hydratedTitleText?.trim()) {
+          lines.push(tmpl.hydratedTitleText.trim());
+        }
+        // Main content text
+        if (tmpl.hydratedContentText?.trim()) {
+          lines.push(tmpl.hydratedContentText.trim());
+        }
+        // Extract button URLs (urlButton type)
+        const buttons = tmpl.hydratedButtons || [];
+        for (const btn of buttons) {
+          if (btn.urlButton) {
+            const displayText = btn.urlButton.displayText || 'Link';
+            const url = btn.urlButton.url || '';
+            if (url) {
+              lines.push(`${displayText}: ${url}`);
+            }
+          } else if (btn.quickReplyButton) {
+            // Fallback: quick reply button text
+            if (btn.quickReplyButton.displayText) {
+              lines.push(btn.quickReplyButton.displayText);
+            }
+          } else if (btn.callButton) {
+            // Fallback: call button
+            if (btn.callButton.displayText && btn.callButton.phoneNumber) {
+              lines.push(`${btn.callButton.displayText}: ${btn.callButton.phoneNumber}`);
+            }
+          }
+        }
+        out.text = lines.join('\n') || '[template message]';
+      } else {
+        out.text = '[template message]';
+      }
+      break;
+    }
     default:
       out.text = '[unsupported message type]';
   }
