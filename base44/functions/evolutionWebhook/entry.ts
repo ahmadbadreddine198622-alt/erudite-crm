@@ -415,6 +415,15 @@ Deno.serve(async (req) => {
         if (parsed.caption) {
           waRecord.caption = parsed.caption;
         }
+        // Store raw Evolution payload for ALL inbound messages (for debugging unsupported types)
+        if (!fromMe && data) {
+          waRecord.raw_payload = {
+            messageType: data.messageType || parsed.msgType,
+            message: data.message || null,
+            key: data.key || null,
+            pushName: data.pushName || '',
+          };
+        }
         // Skip recording outbound if sendMultiChannelWhatsApp already stored it
         if (!fromMe) {
           waMessage = await serviceRole.entities.WhatsAppMessage.create(waRecord);
