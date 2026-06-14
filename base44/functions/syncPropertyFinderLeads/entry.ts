@@ -24,6 +24,26 @@ async function getPFToken(apiKey, apiSecret) {
   return data.accessToken;
 }
 
+async function fetchPFUsers(token) {
+  const res = await fetch(`${PF_BASE}/users`, {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('PF users fetch failed: ' + res.status + ' ' + body);
+  }
+  const json = await res.json();
+  const users = json.data || json.results || [];
+  // Build map: publicProfile.id (number) → email
+  const map = {};
+  for (const u of users) {
+    if (u.publicProfile?.id && u.email) {
+      map[u.publicProfile.id] = u.email;
+    }
+  }
+  return map;
+}
+
 async function fetchPFLeadsPage(token, page, perPage) {
   const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
