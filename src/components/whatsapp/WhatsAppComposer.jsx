@@ -160,7 +160,7 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       )}
 
       {/* Action icons row — no channel switcher */}
-      <div className="flex items-center gap-1 px-3 pt-2 pb-1 flex-wrap">
+      <div className="flex items-center gap-1 px-3 pt-1.5 pb-0.5 flex-wrap">
         {/* Small channel indicator (read-only, shows which number is active) */}
         {selectedChannel && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
@@ -253,11 +253,11 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
       {/* Composer input row */}
       <div className="flex items-end gap-2 px-3 pb-2">
-        <button type="button" className="mb-2 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          <Paperclip className="w-5 h-5" />
+        <button type="button" className="mb-1.5 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <Paperclip className="w-4 h-4" />
         </button>
 
-        <div className={`flex-1 rounded-2xl px-4 py-2 border transition-colors ${
+        <div className={`flex-1 rounded-2xl px-3 py-1.5 border transition-colors ${
           isInternalNote ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-white/7 border-white/10'
         }`}>
           <Textarea
@@ -280,14 +280,14 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           onClick={handleSend}
           disabled={!text.trim() || windowLocked}
           title={isInternalNote ? "Save internal note" : (windowLocked ? "24-hour window closed" : "Send")}
-          className={`mb-0.5 w-10 h-10 rounded-full flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ${isInternalNote ? 'animate-pulse' : ''}`}
+          className={`mb-0.5 w-9 h-9 rounded-full flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ${isInternalNote ? 'animate-pulse' : ''}`}
           style={{ background: isInternalNote ? 'hsl(38 92% 50%)' : ((!text.trim() || windowLocked) ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50%)') }}
         >
           {isInternalNote
-            ? <FileText className="w-4 h-4" style={{ color: 'hsl(222 47% 11%)' }} />
+            ? <FileText className="w-3.5 h-3.5" style={{ color: 'hsl(222 47% 11%)' }} />
             : windowLocked
-            ? <Lock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            : <Send className="w-4 h-4" style={{ color: 'hsl(222 47% 11%)' }} />}
+            ? <Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            : <Send className="w-3.5 h-3.5" style={{ color: 'hsl(222 47% 11%)' }} />}
         </button>
       </div>
 
@@ -324,7 +324,7 @@ function ActionIcon({ icon: Icon, title, onClick, active, gold }) {
       onMouseEnter={e => { if (!gold && !active) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
       onMouseLeave={e => { if (!gold && !active) e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; }}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="w-3.5 h-3.5" />
     </button>
   );
 }

@@ -37,10 +37,10 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
   };
 
   return (
-    <div className="border-b shrink-0 px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
-      <div className="flex items-center gap-2.5">
+    <div className="border-b shrink-0 px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center gap-2">
         {/* Avatar */}
-        <Avatar className="w-9 h-9 shrink-0 border" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
+        <Avatar className="w-8 h-8 shrink-0 border" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
           <AvatarImage src={conversation.wa_profile_pic_url} />
           <AvatarFallback className="text-xs">{(displayName || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
@@ -109,15 +109,15 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
         <div className="flex items-center gap-1 shrink-0">
           {!isMatched ? (
             <>
-              <Button size="icon" variant="ghost" className="h-8 w-8" title="Create Lead" onClick={() => onAction('create_lead')}>
+              <Button size="icon" variant="ghost" className="h-7 w-7" title="Create Lead" onClick={() => onAction('create_lead')}>
                 <Home className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" title="Link Contact" onClick={() => onAction('link_contact')}>
+              <Button size="icon" variant="ghost" className="h-7 w-7" title="Link Contact" onClick={() => onAction('link_contact')}>
                 <Link className="w-4 h-4" />
               </Button>
             </>
           ) : (
-            <Button size="icon" variant="ghost" className="h-8 w-8" title="Full Profile" onClick={() => onAction('open_profile')}>
+            <Button size="icon" variant="ghost" className="h-7 w-7" title="Full Profile" onClick={() => onAction('open_profile')}>
               <ExternalLink className="w-4 h-4" />
             </Button>
           )}
@@ -125,7 +125,7 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
           {/* Assign */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" title="Assign to agent">
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Assign to agent">
                 <UserCheck className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -150,8 +150,8 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
           {/* More */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ background: 'hsl(222 47% 11%)', borderColor: 'rgba(255,255,255,0.15)' }}>

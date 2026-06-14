@@ -212,10 +212,10 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Deleted message
   if (msg.is_deleted) {
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[65%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           <div
-            className="rounded-xl px-4 py-3 italic"
+            className="rounded-xl px-3 py-1.5 italic"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             <p className="text-sm text-white/40">This message was deleted</p>
@@ -228,8 +228,8 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Voice note
   if (msg.media_type === 'audio' || msg.is_voice_note) {
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           {!isOutbound && contactName && (
             <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
           )}
@@ -243,13 +243,13 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Image
   if (msg.media_type === 'image' && msg.media_url) {
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           <div
             className={cn('rounded-xl overflow-hidden', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
             style={{ border: '1px solid rgba(255,255,255,0.12)' }}
           >
-            {msg.caption && <p className="px-3 pt-2.5 pb-2 text-sm text-white/90">{msg.caption}</p>}
+            {msg.caption && <p className="px-3 pt-2 pb-1.5 text-sm text-white/90">{msg.caption}</p>}
             <img
               src={msg.media_url}
               alt={msg.caption || 'Image'}
@@ -266,13 +266,13 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Video
   if (msg.media_type === 'video' && msg.media_url) {
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           <div
             className={cn('rounded-xl overflow-hidden relative', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
             style={{ border: '1px solid rgba(255,255,255,0.12)' }}
           >
-            {msg.caption && <p className="px-3 pt-2.5 pb-2 text-sm text-white/90">{msg.caption}</p>}
+            {msg.caption && <p className="px-3 pt-2 pb-1.5 text-sm text-white/90">{msg.caption}</p>}
             <div className="relative">
               <video src={msg.media_url} className="w-full max-w-sm" controls />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -291,15 +291,15 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   // Document
   if (msg.media_type === 'document' && msg.media_url) {
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           <div
-            className={cn('rounded-xl p-3', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            className={cn('rounded-xl p-2.5', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
             style={{ border: '1px solid rgba(255,255,255,0.12)' }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5 text-[#C9A24B]" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4 text-[#C9A24B]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-white/90 truncate">{msg.media_filename || 'Document'}</p>
@@ -308,9 +308,9 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
               <a
                 href={msg.media_url}
                 download={msg.media_filename}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
               >
-                <Download className="w-4 h-4 text-white/70" />
+                <Download className="w-3.5 h-3.5 text-white/70" />
               </a>
             </div>
           </div>
@@ -324,15 +324,15 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
   if (msg.location_json) {
     const location = typeof msg.location_json === 'string' ? JSON.parse(msg.location_json) : msg.location_json;
     return (
-      <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[72%]">
+      <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+        <div className="max-w-[70%]">
           <div
-            className={cn('rounded-xl p-3', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
+            className={cn('rounded-xl p-2.5', isOutbound ? 'bg-[#243044]' : 'bg-[#1A2230]')}
             style={{ border: '1px solid rgba(255,255,255,0.12)' }}
           >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5 text-[#C9A24B]" />
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#C9A24B]/20 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-[#C9A24B]" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-white/90">{location.name || 'Location'}</p>
@@ -350,19 +350,19 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
 
   // Regular text message
   return (
-    <div className={cn('flex mb-2', isOutbound ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[65%]', 'break-words')}>
+    <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+      <div className={cn('max-w-[70%]', 'break-words')}>
         {!isOutbound && contactName && (
           <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
         )}
         <div
-          className={cn('rounded-2xl px-4 py-2.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#243044]' : 'rounded-bl-none bg-[#1A2230]')}
+          className={cn('rounded-2xl px-3 py-1.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#243044]' : 'rounded-bl-none bg-[#1A2230]')}
           style={{
             border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
             borderLeft: !isOutbound ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` : 'none',
           }}
         >
-          <p className="leading-relaxed text-white/95" style={{ fontSize: '15px', lineHeight: '1.5' }}>
+          <p className="leading-relaxed text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
             {msg.body}
           </p>
           <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
@@ -383,7 +383,7 @@ function MessageFooter({ msg, isOutbound, ChannelIcon, channel }) {
   const statusIcon = getStatusIcon();
 
   return (
-    <div className={cn('text-[9px] mt-1.5 font-medium flex items-center gap-1.5', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
+    <div className={cn('text-[9px] mt-0.5 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
       {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
       {isOutbound && (
         <>
@@ -392,7 +392,7 @@ function MessageFooter({ msg, isOutbound, ChannelIcon, channel }) {
             <button className="text-[9px] underline hover:text-red-400" title="Retry sending">Retry</button>
           )}
           <span className="flex items-center gap-0.5 opacity-70">
-            <ChannelIcon className="w-2.5 h-2.5" />
+            <ChannelIcon className="w-2 h-2" />
             {msg.channel === 'business' ? 'Business' : 'Personal'}
           </span>
         </>
