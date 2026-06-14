@@ -9,12 +9,17 @@ Deno.serve(async (req) => {
     const { limit = 3 } = await req.json().catch(() => ({}));
     const limitNum = parseInt(limit, 10) || 3;
 
-    // Fetch personal-channel conversations with null profile pics
-    const conversations = await base44.entities.WhatsAppConversation.filter(
-      { channel: 'personal', wa_profile_pic_url: null },
+    // Fetch personal-channel conversations with null OR drive.google.com profile pics
+    const allConversations = await base44.entities.WhatsAppConversation.filter(
+      { channel: 'personal' },
       '-last_message_at',
-      limitNum * 2 // Fetch extra to account for duplicates
+      limitNum * 3 // Fetch extra to account for filtering + duplicates
     );
+    
+    // Filter client-side: null OR contains drive.google.com
+    const conversations = (allConversations || []).filter(c => 
+      !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
+    ).slice(0, limitNum * 2);
 
     if (!conversations || conversations.length === 0) {
       return Response.json({
@@ -108,6 +113,18 @@ Deno.serve(async (req) => {
 
     const successCount = results.filter(r => r.success).length;
     const failedCount = results.filter(r => !r.success).length;
+    const noPhotoCount = results.filter(r => r.error === 'no_photo').length;
+    const driveUrlReplacedCount = results.filter(r => r.success && r.profile_pic_url).length;
+    
+    // Count remaining (null OR drive-url) after this batch
+    const remainingConversations = await base44.entities.WhatsAppConversation.filter(
+      { channel: 'personal' },
+      null,
+      5000
+    );
+    const remainingCount = (remainingConversations || []).filter(c => 
+      !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
+    ).length;
 
     return Response.json({
       status: 'success',
@@ -116,7 +133,10 @@ Deno.serve(async (req) => {
       summary: {
         total: results.length,
         success: successCount,
-        failed: failedCount
+        no_photo: noPhotoCount,
+        failed: failedCount,
+        drive_urls_replaced: driveUrlReplacedCount,
+        remaining_needing_fetch: remainingCount
       }
     });
   } catch (error) {
