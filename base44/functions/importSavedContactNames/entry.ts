@@ -11,49 +11,30 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing lookupUrl in payload' }, { status: 400 });
     }
 
-    // Step 1: Fetch the lookup JSON with retry logic (GitHub rate limit handling)
+    // Step 1: Fetch the lookup JSON ONCE (no retry loop to avoid GitHub rate limits)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
     let lookup;
     try {
-      let res = await fetch(lookupUrl, { 
+      const res = await fetch(lookupUrl, { 
         signal: controller.signal,
-        headers: { 'User-Agent': 'Erudite-CRM/1.0' }
+        headers: { 'User-Agent': 'PropCRM-import/1.0' }
       });
-      // Check if response is HTML error page or rate limit JSON
-      const contentType = res.headers.get('content-type') || '';
-      if (res.status === 403 || res.status === 429 || (res.status === 200 && contentType.includes('text/html'))) {
-        // GitHub rate limited - wait and retry
-        const retryAfter = parseInt(res.headers.get('retry-after') || '30', 10);
-        await new Promise(r => setTimeout(r, retryAfter * 1000));
-        res = await fetch(lookupUrl, { 
-          signal: controller.signal,
-          headers: { 'User-Agent': 'Erudite-CRM/1.0' }
-        });
-      }
       clearTimeout(timeoutId);
+      
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        return Response.json({ error: `Failed to fetch lookup: ${res.status} ${res.statusText} - ${body.slice(0, 200)}` }, { status: 500 });
+        return Response.json({ 
+          error: `Failed to fetch lookup: ${res.status} ${res.statusText}`, 
+          details: body.slice(0, 200) 
+        }, { status: 500 });
       }
-      // Double-check content type
-      const finalContentType = res.headers.get('content-type') || '';
-      if (finalContentType.includes('text/html')) {
-        return Response.json({ error: 'GitHub returned HTML instead of JSON (rate limited)' }, { status: 500 });
-      }
+      
       const text = await res.text();
-      // Check if GitHub returned an error JSON
-      if (text.includes('rate limit') || text.includes('Rate limit')) {
-        return Response.json({ error: 'GitHub rate limit active. Wait 5-10 minutes and retry.', details: text.slice(0, 500) }, { status: 500 });
-      }
-      try {
-        lookup = JSON.parse(text);
-      } catch (e) {
-        return Response.json({ error: `Invalid JSON: ${e.message}. Response: ${text.slice(0, 200)}` }, { status: 500 });
-      }
+      lookup = JSON.parse(text);
     } catch (err) {
       clearTimeout(timeoutId);
-      return Response.json({ error: `Fetch timeout or error: ${err.message}` }, { status: 500 });
+      return Response.json({ error: `Fetch failed: ${err.message}` }, { status: 500 });
     }
 
     if (typeof lookup !== 'object' || lookup === null || Array.isArray(lookup)) {
@@ -83,16 +64,32 @@ Deno.serve(async (req) => {
       return digits;
     };
 
-    // Step 2: Load ALL WhatsAppConversation records with pagination
+    // Step 2: Load ALL WhatsAppConversation records with pagination and rate limit handling
     const ALL_CONVERSATIONS = [];
     let skip = 0;
-    const LIMIT = 100;
+    const LIMIT = 50;
     while (true) {
-      const batch = await base44.entities.WhatsAppConversation.list(undefined, LIMIT, skip);
-      if (!batch || batch.length === 0) break;
-      ALL_CONVERSATIONS.push(...batch);
-      skip += LIMIT;
-      if (batch.length < LIMIT) break;
+      try {
+        const batch = await base44.entities.WhatsAppConversation.list(undefined, LIMIT, skip);
+        if (!batch || batch.length === 0) break;
+        ALL_CONVERSATIONS.push(...batch);
+        skip += LIMIT;
+        if (batch.length < LIMIT) break;
+        // Small delay between batches to avoid rate limits
+        await new Promise(r => setTimeout(r, 300));
+      } catch (err) {
+        if (err.message && err.message.includes('Rate limit')) {
+          // Wait and retry once
+          await new Promise(r => setTimeout(r, 3000));
+          const batch = await base44.entities.WhatsAppConversation.list(undefined, LIMIT, skip);
+          if (!batch || batch.length === 0) break;
+          ALL_CONVERSATIONS.push(...batch);
+          skip += LIMIT;
+          if (batch.length < LIMIT) break;
+        } else {
+          throw err;
+        }
+      }
     }
 
     // Step 3 & 4: Match and update
@@ -148,10 +145,31 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Batch update all conversations
-    for (const update of updates) {
-      await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
-      results.updated++;
+    // Batch update all conversations with rate limit handling
+    for (let i = 0; i < updates.length; i++) {
+      const update = updates[i];
+      try {
+        await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
+        results.updated++;
+      } catch (err) {
+        if (err.message && err.message.includes('Rate limit')) {
+          // Wait and retry once
+          await new Promise(r => setTimeout(r, 2000));
+          try {
+            await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
+            results.updated++;
+          } catch (retryErr) {
+            // Skip this one, continue with others
+            console.log(`Skipped ${update.id}: ${retryErr.message}`);
+          }
+        } else {
+          console.log(`Skipped ${update.id}: ${err.message}`);
+        }
+      }
+      // Small delay every 10 updates to avoid rate limits
+      if ((i + 1) % 10 === 0) {
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
 
     return Response.json({
