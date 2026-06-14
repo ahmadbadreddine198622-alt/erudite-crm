@@ -15,6 +15,7 @@ import MobilePipeline from '@/components/mobile/MobilePipeline';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { STAGES } from '@/lib/pipeline';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
 function formatRelativeShort(iso) {
   if (!iso) return null;
@@ -56,6 +57,7 @@ export default function Pipeline() {
   const [showAddLead, setShowAddLead] = useState(false);
 
   const { user: currentUser, permissions } = useCurrentUser();
+  const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pipeline-leads'],
@@ -459,6 +461,7 @@ export default function Pipeline() {
               track="buyer"
               leads={buckets.sale}
               getListing={getListing}
+              getPhotoForPhone={getPhotoForPhone}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
               users={users}
@@ -476,6 +479,7 @@ export default function Pipeline() {
               track="tenant"
               leads={buckets.rent}
               getListing={getListing}
+              getPhotoForPhone={getPhotoForPhone}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
               users={users}
@@ -493,6 +497,7 @@ export default function Pipeline() {
               track="unknown"
               leads={buckets.intake}
               getListing={getListing}
+              getPhotoForPhone={getPhotoForPhone}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
               users={users}
@@ -510,6 +515,7 @@ export default function Pipeline() {
               track="unknown"
               leads={buckets.whatsapp}
               getListing={getListing}
+              getPhotoForPhone={getPhotoForPhone}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
               users={users}

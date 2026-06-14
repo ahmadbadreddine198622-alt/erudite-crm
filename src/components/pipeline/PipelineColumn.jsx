@@ -3,7 +3,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import PipelineLeadCard from './PipelineLeadCard';
 import { cn } from '@/lib/utils';
 
-export default function PipelineColumn({ stage, leads, getListing, onLeadClick, users, onAssign, onDelete }) {
+export default function PipelineColumn({ stage, leads, getListing, getPhotoForPhone, onLeadClick, users, onAssign, onDelete }) {
   return (
     <div
       className="flex flex-col w-[300px] shrink-0 h-full min-h-0 rounded-2xl"
@@ -74,13 +74,14 @@ export default function PipelineColumn({ stage, leads, getListing, onLeadClick, 
                     {...dragProvided.dragHandleProps}
                   >
                     <PipelineLeadCard
-                     lead={lead}
-                     listing={getListing ? getListing(lead) : null}
-                     isDragging={dragSnapshot.isDragging}
-                     onClick={() => onLeadClick(lead)}
-                     users={users}
-                     onAssign={onAssign}
-                     onDelete={onDelete}
+                      lead={lead}
+                      listing={getListing ? getListing(lead) : null}
+                      isDragging={dragSnapshot.isDragging}
+                      onClick={() => onLeadClick(lead)}
+                      users={users}
+                      onAssign={onAssign}
+                      onDelete={onDelete}
+                      getPhotoForPhone={getPhotoForPhone}
                     />
                   </div>
                 )}

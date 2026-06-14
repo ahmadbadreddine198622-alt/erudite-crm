@@ -92,7 +92,7 @@ const FINANCE_BADGE = {
   mixed:       { label: 'Mixed',    style: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
 };
 
-export default function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete }) {
+export default function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete, getPhotoForPhone }) {
   const queryClient = useQueryClient();
   const projects = queryClient.getQueryData(['projects']) || [];
   const project = projects.find((p) => p.id === lead.project_id);
@@ -109,6 +109,9 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
   const healthColors = { active: 'bg-emerald-500', attention: 'bg-amber-500', stalled: 'bg-red-500' };
 
   const e164 = normalizePhone(lead.phone);
+
+  // Get WhatsApp profile photo if available (matched by phone)
+  const photoUrl = getPhotoForPhone ? getPhotoForPhone(lead.phone || lead.whatsapp) : null;
 
   const handleCall = (e) => {
     e.stopPropagation();
@@ -135,7 +138,10 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
     >
       {/* Header: avatar + name */}
       <div className="flex items-center gap-1.5">
-        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
+        {photoUrl ? (
+          <img src={photoUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+        ) : null}
+        <div className={cn('w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0', photoUrl ? 'hidden' : 'flex')}>
           {lead.full_name?.[0]?.toUpperCase() || '?'}
         </div>
         <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={lead.full_name || lead.phone || 'Unknown'}>
