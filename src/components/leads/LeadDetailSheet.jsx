@@ -36,12 +36,14 @@ import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CallLogPanel from '@/components/twilio/CallLogPanel';
 import LeadNotesTab from '@/components/leads/LeadNotesTab';
+import FormFUpload from '@/components/leads/FormFUpload';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('details');
+  const [leadFormFUrl, setLeadFormFUrl] = useState(lead.form_f_url || null);
   const queryClient = useQueryClient();
 
   const primaryPhone = lead.phone;
@@ -445,7 +447,11 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
           </TabsContent>
 
-          <TabsContent value="contract" className="p-4 mt-0">
+          <TabsContent value="contract" className="p-4 mt-0 space-y-4">
+            <FormFUpload
+              lead={{ ...lead, form_f_url: leadFormFUrl }}
+              onUpdated={(url) => setLeadFormFUrl(url)}
+            />
             <ContractWorkflow lead={lead} />
           </TabsContent>
 
