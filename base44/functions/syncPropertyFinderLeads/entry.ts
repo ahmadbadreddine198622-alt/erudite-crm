@@ -45,7 +45,8 @@ async function fetchPFUsers(token) {
 }
 
 async function fetchPFLeadsPage(token, page, perPage) {
-  const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}`, {
+  // Sort by createdAt descending (newest first)
+  const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}&sort=-createdAt`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) {

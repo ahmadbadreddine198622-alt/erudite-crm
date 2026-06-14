@@ -80,6 +80,7 @@ export default function PropertyFinderLeads() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [agentFilter, setAgentFilter] = useState("all");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [updatingStage, setUpdatingStage] = useState(null);
 
@@ -156,6 +157,16 @@ export default function PropertyFinderLeads() {
   }
 
   const filteredLeads = leads.filter((lead) => {
+    // Agent filter
+    if (agentFilter !== "all") {
+      const agentEmail = lead.assigned_agent_email || "";
+      const expectedEmail = Object.keys(AGENT_NAMES).find(
+        (email) => AGENT_NAMES[email] === agentFilter
+      );
+      if (expectedEmail && agentEmail !== expectedEmail) return false;
+      if (!expectedEmail && agentEmail) return false;
+    }
+    // Search filter
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -178,14 +189,29 @@ export default function PropertyFinderLeads() {
 
         {/* Search Bar */}
         <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by buyer name, phone, or listing reference..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 glass-input max-w-md"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by buyer name, phone, or listing reference..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 glass-input"
+              />
+            </div>
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger className="w-[180px] glass-input">
+                <SelectValue placeholder="Filter by agent" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Agents</SelectItem>
+                <SelectItem value="Ahmad">Ahmad</SelectItem>
+                <SelectItem value="Manuchehr">Manuchehr</SelectItem>
+                <SelectItem value="Aizah">Aizah</SelectItem>
+                <SelectItem value="Alisher">Alisher</SelectItem>
+                <SelectItem value="Amna">Amna</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Badge variant="outline" className="jewel-pill jewel-gold">
@@ -248,7 +274,7 @@ export default function PropertyFinderLeads() {
                           <h3 className="font-semibold text-foreground mb-1">
                             {lead.full_name}
                           </h3>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1">
                             <a
                               href={`tel:${lead.phone}`}
                               className="hover:text-accent transition-colors"
@@ -260,16 +286,20 @@ export default function PropertyFinderLeads() {
                             )}
                           </div>
                         </div>
-                        <Badge className={stageColor}>{lead.stage.replace(/_/g, " ")}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={stageColor}>{lead.stage.replace(/_/g, " ")}</Badge>
+                          {/* AGENT BADGE - clearly visible */}
+                          <Badge className="jewel-pill jewel-gold">
+                            Agent: {getAgentName(lead.assigned_agent_email)}
+                          </Badge>
+                        </div>
                       </div>
 
-                      {/* Property Reference & Links */}
-                      <div className="flex items-center gap-3 mb-3 text-xs">
-                        {lead.closing_property_ref && (
-                          <span className="text-muted-foreground">
-                            📍 {lead.closing_property_ref}
-                          </span>
-                        )}
+                      {/* LISTING REFERENCE - clearly visible */}
+                      <div className="flex items-center gap-3 mb-3 text-xs flex-wrap">
+                        <span className="text-muted-foreground font-medium">
+                          Listing: {lead.closing_property_ref || "—"}
+                        </span>
                         {respondLink && (
                           <a
                             href={respondLink}
@@ -281,9 +311,14 @@ export default function PropertyFinderLeads() {
                           </a>
                         )}
                         {listingLink && (
-                          <span className="text-muted-foreground/60">
-                            Listing: {listingLink}
-                          </span>
+                          <a
+                            href={listingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
                         )}
                         <span className="text-muted-foreground/40 ml-auto">
                           {new Date(lead.created_date).toLocaleDateString("en-GB", {
