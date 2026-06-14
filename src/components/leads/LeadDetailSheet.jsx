@@ -187,7 +187,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               {lead.name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
-              <SheetTitle className="text-lg">{lead.name}</SheetTitle>
+              <SheetTitle className="text-lg">{lead.full_name || lead.name}</SheetTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <SourceBadge source={lead.source} />
                 <LeadScoreBadge score={lead.lead_score} />
@@ -196,6 +196,23 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                     {LEAD_TYPE_LABELS[lead.type] || lead.type}
                   </Badge>
                 )}
+              </div>
+              {/* Stage quick-change */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stage:</span>
+                <Select
+                  value={stagesForIntent.find(s => s.key === lead.stage) ? lead.stage : ''}
+                  onValueChange={(v) => updateMutation.mutate({ stage: v, stage_entered_at: new Date().toISOString() })}
+                >
+                  <SelectTrigger className="h-6 text-xs px-2 py-0 border-accent/40 text-accent bg-accent/10 rounded-full w-auto min-w-[140px]">
+                    <SelectValue placeholder={lead.stage || 'Set stage'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stagesForIntent.map(s => (
+                      <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
