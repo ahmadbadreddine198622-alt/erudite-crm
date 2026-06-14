@@ -15,6 +15,7 @@ export default function KanbanBoard({
   users = [],
   onSingleAssign,
   photographyTasks = [],
+  getPhotoForPhone,
 }) {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -85,6 +86,7 @@ export default function KanbanBoard({
                                 users={users}
                                 onSingleAssign={onSingleAssign}
                                 photographyTasks={photographyTasks}
+                                getPhotoForPhone={getPhotoForPhone}
                               />
                             </div>
                           </div>

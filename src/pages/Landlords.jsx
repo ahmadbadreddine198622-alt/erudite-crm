@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText } from 'lucide-react';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +89,7 @@ export default function Landlords() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
+  const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
 
   // Sync URL ?selected=<id> with state, both ways
   useEffect(() => {
@@ -728,6 +730,7 @@ export default function Landlords() {
           users={users}
           onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
           photographyTasks={photographyTasks}
+          getPhotoForPhone={getPhotoForPhone}
         />
       </div>
 

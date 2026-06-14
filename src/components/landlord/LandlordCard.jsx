@@ -64,7 +64,7 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [] }) {
+export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
@@ -88,6 +88,9 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   const mediaStatus = getMediaStatus();
   const showMediaBadge = landlord.stage === 'photographer_scheduling';
   const isDocStage = landlord.stage === 'photographer_scheduling';
+
+  // Get WhatsApp profile photo if available (matched by phone)
+  const photoUrl = getPhotoForPhone ? getPhotoForPhone(landlord.phone || landlord.whatsapp) : null;
 
   // Fetch documents directly from entity for cards in the photographer_scheduling stage
   const { data: rawDocs = [] } = useQuery({
@@ -285,7 +288,10 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           onClick={(e) => e.stopPropagation()}
           className="w-3.5 h-3.5 accent-amber-500 shrink-0 cursor-pointer"
         />
-        <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
+        {photoUrl ? (
+          <img src={photoUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+        ) : null}
+        <div className={cn('w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0', photoUrl ? 'hidden' : 'flex')}>
           {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
         <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
