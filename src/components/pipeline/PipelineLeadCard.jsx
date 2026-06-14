@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Calendar, Trash2, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
+import IntentToggle from '@/components/leads/IntentToggle';
 
 function formatTimeInStage(stageEnteredAt) {
   if (!stageEnteredAt) return '';
@@ -206,8 +207,9 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
         </div>
       )}
 
-      {/* LEVEL 5: Source + Tags */}
+      {/* LEVEL 5: Intent toggle + Source + Tags */}
       <div className="flex items-center gap-1 flex-wrap pt-1.5 border-t border-white/8">
+        <IntentToggle lead={lead} size="sm" />
         {lead.source && (
           <SourceBadge source={lead.source} />
         )}

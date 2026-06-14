@@ -39,6 +39,7 @@ import LeadNotesTab from '@/components/leads/LeadNotesTab';
 import FormFUpload from '@/components/leads/FormFUpload';
 import FormFParsePanel from '@/components/leads/FormFParsePanel';
 import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
+import IntentToggle from '@/components/leads/IntentToggle';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -98,19 +99,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
     },
   });
 
-  // Intent change resets the lead to the first stage of the new track,
-  // refreshes stage_entered_at so it appears as a brand-new entry.
-  const handleIntentChange = (newIntent) => {
-    const resetStage =
-      newIntent === 'buyer' ? 'new_buyer_lead'
-      : newIntent === 'tenant' ? 'new_tenant_lead'
-      : 'intake_clarify';
-    updateMutation.mutate({
-      intent: newIntent,
-      stage: resetStage,
-      stage_entered_at: new Date().toISOString(),
-    });
-  };
+  // Intent changes are handled by IntentToggle (sets both intent + stage correctly).
 
   // Stages available in the lead's current track. Used to drive the Stage select
   // AND to detect when the lead's persisted stage is outside the current track
@@ -190,13 +179,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <div className="flex-1">
               <SheetTitle className="text-lg">{lead.full_name || lead.name}</SheetTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <SourceBadge source={lead.source} />
-                <LeadScoreBadge score={lead.lead_score} />
-                {lead.type && (
-                  <Badge variant="outline" className="text-[10px] capitalize">
-                    {LEAD_TYPE_LABELS[lead.type] || lead.type}
-                  </Badge>
-                )}
+              <SourceBadge source={lead.source} />
+              <LeadScoreBadge score={lead.lead_score} />
+              {lead.type && (
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  {LEAD_TYPE_LABELS[lead.type] || lead.type}
+                </Badge>
+              )}
+              <IntentToggle lead={lead} size="md" />
               </div>
               {/* Stage quick-change */}
               <div className="flex items-center gap-2 mt-2">
@@ -383,7 +373,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                 <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground">Intent</label>
-                  <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>
+                  <Select value={lead.intent || 'unknown'} onValueChange={(v) => updateMutation.mutate({ intent: v })}>
                     <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="buyer">Buyer</SelectItem>
