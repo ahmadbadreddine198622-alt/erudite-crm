@@ -68,8 +68,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
     enabled: !!lead.id,
   });
 
+  const [savedIndicator, setSavedIndicator] = useState(false);
+
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
+    onSuccess: () => {
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 2000);
+    },
     // Optimistic update: patch the cached leads array immediately so Select
     // inputs reflect the change before the server round-trip completes.
     onMutate: async (data) => {
@@ -177,7 +183,17 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               {lead.full_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
-              <SheetTitle className="text-lg">{lead.full_name || lead.phone || 'Unknown'}</SheetTitle>
+              <div className="flex items-center gap-2">
+                <input
+                  defaultValue={lead.full_name || ''}
+                  placeholder="Full name"
+                  className="text-lg font-semibold bg-transparent border-b border-transparent hover:border-accent/40 focus:border-accent focus:outline-none text-foreground w-full transition-colors"
+                  onBlur={(e) => { if (e.target.value !== (lead.full_name || '')) updateMutation.mutate({ full_name: e.target.value }); }}
+                />
+                {savedIndicator && (
+                  <span className="text-[10px] font-semibold text-emerald-400 shrink-0 animate-pulse">Saved ✓</span>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
               <SourceBadge source={lead.source} />
               <LeadScoreBadge score={lead.lead_score} />
@@ -305,7 +321,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                     </div>
                     <UniversalWhatsAppAction
                       phone={lead.phone}
-                      name={lead.full_name || lead.name}
+                      name={lead.full_name}
                       leadId={lead.id}
                       size="sm"
                       disabled={lead.do_not_contact}
@@ -552,7 +568,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 
-            lead_name={lead.name}
+            lead_name={lead.full_name}
             property_title={lead.interested_properties?.[0] || 'Property'}
           />
           <LinkToListingDialog
@@ -593,7 +609,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           onClose={() => setShowWhatsAppPopup(false)}
           phone={primaryPhone}
           leadId={lead.id}
-          leadName={lead.name}
+          leadName={lead.full_name}
         />
       </SheetContent>
     </Sheet>
