@@ -117,7 +117,7 @@ export default function PipelineLeadCard({ lead, listing, isDragging, onClick, u
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 mb-0.5">
-            <p className="text-sm font-bold leading-tight truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.full_name || lead.phone || 'Unknown'}</p>
+            <p className="text-xs font-bold leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.95)' }}>{lead.full_name || lead.phone || 'Unknown'}</p>
             {healthStatus && (
               <span className={`shrink-0 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider ${healthColors[healthStatus]} text-white`}>
                 {healthStatus}
