@@ -92,19 +92,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3 & 4: Match and update
+    // Step 3 & 4: Match and update with throttling
     const results = {
       totalProcessed: ALL_CONVERSATIONS.length,
       matched: 0,
       noMatch: 0,
       updated: 0,
+      skipped: 0,
+      failed: 0,
       samples: [],
     };
 
-    // Track which phones we've already updated to avoid duplicate writes
-    const phoneUpdates = new Map(); // last9digits -> saved_name
-
-    // First pass: determine what each phone should have
+    // First pass: match phones to saved names and determine what needs updating
+    const updatesNeeded = [];
     for (const conv of ALL_CONVERSATIONS) {
       const phone = conv.wa_phone_e164 || conv.phone_number;
       const last9 = toLast9Digits(phone);
@@ -112,31 +112,22 @@ Deno.serve(async (req) => {
         results.noMatch++;
         continue;
       }
-      const savedName = lookup[last9] || null;
-      phoneUpdates.set(last9, savedName);
-    }
-
-    // Second pass: apply updates
-    const updates = [];
-    for (const conv of ALL_CONVERSATIONS) {
-      const phone = conv.wa_phone_e164 || conv.phone_number;
-      const last9 = toLast9Digits(phone);
-      if (!last9) continue;
-
-      const savedName = phoneUpdates.get(last9) || null;
       
-      // Only update if we have a name AND it's different from current
-      if (savedName && conv.saved_contact_name !== savedName) {
-        updates.push({
-          id: conv.id,
-          phone,
-          savedName,
-        });
-      }
-
-      // Track for report
+      const savedName = lookup[last9] || null;
+      
       if (savedName) {
         results.matched++;
+        // Only update if saved_contact_name is missing or different
+        if (!conv.wa_saved_name || conv.wa_saved_name !== savedName) {
+          updatesNeeded.push({
+            id: conv.id,
+            phone,
+            savedName,
+          });
+        } else {
+          results.skipped++; // Already has correct name
+        }
+        
         if (results.samples.length < 10) {
           results.samples.push({ phone, saved_contact_name: savedName });
         }
@@ -145,30 +136,48 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Batch update all conversations with rate limit handling
-    for (let i = 0; i < updates.length; i++) {
-      const update = updates[i];
-      try {
-        await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
-        results.updated++;
-      } catch (err) {
-        if (err.message && err.message.includes('Rate limit')) {
-          // Wait and retry once
-          await new Promise(r => setTimeout(r, 2000));
-          try {
-            await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
-            results.updated++;
-          } catch (retryErr) {
-            // Skip this one, continue with others
-            console.log(`Skipped ${update.id}: ${retryErr.message}`);
+    // Step 5: Throttled writes with retry logic
+    const BATCH_SIZE = 15;
+    const DELAY_BETWEEN_WRITES = 400; // ms
+    const DELAY_BETWEEN_BATCHES = 2000; // ms
+    
+    for (let i = 0; i < updatesNeeded.length; i++) {
+      const update = updatesNeeded[i];
+      let success = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!success && attempts < maxAttempts) {
+        try {
+          await base44.entities.WhatsAppConversation.update(update.id, { saved_contact_name: update.savedName });
+          results.updated++;
+          success = true;
+        } catch (err) {
+          attempts++;
+          if (err.message && err.message.includes('Rate limit')) {
+            if (attempts < maxAttempts) {
+              // Exponential backoff: 2s, 4s
+              await new Promise(r => setTimeout(r, 2000 * attempts));
+            } else {
+              results.failed++;
+              console.log(`Failed ${update.id} after ${attempts} attempts: ${err.message}`);
+            }
+          } else {
+            results.failed++;
+            console.log(`Failed ${update.id}: ${err.message}`);
+            break; // Don't retry non-rate-limit errors
           }
-        } else {
-          console.log(`Skipped ${update.id}: ${err.message}`);
         }
       }
-      // Small delay every 10 updates to avoid rate limits
-      if ((i + 1) % 10 === 0) {
-        await new Promise(r => setTimeout(r, 500));
+      
+      // Delay between each write
+      if (i < updatesNeeded.length - 1) {
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_WRITES));
+      }
+      
+      // Longer delay between batches
+      if ((i + 1) % BATCH_SIZE === 0 && i < updatesNeeded.length - 1) {
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_BATCHES));
       }
     }
 
@@ -176,8 +185,10 @@ Deno.serve(async (req) => {
       summary: {
         totalProcessed: results.totalProcessed,
         matched: results.matched,
-        noMatch: results.noMatch,
         updated: results.updated,
+        skipped: results.skipped,
+        failed: results.failed,
+        noMatch: results.noMatch,
       },
       samples: results.samples,
       lookupSize: Object.keys(lookup).length,
