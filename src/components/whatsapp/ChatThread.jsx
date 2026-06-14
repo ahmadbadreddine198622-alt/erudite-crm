@@ -53,8 +53,13 @@ export default function ChatThread({ conversationId, allConversationIds, contact
       
       deduped.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
+      const isNewConversation = messages.length === 0;
       setMessages(deduped);
       setLastRefresh(new Date());
+      // Auto-scroll to bottom on initial load of a conversation
+      if (isNewConversation) {
+        setTimeout(() => scrollToBottom('auto'), 50);
+      }
     } catch (err) {
       setMessages([]);
     } finally {
@@ -73,6 +78,9 @@ export default function ChatThread({ conversationId, allConversationIds, contact
     setIsLoading(true);
     setMessages([]);
     loadMessages();
+    // Scroll to bottom on conversation switch (initial load)
+    const timer = setTimeout(() => scrollToBottom('auto'), 100);
+    return () => clearTimeout(timer);
   }, [idsKey]);
 
   // NOTE: Realtime subscriptions are not functional on this Base44 plan.
