@@ -105,16 +105,6 @@ export default function ProjectSelectorWithUpload({ value, onChange, projects })
             <div className="w-5 h-5 rounded bg-white/5 flex items-center justify-center border border-dashed border-white/20">
               <span className="text-[10px] font-bold text-muted-foreground">∅</span>
             </div>
-          ) : selectedProject?.image_url ? (
-            <img 
-              src={selectedProject.image_url} 
-              alt="" 
-              className="w-5 h-5 rounded object-cover"
-              onError={(e) => {
-                console.error('[ProjectSelector] Image failed to load:', selectedProject.image_url);
-                e.target.style.display = 'none';
-              }}
-            />
           ) : (
             <ImageIcon className="w-4 h-4" />
           )}
