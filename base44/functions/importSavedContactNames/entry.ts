@@ -11,12 +11,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing lookupUrl in payload' }, { status: 400 });
     }
 
-    // Step 1: Fetch the lookup JSON with 15s timeout
+    // Step 1: Fetch the lookup JSON with retry logic (GitHub rate limit handling)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     let lookup;
     try {
-      const res = await fetch(lookupUrl, { signal: controller.signal });
+      let res = await fetch(lookupUrl, { 
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Erudite-CRM/1.0' }
+      });
+      // Retry once on 403/429 (rate limit)
+      if ((res.status === 403 || res.status === 429) && res.headers.get('x-ratelimit-remaining') === '0') {
+        const retryAfter = parseInt(res.headers.get('retry-after') || '5', 10);
+        await new Promise(r => setTimeout(r, retryAfter * 1000));
+        res = await fetch(lookupUrl, { 
+          signal: controller.signal,
+          headers: { 'User-Agent': 'Erudite-CRM/1.0' }
+        });
+      }
       clearTimeout(timeoutId);
       if (!res.ok) {
         return Response.json({ error: `Failed to fetch lookup: ${res.status} ${res.statusText}` }, { status: 500 });
