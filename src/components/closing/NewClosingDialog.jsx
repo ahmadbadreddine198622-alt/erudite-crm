@@ -143,7 +143,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      <div className="relative w-full max-w-lg rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
         style={{ background: 'hsl(222 47% 9%)', border: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="flex items-center justify-between px-8 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <h2 className="font-display text-lg font-semibold text-white">New Closing Deal</h2>
