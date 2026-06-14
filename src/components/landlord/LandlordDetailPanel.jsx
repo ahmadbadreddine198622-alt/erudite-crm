@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import PricingPressureMeter from './PricingPressureMeter';
@@ -55,6 +56,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const { getPhotoForPhone } = usePhotoByPhone();
   const photoUrl = getPhotoForPhone(landlord.phone || landlord.whatsapp);
   const [whisperOpen, setWhisperOpen] = useState(false);
+  const [photoLightboxOpen, setPhotoLightboxOpen] = useState(false);
   const [formAUploading, setFormAUploading] = useState(false);
   const [floorPlanUploading, setFloorPlanUploading] = useState(false);
   const [floorPlanUrl, setFloorPlanUrl] = useState('');
@@ -347,9 +349,26 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             )}
             {/* Avatar */}
             {photoUrl ? (
-              <img src={photoUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+              <Dialog open={photoLightboxOpen} onOpenChange={setPhotoLightboxOpen}>
+                <DialogTrigger asChild>
+                  <button className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-white/20 hover:border-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50">
+                    <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl p-0 overflow-hidden" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                  <div className="relative w-full h-[80vh] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.92)' }}>
+                    <img src={photoUrl} alt="" className="max-h-full max-w-full object-contain rounded-lg" />
+                    <button
+                      onClick={() => setPhotoLightboxOpen(false)}
+                      className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                    >
+                      <X className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-sm font-bold text-accent shrink-0">
+              <div className="w-11 h-11 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0 border border-accent/30">
                 {(landlord.full_name_en || landlord.full_name || '?')[0]?.toUpperCase()}
               </div>
             )}
