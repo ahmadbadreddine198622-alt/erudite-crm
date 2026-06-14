@@ -305,6 +305,9 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'deleted' });
     }
 
+    // Log ALL event types for diagnostic purposes (Stage 2 label detection)
+    console.log(`[evolutionWebhook][EVENT_RECEIVED] event=${event} instance=${instanceName} channel=${channel}`);
+
     if (event !== 'messages.upsert') {
       return Response.json({ status: 'ignored', event });
     }
