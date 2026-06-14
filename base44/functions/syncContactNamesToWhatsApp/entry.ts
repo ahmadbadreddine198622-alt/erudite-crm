@@ -7,10 +7,6 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Helper: normalize phone to last 9 digits
-    // - Strip all non-digits
-    // - Strip leading 00
-    // - If starts with 0 and is 10 digits (UAE local), prepend 971
-    // - Take LAST 9 DIGITS (do NOT strip 971 before taking last 9)
     const toLast9Digits = (phone) => {
       if (!phone) return null;
       let digits = String(phone).replace(/\D/g, '');
@@ -42,7 +38,6 @@ Deno.serve(async (req) => {
       ALL_CONVERSATIONS.push(...batch);
       skip += LIMIT;
       if (batch.length < LIMIT) break;
-      // Small delay between batches to avoid rate limits
       await new Promise(r => setTimeout(r, 200));
     }
 
@@ -53,35 +48,29 @@ Deno.serve(async (req) => {
       skipped: 0,
       failed: 0,
       samples: [],
+      debugSamples: [],
     };
 
-    // Step 2 & 3: For each conversation, query Contact by phone filter (server-side, reaches all records)
-    // Group conversations by normalized phone to avoid duplicate queries
-    const phoneToConversations = new Map();
-    for (const conv of ALL_CONVERSATIONS) {
-      const phone = conv.wa_phone_e164 || conv.phone_number;
-      const last9 = toLast9Digits(phone);
-      if (!last9) continue;
-      
-      if (!phoneToConversations.has(last9)) {
-        phoneToConversations.set(last9, []);
-      }
-      phoneToConversations.get(last9).push(conv);
-    }
-
-    // Step 4: Process each unique phone
     const BATCH_SIZE = 20;
     const DELAY_BETWEEN_WRITES = 400;
     let processedBatches = 0;
 
-    for (const [last9, conversations] of phoneToConversations.entries()) {
-      // Query Contact by phone filter (server-side, reaches all 13k+ records)
-      // Try matching on phone field first
+    // Step 2: Process each conversation individually with server-side Contact filter
+    for (let i = 0; i < ALL_CONVERSATIONS.length; i++) {
+      const conv = ALL_CONVERSATIONS[i];
+      const convPhone = conv.wa_phone_e164 || conv.phone_number;
+      const last9 = toLast9Digits(convPhone);
+      
+      if (!last9) {
+        results.skipped++;
+        continue;
+      }
+
+      // Query Contact with server-side filter on phone/whatsapp containing last 9 digits
       let matchingContact = null;
+      let contactFound = false;
       
       try {
-        // Build a regex pattern that matches any phone containing these last 9 digits
-        // This works because server-side filter reaches all records
         const phoneFilter = {
           $or: [
             { phone: { $regex: last9 } },
@@ -89,13 +78,15 @@ Deno.serve(async (req) => {
           ],
         };
         
-        const contacts = await base44.entities.Contact.filter(phoneFilter, undefined, 10);
+        const contacts = await base44.entities.Contact.filter(phoneFilter, undefined, 20);
         if (contacts && contacts.length > 0) {
-          // Verify the match by normalizing the contact's phone and checking last 9
+          // Verify match by normalizing contact's phone
           for (const contact of contacts) {
-            const contactPhoneLast9 = toLast9Digits(contact.data?.phone || contact.data?.whatsapp);
-            if (contactPhoneLast9 === last9) {
+            const contactPhoneLast9 = toLast9Digits(contact.data?.phone);
+            const contactWhatsappLast9 = toLast9Digits(contact.data?.whatsapp);
+            if (contactPhoneLast9 === last9 || contactWhatsappLast9 === last9) {
               matchingContact = contact;
+              contactFound = true;
               break;
             }
           }
@@ -104,61 +95,71 @@ Deno.serve(async (req) => {
         console.log(`Error querying contact for ${last9}: ${err.message}`);
       }
 
-      // Step 5: Update all conversations for this phone
-      for (const conv of conversations) {
-        const newName = matchingContact?.data?.full_name || null;
-        const oldName = conv.wa_saved_name || null;
+      // Add debug sample for first 10 conversations
+      if (results.debugSamples.length < 10) {
+        results.debugSamples.push({
+          conv_phone: convPhone,
+          normalized_key: last9,
+          contact_found: contactFound,
+          contact_name: matchingContact?.data?.full_name || null,
+          old_wa_saved_name: oldName,
+        });
+      }
 
-        if (!newName) {
-          results.skipped++;
-          continue;
-        }
+      const newName = matchingContact?.data?.full_name || null;
+      const oldName = conv.wa_saved_name || null;
 
-        if (oldName === newName) {
-          results.skipped++;
-          continue;
-        }
+      if (!newName) {
+        results.skipped++;
+        continue;
+      }
 
-        // Update with retry logic
-        let success = false;
-        let attempts = 0;
-        const maxAttempts = 3;
+      if (oldName === newName) {
+        results.skipped++;
+        continue;
+      }
 
-        while (!success && attempts < maxAttempts) {
-          try {
-            await base44.entities.WhatsAppConversation.update(conv.id, { wa_saved_name: newName });
-            results.updated++;
-            success = true;
+      results.matched++;
 
-            if (results.samples.length < 10) {
-              results.samples.push({
-                phone: conv.wa_phone_e164 || conv.phone_number,
-                old_name: oldName,
-                new_name: newName,
-              });
-            }
-          } catch (err) {
-            attempts++;
-            if (err.message && err.message.includes('Rate limit')) {
-              if (attempts < maxAttempts) {
-                await new Promise(r => setTimeout(r, 2000 * attempts));
-              } else {
-                results.failed++;
-                console.log(`Failed ${conv.id} after ${attempts} attempts: ${err.message}`);
-              }
+      // Update with retry logic
+      let success = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (!success && attempts < maxAttempts) {
+        try {
+          await base44.entities.WhatsAppConversation.update(conv.id, { wa_saved_name: newName });
+          results.updated++;
+          success = true;
+
+          if (results.samples.length < 10) {
+            results.samples.push({
+              phone: convPhone,
+              old_name: oldName,
+              new_name: newName,
+            });
+          }
+        } catch (err) {
+          attempts++;
+          if (err.message && err.message.includes('Rate limit')) {
+            if (attempts < maxAttempts) {
+              await new Promise(r => setTimeout(r, 2000 * attempts));
             } else {
               results.failed++;
-              console.log(`Failed ${conv.id}: ${err.message}`);
-              break;
+              console.log(`Failed ${conv.id} after ${attempts} attempts: ${err.message}`);
             }
+          } else {
+            results.failed++;
+            console.log(`Failed ${conv.id}: ${err.message}`);
+            break;
           }
         }
+      }
 
-        // Throttle between writes
-        processedBatches++;
-        if (processedBatches % BATCH_SIZE === 0) {
-          await new Promise(r => setTimeout(r, DELAY_BETWEEN_WRITES));
-        }
+      // Throttle between writes
+      processedBatches++;
+      if (processedBatches % BATCH_SIZE === 0) {
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_WRITES));
       }
     }
 
@@ -171,6 +172,7 @@ Deno.serve(async (req) => {
         failed: results.failed,
       },
       samples: results.samples,
+      debugSamples: results.debugSamples,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
