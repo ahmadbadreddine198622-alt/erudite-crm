@@ -171,7 +171,8 @@ export default function Pipeline() {
       else if (lead.intent === 'tenant' && stageIntent === 'tenant') rent.push(lead);
       else intake.push(lead);
     }
-    return { sale, rent, intake };
+    const whatsapp = activeLeads.filter(l => l.source === 'whatsapp_campaign');
+    return { sale, rent, intake, whatsapp };
   }, [activeLeads]);
 
   const updateStageMutation = useMutation({
@@ -445,6 +446,9 @@ export default function Pipeline() {
           <TabsTrigger value="intake" className="gap-1.5 text-xs font-semibold">
             Intake <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.intake.length})</span>
           </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="gap-1.5 text-xs font-semibold">
+            💬 WhatsApp <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.whatsapp.length})</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sale" className="flex-1 flex flex-col min-h-0 mt-4">
@@ -488,6 +492,23 @@ export default function Pipeline() {
             <PipelineBoard
               track="unknown"
               leads={buckets.intake}
+              getListing={getListing}
+              onLeadClick={(l) => setSelectedLeadId(l.id)}
+              onStageChange={handleStageChange}
+              users={users}
+              onAssign={(id, email) => assignMutation.mutate({ id, email })}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="flex-1 flex flex-col min-h-0 mt-4">
+          {leadsLoading ? (
+            <LoadingState />
+          ) : (
+            <PipelineBoard
+              track="unknown"
+              leads={buckets.whatsapp}
               getListing={getListing}
               onLeadClick={(l) => setSelectedLeadId(l.id)}
               onStageChange={handleStageChange}
