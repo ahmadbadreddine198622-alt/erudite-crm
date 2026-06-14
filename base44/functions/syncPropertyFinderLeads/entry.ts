@@ -119,14 +119,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build dedup map of existing PF leads by PF_LEAD_ID in notes
+    // Build dedup map of existing PF leads by pf_lead_id field
     const existingPFLeadIds = new Set();
     const existingLeads = await base44.asServiceRole.entities.Lead.filter({ source: 'property_finder' });
     for (const lead of existingLeads) {
-      const notes = lead.notes || '';
-      const match = notes.match(/PF_LEAD_ID:([^\s\n]+)/);
-      if (match) {
-        existingPFLeadIds.add(match[1]);
+      if (lead.pf_lead_id) {
+        existingPFLeadIds.add(lead.pf_lead_id);
       }
     }
     console.log(`[syncPFLeads] Found ${existingPFLeadIds.size} existing PF leads for dedup`);
