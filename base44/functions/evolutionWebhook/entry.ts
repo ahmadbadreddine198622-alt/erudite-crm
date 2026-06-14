@@ -215,6 +215,9 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
         last_message_at: timestamp,
         unread_count: 1,
       });
+      // NEW CONVERSATION: trigger one-time profile photo fetch (best-effort, non-blocking)
+      // Also set wa_display_name from inbound if empty (handled above on create)
+      serviceRole.functions.invoke('fetchWhatsAppProfilePics', { phone: e164Phone }).catch(() => {});
     } catch (err) {
       console.error('[evolutionWebhook] conversation create failed:', err?.message);
       return null;
@@ -223,7 +226,7 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
     try {
       await serviceRole.entities.WhatsAppConversation.update(conv.id, {
         status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
-        wa_display_name: waDisplayName || conv.wa_display_name,
+        wa_display_name: conv.wa_display_name || waDisplayName, // Only fill if empty, never overwrite
         last_inbound_at: timestamp,
         last_message: bodyText,
         last_message_at: timestamp,

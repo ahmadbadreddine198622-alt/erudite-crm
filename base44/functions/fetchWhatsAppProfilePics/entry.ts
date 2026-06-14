@@ -6,20 +6,35 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { limit = 3 } = await req.json().catch(() => ({}));
+    const payload = await req.json().catch(() => ({}));
+    const singlePhone = payload.phone; // Optional: single phone for event-driven fetch
+    const limit = payload.limit ?? 3;
     const limitNum = parseInt(limit, 10) || 3;
 
-    // Fetch personal-channel conversations with null OR drive.google.com profile pics
-    const allConversations = await base44.entities.WhatsAppConversation.filter(
-      { channel: 'personal' },
-      '-last_message_at',
-      limitNum * 3 // Fetch extra to account for filtering + duplicates
-    );
-    
-    // Filter client-side: null OR contains drive.google.com
-    const conversations = (allConversations || []).filter(c => 
-      !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
-    ).slice(0, limitNum * 2);
+    let conversations = [];
+    if (singlePhone) {
+      // Single-phone mode: fetch just this phone's conversations
+      const allForPhone = await base44.entities.WhatsAppConversation.filter(
+        { wa_phone_e164: singlePhone },
+        null,
+        10
+      );
+      conversations = (allForPhone || []).filter(c => 
+        !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
+      );
+    } else {
+      // Batch mode: fetch personal-channel conversations with null OR drive.google.com profile pics
+      const allConversations = await base44.entities.WhatsAppConversation.filter(
+        { channel: 'personal' },
+        '-last_message_at',
+        limitNum * 3 // Fetch extra to account for filtering + duplicates
+      );
+      
+      // Filter client-side: null OR contains drive.google.com
+      conversations = (allConversations || []).filter(c => 
+        !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
+      ).slice(0, limitNum * 2);
+    }
 
     if (!conversations || conversations.length === 0) {
       return Response.json({
@@ -39,7 +54,7 @@ Deno.serve(async (req) => {
       phoneToConvos[phone].push(conv);
     });
 
-    const uniquePhones = Object.keys(phoneToConvos).slice(0, limitNum);
+    const uniquePhones = singlePhone ? [singlePhone] : Object.keys(phoneToConvos).slice(0, limitNum);
     const results = [];
     const secrets = {
       evolutionApiUrl: Deno.env.get('EVOLUTION_API_URL'),
@@ -116,19 +131,22 @@ Deno.serve(async (req) => {
     const noPhotoCount = results.filter(r => r.error === 'no_photo').length;
     const driveUrlReplacedCount = results.filter(r => r.success && r.profile_pic_url).length;
     
-    // Count remaining (null OR drive-url) after this batch
-    const remainingConversations = await base44.entities.WhatsAppConversation.filter(
-      { channel: 'personal' },
-      null,
-      5000
-    );
-    const remainingCount = (remainingConversations || []).filter(c => 
-      !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
-    ).length;
+    // Count remaining (null OR drive-url) after this batch (only in batch mode)
+    let remainingCount = 0;
+    if (!singlePhone) {
+      const remainingConversations = await base44.entities.WhatsAppConversation.filter(
+        { channel: 'personal' },
+        null,
+        5000
+      );
+      remainingCount = (remainingConversations || []).filter(c => 
+        !c.wa_profile_pic_url || c.wa_profile_pic_url.includes('drive.google.com')
+      ).length;
+    }
 
     return Response.json({
       status: 'success',
-      message: `Processed ${results.length} unique phones`,
+      message: singlePhone ? `Processed single phone ${singlePhone}` : `Processed ${results.length} unique phones`,
       processed: results,
       summary: {
         total: results.length,
