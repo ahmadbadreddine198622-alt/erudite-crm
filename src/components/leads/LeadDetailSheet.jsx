@@ -37,6 +37,7 @@ import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CallLogPanel from '@/components/twilio/CallLogPanel';
 import LeadNotesTab from '@/components/leads/LeadNotesTab';
 import FormFUpload from '@/components/leads/FormFUpload';
+import FormFParsePanel from '@/components/leads/FormFParsePanel';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -452,6 +453,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               lead={{ ...lead, form_f_url: leadFormFUrl }}
               onUpdated={(url) => setLeadFormFUrl(url)}
             />
+            {leadFormFUrl && (
+              <FormFParsePanel
+                lead={{ ...lead, form_f_url: leadFormFUrl }}
+                onSaved={() => queryClient.invalidateQueries({ queryKey: ['leads'] })}
+              />
+            )}
             <ContractWorkflow lead={lead} />
           </TabsContent>
 
