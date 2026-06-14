@@ -13,7 +13,7 @@ import { normalizePhoneNumber } from '@/lib/phoneUtils';
  * in two separate tabs. Looks up conversations by phone number match.
  */
 export default function LeadWhatsAppTab({ lead }) {
-  const [activeChannel, setActiveChannel] = useState('business');
+  const [activeChannel, setActiveChannel] = useState('personal');
   const [reply, setReply] = useState('');
   const queryClient = useQueryClient();
 
