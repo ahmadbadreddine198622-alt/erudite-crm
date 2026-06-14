@@ -37,6 +37,9 @@ import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import CallLogPanel from '@/components/twilio/CallLogPanel';
 import LeadNotesTab from '@/components/leads/LeadNotesTab';
 import FormFUpload from '@/components/leads/FormFUpload';
+import FormFParsePanel from '@/components/leads/FormFParsePanel';
+import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
+import IntentToggle from '@/components/leads/IntentToggle';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const [note, setNote] = useState('');
@@ -65,8 +68,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
     enabled: !!lead.id,
   });
 
+  const [savedIndicator, setSavedIndicator] = useState(false);
+
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
+    onSuccess: () => {
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 2000);
+    },
     // Optimistic update: patch the cached leads array immediately so Select
     // inputs reflect the change before the server round-trip completes.
     onMutate: async (data) => {
@@ -96,19 +105,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
     },
   });
 
-  // Intent change resets the lead to the first stage of the new track,
-  // refreshes stage_entered_at so it appears as a brand-new entry.
-  const handleIntentChange = (newIntent) => {
-    const resetStage =
-      newIntent === 'buyer' ? 'new_buyer_lead'
-      : newIntent === 'tenant' ? 'new_tenant_lead'
-      : 'intake_clarify';
-    updateMutation.mutate({
-      intent: newIntent,
-      stage: resetStage,
-      stage_entered_at: new Date().toISOString(),
-    });
-  };
+  // Intent changes are handled by IntentToggle (sets both intent + stage correctly).
 
   // Stages available in the lead's current track. Used to drive the Stage select
   // AND to detect when the lead's persisted stage is outside the current track
@@ -183,18 +180,46 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
         <SheetHeader className="p-6 pb-4" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)' }}>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent">
-              {lead.name?.[0]?.toUpperCase() || '?'}
+              {lead.full_name?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1">
-              <SheetTitle className="text-lg">{lead.name}</SheetTitle>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <SourceBadge source={lead.source} />
-                <LeadScoreBadge score={lead.lead_score} />
-                {lead.type && (
-                  <Badge variant="outline" className="text-[10px] capitalize">
-                    {LEAD_TYPE_LABELS[lead.type] || lead.type}
-                  </Badge>
+              <div className="flex items-center gap-2">
+                <input
+                  defaultValue={lead.full_name || ''}
+                  placeholder="Full name"
+                  className="text-lg font-semibold bg-transparent border-b border-transparent hover:border-accent/40 focus:border-accent focus:outline-none text-foreground w-full transition-colors"
+                  onBlur={(e) => { if (e.target.value !== (lead.full_name || '')) updateMutation.mutate({ full_name: e.target.value }); }}
+                />
+                {savedIndicator && (
+                  <span className="text-[10px] font-semibold text-emerald-400 shrink-0 animate-pulse">Saved ✓</span>
                 )}
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <SourceBadge source={lead.source} />
+              <LeadScoreBadge score={lead.lead_score} />
+              {lead.type && (
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  {LEAD_TYPE_LABELS[lead.type] || lead.type}
+                </Badge>
+              )}
+              <IntentToggle lead={lead} size="md" />
+              </div>
+              {/* Stage quick-change */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stage:</span>
+                <Select
+                  value={stagesForIntent.find(s => s.key === lead.stage) ? lead.stage : ''}
+                  onValueChange={(v) => updateMutation.mutate({ stage: v, stage_entered_at: new Date().toISOString() })}
+                >
+                  <SelectTrigger className="h-6 text-xs px-2 py-0 border-accent/40 text-accent bg-accent/10 rounded-full w-auto min-w-[140px]">
+                    <SelectValue placeholder={lead.stage || 'Set stage'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stagesForIntent.map(s => (
+                      <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -296,7 +321,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                     </div>
                     <UniversalWhatsAppAction
                       phone={lead.phone}
-                      name={lead.full_name || lead.name}
+                      name={lead.full_name}
                       leadId={lead.id}
                       size="sm"
                       disabled={lead.do_not_contact}
@@ -364,7 +389,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                 <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground">Intent</label>
-                  <Select value={lead.intent || 'unknown'} onValueChange={handleIntentChange}>
+                  <Select value={lead.intent || 'unknown'} onValueChange={(v) => updateMutation.mutate({ intent: v })}>
                     <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="buyer">Buyer</SelectItem>
@@ -433,6 +458,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               </div>
             </section>
 
+            {/* Finance */}
+            <LeadFinancePanel
+              lead={lead}
+              onUpdate={(data) => updateMutation.mutate(data)}
+            />
+
             {/* Notes */}
             <section>
               <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Notes</label>
@@ -452,6 +483,12 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
               lead={{ ...lead, form_f_url: leadFormFUrl }}
               onUpdated={(url) => setLeadFormFUrl(url)}
             />
+            {leadFormFUrl && (
+              <FormFParsePanel
+                lead={{ ...lead, form_f_url: leadFormFUrl }}
+                onSaved={() => queryClient.invalidateQueries({ queryKey: ['leads'] })}
+              />
+            )}
             <ContractWorkflow lead={lead} />
           </TabsContent>
 
@@ -531,7 +568,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 
-            lead_name={lead.name}
+            lead_name={lead.full_name}
             property_title={lead.interested_properties?.[0] || 'Property'}
           />
           <LinkToListingDialog
@@ -572,7 +609,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
           onClose={() => setShowWhatsAppPopup(false)}
           phone={primaryPhone}
           leadId={lead.id}
-          leadName={lead.name}
+          leadName={lead.full_name}
         />
       </SheetContent>
     </Sheet>

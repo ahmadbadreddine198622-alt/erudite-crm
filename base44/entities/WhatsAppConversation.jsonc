@@ -347,6 +347,29 @@
       ],
       "default": "personal",
       "description": "Which WhatsApp channel: business (Meta Cloud) or personal (Evolution)"
+    },
+    "wa_labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "WhatsApp Business label names applied to this chat (e.g. [\"Hot lead\", \"New customer\"])"
+    },
+    "wa_label_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "WhatsApp label IDs for matching/dedup"
+    },
+    "wa_label_colors": {
+      "type": "object",
+      "description": "Map of label name to color (e.g. {\"Hot lead\": \"#FF5722\"})"
+    },
+    "wa_labels_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When labels were last synced from WhatsApp"
     }
   },
   "required": [

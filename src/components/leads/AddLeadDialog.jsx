@@ -7,70 +7,110 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { SOURCE_LABELS, LEAD_TYPE_LABELS } from '@/lib/constants';
 
+const SOURCE_OPTIONS = [
+  ['website', 'Website'],
+  ['property_finder', 'Property Finder'],
+  ['bayut', 'Bayut'],
+  ['dubizzle', 'Dubizzle'],
+  ['facebook', 'Facebook'],
+  ['instagram', 'Instagram'],
+  ['tiktok', 'TikTok'],
+  ['google_ads', 'Google Ads'],
+  ['referral', 'Referral'],
+  ['walk_in', 'Walk-in'],
+  ['cold_call', 'Cold Call'],
+  ['event', 'Event'],
+  ['whatsapp_campaign', 'WhatsApp Campaign'],
+  ['other', 'Other'],
+];
 
+const LANG_OPTIONS = [
+  ['en', 'English'],
+  ['ar', 'Arabic'],
+  ['fr', 'French'],
+  ['ru', 'Russian'],
+  ['zh', 'Chinese'],
+  ['hi', 'Hindi'],
+  ['ur', 'Urdu'],
+  ['fa', 'Farsi'],
+];
 
-const initialForm = {
-  name: '', email: '', phone: '', source: 'website',
-  type: 'buyer', budget_aed: '', notes: '', nationality: '', project_id: '',
+const INITIAL = {
+  full_name: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  preferred_language: 'en',
+  intent: 'buyer',
+  status: 'active',
+  source: 'website',
+  assigned_agent_email: '',
+  deal_value_aed: '',
+  project_id: '',
+  financing_type: 'unknown',
 };
 
 export default function AddLeadDialog({ open, onClose }) {
-  const [form, setForm] = useState(initialForm);
-  const [duplicateWarning, setDuplicateWarning] = useState([]);
+  const [form, setForm] = useState(INITIAL);
+  const [dupWarning, setDupWarning] = useState(null); // { id, full_name, stage }
   const [validationErrors, setValidationErrors] = useState({});
-  const [autoTagSuggestion, setAutoTagSuggestion] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('name', 200),
+    enabled: open,
   });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['team-users'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 120_000,
+    enabled: open,
+  });
+
+  // Reset on open
+  useEffect(() => {
+    if (open) {
+      setForm(INITIAL);
+      setDupWarning(null);
+      setValidationErrors({});
+    }
+  }, [open]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      setForm(initialForm);
-      setDuplicateWarning([]);
-      setValidationErrors({});
-      setAutoTagSuggestion(null);
+      queryClient.invalidateQueries({ queryKey: ['pipeline-leads'] });
       onClose();
     },
   });
 
-  // Phone duplicate check on blur
-  const checkDuplicatePhone = async (phone) => {
-    if (!phone || phone.length < 7) return;
-    const res = await base44.functions.invoke('detectDuplicates', { action: 'check_phone', phone }).catch(() => ({ data: { duplicates: [] } }));
-    setDuplicateWarning(res.data?.duplicates || []);
+  // Soft phone dedup check
+  const checkDup = async (phone) => {
+    if (!phone || phone.length < 7) { setDupWarning(null); return; }
+    const existing = await base44.entities.Lead.filter({ phone }, '-created_date', 1).catch(() => []);
+    if (existing.length > 0) {
+      setDupWarning(existing[0]);
+    } else {
+      setDupWarning(null);
+    }
   };
 
-  // Auto-tag analysis when name/phone changes
-  useEffect(() => {
-    if (!form.name && !form.phone) return;
-    const timer = setTimeout(() => {
-      base44.functions.invoke('autoTagLead', { action: 'analyze', lead_data: { name: form.name, phone: form.phone } })
-        .then(r => {
-          const s = r.data;
-          if (s && (s.suggested_tags?.length || s.suggested_nationality)) setAutoTagSuggestion(s);
-          else setAutoTagSuggestion(null);
-        }).catch(() => {});
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [form.name, form.phone]);
+  const set = (field) => (valOrEvent) => {
+    const value = valOrEvent?.target !== undefined ? valOrEvent.target.value : valOrEvent;
+    setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+    setForm(f => ({ ...f, [field]: value }));
+  };
 
   const validate = () => {
     const errors = {};
-    const name = form.name?.trim();
-    if (!name || name.length < 2) errors.name = 'Name must be at least 2 characters';
-    if (/^unknown$/i.test(name)) errors.name = 'Please use a real name';
     if (!form.phone && !form.email) errors.phone = 'Phone or email is required';
     return errors;
   };
@@ -79,129 +119,204 @@ export default function AddLeadDialog({ open, onClose }) {
     e.preventDefault();
     const errors = validate();
     if (Object.keys(errors).length > 0) { setValidationErrors(errors); return; }
-    if (!form.project_id) { setValidationErrors({ project_id: 'Please select a project' }); return; }
-    const tags = autoTagSuggestion?.suggested_tags || [];
-    createMutation.mutate({
-      ...form,
-      budget_aed: form.budget_aed ? Number(form.budget_aed) : undefined,
-      stage: 'new_lead',
-      lead_score: Math.floor(Math.random() * 40 + 30),
-      tags,
-      nationality: form.nationality || autoTagSuggestion?.suggested_nationality || undefined,
-      relationship_type: autoTagSuggestion?.suggested_type || undefined,
-      project_id: form.project_id || undefined,
-    });
-  };
 
-  const set = (field) => (e) => {
-    setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-    setForm(f => ({ ...f, [field]: e?.target?.value ?? e }));
+    const payload = {
+      full_name: form.full_name || 'Unknown',
+      phone: form.phone || undefined,
+      whatsapp: form.whatsapp || undefined,
+      email: form.email || undefined,
+      preferred_language: form.preferred_language,
+      intent: form.intent,
+      status: form.status,
+      source: form.source,
+      assigned_agent_email: form.assigned_agent_email || undefined,
+      deal_value_aed: form.deal_value_aed ? Number(form.deal_value_aed) : undefined,
+      project_id: form.project_id || undefined,
+      financing_type: form.financing_type || 'unknown',
+      stage: 'contact_identity',
+      stage_entered_at: new Date().toISOString(),
+    };
+    // strip undefined
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    createMutation.mutate(payload);
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Lead</DialogTitle>
+          <DialogTitle>New Lead</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Duplicate warning */}
-          {duplicateWarning.length > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-1">
-              <div className="flex items-center gap-2 text-orange-700">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-semibold">Possible duplicate — {duplicateWarning.length} existing lead(s) with this phone:</span>
-              </div>
-              {duplicateWarning.map(d => (
-                <p key={d.id} className="text-xs text-orange-600 ml-6">{d.name} — {d.phone} ({d.stage})</p>
-              ))}
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+
+          {/* Soft dedup warning */}
+          {dupWarning && (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm"
+              style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: 'hsl(38 92% 60%)' }}>
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                A lead with this number already exists: <strong>{dupWarning.full_name || 'Unknown'}</strong> ({dupWarning.stage}).
+                {' '}You can still create a new one.
+              </span>
             </div>
           )}
-          {/* Auto-tag suggestion */}
-          {autoTagSuggestion?.suggested_tags?.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
-              <p className="text-xs text-blue-700">
-                <strong>Auto-detected:</strong>{' '}
-                {autoTagSuggestion.suggested_tags.map(t => `#${t}`).join(', ')}
-                {autoTagSuggestion.suggested_nationality ? ` · Nationality: ${autoTagSuggestion.suggested_nationality}` : ''}
-                {autoTagSuggestion.suggested_type === 'agent' ? ' · This looks like a broker/agent' : ''}
-              </p>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label>Full Name *</Label>
-              <Input value={form.name} onChange={set('name')} placeholder="John Smith" className={validationErrors.name ? 'border-red-400' : ''} />
-              {validationErrors.name && <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>}
-            </div>
+
+          {/* Full name */}
+          <div>
+            <Label className="text-xs">Full Name</Label>
+            <Input
+              value={form.full_name}
+              onChange={set('full_name')}
+              placeholder="e.g. John Smith (optional)"
+              className="mt-1"
+            />
+          </div>
+
+          {/* Phone + WhatsApp */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Phone</Label>
+              <Label className="text-xs">Phone *</Label>
               <Input
                 value={form.phone}
                 onChange={set('phone')}
-                onBlur={e => checkDuplicatePhone(e.target.value)}
+                onBlur={e => checkDup(e.target.value)}
                 placeholder="+971 50 123 4567"
-                className={validationErrors.phone ? 'border-red-400' : ''}
+                className={`mt-1 ${validationErrors.phone ? 'border-red-400' : ''}`}
               />
               {validationErrors.phone && <p className="text-xs text-red-500 mt-1">{validationErrors.phone}</p>}
             </div>
             <div>
-              <Label>Email</Label>
-              <Input value={form.email} onChange={set('email')} type="email" placeholder="john@email.com" />
-            </div>
-            <div>
-              <Label>Source</Label>
-              <Select value={form.source} onValueChange={set('source')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(SOURCE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Select value={form.type} onValueChange={set('type')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(LEAD_TYPE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Budget (AED)</Label>
-              <Input value={form.budget_aed} onChange={set('budget_aed')} type="number" placeholder="1,500,000" />
-            </div>
-            <div>
-              <Label>Project *</Label>
-              <Select value={form.project_id} onValueChange={set('project_id')}>
-                <SelectTrigger className={validationErrors.project_id ? 'border-red-400' : ''}>
-                  <SelectValue placeholder="Select project..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {validationErrors.project_id && <p className="text-xs text-red-500 mt-1">{validationErrors.project_id}</p>}
-            </div>
-            <div>
-              <Label>Nationality</Label>
-              <Input value={form.nationality} onChange={set('nationality')} placeholder="UAE" />
-            </div>
-            <div className="col-span-2">
-              <Label>Notes</Label>
-              <Textarea value={form.notes} onChange={set('notes')} placeholder="Additional details..." rows={3} />
+              <Label className="text-xs">WhatsApp</Label>
+              <Input
+                value={form.whatsapp}
+                onChange={set('whatsapp')}
+                placeholder="+971 50 123 4567"
+                className="mt-1"
+              />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+
+          {/* Email */}
+          <div>
+            <Label className="text-xs">Email</Label>
+            <Input
+              value={form.email}
+              onChange={set('email')}
+              type="email"
+              placeholder="john@email.com"
+              className="mt-1"
+            />
+          </div>
+
+          {/* Intent + Language */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Intent</Label>
+              <Select value={form.intent} onValueChange={set('intent')}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="buyer">Buyer</SelectItem>
+                  <SelectItem value="tenant">Tenant</SelectItem>
+                  <SelectItem value="unknown">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Language</Label>
+              <Select value={form.preferred_language} onValueChange={set('preferred_language')}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {LANG_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Source + Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Source</Label>
+              <Select value={form.source} onValueChange={set('source')}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SOURCE_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={set('status')}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on_hold">On Hold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Assigned agent */}
+          <div>
+            <Label className="text-xs">Assigned Agent</Label>
+            <Select value={form.assigned_agent_email} onValueChange={set('assigned_agent_email')}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="— Unassigned —" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>— Unassigned —</SelectItem>
+                {users.map(u => <SelectItem key={u.id} value={u.email}>{u.full_name || u.email}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Financing type */}
+          <div>
+            <Label className="text-xs">Financing Type</Label>
+            <Select value={form.financing_type} onValueChange={set('financing_type')}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unknown">Unknown</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="mortgage">Mortgage</SelectItem>
+                <SelectItem value="pre_approved">Pre-approved</SelectItem>
+                <SelectItem value="mixed">Mixed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Deal value + Project */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Deal Value (AED)</Label>
+              <Input
+                type="number"
+                value={form.deal_value_aed}
+                onChange={set('deal_value_aed')}
+                placeholder="0"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Project</Label>
+              <Select value={form.project_id} onValueChange={set('project_id')}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="— None —" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>— None —</SelectItem>
+                  {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={createMutation.isPending}>
-              {createMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Creating...</> : 'Create Lead'}
+            <Button
+              type="submit"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending
+                ? <><Loader2 className="w-4 h-4 animate-spin mr-1" />Creating…</>
+                : 'Create Lead'}
             </Button>
           </div>
         </form>

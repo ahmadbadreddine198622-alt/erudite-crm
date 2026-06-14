@@ -140,116 +140,151 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
     }
   };
 
+  const reprLabel = { buyer_side: 'Buyer Side Only', seller_side: 'Seller Side Only', both: 'Both Sides (Double-Ended)' };
+  const reprColors = { buyer_side: 'rgba(59,130,246,0.15)', seller_side: 'rgba(245,158,11,0.15)', both: 'rgba(16,185,129,0.15)' };
+  const reprBorder = { buyer_side: 'rgba(59,130,246,0.35)', seller_side: 'rgba(245,158,11,0.35)', both: 'rgba(16,185,129,0.35)' };
+  const reprText   = { buyer_side: '#93c5fd', seller_side: 'hsl(38 92% 60%)', both: '#34d399' };
+  const repr = deriveRepr(form.lead_id, form.landlord_id);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
-        style={{ background: 'hsl(222 47% 9%)', border: '1px solid rgba(255,255,255,0.12)' }}>
-        <div className="flex items-center justify-between px-8 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          <h2 className="font-display text-lg font-semibold text-white">New Closing Deal</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-white transition"><X className="w-5 h-5" /></button>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        style={{ background: 'hsl(222 47% 9%)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-8 py-5 shrink-0"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+          <div>
+            <h2 className="font-display text-xl font-semibold text-white">New Closing Deal</h2>
+            <p className="text-xs text-white/40 mt-0.5">Fill in the parties, property and deal economics</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition">
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
-          {/* Buyer (Lead) */}
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+          {/* ── Parties section ── */}
           <div>
-            <label className="field-label flex items-center gap-1.5"><User className="w-3 h-3 text-blue-400" /> Buyer (Lead)</label>
-            <select value={form.lead_id} onChange={sf('lead_id')} className="field-input">
-              <option value="">None (seller-side only)</option>
-              {leads.map(l => (
-                <option key={l.id} value={l.id}>{l.full_name || l.name || l.id}</option>
-              ))}
-            </select>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Parties</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="field-label flex items-center gap-1.5">
+                  <User className="w-3 h-3 text-blue-400" /> Buyer (Lead)
+                </label>
+                <select value={form.lead_id} onChange={sf('lead_id')} className="field-input">
+                  <option value="">— None (seller-side only) —</option>
+                  {leads.map(l => (
+                    <option key={l.id} value={l.id}>{l.full_name || l.name || l.id}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="field-label flex items-center gap-1.5">
+                  <Building2 className="w-3 h-3 text-amber-400" /> Seller (Landlord)
+                </label>
+                <select value={form.landlord_id} onChange={sf('landlord_id')} className="field-input">
+                  <option value="">— None (buyer-side only) —</option>
+                  {landlords.map(l => (
+                    <option key={l.id} value={l.id}>{l.full_name_en || l.full_name || l.id}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Representation badge */}
+            {(form.lead_id || form.landlord_id) && (
+              <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: reprColors[repr], border: `1px solid ${reprBorder[repr]}`, color: reprText[repr] }}>
+                <span className="text-xs opacity-70">Representation:</span>
+                {reprLabel[repr]}
+              </div>
+            )}
           </div>
 
-          {/* Seller (Landlord) */}
+          {/* ── Property section ── */}
           <div>
-            <label className="field-label flex items-center gap-1.5"><Building2 className="w-3 h-3 text-amber-400" /> Seller (Landlord)</label>
-            <select value={form.landlord_id} onChange={sf('landlord_id')} className="field-input">
-              <option value="">None (buyer-side only)</option>
-              {landlords.map(l => (
-                <option key={l.id} value={l.id}>{l.full_name_en || l.full_name || l.id}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Representation preview */}
-          {(form.lead_id || form.landlord_id) && (
-            <div className="text-xs px-3 py-2 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span className="text-muted-foreground">Representation: </span>
-              <span className="font-semibold text-white/90">
-                {{buyer_side: 'Buyer Side Only', seller_side: 'Seller Side Only', both: 'Both Sides (Double-Ended)'}[deriveRepr(form.lead_id, form.landlord_id)]}
-              </span>
-            </div>
-          )}
-
-          {/* Property ref + type */}
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="field-label">Property Reference</label>
-              <input value={form.property_ref} onChange={sf('property_ref')} placeholder="e.g. UNIT-1204-MARINA" className="field-input" />
-            </div>
-            <div>
-              <label className="field-label">Deal Type</label>
-              <select value={form.deal_type} onChange={sf('deal_type')} className="field-input">
-                <option value="sale">Sale</option>
-                <option value="rent">Rent</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Deal value + commissions */}
-          <div>
-            <label className="field-label">Deal Value (AED)</label>
-            <input type="number" value={form.deal_value_aed} onChange={sf('deal_value_aed')} placeholder="0" className="field-input" />
-          </div>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="field-label">Commission — Sell Side (AED)</label>
-              <input type="number" value={form.commission_amount_aed} onChange={sf('commission_amount_aed')} placeholder="0" className="field-input" />
-            </div>
-            <div>
-              <label className="field-label">Commission — Buy Side (AED)</label>
-              <input type="number" value={form.commission_amount_buy_side_aed} onChange={sf('commission_amount_buy_side_aed')} placeholder="0" className="field-input" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Property</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="field-label">Property Reference</label>
+                <input value={form.property_ref} onChange={sf('property_ref')} placeholder="e.g. UNIT-1204-MARINA" className="field-input" />
+              </div>
+              <div>
+                <label className="field-label">Deal Type</label>
+                <select value={form.deal_type} onChange={sf('deal_type')} className="field-input">
+                  <option value="sale">Sale</option>
+                  <option value="rent">Rent</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Agent */}
+          {/* ── Economics section ── */}
           <div>
-            <label className="field-label">Assigned Agent</label>
-            <select value={form.assigned_agent_email} onChange={sf('assigned_agent_email')} className="field-input">
-              <option value="">Select agent…</option>
-              {users.map(u => (
-                <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
-              ))}
-            </select>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Deal Economics</p>
+            <div className="space-y-4">
+              <div>
+                <label className="field-label">Deal Value (AED)</label>
+                <input type="number" value={form.deal_value_aed} onChange={sf('deal_value_aed')} placeholder="0" className="field-input text-lg font-semibold" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="field-label">Commission — Sell Side (AED)</label>
+                  <input type="number" value={form.commission_amount_aed} onChange={sf('commission_amount_aed')} placeholder="0" className="field-input" />
+                </div>
+                <div>
+                  <label className="field-label">Commission — Buy Side (AED)</label>
+                  <input type="number" value={form.commission_amount_buy_side_aed} onChange={sf('commission_amount_buy_side_aed')} placeholder="0" className="field-input" />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Notes */}
+          {/* ── Assignment & Notes ── */}
           <div>
-            <label className="field-label">Notes</label>
-            <textarea value={form.notes} onChange={sf('notes')} rows={2} placeholder="Any additional notes…" className="field-input resize-none" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Assignment & Notes</p>
+            <div className="space-y-4">
+              <div>
+                <label className="field-label">Assigned Agent</label>
+                <select value={form.assigned_agent_email} onChange={sf('assigned_agent_email')} className="field-input">
+                  <option value="">— Select agent —</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Notes</label>
+                <textarea value={form.notes} onChange={sf('notes')} rows={3} placeholder="Any additional notes…" className="field-input resize-none" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="px-8 py-4 border-t flex gap-3 shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        {/* Footer */}
+        <div className="px-8 py-5 shrink-0 flex gap-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition hover:bg-white/10"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-all active:scale-95"
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40 transition-all active:scale-[0.98]"
             style={{ background: 'hsl(38 92% 50%)', color: '#1a1a2e' }}>
-            {saving ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Saving…</span> : 'Create Closing'}
+            {saving
+              ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Saving…</span>
+              : 'Create Closing'}
           </button>
         </div>
 
         <style>{`
-          .field-label { display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.4);margin-bottom:5px; }
-          .field-input { width:100%;padding:8px 12px;border-radius:10px;font-size:13px;outline:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.9); }
-          .field-input:focus { border-color:hsl(38 92% 50% / 0.5);box-shadow:0 0 0 2px hsl(38 92% 50% / 0.1); }
+          .field-label { display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.4);margin-bottom:6px; }
+          .field-input { width:100%;padding:10px 14px;border-radius:10px;font-size:14px;outline:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.9);transition:border-color 0.15s; }
+          .field-input:focus { border-color:hsl(38 92% 50% / 0.6);box-shadow:0 0 0 3px hsl(38 92% 50% / 0.1); }
           select.field-input option { background:#1a1a2e;color:white; }
         `}</style>
       </div>

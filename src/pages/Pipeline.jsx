@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Filter, RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Search, X } from 'lucide-react';
+import { RefreshCw, TrendingUp, Calendar, Clock, DollarSign, Search, X, Plus } from 'lucide-react';
+import AddLeadDialog from '@/components/leads/AddLeadDialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
@@ -51,6 +52,8 @@ export default function Pipeline() {
   const [agentFilter, setAgentFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
   const [assignmentFilter, setAssignmentFilter] = useState('');
+  const [financeFilter, setFinanceFilter] = useState('');
+  const [showAddLead, setShowAddLead] = useState(false);
 
   const { user: currentUser, permissions } = useCurrentUser();
 
@@ -144,9 +147,10 @@ export default function Pipeline() {
       if (languageFilter) result = result.filter(l => l.preferred_language === languageFilter);
       if (assignmentFilter === 'assigned') result = result.filter(l => !!l.assigned_agent_email);
       if (assignmentFilter === 'unassigned') result = result.filter(l => !l.assigned_agent_email);
+      if (financeFilter) result = result.filter(l => l.financing_type === financeFilter);
       return result;
     },
-    [leads, projectFilter, searchQuery, agentFilter, languageFilter, assignmentFilter, currentUser, permissions],
+    [leads, projectFilter, searchQuery, agentFilter, languageFilter, assignmentFilter, financeFilter, currentUser, permissions],
   );
 
   // Live lead for the open detail drawer — re-derived whenever the cache
@@ -167,7 +171,8 @@ export default function Pipeline() {
       else if (lead.intent === 'tenant' && stageIntent === 'tenant') rent.push(lead);
       else intake.push(lead);
     }
-    return { sale, rent, intake };
+    const whatsapp = activeLeads.filter(l => l.source === 'whatsapp_campaign');
+    return { sale, rent, intake, whatsapp };
   }, [activeLeads]);
 
   const updateStageMutation = useMutation({
@@ -313,6 +318,13 @@ export default function Pipeline() {
               Last synced: {formatRelativeShort(lastSyncedAt) || 'never'}
             </div>
           )}
+          <Button
+            size="sm"
+            onClick={() => setShowAddLead(true)}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 h-8 gap-1.5 text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Lead
+          </Button>
           {projects.length > 0 && (
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="w-44 h-8 text-xs" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -391,9 +403,22 @@ export default function Pipeline() {
           <option value="unassigned">Unassigned</option>
         </select>
 
-        {(searchQuery || agentFilter || languageFilter || assignmentFilter) && (
+        <select
+          value={financeFilter}
+          onChange={e => setFinanceFilter(e.target.value)}
+          className="px-3 py-2 text-xs rounded-lg outline-none"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+        >
+          <option value="">All Finance Types</option>
+          <option value="cash">Cash</option>
+          <option value="mortgage">Mortgage</option>
+          <option value="pre_approved">Pre-approved</option>
+          <option value="mixed">Mixed</option>
+        </select>
+
+        {(searchQuery || agentFilter || languageFilter || assignmentFilter || financeFilter) && (
           <button
-            onClick={() => { setSearchQuery(''); setAgentFilter(''); setLanguageFilter(''); setAssignmentFilter(''); }}
+            onClick={() => { setSearchQuery(''); setAgentFilter(''); setLanguageFilter(''); setAssignmentFilter(''); setFinanceFilter(''); }}
             className="text-xs px-2.5 py-1.5 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
           >
@@ -420,6 +445,9 @@ export default function Pipeline() {
           </TabsTrigger>
           <TabsTrigger value="intake" className="gap-1.5 text-xs font-semibold">
             Intake <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.intake.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="gap-1.5 text-xs font-semibold">
+            💬 WhatsApp <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>({buckets.whatsapp.length})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -473,7 +501,26 @@ export default function Pipeline() {
             />
           )}
         </TabsContent>
+
+        <TabsContent value="whatsapp" className="flex-1 flex flex-col min-h-0 mt-4">
+          {leadsLoading ? (
+            <LoadingState />
+          ) : (
+            <PipelineBoard
+              track="unknown"
+              leads={buckets.whatsapp}
+              getListing={getListing}
+              onLeadClick={(l) => setSelectedLeadId(l.id)}
+              onStageChange={handleStageChange}
+              users={users}
+              onAssign={(id, email) => assignMutation.mutate({ id, email })}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
+          )}
+        </TabsContent>
       </Tabs>
+
+      <AddLeadDialog open={showAddLead} onClose={() => setShowAddLead(false)} />
 
       {selectedLead && (
         <LeadDetailSheet
