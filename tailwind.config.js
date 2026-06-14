@@ -100,6 +100,7 @@ module.exports = {
     'bg-rose-500/10', 'text-rose-600', 'border-rose-500/20',
     'bg-pink-500/10', 'text-pink-600', 'border-pink-500/20',
     'bg-cyan-500/10', 'text-cyan-600', 'border-cyan-500/20',
+    'jewel-pill', 'jewel-emerald', 'jewel-amber', 'jewel-blue', 'jewel-purple', 'jewel-rose', 'jewel-slate', 'jewel-gold',
   ],
   plugins: [require("tailwindcss-animate")],
 }
