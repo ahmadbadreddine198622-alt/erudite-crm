@@ -624,19 +624,8 @@ Deno.serve(async (req) => {
       }).catch(() => {});
       serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
       
-      // ---- Property Finder Lead Auto-Creation ----
-      // Check if this is a PF lead notification and auto-create Lead (deduped by reference)
-      createLeadFromPFMessage(serviceRole, {
-        body: parsed.text,
-        conv,
-        channel,
-      }).then((result) => {
-        if (result) {
-          console.log(`[PF Lead] Result: ${result.created ? 'created' : 'linked'} Lead ${result.lead_id} (${result.title}) - Ref: ${result.reference}`);
-        }
-      }).catch((err) => {
-        console.error('[PF Lead] Background processing failed:', err?.message);
-      });
+      // NOTE: Property Finder Lead auto-creation DISABLED — replaced with direct PF API poll.
+      // Template message parsing (parsePropertyFinderLead) remains active for display purposes.
     }
 
     return Response.json({
