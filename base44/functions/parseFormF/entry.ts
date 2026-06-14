@@ -1,4 +1,5 @@
 import { extractText, getDocumentProxy } from 'npm:unpdf';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const PARSER_VERSION = 'v1-form-f';
 
@@ -190,7 +191,8 @@ Deno.serve(async (req) => {
     }
 
     try {
-      const svc  = globalThis.base44.asServiceRole.entities;
+      const base44 = createClientFromRequest(req);
+      const svc  = base44.asServiceRole.entities;
       const lead = await svc.Lead.get(lead_id);
 
       const patch = { ...(preview.proposed_lead_updates || {}) };
