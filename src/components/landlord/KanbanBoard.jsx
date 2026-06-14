@@ -2,6 +2,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import LandlordCard from './LandlordCard';
+import { useEffect } from 'react';
 
 export default function KanbanBoard({
   stages,
@@ -17,6 +18,10 @@ export default function KanbanBoard({
   photographyTasks = [],
   getPhotoForPhone,
 }) {
+  // Debug: log when getPhotoForPhone changes
+  useEffect(() => {
+    console.log('[KanbanBoard] getPhotoForPhone received:', !!getPhotoForPhone);
+  }, [getPhotoForPhone]);
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const { draggableId, source, destination } = result;
