@@ -727,6 +727,10 @@
       ],
       "default": "pending"
     },
+    "pf_lead_id": {
+      "type": "string",
+      "description": "Property Finder lead id (e.g. message_lead_29932721) \u2014 unique key for PF leads, used for dedup"
+    },
     "closing_property_ref": {
       "type": "string",
       "description": "Human-readable unit reference the buyer is transacting on (mirrors unit_reference on Landlord)"

@@ -46,20 +46,17 @@ function mapPFLeadToCRM(pfLead) {
   const channel = pfLead.channel || 'unknown';
   const createdAt = pfLead.createdAt || '';
   
-  // Build notes with PF_LEAD_ID marker for deduplication
+  // Build notes
   const notesParts = [
-    `PF_LEAD_ID:${pfLeadId}`,
-    `Property Finder lead via API sync.`,
-    `Listing: ${listingRef}`,
-    `Channel: ${channel}`,
-    `Created: ${createdAt}`,
+    `PF lead. id:${pfLeadId} | listing:${listingRef} | channel:${channel} | created:${createdAt}`,
   ];
   if (responseLink) {
-    notesParts.push(`Respond: ${responseLink}`);
+    notesParts.push(`respond:${responseLink}`);
   }
-  const notes = notesParts.join('\n');
+  const notes = notesParts.join(' | ');
   
   return {
+    pf_lead_id: pfLeadId,
     full_name: sender.name || 'Unknown',
     phone: phoneContact?.value || '',
     email: emailContact?.value || '',
