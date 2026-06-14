@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Building2, User, Play, Pause, FileText, MapPin, Download, X, ChevronDown } from 'lucide-react';
+import { Loader2, Building2, User, Play, Pause, FileText, MapPin, Download, X, ChevronDown, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
@@ -139,13 +139,38 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   }
 
   const allMessages = optimisticMessage ? [...messages, optimisticMessage] : messages;
-  const grouped = allMessages.reduce((acc, msg) => {
-    if (!msg.timestamp) return acc;
-    const day = format(new Date(msg.timestamp), 'dd MMM yyyy');
-    if (!acc[day]) acc[day] = [];
-    acc[day].push(msg);
-    return acc;
-  }, {});
+  
+  // Group by day and detect consecutive runs + first unread
+  const { grouped, firstUnreadIndex } = (() => {
+    const grouped = {};
+    let firstUnreadIdx = -1;
+    
+    allMessages.forEach((msg, idx) => {
+      if (!msg.timestamp) return;
+      const day = format(new Date(msg.timestamp), 'dd MMM yyyy');
+      if (!grouped[day]) grouped[day] = [];
+      
+      // Detect first unread (inbound, not read by user)
+      if (firstUnreadIdx === -1 && msg.direction === 'inbound' && !msg.read_by_user) {
+        firstUnreadIdx = idx;
+      }
+      
+      grouped[day].push(msg);
+    });
+    
+    // Mark consecutive runs
+    Object.keys(grouped).forEach(day => {
+      const msgs = grouped[day];
+      msgs.forEach((msg, i) => {
+        const prev = msgs[i - 1];
+        const next = msgs[i + 1];
+        msg._isFirstInRun = !prev || prev.direction !== msg.direction || prev.sender_id !== msg.sender_id;
+        msg._isLastInRun = !next || next.direction !== msg.direction || next.sender_id !== msg.sender_id;
+      });
+    });
+    
+    return { grouped, firstUnreadIndex: firstUnreadIdx };
+  })();
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
@@ -162,22 +187,43 @@ export default function ChatThread({ conversationId, allConversationIds, contact
       </div>
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-1 relative" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(30,41,59,0.8) 0%, rgba(8,11,18,0.95) 100%)' }}>
-        {Object.entries(grouped).map(([day, msgs]) => (
-          <div key={day}>
-            <div className="flex justify-center my-3">
-              <span className="text-[10px] font-medium px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white/70">{day}</span>
+        {Object.entries(grouped).map(([day, msgs], dayIdx, allDays) => {
+          // Flatten all messages for unread separator calculation
+          const allMsgsFlat = allDays.flatMap(([, m]) => m);
+          const globalStartIdx = allDays.slice(0, dayIdx).reduce((sum, [, m]) => sum + m.length, 0);
+          
+          return (
+            <div key={day}>
+              <div className="flex justify-center my-3">
+                <span className="text-[10px] font-medium px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white/70">{day}</span>
+              </div>
+              {msgs.map((msg, i) => {
+                const globalIdx = globalStartIdx + i;
+                const showUnreadSeparator = globalIdx === firstUnreadIndex;
+                
+                return (
+                  <React.Fragment key={msg.id}>
+                    {showUnreadSeparator && (
+                      <div className="flex justify-center my-2">
+                        <span className="text-[10px] font-medium px-3 py-1 rounded-full bg-[#0b4f3a]/80 border border-white/15 text-white/80">
+                          {allMessages.length - globalIdx} unread message{allMessages.length - globalIdx !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+                    <MessageBubble 
+                      msg={msg} 
+                      contactName={contactName}
+                      onImageClick={setEnlargedImage}
+                      conversationChannel={conversationChannel}
+                      isFirstInRun={msg._isFirstInRun}
+                      isLastInRun={msg._isLastInRun}
+                    />
+                  </React.Fragment>
+                );
+              })}
             </div>
-            {msgs.map(msg => (
-              <MessageBubble 
-                key={msg.id} 
-                msg={msg} 
-                contactName={contactName}
-                onImageClick={setEnlargedImage}
-                conversationChannel={conversationChannel}
-              />
-            ))}
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
@@ -202,7 +248,7 @@ export default function ChatThread({ conversationId, allConversationIds, contact
   );
 }
 
-function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) {
+function MessageBubble({ msg, contactName, onImageClick, conversationChannel, isFirstInRun, isLastInRun }) {
   const isOutbound = msg.direction === 'outbound';
   const isInbound = msg.direction === 'inbound';
   // For outbound messages, use the conversation's channel (more reliable than per-message field)
@@ -350,16 +396,22 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
 
   // Regular text message
   return (
-    <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex mb-0.5', isOutbound ? 'justify-end' : 'justify-start')}>
       <div className={cn('max-w-[60%]', 'break-words')}>
         {!isOutbound && contactName && (
           <p className="text-[10px] font-semibold mb-0.5 px-1 text-white/70">{contactName}</p>
         )}
         <div
-          className={cn('rounded-2xl px-3 py-1.5 text-sm shadow-md', isOutbound ? 'rounded-br-none bg-[#243044]' : 'rounded-bl-none bg-[#1A2230]')}
+          className={cn('rounded-2xl px-3 py-1.5 text-sm shadow-md', 
+            isOutbound 
+              ? 'rounded-br-md bg-[#0b4f3a] text-white' 
+              : 'rounded-bl-md bg-[#202c33] text-white'
+          )}
           style={{
-            border: isOutbound ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.12)',
-            borderLeft: !isOutbound ? `3px solid ${channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` : 'none',
+            borderTopRightRadius: isFirstInRun && isOutbound ? '0.5rem' : undefined,
+            borderTopLeftRadius: isFirstInRun && !isOutbound ? '0.5rem' : undefined,
+            borderBottomRightRadius: isLastInRun && isOutbound ? '0.5rem' : undefined,
+            borderBottomLeftRadius: isLastInRun && !isOutbound ? '0.5rem' : undefined,
           }}
         >
           <p className="text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
@@ -375,27 +427,20 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel }) 
 function MessageFooter({ msg, isOutbound, ChannelIcon, channel }) {
   const getStatusIcon = () => {
     if (msg.status === 'failed') return { icon: '⚠️', color: 'rgb(244,63,94)', title: 'Failed' };
-    if (msg.status === 'read') return { icon: '✓✓', color: 'hsl(152 69% 40%)', title: 'Read' };
-    if (msg.status === 'delivered') return { icon: '✓✓', color: 'rgba(255,255,255,0.5)', title: 'Delivered' };
-    return { icon: '✓', color: 'rgba(255,255,255,0.5)', title: 'Sent' };
+    if (msg.status === 'read') return { icon: '✓✓', color: '#53bdeb', title: 'Read' };
+    if (msg.status === 'delivered') return { icon: '✓✓', color: 'rgba(255,255,255,0.6)', title: 'Delivered' };
+    return { icon: '✓', color: 'rgba(255,255,255,0.6)', title: 'Sent' };
   };
 
   const statusIcon = getStatusIcon();
 
   return (
-    <div className={cn('text-[9px] mt-0.5 font-medium flex items-center gap-1', isOutbound ? 'justify-end' : 'justify-start')} style={{ color: 'rgba(255,255,255,0.45)' }}>
-      {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
+    <div className={cn('text-[9px] mt-0.5 font-medium flex items-center gap-1 justify-end')} style={{ color: 'rgba(255,255,255,0.6)' }}>
+      <span>{msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}</span>
       {isOutbound && (
-        <>
-          <span style={{ color: statusIcon.color }} title={statusIcon.title}>{statusIcon.icon}</span>
-          {msg.status === 'failed' && (
-            <button className="text-[9px] underline hover:text-red-400" title="Retry sending">Retry</button>
-          )}
-          <span className="flex items-center gap-0.5 opacity-70">
-            <ChannelIcon className="w-2 h-2" />
-            {msg.channel === 'business' ? 'Business' : 'Personal'}
-          </span>
-        </>
+        <span style={{ color: statusIcon.color, marginLeft: '2px' }} title={statusIcon.title}>
+          {statusIcon.icon}
+        </span>
       )}
     </div>
   );

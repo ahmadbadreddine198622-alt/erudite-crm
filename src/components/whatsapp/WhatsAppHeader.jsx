@@ -40,10 +40,14 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
     <div className="border-b shrink-0 px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }}>
       <div className="flex items-center gap-2">
         {/* Avatar */}
-        <Avatar className="w-8 h-8 shrink-0 border" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
-          <AvatarImage src={conversation.wa_profile_pic_url} />
-          <AvatarFallback className="text-xs">{(displayName || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <div className="w-8 h-8 rounded-full shrink-0 border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>
+          {conversation.wa_profile_pic_url ? (
+            <img src={conversation.wa_profile_pic_url} alt={displayName} className="w-full h-full rounded-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+          ) : null}
+          <div className="w-full h-full rounded-full flex items-center justify-center text-xs font-semibold bg-slate-600" style={{ display: conversation.wa_profile_pic_url ? 'none' : 'flex' }}>
+            {(displayName || '?').slice(0, 2).toUpperCase()}
+          </div>
+        </div>
 
         {/* Name + meta — all in one line */}
         <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">

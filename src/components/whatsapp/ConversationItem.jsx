@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Star, Building2, User, Briefcase, Home } from 'lucide-react';
+import { Star, Building2, User, Briefcase, Home, Pin } from 'lucide-react';
 import WhatsAppPhone from '@/components/WhatsAppPhone';
 
 const AVATAR_COLORS = ['bg-purple-500','bg-emerald-500','bg-orange-400','bg-red-500','bg-blue-500','bg-pink-500','bg-teal-500'];
@@ -117,11 +117,13 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
     }}
     >
     <div className="flex items-center gap-2">
-        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2', avatarColor(name))} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
-          {conv.wa_profile_pic_url
-            ? <img src={conv.wa_profile_pic_url} alt={name} className="w-full h-full rounded-full object-cover" />
-            : (conv.unread_count > 0 ? String(conv.unread_count > 9 ? '9+' : conv.unread_count) : initials)
-          }
+        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 relative border-2 overflow-hidden', avatarColor(name))} style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+          {conv.wa_profile_pic_url ? (
+            <img src={conv.wa_profile_pic_url} alt={name} className="w-full h-full rounded-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+          ) : null}
+          <div className={cn('w-full h-full rounded-full flex items-center justify-center', avatarColor(name))} style={{ display: conv.wa_profile_pic_url ? 'none' : 'flex' }}>
+            {initials}
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           {/* Line 1: Name (left) + Time (right) */}
@@ -173,9 +175,13 @@ export default function ConversationItem({ conv, lead, landlord, selected, onCli
                 )}
               </div>
             )}
-            {/* Unread badge - aligned right */}
+            {/* Pin icon (if starred/pinned) */}
+            {conv.is_starred && (
+              <Pin className="w-3 h-3 ml-auto mr-1" style={{ color: 'hsl(38 92% 50%)' }} />
+            )}
+            {/* Unread badge - aligned right, green WhatsApp style */}
             {conv.unread_count > 0 && (
-              <Badge className="text-[8px] px-1.5 py-0 min-w-[1.2rem] h-5 ml-auto" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11)' }}>
+              <Badge className="text-[8px] px-1.5 py-0 min-w-[1.2rem] h-5 rounded-full font-semibold" style={{ background: 'hsl(152 69% 40%)', color: 'white' }}>
                 {conv.unread_count > 9 ? '9+' : conv.unread_count}
               </Badge>
             )}
