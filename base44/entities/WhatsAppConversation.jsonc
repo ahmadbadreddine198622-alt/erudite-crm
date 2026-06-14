@@ -12,7 +12,11 @@
     },
     "wa_display_name": {
       "type": "string",
-      "description": "Name from WhatsApp profile"
+      "description": "Name from WhatsApp profile (pushName)"
+    },
+    "wa_saved_name": {
+      "type": "string",
+      "description": "User's saved address-book name for this contact (imported from phone CSV), separate from wa_display_name"
     },
     "wa_profile_pic_url": {
       "type": "string"
