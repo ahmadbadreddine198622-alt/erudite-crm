@@ -17,46 +17,69 @@ Deno.serve(async (req) => {
     const withProfilePic = allConversations.filter(c => c.wa_profile_pic_url).length;
     const withoutProfilePic = totalCount - withProfilePic;
     
-    // Channel breakdown (if channel field exists)
+    // Channel breakdown
     const channelBreakdown = {};
     allConversations.forEach(c => {
       const ch = c.channel || '(no channel field)';
       channelBreakdown[ch] = (channelBreakdown[ch] || 0) + 1;
     });
     
-    // Check for any photo-related fields in the sample
-    const photoFieldAnalysis = (() => {
-      const photoFields = {};
-      conversations.forEach(c => {
-        Object.keys(c).forEach(key => {
-          if (key.toLowerCase().includes('photo') || 
-              key.toLowerCase().includes('avatar') || 
-              key.toLowerCase().includes('pic') ||
-              key.toLowerCase().includes('image') ||
-              key.toLowerCase().includes('profile')) {
-            photoFields[key] = (photoFields[key] || 0) + 1;
-          }
-        });
-      });
-      return photoFields;
-    })();
+    // Try to fetch Evolution API instance info (for personal/ Evolution channel)
+    const evolutionApiUrl = Deno.env.get('EVOLUTION_API_URL');
+    const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
     
-    // Check for contact/ID fields that might be usable
-    const idFieldAnalysis = (() => {
-      const idFields = {};
-      conversations.forEach(c => {
-        Object.keys(c).forEach(key => {
-          if (key.toLowerCase().includes('contact') || 
-              key.toLowerCase().includes('jid') ||
-              key.toLowerCase().includes('wa_id') ||
-              key.toLowerCase().includes('id') ||
-              key.toLowerCase().includes('source')) {
-            idFields[key] = (idFields[key] || 0) + 1;
-          }
+    let evolutionInstanceInfo = null;
+    let evolutionProfilePic = null;
+    
+    if (evolutionApiUrl && evolutionApiKey) {
+      try {
+        // Fetch instance info
+        const instanceRes = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, {
+          headers: { 'apikey': evolutionApiKey }
         });
-      });
-      return idFields;
-    })();
+        if (instanceRes.ok) {
+          evolutionInstanceInfo = await instanceRes.json();
+        }
+        
+        // Try to get profile picture for a sample number
+        const sampleConv = conversations.find(c => c.channel === 'personal' && c.wa_phone_e164);
+        if (sampleConv) {
+          const phone = sampleConv.wa_phone_e164.replace('+', '');
+          const picRes = await fetch(`${evolutionApiUrl}/chat/profilePictureUrl`, {
+            method: 'POST',
+            headers: { 
+              'apikey': evolutionApiKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ number: phone })
+          });
+          if (picRes.ok) {
+            evolutionProfilePic = await picRes.json();
+          }
+        }
+      } catch (e) {
+        evolutionInstanceInfo = { error: `Failed to fetch: ${e.message}` };
+      }
+    }
+    
+    // Try Meta/WhatsApp Business API profile pic (for business channel)
+    const waAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const waPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+    
+    let metaProfilePic = null;
+    if (waAccessToken && waPhoneNumberId) {
+      try {
+        // Get business profile
+        const profileRes = await fetch(
+          `https://graph.facebook.com/v20.0/${waPhoneNumberId}?fields=profile_photo_url&access_token=${waAccessToken}`
+        );
+        if (profileRes.ok) {
+          metaProfilePic = await profileRes.json();
+        }
+      } catch (e) {
+        metaProfilePic = { error: `Failed to fetch: ${e.message}` };
+      }
+    }
     
     return Response.json({
       conversations: conversations,
@@ -66,11 +89,16 @@ Deno.serve(async (req) => {
         without_profile_pic: withoutProfilePic,
         channel_breakdown: channelBreakdown,
       },
-      field_analysis: {
-        photo_related_fields: photoFieldAnalysis,
-        id_contact_fields: idFieldAnalysis,
+      evolution_api: {
+        configured: !!(evolutionApiUrl && evolutionApiKey),
+        instance_info: evolutionInstanceInfo,
+        sample_profile_pic_attempt: evolutionProfilePic,
       },
-      note: 'Full raw records returned above. Check wa_profile_pic_url, wa_profile_pic, avatar_url, contact_id, or any photo-related fields.',
+      meta_whatsapp_api: {
+        configured: !!(waAccessToken && waPhoneNumberId),
+        business_profile_attempt: metaProfilePic,
+      },
+      note: 'Full raw records returned above. wa_profile_pic_url is null because webhooks are not fetching it. Use Evolution /chat/profilePictureUrl or Meta Graph API to populate.',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
