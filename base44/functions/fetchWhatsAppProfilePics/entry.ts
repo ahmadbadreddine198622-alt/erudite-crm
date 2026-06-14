@@ -45,12 +45,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing Evolution API secrets' }, { status: 500 });
     }
 
-    // Get Google Drive access token
-    const { accessToken: driveToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
-    if (!driveToken) {
-      return Response.json({ error: 'Google Drive not connected' }, { status: 500 });
-    }
-
     for (const phone of uniquePhones) {
       const convos = phoneToConvos[phone];
       const reportEntry = {
@@ -75,73 +69,32 @@ Deno.serve(async (req) => {
 
         const fetchData = await fetchRes.json();
 
-        if (!fetchRes.ok || !fetchData.profilePictureUrl) {
+        if (!fetchRes.ok) {
           reportEntry.error = fetchData.message?.[0] || `HTTP ${fetchRes.status}`;
+          results.push(reportEntry);
+          continue;
+        }
+
+        // No profile picture available (user has no photo or privacy settings)
+        if (!fetchData.profilePictureUrl) {
+          reportEntry.success = true;
+          reportEntry.profile_pic_url = null;
+          reportEntry.error = 'no_photo';
           results.push(reportEntry);
           continue;
         }
 
         const cdnUrl = fetchData.profilePictureUrl;
 
-        // Download the image from WhatsApp CDN
-        const imageRes = await fetch(cdnUrl);
-        if (!imageRes.ok) {
-          reportEntry.error = `Failed to download image: HTTP ${imageRes.status}`;
-          results.push(reportEntry);
-          continue;
-        }
-
-        const arrayBuffer = await imageRes.arrayBuffer();
-        const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-        // Upload to Google Drive
-        const metadata = {
-          name: `profile_${phone.replace('+', '')}.jpg`,
-          parents: ['root'],
-        };
-
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', new Blob([arrayBuffer], { type: 'image/jpeg' }));
-
-        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${driveToken}` },
-          body: form,
-        });
-
-        if (!uploadRes.ok) {
-          reportEntry.error = `Drive upload failed: ${uploadRes.status}`;
-          results.push(reportEntry);
-          continue;
-        }
-
-        const uploadData = await uploadRes.json();
-        const fileId = uploadData.id;
-        const permanentUrl = `https://drive.google.com/uc?id=${fileId}&export=view`;
-
-        // Make file publicly viewable
-        await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${driveToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'anyone',
-            role: 'reader',
-          }),
-        });
-
-        // Update all conversations with this phone number
+        // Store the Evolution CDN URL directly (no re-hosting)
         for (const conv of convos) {
           await base44.entities.WhatsAppConversation.update(conv.id, {
-            wa_profile_pic_url: permanentUrl
+            wa_profile_pic_url: cdnUrl
           });
         }
 
         reportEntry.success = true;
-        reportEntry.profile_pic_url = permanentUrl;
+        reportEntry.profile_pic_url = cdnUrl;
         results.push(reportEntry);
 
       } catch (err) {
