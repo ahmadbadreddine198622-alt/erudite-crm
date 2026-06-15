@@ -71,7 +71,8 @@ const STAGE_LABELS = {
 };
 
 export default function Landlords() {
-  const { user: currentUser, permissions } = useCurrentUser();
+  const { user: currentUser, permissions, loading: userLoading } = useCurrentUser();
+  const safePermissions = permissions || {};
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -211,9 +212,9 @@ export default function Landlords() {
 
   // Role-based isolation: non-admins only see landlords explicitly assigned to them (unassigned excluded)
   const visibleLandlords = useMemo(() => {
-    if (!currentUser || permissions.view_all_landlords) return landlords;
+    if (!currentUser || safePermissions.view_all_landlords) return landlords;
     return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
-  }, [landlords, currentUser, permissions.view_all_landlords]);
+  }, [landlords, currentUser, safePermissions.view_all_landlords]);
 
   // Group by stage
   const stageGroups = useMemo(() => {
@@ -391,7 +392,8 @@ export default function Landlords() {
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
 
-  if (isLoading) {
+  // Guard against unauthenticated or loading state - must be after all hooks
+  if (userLoading || !currentUser || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -630,7 +632,7 @@ export default function Landlords() {
           ) : (
             /* Normal filters — only shown when nothing selected */
             <>
-              {permissions.view_all_landlords && users.length > 0 && (
+              {safePermissions.view_all_landlords && users.length > 0 && (
                 <select
                   value={filterAgent}
                   onChange={(e) => setFilterAgent(e.target.value)}
