@@ -18,6 +18,24 @@ const AGENT_NAMES = {
   'malik@erudite-estate.com': 'Malik',
 };
 
+// Low-opacity tint per agent — layered over the dark card base (~7% opacity)
+const AGENT_TINT = {
+  'ahmad@erudite-estate.com': 'rgba(59, 130, 246, 0.07)',   // blue
+  'dari@erudite-estate.com':  'rgba(16, 185, 129, 0.07)',   // emerald
+  'tuiara@erudite-estate.com':'rgba(139, 92, 246, 0.07)',   // violet
+  'malik@erudite-estate.com': 'rgba(245, 158, 11, 0.07)',   // amber
+};
+
+function cardStyle(email, anonymous) {
+  const tint = AGENT_TINT[email];
+  const base = 'rgba(255,255,255,0.06)';
+  const bg = tint || base;
+  const border = anonymous
+    ? '1px solid rgba(245,158,11,0.35)'
+    : '1px solid rgba(255,255,255,0.1)';
+  return { background: bg, border };
+}
+
 function agentLabel(email) {
   return AGENT_NAMES[email] || email?.split('@')[0] || 'Unknown';
 }
@@ -162,7 +180,7 @@ export default function PropertyFinderLeads() {
               const listingRef = getListingRef(lead);
               const respondLink = getRespondLink(lead);
               return (
-                <Card key={lead.id} className="glass-card p-4 space-y-3">
+                <Card key={lead.id} className="glass-card p-4 space-y-3" style={cardStyle(lead.assigned_agent_email, anonymous)}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white/90">
