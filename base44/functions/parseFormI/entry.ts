@@ -182,6 +182,7 @@ Deno.serve(async (req) => {
 
   // ── Claude API call with PDF document block ──────────────────────────────────
   let aiRawText = '';
+  let anthropicHttpStatus: number | null = null;
   try {
     const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -215,12 +216,15 @@ Deno.serve(async (req) => {
       }),
     });
 
+    anthropicHttpStatus = apiRes.status;
+
     if (!apiRes.ok) {
       const errBody = await apiRes.text().catch(() => '');
       const errResponse: Record<string, unknown> = {
         ok: false, is_form_i: isFormI,
         error: `Anthropic API returned HTTP ${apiRes.status}`,
         detail: errBody.slice(0, 500),
+        anthropic_http_status: apiRes.status,
         warnings,
       };
       if (body.debug === true) {
@@ -238,6 +242,7 @@ Deno.serve(async (req) => {
       ok: false, is_form_i: isFormI,
       error: 'Anthropic API network error — check connectivity.',
       detail: String(e),
+      anthropic_http_status: anthropicHttpStatus,
       warnings,
     };
     if (body.debug === true) {
@@ -279,6 +284,8 @@ Deno.serve(async (req) => {
       erudite: null,
       warnings,
       note: 'AI extraction failed — see warnings. Fill fields manually.',
+      ai_raw_response_debug: aiRawText.slice(0, 2000),
+      anthropic_http_status: anthropicHttpStatus,
     };
     if (body.debug === true) {
       failResponse.raw_text_length = rawText.length;
@@ -342,6 +349,7 @@ Deno.serve(async (req) => {
     is_form_i:    isFormI,
     erudite_side,
     their_side,
+    anthropic_http_status: anthropicHttpStatus,
     counterparty: {
       their_side,
       establishment: cp.establishment,
