@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { base44 } from '@/api/base44Client';
 import { LOGO_URL, SIGNATURE_URL, STAMP_URL, loadImage } from '@/lib/pdfBrand';
-import { FileText, Loader2, Upload, RotateCcw, CheckCircle, Info } from 'lucide-react';
+import { FileText, Loader2, Upload, RotateCcw, CheckCircle, Info, X, AlertTriangle, FileCheck, Edit3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Erudite fixed details ────────────────────────────────────────────────────
@@ -407,6 +407,240 @@ async function generateFormIPDF({ eruditeSide, other, property, commA, commB, bu
   return { doc, fname: buyerName ? `Erudite_FormI_${buyerName.replace(/\s+/g, '_')}.pdf` : `Erudite_FormI_${(datetime.date || 'undated').replace(/\//g, '-')}.pdf` };
 }
 
+// ─── Drag & Drop Upload Zone ──────────────────────────────────────────────────
+function UploadZone({ onFileSelect, disabled }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragIn = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragOut = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      onFileSelect(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        border: `2px dashed ${isDragging ? T.amber : T.border}`,
+        borderRadius: 12,
+        padding: '24px',
+        textAlign: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all 0.2s ease',
+        background: isDragging ? 'rgba(245,159,10,0.08)' : T.card,
+        opacity: disabled ? 0.6 : 1,
+      }}
+      onDragEnter={handleDragIn}
+      onDragLeave={handleDragOut}
+      onDragOver={handleDrag}
+      onDrop={handleDrop}
+      onClick={handleClick}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        disabled={disabled}
+      />
+      <Upload size={32} style={{ color: T.amber, marginBottom: 12 }} />
+      <p style={{ color: T.text, fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>
+        {isDragging ? 'Drop to upload' : 'Upload Form I PDF'}
+      </p>
+      <p style={{ color: T.muted, fontSize: 11, margin: 0 }}>
+        Drag & drop a Form I PDF to auto-fill Other Agency details
+      </p>
+    </div>
+  );
+}
+
+// ─── Review Modal ─────────────────────────────────────────────────────────────
+function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply, onFlip, onCancel }) {
+  const updateField = (field, value) => {
+    setEditedData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div style={{
+        background: T.card, borderRadius: 16, border: `1px solid ${T.border}`,
+        maxWidth: 700, width: '100%', maxHeight: '90vh', overflow: 'auto',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', borderBottom: `1px solid ${T.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <h2 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>Review Extracted Details</h2>
+            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>Edit if needed, then apply to form</p>
+          </div>
+          <button onClick={onCancel} style={{
+            background: 'none', border: 'none', color: T.muted, cursor: 'pointer',
+            padding: 4, borderRadius: 4,
+          }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Side Mismatch Warning */}
+        {sideMismatch && (
+          <div style={{
+            margin: '16px 20px 0', padding: '12px 14px',
+            background: 'rgba(245,159,10,0.12)', border: `1px solid rgba(245,159,10,0.3)`,
+            borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start',
+          }}>
+            <AlertTriangle size={18} style={{ color: T.amber, flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ color: '#FCD34D', fontSize: 12, fontWeight: 600, margin: '0 0 4px' }}>
+                Side Mismatch Detected
+              </p>
+              <p style={{ color: T.muted, fontSize: 11, margin: 0 }}>
+                The PDF shows Erudite as {result.erudite_side === 'seller' ? "Seller's Agent (A)" : "Buyer's Agent (B)"},
+                but your form has Erudite as {result.erudite_side === 'seller' ? "Buyer's" : "Seller's"}.
+              </p>
+              <button onClick={onFlip} style={{
+                marginTop: 8, padding: '6px 12px', background: T.amber, color: T.amberText,
+                border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              }}>
+                Flip Erudite Side to Match PDF
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Warnings */}
+        {result.warnings && result.warnings.length > 0 && (
+          <div style={{
+            margin: '16px 20px 0', padding: '12px 14px',
+            background: 'rgba(251,191,36,0.12)', border: `1px solid rgba(251,191,36,0.3)`,
+            borderRadius: 10,
+          }}>
+            <p style={{ color: '#FCD34D', fontSize: 11, fontWeight: 600, margin: '0 0 6px' }}>
+              ⚠️ Parse Warnings
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 16, color: T.muted, fontSize: 11 }}>
+              {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Extracted Data Fields */}
+        <div style={{ padding: '20px' }}>
+          <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Other Agency Details (Agent {result.their_side === 'seller' ? 'A' : 'B'} — {result.their_side === 'seller' ? "Seller's" : "Buyer's"} Agent)
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Establishment</label>
+              <input value={editedData.establishment || ''} onChange={e => updateField('establishment', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>ORN</label>
+              <input value={editedData.orn || ''} onChange={e => updateField('orn', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>DED Licence</label>
+              <input value={editedData.ded || ''} onChange={e => updateField('ded', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Agent Name</label>
+              <input value={editedData.agentName || ''} onChange={e => updateField('agentName', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>BRN</label>
+              <input value={editedData.brn || ''} onChange={e => updateField('brn', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Phone</label>
+              <input value={editedData.phone || ''} onChange={e => updateField('phone', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Mobile</label>
+              <input value={editedData.mobile || ''} onChange={e => updateField('mobile', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Email</label>
+              <input value={editedData.email || ''} onChange={e => updateField('email', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Address</label>
+              <input value={editedData.address || ''} onChange={e => updateField('address', e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div style={{
+          padding: '16px 20px', borderTop: `1px solid ${T.border}`,
+          display: 'flex', justifyContent: 'flex-end', gap: 10, background: T.surface,
+        }}>
+          <button onClick={onCancel} style={{
+            padding: '10px 20px', background: T.surface, color: T.muted,
+            border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>
+            Cancel
+          </button>
+          <button onClick={onApply} style={{
+            padding: '10px 20px', background: T.amber, color: T.amberText,
+            border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <CheckCircle size={14} /> Apply to Form
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function FormIGenerator() {
   const [eruditeSide, setEruditeSide] = useState('A');
@@ -438,6 +672,14 @@ export default function FormIGenerator() {
   const [done, setDone] = useState('');
   const [showDisclaimer, setShowDisclaimer] = useState(true);
 
+  // ─── PDF Upload & Parse State ───────────────────────────────────────────────
+  const [uploading, setUploading] = useState(false);
+  const [parseResult, setParseResult] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [sideMismatch, setSideMismatch] = useState(false);
+  const [editedCounterparty, setEditedCounterparty] = useState(null);
+
+
   const logoUrl = localStorage.getItem('erudite_logo') || LOGO_URL;
   const sigUrl = localStorage.getItem('erudite_signature') || SIGNATURE_URL;
   const stampUrl = localStorage.getItem('erudite_stamp') || STAMP_URL;
@@ -445,6 +687,108 @@ export default function FormIGenerator() {
   const setO = (k, v) => setOther(o => ({ ...o, [k]: v }));
   const setP = (k, v) => setProperty(p => ({ ...p, [k]: v }));
   const setF = (k, v) => setFlags(f => ({ ...f, [k]: v }));
+
+  // ─── PDF Upload & Parse Handlers ────────────────────────────────────────────
+  const handleFileUpload = async (file) => {
+    if (file.type !== 'application/pdf') {
+      toast.error('PDF files only', { description: 'Please upload a Form I PDF document' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Upload to Base44 storage
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const fileUrl = uploadRes.file_url;
+
+      // Parse the Form I
+      const parseRes = await base44.functions.invoke('parseFormI', {
+        file_url: fileUrl,
+        debug: false
+      });
+
+      const result = parseRes.data;
+
+      if (!result.ok) {
+        toast.error('Failed to parse Form I', {
+          description: result.note || 'Could not extract agency details from the PDF'
+        });
+        return;
+      }
+
+      // Check for side mismatch
+      const eruditeIsSeller = eruditeSide === 'A';
+      const pdfEruditeIsSeller = result.erudite_side === 'seller';
+      const mismatch = eruditeIsSeller !== pdfEruditeIsSeller;
+
+      setSideMismatch(mismatch);
+      setParseResult(result);
+      setEditedCounterparty({ ...result.counterparty });
+      setShowReviewModal(true);
+
+      if (mismatch) {
+        toast.warning('Side mismatch detected', {
+          description: 'The uploaded PDF shows Erudite on the opposite side'
+        });
+      } else {
+        toast.success('Form I parsed successfully', {
+          description: 'Review the extracted details before applying'
+        });
+      }
+    } catch (err) {
+      console.error('PDF upload/parse failed:', err);
+      toast.error('Upload failed', { description: err?.message || 'Could not process the PDF' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleApplyParsedData = () => {
+    if (!editedCounterparty) return;
+
+    // Map counterparty fields to the "other" state
+    const mappedFields = {
+      establishment: editedCounterparty.establishment || '',
+      address: editedCounterparty.address || '',
+      phone: editedCounterparty.phone || '',
+      mobile: editedCounterparty.mobile || '',
+      fax: editedCounterparty.fax || '',
+      email: editedCounterparty.email || '',
+      orn: editedCounterparty.orn || '',
+      ded: editedCounterparty.ded || '',
+      poBox: editedCounterparty.poBox || '',
+      agentName: editedCounterparty.agentName || '',
+      brn: editedCounterparty.brn || '',
+      dateIssued: editedCounterparty.dateIssued || '',
+      agentMobile: editedCounterparty.agentMobile || '',
+      agentEmail: editedCounterparty.agentEmail || '',
+    };
+
+    setOther(mappedFields);
+    setShowReviewModal(false);
+    setParseResult(null);
+    setEditedCounterparty(null);
+    setSideMismatch(false);
+
+    toast.success('Other agency details applied', {
+      description: 'Review the form before generating the PDF'
+    });
+  };
+
+  const handleFlipSide = () => {
+    setEruditeSide(prev => prev === 'A' ? 'B' : 'A');
+    setSideMismatch(false);
+    toast.success('Side updated', {
+      description: `Erudite is now Agent ${eruditeSide === 'A' ? 'B' : 'A'}`
+    });
+  };
+
+  const handleCancelParse = () => {
+    setShowReviewModal(false);
+    setParseResult(null);
+    setEditedCounterparty(null);
+    setSideMismatch(false);
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -554,6 +898,17 @@ export default function FormIGenerator() {
               <Field label="Agreement Time" value={datetime.time} onChange={v => setDatetime(d => ({ ...d, time: v }))} type="time" />
             </div>
           </div>
+        </SectionCard>
+
+        {/* PDF Upload Zone */}
+        <SectionCard title="Import from Existing Form I">
+          <UploadZone onFileSelect={handleFileUpload} disabled={uploading} />
+          {uploading && (
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: T.muted, fontSize: 11 }}>
+              <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              Uploading and parsing PDF...
+            </div>
+          )}
         </SectionCard>
 
         {/* Other agency */}
@@ -674,6 +1029,20 @@ export default function FormIGenerator() {
         </div>
 
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && parseResult && (
+        <ReviewModal
+          result={parseResult}
+          editedData={editedCounterparty}
+          setEditedData={setEditedCounterparty}
+          sideMismatch={sideMismatch}
+          onApply={handleApplyParsedData}
+          onFlip={handleFlipSide}
+          onCancel={handleCancelParse}
+        />
+      )}
+
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
