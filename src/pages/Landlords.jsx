@@ -28,6 +28,7 @@ import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const STAGES = [
   'initial_contact',
@@ -70,6 +71,7 @@ const STAGE_LABELS = {
 };
 
 export default function Landlords() {
+  const { user: currentUser, permissions } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -207,14 +209,20 @@ export default function Landlords() {
     [landlords, selectedLandlordId],
   );
 
+  // Role-based isolation: non-admins only see landlords assigned to them
+  const visibleLandlords = useMemo(() => {
+    if (!currentUser || permissions.view_all_landlords) return landlords;
+    return landlords.filter(l => l.assigned_agent_email === currentUser.email);
+  }, [landlords, currentUser, permissions.view_all_landlords]);
+
   // Group by stage
   const stageGroups = useMemo(() => {
     const grouped = {};
     STAGES.forEach(stage => {
-      grouped[stage] = landlords.filter(l => l.stage === stage);
+      grouped[stage] = visibleLandlords.filter(l => l.stage === stage);
     });
     return grouped;
-  }, [landlords]);
+  }, [visibleLandlords]);
 
   // Apply filters
   const filteredGroups = useMemo(() => {
@@ -257,11 +265,11 @@ export default function Landlords() {
     return result;
   }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, searchQuery, landlordPropertyMap]);
 
-  // Calculate metrics
-  const totalPipeline = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
-  const mandateCount = landlords.filter(l => l.mandate_status === 'form_a_signed').length;
+  // Calculate metrics (scoped to visible landlords for the current user)
+  const totalPipeline = visibleLandlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
+  const mandateCount = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed').length;
   const now = new Date();
-  const mandatesThisMonth = landlords.filter(l => {
+  const mandatesThisMonth = visibleLandlords.filter(l => {
     if (!l.mandate_signed_at) return false;
     const signedDate = new Date(l.mandate_signed_at);
     const monthAgo = new Date();
@@ -269,7 +277,7 @@ export default function Landlords() {
     return signedDate >= monthAgo;
   }).length;
   const avgDaysToFormA = (() => {
-    const withFormA = landlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
+    const withFormA = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
     if (withFormA.length === 0) return 0;
     const totalDays = withFormA.reduce((sum, l) => {
       const created = new Date(l.created_date).getTime();
@@ -278,7 +286,7 @@ export default function Landlords() {
     }, 0);
     return Math.round(totalDays / withFormA.length);
   })();
-  const stalledLeads = landlords.filter(l => {
+  const stalledLeads = visibleLandlords.filter(l => {
     if (!l.created_date) return false;
     const daysSinceCreation = (now - new Date(l.created_date).getTime()) / (1000 * 60 * 60 * 24);
     return daysSinceCreation > 21 && l.stage !== 'listing_publication';

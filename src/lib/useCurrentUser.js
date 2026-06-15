@@ -35,6 +35,7 @@ export function useCurrentUser() {
     view_all_leads: isAdmin || isCEO || customRole?.permissions?.view_all_leads || false,
     view_all_pipeline: isAdmin || isCEO || customRole?.permissions?.view_all_pipeline || false,
     view_all_whatsapp: isAdmin || isCEO || customRole?.permissions?.view_all_whatsapp || false,
+    view_all_landlords: isAdmin || isCEO || customRole?.permissions?.view_all_landlords || false,
     view_finance: isAdmin || isCEO || customRole?.permissions?.view_finance || false,
     view_analytics: isAdmin || isManager || customRole?.permissions?.view_analytics || false,
     manage_team: isAdmin || isCEO || customRole?.permissions?.manage_team || false,
