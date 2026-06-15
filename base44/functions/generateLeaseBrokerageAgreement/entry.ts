@@ -244,8 +244,7 @@ Deno.serve(async (req) => {
     const refNo = `LBA-${Date.now().toString(36).toUpperCase()}`;
 
     // Header band — navy with gold stripe (matches pdfBrand.js convention)
-    doc.setFillColor(...NAVY);
-    doc.rect(0, 0, W, 36, 'F');
+    // Header cream band already applied above
     doc.setFillColor(...GOLD);
     doc.rect(0, 36, W, 1.2, 'F');
 
@@ -258,12 +257,33 @@ Deno.serve(async (req) => {
     doc.setTextColor(...GOLD);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text('LEASE BROKERAGE AGREEMENT', W - pad, 13, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Ref: ${refNo}`, W - pad, 19, { align: 'right' });
-    doc.text(`Date: ${fmtDate(new Date())}`, W - pad, 24, { align: 'right' });
+    // Light cream header band (#F7F4EC) - matching Tax Invoice style
+  doc.setFillColor(247, 244, 236);
+  doc.rect(0, 0, W, 48, 'F');
+  
+  // Single Erudite logo only (top-left) - matching Tax Invoice style
+  // Logo placed in cream header band (top-left)
+  if (LOGO_DATA_URL) {
+    const logo = await loadImage(LOGO_DATA_URL);
+    if (logo) {
+      const aspect = logo.width / logo.height;
+      const lh = 16;
+      const lw = lh * aspect;
+      doc.addImage(logo.dataUrl, 'PNG', 14, 10, lw, lh);
+    }
+  }
+  
+  // Title removed - only logo in header (matching Tax Invoice style)
+  // Reference and date below header band
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(110, 120, 140); // Muted text
+  doc.text(`Ref: ${refNo}`, W - pad, 54, { align: 'right' });
+  doc.text(`Date: ${fmtDate(new Date())}`, W - pad, 59, { align: 'right' });
+  
+  // Gold divider line (#C9A84A)
+  doc.setFillColor(201, 168, 74);
+  doc.rect(0, 48, W, 1.2, 'F');
     doc.text(`ORN: ${ORN}`, W - pad, 29, { align: 'right' });
 
     let y = 46;
