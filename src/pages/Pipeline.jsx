@@ -128,9 +128,9 @@ export default function Pipeline() {
   const activeLeads = useMemo(
     () => {
       let result = leads.filter((l) => l.status !== 'lost' && l.status !== 'on_hold');
-      // Role-based filtering — must run before any user-facing filters
+      // Role-based filtering — must run before any user-facing filters; agents never see unassigned
       if (currentUser && !permissions.view_all_pipeline) {
-        result = result.filter(l => l.assigned_agent_email === currentUser.email);
+        result = result.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
       }
       if (projectFilter !== 'all') result = result.filter(l => l.project_id === projectFilter);
       // Additional UI filters (applied within the role-scoped result)

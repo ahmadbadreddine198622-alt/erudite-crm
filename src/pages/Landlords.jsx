@@ -209,10 +209,10 @@ export default function Landlords() {
     [landlords, selectedLandlordId],
   );
 
-  // Role-based isolation: non-admins only see landlords assigned to them
+  // Role-based isolation: non-admins only see landlords explicitly assigned to them (unassigned excluded)
   const visibleLandlords = useMemo(() => {
     if (!currentUser || permissions.view_all_landlords) return landlords;
-    return landlords.filter(l => l.assigned_agent_email === currentUser.email);
+    return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
   }, [landlords, currentUser, permissions.view_all_landlords]);
 
   // Group by stage
@@ -630,13 +630,19 @@ export default function Landlords() {
           ) : (
             /* Normal filters — only shown when nothing selected */
             <>
-              <Input
-                placeholder="Filter by agent..."
-                value={filterAgent}
-                onChange={(e) => setFilterAgent(e.target.value)}
-                className="max-w-xs text-xs"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-              />
+              {permissions.view_all_landlords && users.length > 0 && (
+                <select
+                  value={filterAgent}
+                  onChange={(e) => setFilterAgent(e.target.value)}
+                  className="px-3 py-2 text-xs rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                >
+                  <option value="">All Agents</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  ))}
+                </select>
+              )}
               <select
                 value={filterArchetype}
                 onChange={(e) => setFilterArchetype(e.target.value)}
