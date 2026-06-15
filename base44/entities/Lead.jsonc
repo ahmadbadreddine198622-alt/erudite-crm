@@ -343,12 +343,10 @@
       "description": "Next scheduled meeting or follow-up"
     },
     "company": {
-      "type": "string",
-      "description": "Lead's company or employer"
+      "type": "string"
     },
     "position": {
-      "type": "string",
-      "description": "Lead's job title or position"
+      "type": "string"
     },
     "activity_count": {
       "type": "number",
@@ -759,16 +757,13 @@
         "approved",
         "declined"
       ],
-      "default": "not_started",
-      "description": "Status of mortgage pre-approval process"
+      "default": "not_started"
     },
     "mortgage_pre_approval_amount_aed": {
-      "type": "number",
-      "description": "Approved or pre-approved mortgage ceiling in AED"
+      "type": "number"
     },
     "mortgage_bank_name": {
-      "type": "string",
-      "description": "Name of the bank handling the mortgage"
+      "type": "string"
     },
     "mortgage_valuation_status": {
       "type": "string",
@@ -778,26 +773,26 @@
         "completed",
         "below_offer"
       ],
-      "default": "not_required",
-      "description": "Bank valuation status \u2014 below_offer flags deal-killer scenario"
+      "default": "not_required"
     },
     "mortgage_offer_letter_received": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether the mortgage offer letter has been received"
+      "default": false
     },
     "proof_of_funds_received": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether proof of funds has been received (cash buyers)"
+      "default": false
     },
     "finance_notes": {
-      "type": "string",
-      "description": "Free-form notes on the financing situation"
+      "type": "string"
     },
     "pf_lead_id": {
       "type": "string",
       "description": "Property Finder lead id (e.g. message_lead_29932721) \u2014 unique key for PF leads, used for dedup"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord entity \u2014 linked when this lead's listing reference matches a landlord's unit_reference"
     }
   },
   "required": [
