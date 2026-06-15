@@ -485,7 +485,7 @@ function UploadZone({ onFileSelect, disabled }) {
         {isDragging ? 'Drop to upload' : 'Upload Form I PDF'}
       </p>
       <p style={{ color: T.muted, fontSize: 11, margin: 0 }}>
-        Drag & drop a Form I PDF to auto-fill Other Agency details
+        Drag & drop a Form I PDF — review before filling
       </p>
     </div>
   );
@@ -496,6 +496,7 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
   const updateField = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
   };
+  const rawText = result?.raw_text_first_4000 || '(No raw text available)';
 
   return (
     <div style={{
@@ -504,7 +505,7 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
     }}>
       <div style={{
         background: T.card, borderRadius: 16, border: `1px solid ${T.border}`,
-        maxWidth: 700, width: '100%', maxHeight: '90vh', overflow: 'auto',
+        maxWidth: 900, width: '100%', maxHeight: '90vh', overflow: 'auto',
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
         {/* Header */}
@@ -514,7 +515,7 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
         }}>
           <div>
             <h2 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>Review Extracted Details</h2>
-            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>Edit if needed, then apply to form</p>
+            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>⚠️ Review before applying — nothing auto-fills</p>
           </div>
           <button onClick={onCancel} style={{
             background: 'none', border: 'none', color: T.muted, cursor: 'pointer',
@@ -566,57 +567,85 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
           </div>
         )}
 
-        {/* Extracted Data Fields */}
-        <div style={{ padding: '20px' }}>
-          <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Other Agency Details (Agent {result.their_side === 'seller' ? 'A' : 'B'} — {result.their_side === 'seller' ? "Seller's" : "Buyer's"} Agent)
-          </h3>
+        {/* Two columns: Raw text (left) + Parsed fields (right) */}
+        <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          {/* Left: Raw extracted text */}
+          <div>
+            <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Raw Extracted Text (Debug)
+            </h3>
+            <div style={{
+              background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8,
+              padding: 12, maxHeight: 400, overflow: 'auto',
+            }}>
+              <pre style={{
+                margin: 0, fontSize: 10, fontFamily: 'monospace', color: T.text,
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4,
+              }}>{rawText}</pre>
+            </div>
+            <p style={{ color: T.muted, fontSize: 10, marginTop: 8 }}>
+              Erudite Side: <strong style={{ color: T.amber }}>{result.erudite_side || 'unknown'}</strong> · 
+              Their Side: <strong style={{ color: T.amber }}>{result.their_side || 'unknown'}</strong>
+            </p>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Establishment</label>
-              <input value={editedData.establishment || ''} onChange={e => updateField('establishment', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>ORN</label>
-              <input value={editedData.orn || ''} onChange={e => updateField('orn', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>DED Licence</label>
-              <input value={editedData.ded || ''} onChange={e => updateField('ded', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Agent Name</label>
-              <input value={editedData.agentName || ''} onChange={e => updateField('agentName', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>BRN</label>
-              <input value={editedData.brn || ''} onChange={e => updateField('brn', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Phone</label>
-              <input value={editedData.phone || ''} onChange={e => updateField('phone', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Mobile</label>
-              <input value={editedData.mobile || ''} onChange={e => updateField('mobile', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Email</label>
-              <input value={editedData.email || ''} onChange={e => updateField('email', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ color: T.muted, fontSize: 10, textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Address</label>
-              <input value={editedData.address || ''} onChange={e => updateField('address', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12 }} />
+          {/* Right: Parsed counterparty fields */}
+          <div>
+            <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Parsed Counterparty (Agent {result.their_side === 'seller' ? 'A' : 'B'})
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Establishment</label>
+                <input value={editedData.establishment || ''} onChange={e => updateField('establishment', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Address</label>
+                <input value={editedData.address || ''} onChange={e => updateField('address', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>ORN</label>
+                  <input value={editedData.orn || ''} onChange={e => updateField('orn', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>DED</label>
+                  <input value={editedData.ded || ''} onChange={e => updateField('ded', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Agent Name</label>
+                  <input value={editedData.agentName || ''} onChange={e => updateField('agentName', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>BRN</label>
+                  <input value={editedData.brn || ''} onChange={e => updateField('brn', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Phone</label>
+                  <input value={editedData.phone || ''} onChange={e => updateField('phone', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Mobile</label>
+                  <input value={editedData.mobile || ''} onChange={e => updateField('mobile', e.target.value)}
+                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Email</label>
+                <input value={editedData.email || ''} onChange={e => updateField('email', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
             </div>
           </div>
         </div>
@@ -630,7 +659,14 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
             padding: '10px 20px', background: T.surface, color: T.muted,
             border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>
-            Cancel
+            Cancel / Discard
+          </button>
+          <button onClick={onFlip} disabled={!sideMismatch} style={{
+            padding: '10px 20px', background: sideMismatch ? T.amber : 'rgba(245,159,10,0.3)', color: T.amberText,
+            border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: sideMismatch ? 'pointer' : 'not-allowed',
+            opacity: sideMismatch ? 1 : 0.5,
+          }}>
+            Flip Side
           </button>
           <button onClick={onApply} style={{
             padding: '10px 20px', background: T.amber, color: T.amberText,
@@ -708,7 +744,7 @@ export default function FormIGenerator() {
       // Parse the Form I
       const parseRes = await base44.functions.invoke('parseFormI', {
         file_url: fileUrl,
-        debug: false
+        debug: true
       });
 
       const result = parseRes.data;
