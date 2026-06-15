@@ -62,9 +62,10 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   const boxY = 9;
   doc.setFillColor(26, 39, 68);
   doc.rect(boxX, boxY, boxW, boxH, 'F');
+  // Gold border (drawn on top of fill)
   doc.setLineWidth(0.5);
   doc.setDrawColor(201, 168, 74);
-  doc.strokeRect(boxX, boxY, boxW, boxH);
+  doc.rect(boxX, boxY, boxW, boxH, 'S');
   doc.setTextColor(201, 168, 74);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
