@@ -218,6 +218,13 @@ Deno.serve(async (req) => {
           // Track per-agent counts
           diagnostics.per_agent_counts[correctAgentEmail] = (diagnostics.per_agent_counts[correctAgentEmail] || 0) + 1;
           
+          // Guard: skip leads with no PF lead ID (phantom/broken records)
+          if (!pfLeadId) {
+            console.log('[syncPFLeads] Skipping lead with null/empty pf_lead_id');
+            diagnostics.skipped_count++;
+            return;
+          }
+          
           // Check if lead already exists
           const existingLead = existingLeadsMap.get(pfLeadId);
           if (existingLead) {
