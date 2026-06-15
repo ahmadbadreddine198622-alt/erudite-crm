@@ -9,8 +9,9 @@ Deno.serve(async (req) => {
   const body = await req.json();
   const { conversation_id, template_name, template_components, template_body } = body;
   const message = body.message || body.message_text;
-  // Use language exactly as provided — Meta requires the exact registered language code
-  const template_language = body.template_language || 'en';
+  // Normalize language: Meta requires locale codes like en_US, ar, en — map bare "en" to "en_US"
+  const rawLang = body.template_language || 'en';
+  const template_language = rawLang === 'en' ? 'en_US' : rawLang;
 
   if (!conversation_id || (!message?.trim() && !template_name)) {
     return Response.json({ error: 'conversation_id and message (or template_name) are required' }, { status: 400 });
@@ -24,23 +25,27 @@ Deno.serve(async (req) => {
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
 
+  // Ensure phone has + prefix — Meta requires E.164 with leading +
+  const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
+  const toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
+
   // Build payload - either text or template
   let payload;
   if (template_name) {
     payload = {
       messaging_product: 'whatsapp',
-      to: conv.wa_phone_e164 || conv.phone_number,
+      to: toPhone,
       type: 'template',
       template: {
         name: template_name,
-        language: { code: template_language || 'en_US' },
+        language: { code: template_language },
         components: template_components || [],
       },
     };
   } else {
     payload = {
       messaging_product: 'whatsapp',
-      to: conv.wa_phone_e164 || conv.phone_number,
+      to: toPhone,
       type: 'text',
       text: { body: message, preview_url: false },
     };
