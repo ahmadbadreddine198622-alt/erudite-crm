@@ -439,8 +439,11 @@ function UploadZone({ onFileSelect, disabled }) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    console.log('[FormI] Drop event fired', e.dataTransfer.files);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFileSelect(e.dataTransfer.files[0]);
+      const file = e.dataTransfer.files[0];
+      console.log('[FormI] drop fired', file);
+      onFileSelect(file);
     }
   };
 
@@ -449,8 +452,11 @@ function UploadZone({ onFileSelect, disabled }) {
   };
 
   const handleFileChange = (e) => {
+    console.log('[FormI] Click-to-browse fired', e.target.files);
     if (e.target.files && e.target.files.length > 0) {
-      onFileSelect(e.target.files[0]);
+      const file = e.target.files[0];
+      console.log('[FormI] browse fired', file);
+      onFileSelect(file);
     }
   };
 
@@ -763,6 +769,7 @@ export default function FormIGenerator() {
 
   // ─── PDF Upload & Parse Handlers ────────────────────────────────────────────
   const handleFileUpload = async (file) => {
+    console.log('[FormI] handleFileUpload called with:', file);
     if (file.type !== 'application/pdf') {
       toast.error('PDF files only', { description: 'Please upload a Form I PDF document' });
       return;
