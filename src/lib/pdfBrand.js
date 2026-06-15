@@ -68,9 +68,14 @@ export function fmtAED(n) {
 export function fmtDate(s) {
   if (!s) return '—';
   try {
-    return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return '—';
+    const year = d.getFullYear();
+    // Guard against corrupted years (before 2000 or after 2100)
+    if (year < 2000 || year > 2100) return '—';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   } catch {
-    return String(s);
+    return '—';
   }
 }
 
