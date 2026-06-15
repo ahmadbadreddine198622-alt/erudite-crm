@@ -72,6 +72,9 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.setFillColor(201, 168, 74);
   doc.rect(0, headerH, W, 1.2, 'F');
 
+  // Logo: placed on the left side of the header
+  await placeLogo(doc, { x: pad, y: 6, maxW: 48, maxH: 24 });
+
   let y = headerH + 10;
 
   const colGap = 10;
