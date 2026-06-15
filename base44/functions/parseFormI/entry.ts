@@ -236,7 +236,17 @@ Deno.serve(async (req) => {
     }
 
     const apiJson = await apiRes.json();
-    aiRawText = apiJson?.content?.[0]?.text ?? '';
+    // Pick the text from the response content array. With a document block in
+    // the REQUEST, the RESPONSE content[] could in principle lead with a
+    // non-text block — so iterate and join ALL type === "text" blocks rather
+    // than blindly reading content[0]. Prevents aiRawText from being empty/wrong.
+    aiRawText = Array.isArray(apiJson?.content)
+      ? apiJson.content
+          .filter((c: any) => c?.type === 'text')
+          .map((c: any) => (typeof c?.text === 'string' ? c.text : ''))
+          .join('')
+          .trim()
+      : '';
   } catch (e) {
     const errResponse: Record<string, unknown> = {
       ok: false, is_form_i: isFormI,
@@ -261,8 +271,23 @@ Deno.serve(async (req) => {
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```\s*$/,        '')
       .trim();
-    aiData = JSON.parse(stripped);
+    try {
+      // 1) Direct parse — clean JSON, or JSON-only after the fence strip.
+      aiData = JSON.parse(stripped);
+    } catch (_) {
+      // 2) Robust fallback — grab the substring from the FIRST "{" to the LAST
+      //    "}" and parse that. Handles prose before the JSON
+      //    ("Here is the data: {...}") and trailing explanation after it.
+      const first = stripped.indexOf('{');
+      const last  = stripped.lastIndexOf('}');
+      if (first === -1 || last === -1 || last <= first) {
+        throw new Error('No JSON object found in AI response.');
+      }
+      aiData = JSON.parse(stripped.slice(first, last + 1));
+    }
   } catch (_) {
+    // 3) Both attempts failed — keep the ai_parse_failed path (raw reply surfaced
+    //    via ai_raw_response_debug for inspection).
     warnings.push('ai_parse_failed: AI response could not be parsed as JSON — fields left empty for manual entry.');
     if (body.debug_ai === true) {
       warnings.push('ai_raw_response: ' + aiRawText.slice(0, 800));
