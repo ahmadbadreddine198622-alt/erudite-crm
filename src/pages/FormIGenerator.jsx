@@ -491,12 +491,19 @@ function UploadZone({ onFileSelect, disabled }) {
   );
 }
 
-// ─── Review Modal ─────────────────────────────────────────────────────────────
+// ─── Review Modal (Diagnostic) ────────────────────────────────────────────────
 function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply, onFlip, onCancel }) {
   const updateField = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
   };
-  const rawText = result?.raw_text_first_4000 || '(No raw text available)';
+
+  // result is now diagnosticData: { success, file_url, http_status, raw_response, error }
+  const isError = result?.success === false;
+  const rawResponse = result?.raw_response;
+  const fileUrl = result?.file_url || '(not available)';
+  const httpStatus = result?.http_status;
+  const fullJson = JSON.stringify(result?.raw_response, null, 2);
+  const rawText = rawResponse?.raw_text_first_4000 || '(not in response)';
 
   return (
     <div style={{
@@ -505,7 +512,7 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
     }}>
       <div style={{
         background: T.card, borderRadius: 16, border: `1px solid ${T.border}`,
-        maxWidth: 900, width: '100%', maxHeight: '90vh', overflow: 'auto',
+        maxWidth: 1100, width: '100%', maxHeight: '90vh', overflow: 'auto',
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
         {/* Header */}
@@ -514,8 +521,12 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <h2 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>Review Extracted Details</h2>
-            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>⚠️ Review before applying — nothing auto-fills</p>
+            <h2 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>
+              {isError ? '❌ Upload/Parse Error' : '📋 Full Diagnostic Response'}
+            </h2>
+            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>
+              {isError ? 'Error details below — check console for stack trace' : 'Complete raw JSON from parseFormI — nothing auto-fills'}
+            </p>
           </div>
           <button onClick={onCancel} style={{
             background: 'none', border: 'none', color: T.muted, cursor: 'pointer',
@@ -525,8 +536,34 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
           </button>
         </div>
 
-        {/* Side Mismatch Warning */}
-        {sideMismatch && (
+        {/* Error Banner */}
+        {isError && (
+          <div style={{
+            margin: '16px 20px 0', padding: '14px 16px',
+            background: 'rgba(239,68,68,0.12)', border: `1px solid rgba(239,68,68,0.35)`,
+            borderRadius: 10,
+          }}>
+            <p style={{ color: '#F87171', fontSize: 12, fontWeight: 700, margin: '0 0 8px' }}>
+              ⚠️ Exception Thrown
+            </p>
+            <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#FCA5A5', marginBottom: 8 }}>
+              <strong>Name:</strong> {result?.error?.name}<br/>
+              <strong>Message:</strong> {result?.error?.message}<br/>
+              <strong>File URL:</strong> {result?.file_url}
+            </div>
+            <details style={{ fontSize: 9, color: '#F87171' }}>
+              <summary style={{ cursor: 'pointer', marginBottom: 4 }}>Show Stack Trace</summary>
+              <pre style={{
+                margin: 0, padding: 8, background: 'rgba(0,0,0,0.3)',
+                borderRadius: 6, overflow: 'auto', maxHeight: 200,
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>{result?.error?.stack}</pre>
+            </details>
+          </div>
+        )}
+
+        {/* Side Mismatch Warning (only on success) */}
+        {!isError && sideMismatch && (
           <div style={{
             margin: '16px 20px 0', padding: '12px 14px',
             background: 'rgba(245,159,10,0.12)', border: `1px solid rgba(245,159,10,0.3)`,
@@ -538,8 +575,8 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
                 Side Mismatch Detected
               </p>
               <p style={{ color: T.muted, fontSize: 11, margin: 0 }}>
-                The PDF shows Erudite as {result.erudite_side === 'seller' ? "Seller's Agent (A)" : "Buyer's Agent (B)"},
-                but your form has Erudite as {result.erudite_side === 'seller' ? "Buyer's" : "Seller's"}.
+                The PDF shows Erudite as {rawResponse?.erudite_side === 'seller' ? "Seller's Agent (A)" : "Buyer's Agent (B)"},
+                but your form has Erudite as {rawResponse?.erudite_side === 'seller' ? "Buyer's" : "Seller's"}.
               </p>
               <button onClick={onFlip} style={{
                 marginTop: 8, padding: '6px 12px', background: T.amber, color: T.amberText,
@@ -551,104 +588,95 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
           </div>
         )}
 
-        {/* Warnings */}
-        {result.warnings && result.warnings.length > 0 && (
-          <div style={{
-            margin: '16px 20px 0', padding: '12px 14px',
-            background: 'rgba(251,191,36,0.12)', border: `1px solid rgba(251,191,36,0.3)`,
-            borderRadius: 10,
-          }}>
-            <p style={{ color: '#FCD34D', fontSize: 11, fontWeight: 600, margin: '0 0 6px' }}>
-              ⚠️ Parse Warnings
-            </p>
-            <ul style={{ margin: 0, paddingLeft: 16, color: T.muted, fontSize: 11 }}>
-              {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
-            </ul>
+        {/* File URL + HTTP Status */}
+        <div style={{
+          margin: '16px 20px 0', padding: '10px 14px',
+          background: T.surface, border: `1px solid ${T.border}`,
+          borderRadius: 8, fontFamily: 'monospace', fontSize: 10,
+        }}>
+          <div style={{ marginBottom: 4 }}>
+            <span style={{ color: T.muted, textTransform: 'uppercase', fontSize: 9 }}>Storage File URL:</span>{' '}
+            <span style={{ color: T.text, wordBreak: 'break-all' }}>{fileUrl}</span>
           </div>
-        )}
-
-        {/* Two columns: Raw text (left) + Parsed fields (right) */}
-        <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Left: Raw extracted text */}
-          <div>
-            <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Raw Extracted Text (Debug)
-            </h3>
-            <div style={{
-              background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8,
-              padding: 12, maxHeight: 400, overflow: 'auto',
-            }}>
-              <pre style={{
-                margin: 0, fontSize: 10, fontFamily: 'monospace', color: T.text,
-                whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4,
-              }}>{rawText}</pre>
+          {httpStatus && (
+            <div>
+              <span style={{ color: T.muted, textTransform: 'uppercase', fontSize: 9 }}>HTTP Status:</span>{' '}
+              <span style={{ color: httpStatus >= 200 && httpStatus < 300 ? '#4ADE80' : '#F87171' }}>{httpStatus}</span>
             </div>
-            <p style={{ color: T.muted, fontSize: 10, marginTop: 8 }}>
-              Erudite Side: <strong style={{ color: T.amber }}>{result.erudite_side || 'unknown'}</strong> · 
-              Their Side: <strong style={{ color: T.amber }}>{result.their_side || 'unknown'}</strong>
-            </p>
-          </div>
+          )}
+        </div>
 
-          {/* Right: Parsed counterparty fields */}
-          <div>
-            <h3 style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Parsed Counterparty (Agent {result.their_side === 'seller' ? 'A' : 'B'})
+        {/* Full Raw JSON Response */}
+        <div style={{ padding: '0 20px 20px' }}>
+          <h3 style={{ color: T.text, fontSize: 12, fontWeight: 700, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Complete parseFormI Response (Raw JSON)
+          </h3>
+          <div style={{
+            background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8,
+            padding: 12, maxHeight: 500, overflow: 'auto',
+          }}>
+            <pre style={{
+              margin: 0, fontSize: 9, fontFamily: 'monospace', color: T.text,
+              whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.3,
+            }}>{fullJson || '(no response data)'}</pre>
+          </div>
+        </div>
+
+        {/* Parsed Fields (only on success with counterparty data) */}
+        {!isError && rawResponse?.counterparty && (
+          <div style={{ padding: '0 20px 20px' }}>
+            <h3 style={{ color: T.text, fontSize: 12, fontWeight: 700, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Editable Counterparty Fields (Agent {rawResponse?.their_side === 'seller' ? 'A' : 'B'})
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
               <div>
                 <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Establishment</label>
                 <input value={editedData.establishment || ''} onChange={e => updateField('establishment', e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
               <div>
                 <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Address</label>
                 <input value={editedData.address || ''} onChange={e => updateField('address', e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>ORN</label>
-                  <input value={editedData.orn || ''} onChange={e => updateField('orn', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>DED</label>
-                  <input value={editedData.ded || ''} onChange={e => updateField('ded', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>ORN</label>
+                <input value={editedData.orn || ''} onChange={e => updateField('orn', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Agent Name</label>
-                  <input value={editedData.agentName || ''} onChange={e => updateField('agentName', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>BRN</label>
-                  <input value={editedData.brn || ''} onChange={e => updateField('brn', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>DED</label>
+                <input value={editedData.ded || ''} onChange={e => updateField('ded', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Phone</label>
-                  <input value={editedData.phone || ''} onChange={e => updateField('phone', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
-                <div>
-                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Mobile</label>
-                  <input value={editedData.mobile || ''} onChange={e => updateField('mobile', e.target.value)}
-                    style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
-                </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Agent Name</label>
+                <input value={editedData.agentName || ''} onChange={e => updateField('agentName', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>BRN</label>
+                <input value={editedData.brn || ''} onChange={e => updateField('brn', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Phone</label>
+                <input value={editedData.phone || ''} onChange={e => updateField('phone', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Mobile</label>
+                <input value={editedData.mobile || ''} onChange={e => updateField('mobile', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
               <div>
                 <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Email</label>
                 <input value={editedData.email || ''} onChange={e => updateField('email', e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Footer Actions */}
         <div style={{
@@ -659,22 +687,27 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
             padding: '10px 20px', background: T.surface, color: T.muted,
             border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>
-            Cancel / Discard
+            Close
           </button>
-          <button onClick={onFlip} disabled={!sideMismatch} style={{
-            padding: '10px 20px', background: sideMismatch ? T.amber : 'rgba(245,159,10,0.3)', color: T.amberText,
-            border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: sideMismatch ? 'pointer' : 'not-allowed',
-            opacity: sideMismatch ? 1 : 0.5,
-          }}>
-            Flip Side
-          </button>
-          <button onClick={onApply} style={{
-            padding: '10px 20px', background: T.amber, color: T.amberText,
-            border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <CheckCircle size={14} /> Apply to Form
-          </button>
+          {!isError && (
+            <>
+              <button onClick={onFlip} disabled={!sideMismatch} style={{
+                padding: '10px 20px', background: sideMismatch ? T.amber : 'rgba(245,159,10,0.3)', color: T.amberText,
+                border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: sideMismatch ? 'pointer' : 'not-allowed',
+                opacity: sideMismatch ? 1 : 0.5,
+              }}>
+                Flip Side
+              </button>
+              <button onClick={onApply} disabled={!rawResponse?.counterparty} style={{
+                padding: '10px 20px', background: rawResponse?.counterparty ? T.amber : 'rgba(148,163,184,0.3)', color: T.amberText,
+                border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: rawResponse?.counterparty ? 'pointer' : 'not-allowed',
+                opacity: rawResponse?.counterparty ? 1 : 0.5,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <CheckCircle size={14} /> Apply to Form
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -736,48 +769,77 @@ export default function FormIGenerator() {
     }
 
     setUploading(true);
+    let diagnosticData = null;
     try {
-      // Upload to Base44 storage
+      // (a) Upload to Base44 storage
       const uploadRes = await base44.integrations.Core.UploadFile({ file });
       const fileUrl = uploadRes.file_url;
+      console.log('[FormI] Storage URL after upload:', fileUrl);
+
+      // (b) Exact payload sent to parseFormI
+      const parsePayload = { file_url: fileUrl, debug: true };
+      console.log('[FormI] Payload sent to parseFormI:', parsePayload);
 
       // Parse the Form I
-      const parseRes = await base44.functions.invoke('parseFormI', {
-        file_url: fileUrl,
-        debug: true
-      });
+      const parseRes = await base44.functions.invoke('parseFormI', parsePayload);
+
+      // (c) Full parseFormI response
+      console.log('[FormI] Full parseFormI response:', JSON.stringify(parseRes, null, 2));
 
       const result = parseRes.data;
+      const status = parseRes.status;
 
-      if (!result.ok) {
-        toast.error('Failed to parse Form I', {
-          description: result.note || 'Could not extract agency details from the PDF'
-        });
-        return;
-      }
+      // Build diagnostic data for modal display
+      diagnosticData = {
+        success: true,
+        file_url: fileUrl,
+        http_status: status,
+        raw_response: result,
+        error: null,
+      };
 
       // Check for side mismatch
       const eruditeIsSeller = eruditeSide === 'A';
-      const pdfEruditeIsSeller = result.erudite_side === 'seller';
+      const pdfEruditeIsSeller = result?.erudite_side === 'seller';
       const mismatch = eruditeIsSeller !== pdfEruditeIsSeller;
 
       setSideMismatch(mismatch);
-      setParseResult(result);
-      setEditedCounterparty({ ...result.counterparty });
+      setParseResult({ ...diagnosticData });
+      setEditedCounterparty({ ...(result?.counterparty || {}) });
       setShowReviewModal(true);
 
-      if (mismatch) {
+      if (!result?.ok) {
+        toast.warning('Parse returned ok=false', {
+          description: result?.note || 'Check modal for full response'
+        });
+      } else if (mismatch) {
         toast.warning('Side mismatch detected', {
           description: 'The uploaded PDF shows Erudite on the opposite side'
         });
       } else {
-        toast.success('Form I parsed successfully', {
-          description: 'Review the extracted details before applying'
+        toast.success('Form I parsed', {
+          description: 'Review modal opened with full diagnostic data'
         });
       }
     } catch (err) {
-      console.error('PDF upload/parse failed:', err);
-      toast.error('Upload failed', { description: err?.message || 'Could not process the PDF' });
+      console.error('[FormI] Upload/parse threw exception:', err);
+      // Build error diagnostic data
+      diagnosticData = {
+        success: false,
+        file_url: diagnosticData?.file_url || '(upload failed)',
+        http_status: null,
+        raw_response: null,
+        error: {
+          message: err?.message || 'Unknown error',
+          stack: err?.stack || 'No stack trace',
+          name: err?.name || 'Error',
+        },
+      };
+      setParseResult(diagnosticData);
+      setShowReviewModal(true);
+      toast.error('Upload/parse failed', {
+        description: 'Check modal for full error details'
+      });
     } finally {
       setUploading(false);
     }
