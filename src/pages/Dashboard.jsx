@@ -1,14 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Minus, Plus, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
+import AppFolderGrid from '@/components/dashboard/AppFolderGrid';
 import AIInsightsDashboard from '@/components/shared/AIInsightsDashboard';
 import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
@@ -191,9 +191,10 @@ export default function Dashboard() {
   const todayDeals = leads.filter(l => l.stage === 'negotiation_deal_lock' || l.stage === 'closing_dld').length;
   const hotLeads = leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
 
+  // Search across ALL apps (folder mode — the custom `apps` state is no longer the display grid)
   const filtered = search.trim()
-    ? apps.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
-    : apps;
+    ? ALL_APPS.filter(a => a.label.toLowerCase().includes(search.toLowerCase()))
+    : ALL_APPS;
 
   return (
     <div
@@ -421,74 +422,42 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* App Grid — pb-44 (176px) ensures last row clears the floating dock + raised home button + iOS safe-area on notch devices */}
+      {/* App Grid — folder mode or flat search results */}
       <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="dashboard" direction="horizontal" isDropDisabled={!editMode}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="w-full max-w-5xl grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-x-4 gap-y-7"
-              >
-                {filtered.map((app, idx) => {
-                  const Icon = app.icon;
-                  const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
-                  return (
-                    <Draggable key={app.path} draggableId={app.path} index={idx} isDragDisabled={!editMode}>
-                      {(p, snapshot) => (
-                        <div
-                          ref={p.innerRef}
-                          {...p.draggableProps}
-                          {...p.dragHandleProps}
-                          onMouseDown={!editMode ? () => startPress(app.path) : undefined}
-                          onMouseUp={!editMode ? cancelPress : undefined}
-                          onMouseLeave={!editMode ? cancelPress : undefined}
-                          onTouchStart={!editMode ? () => startPress(app.path) : undefined}
-                          onTouchEnd={!editMode ? cancelPress : undefined}
-                          onClick={() => {
-                            if (editMode) return;
-                            app.href ? window.open(app.href, '_blank') : navigate(app.path);
-                          }}
-                          className={`flex flex-col items-center gap-1.5 select-none focus:outline-none ${editMode && !snapshot.isDragging ? 'animate-wiggle' : ''}`}
-                          style={holdingPath === app.path && holdCueActive ? { transform: 'scale(1.08)', transition: 'transform 0.3s ease', filter: 'brightness(1.3)' } : { position: 'relative' }}
-                        >
-                          {/* Remove badge */}
-                          {editMode && (
-                            <button
-                              onPointerDown={e => { e.stopPropagation(); removeApp(app.path); }}
-                              className="absolute -top-2 -left-2 z-20 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border border-red-300/30 shadow-md"
-                              style={{ fontSize: 12 }}
-                            >
-                              <Minus className="w-3 h-3 text-white" strokeWidth={3} />
-                            </button>
-                          )}
-                          <ExtremeLiquidIcon
-                            icon={Icon}
-                            gradient={app.gradient}
-                            glowColor={app.glowColor}
-                            tiltX={tilt.x}
-                            tiltY={tilt.y}
-                            index={idx}
-                            isDragging={snapshot.isDragging}
-                            active={editMode && !snapshot.isDragging}
-                            badge={!editMode && badgeCount > 0 ? badgeCount : 0}
-                          />
-                          <span className={`text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center ${editMode ? 'text-white/50' : 'text-white/75'}`}>
-                            {app.label}
-                          </span>
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-
-
+        {search.trim() ? (
+          /* Flat search results — show matching apps directly across all folders */
+          <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
+            {filtered.map((app, idx) => {
+              const Icon = app.icon;
+              const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
+              return (
+                <button
+                  key={app.path + app.label}
+                  onClick={() => app.href ? window.open(app.href, '_blank') : navigate(app.path)}
+                  className="flex flex-col items-center gap-1.5 select-none focus:outline-none transition-transform active:scale-95"
+                >
+                  <ExtremeLiquidIcon
+                    icon={Icon}
+                    gradient={app.gradient}
+                    glowColor={app.glowColor}
+                    tiltX={tilt.x}
+                    tiltY={tilt.y}
+                    index={idx}
+                    isDragging={false}
+                    active={false}
+                    badge={badgeCount > 0 ? badgeCount : 0}
+                  />
+                  <span className="text-[11px] text-center leading-tight max-w-[64px] font-medium min-h-[2rem] flex items-start justify-center text-white/75">
+                    {app.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* Folder grid */
+          <AppFolderGrid badges={badges} tilt={tilt} />
+        )}
       </div>
 
       {/* Quick Navigation Buttons */}
@@ -551,7 +520,7 @@ export default function Dashboard() {
       </div>
 
       {/* No results */}
-      {filtered.length === 0 && (
+      {search.trim() && filtered.length === 0 && (
         <p className="text-white/40 text-sm mt-20">No apps match "{search}"</p>
       )}
 
