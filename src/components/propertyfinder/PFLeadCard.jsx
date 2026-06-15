@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Mail, MessageCircle, Trash2, Link2, ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Trash2, Link2, ExternalLink, Pencil, Check, X, CheckSquare, Square } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // Emails excluded from the sales-agent dropdown (photographer, bots, etc.)
@@ -189,9 +189,34 @@ function LandlordPicker({ lead, landlords, onLink }) {
   );
 }
 
+// ── Listing ref link ──────────────────────────────────────────────────────────
+function ListingRefLink({ ref: listingRef, pfUrl }) {
+  if (!listingRef) return <span className="text-xs text-muted-foreground italic">No ref</span>;
+
+  const href = pfUrl || `https://www.propertyfinder.ae/en/search?q=${encodeURIComponent(listingRef)}`;
+  const isVerified = !!pfUrl;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={e => e.stopPropagation()}
+      title={isVerified ? 'Open on Property Finder' : 'Search on Property Finder (unverified)'}
+      className="flex items-center gap-1 min-w-0 group"
+    >
+      <span className={`text-xs truncate font-mono ${isVerified ? 'text-sky-400 group-hover:text-sky-300' : 'text-muted-foreground group-hover:text-white/60'}`}>
+        {listingRef}
+      </span>
+      <ExternalLink className={`w-2.5 h-2.5 shrink-0 ${isVerified ? 'text-sky-400/60' : 'text-muted-foreground/50'}`} />
+      {!isVerified && <span className="text-[9px] text-amber-500/70 shrink-0">~</span>}
+    </a>
+  );
+}
+
 // ── Card ──────────────────────────────────────────────────────────────────────
 export { NON_SALES_EMAILS };
-export default function PFLeadCard({ lead, landlords, agents = [], waConversationId, onUpdate, onDelete, onLandlordLink }) {
+export default function PFLeadCard({ lead, landlords, agents = [], waConversationId, selected, onToggleSelect, onUpdate, onDelete, onLandlordLink }) {
   const anonymous = lead.full_name === 'Ahmad Erudite Property';
   const respondLink = lead.notes?.match(/respond:(\S+)/)?.[1] || null;
   const bs = badgeStyle(lead.assigned_agent_email);
@@ -201,27 +226,34 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
   const save = (field) => (value) => onUpdate(lead.id, { [field]: value });
 
   return (
-    <Card className="glass-card p-4 space-y-3" style={{ background: bg, border }}>
+    <Card className="glass-card p-2.5 space-y-2" style={{ background: bg, border }}>
 
-      {/* Row 1 — name + date + agent badge */}
-      <div className="flex items-start justify-between gap-2">
+      {/* Row 1 — checkbox + name + agent badge */}
+      <div className="flex items-center gap-2">
+        {/* Checkbox — dedicated tap target, no overlap */}
+        <button
+          onClick={e => { e.stopPropagation(); onToggleSelect(); }}
+          className="w-5 h-5 flex items-center justify-center rounded shrink-0 transition-colors"
+          style={{ background: selected ? 'rgba(245,158,11,0.2)' : 'rgba(0,0,0,0.35)', border: selected ? '1px solid rgba(245,158,11,0.6)' : '1px solid rgba(255,255,255,0.18)' }}
+          title={selected ? 'Deselect' : 'Select'}
+        >
+          {selected
+            ? <CheckSquare className="w-3 h-3 text-amber-400" />
+            : <Square className="w-3 h-3 text-white/40" />}
+        </button>
+
+        {/* Name */}
         <div className="flex-1 min-w-0">
           {anonymous ? (
-            <div className="font-semibold text-rose-400 italic text-sm">Anonymous buyer</div>
+            <div className="font-semibold text-rose-400 italic text-xs">Anonymous buyer</div>
           ) : (
-            <InlineField
-              label="Name"
-              value={lead.full_name}
-              onSave={save('full_name')}
-              placeholder="Unknown"
-            />
+            <InlineField label="Name" value={lead.full_name} onSave={save('full_name')} placeholder="Unknown" />
           )}
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            {new Date(lead.created_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
-          </div>
         </div>
+
+        {/* Agent badge */}
         <span
-          className="whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"
+          className="whitespace-nowrap text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
           style={{ background:bs.bg, color:bs.color, border:`1px solid ${bs.border}` }}
         >
           {agentLabel(lead.assigned_agent_email)}
@@ -229,9 +261,9 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
       </div>
 
       {/* Row 2 — inline editable fields */}
-      <div className="space-y-1.5 rounded-lg p-2" style={{ background:'rgba(0,0,0,0.15)' }}>
+      <div className="space-y-1 rounded-md px-2 py-1.5" style={{ background:'rgba(0,0,0,0.15)' }}>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-16 shrink-0 uppercase tracking-wide">Phone</span>
+          <span className="text-[10px] text-muted-foreground w-12 shrink-0 uppercase tracking-wide">Phone</span>
           <div className="flex-1 min-w-0">
             <InlineField label="Phone" value={lead.phone} onSave={save('phone')} placeholder="No phone" />
           </div>
@@ -249,31 +281,31 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-16 shrink-0 uppercase tracking-wide">Email</span>
+          <span className="text-[10px] text-muted-foreground w-12 shrink-0 uppercase tracking-wide">Email</span>
           <div className="flex-1 min-w-0">
             <InlineField label="Email" value={lead.email} onSave={save('email')} placeholder="No email" dim />
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-16 shrink-0 uppercase tracking-wide">Listing</span>
-          <div className="flex-1 min-w-0">
-            <InlineField label="Listing ref" value={lead.closing_property_ref} onSave={save('closing_property_ref')} placeholder="No ref" dim />
+          <span className="text-[10px] text-muted-foreground w-12 shrink-0 uppercase tracking-wide">Listing</span>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <ListingRefLink ref={lead.closing_property_ref} pfUrl={lead.pf_url} />
           </div>
         </div>
       </div>
 
-      {/* Row 3 — notes preview */}
+      {/* Row 3 — notes preview (compact) */}
       {lead.notes && (
-        <p className="text-xs text-muted-foreground line-clamp-2">{lead.notes}</p>
+        <p className="text-[11px] text-muted-foreground line-clamp-1 px-0.5">{lead.notes}</p>
       )}
 
       {/* Row 4 — agent + stage dropdowns */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         <Select
           value={lead.assigned_agent_email || ''}
           onValueChange={email => onUpdate(lead.id, { assigned_agent_email: email })}
         >
-          <SelectTrigger className="h-7 text-xs w-28 bg-white/5 border-white/10">
+          <SelectTrigger className="h-6 text-xs w-24 bg-white/5 border-white/10">
             <SelectValue placeholder="Agent…" />
           </SelectTrigger>
           <SelectContent>
@@ -287,7 +319,7 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
           value={lead.stage || ''}
           onValueChange={stage => onUpdate(lead.id, { stage })}
         >
-          <SelectTrigger className="h-7 text-xs flex-1 min-w-[120px] bg-white/5 border-white/10">
+          <SelectTrigger className="h-6 text-xs flex-1 min-w-[110px] bg-white/5 border-white/10">
             <SelectValue placeholder="Stage…" />
           </SelectTrigger>
           <SelectContent>
@@ -300,44 +332,44 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
       </div>
 
       {/* Row 5 — action buttons */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap">
         {lead.phone && (
           <a
             href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`}
             target="_blank" rel="noopener noreferrer"
             title="WhatsApp"
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+            className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110"
             style={{ background:'rgba(37,211,102,0.18)', border:'1px solid rgba(37,211,102,0.35)' }}
           >
-            <MessageCircle className="w-3.5 h-3.5" style={{ color:'#25D166' }} />
+            <MessageCircle className="w-3 h-3" style={{ color:'#25D166' }} />
           </a>
         )}
         {lead.phone && (
           <a
             href={`tel:${lead.phone}`}
             title="Call"
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+            className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110"
             style={{ background:'rgba(59,130,246,0.18)', border:'1px solid rgba(59,130,246,0.35)' }}
           >
-            <Phone className="w-3.5 h-3.5" style={{ color:'#60a5fa' }} />
+            <Phone className="w-3 h-3" style={{ color:'#60a5fa' }} />
           </a>
         )}
         {lead.email ? (
           <a
             href={`mailto:${lead.email}`}
             title="Email"
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+            className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110"
             style={{ background:'rgba(168,85,247,0.18)', border:'1px solid rgba(168,85,247,0.35)' }}
           >
-            <Mail className="w-3.5 h-3.5" style={{ color:'#c084fc' }} />
+            <Mail className="w-3 h-3" style={{ color:'#c084fc' }} />
           </a>
         ) : (
           <span
             title="No email"
-            className="w-7 h-7 rounded-lg flex items-center justify-center opacity-25 cursor-not-allowed"
+            className="w-6 h-6 rounded-md flex items-center justify-center opacity-25 cursor-not-allowed"
             style={{ background:'rgba(148,163,184,0.1)', border:'1px solid rgba(148,163,184,0.2)' }}
           >
-            <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+            <Mail className="w-3 h-3 text-muted-foreground" />
           </span>
         )}
 
@@ -345,8 +377,8 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
 
         {anonymous && respondLink && (
           <a href={respondLink} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
-              Respond on PF <ExternalLink className="w-3 h-3" />
+            <Button size="sm" variant="outline" className="h-6 text-xs gap-1 px-2">
+              PF <ExternalLink className="w-2.5 h-2.5" />
             </Button>
           </a>
         )}
@@ -354,10 +386,10 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
         <button
           onClick={() => { if (confirm('Delete this lead?')) onDelete(lead.id); }}
           title="Delete lead"
-          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110 ml-auto"
+          className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110 ml-auto"
           style={{ background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.25)' }}
         >
-          <Trash2 className="w-3.5 h-3.5" style={{ color:'#f87171' }} />
+          <Trash2 className="w-3 h-3" style={{ color:'#f87171' }} />
         </button>
       </div>
 

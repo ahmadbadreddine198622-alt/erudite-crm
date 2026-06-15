@@ -5,9 +5,53 @@ import EruditePage from '@/components/erudite/EruditePage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, Users, UserCheck, Clock, Search, ArrowUpDown, CheckSquare, Square, X } from 'lucide-react';
+import { RefreshCw, Users, UserCheck, Clock, Search, ArrowUpDown, CheckSquare, Square, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import PFLeadCard, { NON_SALES_EMAILS } from '@/components/propertyfinder/PFLeadCard';
+
+// ── Date-grouped card grid ────────────────────────────────────────────────────
+function DateGroupedLeads({ leads, landlords, salesAgents, waConvMap, selected, toggleSelect, onUpdate, onDelete, onLandlordLink }) {
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const lead of leads) {
+      const day = new Date(lead.created_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      if (!map.has(day)) map.set(day, []);
+      map.get(day).push(lead);
+    }
+    return [...map.entries()]; // already ordered newest-first since leads are pre-sorted
+  }, [leads]);
+
+  return (
+    <div className="space-y-5">
+      {groups.map(([day, groupLeads]) => (
+        <div key={day}>
+          <div className="flex items-center gap-2 mb-2">
+            <CalendarDays className="w-3.5 h-3.5 text-amber-400/70" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-400/80">{day}</span>
+            <span className="text-xs text-muted-foreground">· {groupLeads.length}</span>
+            <div className="flex-1 h-px" style={{ background:'rgba(245,158,11,0.12)' }} />
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {groupLeads.map(lead => (
+              <PFLeadCard
+                key={lead.id}
+                lead={lead}
+                landlords={landlords}
+                agents={salesAgents}
+                waConversationId={waConvMap.get((lead.phone || '').replace(/\D/g, '').slice(-9)) || null}
+                selected={selected.has(lead.id)}
+                onToggleSelect={() => toggleSelect(lead.id)}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onLandlordLink={onLandlordLink}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const ALL_STAGES = [
   { value: 'intake_clarify',          label: 'Intake / Clarify' },
@@ -381,37 +425,23 @@ export default function PropertyFinderLeads() {
           </div>
         )}
 
-        {/* Lead Cards */}
+        {/* Lead Cards — grouped by date */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading leads…</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No leads found</div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map(lead => (
-              <div key={lead.id} className="relative">
-                <button
-                  onClick={() => toggleSelect(lead.id)}
-                  className="absolute top-2 left-2 z-10 w-5 h-5 flex items-center justify-center rounded transition-colors"
-                  style={{ background: selected.has(lead.id) ? 'rgba(245,158,11,0.2)' : 'rgba(0,0,0,0.4)', border: selected.has(lead.id) ? '1px solid rgba(245,158,11,0.6)' : '1px solid rgba(255,255,255,0.2)' }}
-                  title={selected.has(lead.id) ? 'Deselect' : 'Select'}
-                >
-                  {selected.has(lead.id)
-                    ? <CheckSquare className="w-3 h-3 text-amber-400" />
-                    : <Square className="w-3 h-3 text-white/40" />}
-                </button>
-                <PFLeadCard
-                  lead={lead}
-                  landlords={landlords}
-                  agents={salesAgents}
-                  waConversationId={waConvMap.get((lead.phone || '').replace(/\D/g, '').slice(-9)) || null}
-                  onUpdate={handleUpdate}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                  onLandlordLink={handleLandlordLink}
-                />
-              </div>
-            ))}
-          </div>
+          <DateGroupedLeads
+            leads={filtered}
+            landlords={landlords}
+            salesAgents={salesAgents}
+            waConvMap={waConvMap}
+            selected={selected}
+            toggleSelect={toggleSelect}
+            onUpdate={handleUpdate}
+            onDelete={(id) => deleteMutation.mutate(id)}
+            onLandlordLink={handleLandlordLink}
+          />
         )}
       </div>
     </EruditePage>
