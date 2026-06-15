@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Phone, Mail, MessageCircle, Trash2, Link2, ExternalLink, Pencil, Check, X } from 'lucide-react';
 
+// Emails excluded from the sales-agent dropdown (photographer, bots, etc.)
+const NON_SALES_EMAILS = new Set([
+  'dari@erudite-estate.com',
+  'letsbulidaiagent@gmail.com',
+  'info@erudite-estate.com',
+]);
+
 // ── Agent colors ──────────────────────────────────────────────────────────────
 const AGENT_NAMES = {
   'ahmad@erudite-estate.com': 'Ahmad',
@@ -182,7 +189,8 @@ function LandlordPicker({ lead, landlords, onLink }) {
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
-export default function PFLeadCard({ lead, landlords, onUpdate, onDelete, onLandlordLink }) {
+export { NON_SALES_EMAILS };
+export default function PFLeadCard({ lead, landlords, agents = [], onUpdate, onDelete, onLandlordLink }) {
   const anonymous = lead.full_name === 'Ahmad Erudite Property';
   const respondLink = lead.notes?.match(/respond:(\S+)/)?.[1] || null;
   const bs = badgeStyle(lead.assigned_agent_email);
@@ -256,8 +264,8 @@ export default function PFLeadCard({ lead, landlords, onUpdate, onDelete, onLand
             <SelectValue placeholder="Agent…" />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(AGENT_NAMES).map(([email, name]) => (
-              <SelectItem key={email} value={email}>{name}</SelectItem>
+            {agents.map(u => (
+              <SelectItem key={u.email} value={u.email}>{u.full_name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

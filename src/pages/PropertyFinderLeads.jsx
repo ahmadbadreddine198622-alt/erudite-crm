@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, Users, UserCheck, Clock, Search, ArrowUpDown, CheckSquare, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
-import PFLeadCard from '@/components/propertyfinder/PFLeadCard';
+import PFLeadCard, { NON_SALES_EMAILS } from '@/components/propertyfinder/PFLeadCard';
 
 const ALL_STAGES = [
   { value: 'intake_clarify',          label: 'Intake / Clarify' },
@@ -58,6 +58,16 @@ export default function PropertyFinderLeads() {
     queryKey: ['landlords-for-link'],
     queryFn: () => base44.entities.Landlord.list('-created_date', 500),
   });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users-for-assign'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const salesAgents = useMemo(() =>
+    allUsers.filter(u => u.role === 'agent' && !NON_SALES_EMAILS.has(u.email)),
+    [allUsers]
+  );
 
   const agentEmails = useMemo(() => (
     [...new Set(leads.map(l => l.assigned_agent_email).filter(Boolean))]
@@ -339,11 +349,8 @@ export default function PropertyFinderLeads() {
                 <SelectValue placeholder="Choose agent…" />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(AGENT_NAMES).map(([email, name]) => (
-                  <SelectItem key={email} value={email}>{name}</SelectItem>
-                ))}
-                {agentEmails.filter(e => !AGENT_NAMES[e]).map(email => (
-                  <SelectItem key={email} value={email}>{agentLabel(email)}</SelectItem>
+                {salesAgents.map(u => (
+                  <SelectItem key={u.email} value={u.email}>{u.full_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -381,6 +388,7 @@ export default function PropertyFinderLeads() {
                 <PFLeadCard
                   lead={lead}
                   landlords={landlords}
+                  agents={salesAgents}
                   onUpdate={handleUpdate}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onLandlordLink={handleLandlordLink}
