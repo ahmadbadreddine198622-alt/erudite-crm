@@ -1,14 +1,16 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { extractText, getDocumentProxy } from 'npm:unpdf';
 
-// parseFormI v2 — AI-powered extraction of the counterparty agency's details
-// from any Form I (Agent-to-Agent Agreement – Sales) PDF, regardless of template.
+// parseFormI v3 — PDF-document extraction via Anthropic's native PDF support.
 //
-// PDF → text step is unchanged. Field extraction is now done via Claude instead
-// of regex position-matching, which failed on third-party templates (e.g. FAM).
+// Sends the raw PDF bytes (base64-encoded) as an Anthropic "document" content
+// block so Claude reads the actual two-column Form I layout rather than
+// flattened text. Fixes field misassignment caused by unpdf collapsing the
+// two-column layout (brn, dateIssued, agentMobile, agentEmail came back empty
+// or landed in the wrong party block when using text extraction).
 //
-// Input (POST JSON): { file_url | text, debug?, debug_ai? }
-// Response shape is UNCHANGED from v1 — FormIGenerator UI maps directly onto it.
+// Input (POST JSON): { file_url, debug?, debug_ai? }
+// Response shape: UNCHANGED from v1/v2 — FormIGenerator UI maps directly onto it.
 
 const ERUDITE_ORN = '29322';
 const ERUDITE_BRN = '34625';
@@ -47,18 +49,25 @@ function validateFields(cp: Record<string, string>, warnings: string[]): void {
 
 // ─── System prompt sent to Claude ─────────────────────────────────────────────
 const AI_SYSTEM = `You are a document extraction assistant for a Dubai real estate CRM.
-Extract party details from a RERA Form I (Agent-to-Agent Agreement – Sales) PDF text.
+Extract party details from a RERA Form I (Agent-to-Agent Agreement – Sales) PDF.
 
 Return ONLY a raw JSON object — no markdown fences, no explanation, no text before or after the JSON.
 
-ERUDITE REAL ESTATE identifiers (this is ONE party — exclude it from counterparty output):
+ERUDITE REAL ESTATE is ONE of the two parties. Its identifiers:
 - ORN: ${ERUDITE_ORN}
 - BRN: ${ERUDITE_BRN}
 - Establishment name contains "erudite" (case-insensitive)
 - Email domain: @erudite-estate.com
 
-Form I structure: two columns — Agent A (Seller's Agent) and Agent B (Buyer's Agent).
-Identify which column belongs to Erudite and which belongs to the counterparty.
+Form I has two columns — Agent A (Seller's Agent) and Agent B (Buyer's Agent).
+Each column has an "Authorised Agent" sub-section with the registered agent's name, BRN, date of issue, mobile, and email.
+
+ASSIGNMENT RULES — critical:
+- erudite{}: values from the column that belongs to Erudite ONLY.
+- counterparty{}: values from the column that belongs to the OTHER party ONLY.
+- NEVER put the counterparty's agent name, BRN, or any field into erudite{}.
+- NEVER put Erudite's values into counterparty{}.
+- If you cannot determine which column is Erudite, return erudite_side and their_side as null.
 
 Return this exact JSON with no extra fields:
 {
@@ -90,11 +99,11 @@ Return this exact JSON with no extra fields:
 
 STRICT RULES:
 1. erudite_side is "seller" if Erudite is Agent A, "buyer" if Agent B. their_side is always the opposite.
-2. Use empty string "" for any field not explicitly present in the document.
+2. Use empty string "" for any field not found in that party's column.
 3. NEVER copy a field label as its own value (e.g. do not put "Establishment" as the value of establishment).
-4. NEVER invent, infer, or guess values not present in the text.
+4. NEVER invent, infer, or guess values not present in the document.
 5. NEVER copy boilerplate form text or legal clauses as field values.
-6. Extract only concrete values — names, numbers, addresses, emails — as printed in the document.`;
+6. Extract only concrete values — names, numbers, addresses, emails — as printed.`;
 
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
@@ -108,44 +117,33 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const fileUrl = (body.file_url as string | undefined) || url.searchParams.get('file_url') || null;
-  let rawText = (body.text as string | undefined) || null;
 
-  // ── PDF → text (unchanged from v1) ──────────────────────────────────────────
-  if (!rawText) {
-    if (!fileUrl) {
-      return Response.json(
-        { error: 'Provide file_url (Base44 storage URL of the Form I PDF) or a text body.' },
-        { status: 400 }
-      );
-    }
-    try {
-      const buf = new Uint8Array(await (await fetch(fileUrl)).arrayBuffer());
-      const pdf = await getDocumentProxy(buf);
-      const r   = await extractText(pdf, { mergePages: true });
-      rawText   = Array.isArray(r.text) ? r.text.join('\n') : (r.text as string);
-    } catch (e) {
-      const errResponse: Record<string, unknown> = {
-        error: 'PDF extraction failed',
-        detail: String(e),
-        hint: 'Retry with a { text: "..." } body, or verify the file_url is accessible.',
-      };
-      if (body.debug === true && rawText) {
-        errResponse.raw_text_length = rawText.length;
-        errResponse.raw_text_first_4000 = rawText.slice(0, 4000);
-        if (rawText.length <= 8000) errResponse.raw_text_full = rawText;
-      }
-      return Response.json(errResponse, { status: 422 });
-    }
+  // ── Fetch PDF bytes ──────────────────────────────────────────────────────────
+  let pdfBytes: Uint8Array;
+  try {
+    pdfBytes = new Uint8Array(await (await fetch(fileUrl)).arrayBuffer());
+  } catch (e) {
+    return Response.json({ error: 'Failed to fetch PDF.', detail: String(e) }, { status: 422 });
   }
 
-  const text = normSpaces(rawText);
+  // ── Raw text extraction (for debug:true and is_form_i check only) ────────────
+  // unpdf still used here, but is NOT the source of extracted field values.
+  // Extraction is done by Claude reading the PDF document directly (below).
+  let rawText = '';
+  try {
+    const pdf = await getDocumentProxy(pdfBytes);
+    const r   = await extractText(pdf, { mergePages: true });
+    rawText   = normSpaces(Array.isArray(r.text) ? r.text.join('\n') : (r.text as string));
+  } catch (_) {
+    rawText = '';
+  }
+
   const warnings: string[] = [];
 
-  // Quick document-type check (no change from v1)
   const isFormI =
-    /AGENT TO AGENT AGREEMENT/i.test(text) ||
-    /FORM\s*I\s*[–\-]\s*SALES/i.test(text) ||
-    /FORM\s*I\s*[\(\–]/i.test(text);
+    /AGENT TO AGENT AGREEMENT/i.test(rawText) ||
+    /FORM\s*I\s*[–\-]\s*SALES/i.test(rawText) ||
+    /FORM\s*I\s*[\(\–]/i.test(rawText);
 
   if (!isFormI) {
     warnings.push(
@@ -164,7 +162,25 @@ Deno.serve(async (req) => {
     }, { status: 500 });
   }
 
-  // ── Claude API call ──────────────────────────────────────────────────────────
+  // ── Base64-encode PDF for Anthropic document block ───────────────────────────
+  let pdfBase64: string;
+  try {
+    const CHUNK = 8192;
+    let binStr = '';
+    for (let i = 0; i < pdfBytes.length; i += CHUNK) {
+      binStr += String.fromCharCode(...pdfBytes.subarray(i, i + CHUNK));
+    }
+    pdfBase64 = btoa(binStr);
+  } catch (e) {
+    return Response.json({
+      ok: false, is_form_i: isFormI,
+      error: 'Failed to base64-encode PDF.',
+      detail: String(e),
+      warnings,
+    }, { status: 422 });
+  }
+
+  // ── Claude API call with PDF document block ──────────────────────────────────
   let aiRawText = '';
   try {
     const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -172,6 +188,7 @@ Deno.serve(async (req) => {
       headers: {
         'x-api-key': anthropicApiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
         'content-type': 'application/json',
       },
       body: JSON.stringify({
@@ -180,7 +197,20 @@ Deno.serve(async (req) => {
         system: AI_SYSTEM,
         messages: [{
           role: 'user',
-          content: 'Extract from this Form I text:\n\n' + text.slice(0, 6000),
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: pdfBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: 'Extract the party details from this Form I PDF and return the JSON as instructed.',
+            },
+          ],
         }],
       }),
     });
@@ -235,7 +265,7 @@ Deno.serve(async (req) => {
     // Return ok:true with empty counterparty so the UI opens the review modal
     // with blank fields rather than crashing.
     const failResponse: Record<string, unknown> = {
-      parser_version: 'v2.1-form-i-ai',
+      parser_version: 'v3-form-i-vision',
       ok: true,
       is_form_i: isFormI,
       erudite_side: null,
@@ -305,9 +335,9 @@ Deno.serve(async (req) => {
     );
   }
 
-  // ── Response (shape identical to v1, plus raw_text fields when debug:true) ──
+  // ── Response (shape identical to v1/v2, plus raw_text fields when debug:true) ──
   const response: Record<string, unknown> = {
-    parser_version: 'v2.1-form-i-ai',
+    parser_version: 'v3-form-i-vision',
     ok:           true,
     is_form_i:    isFormI,
     erudite_side,
