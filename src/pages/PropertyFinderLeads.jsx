@@ -5,7 +5,7 @@ import EruditePage from '@/components/erudite/EruditePage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, Users, UserCheck, Clock, Search, ArrowUpDown, ChevronDown } from 'lucide-react';
+import { RefreshCw, Users, UserCheck, Clock, Search, ArrowUpDown, CheckSquare, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
 import PFLeadCard from '@/components/propertyfinder/PFLeadCard';
 
@@ -46,6 +46,8 @@ export default function PropertyFinderLeads() {
   const [sortField, setSortField] = useState('created_date');
   const [sortDir, setSortDir] = useState('desc');
   const [syncing, setSyncing] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkAgent, setBulkAgent] = useState('');
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['pf-leads'],
@@ -128,6 +130,30 @@ export default function PropertyFinderLeads() {
   };
 
   const handleUpdate = (id, data) => updateMutation.mutate({ id, data });
+
+  const toggleSelect = (id) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every(l => selected.has(l.id));
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelected(prev => { const next = new Set(prev); filtered.forEach(l => next.delete(l.id)); return next; });
+    } else {
+      setSelected(prev => { const next = new Set(prev); filtered.forEach(l => next.add(l.id)); return next; });
+    }
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkAgent || selected.size === 0) return;
+    await Promise.all([...selected].map(id => base44.entities.Lead.update(id, { assigned_agent_email: bulkAgent })));
+    queryClient.invalidateQueries({ queryKey: ['pf-leads'] });
+    setSelected(new Set());
+    setBulkAgent('');
+    toast.success(`Assigned ${selected.size} lead(s) to ${agentLabel(bulkAgent)}`);
+  };
 
   const handleLandlordLink = (leadId, landlordId, unitRef) => {
     const data = { landlord_id: landlordId || null };
@@ -283,11 +309,55 @@ export default function PropertyFinderLeads() {
             )}
           </div>
 
-          {/* Active filter summary */}
-          <p className="text-xs text-muted-foreground">
-            Showing {filtered.length} of {leads.length} leads
-          </p>
+          {/* Active filter summary + select all */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Showing {filtered.length} of {leads.length} leads
+              {selected.size > 0 && <span className="ml-2 text-amber-400">· {selected.size} selected</span>}
+            </p>
+            {filtered.length > 0 && (
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                {allVisibleSelected
+                  ? <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
+                  : <Square className="w-3.5 h-3.5" />}
+                {allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Bulk action bar */}
+        {selected.size > 0 && (
+          <div className="sticky top-2 z-20 flex items-center gap-3 px-4 py-2.5 rounded-xl"
+            style={{ background:'rgba(20,28,48,0.95)', border:'1px solid rgba(245,158,11,0.3)', backdropFilter:'blur(12px)' }}>
+            <span className="text-sm font-medium text-amber-400">{selected.size} lead{selected.size > 1 ? 's' : ''} selected</span>
+            <Select value={bulkAgent} onValueChange={setBulkAgent}>
+              <SelectTrigger className="w-40 h-8 text-xs bg-white/5 border-white/10">
+                <SelectValue placeholder="Choose agent…" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(AGENT_NAMES).map(([email, name]) => (
+                  <SelectItem key={email} value={email}>{name}</SelectItem>
+                ))}
+                {agentEmails.filter(e => !AGENT_NAMES[e]).map(email => (
+                  <SelectItem key={email} value={email}>{agentLabel(email)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleBulkAssign} disabled={!bulkAgent} className="h-8 text-xs">
+              Assign
+            </Button>
+            <button
+              onClick={() => { setSelected(new Set()); setBulkAgent(''); }}
+              className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="w-3.5 h-3.5" /> Clear selection
+            </button>
+          </div>
+        )}
 
         {/* Lead Cards */}
         {isLoading ? (
@@ -297,14 +367,25 @@ export default function PropertyFinderLeads() {
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map(lead => (
-              <PFLeadCard
-                key={lead.id}
-                lead={lead}
-                landlords={landlords}
-                onUpdate={handleUpdate}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                onLandlordLink={handleLandlordLink}
-              />
+              <div key={lead.id} className="relative">
+                <button
+                  onClick={() => toggleSelect(lead.id)}
+                  className="absolute top-2 left-2 z-10 w-5 h-5 flex items-center justify-center rounded transition-colors"
+                  style={{ background: selected.has(lead.id) ? 'rgba(245,158,11,0.2)' : 'rgba(0,0,0,0.4)', border: selected.has(lead.id) ? '1px solid rgba(245,158,11,0.6)' : '1px solid rgba(255,255,255,0.2)' }}
+                  title={selected.has(lead.id) ? 'Deselect' : 'Select'}
+                >
+                  {selected.has(lead.id)
+                    ? <CheckSquare className="w-3 h-3 text-amber-400" />
+                    : <Square className="w-3 h-3 text-white/40" />}
+                </button>
+                <PFLeadCard
+                  lead={lead}
+                  landlords={landlords}
+                  onUpdate={handleUpdate}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  onLandlordLink={handleLandlordLink}
+                />
+              </div>
             ))}
           </div>
         )}
