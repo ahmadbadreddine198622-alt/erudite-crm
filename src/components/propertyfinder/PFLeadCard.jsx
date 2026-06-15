@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Phone, Mail, MessageCircle, Trash2, Link2, ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Emails excluded from the sales-agent dropdown (photographer, bots, etc.)
 const NON_SALES_EMAILS = new Set([
@@ -190,7 +191,7 @@ function LandlordPicker({ lead, landlords, onLink }) {
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 export { NON_SALES_EMAILS };
-export default function PFLeadCard({ lead, landlords, agents = [], onUpdate, onDelete, onLandlordLink }) {
+export default function PFLeadCard({ lead, landlords, agents = [], waConversationId, onUpdate, onDelete, onLandlordLink }) {
   const anonymous = lead.full_name === 'Ahmad Erudite Property';
   const respondLink = lead.notes?.match(/respond:(\S+)/)?.[1] || null;
   const bs = badgeStyle(lead.assigned_agent_email);
@@ -234,6 +235,18 @@ export default function PFLeadCard({ lead, landlords, agents = [], onUpdate, onD
           <div className="flex-1 min-w-0">
             <InlineField label="Phone" value={lead.phone} onSave={save('phone')} placeholder="No phone" />
           </div>
+          {waConversationId && (
+            <Link
+              to={`/whatsapp?conversation=${waConversationId}`}
+              title="Open WhatsApp conversation"
+              onClick={e => e.stopPropagation()}
+              className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
+              style={{ background:'rgba(37,211,102,0.18)', border:'1px solid rgba(37,211,102,0.4)', color:'#4ade80' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+              WA
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground w-16 shrink-0 uppercase tracking-wide">Email</span>

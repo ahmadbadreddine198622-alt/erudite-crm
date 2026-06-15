@@ -54,6 +54,21 @@ export default function PropertyFinderLeads() {
     queryFn: () => base44.entities.Lead.filter({ source: 'property_finder' }, '-created_date', 300),
   });
 
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['wa-conversations-pf'],
+    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 500),
+  });
+
+  // Build a phone→conversation_id map (normalized to last 9 digits for matching)
+  const waConvMap = useMemo(() => {
+    const map = new Map();
+    for (const c of conversations) {
+      const digits = (c.wa_phone_e164 || '').replace(/\D/g, '');
+      if (digits.length >= 9) map.set(digits.slice(-9), c.id);
+    }
+    return map;
+  }, [conversations]);
+
   const { data: landlords = [] } = useQuery({
     queryKey: ['landlords-for-link'],
     queryFn: () => base44.entities.Landlord.list('-created_date', 500),
@@ -389,6 +404,7 @@ export default function PropertyFinderLeads() {
                   lead={lead}
                   landlords={landlords}
                   agents={salesAgents}
+                  waConversationId={waConvMap.get((lead.phone || '').replace(/\D/g, '').slice(-9)) || null}
                   onUpdate={handleUpdate}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onLandlordLink={handleLandlordLink}
