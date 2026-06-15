@@ -47,9 +47,6 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.text(BRAND.name, pad, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(BRAND.address, pad, 18);
   doc.setTextColor(201, 168, 74);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
@@ -74,11 +71,6 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   // Gold rule beneath header
   doc.setFillColor(201, 168, 74);
   doc.rect(0, headerH, W, 1.2, 'F');
-
-  // Logo: centered in the open space between the brand text (left) and the
-  // gold TAX INVOICE box (right). Aspect-fitted, vertically centered in the
-  // navy header band. Silently skipped if src/assets/logo.png is missing.
-  await placeLogo(doc, { x: 80, y: 6, maxW: 48, maxH: 24 });
 
   let y = headerH + 10;
 
