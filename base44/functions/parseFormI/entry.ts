@@ -124,22 +124,18 @@ Deno.serve(async (req) => {
       const r   = await extractText(pdf, { mergePages: true });
       rawText   = Array.isArray(r.text) ? r.text.join('\n') : (r.text as string);
     } catch (e) {
-      return Response.json({
+      const errResponse: Record<string, unknown> = {
         error: 'PDF extraction failed',
         detail: String(e),
         hint: 'Retry with a { text: "..." } body, or verify the file_url is accessible.',
-      }, { status: 422 });
+      };
+      if (body.debug === true && rawText) {
+        errResponse.raw_text_length = rawText.length;
+        errResponse.raw_text_first_4000 = rawText.slice(0, 4000);
+        if (rawText.length <= 8000) errResponse.raw_text_full = rawText;
+      }
+      return Response.json(errResponse, { status: 422 });
     }
-  }
-
-  // ── Debug mode — return raw text for inspection (unchanged from v1) ─────────
-  if (body.debug === true) {
-    return Response.json({
-      parser_version: 'v2-form-i-ai',
-      raw_text_length: rawText.length,
-      raw_text_first_4000: rawText.slice(0, 4000),
-      raw_text_full: rawText.length <= 8000 ? rawText : undefined,
-    });
   }
 
   const text = normSpaces(rawText);
@@ -191,23 +187,35 @@ Deno.serve(async (req) => {
 
     if (!apiRes.ok) {
       const errBody = await apiRes.text().catch(() => '');
-      return Response.json({
+      const errResponse: Record<string, unknown> = {
         ok: false, is_form_i: isFormI,
         error: `Anthropic API returned HTTP ${apiRes.status}`,
         detail: errBody.slice(0, 500),
         warnings,
-      });
+      };
+      if (body.debug === true) {
+        errResponse.raw_text_length = rawText.length;
+        errResponse.raw_text_first_4000 = rawText.slice(0, 4000);
+        if (rawText.length <= 8000) errResponse.raw_text_full = rawText;
+      }
+      return Response.json(errResponse);
     }
 
     const apiJson = await apiRes.json();
     aiRawText = apiJson?.content?.[0]?.text ?? '';
   } catch (e) {
-    return Response.json({
+    const errResponse: Record<string, unknown> = {
       ok: false, is_form_i: isFormI,
       error: 'Anthropic API network error — check connectivity.',
       detail: String(e),
       warnings,
-    });
+    };
+    if (body.debug === true) {
+      errResponse.raw_text_length = rawText.length;
+      errResponse.raw_text_first_4000 = rawText.slice(0, 4000);
+      if (rawText.length <= 8000) errResponse.raw_text_full = rawText;
+    }
+    return Response.json(errResponse);
   }
 
   // ── Parse AI response defensively ───────────────────────────────────────────
@@ -226,7 +234,7 @@ Deno.serve(async (req) => {
     }
     // Return ok:true with empty counterparty so the UI opens the review modal
     // with blank fields rather than crashing.
-    return Response.json({
+    const failResponse: Record<string, unknown> = {
       parser_version: 'v2-form-i-ai',
       ok: true,
       is_form_i: isFormI,
@@ -241,7 +249,13 @@ Deno.serve(async (req) => {
       erudite: null,
       warnings,
       note: 'AI extraction failed — see warnings. Fill fields manually.',
-    });
+    };
+    if (body.debug === true) {
+      failResponse.raw_text_length = rawText.length;
+      failResponse.raw_text_first_4000 = rawText.slice(0, 4000);
+      if (rawText.length <= 8000) failResponse.raw_text_full = rawText;
+    }
+    return Response.json(failResponse);
   }
 
   // ── Build + validate counterparty object ────────────────────────────────────
@@ -291,8 +305,8 @@ Deno.serve(async (req) => {
     );
   }
 
-  // ── Response (shape identical to v1) ────────────────────────────────────────
-  return Response.json({
+  // ── Response (shape identical to v1, plus raw_text fields when debug:true) ──
+  const response: Record<string, unknown> = {
     parser_version: 'v2-form-i-ai',
     ok:           true,
     is_form_i:    isFormI,
@@ -326,5 +340,16 @@ Deno.serve(async (req) => {
     note: erudite_side
       ? `Erudite is the ${erudite_side}'s agent. Counterparty (${their_side}'s agent) details extracted — review before use.`
       : 'Side detection incomplete — see warnings.',
-  });
+  };
+
+  // Add raw text fields for debugging when debug:true
+  if (body.debug === true) {
+    response.raw_text_length = rawText.length;
+    response.raw_text_first_4000 = rawText.slice(0, 4000);
+    if (rawText.length <= 8000) {
+      response.raw_text_full = rawText;
+    }
+  }
+
+  return Response.json(response);
 });
