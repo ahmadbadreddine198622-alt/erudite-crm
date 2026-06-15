@@ -37,26 +37,16 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   const H = 297;
   const pad = 14;
 
-  const headerH = 36;
+  const headerH = 42;
   // Light cream header band (#F7F4EC)
   doc.setFillColor(247, 244, 236);
   doc.rect(0, 0, W, headerH, 'F');
 
-  // Navy text on cream background
-  doc.setTextColor(26, 39, 68);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(BRAND.name, pad, 13);
-  doc.setTextColor(201, 168, 74);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.text(`VAT Reg No: ${BRAND.vatRegNo}`, pad, headerH - 5);
-
-  // TAX INVOICE badge: navy block, gold border, gold text
+  // TAX INVOICE badge: navy block, gold border, gold text (top-right)
   const boxW = 56;
   const boxH = 18;
   const boxX = W - pad - boxW;
-  const boxY = 9;
+  const boxY = 12;
   doc.setFillColor(26, 39, 68);
   doc.rect(boxX, boxY, boxW, boxH, 'F');
   // Gold border (drawn on top of fill)
@@ -68,12 +58,18 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   doc.setFontSize(15);
   doc.text('TAX INVOICE', boxX + boxW / 2, boxY + boxH / 2 + 2, { align: 'center' });
 
+  // Logo: single Erudite logo, top-left with clear spacing (no overlapping text)
+  await placeLogo(doc, { x: pad, y: 8, maxW: 52, maxH: 26 });
+
+  // VAT Reg No line: positioned BELOW the logo with clear vertical spacing
+  doc.setTextColor(201, 168, 74);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(`VAT Reg No: ${BRAND.vatRegNo}`, pad, 40);
+
   // Gold rule beneath header
   doc.setFillColor(201, 168, 74);
   doc.rect(0, headerH, W, 1.2, 'F');
-
-  // Logo: placed on the left side of the header
-  await placeLogo(doc, { x: pad, y: 6, maxW: 48, maxH: 24 });
 
   let y = headerH + 10;
 
