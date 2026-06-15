@@ -103,14 +103,18 @@ function FolderThumbnail({ apps }) {
             className="rounded-lg flex items-center justify-center"
             style={{
               background: `linear-gradient(135deg, var(--tw-gradient-from, #333), var(--tw-gradient-to, #111))`,
-              backgroundImage: `linear-gradient(135deg, ${app.gradient.includes('from-') ? '' : ''})`,
+              backgroundImage: `linear-gradient(135deg, ${app.gradient?.includes('from-') ? '' : ''})`,
             }}
           >
             {/* Use a simple coloured square with the icon — lightweight vs full ExtremeLiquidIcon */}
             <div
-              className={`w-full h-full rounded-lg flex items-center justify-center bg-gradient-to-br ${app.gradient}`}
+              className={`w-full h-full rounded-lg flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
             >
-              <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={1.8} />
+              {Icon ? (
+                <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={1.8} />
+              ) : (
+                <span className="text-[8px] text-white/30">?</span>
+              )}
             </div>
           </div>
         );
@@ -123,6 +127,24 @@ function FolderThumbnail({ apps }) {
 function FolderAppIcon({ app, badges, tilt, onNavigate }) {
   const Icon = app.icon;
   const badgeCount = app.badgeKey ? (badges[app.badgeKey] || 0) : 0;
+  // Guard: if icon is undefined, render a simple fallback square instead of crashing
+  if (!Icon) {
+    return (
+      <button
+        onClick={() => onNavigate(app)}
+        className="flex flex-col items-center gap-1.5 select-none focus:outline-none transition-transform active:scale-95"
+      >
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-800 border border-white/10"
+        >
+          <span className="text-xs text-white/40">?</span>
+        </div>
+        <span className="text-[11px] text-center leading-tight max-w-[64px] font-medium text-white/75 min-h-[2rem] flex items-start justify-center">
+          {app.label}
+        </span>
+      </button>
+    );
+  }
   return (
     <button
       onClick={() => onNavigate(app)}
