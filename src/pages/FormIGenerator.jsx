@@ -166,6 +166,10 @@ async function generateFormIPDF({ eruditeSide, other, property, commA, commB, bu
   };
 
   // ── kv helper (two-column) ──
+  const sanitizeText = (val) => {
+    if (!val) return '';
+    return String(val).replace(/\s+/g, ' ').slice(0, 80);
+  };
   const kv = (labelA, valA, labelB, valB) => {
     if (y > 265) { doc.addPage(); y = 14; }
     doc.setFont('helvetica', 'bold');
@@ -176,8 +180,8 @@ async function generateFormIPDF({ eruditeSide, other, property, commA, commB, bu
     doc.text(labelB + ':', col2x, y + 3.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...dark);
-    doc.text(String(valA || ''), col1x + 30, y + 3.5, { maxWidth: (W / 2 - pad - 32) });
-    doc.text(String(valB || ''), col2x + 30, y + 3.5, { maxWidth: (W / 2 - pad - 32) });
+    doc.text(sanitizeText(valA), col1x + 30, y + 3.5, { maxWidth: (W / 2 - pad - 32) });
+    doc.text(sanitizeText(valB), col2x + 30, y + 3.5, { maxWidth: (W / 2 - pad - 32) });
     doc.setDrawColor(220, 225, 235);
     doc.setLineWidth(0.2);
     doc.line(pad, y + 6, W - pad, y + 6);
