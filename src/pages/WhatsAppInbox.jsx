@@ -346,9 +346,8 @@ export default function WhatsAppInbox() {
     mutationFn: ({ message, channel, convId }) =>
       base44.functions.invoke('sendMultiChannelWhatsApp', { 
         conversation_id: convId,
-        landlord_id: selectedLead?.id,
         text: message,
-        channel: channel || 'business'
+        channel: channel || selectedConv?.channel || 'personal'
       }),
     onSuccess: (res, variables) => {
       const { convId } = variables;
@@ -390,6 +389,8 @@ export default function WhatsAppInbox() {
     if (!text?.trim() || !selectedConvId) return;
     const trimmed = text.trim();
     const convId = selectedConvId;
+    // Resolve channel: use selectedChannel if set, else fall back to conversation's stored channel
+    const effectiveChannel = selectedChannel || selectedConv?.channel || 'personal';
     // Optimistic update — add pending message to the current thread
     const now = new Date().toISOString();
     setOptimisticMessages(prev => ({
@@ -401,10 +402,10 @@ export default function WhatsAppInbox() {
         timestamp: now,
         status: 'pending',
         conversation_id: convId,
-        channel: selectedChannel,
+        channel: effectiveChannel,
       }
     }));
-    sendMutation.mutate({ message: trimmed, channel: selectedChannel, convId });
+    sendMutation.mutate({ message: trimmed, channel: effectiveChannel, convId });
   };
 
   const handleScheduleSend = (text, _minutes) => {

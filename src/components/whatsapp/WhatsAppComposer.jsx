@@ -23,7 +23,9 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
   const contactName = landlord?.full_name_en || lead?.full_name || conversation?.wa_display_name;
 
   const lastInbound = conversation?.last_inbound_at;
-  const windowLocked = lastInbound
+  const effectiveChannel = selectedChannel || conversation?.channel || 'personal';
+  // 24h window only applies to business (Meta Cloud API) channel — personal (Evolution) has no restriction
+  const windowLocked = effectiveChannel === 'business' && lastInbound
     ? (Date.now() - new Date(lastInbound).getTime()) >= 24 * 60 * 60 * 1000
     : false;
 
