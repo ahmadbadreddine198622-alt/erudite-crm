@@ -57,7 +57,7 @@ export default function WhatsAppInbox() {
   const prevScrollPosition = useRef(0);
 
   // Internal numbers - our own lines that should never appear as leads
-  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000'];
+  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
   // Conversations list polling — 15s interval (reduced load, acceptable latency for list)
@@ -277,6 +277,9 @@ export default function WhatsAppInbox() {
     // Check if current user has admin/manager permissions
     const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
     
+    // Malik channel: only visible to admin or Malik himself
+    if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
+    
     if (!isAdmin && currentUser) {
       // Strict isolation: agents only see conversations explicitly assigned to them
       if (c.assigned_agent_email !== currentUser.email) return false;
@@ -288,6 +291,7 @@ export default function WhatsAppInbox() {
     const matchesChannel = filterChannel === 'all' ? true
       : filterChannel === 'business' ? (c.channel === 'business')
       : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
+      : filterChannel === 'malik' ? (c.channel === 'malik')
       : true;
     
     const lead = leads.find(l => l.id === c.lead_id);
@@ -734,9 +738,10 @@ export default function WhatsAppInbox() {
           </div>
           {/* Channel filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'business', 'personal'].map(c => {
+            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : [])].map(c => {
               const isSelected = filterChannel === c;
-              const bgColor = isSelected ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'rgba(255,255,255,0.05)';
+              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : 'hsl(38 92% 50%)';
+              const bgColor = isSelected ? activeColor : 'rgba(255,255,255,0.05)';
               return (
                 <button
                   key={c}
@@ -745,10 +750,10 @@ export default function WhatsAppInbox() {
                   style={{
                     background: bgColor,
                     color: isSelected ? 'white' : 'rgba(255,255,255,0.55)',
-                    border: `1px solid ${isSelected ? (c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : 'hsl(38 92% 50%)') : 'transparent'}`,
+                    border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
                   }}
                 >
-                  {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : '👤 Pers'}
+                  {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : '💜 Malik'}
                 </button>
               );
             })}

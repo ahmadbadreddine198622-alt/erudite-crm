@@ -15,6 +15,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const BUSINESS_NUMBER = '+971582806000';
 const PERSONAL_NUMBER = '+971581806000';
+const MALIK_NUMBER = '+971529871277';
 
 function stripPlus(raw) {
   if (!raw) return '';
@@ -338,9 +339,9 @@ Deno.serve(async (req) => {
 
   const event = body?.event || '';
   const instanceName = (body?.instance || '').toLowerCase();
-  // Both "erudite" (business Meta number) and "erudite_whatsapp" (personal) are handled
-  const channel = instanceName === 'erudite' ? 'business' : 'personal';
-  const myNumber = channel === 'business' ? BUSINESS_NUMBER : PERSONAL_NUMBER;
+  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "malik_whatsapp" (Malik personal)
+  const channel = instanceName === 'erudite' ? 'business' : instanceName === 'malik_whatsapp' ? 'malik' : 'personal';
+  const myNumber = channel === 'business' ? BUSINESS_NUMBER : channel === 'malik' ? MALIK_NUMBER : PERSONAL_NUMBER;
 
   try {
     // ---- Status updates ----

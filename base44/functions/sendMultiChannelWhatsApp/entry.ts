@@ -18,6 +18,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const INSTANCE_MAP = {
   business: 'erudite',
   personal: 'erudite_whatsapp',
+  malik: 'malik_whatsapp',
+};
+
+const FROM_NUMBER_MAP = {
+  business: '+971582806000',
+  personal: '+971581806000',
+  malik: '+971529871277',
 };
 
 function toDigits(raw) {
@@ -43,8 +50,8 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
   }
 
-  if (!['business', 'personal'].includes(channel)) {
-    return Response.json({ error: 'Invalid channel. Must be "business" or "personal"' }, { status: 400 });
+  if (!['business', 'personal', 'malik'].includes(channel)) {
+    return Response.json({ error: 'Invalid channel. Must be "business", "personal", or "malik"' }, { status: 400 });
   }
 
   const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
@@ -215,7 +222,7 @@ Deno.serve(async (req) => {
         timestamp: new Date().toISOString(),
         status: 'sent',
         wa_message_id: waId,
-        from_number: effectiveChannel === 'business' ? '+971582806000' : '+971581806000',
+        from_number: FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
         to_number: '+' + number,
         channel: effectiveChannel,
         media_type: 'none',
