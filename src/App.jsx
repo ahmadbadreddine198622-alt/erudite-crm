@@ -39,7 +39,7 @@ import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
 import PropertyFinderDashboard from '@/pages/PropertyFinderDashboard';
-import PropertyFinderLeads from '@/pages/PropertyFinderLeads.js';
+import PropertyFinderLeads from '@/pages/PropertyFinderLeads';
 import Landlords from '@/pages/Landlords';
 import Messages from '@/pages/Messages';
 import EmailAutomations from '@/pages/EmailAutomations';
