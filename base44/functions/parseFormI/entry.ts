@@ -14,7 +14,7 @@ const ERUDITE_ORN = '29322';
 const ERUDITE_BRN = '34625';
 
 function normSpaces(s: string): string {
-  return s.replace(/ /g, ' ').replace(/­/g, '-');
+  return s.replace(/ /g, ' ').replace(/­/g, '-');
 }
 
 // Coerce any AI-returned value: trim, blank out placeholder non-values.
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
     // Return ok:true with empty counterparty so the UI opens the review modal
     // with blank fields rather than crashing.
     const failResponse: Record<string, unknown> = {
-      parser_version: 'v2-form-i-ai',
+      parser_version: 'v2.1-form-i-ai',
       ok: true,
       is_form_i: isFormI,
       erudite_side: null,
@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
 
   // ── Response (shape identical to v1, plus raw_text fields when debug:true) ──
   const response: Record<string, unknown> = {
-    parser_version: 'v2-form-i-ai',
+    parser_version: 'v2.1-form-i-ai',
     ok:           true,
     is_form_i:    isFormI,
     erudite_side,
