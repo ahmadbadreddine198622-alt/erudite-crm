@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, ExternalLink, Users, UserCheck, Clock, Search } from 'lucide-react';
+import { RefreshCw, ExternalLink, Users, UserCheck, Clock, Search, Phone, Mail, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AGENT_NAMES = {
@@ -20,11 +20,38 @@ const AGENT_NAMES = {
 
 // Low-opacity tint per agent — layered over the dark card base (~7% opacity)
 const AGENT_TINT = {
-  'ahmad@erudite-estate.com': 'rgba(59, 130, 246, 0.07)',   // blue
-  'dari@erudite-estate.com':  'rgba(16, 185, 129, 0.07)',   // emerald
-  'tuiara@erudite-estate.com':'rgba(139, 92, 246, 0.07)',   // violet
-  'malik@erudite-estate.com': 'rgba(245, 158, 11, 0.07)',   // amber
+  'ahmad@erudite-estate.com': 'rgba(59, 130, 246, 0.07)',
+  'dari@erudite-estate.com':  'rgba(16, 185, 129, 0.07)',
+  'tuiara@erudite-estate.com':'rgba(139, 92, 246, 0.07)',
+  'malik@erudite-estate.com': 'rgba(245, 158, 11, 0.07)',
 };
+
+// Deterministic badge color per agent (hash-based for unknown emails)
+const AGENT_BADGE_COLORS = {
+  'ahmad@erudite-estate.com': { bg: 'rgba(59,130,246,0.18)', color: '#93c5fd', border: 'rgba(59,130,246,0.35)' },
+  'dari@erudite-estate.com':  { bg: 'rgba(16,185,129,0.18)', color: '#6ee7b7', border: 'rgba(16,185,129,0.35)' },
+  'tuiara@erudite-estate.com':{ bg: 'rgba(139,92,246,0.18)', color: '#c4b5fd', border: 'rgba(139,92,246,0.35)' },
+  'malik@erudite-estate.com': { bg: 'rgba(244,63,94,0.18)',  color: '#fda4af', border: 'rgba(244,63,94,0.35)' },
+};
+
+const HASH_PALETTES = [
+  { bg: 'rgba(6,182,212,0.18)',   color: '#67e8f9', border: 'rgba(6,182,212,0.35)' },
+  { bg: 'rgba(234,179,8,0.18)',   color: '#fde68a', border: 'rgba(234,179,8,0.35)' },
+  { bg: 'rgba(249,115,22,0.18)',  color: '#fdba74', border: 'rgba(249,115,22,0.35)' },
+  { bg: 'rgba(168,85,247,0.18)',  color: '#d8b4fe', border: 'rgba(168,85,247,0.35)' },
+  { bg: 'rgba(236,72,153,0.18)',  color: '#f9a8d4', border: 'rgba(236,72,153,0.35)' },
+];
+
+function hashEmail(email) {
+  let h = 0;
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function agentBadgeStyle(email) {
+  if (!email) return { bg: 'rgba(148,163,184,0.12)', color: 'rgba(255,255,255,0.4)', border: 'rgba(148,163,184,0.2)' };
+  return AGENT_BADGE_COLORS[email] || HASH_PALETTES[hashEmail(email) % HASH_PALETTES.length];
+}
 
 function cardStyle(email, anonymous) {
   const tint = AGENT_TINT[email];
@@ -81,6 +108,12 @@ export default function PropertyFinderLeads() {
     mutationFn: ({ id, email }) => base44.entities.Lead.update(id, { assigned_agent_email: email }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pf-leads'] }),
     onError: () => toast.error('Failed to reassign lead'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Lead.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['pf-leads'] }); toast.success('Lead deleted'); },
+    onError: () => toast.error('Failed to delete lead'),
   });
 
   const handleSync = async () => {
@@ -192,10 +225,18 @@ export default function PropertyFinderLeads() {
                         {new Date(lead.created_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     </div>
-                    {/* Agent badge */}
-                    <span className="jewel-pill jewel-gold whitespace-nowrap">
-                      {agentLabel(lead.assigned_agent_email)}
-                    </span>
+                    {/* Agent badge — deterministic color per agent */}
+                    {(() => {
+                      const s = agentBadgeStyle(lead.assigned_agent_email);
+                      return (
+                        <span
+                          className="whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+                        >
+                          {agentLabel(lead.assigned_agent_email)}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Contact */}
@@ -212,13 +253,57 @@ export default function PropertyFinderLeads() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Inline agent reassign */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* WhatsApp */}
+                    {lead.phone && (
+                      <a
+                        href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="WhatsApp"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                        style={{ background: 'rgba(37,211,102,0.18)', border: '1px solid rgba(37,211,102,0.35)' }}
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" style={{ color: '#25D166' }} />
+                      </a>
+                    )}
+                    {/* Call */}
+                    {lead.phone && (
+                      <a
+                        href={`tel:${lead.phone}`}
+                        title="Call"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                        style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.35)' }}
+                      >
+                        <Phone className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+                      </a>
+                    )}
+                    {/* Email */}
+                    {lead.email ? (
+                      <a
+                        href={`mailto:${lead.email}`}
+                        title="Email"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+                        style={{ background: 'rgba(168,85,247,0.18)', border: '1px solid rgba(168,85,247,0.35)' }}
+                      >
+                        <Mail className="w-3.5 h-3.5" style={{ color: '#c084fc' }} />
+                      </a>
+                    ) : (
+                      <span
+                        title="No email"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-30 cursor-not-allowed"
+                        style={{ background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.2)' }}
+                      >
+                        <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                      </span>
+                    )}
+
+                    {/* Assign dropdown */}
                     <Select
                       value={lead.assigned_agent_email || ''}
                       onValueChange={email => assignMutation.mutate({ id: lead.id, email })}
                     >
-                      <SelectTrigger className="h-7 text-xs w-32 bg-white/5 border-white/10">
+                      <SelectTrigger className="h-7 text-xs w-28 bg-white/5 border-white/10">
                         <SelectValue placeholder="Assign…" />
                       </SelectTrigger>
                       <SelectContent>
@@ -228,6 +313,7 @@ export default function PropertyFinderLeads() {
                       </SelectContent>
                     </Select>
 
+                    {/* Respond on PF */}
                     {anonymous && respondLink && (
                       <a href={respondLink} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
@@ -236,6 +322,16 @@ export default function PropertyFinderLeads() {
                         </Button>
                       </a>
                     )}
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => { if (confirm('Delete this lead?')) deleteMutation.mutate(lead.id); }}
+                      title="Delete lead"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110 ml-auto"
+                      style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" style={{ color: '#f87171' }} />
+                    </button>
                   </div>
                 </Card>
               );
