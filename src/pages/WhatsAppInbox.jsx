@@ -278,8 +278,8 @@ export default function WhatsAppInbox() {
     const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
     
     if (!isAdmin && currentUser) {
-      // Regular agents: only see conversations assigned to them OR unassigned ones
-      if (c.assigned_agent_email && c.assigned_agent_email !== currentUser.email) return false;
+      // Strict isolation: agents only see conversations explicitly assigned to them
+      if (c.assigned_agent_email !== currentUser.email) return false;
     }
     
     // Admin/manager can filter by agent, but regular agents can only see their own
