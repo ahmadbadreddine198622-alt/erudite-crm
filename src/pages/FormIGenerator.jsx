@@ -777,11 +777,29 @@ export default function FormIGenerator() {
 
     setUploading(true);
     let diagnosticData = null;
+    let fileUrl = null;
     try {
-      // (a) Upload to Base44 storage
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
-      const fileUrl = uploadRes.file_url;
+      // (a) Upload to Base44 storage using Core integration
+      console.log('[FormI] Calling UploadFile with file:', file.name, file.type, file.size);
+      let uploadRes;
+      try {
+        uploadRes = await base44.integrations.Core.UploadFile({ file });
+      } catch (uploadErr) {
+        console.error('[FormI] UploadFile integration call failed:', uploadErr);
+        console.error('[FormI] Error details:', {
+          message: uploadErr.message,
+          name: uploadErr.name,
+          stack: uploadErr.stack,
+          response: uploadErr.response?.data,
+          status: uploadErr.response?.status,
+        });
+        throw uploadErr;
+      }
+      fileUrl = uploadRes.file_url;
       console.log('[FormI] Storage URL after upload:', fileUrl);
+      if (!fileUrl) {
+        throw new Error('UploadFile returned no file_url');
+      }
 
       // (b) Exact payload sent to parseFormI
       const parsePayload = { file_url: fileUrl, debug: true };
@@ -833,7 +851,7 @@ export default function FormIGenerator() {
       // Build error diagnostic data
       diagnosticData = {
         success: false,
-        file_url: diagnosticData?.file_url || '(upload failed)',
+        file_url: fileUrl || '(upload failed)',
         http_status: null,
         raw_response: null,
         error: {
