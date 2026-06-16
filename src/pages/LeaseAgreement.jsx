@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -214,6 +214,25 @@ export default function LeaseAgreement() {
     onError: (e) => toast.error('Failed to create draft: ' + e.message),
   });
 
+  const handleDownloadPdf = async (landlord) => {
+    const pdfUrl = pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id];
+    if (!pdfUrl) return;
+    try {
+      const res = await fetch(pdfUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `LeaseAgreement-${(landlord.full_name_en || 'landlord').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      toast.error('Download failed: ' + e.message);
+    }
+  };
+
   const openManual = (landlord) => {
     const init = Object.fromEntries(MANUAL_FIELDS.map((k) => [k, '']));
     init.owner_name  = landlord.full_name_en || '';
@@ -419,6 +438,15 @@ export default function LeaseAgreement() {
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Button>
                       )}
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-8 w-8 p-0 text-white/60 hover:text-white"
+                        title={pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id] ? 'Download PDF' : 'Generate first'}
+                        onClick={() => handleDownloadPdf(landlord)}
+                        disabled={!(pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id])}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
