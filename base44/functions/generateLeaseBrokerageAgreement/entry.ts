@@ -173,6 +173,12 @@ Deno.serve(async (req) => {
       property = await base44.asServiceRole.entities.Property.get(lpRow.property_id).catch(() => null);
     }
 
+    // ── Resolve multi-owner rows via LandlordOwner (Stage 3) ─────────────
+    // Empty array → render the single-owner block from landlord.* (legacy).
+    // ≥1 row → render one compact block per owner.
+    const owners: any[] = await base44.asServiceRole.entities.LandlordOwner
+      .filter({ landlord_id }).catch(() => []);
+
     // ── Resolve agent (User) via assigned_agent_email ────────────────────
     let agent: any = null;
     if (landlord.assigned_agent_email) {
@@ -321,13 +327,41 @@ Deno.serve(async (req) => {
     row('BRN:', f.brn || '—');
     row('Agent Email:', f.agent_email || '—');
 
-    // ── OWNER ────────────────────────────────────────────────────────────
-    section('OWNER');
-    row('Full Name:', f.owner_name || '—');
-    row('Passport No.:', f.passport_no || '—');
-    row('Nationality:', f.nationality || '—');
-    row('Email:', f.owner_email || '—');
-    row('Phone:', f.owner_phone || '—');
+    // ── OWNER(S) ─────────────────────────────────────────────────────────
+    // Branch on LandlordOwner rows for backward-compat:
+    //   - 0 rows → single owner block from landlord.* (legacy — unchanged).
+    //   - ≥1 row → list ALL owners, one compact block each (name + any
+    //     identity fields present). Heading singular vs plural.
+    if (owners.length === 0) {
+      section('OWNER');
+      row('Full Name:', f.owner_name || '—');
+      row('Passport No.:', f.passport_no || '—');
+      row('Nationality:', f.nationality || '—');
+      row('Email:', f.owner_email || '—');
+      row('Phone:', f.owner_phone || '—');
+    } else {
+      section(owners.length > 1 ? 'OWNERS' : 'OWNER');
+      owners.forEach((o: any, i: number) => {
+        // Per-owner header line: "Owner 1:" + name. Always shown.
+        const name = (typeof o?.full_name_en === 'string' && o.full_name_en.trim())
+          ? o.full_name_en.trim()
+          : '—';
+        row(`Owner ${i + 1}:`, name);
+        // Identity rows — only render when value is present (skip blank
+        // lines so owners with only a name stay compact).
+        if (typeof o?.passport_no === 'string' && o.passport_no.trim()) {
+          row('  Passport No.:', o.passport_no.trim());
+        }
+        if (typeof o?.emirates_id === 'string' && o.emirates_id.trim()) {
+          row('  Emirates ID:', o.emirates_id.trim());
+        }
+        if (typeof o?.nationality === 'string' && o.nationality.trim()) {
+          row('  Nationality:', o.nationality.trim());
+        }
+        // Visual gap between owner blocks (skip after last).
+        if (i < owners.length - 1) y += 2;
+      });
+    }
 
     // ── PROPERTY ─────────────────────────────────────────────────────────
     section('PROPERTY');
