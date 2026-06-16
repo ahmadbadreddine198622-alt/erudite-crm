@@ -268,6 +268,13 @@ export default function LeaseAgreement() {
     onError: (e) => toast.error('Failed to create draft: ' + e.message),
   });
 
+  const handleRegenerate = (landlord) => {
+    if (landlord.lease_agreement_status === 'sent_for_signature') {
+      if (!confirm('This agreement was already sent for signature. Regenerate and overwrite it?')) return;
+    }
+    generateMutation.mutate({ landlord_id: landlord.id, force: true });
+  };
+
   // Shared download — tries fetch+blob (same-origin), falls back to new-tab (cross-origin like Google Drive).
   const downloadPdfFile = async (pdfUrl, fileName) => {
     console.log('[LeaseAgreement] Download PDF — URL:', pdfUrl);
@@ -467,9 +474,9 @@ export default function LeaseAgreement() {
                 const status = landlord.lease_agreement_status;
                 // Idempotency guard mirrors the server side — disable the
                 // button when we know the function will reject the call.
-                const locked = status === 'sent_for_signature' || status === 'signed';
+                const locked = status === 'signed';
                 const buttonLabel = !status ? 'Generate'
-                  : status === 'sent_for_signature' ? 'Sent'
+                  : status === 'sent_for_signature' ? 'Regenerate'
                   : status === 'signed' ? 'Signed'
                   : status === 'cancelled' ? 'Regenerate'
                   : 'Regenerate';
@@ -544,12 +551,14 @@ export default function LeaseAgreement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => generateMutation.mutate(landlord.id)}
+                        onClick={() => handleRegenerate(landlord)}
                         disabled={isThisPending || locked || generateMutation.isPending}
                         className="gap-1.5"
                         title={
                           locked
-                            ? `Already ${status.replace(/_/g, ' ')} — idempotency guard blocks regeneration`
+                            ? `Already ${status.replace(/_/g, ' ')} — cannot regenerate signed agreements`
+                            : status === 'sent_for_signature'
+                            ? 'Regenerate and overwrite the previously sent agreement'
                             : 'Generate Lease Brokerage Agreement and send to owner via DocuSign'
                         }
                       >
