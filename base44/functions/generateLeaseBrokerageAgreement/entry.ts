@@ -263,8 +263,8 @@ Deno.serve(async (req) => {
   
   // Single Erudite logo only (top-left) - matching Tax Invoice style
   // Logo placed in cream header band (top-left)
-  if (LOGO_DATA_URL) {
-    const logo = await loadImage(LOGO_DATA_URL);
+  if (LOGO_DATA_URI) {
+    const logo = await loadImage(LOGO_DATA_URI);
     if (logo) {
       const aspect = logo.width / logo.height;
       const lh = 16;
