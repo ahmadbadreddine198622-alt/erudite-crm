@@ -104,7 +104,10 @@ async function _fetchLogoOnce(base44: any): Promise<string | null> {
     _logoCacheUri = `data:image/png;base64,${btoa(bin)}`;
     console.log('[logo] Successfully loaded from CompanySettings.logo_url');
     return _logoCacheUri;
-  } catch { return null; }
+  } catch (err: any) {
+    console.error('[logo] _fetchLogoOnce failed:', err?.message ?? err);
+    return null;
+  }
 }
 
 function fmtDate(d: Date): string {
