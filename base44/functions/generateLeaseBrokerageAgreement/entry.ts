@@ -85,24 +85,24 @@ const OWNER_DOC_CHECKBOXES: { key: string; label: string }[] = [
 
 // fetchAsDataUri removed — assets are now inline base64 constants (see top of file).
 
-// LOGO is served from /public/ which is auth-gated; we fetch it once per isolate
-// using the incoming request's auth headers, then cache the result so every
-// subsequent PDF request in the same isolate gets the logo instantly.
+// Logo: load from CompanySettings.logo_url (public Base44 media URL — fetchable
+// server-side with no auth). Cached per isolate for subsequent PDF requests.
 let _logoCacheUri: string | null = null;
-async function _fetchLogoOnce(req: Request): Promise<string | null> {
+async function _fetchLogoOnce(base44: any): Promise<string | null> {
   if (_logoCacheUri) return _logoCacheUri;
   try {
-    const fwdHeaders: Record<string, string> = { Accept: 'image/*' };
-    for (const [k, v] of req.headers.entries()) {
-      if (k === 'authorization' || k === 'cookie') fwdHeaders[k] = v;
-    }
-    const res = await fetch('https://dubai-estate-pro.base44.app/erudite-logo.png', { headers: fwdHeaders });
+    const settings = await base44.asServiceRole.entities.CompanySettings.list(undefined, 1);
+    const logoUrl = settings?.[0]?.logo_url;
+    if (!logoUrl) { console.log('[logo] CompanySettings.logo_url empty — falling back to inline base64'); return null; }
+    console.log('[logo] Fetching from CompanySettings.logo_url:', logoUrl);
+    const res = await fetch(logoUrl);
     if (!res.ok) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     let bin = '';
     const chunk = 8192;
     for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.slice(i, i + chunk));
     _logoCacheUri = `data:image/png;base64,${btoa(bin)}`;
+    console.log('[logo] Successfully loaded from CompanySettings.logo_url');
     return _logoCacheUri;
   } catch { return null; }
 }
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     // ── Load branded images ─────────────────────────────────────────
     // LOGO: fetched from the app using request auth (cached per isolate; /public/ is auth-gated).
     // SIGNATURE + STAMP: already inlined as base64 constants at the top of this file.
-    const logoData  = await _fetchLogoOnce(req);
+    const logoData  = await _fetchLogoOnce(base44);
     const sigData   = SIGNATURE_DATA_URI;
     const stampData = STAMP_DATA_URI;
 
@@ -263,6 +263,7 @@ Deno.serve(async (req) => {
   
   // Single Erudite logo only (top-left) - matching Tax Invoice style
   // Logo placed in cream header band (top-left) — fallback when _fetchLogoOnce returned null
+  if (!logoData) console.log('[logo] Using inline LOGO_DATA_URI fallback');
   if (!logoData && LOGO_DATA_URI) {
     try { doc.addImage(LOGO_DATA_URI, 'PNG', 14, 10, 32, 16); } catch { /* ignore */ }
   }
