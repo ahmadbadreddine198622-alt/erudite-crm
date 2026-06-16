@@ -1,0 +1,57 @@
+{
+  "name": "LandlordOwner",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Links this owner to the Landlord agreement record"
+    },
+    "full_name_en": {
+      "type": "string",
+      "description": "Owner name (Latin)"
+    },
+    "full_name_ar": {
+      "type": "string",
+      "description": "Owner name (Arabic)"
+    },
+    "nationality": {
+      "type": "string",
+      "description": "Nationality"
+    },
+    "emirates_id": {
+      "type": "string",
+      "description": "Emirates ID number"
+    },
+    "passport_no": {
+      "type": "string",
+      "description": "Passport number"
+    },
+    "date_of_birth": {
+      "type": "string",
+      "description": "Date of birth (varied formats)"
+    },
+    "id_expiry_date": {
+      "type": "string",
+      "description": "ID/passport expiry date"
+    },
+    "ownership_share_pct": {
+      "type": "number",
+      "description": "Ownership share percentage from the deed"
+    },
+    "id_file_url": {
+      "type": "string",
+      "description": "Stored ID/passport file URL"
+    },
+    "id_doc_type": {
+      "type": "string",
+      "enum": [
+        "emirates_id",
+        "passport"
+      ],
+      "description": "Which document type filled this record"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ]
+}
