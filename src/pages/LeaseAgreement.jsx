@@ -214,6 +214,58 @@ export default function LeaseAgreement() {
     onError: (e) => toast.error('Failed to create draft: ' + e.message),
   });
 
+  // ── Manual Create (blank form) ──────────────────────────────────────────
+  const [manualCreateOpen, setManualCreateOpen] = useState(false);
+  const [manualCreateForm, setManualCreateForm] = useState({
+    owner_name: '', passport_no: '', nationality: '', owner_email: '', owner_phone: '',
+    property_type: '', location: '', building_name: '', unit_no: '', view: '',
+    bedrooms: '', bathrooms: '', area_sqft: '', price_aed: '', rent_aed: '',
+  });
+
+  const manualCreateUpdate = (k, v) => setManualCreateForm(f => ({ ...f, [k]: v }));
+
+  const manualCreateMutation = useMutation({
+    mutationFn: () => {
+      const f = manualCreateForm;
+      const notes = [
+        f.property_type && `Property Type: ${f.property_type}`,
+        f.location && `Location: ${f.location}`,
+        f.building_name && `Building: ${f.building_name}`,
+        f.unit_no && `Unit: ${f.unit_no}`,
+        f.view && `View: ${f.view}`,
+        f.bedrooms && `Bedrooms: ${f.bedrooms}`,
+        f.bathrooms && `Bathrooms: ${f.bathrooms}`,
+        f.area_sqft && `Area: ${f.area_sqft} sqft`,
+        f.price_aed && `Price: ${f.price_aed} AED`,
+        f.rent_aed && `Rent: ${f.rent_aed} AED`,
+      ].filter(Boolean);
+      return base44.entities.Landlord.create({
+        full_name_en: f.owner_name,
+        passport_no: f.passport_no,
+        nationality: f.nationality,
+        email: f.owner_email,
+        phone: f.owner_phone,
+        source: 'other',
+        stage: 'initial_contact',
+        assigned_agent_email: currentUser?.email || '',
+        lease_agreement_status: 'drafted',
+        notes_internal: notes.length > 0 ? 'Manually created.\n' + notes.join('\n') : 'Manually created.',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Draft agreement created');
+      setManualCreateOpen(false);
+      setManualCreateForm({
+        owner_name: '', passport_no: '', nationality: '', owner_email: '', owner_phone: '',
+        property_type: '', location: '', building_name: '', unit_no: '', view: '',
+        bedrooms: '', bathrooms: '', area_sqft: '', price_aed: '', rent_aed: '',
+      });
+    },
+    onError: (e) => toast.error('Failed to create draft: ' + e.message),
+  });
+
   const handleDownloadPdf = async (landlord) => {
     const pdfUrl = pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id];
     if (!pdfUrl) return;
@@ -352,6 +404,18 @@ export default function LeaseAgreement() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Create Manual Agreement ── */}
+      <div className="mb-4 flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 border-accent/40 text-accent hover:bg-accent/10 hover:border-accent"
+          onClick={() => setManualCreateOpen(true)}
+        >
+          <FileSignature className="w-4 h-4" /> Create Manual Agreement
+        </Button>
       </div>
 
       <Card className="glass-card">
@@ -787,6 +851,116 @@ export default function LeaseAgreement() {
               className="gap-1.5"
             >
               {deedCreateMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <FileSignature className="w-3.5 h-3.5" />}
+              Create Draft Agreement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Manual Create Agreement Modal ── */}
+      <Dialog open={manualCreateOpen} onOpenChange={(o) => { if (!o) setManualCreateOpen(false); }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="w-5 h-5 text-accent" />
+              Create Manual Agreement
+            </DialogTitle>
+            <DialogDescription>
+              Enter owner and property details to create a new draft agreement.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Owner</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Full Name</Label>
+                  <Input value={manualCreateForm.owner_name} onChange={(e) => manualCreateUpdate('owner_name', e.target.value)} placeholder="Owner full name" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Passport No.</Label>
+                  <Input value={manualCreateForm.passport_no} onChange={(e) => manualCreateUpdate('passport_no', e.target.value)} placeholder="Passport number" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nationality</Label>
+                  <Input value={manualCreateForm.nationality} onChange={(e) => manualCreateUpdate('nationality', e.target.value)} placeholder="e.g. UAE" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={manualCreateForm.owner_email} onChange={(e) => manualCreateUpdate('owner_email', e.target.value)} placeholder="owner@example.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={manualCreateForm.owner_phone} onChange={(e) => manualCreateUpdate('owner_phone', e.target.value)} placeholder="+971…" />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Property</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Property Type</Label>
+                  <select
+                    value={manualCreateForm.property_type}
+                    onChange={(e) => manualCreateUpdate('property_type', e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  >
+                    <option value="">— Select —</option>
+                    {PROPERTY_TYPE_OPTIONS.filter(o => o.value).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Unit No.</Label>
+                  <Input value={manualCreateForm.unit_no} onChange={(e) => manualCreateUpdate('unit_no', e.target.value)} placeholder="e.g. 1204" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Building / Community</Label>
+                  <Input value={manualCreateForm.building_name} onChange={(e) => manualCreateUpdate('building_name', e.target.value)} placeholder="Building name" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Location</Label>
+                  <Input value={manualCreateForm.location} onChange={(e) => manualCreateUpdate('location', e.target.value)} placeholder="e.g. Dubai Marina" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">View</Label>
+                  <Input value={manualCreateForm.view} onChange={(e) => manualCreateUpdate('view', e.target.value)} placeholder="e.g. Sea view" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Area (sqft)</Label>
+                  <Input type="number" value={manualCreateForm.area_sqft} onChange={(e) => manualCreateUpdate('area_sqft', e.target.value)} placeholder="Area" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bedrooms</Label>
+                  <Input type="number" value={manualCreateForm.bedrooms} onChange={(e) => manualCreateUpdate('bedrooms', e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bathrooms</Label>
+                  <Input type="number" value={manualCreateForm.bathrooms} onChange={(e) => manualCreateUpdate('bathrooms', e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Price (AED)</Label>
+                  <Input type="number" value={manualCreateForm.price_aed} onChange={(e) => manualCreateUpdate('price_aed', e.target.value)} placeholder="Sale price" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Rent (AED)</Label>
+                  <Input type="number" value={manualCreateForm.rent_aed} onChange={(e) => manualCreateUpdate('rent_aed', e.target.value)} placeholder="Annual rent" />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualCreateOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => manualCreateMutation.mutate()}
+              disabled={manualCreateMutation.isPending}
+              className="gap-1.5"
+            >
+              {manualCreateMutation.isPending
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <FileSignature className="w-3.5 h-3.5" />}
               Create Draft Agreement
