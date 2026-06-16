@@ -1,8 +1,8 @@
-// generateLeaseBrokerageAgreement — Lease Brokerage Agreement (RERA Form A
-// equivalent) PDF for an Erudite landlord. Server-side render with jsPDF
-// 4.0.0 (same pattern as generateAndSendContract), pre-signs the broker
-// block, hands off to DocuSign for the owner's signature, and writes the
-// status back onto the Landlord record.
+// generateLeaseBrokerageAgreement — No Objection Letter to Lease a Property
+// (NOC) PDF for an Erudite landlord. Server-side render with jsPDF 4.0.0
+// (same pattern as generateAndSendContract), pre-signs the broker block,
+// hands off to DocuSign for the owner's signature, and writes the status
+// back onto the Landlord record.
 //
 // Two callers — same function, idempotent (see below):
 //   1. Button on the landlord detail sheet (agent-initiated).
@@ -281,10 +281,15 @@ Deno.serve(async (req) => {
       console.log('[logo] No logo source available (CompanySettings empty + LOGO_DATA_URI empty)');
     }
 
-    // Title removed - only logo in header (matching Tax Invoice style)
-    doc.setTextColor(...GOLD);
+    // 4. Document title — right-aligned in the cream band, vertically centered
+    //    against the logo (logo sits y=10→26; title baseline y=22 reads level
+    //    with the logo). Navy on cream is the most readable; bold helvetica
+    //    matches the headings used elsewhere in this PDF (section() / row()).
+    doc.setTextColor(...NAVY);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(14);
+    doc.text('No Objection Letter to Lease a Property', W - pad, 22, { align: 'right' });
+
   // Reference and date below header band
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -436,7 +441,7 @@ Deno.serve(async (req) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(70, 70, 70);
     const terms = [
-      `1. This Lease Brokerage Agreement (RERA Form A equivalent) authorises ${COMPANY_NAME} (ORN ${ORN}) to market and lease the above property on behalf of the owner under the terms outlined herein.`,
+      `1. This No Objection Letter authorises ${COMPANY_NAME} (ORN ${ORN}) to market and lease the above property on behalf of the owner under the terms outlined herein.`,
       '2. All transactions are subject to Dubai Land Department and Real Estate Regulatory Agency (RERA) regulations.',
       '3. Commission and fees are as per the agency agreement and prevailing RERA guidelines.',
       '4. The owner confirms they have legal authority to enter into this agreement and that all property and identity details provided are accurate.',

@@ -109,6 +109,7 @@ export default function LeaseAgreement() {
   const [deedDragOver, setDeedDragOver] = useState(false);
   const [deedUploading, setDeedUploading] = useState(false);
   const [deedExtracted, setDeedExtracted] = useState(null);
+  const [deedFileUrl, setDeedFileUrl] = useState(''); // captured at upload so deedCreateMutation can attach it to DocumentChecklistItem(title_deed)
   const [deedReviewOpen, setDeedReviewOpen] = useState(false);
   const [deedForm, setDeedForm] = useState({ owner_name: '', property_type: '', location: '', building_name: '', unit_no: '', area_sqft: '' });
 
@@ -118,6 +119,7 @@ export default function LeaseAgreement() {
   const [idReviewOpen, setIdReviewOpen] = useState(false);
   const [idForm, setIdForm] = useState({ full_name_en: '', full_name_ar: '', nationality: '', emirates_id: '', passport_no: '', date_of_birth: '', id_expiry_date: '' });
   const [idTargetLandlord, setIdTargetLandlord] = useState(null);
+  const [idTargetFileUrl, setIdTargetFileUrl] = useState(''); // captured at upload so idApplyMutation can attach file URL to LandlordOwner.id_file_url + DocumentChecklistItem
 
   // ── ID Import (top drop zone — creates NEW Landlord) ────────────────────
   const [idImportDragOver, setIdImportDragOver] = useState(false);
@@ -150,6 +152,7 @@ export default function LeaseAgreement() {
       const uploadRes = await base44.integrations.Core.UploadFile({ file });
       const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
       if (!fileUrl) throw new Error('Upload failed — no file URL returned');
+      setDeedFileUrl(fileUrl); // persist for DocumentChecklistItem(title_deed) in deedCreateMutation
       const parseRes = await base44.functions.invoke('parseTitleDeed', { file_url: fileUrl });
       const data = parseRes?.data ?? parseRes;
       if (!data?.ok) {
@@ -207,6 +210,7 @@ export default function LeaseAgreement() {
         const uploadRes = await base44.integrations.Core.UploadFile({ file });
         const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
         if (!fileUrl) throw new Error('Upload failed — no file URL returned');
+        setIdTargetFileUrl(fileUrl); // persist for idApplyMutation → LandlordOwner.id_file_url + DocumentChecklistItem
         const parseRes = await base44.functions.invoke('parseIdDocument', { file_url: fileUrl });
         const data = parseRes?.data ?? parseRes;
         if (!data?.ok) {
@@ -309,16 +313,53 @@ export default function LeaseAgreement() {
         const val = String(f[field] || '').trim();
         if (val) createPayload[field] = val;
       }
-      // Store file URL to the correct *_file_url field
+      // Silent-drop fix: emirates_id_file_url / passport_file_url were being
+      // written here onto the Landlord entity, which has no such fields → the
+      // URL was lost on every import. The file URL belongs on the
+      // LandlordOwner row (.id_file_url + .id_doc_type), created below.
       const docType = idImportExtracted?.doc_type;
-      if (idImportFileUrl) {
-        if (docType === 'emirates_id') createPayload.emirates_id_file_url = idImportFileUrl;
-        else if (docType === 'passport') createPayload.passport_file_url = idImportFileUrl;
-      }
       const notesParts = ['Imported from ID/Passport.'];
       if (docType) notesParts.push(`Document type: ${docType}.`);
       createPayload.notes_internal = notesParts.join(' ');
-      return base44.entities.Landlord.create(createPayload);
+      const landlord = await base44.entities.Landlord.create(createPayload);
+
+      // Create the LandlordOwner row so per-owner identity + ID file URL are
+      // stored in the right place (feeds the multi-owner PDF rendering).
+      try {
+        const ownerRow = {
+          landlord_id: landlord.id,
+          full_name_en: f.full_name_en?.trim() || 'Unnamed',
+        };
+        if (f.full_name_ar?.trim())   ownerRow.full_name_ar  = f.full_name_ar.trim();
+        if (f.nationality?.trim())    ownerRow.nationality   = f.nationality.trim();
+        if (f.emirates_id?.trim())    ownerRow.emirates_id   = f.emirates_id.trim();
+        if (f.passport_no?.trim())    ownerRow.passport_no   = f.passport_no.trim();
+        if (f.date_of_birth?.trim())  ownerRow.date_of_birth = f.date_of_birth.trim();
+        if (f.id_expiry_date?.trim()) ownerRow.id_expiry_date= f.id_expiry_date.trim();
+        if (idImportFileUrl)          ownerRow.id_file_url   = idImportFileUrl;
+        if (docType === 'emirates_id' || docType === 'passport') ownerRow.id_doc_type = docType;
+        await base44.entities.LandlordOwner.create(ownerRow);
+      } catch (e) {
+        console.warn('LandlordOwner create failed:', e?.message);
+      }
+
+      // Record the ID upload as a DocumentChecklistItem so the OWNER
+      // DOCUMENTS checkbox auto-ticks on the generated PDF.
+      if (idImportFileUrl && (docType === 'emirates_id' || docType === 'passport')) {
+        try {
+          await base44.entities.DocumentChecklistItem.create({
+            landlord_id: landlord.id,
+            document_type: docType === 'emirates_id' ? 'emirates_id_front' : 'passport',
+            status: 'received',
+            file_url: idImportFileUrl,
+            received_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('DocumentChecklistItem(id) create failed:', e?.message);
+        }
+      }
+
+      return landlord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
@@ -338,7 +379,82 @@ export default function LeaseAgreement() {
         const val = String(v || '').trim();
         if (val) updates[k] = val;
       }
-      return base44.entities.Landlord.update(idTargetLandlord.id, updates);
+      // Existing behaviour: write identity fields back to the Landlord record.
+      // (Some idForm keys don't exist on Landlord — e.g. emirates_id,
+      // date_of_birth, id_expiry_date — and are silently dropped by Base44.
+      // That's a separate pre-existing issue; LandlordOwner below stores
+      // them in the right place.)
+      const updateRes = await base44.entities.Landlord.update(idTargetLandlord.id, updates);
+
+      const landlord_id = idTargetLandlord.id;
+      const docType = idExtracted?.doc_type;
+
+      // Upsert LandlordOwner for this landlord so per-owner identity + the ID
+      // file URL land on the right entity (feeds the multi-owner PDF render).
+      //
+      // Duplicate-avoidance (existing-landlord flow):
+      //   1. Tier 1 — match by name (case-insensitive trimmed). Deed import
+      //      always seeds full_name_en, so a single-owner deed → ID-upload
+      //      sequence finds the same row.
+      //   2. Tier 2 — fall back to the FIRST empty placeholder row (no
+      //      id_file_url AND no emirates_id AND no passport_no). Catches the
+      //      "stub row" case where deed import created an empty/Unnamed row.
+      //   3. Otherwise — CREATE a new LandlordOwner row (genuine new co-owner).
+      try {
+        const existingOwners = await base44.entities.LandlordOwner.filter({ landlord_id });
+        const ownerPatch = {};
+        if (updates.full_name_en)   ownerPatch.full_name_en  = updates.full_name_en;
+        if (updates.full_name_ar)   ownerPatch.full_name_ar  = updates.full_name_ar;
+        if (updates.nationality)    ownerPatch.nationality   = updates.nationality;
+        if (updates.emirates_id)    ownerPatch.emirates_id   = updates.emirates_id;
+        if (updates.passport_no)    ownerPatch.passport_no   = updates.passport_no;
+        if (updates.date_of_birth)  ownerPatch.date_of_birth = updates.date_of_birth;
+        if (updates.id_expiry_date) ownerPatch.id_expiry_date= updates.id_expiry_date;
+        if (idTargetFileUrl)        ownerPatch.id_file_url   = idTargetFileUrl;
+        if (docType === 'emirates_id' || docType === 'passport') ownerPatch.id_doc_type = docType;
+
+        const norm = (s) => String(s || '').toLowerCase().trim();
+        const targetName = norm(updates.full_name_en);
+
+        let target = null;
+        if (targetName) {
+          target = existingOwners.find((o) => norm(o.full_name_en) === targetName);
+        }
+        if (!target) {
+          target = existingOwners.find((o) => !o.id_file_url && !o.emirates_id && !o.passport_no);
+        }
+
+        if (target) {
+          await base44.entities.LandlordOwner.update(target.id, ownerPatch);
+        } else {
+          // Genuinely new co-owner — full_name_en required for downstream rendering.
+          await base44.entities.LandlordOwner.create({
+            landlord_id,
+            full_name_en: updates.full_name_en || 'Unnamed',
+            ...ownerPatch,
+          });
+        }
+      } catch (e) {
+        console.warn('LandlordOwner upsert failed:', e?.message);
+      }
+
+      // Record the ID upload as a DocumentChecklistItem so the OWNER
+      // DOCUMENTS checkbox auto-ticks on the regenerated PDF.
+      if (idTargetFileUrl && (docType === 'emirates_id' || docType === 'passport')) {
+        try {
+          await base44.entities.DocumentChecklistItem.create({
+            landlord_id,
+            document_type: docType === 'emirates_id' ? 'emirates_id_front' : 'passport',
+            status: 'received',
+            file_url: idTargetFileUrl,
+            received_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('DocumentChecklistItem(id) create failed:', e?.message);
+        }
+      }
+
+      return updateRes;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
@@ -346,6 +462,7 @@ export default function LeaseAgreement() {
       setIdReviewOpen(false);
       setIdExtracted(null);
       setIdTargetLandlord(null);
+      setIdTargetFileUrl('');
     },
     onError: (e) => toast.error('Failed: ' + e.message),
   });
@@ -409,6 +526,21 @@ export default function LeaseAgreement() {
         property_id: property.id,
       });
 
+      // 4. Record the deed upload as a DocumentChecklistItem so the OWNER
+      //    DOCUMENTS "Title Deed" checkbox auto-ticks on the generated PDF.
+      //    Non-fatal — a checklist failure must not block agreement creation.
+      try {
+        await base44.entities.DocumentChecklistItem.create({
+          landlord_id: landlord.id,
+          document_type: 'title_deed',
+          status: 'received',
+          file_url: deedFileUrl || '',
+          received_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('DocumentChecklistItem(title_deed) create failed:', e?.message);
+      }
+
       return landlord;
     },
     onSuccess: () => {
@@ -417,6 +549,7 @@ export default function LeaseAgreement() {
       toast.success('Draft agreement created from Title Deed');
       setDeedReviewOpen(false);
       setDeedExtracted(null);
+      setDeedFileUrl('');
     },
     onError: (e) => toast.error('Failed to create draft: ' + e.message),
   });
@@ -1008,7 +1141,7 @@ export default function LeaseAgreement() {
       </Dialog>
 
       {/* ── Title Deed Review Modal ── */}
-      <Dialog open={deedReviewOpen} onOpenChange={(o) => { if (!o) { setDeedReviewOpen(false); setDeedExtracted(null); } }}>
+      <Dialog open={deedReviewOpen} onOpenChange={(o) => { if (!o) { setDeedReviewOpen(false); setDeedExtracted(null); setDeedFileUrl(''); } }}>
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1118,7 +1251,7 @@ export default function LeaseAgreement() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setDeedReviewOpen(false); setDeedExtracted(null); }}
+              onClick={() => { setDeedReviewOpen(false); setDeedExtracted(null); setDeedFileUrl(''); }}
             >
               Cancel
             </Button>
@@ -1339,7 +1472,7 @@ export default function LeaseAgreement() {
       </Dialog>
 
       {/* ── ID Review Modal ── */}
-      <Dialog open={idReviewOpen} onOpenChange={(o) => { if (!o) { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); } }}>
+      <Dialog open={idReviewOpen} onOpenChange={(o) => { if (!o) { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); setIdTargetFileUrl(''); } }}>
         <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1414,7 +1547,7 @@ export default function LeaseAgreement() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); }}
+              onClick={() => { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); setIdTargetFileUrl(''); }}
             >
               Cancel
             </Button>
