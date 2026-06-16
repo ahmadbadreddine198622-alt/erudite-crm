@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download, IdCard } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download, IdCard, Square, CheckSquare } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -137,6 +137,40 @@ export default function LeaseAgreement() {
       toast.success('Agreement removed');
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),
+  });
+
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const allIds = listingLandlords.map(l => l.id);
+    setSelectedIds(prev => prev.size === allIds.length ? new Set() : new Set(allIds));
+  };
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async () => {
+      const ids = [...selectedIds];
+      // Delete sequentially to avoid rate-limiting
+      for (const id of ids) {
+        await base44.entities.Landlord.update(id, { lease_agreement_status: null });
+      }
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success(`${count} agreement${count > 1 ? 's' : ''} removed`);
+    },
+    onError: (e) => toast.error(`Bulk delete failed: ${e.message}`),
   });
 
   // ── Title Deed handlers ──────────────────────────────────────────────────
@@ -817,9 +851,25 @@ export default function LeaseAgreement() {
       </div>
 
       <Card className="glass-card">
-        <CardHeader>
+        <CardHeader className="pb-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Landlord Agreements</CardTitle>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectAll}
+                className="text-white/40 hover:text-white transition-colors"
+                title={selectedIds.size === listingLandlords.length ? 'Deselect all' : 'Select all'}
+              >
+                {selectedIds.size > 0 && selectedIds.size === listingLandlords.length
+                  ? <CheckSquare className="w-5 h-5 text-accent" />
+                  : selectedIds.size > 0
+                  ? <Square className="w-5 h-5 text-accent/60" />
+                  : <Square className="w-5 h-5" />}
+              </button>
+              <CardTitle className="text-lg">Landlord Agreements</CardTitle>
+              {selectedIds.size > 0 && (
+                <span className="text-xs text-accent ml-1">{selectedIds.size} selected</span>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button variant="ghost" size="icon">
                 <Search className="w-4 h-4" />
@@ -830,7 +880,36 @@ export default function LeaseAgreement() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        {selectedIds.size > 0 && (
+          <div className="px-6 py-2 flex items-center gap-3 border-b border-red-500/20 bg-red-500/5">
+            <span className="text-xs text-red-400 font-medium">{selectedIds.size} selected</span>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => {
+                if (confirm(`Remove agreement status from ${selectedIds.size} landlord${selectedIds.size > 1 ? 's' : ''}?`)) {
+                  bulkDeleteMutation.mutate();
+                }
+              }}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Trash2 className="w-3 h-3" />}
+              Delete Selected
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-white/40 hover:text-white"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Clear selection
+            </Button>
+          </div>
+        )}
+        <CardContent className={selectedIds.size > 0 ? 'pt-3' : undefined}>
           {isLoading ? (
             <div className="text-center py-12 text-white/40">Loading...</div>
           ) : listingLandlords.length === 0 ? (
@@ -855,9 +934,17 @@ export default function LeaseAgreement() {
                 return (
                   <div
                     key={landlord.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors border border-white/5"
+                    className={`flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors border ${selectedIds.has(landlord.id) ? 'border-accent/30 bg-accent/5' : 'border-white/5'}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        onClick={() => toggleSelect(landlord.id)}
+                        className="text-white/40 hover:text-white transition-colors shrink-0"
+                      >
+                        {selectedIds.has(landlord.id)
+                          ? <CheckSquare className="w-5 h-5 text-accent" />
+                          : <Square className="w-5 h-5" />}
+                      </button>
                       <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4 text-white/60" />
                       </div>
