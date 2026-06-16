@@ -77,6 +77,17 @@ export default function LeaseAgreement() {
         // Show inline PDF viewer (avoids browser popup blocking)
         const landlordName = landlords.find(l => l.id === landlordId)?.full_name_en || 'Agreement';
         setPdfViewer({ url: pdfUrl, name: landlordName });
+        // Auto-download the freshly generated PDF
+        fetch(pdfUrl).then(r => r.blob()).then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `LeaseAgreement-${landlordName.replace(/\s+/g, '_')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }).catch(() => {});
         toast.success('Agreement generated — PDF ready');
       } else if (data?.skipped) {
         toast.info(data.reason || 'Already sent for signature.');
