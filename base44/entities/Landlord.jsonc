@@ -372,6 +372,14 @@
     "passport_no": {
       "type": "string"
     },
+    "emirates_id_file_url": {
+      "type": "string",
+      "description": "Stored Emirates ID file (PDF/image) URL"
+    },
+    "passport_file_url": {
+      "type": "string",
+      "description": "Stored passport file (PDF/image) URL"
+    },
     "lease_agreement_status": {
       "type": "string",
       "enum": [
