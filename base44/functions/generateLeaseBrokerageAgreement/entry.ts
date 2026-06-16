@@ -97,12 +97,13 @@ async function _fetchLogoOnce(base44: any): Promise<string | null> {
     console.log('[logo] Fetching from CompanySettings.logo_url:', logoUrl);
     const res = await fetch(logoUrl);
     if (!res.ok) return null;
+    const contentType = res.headers.get('content-type') || 'image/png';
     const bytes = new Uint8Array(await res.arrayBuffer());
     let bin = '';
     const chunk = 8192;
     for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.slice(i, i + chunk));
-    _logoCacheUri = `data:image/png;base64,${btoa(bin)}`;
-    console.log('[logo] Successfully loaded from CompanySettings.logo_url');
+    _logoCacheUri = `data:${contentType};base64,${btoa(bin)}`;
+    console.log('[logo] Loaded from CompanySettings, type:', contentType, bytes.length, 'bytes');
     return _logoCacheUri;
   } catch (err: any) {
     console.error('[logo] _fetchLogoOnce failed:', err?.message ?? err);
@@ -265,10 +266,15 @@ Deno.serve(async (req) => {
     //    otherwise the inline LOGO_DATA_URI fallback. Drawn AFTER the cream
     //    band so it actually appears in the header.
     const headerLogo = logoData || LOGO_DATA_URI;
-    if (headerLogo) {
+    // Derive image format from the data URI prefix, defaulting to PNG
+    const logoFormat = headerLogo?.startsWith('data:image/jpeg') ? 'JPEG'
+      : headerLogo?.startsWith('data:image/png') ? 'PNG'
+      : headerLogo?.startsWith('data:image/webp') ? null // jsPDF can't render WebP
+      : 'PNG';
+    if (headerLogo && logoFormat) {
       try {
-        doc.addImage(headerLogo, 'PNG', pad, 10, 32, 16);
-      } catch (e: any) {
+        doc.addImage(headerLogo, logoFormat, pad, 10, 32, 16);
+      } catch (e) {
         console.error('[logo] addImage failed, header will be blank:', String(e?.message || e));
       }
     } else {
