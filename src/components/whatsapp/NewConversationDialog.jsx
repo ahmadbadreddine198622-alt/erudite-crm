@@ -104,10 +104,21 @@ export default function NewConversationDialog({ open, onClose, onConversationCre
             <User className="w-4 h-4" />
             Personal
           </button>
+          <button
+            onClick={() => setChannel('malik')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+              channel === 'malik'
+                ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Malik
+          </button>
         </div>
 
         <p className="text-[11px] text-white/40 text-center -mt-1">
-          {channel === 'business' ? 'Sending from your Business number (+971 58 280 6000)' : 'Sending from your Personal number (+971 58 180 6000)'}
+          {channel === 'business' ? 'Sending from Business (+971 58 280 6000)' : channel === 'malik' ? 'Sending from Malik (+971 52 987 1277)' : 'Sending from Personal (+971 58 180 6000)'}
         </p>
 
         {/* Phone display */}
@@ -151,11 +162,11 @@ export default function NewConversationDialog({ open, onClose, onConversationCre
           disabled={!phone.trim() || loading}
           className="w-full h-11 font-semibold"
           style={{
-            background: channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)',
+            background: channel === 'business' ? 'hsl(152 69% 40%)' : channel === 'malik' ? 'hsl(270 70% 55%)' : 'hsl(217 91% 60%)',
             color: 'white',
           }}
         >
-          {loading ? 'Starting…' : `💬 Start via ${channel === 'business' ? 'Business' : 'Personal'}`}
+          {loading ? 'Starting…' : `💬 Start via ${channel === 'business' ? 'Business' : channel === 'malik' ? 'Malik' : 'Personal'}`}
         </Button>
       </DialogContent>
     </Dialog>

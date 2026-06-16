@@ -35,6 +35,21 @@ export default function ChannelSwitcher({ selectedChannel, onChannelChange, disa
         <User className="w-3.5 h-3.5" />
         Personal
       </button>
+      <button
+        onClick={() => onChannelChange('malik')}
+        disabled={disabled}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border',
+          selectedChannel === 'malik'
+            ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
+            : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+        title="Malik line (+971529871277)"
+      >
+        <User className="w-3.5 h-3.5" />
+        Malik
+      </button>
     </div>
   );
 }

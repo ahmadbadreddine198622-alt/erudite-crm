@@ -92,6 +92,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
         {[
           { id: 'business', label: 'Business', icon: Building2, active: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400', inactive: 'border-white/15 text-muted-foreground hover:bg-white/8' },
           { id: 'personal', label: 'Personal', icon: User, active: 'bg-blue-500/15 border-blue-500/40 text-blue-400', inactive: 'border-white/15 text-muted-foreground hover:bg-white/8' },
+          { id: 'malik', label: 'Malik', icon: User, active: 'bg-purple-500/15 border-purple-500/40 text-purple-400', inactive: 'border-white/15 text-muted-foreground hover:bg-white/8' },
         ].map(({ id, label, icon: Icon, active, inactive }) => (
           <button
             key={id}
@@ -181,7 +182,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={phoneE164
-              ? `Message via ${channel === 'business' ? '🏢 Business' : '👤 Personal'}… (Enter to send)`
+              ? `Message via ${channel === 'business' ? '🏢 Business' : channel === 'malik' ? '👤 Malik' : '👤 Personal'}… (Enter to send)`
               : 'No phone number on file'}
             disabled={!phoneE164 || sendMutation.isPending}
             rows={2}
@@ -198,8 +199,8 @@ export default function LandlordWhatsAppPanel({ landlord }) {
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Sending via <span className={channel === 'business' ? 'text-emerald-400' : 'text-blue-400'}>
-            {channel === 'business' ? '🏢 Business (+971 58 280 6000)' : '👤 Personal (+971 58 180 6000)'}
+          Sending via <span className={channel === 'business' ? 'text-emerald-400' : channel === 'malik' ? 'text-purple-400' : 'text-blue-400'}>
+            {channel === 'business' ? '🏢 Business (+971 58 280 6000)' : channel === 'malik' ? '👤 Malik (+971 52 987 1277)' : '👤 Personal (+971 58 180 6000)'}
           </span>
         </p>
       </form>
