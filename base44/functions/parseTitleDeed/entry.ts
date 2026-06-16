@@ -1,14 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { extractText, getDocumentProxy } from 'npm:unpdf';
 
-// parseTitleDeed v1 — Vision-based extraction from Dubai DLD Title Deed PDFs.
+// parseTitleDeed v2 — Vision-based extraction from Dubai DLD Title Deed PDFs.
 //
 // DLD title deeds are bilingual (Arabic + English) and their two-column layout
 // collapses badly when text-extracted. We send the raw PDF bytes as an Anthropic
 // native "document" content block so Claude reads the actual certificate layout.
 //
+// v2 change: returns "owners" array with ALL owner names from the ownership
+// section. Single-owner deeds return a 1-element array. ownerName stays for
+// backward compat (set to owners[0]).
+//
 // Input (POST JSON): { file_url, debug? }
-// Response shape: { ok, is_title_deed, property{23 fields}, warnings[], note }
+// Response shape: { ok, is_title_deed, owners[], property{...}, warnings[], note }
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 const AI_SYSTEM = `You are a document extraction assistant for a Dubai real estate CRM.
@@ -17,6 +21,8 @@ Extract property and ownership details from a Dubai Land Department (DLD) Title 
 Return ONLY a raw JSON object — no markdown fences, no explanation, no text before or after the JSON.
 
 The certificate is bilingual (Arabic + English). Read ONLY the English text; ignore the Arabic mirror text entirely.
+
+The deed may list multiple owners. In the "Owners numbers and their shares" section, look for every owner name and collect them all.
 
 Return this exact JSON with no extra fields:
 {
@@ -37,6 +43,7 @@ Return this exact JSON with no extra fields:
   "commonAreaSqm": "",
   "mortgageStatus": "",
   "ownerName": "",
+  "owners": [],
   "ownerIdNumber": "",
   "ownerSharePct": "",
   "purchasedFrom": "",
@@ -62,7 +69,8 @@ Field guidance:
 - areaSqft: total area in square feet
 - commonAreaSqm: common area in square metres
 - mortgageStatus: mortgage status as printed (e.g. "Not mortgaged", "Mortgaged")
-- ownerName: full owner name in English (ALL CAPS as printed)
+- ownerName: the FIRST owner's full name in English (ALL CAPS as printed) — same as owners[0]
+- owners: EVERY owner full name found in the ownership section, as a string array. If only one owner, return a single-element array. NEVER invent names — only include names explicitly printed in the document. Preserve the order shown on the deed.
 - ownerIdNumber: owner Emirates ID or passport number as printed
 - ownerSharePct: ownership share percentage as a plain string (e.g. "100" not "100%")
 - purchasedFrom: name of the seller/developer the owner purchased from
@@ -72,12 +80,13 @@ Field guidance:
 
 STRICT RULES:
 1. Use empty string "" for any field not explicitly present in the document.
-2. NEVER copy a field label as its own value.
-3. NEVER invent, infer, or guess values not printed in the document.
-4. NEVER copy boilerplate legal text as field values.
-5. All numbers must be plain strings — no commas, no currency symbols, no units.
-6. ownerSharePct: digits only, no "%" sign.
-7. purchaseAmountAed: digits only (e.g. "1563925" not "1,563,925 AED").`;
+2. owners must always be an array — use empty array [] only if absolutely zero owner names are found.
+3. NEVER copy a field label as its own value.
+4. NEVER invent, infer, or guess values not printed in the document.
+5. NEVER copy boilerplate legal text as field values.
+6. All numbers must be plain strings — no commas, no currency symbols, no units.
+7. ownerSharePct: digits only, no "%" sign.
+8. purchaseAmountAed: digits only (e.g. "1563925" not "1,563,925 AED").`;
 
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
@@ -251,9 +260,10 @@ Deno.serve(async (req) => {
       warnings.push('ai_raw_response: ' + aiRawText.slice(0, 800));
     }
     const failResponse = {
-      parser_version: 'v1-title-deed-vision',
+      parser_version: 'v2-title-deed-vision',
       ok: true,
       is_title_deed: isTitleDeed,
+      owners: [],
       property: emptyProperty,
       warnings,
       note: 'AI extraction failed — see warnings. Fill fields manually.',
@@ -294,6 +304,25 @@ Deno.serve(async (req) => {
     certificateNo: String(raw.certificateNo || ''),
   };
 
+  // ── Build owners array ──────────────────────────────────────────────────────
+  let rawOwners = raw.owners;
+  if (!Array.isArray(rawOwners)) {
+    rawOwners = [];
+  }
+  // Filter out empties and trim
+  const owners = rawOwners
+    .map(n => String(n || '').trim())
+    .filter(n => n.length > 0);
+
+  // Backward compat: if owners[] is non-empty but ownerName is blank, use owners[0]
+  if (!property.ownerName && owners.length > 0) {
+    property.ownerName = owners[0];
+  }
+  // If ownerName is set but owners is empty, seed owners from ownerName
+  if (owners.length === 0 && property.ownerName) {
+    owners.push(property.ownerName);
+  }
+
   // Minimal-data guard
   if (!property.ownerName && !property.buildingName && !property.certificateNo) {
     warnings.push(
@@ -304,9 +333,10 @@ Deno.serve(async (req) => {
 
   // ── Response ─────────────────────────────────────────────────────────────────
   const response = {
-    parser_version: 'v1-title-deed-vision',
+    parser_version: 'v2-title-deed-vision',
     ok: true,
     is_title_deed: isTitleDeed,
+    owners,
     property,
     warnings,
     note: isTitleDeed

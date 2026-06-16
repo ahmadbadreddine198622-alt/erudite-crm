@@ -368,7 +368,16 @@ export default function LeaseAgreement() {
         area_sqft: Number(deedForm.area_sqft) || 0,
       });
 
-      // 2. Create Landlord record
+      // 2. Build owner_names from parsed deed
+      const rawOwners = deedExtracted?.owners || [];
+      const ownerNames = Array.isArray(rawOwners)
+        ? rawOwners.map(n => String(n || '').trim()).filter(Boolean)
+        : [];
+      // Fall back to the single name from the form if owners array is empty
+      const finalOwnerNames = ownerNames.length > 0
+        ? ownerNames
+        : (deedForm.owner_name ? [deedForm.owner_name] : []);
+
       const refNotes = [
         rp.floorNo && `Floor: ${rp.floorNo}`,
         rp.plotNo && `Plot: ${rp.plotNo}`,
@@ -383,6 +392,7 @@ export default function LeaseAgreement() {
       ].filter(Boolean);
       const landlord = await base44.entities.Landlord.create({
         full_name_en: deedForm.owner_name,
+        owner_names: finalOwnerNames,
         phone: '',
         source: 'other',
         stage: 'initial_contact',
