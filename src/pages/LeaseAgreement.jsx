@@ -638,8 +638,8 @@ export default function LeaseAgreement() {
         )}
       </div>
 
-      {/* ── ID / Passport Import Drop Zone ── */}
-      <div
+      {/* ── ID / Passport Import Drop Zone ── (hidden) */}
+      {false && <div
         className={`mb-4 p-6 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer ${
           idImportDragOver
             ? 'border-accent bg-accent/10'
@@ -669,7 +669,7 @@ export default function LeaseAgreement() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ── Create Manual Agreement ── */}
       <div className="mb-4 flex justify-end">
