@@ -736,6 +736,20 @@ export default function WhatsAppInbox() {
               </button>
             ))}
           </div>
+          {/* Agent filter — admin only */}
+          {permissions.view_all_whatsapp && teamMembers.length > 0 && (
+            <select
+              value={filterAssignedAgent}
+              onChange={e => setFilterAssignedAgent(e.target.value)}
+              className="w-full px-2 py-1 rounded-lg text-[10px] outline-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}
+            >
+              <option value="">All Agents</option>
+              {teamMembers.map(u => (
+                <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+              ))}
+            </select>
+          )}
           {/* Channel filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
             {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : [])].map(c => {

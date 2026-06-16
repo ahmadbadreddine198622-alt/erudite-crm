@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, FileText, Trash2 } from 'lucide-react';
+import { Plus, FileText, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,6 +30,9 @@ export default function InvoiceManager() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceNumberError, setInvoiceNumberError] = useState('');
+  const [loadingInvoiceNumber, setLoadingInvoiceNumber] = useState(false);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices-live'],
@@ -89,8 +92,61 @@ export default function InvoiceManager() {
 
   const agentMap = Object.fromEntries(users.map(u => [u.id, u.full_name || u.email]));
 
+  // Fetch next sequential invoice number when dialog opens
+  useEffect(() => {
+    if (open) {
+      setLoadingInvoiceNumber(true);
+      // Find max existing invoice number
+      const existingNumbers = invoices
+        .filter(inv => inv.invoice_number && inv.invoice_number.startsWith('INV-'))
+        .map(inv => parseInt(inv.invoice_number.replace('INV-', ''), 10))
+        .filter(num => !isNaN(num));
+      const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 3002;
+      const nextNum = maxNum + 1;
+      setInvoiceNumber(`INV-${String(nextNum).padStart(4, '0')}`);
+      setInvoiceNumberError('');
+      setLoadingInvoiceNumber(false);
+    } else {
+      setInvoiceNumber('');
+      setInvoiceNumberError('');
+    }
+  }, [open, invoices]);
+
+  // Check for duplicate invoice number
+  const checkDuplicateInvoiceNumber = async (number) => {
+    if (!number) return;
+    const duplicate = invoices.find(inv => inv.invoice_number === number);
+    if (duplicate) {
+      setInvoiceNumberError(`Invoice number ${number} already exists`);
+      return false;
+    } else {
+      setInvoiceNumberError('');
+      return true;
+    }
+  };
+
+  const handleInvoiceNumberChange = (e) => {
+    const value = e.target.value;
+    setInvoiceNumber(value);
+    // Check for duplicates on change
+    if (value) {
+      const duplicate = invoices.find(inv => inv.invoice_number === value);
+      if (duplicate) {
+        setInvoiceNumberError(`Invoice number ${value} already exists`);
+      } else {
+        setInvoiceNumberError('');
+      }
+    } else {
+      setInvoiceNumberError('');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Block save if invoice number is duplicate
+    if (invoiceNumberError) {
+      return;
+    }
     const commission = parseFloat(form.commission_amount) || 0;
     const vat = Math.round(commission * 0.05 * 100) / 100;
     const total = Math.round((commission + vat) * 100) / 100;
@@ -99,6 +155,7 @@ export default function InvoiceManager() {
     const { property_source, property_details: _pd, ...rest } = form;
     const payload = {
       ...rest,
+      invoice_number: invoiceNumber,
       commission_amount: commission,
       vat_amount: vat,
       total_amount: total,
@@ -230,12 +287,22 @@ export default function InvoiceManager() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Deal ID</Label>
-                <Input placeholder="deal_id" value={form.deal_id} onChange={e => set('deal_id', e.target.value)} />
+                <Label>Invoice Number</Label>
+                <Input
+                  value={invoiceNumber}
+                  onChange={handleInvoiceNumberChange}
+                  placeholder="INV-####"
+                  className={invoiceNumberError ? 'border-red-500' : ''}
+                />
+                {invoiceNumberError && (
+                  <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="w-3 h-3" /> {invoiceNumberError}
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
-                <Label>Agent ID</Label>
-                <Input placeholder="agent_id" value={form.agent_id} onChange={e => set('agent_id', e.target.value)} />
+                <Label>Deal ID</Label>
+                <Input placeholder="deal_id" value={form.deal_id} onChange={e => set('deal_id', e.target.value)} />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label>Payer Name</Label>

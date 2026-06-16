@@ -177,9 +177,9 @@ export default function Leads() {
 
   const filtered = useMemo(() => {
     let result = leads;
-    // Role-based filtering: Admin and CEO see everything, others see only assigned leads
+    // Role-based filtering: Admin/CEO see everything; agents see ONLY their assigned leads (unassigned excluded)
     if (currentUser && !permissions.view_all_leads) {
-      result = result.filter(l => l.assigned_agent_email === currentUser.email);
+      result = result.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
     }
     if (search) {
       const q = search.toLowerCase();

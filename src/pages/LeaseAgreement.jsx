@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 // Property type values must match the enum the PDF renders as checkboxes.
 const PROPERTY_TYPE_OPTIONS = [
@@ -76,7 +77,9 @@ export default function LeaseAgreement() {
         // Show inline PDF viewer (avoids browser popup blocking)
         const landlordName = landlords.find(l => l.id === landlordId)?.full_name_en || 'Agreement';
         setPdfViewer({ url: pdfUrl, name: landlordName });
-        toast.success('Agreement generated — PDF ready');
+        // Auto-download the freshly generated PDF
+        const fileName = `LeaseAgreement-${landlordName.replace(/\s+/g, '_')}.pdf`;
+        downloadPdfFile(pdfUrl, fileName);
       } else if (data?.skipped) {
         toast.info(data.reason || 'Already sent for signature.');
       } else {
@@ -101,6 +104,14 @@ export default function LeaseAgreement() {
   const [pdfViewer, setPdfViewer] = useState(null); // { url, name }
   const [summaryLandlord, setSummaryLandlord] = useState(null);
 
+  // ── Title Deed Import state ──────────────────────────────────────────────
+  const { user: currentUser } = useCurrentUser();
+  const [deedDragOver, setDeedDragOver] = useState(false);
+  const [deedUploading, setDeedUploading] = useState(false);
+  const [deedExtracted, setDeedExtracted] = useState(null);
+  const [deedReviewOpen, setDeedReviewOpen] = useState(false);
+  const [deedForm, setDeedForm] = useState({ owner_name: '', property_type: '', location: '', building_name: '', unit_no: '', area_sqft: '' });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
     onSuccess: () => {
@@ -110,6 +121,196 @@ export default function LeaseAgreement() {
     },
     onError: (e) => toast.error(`Failed: ${e.message}`),
   });
+
+  // ── Title Deed handlers ──────────────────────────────────────────────────
+  const PROP_TYPE_MAP = { 'flat': 'apartment', 'apartment': 'apartment', 'villa': 'villa', 'townhouse': 'townhouse', 'office': 'office', 'commercial': 'commercial', 'land': 'land' };
+
+  const processDeedFile = async (file) => {
+    if (!file || file.type !== 'application/pdf') {
+      toast.error('Only PDF files are accepted');
+      return;
+    }
+    setDeedUploading(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
+      if (!fileUrl) throw new Error('Upload failed — no file URL returned');
+      const parseRes = await base44.functions.invoke('parseTitleDeed', { file_url: fileUrl });
+      const data = parseRes?.data ?? parseRes;
+      if (!data?.ok) {
+        toast.error(data?.error || 'Title Deed parsing failed');
+        return;
+      }
+      const p = data.property || {};
+      const mappedType = PROP_TYPE_MAP[(p.propertyType || '').toLowerCase()] || '';
+
+      setDeedForm({
+        owner_name: p.ownerName || '',
+        property_type: mappedType,
+        location: p.community || '',
+        building_name: p.buildingName || '',
+        unit_no: p.propertyNo || '',
+        area_sqft: p.areaSqft || '',
+      });
+      setDeedExtracted({ ...data, property: p });
+      setDeedReviewOpen(true);
+    } catch (err) {
+      toast.error('Import failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDeedUploading(false);
+    }
+  };
+
+  const handleDeedDrop = (e) => {
+    e.preventDefault();
+    setDeedDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) processDeedFile(file);
+  };
+
+  const handleDeedBrowse = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (file) processDeedFile(file);
+    };
+    input.click();
+  };
+
+  const deedCreateMutation = useMutation({
+    mutationFn: () => {
+      const rp = deedExtracted?.property || {};
+      const refNotes = [
+        rp.floorNo && `Floor: ${rp.floorNo}`,
+        rp.plotNo && `Plot: ${rp.plotNo}`,
+        rp.municipalityNo && `Municipality: ${rp.municipalityNo}`,
+        rp.parkings && `Parking: ${rp.parkings}`,
+        rp.areaSqm && `Area SQM: ${rp.areaSqm}`,
+        rp.mortgageStatus && `Mortgage: ${rp.mortgageStatus}`,
+        rp.ownerIdNumber && `Owner ID: ${rp.ownerIdNumber}`,
+        rp.purchasedFrom && `Purchased from: ${rp.purchasedFrom}`,
+        rp.certificateNo && `Certificate: ${rp.certificateNo}`,
+        rp.issueDate && `Issue Date: ${rp.issueDate}`,
+      ].filter(Boolean);
+      return base44.entities.Landlord.create({
+        full_name_en: deedForm.owner_name,
+        phone: '',
+        source: 'other',
+        stage: 'initial_contact',
+        assigned_agent_email: currentUser?.email || '',
+        lease_agreement_status: 'drafted',
+        project_name: deedForm.building_name || rp.buildingName || '',
+        unit_reference: deedForm.unit_no || rp.propertyNo || '',
+        notes_internal: refNotes.length > 0 ? 'Imported from Title Deed.\n' + refNotes.join('\n') : 'Imported from Title Deed.',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Draft agreement created from Title Deed');
+      setDeedReviewOpen(false);
+      setDeedExtracted(null);
+    },
+    onError: (e) => toast.error('Failed to create draft: ' + e.message),
+  });
+
+  // ── Manual Create (blank form) ──────────────────────────────────────────
+  const [manualCreateOpen, setManualCreateOpen] = useState(false);
+  const [manualCreateForm, setManualCreateForm] = useState({
+    owner_name: '', passport_no: '', nationality: '', owner_email: '', owner_phone: '',
+    property_type: '', location: '', building_name: '', unit_no: '', view: '',
+    bedrooms: '', bathrooms: '', area_sqft: '', price_aed: '', rent_aed: '',
+  });
+
+  const manualCreateUpdate = (k, v) => setManualCreateForm(f => ({ ...f, [k]: v }));
+
+  const manualCreateMutation = useMutation({
+    mutationFn: () => {
+      const f = manualCreateForm;
+      const notes = [
+        f.property_type && `Property Type: ${f.property_type}`,
+        f.location && `Location: ${f.location}`,
+        f.building_name && `Building: ${f.building_name}`,
+        f.unit_no && `Unit: ${f.unit_no}`,
+        f.view && `View: ${f.view}`,
+        f.bedrooms && `Bedrooms: ${f.bedrooms}`,
+        f.bathrooms && `Bathrooms: ${f.bathrooms}`,
+        f.area_sqft && `Area: ${f.area_sqft} sqft`,
+        f.price_aed && `Price: ${f.price_aed} AED`,
+        f.rent_aed && `Rent: ${f.rent_aed} AED`,
+      ].filter(Boolean);
+      return base44.entities.Landlord.create({
+        full_name_en: f.owner_name,
+        passport_no: f.passport_no,
+        nationality: f.nationality,
+        email: f.owner_email,
+        phone: f.owner_phone,
+        source: 'other',
+        stage: 'initial_contact',
+        assigned_agent_email: currentUser?.email || '',
+        lease_agreement_status: 'drafted',
+        notes_internal: notes.length > 0 ? 'Manually created.\n' + notes.join('\n') : 'Manually created.',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Draft agreement created');
+      setManualCreateOpen(false);
+      setManualCreateForm({
+        owner_name: '', passport_no: '', nationality: '', owner_email: '', owner_phone: '',
+        property_type: '', location: '', building_name: '', unit_no: '', view: '',
+        bedrooms: '', bathrooms: '', area_sqft: '', price_aed: '', rent_aed: '',
+      });
+    },
+    onError: (e) => toast.error('Failed to create draft: ' + e.message),
+  });
+
+  const handleRegenerate = (landlord) => {
+    if (landlord.lease_agreement_status === 'sent_for_signature') {
+      if (!confirm('This agreement was already sent for signature. Regenerate and overwrite it?')) return;
+    }
+    generateMutation.mutate({ landlord_id: landlord.id, force: true });
+  };
+
+  // Shared download — tries fetch+blob (same-origin), falls back to new-tab (cross-origin like Google Drive).
+  const downloadPdfFile = async (pdfUrl, fileName) => {
+    console.log('[LeaseAgreement] Download PDF — URL:', pdfUrl);
+    const domain = (() => { try { return new URL(pdfUrl).hostname; } catch { return 'invalid'; } })();
+    console.log('[LeaseAgreement] Domain:', domain);
+
+    try {
+      const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success(`Downloaded ✓ — ${fileName}`);
+      console.log('[LeaseAgreement] Download succeeded via fetch+blob');
+    } catch (fetchErr) {
+      console.warn('[LeaseAgreement] fetch failed (likely CORS), opening in new tab:', fetchErr.message);
+      toast.error('Download failed — opening in new tab', { description: 'Use Ctrl+S / Cmd+S to save the PDF' });
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const handleDownloadPdf = (landlord) => {
+    const pdfUrl = pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id];
+    if (!pdfUrl) {
+      toast.error('No PDF available — generate the agreement first');
+      return;
+    }
+    const fileName = `LeaseAgreement-${(landlord.full_name_en || 'landlord').replace(/\s+/g, '_')}.pdf`;
+    downloadPdfFile(pdfUrl, fileName);
+  };
 
   const openManual = (landlord) => {
     const init = Object.fromEntries(MANUAL_FIELDS.map((k) => [k, '']));
@@ -199,6 +400,51 @@ export default function LeaseAgreement() {
         </Card>
       </div>
 
+      {/* ── Title Deed Import Drop Zone ── */}
+      <div
+        className={`mb-4 p-6 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer ${
+          deedDragOver
+            ? 'border-accent bg-accent/10'
+            : 'border-white/15 hover:border-white/30 bg-white/[0.03]'
+        }`}
+        onDragOver={(e) => { e.preventDefault(); setDeedDragOver(true); }}
+        onDragLeave={() => setDeedDragOver(false)}
+        onDrop={handleDeedDrop}
+        onClick={handleDeedBrowse}
+      >
+        {deedUploading ? (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <div>
+              <p className="text-sm font-medium text-white/80">Extracting Title Deed data…</p>
+              <p className="text-xs text-white/40 mt-0.5">AI is reading the DLD certificate</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+              <Upload className="w-6 h-6 text-accent" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-white/80">Import from Title Deed</p>
+              <p className="text-xs text-white/40 mt-0.5">Drop a DLD Title Deed PDF here or click to browse</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Create Manual Agreement ── */}
+      <div className="mb-4 flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 border-accent/40 text-accent hover:bg-accent/10 hover:border-accent"
+          onClick={() => setManualCreateOpen(true)}
+        >
+          <FileSignature className="w-4 h-4" /> Create Manual Agreement
+        </Button>
+      </div>
+
       <Card className="glass-card">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -228,9 +474,9 @@ export default function LeaseAgreement() {
                 const status = landlord.lease_agreement_status;
                 // Idempotency guard mirrors the server side — disable the
                 // button when we know the function will reject the call.
-                const locked = status === 'sent_for_signature' || status === 'signed';
+                const locked = status === 'signed';
                 const buttonLabel = !status ? 'Generate'
-                  : status === 'sent_for_signature' ? 'Sent'
+                  : status === 'sent_for_signature' ? 'Regenerate'
                   : status === 'signed' ? 'Signed'
                   : status === 'cancelled' ? 'Regenerate'
                   : 'Regenerate';
@@ -284,6 +530,15 @@ export default function LeaseAgreement() {
                         </Button>
                       )}
                       <Button
+                        size="sm" variant="ghost"
+                        className="h-8 w-8 p-0 text-white/60 hover:text-white"
+                        title={pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id] ? 'Download PDF' : 'Generate first'}
+                        onClick={() => handleDownloadPdf(landlord)}
+                        disabled={!(pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id])}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
@@ -296,12 +551,14 @@ export default function LeaseAgreement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => generateMutation.mutate(landlord.id)}
+                        onClick={() => handleRegenerate(landlord)}
                         disabled={isThisPending || locked || generateMutation.isPending}
                         className="gap-1.5"
                         title={
                           locked
-                            ? `Already ${status.replace(/_/g, ' ')} — idempotency guard blocks regeneration`
+                            ? `Already ${status.replace(/_/g, ' ')} — cannot regenerate signed agreements`
+                            : status === 'sent_for_signature'
+                            ? 'Regenerate and overwrite the previously sent agreement'
                             : 'Generate Lease Brokerage Agreement and send to owner via DocuSign'
                         }
                       >
@@ -498,6 +755,245 @@ export default function LeaseAgreement() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Title Deed Review Modal ── */}
+      <Dialog open={deedReviewOpen} onOpenChange={(o) => { if (!o) { setDeedReviewOpen(false); setDeedExtracted(null); } }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-accent" />
+              Review Extracted Title Deed
+            </DialogTitle>
+            <DialogDescription>
+              Review and edit the extracted fields before creating a draft agreement.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deedExtracted && (
+            <div className="space-y-5 py-2">
+              {/* Warnings */}
+              {deedExtracted.warnings?.length > 0 && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400">Warnings</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {deedExtracted.warnings.map((w, i) => (
+                      <li key={i} className="text-xs text-amber-300/80">{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Editable OWNER */}
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Owner</h3>
+                <div className="space-y-1">
+                  <Label className="text-xs">Full Name</Label>
+                  <Input
+                    value={deedForm.owner_name || ''}
+                    onChange={(e) => setDeedForm(f => ({ ...f, owner_name: e.target.value }))}
+                    placeholder="Owner name"
+                  />
+                </div>
+              </section>
+
+              {/* Editable PROPERTY */}
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Property</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Property Type</Label>
+                    <select
+                      value={deedForm.property_type || ''}
+                      onChange={(e) => setDeedForm(f => ({ ...f, property_type: e.target.value }))}
+                      className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                    >
+                      {PROPERTY_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Unit No.</Label>
+                    <Input value={deedForm.unit_no || ''} onChange={(e) => setDeedForm(f => ({ ...f, unit_no: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Building / Community</Label>
+                    <Input value={deedForm.building_name || ''} onChange={(e) => setDeedForm(f => ({ ...f, building_name: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Location</Label>
+                    <Input value={deedForm.location || ''} onChange={(e) => setDeedForm(f => ({ ...f, location: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Area (sqft)</Label>
+                    <Input value={deedForm.area_sqft || ''} onChange={(e) => setDeedForm(f => ({ ...f, area_sqft: e.target.value }))} />
+                  </div>
+                </div>
+              </section>
+
+              {/* Read-only REFERENCE */}
+              {deedExtracted.property && (
+                <section>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Reference (read-only)</h3>
+                  <div className="rounded-lg border border-white/10 overflow-hidden">
+                    {[
+                      ['Floor No.', deedExtracted.property.floorNo],
+                      ['Plot No.', deedExtracted.property.plotNo],
+                      ['Municipality No.', deedExtracted.property.municipalityNo],
+                      ['Parkings', deedExtracted.property.parkings],
+                      ['Area (sqm)', deedExtracted.property.areaSqm],
+                      ['Mortgage Status', deedExtracted.property.mortgageStatus],
+                      ['Owner ID Number', deedExtracted.property.ownerIdNumber],
+                      ['Purchased From', deedExtracted.property.purchasedFrom],
+                      ['Certificate No.', deedExtracted.property.certificateNo],
+                      ['Issue Date', deedExtracted.property.issueDate],
+                    ].filter(([, v]) => v).map(([label, value], i) => (
+                      <div key={label} className={`flex justify-between px-3 py-2 text-sm ${i % 2 === 0 ? 'bg-white/5' : ''}`}>
+                        <span className="text-white/40 text-xs">{label}</span>
+                        <span className="text-white/70 text-xs font-medium text-right max-w-[60%] truncate">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {deedExtracted.note && (
+                <p className="text-xs text-white/40 italic">ℹ {deedExtracted.note}</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setDeedReviewOpen(false); setDeedExtracted(null); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => deedCreateMutation.mutate()}
+              disabled={deedCreateMutation.isPending || !deedForm.owner_name?.trim()}
+              className="gap-1.5"
+            >
+              {deedCreateMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <FileSignature className="w-3.5 h-3.5" />}
+              Create Draft Agreement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Manual Create Agreement Modal ── */}
+      <Dialog open={manualCreateOpen} onOpenChange={(o) => { if (!o) setManualCreateOpen(false); }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="w-5 h-5 text-accent" />
+              Create Manual Agreement
+            </DialogTitle>
+            <DialogDescription>
+              Enter owner and property details to create a new draft agreement.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Owner</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Full Name</Label>
+                  <Input value={manualCreateForm.owner_name} onChange={(e) => manualCreateUpdate('owner_name', e.target.value)} placeholder="Owner full name" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Passport No.</Label>
+                  <Input value={manualCreateForm.passport_no} onChange={(e) => manualCreateUpdate('passport_no', e.target.value)} placeholder="Passport number" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nationality</Label>
+                  <Input value={manualCreateForm.nationality} onChange={(e) => manualCreateUpdate('nationality', e.target.value)} placeholder="e.g. UAE" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={manualCreateForm.owner_email} onChange={(e) => manualCreateUpdate('owner_email', e.target.value)} placeholder="owner@example.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={manualCreateForm.owner_phone} onChange={(e) => manualCreateUpdate('owner_phone', e.target.value)} placeholder="+971…" />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Property</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Property Type</Label>
+                  <select
+                    value={manualCreateForm.property_type}
+                    onChange={(e) => manualCreateUpdate('property_type', e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+                  >
+                    <option value="">— Select —</option>
+                    {PROPERTY_TYPE_OPTIONS.filter(o => o.value).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Unit No.</Label>
+                  <Input value={manualCreateForm.unit_no} onChange={(e) => manualCreateUpdate('unit_no', e.target.value)} placeholder="e.g. 1204" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Building / Community</Label>
+                  <Input value={manualCreateForm.building_name} onChange={(e) => manualCreateUpdate('building_name', e.target.value)} placeholder="Building name" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Location</Label>
+                  <Input value={manualCreateForm.location} onChange={(e) => manualCreateUpdate('location', e.target.value)} placeholder="e.g. Dubai Marina" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">View</Label>
+                  <Input value={manualCreateForm.view} onChange={(e) => manualCreateUpdate('view', e.target.value)} placeholder="e.g. Sea view" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Area (sqft)</Label>
+                  <Input type="number" value={manualCreateForm.area_sqft} onChange={(e) => manualCreateUpdate('area_sqft', e.target.value)} placeholder="Area" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bedrooms</Label>
+                  <Input type="number" value={manualCreateForm.bedrooms} onChange={(e) => manualCreateUpdate('bedrooms', e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bathrooms</Label>
+                  <Input type="number" value={manualCreateForm.bathrooms} onChange={(e) => manualCreateUpdate('bathrooms', e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Price (AED)</Label>
+                  <Input type="number" value={manualCreateForm.price_aed} onChange={(e) => manualCreateUpdate('price_aed', e.target.value)} placeholder="Sale price" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Rent (AED)</Label>
+                  <Input type="number" value={manualCreateForm.rent_aed} onChange={(e) => manualCreateUpdate('rent_aed', e.target.value)} placeholder="Annual rent" />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualCreateOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => manualCreateMutation.mutate()}
+              disabled={manualCreateMutation.isPending}
+              className="gap-1.5"
+            >
+              {manualCreateMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <FileSignature className="w-3.5 h-3.5" />}
+              Create Draft Agreement
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

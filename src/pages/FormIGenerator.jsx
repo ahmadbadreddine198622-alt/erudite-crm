@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { base44 } from '@/api/base44Client';
 import { LOGO_URL, SIGNATURE_URL, STAMP_URL, loadImage } from '@/lib/pdfBrand';
-import { FileText, Loader2, Upload, RotateCcw, CheckCircle, Info, X, AlertTriangle, FileCheck, Edit3 } from 'lucide-react';
+import { FileText, Loader2, Upload, RotateCcw, CheckCircle, Info, X, AlertTriangle, FileCheck, Edit3, Home } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Erudite fixed details ────────────────────────────────────────────────────
@@ -745,6 +745,222 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
   );
 }
 
+// ─── Title Deed Review Modal ──────────────────────────────────────────────────
+function TdReviewModal({ result, editedData, setEditedData, onApply, onCancel }) {
+  const updateField = (field, value) => {
+    setEditedData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const isError = result?.success === false;
+  const rawResponse = result?.raw_response;
+  const fileUrl = result?.file_url || '(not available)';
+  const httpStatus = result?.http_status;
+  const fullJson = JSON.stringify(result?.raw_response, null, 2);
+
+  // Compose preview address
+  const parts = [];
+  if (editedData?.buildingName) parts.push(editedData.buildingName);
+  if (editedData?.propertyNo) parts.push(`Unit ${editedData.propertyNo}`);
+  if (editedData?.floorNo) parts.push(`Floor ${editedData.floorNo}`);
+  if (editedData?.community) parts.push(editedData.community);
+  const previewAddress = parts.join(', ');
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div style={{
+        background: T.card, borderRadius: 16, border: `1px solid ${T.border}`,
+        maxWidth: 1200, width: '100%', maxHeight: '90vh', overflow: 'auto',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px', borderBottom: `1px solid ${T.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <h2 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>
+              {isError ? '❌ Title Deed Upload/Parse Error' : '🏠 Review Property Details'}
+            </h2>
+            <p style={{ color: T.muted, fontSize: 11, margin: '4px 0 0' }}>
+              {isError ? 'Error details below' : 'Extracted from DLD Title Deed — review before applying to Form I'}
+            </p>
+          </div>
+          <button onClick={onCancel} style={{
+            background: 'none', border: 'none', color: T.muted, cursor: 'pointer',
+            padding: 4, borderRadius: 4,
+          }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Error Banner */}
+        {isError && (
+          <div style={{
+            margin: '16px 20px 0', padding: '14px 16px',
+            background: 'rgba(239,68,68,0.12)', border: `1px solid rgba(239,68,68,0.35)`,
+            borderRadius: 10,
+          }}>
+            <p style={{ color: '#F87171', fontSize: 12, fontWeight: 700, margin: '0 0 8px' }}>
+              ⚠️ Exception Thrown
+            </p>
+            <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#FCA5A5', marginBottom: 8 }}>
+              <strong>Name:</strong> {result?.error?.name}<br/>
+              <strong>Message:</strong> {result?.error?.message}<br/>
+              <strong>File URL:</strong> {result?.file_url}
+            </div>
+          </div>
+        )}
+
+        {/* File URL + HTTP Status */}
+        {!isError && (
+          <div style={{
+            margin: '16px 20px 0', padding: '10px 14px',
+            background: T.surface, border: `1px solid ${T.border}`,
+            borderRadius: 8, fontFamily: 'monospace', fontSize: 10,
+          }}>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: T.muted, textTransform: 'uppercase', fontSize: 9 }}>Storage File URL:</span>{' '}
+              <span style={{ color: T.text, wordBreak: 'break-all' }}>{fileUrl}</span>
+            </div>
+            {httpStatus && (
+              <div>
+                <span style={{ color: T.muted, textTransform: 'uppercase', fontSize: 9 }}>HTTP Status:</span>{' '}
+                <span style={{ color: httpStatus >= 200 && httpStatus < 300 ? '#4ADE80' : '#F87171' }}>{httpStatus}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isError && (
+          <>
+            {/* Preview: What Will Be Applied */}
+            <div style={{ padding: '0 20px 20px' }}>
+              <h3 style={{ color: T.text, fontSize: 12, fontWeight: 700, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                📋 Will Apply to Form I (Property Details)
+              </h3>
+              <div style={{
+                background: 'rgba(34,197,94,0.08)', border: `1px solid rgba(34,197,94,0.3)`,
+                borderRadius: 8, padding: 12, marginBottom: 16,
+              }}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase' }}>Property Address →</span>
+                  <div style={{ color: '#4ADE80', fontSize: 11, fontWeight: 600 }}>{previewAddress || '(empty)'}</div>
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase' }}>Master Project Name →</span>
+                  <div style={{ color: '#4ADE80', fontSize: 11, fontWeight: 600 }}>{editedData?.community || '(empty)'}</div>
+                </div>
+                <div>
+                  <span style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase' }}>Building Name →</span>
+                  <div style={{ color: '#4ADE80', fontSize: 11, fontWeight: 600 }}>{editedData?.buildingName || '(empty)'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reference Info (read-only) */}
+            <div style={{ padding: '0 20px 20px' }}>
+              <h3 style={{ color: T.text, fontSize: 12, fontWeight: 700, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                📄 Title Deed Reference Information (Read-Only)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Owner Name</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.ownerName || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Mortgage Status</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.mortgageStatus || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Area (sqm)</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.areaSqm || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Area (sqft)</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.areaSqft || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Plot No</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.plotNo || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Municipality No</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.municipalityNo || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Certificate No</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.certificateNo || '(not found)'}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Issue Date</label>
+                  <div style={{ padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }}>
+                    {editedData?.issueDate || '(not found)'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Full Raw JSON */}
+            <div style={{ padding: '0 20px 20px' }}>
+              <h3 style={{ color: T.text, fontSize: 12, fontWeight: 700, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Complete parseTitleDeed Response (Raw JSON)
+              </h3>
+              <div style={{
+                background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8,
+                padding: 12, maxHeight: 400, overflow: 'auto',
+              }}>
+                <pre style={{
+                  margin: 0, fontSize: 9, fontFamily: 'monospace', color: T.text,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.3,
+                }}>{fullJson || '(no response data)'}</pre>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Footer Actions */}
+        <div style={{
+          padding: '16px 20px', borderTop: `1px solid ${T.border}`,
+          display: 'flex', justifyContent: 'flex-end', gap: 10, background: T.surface,
+        }}>
+          <button onClick={onCancel} style={{
+            padding: '10px 20px', background: T.surface, color: T.muted,
+            border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>
+            Cancel
+          </button>
+          {!isError && (
+            <button onClick={onApply} style={{
+              padding: '10px 20px', background: T.amber, color: T.amberText,
+              border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <CheckCircle size={14} /> Apply to Property
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function FormIGenerator() {
   const [eruditeSide, setEruditeSide] = useState('A');
@@ -776,12 +992,18 @@ export default function FormIGenerator() {
   const [done, setDone] = useState('');
   const [showDisclaimer, setShowDisclaimer] = useState(true);
 
-  // ─── PDF Upload & Parse State ───────────────────────────────────────────────
+  // ─── PDF Upload & Parse State (Form I) ──────────────────────────────────────
   const [uploading, setUploading] = useState(false);
   const [parseResult, setParseResult] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [sideMismatch, setSideMismatch] = useState(false);
   const [editedCounterparty, setEditedCounterparty] = useState(null);
+
+  // ─── Title Deed Upload & Parse State ────────────────────────────────────────
+  const [uploadingTD, setUploadingTD] = useState(false);
+  const [tdParseResult, setTdParseResult] = useState(null);
+  const [showTdReviewModal, setShowTdReviewModal] = useState(false);
+  const [editedTdProperty, setEditedTdProperty] = useState(null);
 
 
   const logoUrl = localStorage.getItem('erudite_logo') || LOGO_URL;
@@ -942,6 +1164,156 @@ export default function FormIGenerator() {
     setSideMismatch(false);
   };
 
+  // ─── Title Deed Upload & Parse Handlers ─────────────────────────────────────
+  const handleTdFileUpload = async (file) => {
+    console.log('[FormI-TD] handleTdFileUpload called with:', file);
+    if (file.type !== 'application/pdf') {
+      toast.error('PDF files only', { description: 'Please upload a Title Deed PDF document' });
+      return;
+    }
+
+    setUploadingTD(true);
+    let diagnosticData = null;
+    let fileUrl = null;
+    try {
+      // (a) Upload to Base44 storage using Core integration
+      console.log('[FormI-TD] Calling UploadFile with file:', file.name, file.type, file.size);
+      let uploadRes;
+      try {
+        uploadRes = await base44.integrations.Core.UploadFile({ file });
+      } catch (uploadErr) {
+        console.error('[FormI-TD] UploadFile integration call failed:', uploadErr);
+        throw uploadErr;
+      }
+      fileUrl = uploadRes.file_url;
+      console.log('[FormI-TD] Storage URL after upload:', fileUrl);
+      if (!fileUrl) {
+        throw new Error('UploadFile returned no file_url');
+      }
+
+      // (b) Parse the Title Deed
+      const parsePayload = { file_url: fileUrl, debug: true };
+      console.log('[FormI-TD] Payload sent to parseTitleDeed:', parsePayload);
+
+      const parseRes = await base44.functions.invoke('parseTitleDeed', parsePayload);
+      console.log('[FormI-TD] Full parseTitleDeed response:', JSON.stringify(parseRes, null, 2));
+
+      const result = parseRes.data;
+      const status = parseRes.status;
+
+      // Build diagnostic data for modal display
+      diagnosticData = {
+        success: true,
+        file_url: fileUrl,
+        http_status: status,
+        raw_response: result,
+        error: null,
+      };
+
+      // Pre-populate editable property fields
+      const tdProperty = result?.property || {};
+      setEditedTdProperty({
+        // Fields that will map to Form I property
+        buildingName: tdProperty.buildingName || '',
+        community: tdProperty.community || '',
+        propertyNo: tdProperty.propertyNo || '',
+        floorNo: tdProperty.floorNo || '',
+        // Extra reference fields (read-only in modal)
+        issueDate: tdProperty.issueDate || '',
+        propertyType: tdProperty.propertyType || '',
+        plotNo: tdProperty.plotNo || '',
+        municipalityNo: tdProperty.municipalityNo || '',
+        buildingNo: tdProperty.buildingNo || '',
+        parkings: tdProperty.parkings || '',
+        suiteAreaSqm: tdProperty.suiteAreaSqm || '',
+        balconyAreaSqm: tdProperty.balconyAreaSqm || '',
+        areaSqm: tdProperty.areaSqm || '',
+        areaSqft: tdProperty.areaSqft || '',
+        commonAreaSqm: tdProperty.commonAreaSqm || '',
+        mortgageStatus: tdProperty.mortgageStatus || '',
+        ownerName: tdProperty.ownerName || '',
+        ownerIdNumber: tdProperty.ownerIdNumber || '',
+        ownerSharePct: tdProperty.ownerSharePct || '',
+        purchasedFrom: tdProperty.purchasedFrom || '',
+        landRegistrationNo: tdProperty.landRegistrationNo || '',
+        purchaseAmountAed: tdProperty.purchaseAmountAed || '',
+        certificateNo: tdProperty.certificateNo || '',
+      });
+
+      setTdParseResult({ ...diagnosticData });
+      setShowTdReviewModal(true);
+
+      if (!result?.ok) {
+        toast.warning('Title Deed parse returned ok=false', {
+          description: result?.note || 'Check modal for full response'
+        });
+      } else {
+        toast.success('Title Deed parsed', {
+          description: 'Review modal opened — extract property details'
+        });
+      }
+    } catch (err) {
+      console.error('[FormI-TD] Upload/parse threw exception:', err);
+      diagnosticData = {
+        success: false,
+        file_url: fileUrl || '(upload failed)',
+        http_status: null,
+        raw_response: null,
+        error: {
+          message: err?.message || 'Unknown error',
+          stack: err?.stack || 'No stack trace',
+          name: err?.name || 'Error',
+        },
+      };
+      setTdParseResult(diagnosticData);
+      setShowTdReviewModal(true);
+      toast.error('Title Deed upload/parse failed', {
+        description: 'Check modal for full error details'
+      });
+    } finally {
+      setUploadingTD(false);
+    }
+  };
+
+  const handleApplyTdProperty = () => {
+    if (!editedTdProperty) return;
+
+    // Compose Property Address from parts (skip empty parts)
+    const parts = [];
+    if (editedTdProperty.buildingName) parts.push(editedTdProperty.buildingName);
+    if (editedTdProperty.propertyNo) parts.push(`Unit ${editedTdProperty.propertyNo}`);
+    if (editedTdProperty.floorNo) parts.push(`Floor ${editedTdProperty.floorNo}`);
+    if (editedTdProperty.community) parts.push(editedTdProperty.community);
+    const composedAddress = parts.join(', ');
+
+    // Map to Form I property fields (only the 3 specified fields)
+    const mappedProperty = {
+      address: composedAddress,
+      masterProject: editedTdProperty.community || '',
+      buildingName: editedTdProperty.buildingName || '',
+      // Keep existing values for other fields
+      masterDeveloper: property.masterDeveloper,
+      price: property.price,
+      description: property.description,
+      maintenanceFee: property.maintenanceFee,
+    };
+
+    setProperty(mappedProperty);
+    setShowTdReviewModal(false);
+    setTdParseResult(null);
+    setEditedTdProperty(null);
+
+    toast.success('Property details applied', {
+      description: 'Building name, project, and address filled from Title Deed'
+    });
+  };
+
+  const handleCancelTdParse = () => {
+    setShowTdReviewModal(false);
+    setTdParseResult(null);
+    setEditedTdProperty(null);
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     setDone('');
@@ -1052,13 +1424,24 @@ export default function FormIGenerator() {
           </div>
         </SectionCard>
 
-        {/* PDF Upload Zone */}
+        {/* PDF Upload Zone - Form I */}
         <SectionCard title="Import from Existing Form I">
           <UploadZone onFileSelect={handleFileUpload} disabled={uploading} />
           {uploading && (
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: T.muted, fontSize: 11 }}>
               <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
               Uploading and parsing PDF...
+            </div>
+          )}
+        </SectionCard>
+
+        {/* PDF Upload Zone - Title Deed */}
+        <SectionCard title="Import Property from Title Deed">
+          <UploadZone onFileSelect={handleTdFileUpload} disabled={uploadingTD} />
+          {uploadingTD && (
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: T.muted, fontSize: 11 }}>
+              <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              Uploading and parsing Title Deed...
             </div>
           )}
         </SectionCard>
@@ -1182,7 +1565,7 @@ export default function FormIGenerator() {
 
       </div>
 
-      {/* Review Modal */}
+      {/* Review Modal - Form I */}
       {showReviewModal && parseResult && (
         <ReviewModal
           result={parseResult}
@@ -1192,6 +1575,17 @@ export default function FormIGenerator() {
           onApply={handleApplyParsedData}
           onFlip={handleFlipSide}
           onCancel={handleCancelParse}
+        />
+      )}
+
+      {/* Review Modal - Title Deed */}
+      {showTdReviewModal && tdParseResult && (
+        <TdReviewModal
+          result={tdParseResult}
+          editedData={editedTdProperty}
+          setEditedData={setEditedTdProperty}
+          onApply={handleApplyTdProperty}
+          onCancel={handleCancelTdParse}
         />
       )}
 

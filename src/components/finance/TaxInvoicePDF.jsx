@@ -12,7 +12,7 @@
 // place where a future Google Drive re-upload step lives (DRIVE SWAP SEAM
 // comment in entry.ts). When that swap happens the button stays unchanged.
 //
-// Brand palette (per spec): navy #1a2744, gold #c9a84a.
+// Brand palette (per spec): navy #1a2744, gold #c9a84a, cream #f7f4ec.
 
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -37,40 +37,39 @@ export async function buildInvoicePDF(invoice, opts = {}) {
   const H = 297;
   const pad = 14;
 
-  const headerH = 36;
-  doc.setFillColor(...BRAND.navy);
+  const headerH = 48;
+  // Light cream header band (#F7F4EC)
+  doc.setFillColor(247, 244, 236);
   doc.rect(0, 0, W, headerH, 'F');
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(BRAND.name, pad, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(BRAND.address, pad, 18);
-  doc.setTextColor(...BRAND.gold);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.text(`VAT Reg No: ${BRAND.vatRegNo}`, pad, headerH - 5);
-
+  // TAX INVOICE badge: navy block, gold border, gold text (top-right)
   const boxW = 56;
   const boxH = 18;
   const boxX = W - pad - boxW;
-  const boxY = 9;
-  doc.setFillColor(...BRAND.gold);
+  const boxY = 14;
+  doc.setFillColor(26, 39, 68);
   doc.rect(boxX, boxY, boxW, boxH, 'F');
-  doc.setTextColor(...BRAND.navy);
+  // Gold border (drawn on top of fill)
+  doc.setLineWidth(0.5);
+  doc.setDrawColor(201, 168, 74);
+  doc.rect(boxX, boxY, boxW, boxH, 'S');
+  doc.setTextColor(201, 168, 74);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.text('TAX INVOICE', boxX + boxW / 2, boxY + boxH / 2 + 2, { align: 'center' });
 
-  doc.setFillColor(...BRAND.gold);
-  doc.rect(0, headerH, W, 1.2, 'F');
+  // Logo: single Erudite logo, moved UP for clear separation from VAT line
+  await placeLogo(doc, { x: pad, y: 6, maxW: 52, maxH: 26 });
 
-  // Logo: centered in the open space between the brand text (left) and the
-  // gold TAX INVOICE box (right). Aspect-fitted, vertically centered in the
-  // navy header band. Silently skipped if src/assets/logo.png is missing.
-  await placeLogo(doc, { x: 80, y: 6, maxW: 48, maxH: 24 });
+  // VAT Reg No line: positioned BELOW the logo with clear vertical spacing
+  doc.setTextColor(201, 168, 74);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(`VAT Reg No: ${BRAND.vatRegNo}`, pad, 38);
+
+  // Gold rule beneath header
+  doc.setFillColor(201, 168, 74);
+  doc.rect(0, headerH, W, 1.2, 'F');
 
   let y = headerH + 10;
 

@@ -71,7 +71,8 @@ const STAGE_LABELS = {
 };
 
 export default function Landlords() {
-  const { user: currentUser, permissions } = useCurrentUser();
+  const { user: currentUser, permissions, loading: userLoading } = useCurrentUser();
+  const safePermissions = permissions || {};
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -209,11 +210,11 @@ export default function Landlords() {
     [landlords, selectedLandlordId],
   );
 
-  // Role-based isolation: non-admins only see landlords assigned to them
+  // Role-based isolation: non-admins only see landlords explicitly assigned to them (unassigned excluded)
   const visibleLandlords = useMemo(() => {
-    if (!currentUser || permissions.view_all_landlords) return landlords;
-    return landlords.filter(l => l.assigned_agent_email === currentUser.email);
-  }, [landlords, currentUser, permissions.view_all_landlords]);
+    if (!currentUser || safePermissions.view_all_landlords) return landlords;
+    return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
+  }, [landlords, currentUser, safePermissions.view_all_landlords]);
 
   // Group by stage
   const stageGroups = useMemo(() => {
@@ -391,7 +392,8 @@ export default function Landlords() {
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
 
-  if (isLoading) {
+  // Guard against unauthenticated or loading state - must be after all hooks
+  if (userLoading || !currentUser || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -630,13 +632,19 @@ export default function Landlords() {
           ) : (
             /* Normal filters — only shown when nothing selected */
             <>
-              <Input
-                placeholder="Filter by agent..."
-                value={filterAgent}
-                onChange={(e) => setFilterAgent(e.target.value)}
-                className="max-w-xs text-xs"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
-              />
+              {safePermissions.view_all_landlords && users.length > 0 && (
+                <select
+                  value={filterAgent}
+                  onChange={(e) => setFilterAgent(e.target.value)}
+                  className="px-3 py-2 text-xs rounded-md"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                >
+                  <option value="">All Agents</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  ))}
+                </select>
+              )}
               <select
                 value={filterArchetype}
                 onChange={(e) => setFilterArchetype(e.target.value)}

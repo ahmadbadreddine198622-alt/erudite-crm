@@ -85,26 +85,29 @@ const OWNER_DOC_CHECKBOXES: { key: string; label: string }[] = [
 
 // fetchAsDataUri removed — assets are now inline base64 constants (see top of file).
 
-// LOGO is served from /public/ which is auth-gated; we fetch it once per isolate
-// using the incoming request's auth headers, then cache the result so every
-// subsequent PDF request in the same isolate gets the logo instantly.
+// Logo: load from CompanySettings.logo_url (public Base44 media URL — fetchable
+// server-side with no auth). Cached per isolate for subsequent PDF requests.
 let _logoCacheUri: string | null = null;
-async function _fetchLogoOnce(req: Request): Promise<string | null> {
+async function _fetchLogoOnce(base44: any): Promise<string | null> {
   if (_logoCacheUri) return _logoCacheUri;
   try {
-    const fwdHeaders: Record<string, string> = { Accept: 'image/*' };
-    for (const [k, v] of req.headers.entries()) {
-      if (k === 'authorization' || k === 'cookie') fwdHeaders[k] = v;
-    }
-    const res = await fetch('https://dubai-estate-pro.base44.app/erudite-logo.png', { headers: fwdHeaders });
+    const settings = await base44.asServiceRole.entities.CompanySettings.list(undefined, 1);
+    const logoUrl = settings?.[0]?.logo_url;
+    if (!logoUrl) { console.log('[logo] CompanySettings.logo_url empty — falling back to inline base64'); return null; }
+    console.log('[logo] Fetching from CompanySettings.logo_url:', logoUrl);
+    const res = await fetch(logoUrl);
     if (!res.ok) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     let bin = '';
     const chunk = 8192;
     for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.slice(i, i + chunk));
     _logoCacheUri = `data:image/png;base64,${btoa(bin)}`;
+    console.log('[logo] Successfully loaded from CompanySettings.logo_url');
     return _logoCacheUri;
-  } catch { return null; }
+  } catch (err: any) {
+    console.error('[logo] _fetchLogoOnce failed:', err?.message ?? err);
+    return null;
+  }
 }
 
 function fmtDate(d: Date): string {
@@ -233,7 +236,7 @@ Deno.serve(async (req) => {
     // ── Load branded images ─────────────────────────────────────────
     // LOGO: fetched from the app using request auth (cached per isolate; /public/ is auth-gated).
     // SIGNATURE + STAMP: already inlined as base64 constants at the top of this file.
-    const logoData  = await _fetchLogoOnce(req);
+    const logoData  = await _fetchLogoOnce(base44);
     const sigData   = SIGNATURE_DATA_URI;
     const stampData = STAMP_DATA_URI;
 
@@ -244,8 +247,7 @@ Deno.serve(async (req) => {
     const refNo = `LBA-${Date.now().toString(36).toUpperCase()}`;
 
     // Header band — navy with gold stripe (matches pdfBrand.js convention)
-    doc.setFillColor(...NAVY);
-    doc.rect(0, 0, W, 36, 'F');
+    // Header cream band already applied above
     doc.setFillColor(...GOLD);
     doc.rect(0, 36, W, 1.2, 'F');
 
@@ -258,12 +260,28 @@ Deno.serve(async (req) => {
     doc.setTextColor(...GOLD);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text('LEASE BROKERAGE AGREEMENT', W - pad, 13, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Ref: ${refNo}`, W - pad, 19, { align: 'right' });
-    doc.text(`Date: ${fmtDate(new Date())}`, W - pad, 24, { align: 'right' });
+    // Light cream header band (#F7F4EC) - matching Tax Invoice style
+  doc.setFillColor(247, 244, 236);
+  doc.rect(0, 0, W, 48, 'F');
+  
+  // Single Erudite logo only (top-left) - matching Tax Invoice style
+  // Logo placed in cream header band (top-left) — fallback when _fetchLogoOnce returned null
+  if (!logoData) console.log('[logo] Using inline LOGO_DATA_URI fallback');
+  if (!logoData && LOGO_DATA_URI) {
+    try { doc.addImage(LOGO_DATA_URI, 'PNG', 14, 10, 32, 16); } catch { /* ignore */ }
+  }
+  
+  // Title removed - only logo in header (matching Tax Invoice style)
+  // Reference and date below header band
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(110, 120, 140); // Muted text
+  doc.text(`Ref: ${refNo}`, W - pad, 54, { align: 'right' });
+  doc.text(`Date: ${fmtDate(new Date())}`, W - pad, 59, { align: 'right' });
+  
+  // Gold divider line (#C9A84A)
+  doc.setFillColor(201, 168, 74);
+  doc.rect(0, 48, W, 1.2, 'F');
     doc.text(`ORN: ${ORN}`, W - pad, 29, { align: 'right' });
 
     let y = 46;
