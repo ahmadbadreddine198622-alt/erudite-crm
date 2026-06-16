@@ -78,17 +78,8 @@ export default function LeaseAgreement() {
         const landlordName = landlords.find(l => l.id === landlordId)?.full_name_en || 'Agreement';
         setPdfViewer({ url: pdfUrl, name: landlordName });
         // Auto-download the freshly generated PDF
-        fetch(pdfUrl).then(r => r.blob()).then(blob => {
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = `LeaseAgreement-${landlordName.replace(/\s+/g, '_')}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-        }).catch(() => {});
-        toast.success('Agreement generated — PDF ready');
+        const fileName = `LeaseAgreement-${landlordName.replace(/\s+/g, '_')}.pdf`;
+        downloadPdfFile(pdfUrl, fileName);
       } else if (data?.skipped) {
         toast.info(data.reason || 'Already sent for signature.');
       } else {
@@ -277,23 +268,41 @@ export default function LeaseAgreement() {
     onError: (e) => toast.error('Failed to create draft: ' + e.message),
   });
 
-  const handleDownloadPdf = async (landlord) => {
-    const pdfUrl = pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id];
-    if (!pdfUrl) return;
+  // Shared download — tries fetch+blob (same-origin), falls back to new-tab (cross-origin like Google Drive).
+  const downloadPdfFile = async (pdfUrl, fileName) => {
+    console.log('[LeaseAgreement] Download PDF — URL:', pdfUrl);
+    const domain = (() => { try { return new URL(pdfUrl).hostname; } catch { return 'invalid'; } })();
+    console.log('[LeaseAgreement] Domain:', domain);
+
     try {
       const res = await fetch(pdfUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `LeaseAgreement-${(landlord.full_name_en || 'landlord').replace(/\s+/g, '_')}.pdf`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-    } catch (e) {
-      toast.error('Download failed: ' + e.message);
+      toast.success(`Downloaded ✓ — ${fileName}`);
+      console.log('[LeaseAgreement] Download succeeded via fetch+blob');
+    } catch (fetchErr) {
+      console.warn('[LeaseAgreement] fetch failed (likely CORS), opening in new tab:', fetchErr.message);
+      toast.error('Download failed — opening in new tab', { description: 'Use Ctrl+S / Cmd+S to save the PDF' });
+      window.open(pdfUrl, '_blank');
     }
+  };
+
+  const handleDownloadPdf = (landlord) => {
+    const pdfUrl = pdfUrls[landlord.id] || landlord.lease_pdf_url || checklistUrlMap[landlord.id];
+    if (!pdfUrl) {
+      toast.error('No PDF available — generate the agreement first');
+      return;
+    }
+    const fileName = `LeaseAgreement-${(landlord.full_name_en || 'landlord').replace(/\s+/g, '_')}.pdf`;
+    downloadPdfFile(pdfUrl, fileName);
   };
 
   const openManual = (landlord) => {
