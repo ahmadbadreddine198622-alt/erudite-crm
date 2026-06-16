@@ -680,6 +680,31 @@ function ReviewModal({ result, editedData, setEditedData, sideMismatch, onApply,
                 <input value={editedData.email || ''} onChange={e => updateField('email', e.target.value)}
                   style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
               </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Fax</label>
+                <input value={editedData.fax || ''} onChange={e => updateField('fax', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>P.O. Box</label>
+                <input value={editedData.poBox || ''} onChange={e => updateField('poBox', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Date Issued</label>
+                <input value={editedData.dateIssued || ''} onChange={e => updateField('dateIssued', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Agent Mobile</label>
+                <input value={editedData.agentMobile || ''} onChange={e => updateField('agentMobile', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
+              <div>
+                <label style={{ color: T.muted, fontSize: 9, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Agent Email</label>
+                <input value={editedData.agentEmail || ''} onChange={e => updateField('agentEmail', e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', background: T.card, border: `1px solid ${T.border}`, borderRadius: 5, color: T.text, fontSize: 11 }} />
+              </div>
             </div>
           </div>
         )}
