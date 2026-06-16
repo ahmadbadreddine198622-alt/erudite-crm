@@ -246,32 +246,33 @@ Deno.serve(async (req) => {
     const pad = 14;
     const refNo = `LBA-${Date.now().toString(36).toUpperCase()}`;
 
-    // Header band — navy with gold stripe (matches pdfBrand.js convention)
-    // Header cream band already applied above
+    // ── Header (z-order matters: band → stripe → logo) ───────────────────
+    // 1. Cream header band — must be drawn FIRST so the logo paints over it.
+    doc.setFillColor(247, 244, 236);
+    doc.rect(0, 0, W, 48, 'F');
+
+    // 2. Gold accent stripe below the band.
     doc.setFillColor(...GOLD);
     doc.rect(0, 36, W, 1.2, 'F');
 
-    // Logo top-left (skipped gracefully if fetch failed)
-    if (logoData) {
-      try { doc.addImage(logoData, 'PNG', pad, 5, 32, 16); } catch { /* ignore */ }
+    // 3. Single Erudite logo (top-left). Use CompanySettings logo if loaded,
+    //    otherwise the inline LOGO_DATA_URI fallback. Drawn AFTER the cream
+    //    band so it actually appears in the header.
+    const headerLogo = logoData || LOGO_DATA_URI;
+    if (headerLogo) {
+      try {
+        doc.addImage(headerLogo, 'PNG', pad, 10, 32, 16);
+      } catch (e: any) {
+        console.error('[logo] addImage failed, header will be blank:', String(e?.message || e));
+      }
+    } else {
+      console.log('[logo] No logo source available (CompanySettings empty + LOGO_DATA_URI empty)');
     }
 
-    // Title block top-right
+    // Title removed - only logo in header (matching Tax Invoice style)
     doc.setTextColor(...GOLD);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    // Light cream header band (#F7F4EC) - matching Tax Invoice style
-  doc.setFillColor(247, 244, 236);
-  doc.rect(0, 0, W, 48, 'F');
-  
-  // Single Erudite logo only (top-left) - matching Tax Invoice style
-  // Logo placed in cream header band (top-left) — fallback when _fetchLogoOnce returned null
-  if (!logoData) console.log('[logo] Using inline LOGO_DATA_URI fallback');
-  if (!logoData && LOGO_DATA_URI) {
-    try { doc.addImage(LOGO_DATA_URI, 'PNG', 14, 10, 32, 16); } catch { /* ignore */ }
-  }
-  
-  // Title removed - only logo in header (matching Tax Invoice style)
   // Reference and date below header band
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
