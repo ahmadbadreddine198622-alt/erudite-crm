@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download } from 'lucide-react';
+import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download, IdCard } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -112,6 +112,13 @@ export default function LeaseAgreement() {
   const [deedReviewOpen, setDeedReviewOpen] = useState(false);
   const [deedForm, setDeedForm] = useState({ owner_name: '', property_type: '', location: '', building_name: '', unit_no: '', area_sqft: '' });
 
+  // ── ID Upload state ──────────────────────────────────────────────────────
+  const [idUploadingLandlord, setIdUploadingLandlord] = useState(null);
+  const [idExtracted, setIdExtracted] = useState(null);
+  const [idReviewOpen, setIdReviewOpen] = useState(false);
+  const [idForm, setIdForm] = useState({ full_name_en: '', full_name_ar: '', nationality: '', emirates_id: '', passport_no: '', date_of_birth: '', id_expiry_date: '' });
+  const [idTargetLandlord, setIdTargetLandlord] = useState(null);
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
     onSuccess: () => {
@@ -178,6 +185,66 @@ export default function LeaseAgreement() {
     };
     input.click();
   };
+
+  // ── ID Upload handlers ───────────────────────────────────────────────────
+  const handleIdUpload = (landlord) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,image/png,image/jpeg,image/jpg,image/webp';
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setIdUploadingLandlord(landlord.id);
+      try {
+        const uploadRes = await base44.integrations.Core.UploadFile({ file });
+        const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
+        if (!fileUrl) throw new Error('Upload failed — no file URL returned');
+        const parseRes = await base44.functions.invoke('parseIdDocument', { file_url: fileUrl });
+        const data = parseRes?.data ?? parseRes;
+        if (!data?.ok) {
+          toast.error(data?.error || 'ID parsing failed');
+          return;
+        }
+        const o = data.owner || {};
+        setIdForm({
+          full_name_en: o.full_name_en || '',
+          full_name_ar: o.full_name_ar || '',
+          nationality: o.nationality || '',
+          emirates_id: o.emirates_id || '',
+          passport_no: o.passport_no || '',
+          date_of_birth: o.date_of_birth || '',
+          id_expiry_date: o.id_expiry_date || '',
+        });
+        setIdExtracted(data);
+        setIdTargetLandlord(landlord);
+        setIdReviewOpen(true);
+      } catch (err) {
+        toast.error('ID upload failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        setIdUploadingLandlord(null);
+      }
+    };
+    input.click();
+  };
+
+  const idApplyMutation = useMutation({
+    mutationFn: async () => {
+      const updates = {};
+      for (const [k, v] of Object.entries(idForm)) {
+        const val = String(v || '').trim();
+        if (val) updates[k] = val;
+      }
+      return base44.entities.Landlord.update(idTargetLandlord.id, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      toast.success('ID details saved ✓');
+      setIdReviewOpen(false);
+      setIdExtracted(null);
+      setIdTargetLandlord(null);
+    },
+    onError: (e) => toast.error('Failed: ' + e.message),
+  });
 
   const deedCreateMutation = useMutation({
     mutationFn: async () => {
@@ -525,6 +592,16 @@ export default function LeaseAgreement() {
                           {status.replace(/_/g, ' ')}
                         </Badge>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={`h-8 w-8 p-0 ${idUploadingLandlord === landlord.id ? 'text-accent' : 'text-white/50 hover:text-white'}`}
+                        title="Upload ID / Passport"
+                        onClick={() => handleIdUpload(landlord)}
+                        disabled={generateMutation.isPending || idUploadingLandlord !== null}
+                      >
+                        {idUploadingLandlord === landlord.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IdCard className="w-3.5 h-3.5" />}
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1017,6 +1094,100 @@ export default function LeaseAgreement() {
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <FileSignature className="w-3.5 h-3.5" />}
               Create Draft Agreement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── ID Review Modal ── */}
+      <Dialog open={idReviewOpen} onOpenChange={(o) => { if (!o) { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); } }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IdCard className="w-5 h-5 text-accent" />
+              Review Extracted ID
+            </DialogTitle>
+            <DialogDescription>
+              {idExtracted?.doc_type === 'emirates_id' ? 'Emirates ID detected' : idExtracted?.doc_type === 'passport' ? 'Passport detected' : 'Document type unknown'} — review and edit before saving to landlord record.
+            </DialogDescription>
+          </DialogHeader>
+
+          {idExtracted && (
+            <div className="space-y-5 py-2">
+              {idExtracted.warnings?.length > 0 && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400">Warnings</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {idExtracted.warnings.map((w, i) => (
+                      <li key={i} className="text-xs text-amber-300/80">{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Identity</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Full Name (EN)</Label>
+                    <Input value={idForm.full_name_en || ''} onChange={(e) => setIdForm(f => ({ ...f, full_name_en: e.target.value }))} placeholder="Full name in English" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Full Name (AR)</Label>
+                    <Input value={idForm.full_name_ar || ''} onChange={(e) => setIdForm(f => ({ ...f, full_name_ar: e.target.value }))} placeholder="الاسم بالعربية" dir="rtl" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nationality</Label>
+                    <Input value={idForm.nationality || ''} onChange={(e) => setIdForm(f => ({ ...f, nationality: e.target.value }))} placeholder="e.g. UAE" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Emirates ID</Label>
+                    <Input value={idForm.emirates_id || ''} onChange={(e) => setIdForm(f => ({ ...f, emirates_id: e.target.value }))} placeholder="784-YYYY-NNNNNNN-N" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Passport No.</Label>
+                    <Input value={idForm.passport_no || ''} onChange={(e) => setIdForm(f => ({ ...f, passport_no: e.target.value }))} placeholder="Passport number" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date of Birth</Label>
+                    <Input value={idForm.date_of_birth || ''} onChange={(e) => setIdForm(f => ({ ...f, date_of_birth: e.target.value }))} placeholder="As printed on document" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">ID Expiry Date</Label>
+                    <Input value={idForm.id_expiry_date || ''} onChange={(e) => setIdForm(f => ({ ...f, id_expiry_date: e.target.value }))} placeholder="As printed on document" />
+                  </div>
+                </div>
+              </section>
+
+              {idTargetLandlord && (
+                <p className="text-xs text-white/40">Applying to: <span className="text-white/70 font-medium">{idTargetLandlord.full_name_en || 'Landlord'}</span></p>
+              )}
+
+              {idExtracted.note && (
+                <p className="text-xs text-white/40 italic">ℹ {idExtracted.note}</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setIdReviewOpen(false); setIdExtracted(null); setIdTargetLandlord(null); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => idApplyMutation.mutate()}
+              disabled={idApplyMutation.isPending}
+              className="gap-1.5"
+            >
+              {idApplyMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <IdCard className="w-3.5 h-3.5" />}
+              Apply to Landlord
             </Button>
           </DialogFooter>
         </DialogContent>
