@@ -119,6 +119,14 @@ export default function LeaseAgreement() {
   const [idForm, setIdForm] = useState({ full_name_en: '', full_name_ar: '', nationality: '', emirates_id: '', passport_no: '', date_of_birth: '', id_expiry_date: '' });
   const [idTargetLandlord, setIdTargetLandlord] = useState(null);
 
+  // ── ID Import (top drop zone — creates NEW Landlord) ────────────────────
+  const [idImportDragOver, setIdImportDragOver] = useState(false);
+  const [idImportUploading, setIdImportUploading] = useState(false);
+  const [idImportExtracted, setIdImportExtracted] = useState(null);
+  const [idImportReviewOpen, setIdImportReviewOpen] = useState(false);
+  const [idImportFileUrl, setIdImportFileUrl] = useState('');
+  const [idImportForm, setIdImportForm] = useState({ full_name_en: '', full_name_ar: '', nationality: '', emirates_id: '', passport_no: '', date_of_birth: '', id_expiry_date: '' });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
     onSuccess: () => {
@@ -226,6 +234,102 @@ export default function LeaseAgreement() {
     };
     input.click();
   };
+
+  // ── ID Import handlers (top drop zone — creates NEW Landlord) ──────────
+  const processIdImportFile = async (file) => {
+    if (!file) return;
+    const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Only PDF or images (PNG, JPEG, WebP) are accepted');
+      return;
+    }
+    setIdImportUploading(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
+      if (!fileUrl) throw new Error('Upload failed — no file URL returned');
+      setIdImportFileUrl(fileUrl);
+      const parseRes = await base44.functions.invoke('parseIdDocument', { file_url: fileUrl });
+      const data = parseRes?.data ?? parseRes;
+      if (!data?.ok) {
+        toast.error(data?.error || 'ID parsing failed');
+        return;
+      }
+      const o = data.owner || {};
+      setIdImportForm({
+        full_name_en: o.full_name_en || '',
+        full_name_ar: o.full_name_ar || '',
+        nationality: o.nationality || '',
+        emirates_id: o.emirates_id || '',
+        passport_no: o.passport_no || '',
+        date_of_birth: o.date_of_birth || '',
+        id_expiry_date: o.id_expiry_date || '',
+      });
+      setIdImportExtracted(data);
+      setIdImportReviewOpen(true);
+    } catch (err) {
+      toast.error('Import failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIdImportUploading(false);
+    }
+  };
+
+  const handleIdImportDrop = (e) => {
+    e.preventDefault();
+    setIdImportDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) processIdImportFile(file);
+  };
+
+  const handleIdImportBrowse = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,image/png,image/jpeg,image/jpg,image/webp';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (file) processIdImportFile(file);
+    };
+    input.click();
+  };
+
+  // ── ID Import create mutation (new Landlord from ID drop zone) ─────────
+  const idImportCreateMutation = useMutation({
+    mutationFn: async () => {
+      const f = idImportForm;
+      const createPayload = {
+        full_name_en: f.full_name_en?.trim() || 'Unnamed',
+        source: 'other',
+        stage: 'initial_contact',
+        assigned_agent_email: currentUser?.email || '',
+        lease_agreement_status: 'drafted',
+      };
+      // Write only non-empty identity fields
+      const identityFields = ['full_name_ar', 'nationality', 'emirates_id', 'passport_no', 'date_of_birth', 'id_expiry_date'];
+      for (const field of identityFields) {
+        const val = String(f[field] || '').trim();
+        if (val) createPayload[field] = val;
+      }
+      // Store file URL to the correct *_file_url field
+      const docType = idImportExtracted?.doc_type;
+      if (idImportFileUrl) {
+        if (docType === 'emirates_id') createPayload.emirates_id_file_url = idImportFileUrl;
+        else if (docType === 'passport') createPayload.passport_file_url = idImportFileUrl;
+      }
+      const notesParts = ['Imported from ID/Passport.'];
+      if (docType) notesParts.push(`Document type: ${docType}.`);
+      createPayload.notes_internal = notesParts.join(' ');
+      return base44.entities.Landlord.create(createPayload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      toast.success('Draft agreement created from ID');
+      setIdImportReviewOpen(false);
+      setIdImportExtracted(null);
+      setIdImportFileUrl('');
+    },
+    onError: (e) => toast.error('Failed to create draft: ' + e.message),
+  });
 
   const idApplyMutation = useMutation({
     mutationFn: async () => {
@@ -519,6 +623,39 @@ export default function LeaseAgreement() {
             <div className="text-center">
               <p className="text-sm font-semibold text-white/80">Import from Title Deed</p>
               <p className="text-xs text-white/40 mt-0.5">Drop a DLD Title Deed PDF here or click to browse</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── ID / Passport Import Drop Zone ── */}
+      <div
+        className={`mb-4 p-6 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer ${
+          idImportDragOver
+            ? 'border-accent bg-accent/10'
+            : 'border-white/15 hover:border-white/30 bg-white/[0.03]'
+        }`}
+        onDragOver={(e) => { e.preventDefault(); setIdImportDragOver(true); }}
+        onDragLeave={() => setIdImportDragOver(false)}
+        onDrop={handleIdImportDrop}
+        onClick={handleIdImportBrowse}
+      >
+        {idImportUploading ? (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <div>
+              <p className="text-sm font-medium text-white/80">Extracting ID data…</p>
+              <p className="text-xs text-white/40 mt-0.5">AI is reading the document</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+              <IdCard className="w-6 h-6 text-accent" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-white/80">Import from ID / Passport</p>
+              <p className="text-xs text-white/40 mt-0.5">Drop an Emirates ID or passport (PDF or image)</p>
             </div>
           </div>
         )}
@@ -1091,6 +1228,98 @@ export default function LeaseAgreement() {
               className="gap-1.5"
             >
               {manualCreateMutation.isPending
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <FileSignature className="w-3.5 h-3.5" />}
+              Create Draft Agreement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── ID Import Review Modal (top drop zone — creates NEW Landlord) ── */}
+      <Dialog open={idImportReviewOpen} onOpenChange={(o) => { if (!o) { setIdImportReviewOpen(false); setIdImportExtracted(null); setIdImportFileUrl(''); } }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IdCard className="w-5 h-5 text-accent" />
+              Review Extracted ID
+            </DialogTitle>
+            <DialogDescription>
+              {idImportExtracted?.doc_type === 'emirates_id' ? 'Emirates ID detected' : idImportExtracted?.doc_type === 'passport' ? 'Passport detected' : 'Document type unknown'} — review and edit before creating a draft agreement.
+            </DialogDescription>
+          </DialogHeader>
+
+          {idImportExtracted && (
+            <div className="space-y-5 py-2">
+              {idImportExtracted.warnings?.length > 0 && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400">Warnings</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {idImportExtracted.warnings.map((w, i) => (
+                      <li key={i} className="text-xs text-amber-300/80">{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-2">Identity</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Full Name (EN)</Label>
+                    <Input value={idImportForm.full_name_en || ''} onChange={(e) => setIdImportForm(f => ({ ...f, full_name_en: e.target.value }))} placeholder="Full name in English" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Full Name (AR)</Label>
+                    <Input value={idImportForm.full_name_ar || ''} onChange={(e) => setIdImportForm(f => ({ ...f, full_name_ar: e.target.value }))} placeholder="الاسم بالعربية" dir="rtl" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nationality</Label>
+                    <Input value={idImportForm.nationality || ''} onChange={(e) => setIdImportForm(f => ({ ...f, nationality: e.target.value }))} placeholder="e.g. UAE" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Emirates ID</Label>
+                    <Input value={idImportForm.emirates_id || ''} onChange={(e) => setIdImportForm(f => ({ ...f, emirates_id: e.target.value }))} placeholder="784-YYYY-NNNNNNN-N" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Passport No.</Label>
+                    <Input value={idImportForm.passport_no || ''} onChange={(e) => setIdImportForm(f => ({ ...f, passport_no: e.target.value }))} placeholder="Passport number" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date of Birth</Label>
+                    <Input value={idImportForm.date_of_birth || ''} onChange={(e) => setIdImportForm(f => ({ ...f, date_of_birth: e.target.value }))} placeholder="As printed on document" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">ID Expiry Date</Label>
+                    <Input value={idImportForm.id_expiry_date || ''} onChange={(e) => setIdImportForm(f => ({ ...f, id_expiry_date: e.target.value }))} placeholder="As printed on document" />
+                  </div>
+                </div>
+              </section>
+
+              <p className="text-xs text-white/40">A new draft agreement will be created with the identity details above. Property details are not extracted from ID documents — add those from a Title Deed separately.</p>
+
+              {idImportExtracted.note && (
+                <p className="text-xs text-white/40 italic">ℹ {idImportExtracted.note}</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setIdImportReviewOpen(false); setIdImportExtracted(null); setIdImportFileUrl(''); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => idImportCreateMutation.mutate()}
+              disabled={idImportCreateMutation.isPending || !idImportForm.full_name_en?.trim()}
+              className="gap-1.5"
+            >
+              {idImportCreateMutation.isPending
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <FileSignature className="w-3.5 h-3.5" />}
               Create Draft Agreement
