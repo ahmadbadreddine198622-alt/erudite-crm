@@ -180,8 +180,24 @@ export default function LeaseAgreement() {
   };
 
   const deedCreateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const rp = deedExtracted?.property || {};
+
+      // 1. Create Property record from extracted deed data
+      const propertyTitle = deedForm.building_name
+        ? (deedForm.unit_no ? `${deedForm.building_name} ${deedForm.unit_no}` : deedForm.building_name)
+        : 'Imported from Title Deed';
+      const property = await base44.entities.Property.create({
+        title: propertyTitle,
+        property_type: deedForm.property_type || 'apartment',
+        listing_type: 'sale',
+        location: deedForm.location || '',
+        building_name: deedForm.building_name || '',
+        unit_no: deedForm.unit_no || '',
+        area_sqft: Number(deedForm.area_sqft) || 0,
+      });
+
+      // 2. Create Landlord record
       const refNotes = [
         rp.floorNo && `Floor: ${rp.floorNo}`,
         rp.plotNo && `Plot: ${rp.plotNo}`,
@@ -194,7 +210,7 @@ export default function LeaseAgreement() {
         rp.certificateNo && `Certificate: ${rp.certificateNo}`,
         rp.issueDate && `Issue Date: ${rp.issueDate}`,
       ].filter(Boolean);
-      return base44.entities.Landlord.create({
+      const landlord = await base44.entities.Landlord.create({
         full_name_en: deedForm.owner_name,
         phone: '',
         source: 'other',
@@ -205,6 +221,14 @@ export default function LeaseAgreement() {
         unit_reference: deedForm.unit_no || rp.propertyNo || '',
         notes_internal: refNotes.length > 0 ? 'Imported from Title Deed.\n' + refNotes.join('\n') : 'Imported from Title Deed.',
       });
+
+      // 3. Link Landlord ↔ Property
+      await base44.entities.LandlordProperty.create({
+        landlord_id: landlord.id,
+        property_id: property.id,
+      });
+
+      return landlord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
