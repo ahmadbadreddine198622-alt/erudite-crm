@@ -187,6 +187,22 @@ Deno.serve(async (req) => {
       agent = agents[0] || null;
     }
 
+    // ── Resolve company BRN from CompanySettings ─────────────────────────
+    // Single source of truth: company-level BRN (all NOCs issued under the
+    // one registered broker). We deliberately do NOT read agent.brn here.
+    // Logs once if the row/field is missing so the empty render is visible
+    // in function logs rather than mysteriously silent.
+    let companyBrn: string | null = null;
+    try {
+      const cs = await base44.asServiceRole.entities.CompanySettings.list(undefined, 1);
+      companyBrn = (cs?.[0]?.brn && String(cs[0].brn).trim()) || null;
+      if (!companyBrn) {
+        console.log('[brn] CompanySettings.brn is empty or missing — BRN row will render as "—". Set CompanySettings.brn in the dashboard.');
+      }
+    } catch (e: any) {
+      console.error('[brn] CompanySettings.list failed:', e?.message ?? e);
+    }
+
     // ── Document checklist (owner-doc checkboxes) ────────────────────────
     const docRows = await base44.asServiceRole.entities.DocumentChecklistItem.filter({ landlord_id });
     const hasDoc = (type: string) =>
@@ -216,7 +232,7 @@ Deno.serve(async (req) => {
       passport_no:   strOv(body?.passport_no)   ?? landlord.passport_no ?? null,
       nationality:   landlord.nationality ?? null, // not exposed in Manual form, record only
       agent_name:    strOv(body?.agent_name)    ?? agent?.full_name ?? agent?.email ?? null,
-      brn:           strOv(body?.brn)           ?? agent?.brn ?? null,
+      brn:           strOv(body?.brn)           ?? companyBrn ?? null,
       agent_email:   strOv(body?.agent_email)   ?? agent?.email ?? landlord.assigned_agent_email ?? null,
       property_type: strOv(body?.property_type) ?? property?.property_type ?? null,
       location:      strOv(body?.location)      ?? property?.location ?? null,
