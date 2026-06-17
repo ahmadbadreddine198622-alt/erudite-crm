@@ -117,11 +117,31 @@ async function addImageFitted(doc, base64, x, y, maxW, maxH) {
   return imgH;
 }
 
-// ─── Single-listing branded PDF (Erudite Estate style) ───────────────────────
+// ─── Page header helper (used on interior pages) ──────────────────────────────
+function addInteriorHeader(doc, sectionLabel, pageNum, totalPages, W, M) {
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, 20, 'F');
+  doc.setDrawColor(220, 215, 205);
+  doc.setLineWidth(0.3);
+  doc.line(M, 20, W - M, 20);
+
+  doc.setTextColor(160, 150, 130);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setCharSpace(2);
+  doc.text(sectionLabel.toUpperCase(), M, 13);
+  doc.setCharSpace(0);
+  doc.setTextColor(180, 175, 165);
+  doc.setFontSize(7);
+  doc.text(`${String(pageNum).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`, W - M - 12, 13);
+}
+
+// ─── Single-listing branded PDF — Erudite Estate brochure style ───────────────
 
 async function downloadSingleListingPDF(listing) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const W = 210, H = 297, M = 15;
+  const W = 210, H = 297, M = 16;
+  const TOTAL_PAGES = 5;
 
   const title = getTitle(listing) || 'Property Listing';
   const ref = listing.reference || listing.id || '—';
@@ -134,408 +154,540 @@ async function downloadSingleListingPDF(listing) {
   const developer = getDeveloper(listing);
   const agent = getAgentName(listing);
   const type = listing.type || listing.category || '';
-  const category = listing.category || '';
   const offering = getOfferingType(listing);
-  const status = getStatus(listing);
   const description = getDescription(listing);
-  const floor = listing.floorNumber ? `Floor ${listing.floorNumber}` : '';
-  const parking = listing.parkingSlots ? `${listing.parkingSlots} parking` : '';
+  const floor = listing.floorNumber ? `${listing.floorNumber}th Floor` : '';
+  const parking = listing.parkingSlots ? 'Included' : '';
   const furnishing = listing.furnishingType || '';
   const amenities = listing.amenities || [];
 
-  // ── Load hero image ─────────────────────────────────────────────────────────
+  // ── Load images ──────────────────────────────────────────────────────────────
   const allImgs = getAllImages(listing);
-  const loadedImgs = await Promise.all(allImgs.slice(0, 8).map(url => loadBase64Image(url)));
+  const loadedImgs = await Promise.all(allImgs.slice(0, 10).map(url => loadBase64Image(url)));
   const heroBase64 = loadedImgs[0] || null;
 
-  // ── PAGE 1: Cover ──────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PAGE 1: Cover — full-bleed hero with dark overlay + branding
+  // ══════════════════════════════════════════════════════════════════════════════
 
-  // Full dark background
-  doc.setFillColor(15, 23, 42);
+  // Dark background
+  doc.setFillColor(18, 24, 38);
   doc.rect(0, 0, W, H, 'F');
 
-  // Thin gold top bar
-  doc.setFillColor(245, 158, 11);
-  doc.rect(0, 0, W, 2, 'F');
-
-  // Erudite Estate branding top-left
-  doc.setTextColor(245, 158, 11);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setCharSpace(2);
-  doc.text('ERUDITE ESTATE', M, 16);
-  doc.setCharSpace(0);
-  doc.setTextColor(150, 160, 175);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.text('DUBAI PROPERTY SPECIALISTS', M, 22);
-
-  // Erudite logo — centered in the open header space between the brand text
-  // (left) and the offering badge (right).
-  await placeLogo(doc, { x: 90, y: 4, maxW: 36, maxH: 18 });
-
-  // For Sale / For Rent badge top-right
-  const badgeLabel = offering === 'rent' ? 'FOR RENT' : 'FOR SALE';
-  doc.setFillColor(245, 158, 11);
-  doc.roundedRect(W - M - 26, 10, 26, 10, 2, 2, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text(badgeLabel, W - M - 23, 17);
-
-  // Divider
-  doc.setDrawColor(50, 60, 80);
-  doc.setLineWidth(0.3);
-  doc.line(M, 27, W - M, 27);
-
-  // Hero image area
+  // Full-bleed hero image
   if (heroBase64) {
-    const heroH = await addImageFitted(doc, heroBase64, M, 32, W - 2 * M, 100);
-    // Dark overlay at bottom of image
-    doc.setFillColor(15, 23, 42);
-    doc.rect(M, 32 + heroH - 20, W - 2 * M, 20, 'F');
+    const fmt = getImgFormat(heroBase64);
+    doc.addImage(heroBase64, fmt, 0, 0, W, H);
+    // Gradient overlay — bottom 55% darkened
+    doc.setFillColor(10, 15, 28);
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 0.55 }));
+    doc.rect(0, H * 0.45, W, H * 0.55, 'F');
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
+    // Top header band
+    doc.setFillColor(10, 15, 28);
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 0.7 }));
+    doc.rect(0, 0, W, 32, 'F');
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
   } else {
     doc.setFillColor(25, 35, 55);
-    doc.roundedRect(M, 32, W - 2 * M, 100, 3, 3, 'F');
-    doc.setTextColor(60, 75, 95);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'italic');
-    doc.text('Property Photography', W / 2 - 20, 83);
+    doc.rect(0, 0, W, H, 'F');
   }
 
-  // Location tag over image area
-  doc.setFillColor(15, 23, 42);
-  doc.setFillColor(0, 0, 0, 0.6);
-  doc.setFillColor(30, 40, 58);
-  doc.roundedRect(M + 3, 118, 80, 8, 1, 1, 'F');
-  doc.setTextColor(200, 210, 220);
-  doc.setFontSize(7);
+  // ERUDITE ESTATE — top-left
+  doc.setTextColor(245, 158, 11);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.setCharSpace(1);
-  const locationTag = [emirate, developer].filter(Boolean).join('  ·  ');
-  if (locationTag) doc.text(locationTag.toUpperCase(), M + 6, 123.5);
+  doc.setCharSpace(2.5);
+  doc.text('ERUDITE ESTATE', M, 14);
+  doc.setCharSpace(0);
+  doc.setTextColor(180, 185, 200);
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setCharSpace(1.5);
+  doc.text('DUBAI PROPERTY SPECIALISTS', M, 21);
   doc.setCharSpace(0);
 
-  // Property Title
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(26);
+  // For Sale badge — top right
+  const badgeLabel = offering === 'rent' ? 'For Rent' : 'For Sale';
+  doc.setFillColor(245, 158, 11);
+  doc.roundedRect(W - M - 30, 8, 30, 11, 2, 2, 'F');
+  doc.setTextColor(15, 20, 35);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  const titleLines = doc.splitTextToSize(title, W - 2 * M);
-  doc.text(titleLines.slice(0, 2), M, 146);
+  doc.text(badgeLabel, W - M - 25, 15.5);
 
-  // Subtitle: type/category
-  if (type || category) {
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text(([type, category].filter(Boolean).join(' · ')), M, 160);
+  // Location line above title
+  const locationParts = [emirate, developer].filter(Boolean);
+  if (locationParts.length > 0) {
+    doc.setTextColor(200, 205, 215);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setCharSpace(1.5);
+    const locStr = locationParts.join('   ·   ').toUpperCase();
+    doc.text('|  ' + locStr, M, H - 108);
+    doc.setCharSpace(0);
   }
 
-  // Details row: Floor, Ref, Status
-  const detailParts = [floor, ref ? `Ref: ${ref}` : null, status].filter(Boolean);
-  doc.setTextColor(150, 160, 175);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(detailParts.join('  ·  '), M, 169);
+  // Property title — large serif-style
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(30);
+  doc.setFont('helvetica', 'bold');
+  const titleParts = title.split(' ');
+  // Split title into two lines for visual style (first 3 words / remainder)
+  const line1 = titleParts.slice(0, Math.ceil(titleParts.length / 2)).join(' ');
+  const line2 = titleParts.slice(Math.ceil(titleParts.length / 2)).join(' ');
+  doc.text(line1, M, H - 88);
+  if (line2) {
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setTextColor(220, 215, 210);
+    doc.text(line2, M, H - 72);
+  }
 
-  // Divider
-  doc.setDrawColor(50, 65, 85);
-  doc.setLineWidth(0.2);
-  doc.line(M, 175, W - M, 175);
+  // Subtitle — floor + developer
+  const subtitleParts = [floor, developer ? `Branded Residence by ${developer}` : null].filter(Boolean);
+  if (subtitleParts.length > 0) {
+    doc.setTextColor(210, 205, 200);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(subtitleParts.join('  ·  '), M, H - 58);
+  }
 
-  // Asking price label
-  doc.setTextColor(150, 165, 185);
-  doc.setFontSize(7);
+  // Horizontal rule
+  doc.setDrawColor(180, 175, 165);
+  doc.setLineWidth(0.3);
+  doc.line(M, H - 50, W - M, H - 50);
+
+  // ASKING PRICE label
+  doc.setTextColor(170, 175, 185);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
   doc.setCharSpace(2);
-  doc.text('ASKING PRICE', M, 184);
+  doc.text('ASKING PRICE', M, H - 40);
   doc.setCharSpace(0);
 
   // Price
   if (priceStr) {
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(30);
+    doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
-    doc.text(priceStr, M, 200);
+    doc.text(priceStr, M, H - 25);
   }
 
-  // Key stats bottom-right
-  const stats = [
-    beds !== null ? `${beds} BED` : null,
-    baths !== null ? `${baths} BATH` : null,
-    area ? `${Number(area).toLocaleString()} SQFT` : null,
-    parking || null,
+  // Key facts — right side
+  const keyFacts = [
+    floor ? `High Floor · ${floor}` : null,
+    type ? type : null,
+    developer ? `${developer} Residence` : null,
   ].filter(Boolean);
-
-  let sx = W - M;
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  for (let s = stats.length - 1; s >= 0; s--) {
-    const w = doc.getTextWidth(stats[s]);
-    doc.setTextColor(245, 158, 11);
-    doc.text(stats[s], sx - w, 200);
-    sx -= w + 8;
-  }
-
-  // Bottom footer bar
-  doc.setFillColor(245, 158, 11);
-  doc.rect(0, H - 18, W, 18, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  if (agent) doc.text(agent, M, H - 8);
-  doc.setFontSize(8);
+  doc.setTextColor(210, 210, 210);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('info@erudite-estate.com', W - M - 50, H - 8);
-
-  // ── PAGE 2: Details ────────────────────────────────────────────────────────
-  doc.addPage();
-
-  // Dark header
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, W, 28, 'F');
-  doc.setFillColor(245, 158, 11);
-  doc.rect(0, 0, W, 2, 'F');
-
-  doc.setTextColor(150, 165, 185);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  doc.setCharSpace(2);
-  doc.text('THE RESIDENCE', M, 13);
-  doc.setCharSpace(0);
-  doc.setTextColor(80, 95, 110);
-  doc.text('02 / 03', W - M - 12, 13);
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  const shortTitle = doc.splitTextToSize(title, W - 2 * M - 20);
-  doc.text(shortTitle[0], M, 23);
-
-  let y2 = 40;
-
-  // Gallery grid — show up to 6 remaining images in 2-column grid
-  const galleryImgs = loadedImgs.slice(1).filter(Boolean);
-  if (galleryImgs.length > 0) {
-    const cols = 2;
-    const imgW = (W - 2 * M - 4) / cols;
-    const imgH = 45;
-    for (let i = 0; i < Math.min(galleryImgs.length, 6); i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const gx = M + col * (imgW + 4);
-      const gy = y2 + row * (imgH + 4);
-      if (gy + imgH > 260) break; // avoid overflow
-      await addImageFitted(doc, galleryImgs[i], gx, gy, imgW, imgH);
-    }
-    const rows = Math.min(Math.ceil(Math.min(galleryImgs.length, 6) / cols), 3);
-    y2 += rows * (imgH + 4) + 6;
-  }
-
-  // Description
-  if (description) {
-    doc.setTextColor(40, 50, 70);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    const descLines = doc.splitTextToSize(description.replace(/<[^>]*>/g, ''), W - 2 * M);
-    const visibleLines = descLines.slice(0, 8);
-    doc.text(visibleLines, M, y2);
-    y2 += visibleLines.length * 5 + 8;
-  }
-
-  // Property details grid (3 columns x 2 rows)
-  const details = [
-    { label: 'TOTAL AREA', value: area ? `${Number(area).toLocaleString()} sq ft` : '—' },
-    { label: 'BEDROOMS', value: beds !== null ? String(beds) : '—' },
-    { label: 'BATHROOMS', value: baths !== null ? String(baths) : '—' },
-    { label: 'FLOOR', value: floor || '—' },
-    { label: 'PARKING', value: parking || (listing.parkingSlots === 0 ? 'None' : '—') },
-    { label: 'DEVELOPER', value: developer || '—' },
-    { label: 'TYPE', value: type || '—' },
-    { label: 'FURNISHING', value: furnishing || '—' },
-    { label: 'REFERENCE', value: ref },
-  ];
-
-  const colW = (W - 2 * M - 8) / 3;
-  let row = 0, col = 0;
-  details.forEach((d, i) => {
-    col = i % 3;
-    row = Math.floor(i / 3);
-    const cx = M + col * (colW + 4);
-    const cy = y2 + row * 22;
-    doc.setFillColor(248, 249, 252);
-    doc.roundedRect(cx, cy, colW, 18, 1.5, 1.5, 'F');
-    doc.setDrawColor(230, 234, 242);
-    doc.roundedRect(cx, cy, colW, 18, 1.5, 1.5, 'S');
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    doc.setCharSpace(1);
-    doc.text(d.label, cx + 4, cy + 6);
-    doc.setCharSpace(0);
-    doc.setTextColor(20, 30, 50);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(d.value.substring(0, 22), cx + 4, cy + 13);
+  keyFacts.forEach((fact, i) => {
+    doc.text(fact, W - M - doc.getTextWidth(fact), H - 40 + i * 8);
   });
 
-  y2 += (Math.ceil(details.length / 3)) * 22 + 10;
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PAGE 2: The Residence — description + key stats grid
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, H, 'F');
+  addInteriorHeader(doc, 'The Residence', 2, TOTAL_PAGES, W, M);
 
-  // Amenities
-  if (amenities.length > 0) {
-    doc.setTextColor(20, 30, 50);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Amenities & Features', M, y2);
-    y2 += 6;
-    doc.setDrawColor(245, 158, 11);
-    doc.setLineWidth(0.5);
-    doc.line(M, y2, M + 40, y2);
-    y2 += 6;
+  let y = 30;
 
-    doc.setTextColor(60, 75, 95);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    const amenityNames = amenities.map(a => typeof a === 'string' ? a : (a.name || a.label || String(a)));
-    const cols3 = [[], [], []];
-    amenityNames.forEach((a, i) => cols3[i % 3].push(a));
-    const maxRows = Math.max(...cols3.map(c => c.length));
-    for (let r = 0; r < Math.min(maxRows, 8); r++) {
-      for (let c = 0; c < 3; c++) {
-        if (cols3[c][r]) {
-          doc.text(`• ${cols3[c][r]}`, M + c * (colW + 4) + 2, y2 + r * 6);
-        }
-      }
-    }
-    y2 += Math.min(maxRows, 8) * 6 + 8;
+  // Main interior image
+  const mainImg = loadedImgs[1] || loadedImgs[0];
+  if (mainImg) {
+    const h = await addImageFitted(doc, mainImg, M, y, W - 2 * M, 68);
+    y += h + 10;
+  } else {
+    y += 10;
   }
 
-  // ── PAGE 3: Agent / Contact ────────────────────────────────────────────────
-  doc.addPage();
+  // Section heading — "An Address Above Downtown" style
+  const descHeadingParts = title.split(' ');
+  const descH1 = descHeadingParts.slice(0, Math.ceil(descHeadingParts.length / 2)).join(' ') + ' ';
+  const descH2 = descHeadingParts.slice(Math.ceil(descHeadingParts.length / 2)).join(' ');
+  doc.setTextColor(30, 35, 45);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  const h1w = doc.getTextWidth(descH1);
+  doc.text(descH1, M, y);
+  doc.setTextColor(180, 145, 90);
+  doc.setFont('helvetica', 'bolditalic');
+  doc.text(descH2, M + h1w, y);
+  y += 10;
 
-  doc.setFillColor(15, 23, 42);
+  // Description paragraph
+  if (description) {
+    const cleanDesc = description.replace(/<[^>]*>/g, '').trim();
+    doc.setTextColor(80, 85, 95);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    const descLines = doc.splitTextToSize(cleanDesc, W - 2 * M);
+    doc.text(descLines.slice(0, 5), M, y);
+    y += descLines.slice(0, 5).length * 5 + 8;
+  }
+
+  // Key stats grid — 3 columns x 2 rows (like the sample)
+  const statsGrid = [
+    { label: 'TOTAL AREA',  value: area ? `${Number(area).toLocaleString()} sq ft` : '—',  sub: area ? `${(area * 0.0929).toFixed(2)} sq m` : '' },
+    { label: 'BEDROOMS',    value: beds !== null ? `${beds} Bed${beds !== 1 ? 's' : ''}` : '—', sub: '' },
+    { label: 'BATHROOMS',   value: baths !== null ? `${baths} Bath${baths !== 1 ? 's' : ''}` : '—', sub: '' },
+    { label: 'FLOOR',       value: floor || '—',         sub: 'High floor' },
+    { label: 'PARKING',     value: parking || '—',       sub: parking ? 'Dedicated bay' : '' },
+    { label: 'DEVELOPER',   value: developer || '—',     sub: type ? `${type} residence` : '' },
+  ];
+
+  const colW2 = (W - 2 * M - 8) / 3;
+  statsGrid.forEach((stat, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const cx = M + col * (colW2 + 4);
+    const cy = y + row * 22;
+    doc.setFillColor(250, 248, 244);
+    doc.roundedRect(cx, cy, colW2, 19, 1.5, 1.5, 'F');
+    doc.setDrawColor(230, 225, 215);
+    doc.roundedRect(cx, cy, colW2, 19, 1.5, 1.5, 'S');
+    doc.setTextColor(180, 145, 90);
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setCharSpace(1.5);
+    doc.text(stat.label, cx + 4, cy + 6);
+    doc.setCharSpace(0);
+    doc.setTextColor(30, 35, 50);
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(stat.value.substring(0, 20), cx + 4, cy + 13);
+    if (stat.sub) {
+      doc.setTextColor(140, 145, 155);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(stat.sub, cx + 4, cy + 18);
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PAGE 3: Photo Gallery (2-column grid, labelled)
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, W, H, 'F');
+  addInteriorHeader(doc, 'Gallery', 3, TOTAL_PAGES, W, M);
+
+  let yg = 28;
+
+  // Section heading
+  doc.setTextColor(30, 35, 45);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('The Full ', M, yg);
+  doc.setTextColor(180, 145, 90);
+  doc.setFont('helvetica', 'bolditalic');
+  doc.text('Gallery', M + doc.getTextWidth('The Full '), yg);
+  doc.setTextColor(30, 35, 45);
+  doc.setFont('helvetica', 'normal');
+  yg += 6;
+
+  doc.setTextColor(120, 125, 135);
+  doc.setFontSize(8);
+  doc.text('A complete walkthrough of the property.', M, yg);
+  yg += 8;
+
+  const galleryAll = loadedImgs.slice(1).filter(Boolean);
+  const IMG_W = (W - 2 * M - 5) / 2;
+  const IMG_H = 42;
+  const LABELS = ['LIVING ROOM', 'LIVING & DINING', 'KITCHEN', 'OPEN-PLAN VIEW', 'BEDROOM', 'BEDROOM OUTLOOK', 'WORKSPACE', 'BATHROOM', 'BALCONY · DAY', 'BALCONY · DUSK'];
+
+  for (let i = 0; i < Math.min(galleryAll.length, 8); i++) {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const gx = M + col * (IMG_W + 5);
+    const gy = yg + row * (IMG_H + 10);
+    if (gy + IMG_H > H - 20) break;
+    await addImageFitted(doc, galleryAll[i], gx, gy, IMG_W, IMG_H);
+    // Label overlay
+    doc.setFillColor(15, 20, 35);
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 0.65 }));
+    doc.rect(gx, gy + IMG_H - 8, IMG_W, 8, 'F');
+    doc.setGState && doc.setGState(new doc.GState({ opacity: 1 }));
+    doc.setTextColor(220, 220, 225);
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setCharSpace(1);
+    doc.text(LABELS[i] || `PHOTO ${i + 1}`, gx + 3, gy + IMG_H - 3);
+    doc.setCharSpace(0);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PAGE 4: Features & Community
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, H, 'F');
+  addInteriorHeader(doc, 'The View & The Address', 4, TOTAL_PAGES, W, M);
+
+  let yf = 28;
+
+  // Wider image (full-width single)
+  const viewImg = loadedImgs.find((img, i) => i > 0 && img) || heroBase64;
+  if (viewImg) {
+    const h = await addImageFitted(doc, viewImg, M, yf, W - 2 * M, 68);
+    yf += h + 10;
+  }
+
+  // Two-column feature lists
+  const aptFeatures = [
+    furnishing && furnishing !== 'unfurnished' ? `${furnishing.replace('_', ' ')} apartment` : null,
+    developer ? `Branded residence by ${developer}` : null,
+    'Floor-to-ceiling glazing',
+    beds !== null ? `${beds} bedroom${beds !== 1 ? 's' : ''}` : null,
+    baths !== null ? `${baths} bathroom${baths !== 1 ? 's' : ''}` : null,
+    parking ? 'Dedicated parking bay included' : null,
+    area ? `${Number(area).toLocaleString()} sq ft total area` : null,
+    floor ? `${floor}` : null,
+  ].filter(Boolean);
+
+  const communityFeatures = [
+    emirate ? `Prime location — ${emirate}` : null,
+    'Close proximity to key landmarks',
+    'Metro & major roads accessible',
+    'World-class shopping & dining nearby',
+    'Five-star hospitality services',
+    'Strong rental yield — investor friendly',
+  ].filter(Boolean);
+
+  const halfW = (W - 2 * M - 10) / 2;
+
+  // Apartment Features
+  doc.setTextColor(30, 35, 45);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Apartment Features', M, yf);
+  doc.setDrawColor(180, 145, 90);
+  doc.setLineWidth(0.4);
+  doc.line(M, yf + 2, M + halfW, yf + 2);
+  yf += 8;
+
+  doc.setTextColor(65, 70, 85);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  aptFeatures.slice(0, 8).forEach((feat, i) => {
+    doc.setTextColor(180, 145, 90);
+    doc.text('•', M, yf + i * 7);
+    doc.setTextColor(65, 70, 85);
+    doc.text(feat, M + 5, yf + i * 7);
+  });
+
+  // Community Features (right column)
+  const colRx = M + halfW + 10;
+  let yfR = yf - 8;
+  doc.setTextColor(30, 35, 45);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('The Community', colRx, yfR);
+  doc.setDrawColor(180, 145, 90);
+  doc.setLineWidth(0.4);
+  doc.line(colRx, yfR + 2, colRx + halfW, yfR + 2);
+  yfR += 8;
+
+  communityFeatures.forEach((feat, i) => {
+    doc.setTextColor(180, 145, 90);
+    doc.text('•', colRx, yfR + i * 7);
+    doc.setTextColor(65, 70, 85);
+    doc.text(feat, colRx + 5, yfR + i * 7);
+  });
+
+  // Amenities section
+  if (amenities.length > 0) {
+    const yAm = Math.max(yf + aptFeatures.length * 7 + 12, yfR + communityFeatures.length * 7 + 12);
+    doc.setTextColor(30, 35, 45);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Amenities', M, yAm);
+    doc.setDrawColor(180, 145, 90);
+    doc.setLineWidth(0.4);
+    doc.line(M, yAm + 2, M + 40, yAm + 2);
+
+    const amenityNames = amenities.map(a => typeof a === 'string' ? a : (a.name || a.label || String(a)));
+    doc.setTextColor(65, 70, 85);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    amenityNames.slice(0, 18).forEach((a, i) => {
+      const col = Math.floor(i / 6);
+      const row = i % 6;
+      const ax = M + col * ((W - 2 * M) / 3);
+      doc.setTextColor(180, 145, 90);
+      doc.text('•', ax, yAm + 8 + row * 6.5);
+      doc.setTextColor(65, 70, 85);
+      doc.text(a.substring(0, 26), ax + 5, yAm + 8 + row * 6.5);
+    });
+  }
+
+  // Footer agent bar
+  doc.setFillColor(18, 22, 38);
+  doc.rect(0, H - 28, W, 28, 'F');
+  doc.setTextColor(245, 158, 11);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setCharSpace(2);
+  doc.text('ERUDITE ESTATE', M, H - 17);
+  doc.setCharSpace(0);
+  doc.setTextColor(190, 185, 175);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(agent || 'Property Consultant', M, H - 9);
+  doc.setTextColor(150, 155, 165);
+  doc.setFontSize(6.5);
+  doc.text('PROPERTY CONSULTANT', M, H - 4);
+  doc.setTextColor(245, 158, 11);
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('+971 58 180 6000', W - M - 46, H - 17);
+  doc.setTextColor(150, 155, 165);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.text('MOBILE', W - M - 46, H - 22);
+  doc.setTextColor(190, 185, 175);
+  doc.setFontSize(8);
+  doc.text('info@erudite-estate.com', W - M - 52, H - 9);
+  doc.setTextColor(150, 155, 165);
+  doc.setFontSize(7);
+  doc.text('EMAIL', W - M - 26, H - 22);
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PAGE 5: Contact page (dark, branded)
+  // ══════════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  doc.setFillColor(18, 22, 38);
+  doc.rect(0, 0, W, H, 'F');
+
+  // Top thin gold bar
   doc.setFillColor(245, 158, 11);
   doc.rect(0, 0, W, 2, 'F');
 
   // Section label
-  doc.setTextColor(80, 95, 110);
+  doc.setTextColor(80, 90, 110);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setCharSpace(2);
-  doc.text('CONTACT', M, 20);
+  doc.text('CONTACT', M, 18);
   doc.setCharSpace(0);
-  doc.setTextColor(80, 95, 110);
-  doc.text('03 / 03', W - M - 12, 20);
+  doc.setTextColor(80, 90, 110);
+  doc.text(`05 / ${TOTAL_PAGES.toString().padStart(2, '0')}`, W - M - 14, 18);
+  doc.setDrawColor(40, 50, 70);
+  doc.setLineWidth(0.25);
+  doc.line(M, 22, W - M, 22);
 
-  doc.setDrawColor(50, 65, 85);
-  doc.setLineWidth(0.2);
-  doc.line(M, 24, W - M, 24);
-
+  // Headline
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.text('Speak to Our', M, 42);
   doc.setTextColor(245, 158, 11);
-  doc.setFontSize(22);
-  doc.setFont('helvetica', 'italic');
-  doc.text('Property Consultant', M + doc.getTextWidth('Speak to Our ') + 1, 42);
+  doc.setFont('helvetica', 'bolditalic');
+  doc.text(' Property Consultant', M + doc.getTextWidth('Speak to Our'), 42);
 
-  doc.setTextColor(150, 165, 185);
-  doc.setFontSize(9);
+  doc.setTextColor(140, 150, 170);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  const contactDesc = doc.splitTextToSize(
-    'Our dedicated team is on hand to assist with viewings, valuations and any questions about this property.',
-    W - 2 * M
-  );
-  doc.text(contactDesc, M, 52);
+  const ctaLines = doc.splitTextToSize('Our dedicated team is on hand to assist with viewings, valuations and any questions about this property.', W - 2 * M);
+  doc.text(ctaLines, M, 53);
 
   // Agent card
-  doc.setFillColor(25, 35, 55);
-  doc.roundedRect(M, 68, W - 2 * M, 50, 3, 3, 'F');
-  doc.setDrawColor(50, 65, 85);
-  doc.roundedRect(M, 68, W - 2 * M, 50, 3, 3, 'S');
+  doc.setFillColor(28, 36, 56);
+  doc.roundedRect(M, 68, W - 2 * M, 52, 3, 3, 'F');
+  doc.setDrawColor(50, 65, 88);
+  doc.roundedRect(M, 68, W - 2 * M, 52, 3, 3, 'S');
 
+  // Agent avatar circle
   doc.setFillColor(245, 158, 11);
-  doc.circle(M + 16, 93, 10, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(12);
+  doc.circle(M + 18, 94, 11, 'F');
+  doc.setTextColor(15, 20, 35);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   const initials = (agent || 'EA').split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
-  doc.text(initials, M + 11, 96.5);
+  doc.text(initials, M + 13.5, 97.5);
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(agent || 'Property Consultant', M + 32, 86);
-
-  doc.setTextColor(150, 165, 185);
-  doc.setFontSize(8);
+  doc.text(agent || 'Ahmad Badreddine', M + 36, 84);
+  doc.setTextColor(140, 150, 170);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('PROPERTY CONSULTANT', M + 32, 93);
+  doc.text('PROPERTY CONSULTANT', M + 36, 91);
 
+  // Contact details
+  doc.setTextColor(150, 160, 175);
+  doc.setFontSize(6.5);
+  doc.text('MOBILE', M + 36, 100);
   doc.setTextColor(245, 158, 11);
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('+971 58 180 6000', M + 32, 102);
-  doc.setTextColor(200, 210, 225);
+  doc.text('+971 58 180 6000', M + 36, 108);
+
+  doc.setTextColor(150, 160, 175);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('info@erudite-estate.com', M + 32, 109);
+  doc.text('EMAIL', M + 36, 116);
+  doc.setTextColor(200, 205, 215);
+  doc.setFontSize(9);
+  doc.text('info@erudite-estate.com', M + 36, 114);
 
   // Property summary box
   doc.setFillColor(245, 158, 11);
-  doc.roundedRect(M, 130, W - 2 * M, 40, 3, 3, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8);
+  doc.roundedRect(M, 132, W - 2 * M, 42, 3, 3, 'F');
+  doc.setTextColor(15, 20, 35);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setCharSpace(1);
-  doc.text('PROPERTY SUMMARY', M + 6, 141);
+  doc.setCharSpace(1.5);
+  doc.text('PROPERTY SUMMARY', M + 6, 142);
   doc.setCharSpace(0);
-  doc.setFontSize(9);
-  const summaryTitle = doc.splitTextToSize(title, W - 2 * M - 12);
-  doc.text(summaryTitle[0], M + 6, 150);
+  doc.setFontSize(10);
+  const summTitle = doc.splitTextToSize(title, W - 2 * M - 14);
+  doc.text(summTitle[0], M + 6, 151);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  const summaryDetails = [priceStr, emirate, [beds !== null ? `${beds} Bed` : null, baths !== null ? `${baths} Bath` : null, area ? `${Number(area).toLocaleString()} sqft` : null].filter(Boolean).join(' · ')].filter(Boolean).join('   |   ');
-  doc.text(summaryDetails, M + 6, 160);
+  const summDetails = [priceStr, emirate, [beds !== null ? `${beds} Bed` : null, baths !== null ? `${baths} Bath` : null, area ? `${Number(area).toLocaleString()} sqft` : null].filter(Boolean).join(' · ')].filter(Boolean).join('   |   ');
+  doc.text(summDetails, M + 6, 160);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Ref: ${ref}`, M + 6, 167);
+  doc.setFontSize(7.5);
+  doc.text(`Ref: ${ref}`, M + 6, 169);
 
-  // Bottom bar
+  // Bottom footer
   doc.setFillColor(245, 158, 11);
-  doc.rect(0, H - 22, W, 22, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(12);
+  doc.rect(0, H - 24, W, 24, 'F');
+  doc.setTextColor(15, 20, 35);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setCharSpace(2);
-  doc.text('ERUDITE ESTATE', M, H - 10);
+  doc.text('ERUDITE ESTATE', M, H - 11);
   doc.setCharSpace(0);
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('DUBAI PROPERTY SPECIALISTS', M, H - 5);
-  doc.setFontSize(9);
+  doc.text(`${agent || 'Property Consultant'}  ·  Property Consultant`, M, H - 5);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('+971 58 180 6000', W - M - 36, H - 10);
+  doc.text('+971 58 180 6000', W - M - 40, H - 11);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text('info@erudite-estate.com', W - M - 38, H - 5);
+  doc.text('info@erudite-estate.com', W - M - 46, H - 5);
 
-  // ── Upload to Google Drive ────────────────────────────────────────────────────
-  const pdfBase64 = doc.output('datauristring');
-  const base64Data = pdfBase64.split(',')[1];
+  // ── Save / Upload ────────────────────────────────────────────────────────────
   const safeTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30);
-  const fileName = `${safeTitle}_${ref}.pdf`;
-  
+  const fileName = `${safeTitle}_${ref}_Brochure.pdf`;
+
   try {
+    const pdfBase64 = doc.output('datauristring');
     await base44.functions.invoke('uploadToGoogleDrive', {
-      base64Content: base64Data,
+      base64Content: pdfBase64.split(',')[1],
       fileName,
-      folderPath: 'Property Finder Listing',
+      folderPath: 'Property Brochures',
       mimeType: 'application/pdf'
     });
-  } catch (err) {
-    console.error('Google Drive upload failed:', err);
-    // Fallback to local download
+  } catch {
     doc.save(fileName);
   }
 }
