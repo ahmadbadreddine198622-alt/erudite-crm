@@ -20,6 +20,10 @@
       "type": "string",
       "description": "Name of the person / company who handed over the cheque"
     },
+    "payee_name": {
+      "type": "string",
+      "description": "Name of the person / company the cheque is paid to"
+    },
     "amount_aed": {
       "type": "number",
       "description": "Cheque face value in AED"
@@ -32,17 +36,36 @@
     "issue_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the cheque was issued (distinct from cheque_date face date and received_date)"
+      "description": "Date the cheque was issued"
     },
     "received_date": {
       "type": "string",
       "format": "date",
       "description": "Date the cheque was physically received"
     },
+    "deposit_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled date the cheque is due to be deposited"
+    },
+    "cleared_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the cheque actually cleared or bounced"
+    },
     "received_by_email": {
       "type": "string",
       "format": "email",
       "description": "Email of the admin who logged this cheque"
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent responsible for this cheque / deal"
+    },
+    "held_by": {
+      "type": "string",
+      "description": "Where / with whom the physical cheque is held"
     },
     "cheque_type": {
       "type": "string",
@@ -61,7 +84,8 @@
         "cleared",
         "bounced",
         "returned",
-        "cancelled"
+        "cancelled",
+        "replaced"
       ],
       "default": "received",
       "description": "Current lifecycle status of the cheque"
@@ -73,6 +97,9 @@
         "rent",
         "deposit",
         "service_charge",
+        "booking",
+        "dld_fee",
+        "managers",
         "other"
       ],
       "default": "other",
@@ -92,16 +119,20 @@
     },
     "receipt_pdf_url": {
       "type": "string",
-      "description": "Google Drive URL of the receipt PDF \u2014 populated in Step 2"
+      "description": "Google Drive URL of the receipt PDF"
     },
     "acknowledgement_generated": {
       "type": "boolean",
       "default": false,
-      "description": "Whether an acknowledgement has been generated \u2014 set in Step 2"
+      "description": "Whether an acknowledgement has been generated"
     },
     "cheque_image_url": {
       "type": "string",
       "description": "Base44 file-storage URL of a scan or photo of the physical cheque"
+    },
+    "cheque_drive_url": {
+      "type": "string",
+      "description": "Permanent Google Drive link to the cheque scan archive \u2014 survives record deletion"
     },
     "is_stale": {
       "type": "boolean",
