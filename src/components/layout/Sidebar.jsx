@@ -6,7 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ const navSections = [
       { label: 'Team Performance',    icon: Trophy,          path: '/team-dashboard',      gradient: 'from-yellow-500 to-amber-700' },
       { label: 'Analytics',           icon: BarChart3,       path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800' },
       { label: 'Dubai Intelligence',  icon: TrendingUp,      path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-700' },
+      { label: 'Cheque Register',     icon: ClipboardList,   path: '/cheque-register',     gradient: 'from-emerald-500 to-teal-700' },
     ],
   },
   {

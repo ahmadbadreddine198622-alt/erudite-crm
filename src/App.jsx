@@ -93,6 +93,7 @@ import DesignSystem from '@/pages/DesignSystem';
 import CompanySettings from '@/pages/CompanySettings';
 import Cheques from '@/pages/Cheques';
 import ClosingHub from '@/pages/ClosingHub';
+import ChequeRegister from '@/pages/ChequeRegister';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -201,6 +202,7 @@ const AuthenticatedApp = () => {
         <Route path="/company-settings" element={<CompanySettings />} />
         <Route path="/cheques" element={<Cheques />} />
         <Route path="/closing-hub" element={<ClosingHub />} />
+        <Route path="/cheque-register" element={<ChequeRegister />} />
         <Route path="/closing" element={<Closing />} />
       </Route>
       </Route>
