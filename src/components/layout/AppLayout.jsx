@@ -5,15 +5,25 @@ import Sidebar from './Sidebar';
 import MobileDock from './MobileDock';
 import CommandCenter from '@/components/shared/CommandCenter';
 
-import { Menu, UserPlus, Home, Command } from 'lucide-react';
+import { Menu, UserPlus, Home, Command, LayoutGrid } from 'lucide-react';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+// Three dashboards cycled by the top-left Dashboard button
+const DASHBOARDS = ['/', '/my-dashboard', '/team-dashboard'];
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Cycle to the next dashboard in the list
+  const goToNextDashboard = () => {
+    const idx = DASHBOARDS.indexOf(location.pathname);
+    navigate(idx === -1 ? DASHBOARDS[0] : DASHBOARDS[(idx + 1) % DASHBOARDS.length]);
+  };
 
   // Global keyboard shortcut (Cmd/Ctrl + K)
   React.useEffect(() => {
@@ -155,6 +165,54 @@ export default function AppLayout() {
             width: 22, height: 22,
             color: 'hsl(38 92% 58%)',
             filter: 'drop-shadow(0 2px 6px rgba(245,158,11,0.5))',
+            position: 'relative', zIndex: 1,
+            strokeWidth: 2,
+          }} />
+        </button>
+
+        {/* Dashboard switcher — cycles between the 3 dashboards */}
+        <button
+          onClick={goToNextDashboard}
+          aria-label="Switch dashboard"
+          title="Switch dashboard (Main → My → Team)"
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 18,
+            background: 'rgba(59,130,246,0.10)',
+            backdropFilter: 'blur(40px) saturate(220%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(220%)',
+            border: '1px solid rgba(59,130,246,0.28)',
+            borderTopColor: 'rgba(255,255,255,0.18)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.10)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
+            padding: 0,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(59,130,246,0.20)';
+            e.currentTarget.style.boxShadow = '0 10px 36px rgba(0,0,0,0.60), 0 0 28px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.14)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(59,130,246,0.10)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.10)';
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+            borderRadius: '18px 18px 0 0',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+          <LayoutGrid style={{
+            width: 21, height: 21,
+            color: '#93c5fd',
+            filter: 'drop-shadow(0 2px 6px rgba(59,130,246,0.5))',
             position: 'relative', zIndex: 1,
             strokeWidth: 2,
           }} />
