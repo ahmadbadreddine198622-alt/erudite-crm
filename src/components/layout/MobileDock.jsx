@@ -188,8 +188,8 @@ export default function MobileDock() {
 
             <button
               type="button"
-              onClick={() => setShowPicker(true)}
-              aria-label="App Picker"
+              onClick={() => navigate('/')}
+              aria-label="Home"
               style={{
                 width: HOME_SZ, height: HOME_SZ,
                 borderRadius: HOME_R,
@@ -231,13 +231,13 @@ export default function MobileDock() {
 
             <span style={{
               fontSize: 9.5,
-              fontWeight: 400,
-              color: 'rgba(255,255,255,0.42)',
+              fontWeight: isHome ? 700 : 400,
+              color: isHome ? 'hsl(38 92% 65%)' : 'rgba(255,255,255,0.42)',
               letterSpacing: '0.05em',
               marginTop: 6,
               textTransform: 'uppercase',
               lineHeight: 1,
-            }}>Apps</span>
+            }}>Home</span>
           </div>
 
           {/* Right 2 */}
@@ -254,6 +254,7 @@ export default function MobileDock() {
 
       {/* App Picker Modal */}
       {showPicker && <AppPickerModal onClose={() => setShowPicker(false)} />}
+
     </>
   );
 }
