@@ -7,23 +7,13 @@ import CommandCenter from '@/components/shared/CommandCenter';
 
 import { Menu, UserPlus, Home, Command, LayoutGrid } from 'lucide-react';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
-import { useNavigate, useLocation } from 'react-router-dom';
-
-// Three dashboards cycled by the top-left Dashboard button
-const DASHBOARDS = ['/', '/my-dashboard', '/team-dashboard'];
+import { useNavigate } from 'react-router-dom';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Cycle to the next dashboard in the list
-  const goToNextDashboard = () => {
-    const idx = DASHBOARDS.indexOf(location.pathname);
-    navigate(idx === -1 ? DASHBOARDS[0] : DASHBOARDS[(idx + 1) % DASHBOARDS.length]);
-  };
 
   // Global keyboard shortcut (Cmd/Ctrl + K)
   React.useEffect(() => {
@@ -170,11 +160,11 @@ export default function AppLayout() {
           }} />
         </button>
 
-        {/* Dashboard switcher — cycles between the 3 dashboards */}
+        {/* Dashboard — main dashboard only */}
         <button
-          onClick={goToNextDashboard}
-          aria-label="Switch dashboard"
-          title="Switch dashboard (Main → My → Team)"
+          onClick={() => navigate('/')}
+          aria-label="Dashboard"
+          title="Dashboard"
           style={{
             width: 52,
             height: 52,
