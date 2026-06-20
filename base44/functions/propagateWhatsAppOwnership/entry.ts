@@ -42,24 +42,24 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'ok', updated: 0, reason: 'no messages in conversation' });
     }
 
-    // Stamp all with new owner (or null if unassigned)
-    let updated = 0;
-    let errors = 0;
-    for (const msg of messages) {
-      // Skip if already correct
-      if (msg.assigned_agent_email === newAgentEmail) continue;
-      try {
-        await base44.asServiceRole.entities.WhatsAppMessage.update(msg.id, {
-          assigned_agent_email: newAgentEmail,
-        });
-        updated++;
-      } catch (e) {
-        console.warn(`[propagateWhatsAppOwnership] msg ${msg.id} update failed: ${e?.message}`);
-        errors++;
-      }
+    // Stamp all messages in parallel — skip rows already correct
+    const toUpdate = messages.filter(msg => msg.assigned_agent_email !== newAgentEmail);
+    const results = await Promise.allSettled(
+      toUpdate.map(msg =>
+        base44.asServiceRole.entities.WhatsAppMessage.update(msg.id, {
+          assigned_agent_email: newAgentEmail || null,
+        })
+      )
+    );
+    const updated = results.filter(r => r.status === 'fulfilled').length;
+    const errors = results.filter(r => r.status === 'rejected').length;
+    if (errors > 0) {
+      results.filter(r => r.status === 'rejected').forEach((r, i) =>
+        console.warn(`[propagateWhatsAppOwnership] msg update failed: ${r.reason?.message}`)
+      );
     }
 
-    console.log(`[propagateWhatsAppOwnership] conv=${conversationId} stamped ${updated} messages, ${errors} errors`);
+    console.log(`[propagateWhatsAppOwnership] conv=${conversationId} stamped ${updated}/${toUpdate.length} messages (${errors} errors, ${messages.length - toUpdate.length} already correct)`);
     return Response.json({ status: 'ok', conversation_id: conversationId, updated, errors, total: messages.length });
 
   } catch (error) {

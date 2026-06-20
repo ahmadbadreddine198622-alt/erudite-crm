@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
               to_number: value.metadata?.display_phone_number || '+971582806000',
               media_type: msg.type !== 'text' ? msg.type : 'none',
               channel: 'business',
+              assigned_agent_email: conv.assigned_agent_email || null,
             });
             console.log(`[metaWhatsAppWebhook] ✅ WhatsAppMessage saved id=${waMsg.id} conv=${conv.id}`);
 

@@ -226,6 +226,7 @@ Deno.serve(async (req) => {
         to_number: '+' + number,
         channel: effectiveChannel,
         media_type: 'none',
+        assigned_agent_email: conversation?.assigned_agent_email || null,
       });
     } else {
       message = existingWAMsg[0];
