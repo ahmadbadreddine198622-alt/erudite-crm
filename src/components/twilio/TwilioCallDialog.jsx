@@ -223,13 +223,13 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
               <p className="font-semibold text-white text-base">{targetName || 'New Call'}</p>
               {callerNumber && (
                 <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Calling from {callerNumber}
+                  Calling from {twilioNumbers.find(n => n.phone_number === callerNumber)?.friendly_name || callerNumber}
                 </p>
               )}
             </div>
 
-            {/* Caller ID picker */}
-            {twilioNumbers.length > 1 && (
+            {/* Caller ID picker — always shown when numbers are loaded */}
+            {twilioNumbers.length > 0 && (
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-widest mb-1.5 block" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   Call From
@@ -242,7 +242,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
                 >
                   {twilioNumbers.map(n => (
                     <option key={n.phone_number} value={n.phone_number} style={{ background: '#0d1b2a' }}>
-                      {n.friendly_name || n.phone_number}
+                      {n.friendly_name ? `${n.friendly_name} — ${n.phone_number}` : n.phone_number}
                     </option>
                   ))}
                 </select>
