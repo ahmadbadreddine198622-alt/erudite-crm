@@ -211,6 +211,27 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const landlordProperty = landlordProperties[0];
   const landlordPropertyId = landlordProperty?.id;
 
+  const { data: linkedProperty } = useQuery({
+    queryKey: ['property', landlordProperty?.property_id],
+    queryFn: () => base44.entities.Property.filter({ id: landlordProperty.property_id }),
+    enabled: !!landlordProperty?.property_id,
+    staleTime: 5 * 60 * 1000,
+    select: (rows) => rows?.[0] ?? null,
+  });
+
+  const unitTypeLabel = (() => {
+    const pt = linkedProperty?.property_type;
+    const beds = linkedProperty?.bedrooms;
+    if (pt === 'studio' || beds === 0) return 'Studio';
+    if (beds != null) {
+      const bedroomStr = `${beds} Bedroom`;
+      const appendType = ['villa', 'townhouse', 'penthouse'].includes(pt);
+      return appendType ? `${bedroomStr} ${pt.charAt(0).toUpperCase() + pt.slice(1)}` : bedroomStr;
+    }
+    if (pt) return pt.charAt(0).toUpperCase() + pt.slice(1);
+    return null;
+  })();
+
   const { data: photographyTasks = [] } = useQuery({
     queryKey: ['photography-task', landlord.id],
     queryFn: async () => {
@@ -401,6 +422,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                       <span className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'rgba(250,180,40,0.75)' }}>
                         {landlord.project_name}
                       </span>
+                    )}
+                    {unitTypeLabel && (
+                      <>
+                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
+                        <span className="text-xs font-bold" style={{ color: 'hsl(38 92% 70%)' }}>{unitTypeLabel}</span>
+                      </>
                     )}
                   </div>
                 )}
