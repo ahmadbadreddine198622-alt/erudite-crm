@@ -41,21 +41,20 @@ export default function OutreachChecklistPanel({ landlord }) {
 
   const updateMutation = useMutation({
     mutationFn: async (patch) => {
-      const now = new Date().toISOString();
-      // compute steps_completed and sequence_complete from merged state
       const merged = { ...(checklist || {}), ...patch };
       const stepKeys = ['email_sent', 'whatsapp_sent', 'imessage_sent', 'sms_sent', 'called', 'qualification_logged'];
       const steps_completed = stepKeys.filter(k => merged[k]).length;
       const sequence_complete = ['email_sent', 'whatsapp_sent', 'imessage_sent', 'sms_sent', 'called'].every(k => merged[k]);
 
+      let updatedChecklist;
       if (checklist) {
-        return base44.entities.OutreachChecklist.update(checklist.id, {
+        updatedChecklist = await base44.entities.OutreachChecklist.update(checklist.id, {
           ...patch,
           steps_completed,
           sequence_complete,
         });
       } else {
-        return base44.entities.OutreachChecklist.create({
+        updatedChecklist = await base44.entities.OutreachChecklist.create({
           landlord_id: landlord.id,
           landlord_name: landlord.full_name_en || landlord.full_name,
           agent_email: user.email,
@@ -65,10 +64,39 @@ export default function OutreachChecklistPanel({ landlord }) {
           sequence_complete,
         });
       }
+
+      // Sync DailyLeadAllocation
+      const allChecks = await base44.entities.OutreachChecklist.filter({ agent_email: user.email, outreach_date: TODAY });
+      const leads_worked = allChecks.filter(r => r.sequence_complete).length;
+      const qualifications_logged = allChecks.filter(r => r.qualification_logged).length;
+      const sequences_completed = leads_worked;
+      const base_allocation = 10;
+      const completion_rate = Math.round((leads_worked / base_allocation) * 100);
+      const earned_more_leads = leads_worked >= base_allocation;
+      const bonus_earned = earned_more_leads ? 5 : 0;
+      const total_available = base_allocation + bonus_earned;
+      const status = earned_more_leads ? 'completed' : leads_worked === 0 ? 'active' : leads_worked < 5 ? 'underperforming' : 'active';
+      const daily_score = leads_worked * 10 + qualifications_logged * 15 + bonus_earned * 5;
+
+      const allocRows = await base44.entities.DailyLeadAllocation.filter({ agent_email: user.email, allocation_date: TODAY });
+      const allocPatch = { leads_worked, sequences_completed, qualifications_logged, completion_rate, earned_more_leads, bonus_earned, total_available, status, daily_score };
+      if (allocRows[0]) {
+        await base44.entities.DailyLeadAllocation.update(allocRows[0].id, allocPatch);
+      } else {
+        await base44.entities.DailyLeadAllocation.create({
+          agent_email: user.email,
+          agent_name: user.full_name,
+          allocation_date: TODAY,
+          base_allocation,
+          ...allocPatch,
+        });
+      }
+
+      return updatedChecklist;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outreach-checklist', landlord.id, TODAY] });
-      queryClient.invalidateQueries({ queryKey: ['agent-outreach-score'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-allocation', user?.email, TODAY] });
     },
     onError: (e) => toast.error('Failed to update: ' + e.message),
   });

@@ -1,0 +1,115 @@
+{
+  "name": "DailyLeadAllocation",
+  "properties": {
+    "agent_email": {
+      "description": "Agent this allocation belongs to",
+      "format": "email",
+      "type": "string"
+    },
+    "agent_name": {
+      "description": "Cached agent display name",
+      "type": "string"
+    },
+    "allocation_date": {
+      "description": "The day this allocation is for",
+      "format": "date",
+      "type": "string"
+    },
+    "base_allocation": {
+      "default": 10,
+      "description": "Base number of leads given for the day",
+      "type": "number"
+    },
+    "bonus_earned": {
+      "default": 0,
+      "description": "Extra leads earned by completing outreach sequences properly",
+      "type": "number"
+    },
+    "total_available": {
+      "default": 10,
+      "description": "Total leads available today (base + bonus)",
+      "type": "number"
+    },
+    "leads_worked": {
+      "default": 0,
+      "description": "How many assigned leads the agent actually ran outreach on today",
+      "type": "number"
+    },
+    "sequences_completed": {
+      "default": 0,
+      "description": "Full Email\u2192WhatsApp\u2192iMessage\u2192SMS\u2192Call sequences completed today (from OutreachChecklist)",
+      "type": "number"
+    },
+    "qualifications_logged": {
+      "default": 0,
+      "description": "Qualifications logged today",
+      "type": "number"
+    },
+    "completion_rate": {
+      "default": 0,
+      "description": "Percentage of allocated leads worked properly (0-100)",
+      "type": "number"
+    },
+    "daily_score": {
+      "default": 0,
+      "description": "Overall quality-weighted score for the day",
+      "type": "number"
+    },
+    "earned_more_leads": {
+      "default": false,
+      "description": "True when the agent unlocked bonus leads by completing their base allocation properly",
+      "type": "boolean"
+    },
+    "status": {
+      "default": "active",
+      "description": "Allocation status for the day",
+      "enum": [
+        "active",
+        "completed",
+        "underperforming"
+      ],
+      "type": "string"
+    },
+    "notes": {
+      "description": "Manager notes on the day's performance",
+      "type": "string"
+    }
+  },
+  "required": [
+    "agent_email",
+    "allocation_date"
+  ],
+  "rls": {
+    "create": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

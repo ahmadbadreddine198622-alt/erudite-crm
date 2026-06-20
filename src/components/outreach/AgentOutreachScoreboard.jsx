@@ -1,83 +1,136 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
-import { CheckCircle2, Target, Zap, Users, Loader2 } from 'lucide-react';
+import { CheckCircle2, Lock, Unlock, Zap, Target, Loader2, Trophy, Gift } from 'lucide-react';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export default function AgentOutreachScoreboard() {
   const { user } = useCurrentUser();
 
-  const { data: records = [], isLoading } = useQuery({
-    queryKey: ['agent-outreach-score', user?.email, TODAY],
-    queryFn: () => base44.entities.OutreachChecklist.filter({ agent_email: user.email, outreach_date: TODAY }),
+  const { data: allocation, isLoading } = useQuery({
+    queryKey: ['daily-allocation', user?.email, TODAY],
+    queryFn: async () => {
+      const rows = await base44.entities.DailyLeadAllocation.filter({
+        agent_email: user.email,
+        allocation_date: TODAY,
+      });
+      return rows?.[0] ?? null;
+    },
     enabled: !!user?.email,
     refetchInterval: 30000,
   });
 
   if (!user) return null;
 
-  const totalLandlords = records.length;
-  const sequencesComplete = records.filter(r => r.sequence_complete).length;
-  const totalSteps = records.reduce((sum, r) => sum + (r.steps_completed || 0), 0);
-  const qualifications = records.filter(r => r.qualification_logged).length;
-  const reached = records.filter(r => r.reached_landlord).length;
+  const base = allocation?.base_allocation ?? 10;
+  const leadsWorked = allocation?.leads_worked ?? 0;
+  const sequencesDone = allocation?.sequences_completed ?? 0;
+  const bonus = allocation?.bonus_earned ?? 0;
+  const total = allocation?.total_available ?? base;
+  const qualifications = allocation?.qualifications_logged ?? 0;
+  const earned = allocation?.earned_more_leads ?? false;
+  const status = allocation?.status ?? 'active';
+  const completionRate = allocation?.completion_rate ?? 0;
 
-  const stats = [
-    { label: 'Landlords Contacted', value: totalLandlords, icon: Users, color: 'text-blue-400', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)' },
-    { label: 'Full Sequences', value: sequencesComplete, icon: CheckCircle2, color: 'text-emerald-400', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
-    { label: 'Steps Done', value: totalSteps, icon: Zap, color: 'text-amber-400', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)' },
-    { label: 'Qualifications', value: qualifications, icon: Target, color: 'text-purple-400', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)' },
-  ];
+  const remaining = Math.max(0, base - leadsWorked);
+  const pct = Math.min(100, Math.round((leadsWorked / base) * 100));
+
+  const statusColor = status === 'completed' ? '#34d399'
+    : status === 'underperforming' ? '#f87171'
+    : 'hsl(38 92% 55%)';
 
   return (
-    <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div className="flex items-center justify-between">
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+      {/* Top bar */}
+      <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem' }}>My Outreach Today</p>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem' }}>Today's Lead Allocation</p>
           <p className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
         </div>
-        {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {stats.map(({ label, value, icon: Icon, color, bg, border }) => (
-          <div key={label} className="rounded-lg p-3 text-center" style={{ background: bg, border: `1px solid ${border}` }}>
-            <Icon className={`w-4 h-4 mx-auto mb-1 ${color}`} />
-            <p className="text-xl font-bold tabular-nums" style={{ color: 'rgba(255,255,255,0.95)' }}>{value}</p>
-            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {totalLandlords > 0 && (
-        <div className="pt-1">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-            <span>Sequence completion rate</span>
-            <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {totalLandlords > 0 ? Math.round((sequencesComplete / totalLandlords) * 100) : 0}%
+        <div className="flex items-center gap-2">
+          {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+          {!isLoading && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: status === 'completed' ? 'rgba(16,185,129,0.15)' : status === 'underperforming' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)', color: statusColor }}>
+              {status === 'completed' ? '✓ Completed' : status === 'underperforming' ? '⚠ Underperforming' : '● Active'}
             </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        {/* Main unlock mechanic */}
+        <div>
+          <div className="flex items-end justify-between mb-2">
+            <div>
+              <p className="text-3xl font-bold tabular-nums" style={{ color: statusColor }}>
+                {leadsWorked}<span className="text-lg text-muted-foreground font-normal">/{base}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">sequences completed today</p>
+            </div>
+            <div className="text-right">
+              {earned ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  <Unlock className="w-4 h-4 text-emerald-400" />
+                  <div>
+                    <p className="text-xs font-bold text-emerald-400">+{bonus} bonus leads</p>
+                    <p className="text-[10px] text-emerald-500">Unlocked!</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">{remaining} more to unlock</p>
+                    <p className="text-[10px] text-muted-foreground">bonus leads</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+
+          {/* Progress bar */}
+          <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div
-              className="h-1.5 rounded-full transition-all duration-500"
+              className="h-full rounded-full transition-all duration-700"
               style={{
-                width: `${totalLandlords > 0 ? (sequencesComplete / totalLandlords) * 100 : 0}%`,
-                background: 'linear-gradient(90deg, hsl(152 69% 40%), hsl(152 69% 55%))',
+                width: `${pct}%`,
+                background: pct >= 100
+                  ? 'linear-gradient(90deg, hsl(152 69% 40%), hsl(152 69% 55%))'
+                  : 'linear-gradient(90deg, hsl(38 92% 45%), hsl(38 92% 60%))',
               }}
             />
           </div>
-          {reached > 0 && (
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              <span className="text-emerald-400 font-semibold">{reached}</span> landlord{reached !== 1 ? 's' : ''} actually reached
-            </p>
-          )}
+          <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+            {pct < 100
+              ? `Complete your ${base} to unlock bonus leads`
+              : `All ${base} done — ${bonus > 0 ? `+${bonus} bonus leads available` : 'bonus calculation pending'}`}
+          </p>
         </div>
-      )}
 
-      {totalLandlords === 0 && !isLoading && (
-        <p className="text-xs text-muted-foreground text-center py-2">No outreach logged yet today. Open a landlord card and tick off the steps.</p>
-      )}
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: 'Total Available', value: total, icon: Gift, color: 'text-amber-400', note: `${base} base${bonus > 0 ? ` +${bonus}` : ''}` },
+            { label: 'Sequences', value: sequencesDone, icon: Zap, color: 'text-blue-400', note: `of ${base}` },
+            { label: 'Qualifications', value: qualifications, icon: Target, color: 'text-purple-400', note: 'logged' },
+            { label: 'Completion', value: `${completionRate}%`, icon: Trophy, color: 'text-emerald-400', note: 'rate' },
+          ].map(({ label, value, icon: Icon, color, note }) => (
+            <div key={label} className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Icon className={`w-3.5 h-3.5 mx-auto mb-1 ${color}`} />
+              <p className="text-base font-bold tabular-nums" style={{ color: 'rgba(255,255,255,0.9)' }}>{value}</p>
+              <p className="text-[9px] text-muted-foreground">{label}</p>
+              <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{note}</p>
+            </div>
+          ))}
+        </div>
+
+        {!isLoading && !allocation && (
+          <p className="text-xs text-muted-foreground text-center py-1">
+            No allocation set for today yet. Start outreach to generate your record.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
