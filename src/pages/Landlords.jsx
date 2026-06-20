@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
-import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
+
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
@@ -780,18 +780,7 @@ export default function Landlords() {
         />
       </div>
 
-      {/* Detail Panel */}
-      {selectedLandlord && (
-        <LandlordDetailPanel fullScreenOnMobile={true}
-          landlord={selectedLandlord}
-          open={!!selectedLandlord}
-          onClose={() => setSelectedLandlordId(null)}
-          onUpdate={() => {
-            queryClient.invalidateQueries({ queryKey: ['landlord', selectedLandlordId] });
-            queryClient.invalidateQueries({ queryKey: ['landlords'] });
-          }}
-        />
-      )}
+
 
       {/* Dialogs */}
       <AddLandlordDialog
