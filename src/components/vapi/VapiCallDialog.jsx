@@ -51,11 +51,12 @@ export default function VapiCallDialog({ lead, iconOnly = false }) {
 
     const handleOpenChange = (isOpen) => {
         setOpen(isOpen);
-        if (isOpen && assistants.length === 0) {
-            loadAssistants();
-        }
-        if (lead?.phone) {
-            setPhoneNumber(lead.phone);
+        if (isOpen) {
+            // Always reset to lead's phone when opening
+            setPhoneNumber(lead?.phone || '');
+            if (assistants.length === 0) {
+                loadAssistants();
+            }
         }
     };
 

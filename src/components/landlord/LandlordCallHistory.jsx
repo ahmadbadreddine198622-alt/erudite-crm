@@ -81,32 +81,32 @@ function InlineAudioPlayer({ url, label }) {
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-      <button
-        onClick={toggle}
-        className="flex items-center justify-center w-7 h-7 rounded-full shrink-0 transition-all active:scale-90"
-        style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}
-      >
-        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium" style={{ color: '#34d399' }}>{label}</p>
-        <audio
-          ref={audioRef}
-          src={url}
-          onEnded={() => setPlaying(false)}
-          onPause={() => setPlaying(false)}
-          className="w-full mt-1"
-          controls
-          style={{ height: 24, accentColor: '#34d399' }}
-        />
+    <div className="rounded-lg px-3 py-2 space-y-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={toggle}
+          className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 transition-all active:scale-90"
+          style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399' }}
+        >
+          {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+        <p className="text-[11px] font-semibold flex-1" style={{ color: '#34d399' }}>{label}</p>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="text-[10px] px-2 py-1 rounded border shrink-0"
+          style={{ borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}
+        >
+          Open ↗
+        </a>
       </div>
-      <a href={url} target="_blank" rel="noopener noreferrer"
-        className="text-[10px] px-2 py-1 rounded border shrink-0"
-        style={{ borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}
-      >
-        Open
-      </a>
+      <audio
+        ref={audioRef}
+        src={url}
+        onEnded={() => setPlaying(false)}
+        onPause={() => setPlaying(false)}
+        className="w-full"
+        controls
+        style={{ height: 28, accentColor: '#34d399' }}
+      />
     </div>
   );
 }
@@ -115,34 +115,32 @@ function CallCard({ call }) {
   const [showTranscript, setShowTranscript] = useState(false);
 
   return (
-    <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       {/* Top row */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <DirectionIcon direction={call.direction} status={call.status} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <SourceBadge source={call._source} />
-              <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <span className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 {call.direction === 'inbound' ? call.from_number : call.to_number}
               </span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{formatDate(call.started_at)}</p>
               {call.agent_name && (
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  via {call.agent_name}
-                </span>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>· {call.agent_name}</span>
               )}
             </div>
-            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              {formatDate(call.started_at)}
-            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs tabular-nums flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            <Clock className="w-3 h-3" />
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <StatusPill status={call.status} />
+          <span className="text-[10px] tabular-nums flex items-center gap-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <Clock className="w-2.5 h-2.5" />
             {formatDuration(call.duration_seconds || call.duration)}
           </span>
-          <StatusPill status={call.status} />
         </div>
       </div>
 
@@ -195,27 +193,18 @@ export default function LandlordCallHistory({ landlord }) {
     enabled: !!landlord.id,
   });
 
-  // Fetch Aircall calls — match by phone number
-  const { data: aircallCalls = [], isLoading: loadingAircall } = useQuery({
+  // Fetch Aircall calls — match by phone number (excludes VAPI calls stored here too)
+  const { data: aircallRaw = [], isLoading: loadingAircall } = useQuery({
     queryKey: ['aircall-calls-all'],
     queryFn: () => base44.entities.AircallCall.list('-started_at', 500),
     enabled: !!normalizedPhone,
   });
 
-  // Fetch VAPI calls from CallLog by phone (not linked to landlord_id)
-  const { data: vapiCalls = [], isLoading: loadingVapi } = useQuery({
-    queryKey: ['vapi-calls-landlord', landlord.id],
-    queryFn: async () => {
-      if (!normalizedPhone) return [];
-      const all = await base44.entities.CallLog.list('-started_at', 200);
-      return all.filter(c => {
-        const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
-        const fromNorm = c.from_number ? normalizePhoneNumber(c.from_number) : '';
-        return (toNorm === normalizedPhone || fromNorm === normalizedPhone) && !c.landlord_id;
-      });
-    },
-    enabled: !!normalizedPhone,
-  });
+  // Separate VAPI calls (stored in AircallCall with from_number='Vapi AI') from real Aircall calls
+  const aircallCalls = aircallRaw.filter(c => c.from_number !== 'Vapi AI' && !c.notes?.startsWith('Vapi AI'));
+  const vapiCalls = aircallRaw.filter(c => c.from_number === 'Vapi AI' || c.notes?.startsWith('Vapi AI'));
+
+  const loadingVapi = false;
 
   // Fetch recordings from Twilio API directly for any CallLog missing recording_url
   const callSidsWithoutRecording = callLogs
@@ -263,6 +252,13 @@ export default function LandlordCallHistory({ landlord }) {
     return toNorm === normalizedPhone || fromNorm === normalizedPhone;
   });
 
+  // Match VAPI calls by destination phone
+  const matchedVapi = vapiCalls.filter(c => {
+    if (!normalizedPhone) return false;
+    const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
+    return toNorm === normalizedPhone;
+  });
+
   // Merge all calls with source tag, sorted by date desc, inject fetched recordings
   const allCalls = [
     ...callLogs.map(c => ({
@@ -277,7 +273,12 @@ export default function LandlordCallHistory({ landlord }) {
       duration_seconds: c.duration,
       recording_url: c.recording_url || c.recording,
     })),
-    ...vapiCalls.map(c => ({ ...c, _source: 'vapi', duration_seconds: c.duration_seconds })),
+    ...matchedVapi.map(c => ({
+      ...c,
+      _source: 'vapi',
+      duration_seconds: c.duration,
+      recording_url: c.recording_url || c.recording,
+    })),
   ].sort((a, b) => {
     const ta = a.started_at ? new Date(a.started_at).getTime() : 0;
     const tb = b.started_at ? new Date(b.started_at).getTime() : 0;

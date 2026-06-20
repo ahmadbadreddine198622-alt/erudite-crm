@@ -30,7 +30,10 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 assistantId: assistantId,
-                phoneNumber: phoneNumber, // Destination number to call
+                customer: {
+                    number: phoneNumber, // Destination number to call
+                    name: leadName || undefined,
+                },
                 metadata: {
                     leadId: leadId || '',
                     leadName: leadName || '',
