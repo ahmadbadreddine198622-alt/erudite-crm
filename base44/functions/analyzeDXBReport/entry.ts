@@ -461,14 +461,13 @@ Deno.serve(async (req) => {
     });
 
   } catch (e) {
-    const msg = e?.stack || e?.message || String(e);
-    console.error('[analyzeDXBReport] error:', msg);
+    console.error('[analyzeDXBReport] failed:', e?.message, e?.stack);
     try {
       await svc.entities.MarketReport.update(reportId, {
         status: 'failed',
-        analysis_summary: ('Analysis failed: ' + (e?.message || String(e))).slice(0, 900),
+        analysis_summary: `ERROR: ${e?.message}\n\n${e?.stack}`.slice(0, 900),
       });
     } catch (_) {}
-    return Response.json({ ok: false, status: 'failed', error: e?.message || String(e) }, { status: 500 });
+    return Response.json({ ok: false, error: e?.message, stack: e?.stack }, { status: 200 });
   }
 });
