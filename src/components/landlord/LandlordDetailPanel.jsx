@@ -429,6 +429,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                         <span className="text-xs font-bold" style={{ color: 'hsl(38 92% 70%)' }}>{unitTypeLabel}</span>
                       </>
                     )}
+                    {linkedProperty?.area_sqft && (
+                      <>
+                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
+                        <span className="text-xs font-medium tabular-nums" style={{ color: 'rgba(250,180,40,0.8)' }}>
+                          {Math.round(linkedProperty.area_sqft).toLocaleString()} sqft
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">
