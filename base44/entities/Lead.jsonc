@@ -793,11 +793,47 @@
     "landlord_id": {
       "type": "string",
       "description": "FK to Landlord entity \u2014 linked when this lead's listing reference matches a landlord's unit_reference"
+    },
+    "linked_pf_listing_id": {
+      "type": "string",
+      "description": "FK to PFListing record id \u2014 set when a PF buyer-lead is matched to the listing it came from"
     }
   },
   "required": [
     "full_name",
     "source",
     "stage"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "assigned_agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "assigned_agent_email": "{{user.email}}"
+        }
+      ]
+    }
+  }
 }

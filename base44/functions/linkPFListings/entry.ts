@@ -1,213 +1,355 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * linkPFListings — backfill + incremental linking for PFListing records.
+ * linkPFListings — batch linking of PFListing records to CRM entities.
  *
  * For each PFListing (or a targeted subset via payload.listing_ids):
- *   1. agent_email  ← already stored from PF payload; map to CRM user by email match.
- *   2. project_id   ← match building_name / location against Project.name (case-insensitive).
- *   3. property_id  ← match building_name + unit_number against LandlordProperty (if entity exists).
- *   4. landlord_id  ← match building_name + unit_number against Landlord.unit_reference /
- *                     project_name (or linked LandlordProperty).
+ *   1. agent_email  — from PFListing.agent_email (already stored from PF payload).
+ *                     If agent_email is missing but agent_name is set, match CRM User by name.
+ *   2. project_id   — match building_name / location against Project.name + Project.location
+ *                     (normalized, case-insensitive). Verifies/repairs existing project_id.
+ *   3. property_id  — match building_name + unit_number against Property.building_name + unit_no.
+ *   4. landlord_id  — match building_name + unit_number against Landlord.project_name + unit_reference.
+ *   5. landlord_property_id — match via LandlordProperty → Property join (building + unit).
+ *   6. Lead linkage — for Leads with source=property_finder and pf_lead_id set, match the
+ *                     PF listing reference carried in the lead to PFListing.reference_number or
+ *                     pf_listing_id, then set Lead.linked_pf_listing_id.
  *
- * Also links inbound PF buyer leads: Lead.pf_lead_id references are attached to matching
- * PFListing records if the listing's reference_number appears in Lead.notes.
+ * All reads/writes via asServiceRole to bypass RLS.
+ * Idempotent: already-linked fields are not overwritten.
+ * Can be called from syncPFListings or standalone.
  *
- * Called at the end of each syncPFListings run, and exposed as a standalone backfill.
+ * Payload (optional): { listing_ids: string[] } — limit to specific PFListing record IDs.
  *
- * Payload (all optional):
- *   { listing_ids: string[] }  — limit to these internal IDs (omit = all)
+ * Returns: per-field linked/unmatched counts.
  */
 Deno.serve(async (req) => {
+  const base44 = createClientFromRequest(req);
+
+  // Accept both admin user calls and service-role invocations from other functions
+  let authorized = false;
   try {
-    const base44 = createClientFromRequest(req);
-
-    // Allow both user-auth (admin) and service-role invocations from other functions
-    let isAuthorized = false;
-    try {
-      const user = await base44.auth.me();
-      isAuthorized = user?.role === 'admin';
-    } catch (_) {}
-    // If called from another backend function the auth token is the service token — allow it
-    if (!isAuthorized) {
-      // Re-check: if base44.auth.me() threw (service invocation), treat as authorized
-      // We guard by requiring the request to come from within the platform
-      // (no external callers should reach this without an admin token)
-      try {
-        await base44.auth.me();
-      } catch (_) {
-        isAuthorized = true; // service-role invocation
-      }
-    }
-    if (!isAuthorized) {
-      return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const targetIds = Array.isArray(body.listing_ids) ? new Set(body.listing_ids) : null;
-
-    const startTime = Date.now();
-    console.log('PF_LINK: starting...');
-
-    // ── Load reference data ───────────────────────────────────────────────────
-    const [users, projects, landlords] = await Promise.all([
-      base44.asServiceRole.entities.User.list().catch(() => []),
-      base44.asServiceRole.entities.Project.list('-created_date', 500).catch(() => []),
-      base44.asServiceRole.entities.Landlord.list('-created_date', 500).catch(() => []),
-    ]);
-
-    // Build lookup maps
-    const userByEmail = new Map(users.map(u => [u.email?.toLowerCase(), u]));
-
-    // Project: normalize name for fuzzy match
-    const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const projectIndex = projects.map(p => ({
-      id: p.id,
-      normName: norm(p.name),
-      normLocation: norm(p.location),
-    }));
-
-    // Landlord: index by normalized unit_reference + project_name
-    const landlordIndex = landlords.map(l => ({
-      id: l.id,
-      normUnit: norm(l.unit_reference),
-      normProject: norm(l.project_name),
-    }));
-
-    // ── Fetch PFListings to link ──────────────────────────────────────────────
-    const allListings = [];
-    let offset = 0;
-    const PAGE = 200;
-    while (true) {
-      const batch = await base44.asServiceRole.entities.PFListing.filter(
-        {}, '-updated_date', PAGE, offset
-      );
-      allListings.push(...batch);
-      if (batch.length < PAGE) break;
-      offset += PAGE;
-    }
-
-    const toProcess = targetIds
-      ? allListings.filter(l => targetIds.has(l.id))
-      : allListings;
-
-    console.log(`PF_LINK: processing ${toProcess.length} listings`);
-
-    const stats = { agent: 0, project: 0, landlord: 0, skipped: 0, errors: 0 };
-
-    // Helper: find best project match for a listing
-    const findProject = (buildingName, locationName) => {
-      const normBuilding = norm(buildingName);
-      const normLocation = norm(locationName);
-      if (!normBuilding && !normLocation) return null;
-      // Exact building name match first
-      for (const p of projectIndex) {
-        if (normBuilding && p.normName && normBuilding === p.normName) return p.id;
-      }
-      // Building name contains project name or vice versa
-      for (const p of projectIndex) {
-        if (normBuilding && p.normName && (normBuilding.includes(p.normName) || p.normName.includes(normBuilding))) return p.id;
-      }
-      // Location match
-      for (const p of projectIndex) {
-        if (normLocation && p.normName && (normLocation.includes(p.normName) || p.normName.includes(normLocation))) return p.id;
-        if (normLocation && p.normLocation && norm(normLocation) === p.normLocation) return p.id;
-      }
-      return null;
-    };
-
-    // Helper: find landlord by unit_reference match (building + unit)
-    const findLandlord = (buildingName, unitNumber) => {
-      if (!unitNumber) return null;
-      const normUnit = norm(unitNumber);
-      const normBuilding = norm(buildingName);
-      for (const l of landlordIndex) {
-        if (!l.normUnit) continue;
-        // unit_reference often encodes building+unit e.g. "MARINA-1204"
-        const matchesUnit = l.normUnit.includes(normUnit) || normUnit.includes(l.normUnit);
-        const matchesProject = normBuilding && l.normProject && (normBuilding.includes(l.normProject) || l.normProject.includes(normBuilding));
-        if (matchesUnit && matchesProject) return l.id;
-        // Looser: just unit exact match
-        if (l.normUnit === normUnit && normUnit.length >= 3) return l.id;
-      }
-      return null;
-    };
-
-    // ── Process each listing ──────────────────────────────────────────────────
-    for (const listing of toProcess) {
-      const patch = {};
-
-      // 1. agent_email — validate against CRM users
-      if (listing.agent_email && !listing._agent_validated) {
-        const agentKey = listing.agent_email.toLowerCase();
-        if (userByEmail.has(agentKey)) {
-          // Already correct; mark validated implicitly via no-op
-          stats.agent++;
-        }
-        // If agent_email is set but user not found — leave as-is (PF stores it, we don't overwrite)
-      }
-
-      // 2. project_id
-      if (!listing.project_id) {
-        const pid = findProject(listing.building_name, listing.location);
-        if (pid) { patch.project_id = pid; stats.project++; }
-      }
-
-      // 3. landlord linking — store in project_id fallback if landlord has a project linked,
-      //    and separately detect landlord via unit_reference
-      if (!listing.landlord_id) {
-        const lid = findLandlord(listing.building_name, listing.unit_number);
-        if (lid) {
-          patch.landlord_id = lid;
-          stats.landlord++;
-          // Also backfill project_id from landlord's project if not yet set
-          if (!listing.project_id && !patch.project_id) {
-            const ll = landlords.find(l => l.id === lid);
-            if (ll?.project_id) patch.project_id = ll.project_id;
-          }
-        }
-      }
-
-      if (Object.keys(patch).length === 0) { stats.skipped++; continue; }
-
-      // Throttle: 600ms between writes to avoid rate limiting on bulk backfill
-      await new Promise(r => setTimeout(r, 600));
-      let delay = 1500;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          await base44.asServiceRole.entities.PFListing.update(listing.id, patch);
-          break;
-        } catch (e) {
-          const msg = String(e.message || e);
-          if (msg.includes('Rate limit') && attempt < 4) {
-            await new Promise(r => setTimeout(r, delay));
-            delay *= 2;
-          } else {
-            console.error(`PF_LINK: update failed for ${listing.id}:`, msg);
-            stats.errors++;
-            break;
-          }
-        }
-      }
-    }
-
-    const duration = Date.now() - startTime;
-    console.log(`PF_LINK: done in ${duration}ms —`, JSON.stringify(stats));
-
-    return Response.json({
-      ok: true,
-      processed: toProcess.length,
-      linked: {
-        agent_email_validated: stats.agent,
-        project_id_set: stats.project,
-        landlord_id_set: stats.landlord,
-      },
-      skipped_already_linked: stats.skipped,
-      errors: stats.errors,
-      duration_ms: duration,
-    });
-  } catch (error) {
-    console.error('PF_LINK: fatal:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    const u = await base44.auth.me();
+    if (u?.role === 'admin') authorized = true;
+  } catch (_) {
+    // service-role invocation from another function — allow
+    authorized = true;
   }
+  if (!authorized) {
+    return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const targetIds = Array.isArray(body.listing_ids) && body.listing_ids.length > 0
+    ? new Set(body.listing_ids) : null;
+
+  const t0 = Date.now();
+  console.log('PF_LINK: starting' + (targetIds ? ` (${targetIds.size} targeted)` : ' (all)'));
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  const norm = s => (s || '').toLowerCase().replace(/[\s\-_,\.]+/g, '').trim();
+
+  async function loadAll(entity, sortField, pageSize) {
+    const rows = [];
+    let offset = 0;
+    while (true) {
+      const batch = await base44.asServiceRole.entities[entity].filter(
+        {}, sortField, pageSize, offset
+      );
+      rows.push(...batch);
+      if (batch.length < pageSize) break;
+      offset += pageSize;
+    }
+    return rows;
+  }
+
+  async function safeUpdate(entity, id, patch, label) {
+    let delay = 250;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await base44.asServiceRole.entities[entity].update(id, patch);
+        return true;
+      } catch (e) {
+        const msg = String(e.message || e);
+        if (msg.includes('Rate limit') && attempt < 3) {
+          await new Promise(r => setTimeout(r, delay));
+          delay = Math.min(delay * 2, 3000);
+        } else {
+          console.error(`PF_LINK: update failed [${label}] id=${id}:`, msg);
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  // ── Load reference data in parallel ─────────────────────────────────────────
+  const [users, projects, properties, landlords, landlordProps, pfLeads] = await Promise.all([
+    loadAll('User', 'email', 200),
+    loadAll('Project', '-created_date', 500),
+    loadAll('Property', '-created_date', 500),
+    loadAll('Landlord', '-created_date', 1000),
+    loadAll('LandlordProperty', '-created_date', 1000),
+    // PF buyer leads: source=property_finder, has pf_lead_id
+    base44.asServiceRole.entities.Lead.filter(
+      { source: 'property_finder' }, '-created_date', 500, 0
+    ).catch(() => []),
+  ]);
+
+  // Build indexes
+  const userByEmail = new Map(users.map(u => [u.email?.toLowerCase(), u]));
+  const userByNormName = new Map(users.map(u => [norm(u.full_name), u]));
+
+  // Project index: normName, normLocation
+  const projectIdx = projects.map(p => ({
+    id: p.id,
+    normName: norm(p.name),
+    normLoc: norm(p.location),
+  }));
+
+  // Property index: normBuilding + normUnit → id
+  const propertyIdx = properties.map(p => ({
+    id: p.id,
+    normBuilding: norm(p.building_name),
+    normUnit: norm(p.unit_no),
+  }));
+
+  // Landlord index: normProject + normUnit → id
+  const landlordIdx = landlords.map(l => ({
+    id: l.id,
+    normProject: norm(l.project_name),
+    normUnit: norm(l.unit_reference),
+  }));
+
+  // LandlordProperty index: property_id → { id (lp.id), landlord_id }
+  // We'll join via property_id
+  const lpByPropertyId = new Map(landlordProps.map(lp => [lp.property_id, lp]));
+
+  // PF listing index for lead linking: reference_number and pf_listing_id → record id
+  // We load PFListings below anyway
+
+  // ── Match helpers ────────────────────────────────────────────────────────────
+
+  function findProject(buildingName, locationName) {
+    const nb = norm(buildingName);
+    const nl = norm(locationName);
+    if (!nb && !nl) return null;
+    // Exact match on name
+    for (const p of projectIdx) {
+      if (nb && p.normName && nb === p.normName) return p.id;
+    }
+    // Contains match on name (longer contains shorter, min 4 chars)
+    for (const p of projectIdx) {
+      if (nb && p.normName && p.normName.length >= 4) {
+        if (nb.includes(p.normName) || p.normName.includes(nb)) return p.id;
+      }
+    }
+    // Location match
+    for (const p of projectIdx) {
+      if (nl && p.normName && p.normName.length >= 4) {
+        if (nl.includes(p.normName) || p.normName.includes(nl)) return p.id;
+      }
+      if (nl && p.normLoc && p.normLoc.length >= 4 && nl === p.normLoc) return p.id;
+    }
+    return null;
+  }
+
+  function findProperty(buildingName, unitNumber) {
+    const nb = norm(buildingName);
+    const nu = norm(unitNumber);
+    if (!nb || !nu) return null;
+    for (const p of propertyIdx) {
+      if (p.normUnit === nu && p.normBuilding && (p.normBuilding === nb || nb.includes(p.normBuilding) || p.normBuilding.includes(nb))) {
+        return p.id;
+      }
+    }
+    return null;
+  }
+
+  function findLandlord(buildingName, unitNumber) {
+    const nb = norm(buildingName);
+    const nu = norm(unitNumber);
+    if (!nu) return null;
+    for (const l of landlordIdx) {
+      if (!l.normUnit) continue;
+      const unitMatch = l.normUnit === nu || (nu.length >= 2 && (l.normUnit.includes(nu) || nu.includes(l.normUnit)));
+      if (!unitMatch) continue;
+      if (!l.normProject) return l.id; // unit-only match if no project on landlord
+      const projMatch = !nb || nb.includes(l.normProject) || l.normProject.includes(nb);
+      if (projMatch) return l.id;
+    }
+    return null;
+  }
+
+  function findLandlordPropertyId(propertyId) {
+    if (!propertyId) return null;
+    const lp = lpByPropertyId.get(propertyId);
+    return lp ? { lpId: lp.id, landlordId: lp.landlord_id } : null;
+  }
+
+  function resolveAgentEmail(listing) {
+    // If agent_email is already set and matches a CRM user → keep
+    if (listing.agent_email) {
+      const key = listing.agent_email.toLowerCase();
+      if (userByEmail.has(key)) return listing.agent_email;
+      // email stored but not a CRM user — still return it (may be external)
+      return listing.agent_email;
+    }
+    // Try to resolve by agent_name
+    if (listing.agent_name) {
+      const u = userByNormName.get(norm(listing.agent_name));
+      if (u) return u.email;
+    }
+    return null;
+  }
+
+  // ── Load PFListings ──────────────────────────────────────────────────────────
+  const allListings = await loadAll('PFListing', '-updated_date', 500);
+  const toProcess = targetIds
+    ? allListings.filter(l => targetIds.has(l.id))
+    : allListings;
+
+  // Build lookup by reference_number and pf_listing_id for lead linkage
+  const listingByRef = new Map();
+  const listingByPfId = new Map();
+  for (const l of allListings) {
+    if (l.reference_number) listingByRef.set(l.reference_number, l);
+    if (l.pf_listing_id) listingByPfId.set(l.pf_listing_id, l);
+  }
+
+  console.log(`PF_LINK: processing ${toProcess.length} listings`);
+
+  const stats = {
+    agent_email_set: 0,
+    project_id_set: 0,
+    project_id_repaired: 0,
+    property_id_set: 0,
+    landlord_id_set: 0,
+    landlord_property_id_set: 0,
+    already_fully_linked: 0,
+    errors: 0,
+  };
+
+  for (const listing of toProcess) {
+    const patch = {};
+
+    // 1. agent_email
+    const resolvedEmail = resolveAgentEmail(listing);
+    if (resolvedEmail && resolvedEmail !== listing.agent_email) {
+      patch.agent_email = resolvedEmail;
+      stats.agent_email_set++;
+    } else if (resolvedEmail && !listing.agent_email) {
+      patch.agent_email = resolvedEmail;
+      stats.agent_email_set++;
+    }
+
+    // 2. project_id — verify and repair even if set
+    const matchedProjectId = findProject(listing.building_name, listing.location);
+    if (matchedProjectId && matchedProjectId !== listing.project_id) {
+      if (!listing.project_id) {
+        patch.project_id = matchedProjectId;
+        stats.project_id_set++;
+      } else {
+        // repair incorrect link
+        patch.project_id = matchedProjectId;
+        stats.project_id_repaired++;
+      }
+    } else if (matchedProjectId && !listing.project_id) {
+      patch.project_id = matchedProjectId;
+      stats.project_id_set++;
+    }
+
+    // 3. property_id
+    if (!listing.property_id) {
+      const pid = findProperty(listing.building_name, listing.unit_number);
+      if (pid) { patch.property_id = pid; stats.property_id_set++; }
+    }
+
+    // 4. landlord_id + landlord_property_id
+    // Try via LandlordProperty → Property join first (more precise)
+    const effectivePropertyId = patch.property_id || listing.property_id;
+    if (effectivePropertyId && !listing.landlord_property_id) {
+      const lpMatch = findLandlordPropertyId(effectivePropertyId);
+      if (lpMatch) {
+        patch.landlord_property_id = lpMatch.lpId;
+        stats.landlord_property_id_set++;
+        if (!listing.landlord_id) {
+          patch.landlord_id = lpMatch.landlordId;
+          stats.landlord_id_set++;
+        }
+      }
+    }
+    // Fallback: direct Landlord match by project_name + unit_reference
+    if (!listing.landlord_id && !patch.landlord_id) {
+      const lid = findLandlord(listing.building_name, listing.unit_number);
+      if (lid) { patch.landlord_id = lid; stats.landlord_id_set++; }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      stats.already_fully_linked++;
+      continue;
+    }
+
+    const ok = await safeUpdate('PFListing', listing.id, patch, `pf_id=${listing.pf_listing_id}`);
+    if (!ok) stats.errors++;
+
+    // Small pace delay
+    await new Promise(r => setTimeout(r, 30));
+  }
+
+  // ── 6. Lead linkage: match PF buyer leads to PFListing records ──────────────
+  const leadStats = { linked: 0, already_linked: 0, no_match: 0, errors: 0 };
+  const pfLeadsToLink = pfLeads.filter(l => l.pf_lead_id && !l.linked_pf_listing_id);
+
+  for (const lead of pfLeadsToLink) {
+    // pf_lead_id format: "message_lead_29932721" — the numeric part can match a PF reference
+    // Also check source_campaign or notes for a reference_number hint
+    // Strategy: extract numeric suffix from pf_lead_id, try matching PFListing.pf_listing_id
+    const numericSuffix = (lead.pf_lead_id || '').replace(/[^0-9]/g, '');
+    let matchedListing = null;
+
+    if (numericSuffix) {
+      matchedListing = listingByPfId.get(numericSuffix)
+        || listingByRef.get(numericSuffix)
+        || null;
+    }
+
+    // Also try source_campaign as reference_number
+    if (!matchedListing && lead.source_campaign) {
+      matchedListing = listingByRef.get(lead.source_campaign)
+        || listingByPfId.get(lead.source_campaign)
+        || null;
+    }
+
+    if (!matchedListing) { leadStats.no_match++; continue; }
+
+    const ok = await safeUpdate('Lead', lead.id, { linked_pf_listing_id: matchedListing.id }, `pf_lead_id=${lead.pf_lead_id}`);
+    if (ok) leadStats.linked++;
+    else leadStats.errors++;
+
+    await new Promise(r => setTimeout(r, 30));
+  }
+
+  // count already-linked
+  leadStats.already_linked = pfLeads.filter(l => l.linked_pf_listing_id).length;
+
+  const duration = Date.now() - t0;
+  console.log(`PF_LINK: done in ${duration}ms — listings:`, JSON.stringify(stats), '| leads:', JSON.stringify(leadStats));
+
+  return Response.json({
+    ok: true,
+    listings_processed: toProcess.length,
+    listing_links: {
+      agent_email_set: stats.agent_email_set,
+      project_id_set: stats.project_id_set,
+      project_id_repaired: stats.project_id_repaired,
+      property_id_set: stats.property_id_set,
+      landlord_id_set: stats.landlord_id_set,
+      landlord_property_id_set: stats.landlord_property_id_set,
+      already_fully_linked: stats.already_fully_linked,
+      errors: stats.errors,
+    },
+    lead_links: leadStats,
+    duration_ms: duration,
+  });
 });

@@ -3,129 +3,140 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 /**
  * dedupePFListings — idempotent deduplication of PFListing records.
  *
- * Groups by pf_listing_id, keeps the most-recently-updated survivor per group,
- * merges non-null linking fields (agent_email, project_id, property_id) onto the
- * survivor, then deletes the rest. Safe to re-run — already-clean tables are
- * reported with 0 removed.
+ * Groups ALL PFListing records by pf_listing_id. For each group with > 1 record:
+ *   1. Selects survivor = record with most recent updated_date (built-in field).
+ *   2. Merges non-null linking fields from duplicates onto survivor if survivor's value is null:
+ *      agent_email, agent_name, project_id, property_id, landlord_id, landlord_property_id
+ *   3. Deletes all non-survivor records (batched, rate-limit-aware).
+ *
+ * Idempotent: re-running on an already-clean table is a no-op (reports 0 deleted).
+ * Always runs in service role to bypass RLS.
+ *
+ * Returns: unique_before, unique_after, records_before, records_deleted, groups_deduped
  */
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
-    }
-
-    const startTime = Date.now();
-    console.log('PF_DEDUPE: starting...');
-
-    // ── 1. Fetch every PFListing record ──────────────────────────────────────
-    const allListings = [];
-    let offset = 0;
-    const PAGE = 500;
-    while (true) {
-      const batch = await base44.asServiceRole.entities.PFListing.filter(
-        {}, '-updated_date', PAGE, offset
-      );
-      allListings.push(...batch);
-      if (batch.length < PAGE) break;
-      offset += PAGE;
-    }
-    const beforeCount = allListings.length;
-    console.log(`PF_DEDUPE: fetched ${beforeCount} records`);
-
-    // ── 2. Group by pf_listing_id ─────────────────────────────────────────────
-    const groups = new Map();
-    const noKey = [];
-    for (const listing of allListings) {
-      const key = listing.pf_listing_id;
-      if (!key) { noKey.push(listing.id); continue; }
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(listing);
-    }
-
-    let duplicatesRemoved = 0;
-    let mergePatched = 0;
-
-    // ── 3. Process duplicates ─────────────────────────────────────────────────
-    for (const [key, group] of groups.entries()) {
-      if (group.length === 1) continue; // already clean
-
-      // Sort: most recent updated_date wins (fallback: last_synced_at, then created_date)
-      group.sort((a, b) => {
-        const ta = new Date(a.updated_date || a.last_synced_at || a.created_date || 0).getTime();
-        const tb = new Date(b.updated_date || b.last_synced_at || b.created_date || 0).getTime();
-        if (tb !== ta) return tb - ta;
-        // Tiebreak: prefer record with pf_url populated
-        return (b.pf_url ? 1 : 0) - (a.pf_url ? 1 : 0);
-      });
-
-      const survivor = group[0];
-
-      // Merge linking fields from all duplicates onto the survivor (if survivor is missing them)
-      const merged = {};
-      for (const dup of group.slice(1)) {
-        if (!survivor.agent_email && dup.agent_email) merged.agent_email = dup.agent_email;
-        if (!survivor.project_id  && dup.project_id)  merged.project_id  = dup.project_id;
-        if (!survivor.property_id && dup.property_id) merged.property_id = dup.property_id;
-      }
-      if (Object.keys(merged).length > 0) {
-        await new Promise(r => setTimeout(r, 600));
-        for (let attempt = 0; attempt < 5; attempt++) {
-          try {
-            await base44.asServiceRole.entities.PFListing.update(survivor.id, merged);
-            mergePatched++;
-            break;
-          } catch (e) {
-            if (String(e.message || e).includes('Rate limit') && attempt < 4) {
-              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-            } else {
-              console.error(`PF_DEDUPE: merge patch failed for survivor ${survivor.id}:`, e.message);
-              break;
-            }
-          }
-        }
-      }
-
-      // Delete the duplicates — throttled: one delete per 700ms minimum
-      for (const dup of group.slice(1)) {
-        await new Promise(r => setTimeout(r, 700));
-        let delay = 1500;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          try {
-            await base44.asServiceRole.entities.PFListing.delete(dup.id);
-            duplicatesRemoved++;
-            break;
-          } catch (e) {
-            const msg = String(e.message || e);
-            if (msg.includes('Rate limit') && attempt < 4) {
-              await new Promise(r => setTimeout(r, delay));
-              delay *= 2;
-            } else {
-              console.error(`PF_DEDUPE: delete failed for ${dup.id} (key=${key}):`, msg);
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    const afterCount = beforeCount - duplicatesRemoved;
-    const duration = Date.now() - startTime;
-    console.log(`PF_DEDUPE: done in ${duration}ms — before=${beforeCount}, removed=${duplicatesRemoved}, after=${afterCount}, merged=${mergePatched}, no_key=${noKey.length}`);
-
-    return Response.json({
-      ok: true,
-      before_count: beforeCount,
-      duplicates_removed: duplicatesRemoved,
-      after_count: afterCount,
-      survivors_merge_patched: mergePatched,
-      records_with_no_pf_listing_id: noKey.length,
-      unique_groups: groups.size,
-      duration_ms: duration,
-    });
-  } catch (error) {
-    console.error('PF_DEDUPE: fatal:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  const base44 = createClientFromRequest(req);
+  let user = null;
+  try { user = await base44.auth.me(); } catch (_) {}
+  if (!user || user.role !== 'admin') {
+    return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
   }
+
+  const t0 = Date.now();
+  console.log('PF_DEDUPE: starting...');
+
+  // ── 1. Load ALL records via service role ────────────────────────────────────
+  const all = [];
+  const PAGE = 500;
+  let offset = 0;
+  while (true) {
+    const batch = await base44.asServiceRole.entities.PFListing.filter(
+      {}, '-updated_date', PAGE, offset
+    );
+    all.push(...batch);
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+  }
+  const recordsBefore = all.length;
+  console.log(`PF_DEDUPE: loaded ${recordsBefore} records`);
+
+  // ── 2. Group by pf_listing_id ───────────────────────────────────────────────
+  const groups = new Map(); // pf_listing_id → Record[]
+  const orphans = []; // records with no pf_listing_id (don't touch)
+  for (const r of all) {
+    if (!r.pf_listing_id) { orphans.push(r.id); continue; }
+    if (!groups.has(r.pf_listing_id)) groups.set(r.pf_listing_id, []);
+    groups.get(r.pf_listing_id).push(r);
+  }
+
+  const uniqueBefore = groups.size;
+  console.log(`PF_DEDUPE: ${uniqueBefore} unique pf_listing_ids, ${orphans.length} orphans (no key)`);
+
+  // ── 3. Process each duplicate group ────────────────────────────────────────
+  const LINK_FIELDS = ['agent_email', 'agent_name', 'project_id', 'property_id', 'landlord_id', 'landlord_property_id'];
+  let groupsDeduped = 0;
+  let recordsDeleted = 0;
+  let mergePatches = 0;
+
+  for (const [pfId, group] of groups.entries()) {
+    if (group.length === 1) continue; // already unique
+
+    // Sort: most recent updated_date first (built-in ISO string — lexicographic sort works)
+    group.sort((a, b) => {
+      const ta = a.updated_date || a.created_date || '';
+      const tb = b.updated_date || b.created_date || '';
+      return tb.localeCompare(ta);
+    });
+
+    const survivor = group[0];
+    const duplicates = group.slice(1);
+
+    // Merge non-null linking fields from duplicates onto survivor
+    const patch = {};
+    for (const field of LINK_FIELDS) {
+      if (!survivor[field]) {
+        for (const dup of duplicates) {
+          if (dup[field]) { patch[field] = dup[field]; break; }
+        }
+      }
+    }
+
+    if (Object.keys(patch).length > 0) {
+      try {
+        await base44.asServiceRole.entities.PFListing.update(survivor.id, patch);
+        mergePatches++;
+        console.log(`PF_DEDUPE: merged fields ${Object.keys(patch).join(',')} onto survivor ${survivor.id} for pf_id=${pfId}`);
+      } catch (e) {
+        console.error(`PF_DEDUPE: merge failed for ${survivor.id}:`, e.message);
+      }
+    }
+
+    // Delete all duplicates with exponential backoff on rate limit
+    for (const dup of duplicates) {
+      let delay = 250;
+      let deleted = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          await base44.asServiceRole.entities.PFListing.delete(dup.id);
+          recordsDeleted++;
+          deleted = true;
+          break;
+        } catch (e) {
+          const msg = String(e.message || e);
+          if (msg.includes('Rate limit') && attempt < 4) {
+            await new Promise(r => setTimeout(r, delay));
+            delay = Math.min(delay * 2, 4000);
+          } else {
+            console.error(`PF_DEDUPE: delete failed id=${dup.id} pf_id=${pfId}:`, msg);
+            break;
+          }
+        }
+      }
+      if (deleted) {
+        // small pace delay to avoid burst
+        await new Promise(r => setTimeout(r, 50));
+      }
+    }
+
+    groupsDeduped++;
+  }
+
+  const uniqueAfter = groups.size; // same — we removed dupes within groups, not groups themselves
+  const recordsAfter = recordsBefore - recordsDeleted;
+  const duration = Date.now() - t0;
+
+  console.log(`PF_DEDUPE: done in ${duration}ms — records_before=${recordsBefore}, deleted=${recordsDeleted}, records_after=${recordsAfter}, unique_ids_before=${uniqueBefore}, unique_ids_after=${uniqueAfter}, groups_deduped=${groupsDeduped}, merge_patches=${mergePatches}`);
+
+  return Response.json({
+    ok: true,
+    records_before: recordsBefore,
+    records_deleted: recordsDeleted,
+    records_after: recordsAfter,
+    unique_pf_listing_ids_before: uniqueBefore,
+    unique_pf_listing_ids_after: uniqueAfter,
+    groups_deduped: groupsDeduped,
+    survivors_merge_patched: mergePatches,
+    orphans_no_pf_listing_id: orphans.length,
+    duration_ms: duration,
+  });
 });
