@@ -49,6 +49,7 @@ import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
 import CallQualificationTab from './CallQualificationTab';
+import CallQualificationSummaryPanel from './CallQualificationSummaryPanel';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -454,6 +455,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           unitReference={landlord.unit_reference}
           projectName={landlord.project_name}
         />
+
+        {/* ── CALL QUALIFICATION SUMMARY ──────────────────────────── */}
+        <CallQualificationSummaryPanel landlordId={landlord.id} />
 
         {/* Lease Brokerage Agreement */}
         <div className="px-6 py-3 flex items-center justify-between gap-2 flex-wrap" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
