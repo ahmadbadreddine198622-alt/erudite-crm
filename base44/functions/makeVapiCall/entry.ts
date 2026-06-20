@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { assistantId, phoneNumber, leadId, leadName } = await req.json();
+        const { assistantId, phoneNumber, leadId, landlordId, leadName } = await req.json();
 
         if (!assistantId || !phoneNumber) {
             return Response.json({ error: 'assistantId and phoneNumber are required' }, { status: 400 });
@@ -70,17 +70,19 @@ Deno.serve(async (req) => {
         // Store call record in database
         await base44.entities.AircallCall.create({
             aircall_id: callData.id || `vapi_${Date.now()}`,
+            source: 'vapi',
             direction: 'outbound',
-            status: 'initiated',
-            from_number: 'Vapi AI',
+            status: callData.status || 'initiated',
+            from_number: user.email,
             to_number: phoneNumber,
             agent_name: user.full_name,
             agent_email: user.email,
             started_at: new Date().toISOString(),
             lead_id: leadId || '',
+            landlord_id: landlordId || '',
             lead_name: leadName || '',
-            notes: `Vapi AI call initiated to ${leadName || phoneNumber}`
-        }).catch(() => {}); // Optional - don't fail if entity doesn't exist
+            notes: `Vapi AI call to ${leadName || phoneNumber}`
+        }).catch(() => {});
 
         return Response.json({
             success: true,

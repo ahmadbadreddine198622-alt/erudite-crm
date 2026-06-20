@@ -251,9 +251,9 @@ export default function LandlordCallHistory({ landlord }) {
     queryFn: () => base44.entities.AircallCall.list('-started_at', 2000),
   });
 
-  // VAPI calls are stored with notes starting "Vapi AI" in AircallCall entity
-  const aircallCalls = aircallRaw.filter(c => !c.notes?.startsWith('Vapi AI'));
-  const vapiStoredCalls = aircallRaw.filter(c => c.notes?.startsWith('Vapi AI'));
+  // Distinguish by source field (new) or legacy notes fallback
+  const aircallCalls = aircallRaw.filter(c => c.source !== 'vapi' && !c.notes?.startsWith('Vapi AI'));
+  const vapiStoredCalls = aircallRaw.filter(c => c.source === 'vapi' || c.notes?.startsWith('Vapi AI'));
 
   // ── VAPI calls fetched live from VAPI API (for fresh recordings) ──
   const { data: vapiLiveCalls = [], isLoading: l4 } = useQuery({
@@ -278,14 +278,13 @@ export default function LandlordCallHistory({ landlord }) {
       (suffix.length >= 9 && (toNorm.endsWith(suffix) || fromNorm.endsWith(suffix)));
   });
 
-  // ── Match VAPI stored calls by phone ──
+  // ── Match VAPI stored calls by landlord_id OR phone ──
   const matchedVapi = vapiStoredCalls.filter(c => {
+    if (c.landlord_id && c.landlord_id === landlord.id) return true;
     if (!normalizedPhone) return false;
     const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
-    const fromNorm = c.from_number ? normalizePhoneNumber(c.from_number) : '';
     const suffix = normalizedPhone.slice(-9);
-    return toNorm === normalizedPhone || fromNorm === normalizedPhone ||
-      (suffix.length >= 9 && (toNorm.endsWith(suffix) || fromNorm.endsWith(suffix)));
+    return toNorm === normalizedPhone || (suffix.length >= 9 && toNorm.endsWith(suffix));
   });
 
   // ── Merge everything ──

@@ -4,7 +4,16 @@
   "properties": {
     "aircall_id": {
       "type": "string",
-      "description": "Unique Aircall call ID"
+      "description": "Unique Aircall or VAPI call ID"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "aircall",
+        "vapi"
+      ],
+      "default": "aircall",
+      "description": "Which platform originated this call"
     },
     "direction": {
       "type": "string",
@@ -15,12 +24,7 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "done",
-        "missed",
-        "voicemail",
-        "busy"
-      ]
+      "description": "Call status: done, missed, voicemail, busy, ringing, in-progress, initiated, ended"
     },
     "duration": {
       "type": "number",
@@ -62,6 +66,10 @@
     "lead_id": {
       "type": "string",
       "description": "Matched Lead ID"
+    },
+    "landlord_id": {
+      "type": "string",
+      "description": "Matched Landlord ID"
     },
     "lead_name": {
       "type": "string",
