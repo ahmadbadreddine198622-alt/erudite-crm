@@ -47,6 +47,7 @@ import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
+import MarketIntelligencePanel from './MarketIntelligencePanel';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -428,75 +429,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         </div>
 
         {/* ── MARKET INTELLIGENCE CALL PANEL ─────────────────────── */}
-        {landlordProperty?.ai_estimated_value_aed && (
-          <div className="px-6 py-4" style={{
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(5,150,105,0.06) 100%)',
-            borderBottom: '2px solid rgba(52,211,153,0.35)',
-            borderTop: '1px solid rgba(52,211,153,0.15)',
-          }}>
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#34d399', letterSpacing: '0.1em' }}>
-                  Market Intelligence
-                </span>
-              </div>
-              {landlordProperty.ai_valuation_updated_at && (
-                <span className="text-[10px]" style={{ color: 'rgba(52,211,153,0.45)' }}>
-                  {landlordProperty.ai_valuation_updated_at}
-                </span>
-              )}
-            </div>
-
-            {/* Big numbers row */}
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)', boxShadow: '0 0 16px rgba(52,211,153,0.08)' }}>
-                <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(52,211,153,0.55)' }}>Est. Value</p>
-                <p className="text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#34d399' }}>
-                  {(landlordProperty.ai_estimated_value_aed / 1e6).toFixed(2)}M
-                </p>
-                <p className="text-[9px] mt-0.5" style={{ color: 'rgba(52,211,153,0.45)' }}>AED</p>
-              </div>
-              <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)', boxShadow: '0 0 16px rgba(52,211,153,0.08)' }}>
-                <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(52,211,153,0.55)' }}>Price / sqft</p>
-                <p className="text-2xl font-extrabold tabular-nums leading-none" style={{ color: '#34d399' }}>
-                  {landlordProperty.ai_estimated_price_sqft?.toLocaleString() ?? '—'}
-                </p>
-                <p className="text-[9px] mt-0.5" style={{ color: 'rgba(52,211,153,0.45)' }}>AED/sqft</p>
-              </div>
-              <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)', boxShadow: '0 0 16px rgba(52,211,153,0.08)' }}>
-                <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(52,211,153,0.55)' }}>Confidence</p>
-                <p className="text-xl font-extrabold capitalize leading-none mt-1" style={{
-                  color: landlordProperty.ai_valuation_confidence === 'high' ? '#34d399'
-                       : landlordProperty.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 55%)'
-                       : 'rgba(255,255,255,0.5)',
-                }}>
-                  {landlordProperty.ai_valuation_confidence ?? '—'}
-                </p>
-                <div className="flex justify-center mt-1">
-                  {['high','medium','low'].map(level => (
-                    <div key={level} className="w-2 h-1.5 mx-0.5 rounded-sm" style={{
-                      background: landlordProperty.ai_valuation_confidence === 'high' ? '#34d399'
-                                : landlordProperty.ai_valuation_confidence === 'medium' && level !== 'high' ? 'hsl(38 92% 55%)'
-                                : level === 'low' && landlordProperty.ai_valuation_confidence === 'low' ? 'rgba(255,255,255,0.4)'
-                                : 'rgba(255,255,255,0.12)',
-                    }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Basis text — the agent's talking points */}
-            {landlordProperty.ai_valuation_basis && (
-              <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(52,211,153,0.15)' }}>
-                <p className="text-[11px] leading-relaxed font-medium" style={{ color: 'rgba(52,211,153,0.8)' }}>
-                  {landlordProperty.ai_valuation_basis}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+        <MarketIntelligencePanel landlordProperty={landlordProperty} />
 
         {/* Lease Brokerage Agreement */}
         <div className="px-6 py-3 flex items-center justify-between gap-2 flex-wrap" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
