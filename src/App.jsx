@@ -96,6 +96,7 @@ import ClosingHub from '@/pages/ClosingHub';
 import ChequeRegister from '@/pages/ChequeRegister';
 import OutreachLeaderboard from '@/pages/OutreachLeaderboard';
 import MyLeadsToday from '@/pages/MyLeadsToday';
+import TeamPerformance from '@/pages/TeamPerformance';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -207,6 +208,7 @@ const AuthenticatedApp = () => {
         <Route path="/cheque-register" element={<ChequeRegister />} />
         <Route path="/outreach-leaderboard" element={<OutreachLeaderboard />} />
         <Route path="/my-leads-today" element={<MyLeadsToday />} />
+        <Route path="/team-performance" element={<TeamPerformance />} />
         <Route path="/closing" element={<Closing />} />
       </Route>
       </Route>
