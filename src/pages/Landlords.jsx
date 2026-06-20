@@ -147,18 +147,16 @@ export default function Landlords() {
   });
 
   // Derive floor number from a unit_no string
-  // e.g. "710" → 7, "2006" → 20, "1410" → 14, "P2-1001" → 10
   const deriveFloor = (unit_no) => {
     if (!unit_no) return null;
     const s = String(unit_no).trim();
-    // Handle prefix like "P2-1001" → take part after last dash
     const part = s.includes('-') ? s.split('-').pop() : s;
     const n = parseInt(part, 10);
     if (isNaN(n)) return null;
     const digits = String(n).length;
-    if (digits <= 2) return n; // bare floor number
-    if (digits === 3) return Math.floor(n / 100); // 710 → 7
-    if (digits >= 4) return Math.floor(n / 100); // 2006 → 20, 1410 → 14
+    if (digits <= 2) return n;
+    if (digits === 3) return Math.floor(n / 100);
+    if (digits >= 4) return Math.floor(n / 100);
     return null;
   };
 
@@ -177,7 +175,6 @@ export default function Landlords() {
       const prop = properties.find(p => p.id === lp.property_id);
       if (!prop) return;
       const floor = deriveFloor(prop.unit_no);
-      // Derive layout from bedrooms + property_type
       let layout = null;
       if (prop.property_type === 'studio') {
         layout = 'Studio';
@@ -190,7 +187,6 @@ export default function Landlords() {
       } else if (prop.bedrooms >= 4) {
         layout = '4BR+';
       }
-      // If multiple properties, keep the first one found
       if (!map[lp.landlord_id]) {
         map[lp.landlord_id] = { floor, layout };
       }
@@ -198,21 +194,17 @@ export default function Landlords() {
     return map;
   }, [landlordProperties, properties]);
 
-  // Find the selected project from the already-loaded projects list
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === filterProject) || null,
     [projects, filterProject],
   );
 
-  // Find the selected landlord directly from the already-loaded list for instant open.
-  // No separate async fetch needed — avoids the race where the Sheet never mounts
-  // because selectedLandlord is undefined until the query resolves.
   const selectedLandlord = useMemo(
     () => landlords.find((l) => l.id === selectedLandlordId) || null,
     [landlords, selectedLandlordId],
   );
 
-  // Role-based isolation: non-admins only see landlords explicitly assigned to them (unassigned excluded)
+  // Role-based isolation
   const visibleLandlords = useMemo(() => {
     if (!currentUser || safePermissions.view_all_landlords) return landlords;
     return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
@@ -268,7 +260,7 @@ export default function Landlords() {
     return result;
   }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, searchQuery, landlordPropertyMap]);
 
-  // Calculate metrics (scoped to visible landlords for the current user)
+  // Calculate metrics
   const totalPipeline = visibleLandlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
   const mandateCount = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed').length;
   const now = new Date();
@@ -301,7 +293,6 @@ export default function Landlords() {
     toast.success('Landlord added successfully');
   };
 
-  // Persist drag-and-drop stage moves with an optimistic cache update.
   const updateStageMutation = useMutation({
     mutationFn: ({ id, newStage }) =>
       base44.entities.Landlord.update(id, {
@@ -333,7 +324,6 @@ export default function Landlords() {
 
   const handleStageChange = (payload) => updateStageMutation.mutate(payload);
 
-  // Flatten all filtered landlords for select-all
   const allFilteredLandlords = useMemo(() => Object.values(filteredGroups).flat(), [filteredGroups]);
 
   const toggleSelect = (id) => {
@@ -365,16 +355,13 @@ export default function Landlords() {
     onError: (e) => toast.error('Bulk assign failed: ' + e.message),
   });
 
-  // Bulk delete mutation - deletes landlords AND their linked LandlordProperty records
   const bulkDeleteMutation = useMutation({
     mutationFn: async (idsToDelete) => {
-      // First, find and delete all linked LandlordProperty records
       const allLandlordProperties = await base44.entities.LandlordProperty.list();
       const propsToDelete = allLandlordProperties.filter(lp => idsToDelete.includes(lp.landlord_id));
       if (propsToDelete.length > 0) {
         await Promise.all(propsToDelete.map(lp => base44.entities.LandlordProperty.delete(lp.id)));
       }
-      // Then delete the landlords
       await Promise.all(idsToDelete.map(id => base44.entities.Landlord.delete(id)));
       return idsToDelete.length;
     },
@@ -394,7 +381,6 @@ export default function Landlords() {
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
 
-  // Guard against unauthenticated or loading state - must be after all hooks
   if (userLoading || !currentUser || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -407,145 +393,100 @@ export default function Landlords() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header - always visible */}
-      <div className="px-8 pt-8 pb-2 shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-accent" />
+    <div className="page-root">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <Building2 className="w-6 h-6" style={{ color: 'hsl(38 92% 50%)' }} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Landlord Pipeline</h1>
-              <p className="text-xs text-muted-foreground">Agent's A-to-Z Mandate Acquisition Engine</p>
-              {/* Project label - derived from visible landlords */}
-              {(() => {
-                const projectNames = allFilteredLandlords
-                  .map(l => l.project_name)
-                  .filter(name => name && name.trim() !== '');
-                const uniqueProjects = [...new Set(projectNames)];
-                const projectLabel = uniqueProjects.length === 1
-                  ? uniqueProjects[0]
-                  : uniqueProjects.length > 1
-                    ? `${uniqueProjects.length} Projects`
-                    : 'No Project';
-                return (
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Project:</span>
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-md"
-                      style={{
-                        background: 'hsl(38 92% 50%)',
-                        color: 'hsl(222 47% 11%)',
-                      }}
-                    >
-                      {projectLabel}
-                    </span>
-                  </div>
-                );
-              })()}
+              <h1 className="text-2xl font-bold page-title">Landlord Pipeline</h1>
+              <p className="page-subtitle mt-0.5">Agent's A-to-Z Mandate Acquisition Engine</p>
             </div>
-            {/* Action buttons next to title - always visible */}
-            <div className="flex gap-2 ml-6">
-              <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2">
-                <Upload className="w-4 h-4" />
-                Import Owners
-              </Button>
-              <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2">
-                <Video className="w-4 h-4" />
-                Virtual Viewing
-              </Button>
-              <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2">
-                <FileSignature className="w-4 h-4 text-amber-400" />
-                Upload Form A
-              </Button>
-              <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2">
-                <FileText className="w-4 h-4 text-purple-400" />
-                Market Report
-              </Button>
-              <Button onClick={() => setShowNewDialog(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Landlord
-              </Button>
-              {/* Project thumbnail — shown when a single project with image is selected */}
-              {selectedProject?.image_url && (
-                <img
-                  src={selectedProject.image_url}
-                  alt={selectedProject.name}
-                  className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20 ml-auto"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
+              <Upload className="w-4 h-4" />
+              <span className="hidden lg:inline">Import Owners</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
+              <Video className="w-4 h-4" />
+              <span className="hidden lg:inline">Virtual Viewing</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
+              <FileSignature className="w-4 h-4 text-amber-400" />
+              <span className="hidden lg:inline">Upload Form A</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
+              <FileText className="w-4 h-4 text-purple-400" />
+              <span className="hidden lg:inline">Market Report</span>
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
+              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
+              <Plus className="w-4 h-4" />
+              <span className="hidden lg:inline">New Landlord</span>
+            </Button>
+            {selectedProject?.image_url && (
+              <img
+                src={selectedProject.image_url}
+                alt={selectedProject.name}
+                className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20 ml-auto"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            )}
           </div>
         </div>
 
-        {/* Management Intelligence Strip */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <div
-            className="rounded-xl p-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+        {/* Metrics */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
             </div>
             <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
               {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
             </p>
           </div>
-          <div
-            className="rounded-xl p-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <FileCheck className="w-4 h-4 text-emerald-500" />
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                <FileCheck className="w-4 h-4 text-emerald-500" />
+              </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Form A Signed</span>
             </div>
             <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandateCount}</p>
           </div>
-          <div
-            className="rounded-xl p-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4 text-purple-400" />
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                <Clock className="w-4 h-4 text-purple-400" />
+              </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Days to Form A</span>
             </div>
             <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{avgDaysToFormA}d</p>
           </div>
-          <div
-            className="rounded-xl p-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-amber-500" />
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <TrendingUp className="w-4 h-4 text-amber-500" />
+              </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;21d</span>
             </div>
             <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
           </div>
         </div>
 
-        {/* Today's Lead Queue — collapsible strip */}
-        <div className="mb-3">
+        {/* Lead Queue */}
+        <div className="mb-4">
           <button
             onClick={() => setShowQueuePanel(p => !p)}
             className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors"
@@ -561,7 +502,7 @@ export default function Landlords() {
           )}
         </div>
 
-        {/* Project Intelligence Strip — shown when project filter active */}
+        {/* Project Intelligence */}
         {filterProject && filterProject !== 'unassigned' && (
           <ProjectIntelStrip
             landlords={allFilteredLandlords}
@@ -571,8 +512,8 @@ export default function Landlords() {
           />
         )}
 
-        {/* Search bar */}
-        <div className="relative mb-2 max-w-md">
+        {/* Search */}
+        <div className="relative mb-3 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
@@ -592,7 +533,7 @@ export default function Landlords() {
           )}
         </div>
 
-        {/* Filters row + inline bulk toolbar */}
+        {/* Filters + Bulk Actions */}
         <div className="flex gap-2 flex-wrap items-center">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
             <input
@@ -605,7 +546,6 @@ export default function Landlords() {
           </label>
 
           {selectedIds.size > 0 ? (
-            /* Bulk assign toolbar — appears inline when cards are selected */
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
               style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}
@@ -649,7 +589,6 @@ export default function Landlords() {
               </button>
             </div>
           ) : (
-            /* Normal filters — only shown when nothing selected */
             <>
               {safePermissions.view_all_landlords && users.length > 0 && (
                 <select
@@ -681,8 +620,6 @@ export default function Landlords() {
                 onChange={(val) => setFilterProject(val || '')}
                 projects={projects}
               />
-
-              {/* Floor filter */}
               <select
                 value={filterFloor}
                 onChange={(e) => setFilterFloor(e.target.value)}
@@ -694,8 +631,6 @@ export default function Landlords() {
                 <option value="11-20">Floors 11–20</option>
                 <option value="21+">Floors 21+</option>
               </select>
-
-              {/* Layout filter */}
               <select
                 value={filterLayout}
                 onChange={(e) => setFilterLayout(e.target.value)}
@@ -709,8 +644,6 @@ export default function Landlords() {
                 <option value="3BR">3BR</option>
                 <option value="4BR+">4BR+</option>
               </select>
-
-              {/* Language filter */}
               <select
                 value={filterLanguage}
                 onChange={(e) => setFilterLanguage(e.target.value)}
@@ -724,8 +657,6 @@ export default function Landlords() {
                 <option value="zh">Chinese</option>
                 <option value="hi">Hindi</option>
               </select>
-
-              {/* Assignment status filter */}
               <select
                 value={filterAssignment}
                 onChange={(e) => setFilterAssignment(e.target.value)}
@@ -736,8 +667,6 @@ export default function Landlords() {
                 <option value="unassigned">Unassigned</option>
                 <option value="assigned">Assigned</option>
               </select>
-
-              {/* Result count badge */}
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
                 style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
@@ -745,8 +674,6 @@ export default function Landlords() {
                 <Users className="w-3.5 h-3.5" />
                 {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
               </div>
-
-              {/* Clear filters button — only shown when any filter is active */}
               {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
                 <button
                   onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
@@ -759,11 +686,10 @@ export default function Landlords() {
             </>
           )}
         </div>
-
       </div>
 
-      {/* Kanban Board - scrolls horizontally within bounded container */}
-      <div className="flex-1 overflow-x-auto px-8 pb-4" style={{ minHeight: '420px' }}>
+      {/* Kanban Board */}
+      <div className="flex-1 overflow-x-auto pb-4" style={{ minHeight: '420px' }}>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
@@ -829,7 +755,7 @@ export default function Landlords() {
         }}
       />
 
-      {/* Bulk Delete Confirmation Dialog */}
+      {/* Bulk Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
