@@ -79,15 +79,32 @@ export default function OutreachChecklistPanel({ landlord }) {
       const daily_score = leads_worked * 10 + qualifications_logged * 15 + bonus_earned * 5;
 
       const allocRows = await base44.entities.DailyLeadAllocation.filter({ agent_email: user.email, allocation_date: TODAY });
+      const existingAlloc = allocRows[0];
       const allocPatch = { leads_worked, sequences_completed, qualifications_logged, completion_rate, earned_more_leads, bonus_earned, total_available, status, daily_score };
-      if (allocRows[0]) {
-        await base44.entities.DailyLeadAllocation.update(allocRows[0].id, allocPatch);
+
+      // Sequential unlock: if this landlord just became sequence_complete, advance the unlock pointer
+      if (sequence_complete && existingAlloc?.sequential_unlock_enabled && existingAlloc?.lead_queue?.length) {
+        const queue = existingAlloc.lead_queue;
+        const landlordIdx = queue.indexOf(landlord.id);
+        const currentUnlocked = existingAlloc.leads_unlocked_count ?? 1;
+        // Unlock next if this landlord is the current last unlocked
+        if (landlordIdx === currentUnlocked - 1 && currentUnlocked < queue.length) {
+          allocPatch.leads_unlocked_count = currentUnlocked + 1;
+          allocPatch.current_unlocked_index = currentUnlocked;
+        }
+      }
+
+      if (existingAlloc) {
+        await base44.entities.DailyLeadAllocation.update(existingAlloc.id, allocPatch);
       } else {
         await base44.entities.DailyLeadAllocation.create({
           agent_email: user.email,
           agent_name: user.full_name,
           allocation_date: TODAY,
           base_allocation,
+          leads_unlocked_count: 1,
+          current_unlocked_index: 0,
+          sequential_unlock_enabled: true,
           ...allocPatch,
         });
       }

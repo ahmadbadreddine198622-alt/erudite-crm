@@ -12,6 +12,7 @@ import { formatAED } from '@/lib/constants';
 import AgentGoalCard from '@/components/dashboard/AgentGoalCard';
 import DailyStandup from '@/components/dashboard/DailyStandup';
 import AgentOutreachScoreboard from '@/components/outreach/AgentOutreachScoreboard';
+import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function MyDashboard() {
@@ -103,6 +104,9 @@ export default function MyDashboard() {
 
       {/* Outreach Scoreboard */}
       <AgentOutreachScoreboard />
+
+      {/* Today's Lead Queue */}
+      <LockedLeadQueue onSelectLandlord={(id) => window.location.href = `/landlords?selected=${id}`} />
 
       {/* This Month's Goal Progress */}
       <AgentGoalCard goal={thisMonthGoal} stats={stats} />

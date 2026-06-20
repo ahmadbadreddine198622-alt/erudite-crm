@@ -1,78 +1,101 @@
 {
   "name": "DailyLeadAllocation",
+  "type": "object",
   "properties": {
     "agent_email": {
-      "description": "Agent this allocation belongs to",
+      "type": "string",
       "format": "email",
-      "type": "string"
+      "description": "Agent this allocation belongs to"
     },
     "agent_name": {
-      "description": "Cached agent display name",
-      "type": "string"
+      "type": "string",
+      "description": "Cached agent display name"
     },
     "allocation_date": {
-      "description": "The day this allocation is for",
+      "type": "string",
       "format": "date",
-      "type": "string"
+      "description": "The day this allocation is for"
     },
     "base_allocation": {
+      "type": "number",
       "default": 10,
-      "description": "Base number of leads given for the day",
-      "type": "number"
+      "description": "Base number of leads given for the day"
     },
     "bonus_earned": {
+      "type": "number",
       "default": 0,
-      "description": "Extra leads earned by completing outreach sequences properly",
-      "type": "number"
+      "description": "Extra leads earned by completing outreach sequences properly"
     },
     "total_available": {
+      "type": "number",
       "default": 10,
-      "description": "Total leads available today (base + bonus)",
-      "type": "number"
+      "description": "Total leads available today (base + bonus)"
     },
     "leads_worked": {
+      "type": "number",
       "default": 0,
-      "description": "How many assigned leads the agent actually ran outreach on today",
-      "type": "number"
+      "description": "How many assigned leads the agent actually ran outreach on today"
     },
     "sequences_completed": {
+      "type": "number",
       "default": 0,
-      "description": "Full Email\u2192WhatsApp\u2192iMessage\u2192SMS\u2192Call sequences completed today (from OutreachChecklist)",
-      "type": "number"
+      "description": "Full Email\u2192WhatsApp\u2192iMessage\u2192SMS\u2192Call sequences completed today"
     },
     "qualifications_logged": {
+      "type": "number",
       "default": 0,
-      "description": "Qualifications logged today",
-      "type": "number"
+      "description": "Qualifications logged today"
     },
     "completion_rate": {
+      "type": "number",
       "default": 0,
-      "description": "Percentage of allocated leads worked properly (0-100)",
-      "type": "number"
+      "description": "Percentage of allocated leads worked properly (0-100)"
     },
     "daily_score": {
+      "type": "number",
       "default": 0,
-      "description": "Overall quality-weighted score for the day",
-      "type": "number"
+      "description": "Overall quality-weighted score for the day"
     },
     "earned_more_leads": {
+      "type": "boolean",
       "default": false,
-      "description": "True when the agent unlocked bonus leads by completing their base allocation properly",
-      "type": "boolean"
+      "description": "True when agent unlocked bonus leads"
     },
     "status": {
-      "default": "active",
-      "description": "Allocation status for the day",
+      "type": "string",
       "enum": [
         "active",
         "completed",
         "underperforming"
       ],
-      "type": "string"
+      "default": "active",
+      "description": "Allocation status for the day"
     },
     "notes": {
-      "description": "Manager notes on the day's performance",
-      "type": "string"
+      "type": "string",
+      "description": "Manager notes on the day's performance"
+    },
+    "lead_queue": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered list of landlord IDs for today's outreach queue"
+    },
+    "leads_unlocked_count": {
+      "type": "number",
+      "default": 1,
+      "description": "How many leads in the queue are currently unlocked (open for outreach)"
+    },
+    "current_unlocked_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Index of the current active lead in the queue (the one being worked)"
+    },
+    "sequential_unlock_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, agents must complete each lead before the next unlocks. If false, all allocated leads are open."
     }
   },
   "required": [
@@ -110,6 +133,5 @@
         }
       ]
     }
-  },
-  "type": "object"
+  }
 }

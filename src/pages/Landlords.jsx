@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered } from 'lucide-react';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import ProjectSelectorWithUpload from '@/components/landlord/ProjectSelectorWithUpload';
@@ -29,6 +29,7 @@ import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualVie
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
 
 const STAGES = [
   'initial_contact',
@@ -80,6 +81,7 @@ export default function Landlords() {
   const [showVirtualViewing, setShowVirtualViewing] = useState(false);
   const [showFormADialog, setShowFormADialog] = useState(false);
   const [showMarketReportDialog, setShowMarketReportDialog] = useState(false);
+  const [showQueuePanel, setShowQueuePanel] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
   const [filterProject, setFilterProject] = useState('');
@@ -540,6 +542,23 @@ export default function Landlords() {
             </div>
             <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
           </div>
+        </div>
+
+        {/* Today's Lead Queue — collapsible strip */}
+        <div className="mb-3">
+          <button
+            onClick={() => setShowQueuePanel(p => !p)}
+            className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.55)' }}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            My Lead Queue
+          </button>
+          {showQueuePanel && (
+            <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <LockedLeadQueue onSelectLandlord={setSelectedLandlordId} />
+            </div>
+          )}
         </div>
 
         {/* Project Intelligence Strip — shown when project filter active */}
