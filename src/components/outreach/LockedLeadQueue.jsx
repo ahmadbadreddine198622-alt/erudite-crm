@@ -10,6 +10,7 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
+  // Fetch today's allocation
   const { data: allocation, isLoading: allocLoading } = useQuery({
     queryKey: ['daily-allocation', user?.email, TODAY],
     queryFn: async () => {
@@ -40,6 +41,7 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
     refetchInterval: 10000,
   });
 
+  // Unlock mutation - increments leads_unlocked_count when current lead completes
   const unlockMutation = useMutation({
     mutationFn: async (newUnlockedCount) => {
       if (!allocation) return;
@@ -69,7 +71,6 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
 
   const sequential = allocation.sequential_unlock_enabled ?? true;
   const unlockedCount = sequential ? (allocation.leads_unlocked_count ?? 1) : queue.length;
-  const base = allocation.base_allocation ?? 10;
 
   // Map checklist by landlord_id
   const checklistByLandlord = {};
@@ -85,7 +86,7 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
         </div>
         <div className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-md" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 55%)' }}>
           <Zap className="w-3 h-3" />
-          {allocation.sequences_completed ?? 0}/{base} done
+          {allocation.sequences_completed ?? 0} / {allocation.base_allocation ?? 10} done
         </div>
       </div>
 
@@ -94,13 +95,17 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
         {queue.map((landlordId, idx) => {
           const landlord = queueLandlords.find(l => l.id === landlordId);
           const checklist = checklistByLandlord[landlordId];
-          const isComplete = checklist?.sequence_complete ?? false;
+          
+          // A lead is "complete" only when BOTH sequence_complete AND qualification_logged are true
+          const isComplete = (checklist?.sequence_complete ?? false) && (checklist?.qualification_logged ?? false);
           const stepsCompleted = checklist?.steps_completed ?? 0;
+          const hasQualification = checklist?.qualification_logged ?? false;
+          
           const isUnlocked = idx < unlockedCount;
           const isCurrent = sequential && idx === unlockedCount - 1 && !isComplete;
           const isLocked = !isUnlocked;
 
-          // Can we unlock next? Current lead must be sequence_complete
+          // Can we unlock next? Current lead must be complete (sequence + qualification)
           const canUnlockNext = sequential && isComplete && idx === unlockedCount - 1 && unlockedCount < queue.length;
 
           return (
@@ -152,6 +157,12 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
                       ))}
                     </div>
                   )}
+                  {/* Qualification badge */}
+                  {hasQualification && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-md mt-1 inline-block" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
+                      Qualified ✓
+                    </span>
+                  )}
                 </div>
 
                 {/* Action */}
@@ -170,7 +181,7 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
                 )}
               </div>
 
-              {/* Unlock next button */}
+              {/* Unlock next button - appears when current lead is fully complete */}
               {canUnlockNext && (
                 <button
                   onClick={() => unlockMutation.mutate(unlockedCount + 1)}
@@ -189,8 +200,8 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
 
       {/* Footer: unlock hint */}
       {sequential && (
-        <p className="text-[10px] text-muted-foreground text-center pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
-          Complete the full outreach sequence on each lead to unlock the next one
+        <p className="text-[10px] text-muted-foreground text-center pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          Complete full sequence + log qualification to unlock next lead
         </p>
       )}
     </div>
