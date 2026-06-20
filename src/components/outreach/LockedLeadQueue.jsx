@@ -3,12 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Lock, CheckCircle2, ChevronRight, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export default function LockedLeadQueue({ onSelectLandlord }) {
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch today's allocation
   const { data: allocation, isLoading: allocLoading } = useQuery({
@@ -172,7 +174,7 @@ export default function LockedLeadQueue({ onSelectLandlord }) {
                   <span className="text-[9px] text-emerald-400 font-semibold shrink-0">Done ✓</span>
                 ) : (
                   <button
-                    onClick={() => landlord && onSelectLandlord?.(landlord.id)}
+                    onClick={() => landlord && navigate(`/landlord/${landlord.id}`)}
                     className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0 transition-colors hover:bg-white/10"
                     style={{ color: isCurrent ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)' }}
                   >
