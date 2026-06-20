@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Phone, Mic, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Play, Pause, FileText, Loader2, PhoneOff, RefreshCw } from 'lucide-react';
+import { Phone, Mic, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Play, Pause, FileText, Loader2, PhoneOff, RefreshCw, Calendar } from 'lucide-react';
 import { normalizePhoneNumber } from '@/lib/phoneUtils';
 
 function formatDuration(seconds) {
@@ -28,13 +28,14 @@ function DirectionIcon({ direction, status }) {
     : <PhoneOutgoing className="w-3.5 h-3.5 text-blue-400" />;
 }
 
+const SOURCE_CONFIG = {
+  twilio: { label: 'Twilio', bg: 'rgba(239,68,68,0.15)', color: '#f87171', border: 'rgba(239,68,68,0.3)' },
+  aircall: { label: 'Aircall', bg: 'rgba(59,130,246,0.15)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
+  vapi: { label: 'VAPI AI', bg: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: 'rgba(139,92,246,0.3)' },
+};
+
 function SourceBadge({ source }) {
-  const map = {
-    twilio: { label: 'Twilio', bg: 'rgba(239,68,68,0.15)', color: '#f87171', border: 'rgba(239,68,68,0.3)' },
-    aircall: { label: 'Aircall', bg: 'rgba(59,130,246,0.15)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
-    vapi: { label: 'VAPI AI', bg: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: 'rgba(139,92,246,0.3)' },
-  };
-  const s = map[source] || map.twilio;
+  const s = SOURCE_CONFIG[source] || SOURCE_CONFIG.twilio;
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
       style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
@@ -54,6 +55,7 @@ function StatusPill({ status }) {
     busy: { label: 'Busy', bg: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' },
     voicemail: { label: 'Voicemail', bg: 'rgba(99,102,241,0.15)', color: '#a5b4fc' },
     failed: { label: 'Failed', bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
+    initiated: { label: 'Initiated', bg: 'rgba(99,102,241,0.15)', color: '#a5b4fc' },
   };
   const s = map[status] || { label: status || '—', bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' };
   return (
@@ -63,9 +65,9 @@ function StatusPill({ status }) {
   );
 }
 
-function InlineAudioPlayer({ url, label }) {
+function InlineAudioPlayer({ url }) {
   const [playing, setPlaying] = useState(false);
-  const audioRef = React.useRef(null);
+  const audioRef = useRef(null);
 
   const toggle = () => {
     if (!audioRef.current) return;
@@ -82,30 +84,20 @@ function InlineAudioPlayer({ url, label }) {
   return (
     <div className="rounded-lg px-3 py-2 space-y-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
       <div className="flex items-center gap-2">
-        <button
-          onClick={toggle}
+        <button onClick={toggle}
           className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 transition-all active:scale-90"
-          style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399' }}
-        >
+          style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399' }}>
           {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </button>
-        <p className="text-[11px] font-semibold flex-1" style={{ color: '#34d399' }}>{label}</p>
+        <p className="text-[11px] font-semibold flex-1" style={{ color: '#34d399' }}>📼 Recording</p>
         <a href={url} target="_blank" rel="noopener noreferrer"
           className="text-[10px] px-2 py-1 rounded border shrink-0"
-          style={{ borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}
-        >
+          style={{ borderColor: 'rgba(16,185,129,0.3)', color: '#34d399' }}>
           Open ↗
         </a>
       </div>
-      <audio
-        ref={audioRef}
-        src={url}
-        onEnded={() => setPlaying(false)}
-        onPause={() => setPlaying(false)}
-        className="w-full"
-        controls
-        style={{ height: 28, accentColor: '#34d399' }}
-      />
+      <audio ref={audioRef} src={url} onEnded={() => setPlaying(false)} onPause={() => setPlaying(false)}
+        className="w-full" controls style={{ height: 28, accentColor: '#34d399' }} />
     </div>
   );
 }
@@ -126,7 +118,8 @@ function CallCard({ call }) {
               </span>
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{formatDate(call.started_at)}</p>
+              <Calendar className="w-2.5 h-2.5 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
+              <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>{formatDate(call.started_at)}</p>
               {call.agent_name && (
                 <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>· {call.agent_name}</span>
               )}
@@ -143,25 +136,17 @@ function CallCard({ call }) {
       </div>
 
       {call.summary && (
-        <p className="text-xs leading-relaxed px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
-          📋 {call.summary}
-        </p>
+        <p className="text-xs leading-relaxed px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>📋 {call.summary}</p>
       )}
 
-      {call.recording_url && (
-        <InlineAudioPlayer url={call.recording_url} label="📼 Call Recording" />
-      )}
-      {call.voicemail_url && (
-        <InlineAudioPlayer url={call.voicemail_url} label="📨 Voicemail" />
-      )}
+      {call.recording_url && <InlineAudioPlayer url={call.recording_url} />}
+      {call.voicemail_url && <InlineAudioPlayer url={call.voicemail_url} />}
 
       {call.transcript && (
         <div>
-          <button
-            onClick={() => setShowTranscript(!showTranscript)}
+          <button onClick={() => setShowTranscript(!showTranscript)}
             className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
-            style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)' }}
-          >
+            style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)' }}>
             <FileText className="w-3 h-3" />
             {showTranscript ? 'Hide' : 'View'} Transcript
           </button>
@@ -180,6 +165,7 @@ function CallCard({ call }) {
 export default function LandlordCallHistory({ landlord }) {
   const phone = landlord.phone;
   const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
+  const [sourceFilter, setSourceFilter] = useState('all');
 
   // ── Twilio CallLog by landlord_id ──
   const { data: callLogsByLandlord = [], isLoading: l1, refetch: refetchAll } = useQuery({
@@ -232,9 +218,7 @@ export default function LandlordCallHistory({ landlord }) {
             if (r.ok) {
               const d = await r.json();
               const rec = d.recordings?.[0];
-              if (rec) {
-                recordingMap[sid] = `https://api.twilio.com${rec.uri.replace('.json', '.mp3')}`;
-              }
+              if (rec) recordingMap[sid] = `https://api.twilio.com${rec.uri.replace('.json', '.mp3')}`;
             }
           } catch (_) {}
         }));
@@ -245,8 +229,14 @@ export default function LandlordCallHistory({ landlord }) {
     staleTime: 60000,
   });
 
-  // ── Aircall calls (only real Aircall, not VAPI) ──
-  const { data: aircallRaw = [], isLoading: l3 } = useQuery({
+  // ── AircallCall entity (Aircall + VAPI) — trigger VAPI sync first ──
+  const { isLoading: l3 } = useQuery({
+    queryKey: ['vapi-sync'],
+    queryFn: () => base44.functions.invoke('syncVapiCalls', {}).catch(() => ({})),
+    staleTime: 120000,
+  });
+
+  const { data: aircallRaw = [], isLoading: l4, refetch: refetchAircall } = useQuery({
     queryKey: ['aircall-calls-all'],
     queryFn: () => base44.entities.AircallCall.list('-started_at', 2000),
   });
@@ -254,19 +244,6 @@ export default function LandlordCallHistory({ landlord }) {
   // Distinguish by source field (new) or legacy notes fallback
   const aircallCalls = aircallRaw.filter(c => c.source !== 'vapi' && !c.notes?.startsWith('Vapi AI'));
   const vapiStoredCalls = aircallRaw.filter(c => c.source === 'vapi' || c.notes?.startsWith('Vapi AI'));
-
-  // ── VAPI calls fetched live from VAPI API (for fresh recordings) ──
-  const { data: vapiLiveCalls = [], isLoading: l4 } = useQuery({
-    queryKey: ['vapi-live-calls', phone],
-    queryFn: async () => {
-      try {
-        const res = await base44.functions.invoke('syncVapiCalls', {});
-        // After syncing, return the updated stored vapi calls
-        return [];
-      } catch (_) { return []; }
-    },
-    staleTime: 120000,
-  });
 
   // ── Match Aircall by phone ──
   const matchedAircall = aircallCalls.filter(c => {
@@ -278,7 +255,7 @@ export default function LandlordCallHistory({ landlord }) {
       (suffix.length >= 9 && (toNorm.endsWith(suffix) || fromNorm.endsWith(suffix)));
   });
 
-  // ── Match VAPI stored calls by landlord_id OR phone ──
+  // ── Match VAPI by landlord_id OR phone ──
   const matchedVapi = vapiStoredCalls.filter(c => {
     if (c.landlord_id && c.landlord_id === landlord.id) return true;
     if (!normalizedPhone) return false;
@@ -287,7 +264,7 @@ export default function LandlordCallHistory({ landlord }) {
     return toNorm === normalizedPhone || (suffix.length >= 9 && toNorm.endsWith(suffix));
   });
 
-  // ── Merge everything ──
+  // ── Merge & deduplicate ──
   const seenIds = new Set();
   const allCalls = [
     ...callLogs.map(c => ({
@@ -318,6 +295,8 @@ export default function LandlordCallHistory({ landlord }) {
     return tb - ta;
   });
 
+  const filteredCalls = sourceFilter === 'all' ? allCalls : allCalls.filter(c => c._source === sourceFilter);
+
   const totalCalls = allCalls.length;
   const answered = allCalls.filter(c => ['completed', 'done', 'ended'].includes(c.status)).length;
   const withRecording = allCalls.filter(c => c.recording_url).length;
@@ -333,12 +312,18 @@ export default function LandlordCallHistory({ landlord }) {
     );
   }
 
+  // Filter tabs: only show sources that have calls
+  const availableSources = ['all', ...['twilio', 'aircall', 'vapi'].filter(s =>
+    s === 'all' || allCalls.some(c => c._source === s)
+  )];
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">All calls across Twilio, Aircall & VAPI AI</p>
         <button
-          onClick={() => refetchAll()}
+          onClick={() => { refetchAll(); refetchAircall(); }}
           className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
           style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
@@ -346,12 +331,13 @@ export default function LandlordCallHistory({ landlord }) {
         </button>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'Total Calls', value: totalCalls },
+          { label: 'Total', value: totalCalls },
           { label: 'Answered', value: answered },
           { label: 'Recordings', value: withRecording },
-          { label: 'Total Duration', value: formatDuration(totalDuration) },
+          { label: 'Duration', value: formatDuration(totalDuration) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</p>
@@ -360,17 +346,48 @@ export default function LandlordCallHistory({ landlord }) {
         ))}
       </div>
 
-      {allCalls.length === 0 ? (
+      {/* Source filter tabs */}
+      <div className="flex gap-1.5 flex-wrap">
+        {[
+          { key: 'all', label: 'All', count: allCalls.length },
+          { key: 'twilio', label: 'Twilio', count: allCalls.filter(c => c._source === 'twilio').length },
+          { key: 'aircall', label: 'Aircall', count: allCalls.filter(c => c._source === 'aircall').length },
+          { key: 'vapi', label: 'VAPI AI', count: allCalls.filter(c => c._source === 'vapi').length },
+        ].filter(t => t.key === 'all' || t.count > 0).map(tab => {
+          const cfg = SOURCE_CONFIG[tab.key];
+          const isActive = sourceFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setSourceFilter(tab.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+              style={isActive ? {
+                background: cfg ? cfg.bg : 'rgba(255,255,255,0.1)',
+                color: cfg ? cfg.color : 'rgba(255,255,255,0.9)',
+                border: `1px solid ${cfg ? cfg.border : 'rgba(255,255,255,0.25)'}`,
+              } : {
+                background: 'rgba(255,255,255,0.04)',
+                color: 'rgba(255,255,255,0.45)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              {tab.key === 'vapi' && <Mic className="w-2.5 h-2.5" />}
+              {tab.label}
+              <span className="opacity-60">({tab.count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Call list */}
+      {filteredCalls.length === 0 ? (
         <div className="text-center py-10 space-y-2">
           <PhoneOff className="w-8 h-8 mx-auto text-muted-foreground opacity-40" />
-          <p className="text-sm text-muted-foreground">No call history found</p>
-          <p className="text-xs text-muted-foreground opacity-60">
-            Calls via Twilio, Aircall and VAPI AI will appear here
-          </p>
+          <p className="text-sm text-muted-foreground">No calls found</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {allCalls.map((call, idx) => (
+          {filteredCalls.map((call, idx) => (
             <CallCard key={call.id || call.aircall_id || idx} call={call} />
           ))}
         </div>

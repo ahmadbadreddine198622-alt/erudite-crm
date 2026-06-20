@@ -46,32 +46,38 @@ Deno.serve(async (req) => {
             }).then(calls => calls[0]);
 
             if (!existingCall) {
-                // Create new call record with full details
                 await base44.entities.AircallCall.create({
                     aircall_id: call.id,
+                    source: 'vapi',
                     direction: call.type?.includes('outbound') ? 'outbound' : 'inbound',
-                    status: call.status === 'ended' ? 'done' : call.status,
+                    status: call.status === 'ended' ? 'ended' : call.status,
                     duration: call.cost?.duration || 0,
                     started_at: call.startedAt,
                     ended_at: call.endedAt,
-                    from_number: call.phoneNumber?.number || 'Vapi AI',
+                    from_number: call.phoneNumber?.number || '',
                     to_number: call.customer?.number || call.phoneNumber?.number || '',
                     agent_name: call.metadata?.initiatedBy || 'Vapi',
                     agent_email: call.metadata?.initiatedBy || '',
                     recording_url: call.artifact?.recordingUrl || null,
                     transcript: call.artifact?.transcript || null,
                     lead_id: call.metadata?.leadId || '',
+                    landlord_id: call.metadata?.landlordId || '',
                     lead_name: call.metadata?.leadName || '',
                     notes: `Vapi AI call - ${call.endedReason || call.status}`
                 });
                 syncedCount++;
-            } else if (call.artifact?.recordingUrl && !existingCall.recording_url) {
-                // Update existing call with recording if it wasn't synced before
-                await base44.entities.AircallCall.update(existingCall.id, {
-                    recording_url: call.artifact.recordingUrl,
-                    transcript: call.artifact.transcript || existingCall.transcript
-                });
-                syncedCount++;
+            } else {
+                // Always update: stamp source, refresh recording if available
+                const updates = { source: 'vapi' };
+                if (call.artifact?.recordingUrl) updates.recording_url = call.artifact.recordingUrl;
+                if (call.artifact?.transcript) updates.transcript = call.artifact.transcript;
+                if (call.status === 'ended' || call.status === 'failed') {
+                    updates.status = call.status;
+                    updates.ended_at = call.endedAt || existingCall.ended_at;
+                    updates.duration = call.cost?.duration || existingCall.duration || 0;
+                }
+                await base44.entities.AircallCall.update(existingCall.id, updates);
+                if (call.artifact?.recordingUrl && !existingCall.recording_url) syncedCount++;
             }
         }
 
