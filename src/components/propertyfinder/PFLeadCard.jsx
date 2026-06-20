@@ -190,7 +190,7 @@ function LandlordPicker({ lead, landlords, onLink }) {
 }
 
 // ── Listing ref link ──────────────────────────────────────────────────────────
-function ListingRefLink({ ref: listingRef, pfUrl }) {
+function ListingRefLink({ listingRef, pfUrl }) {
   if (!listingRef) return <span className="text-xs text-muted-foreground italic">No ref</span>;
 
   const href = pfUrl || `https://www.propertyfinder.ae/en/search?q=${encodeURIComponent(listingRef)}`;
@@ -289,7 +289,7 @@ export default function PFLeadCard({ lead, landlords, agents = [], waConversatio
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground w-12 shrink-0 uppercase tracking-wide">Listing</span>
           <div className="flex-1 min-w-0 overflow-hidden">
-            <ListingRefLink ref={lead.closing_property_ref} pfUrl={lead.pf_url} />
+            <ListingRefLink listingRef={lead.closing_property_ref} pfUrl={lead.pf_url} />
           </div>
         </div>
       </div>
