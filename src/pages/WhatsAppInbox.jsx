@@ -297,6 +297,9 @@ export default function WhatsAppInbox() {
     // Malik channel: only visible to admin or Malik himself
     if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
 
+    // Malik account: can only see 'malik' and 'business' channels — not 'personal'
+    if (currentUser?.email === 'malik@erudite-estate.com' && (c.channel === 'personal' || !c.channel)) return false;
+
     // Non-admin agents: RLS already restricts the API response, but enforce client-side too
     // Skip entirely for admins — they see everything
     if (!isAdminUser && currentUser?.email) {
