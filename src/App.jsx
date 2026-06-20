@@ -41,7 +41,6 @@ import PropertyFinderSync from '@/pages/PropertyFinderSync';
 import PropertyFinderDashboard from '@/pages/PropertyFinderDashboard';
 import PropertyFinderLeads from '@/pages/PropertyFinderLeads';
 import Landlords from '@/pages/Landlords';
-import LandlordDetail from '@/pages/LandlordDetail';
 import Messages from '@/pages/Messages';
 import EmailAutomations from '@/pages/EmailAutomations';
 import Projects from '@/pages/Projects';
@@ -147,7 +146,6 @@ const AuthenticatedApp = () => {
         <Route path="/sales-analytics" element={<SalesAnalytics />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/landlords" element={<Landlords />} />
-        <Route path="/landlord/:id" element={<LandlordDetail />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
         <Route path="/whatsapp-hub" element={<WhatsAppHub />} />

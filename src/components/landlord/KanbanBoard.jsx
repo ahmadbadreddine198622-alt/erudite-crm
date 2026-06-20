@@ -3,7 +3,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import LandlordCard from './LandlordCard';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function KanbanBoard({
   stages,
@@ -19,17 +18,12 @@ export default function KanbanBoard({
   photographyTasks = [],
   getPhotoForPhone,
 }) {
-  const navigate = useNavigate();
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const { draggableId, source, destination } = result;
     if (source.droppableId === destination.droppableId) return;
     onStageChange({ id: draggableId, newStage: destination.droppableId });
-  };
-
-  const handleCardClick = (landlordId) => {
-    navigate(`/landlord/${landlordId}`);
   };
 
   return (
@@ -88,7 +82,7 @@ export default function KanbanBoard({
                                 landlord={landlord}
                                 isSelected={landlord.id === selectedLandlordId}
                                 isDragging={dragSnapshot.isDragging}
-                                onClick={() => handleCardClick(landlord.id)}
+                                onClick={() => onSelectLandlord(landlord.id)}
                                 isChecked={selectedIds.has(landlord.id)}
                                 onToggleCheck={onToggleSelect}
                                 users={users}
