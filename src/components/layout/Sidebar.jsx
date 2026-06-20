@@ -24,6 +24,7 @@ const navSections = [
       { label: 'Design System',       icon: Palette,         path: '/design-system',       gradient: 'from-fuchsia-500 to-purple-800' },
       { label: 'Team AI OS',          icon: Brain,           path: '/team-os',             gradient: 'from-indigo-500 to-violet-800' },
       { label: 'Team Performance',    icon: Trophy,          path: '/team-performance',    gradient: 'from-emerald-500 to-teal-700' },
+      { label: 'Agent Intelligence',  icon: Brain,           path: '/agent-intelligence',  gradient: 'from-violet-500 to-purple-800' },
       { label: 'Team Dashboard',      icon: Trophy,          path: '/team-dashboard',      gradient: 'from-yellow-500 to-amber-700' },
       { label: 'Analytics',           icon: BarChart3,       path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800' },
       { label: 'Dubai Intelligence',  icon: TrendingUp,      path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-700' },
