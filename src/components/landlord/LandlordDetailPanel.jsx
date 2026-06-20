@@ -384,15 +384,34 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <h2 className="font-display font-semibold text-lg truncate" style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}>
                 {landlord.full_name_en || landlord.full_name}
               </h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
-                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
-                </p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {(landlord.unit_reference || landlord.project_name) && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0" style={{ background: 'rgba(250,180,40,0.12)', border: '1px solid rgba(250,180,40,0.3)' }}>
+                    {landlord.unit_reference && (
+                      <span className="text-xs font-bold tabular-nums" style={{ color: 'hsl(38 92% 60%)' }}>
+                        Unit {landlord.unit_reference}
+                      </span>
+                    )}
+                    {landlord.unit_reference && landlord.project_name && (
+                      <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
+                    )}
+                    {landlord.project_name && (
+                      <span className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'rgba(250,180,40,0.75)' }}>
+                        {landlord.project_name}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">
                   {STAGE_LABELS[landlord.stage] || landlord.stage}
                 </Badge>
               </div>
+              {(landlord.landlord_archetype || landlord.ai_momentum) && (
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
+                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
+                </p>
+              )}
             </div>
             <div className="shrink-0">
               <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
