@@ -23,7 +23,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-export default function VapiCallDialog({ lead }) {
+export default function VapiCallDialog({ lead, iconOnly = false }) {
     const [open, setOpen] = useState(false);
     const [assistants, setAssistants] = useState([]);
     const [selectedAssistant, setSelectedAssistant] = useState('');
@@ -91,10 +91,16 @@ export default function VapiCallDialog({ lead }) {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <Mic className="w-4 h-4" />
-                    AI Voice Call
-                </Button>
+                {iconOnly ? (
+                    <Button variant="ghost" size="icon" title="AI Voice Call (VAPI)">
+                        <Mic className="w-4 h-4 text-violet-400" />
+                    </Button>
+                ) : (
+                    <Button variant="outline" className="gap-2">
+                        <Mic className="w-4 h-4" />
+                        AI Voice Call
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>

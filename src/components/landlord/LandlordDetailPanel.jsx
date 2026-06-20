@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
@@ -51,6 +51,8 @@ import MarketIntelligencePanel from './MarketIntelligencePanel';
 import CallQualificationTab from './CallQualificationTab';
 import CallQualificationSummaryPanel from './CallQualificationSummaryPanel';
 import OutreachChecklistPanel from './OutreachChecklistPanel';
+import LandlordCallHistory from './LandlordCallHistory';
+import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -473,6 +475,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               iconOnly
             />
             <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
+            <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
             <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
               <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
             </Button>
@@ -1155,9 +1158,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="qualification" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-9 mb-5">
+            <TabsList className="grid w-full grid-cols-10 mb-5">
               <TabsTrigger value="outreach" className="text-xs">Outreach</TabsTrigger>
               <TabsTrigger value="qualification" className="text-xs">Qualify</TabsTrigger>
+              <TabsTrigger value="calls" className="text-xs">📞 Calls</TabsTrigger>
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
@@ -1173,6 +1177,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
             <TabsContent value="qualification">
               <CallQualificationTab landlord={landlord} />
+            </TabsContent>
+
+            <TabsContent value="calls">
+              <LandlordCallHistory landlord={landlord} />
             </TabsContent>
 
             <TabsContent value="overview" className="space-y-4">
