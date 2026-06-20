@@ -47,6 +47,7 @@ import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
+import FormAContractsList from './FormAContractsList';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
 import CallQualificationTab from './CallQualificationTab';
 import CallQualificationSummaryPanel from './CallQualificationSummaryPanel';
@@ -495,6 +496,86 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           projectName={landlord.project_name}
         />
 
+        {/* ── AI SUMMARY PANEL ───────────────────────────────────── */}
+        <div className="px-6 py-4" style={{ background: 'rgba(139,92,246,0.04)', borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">AI Summary</p>
+                <p className="text-[10px] text-muted-foreground">At-a-glance understanding of this landlord</p>
+              </div>
+            </div>
+            <button
+              onClick={() => orchestrateMutation.mutate()}
+              disabled={orchestrateMutation.isPending}
+              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:scale-105 disabled:opacity-50"
+              style={{ background: 'rgba(139,92,246,0.12)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.25)' }}
+              title="Regenerate AI summary from latest notes and conversations"
+            >
+              <RefreshCw className={`w-3 h-3 ${orchestrateMutation.isPending ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {landlord.ai_rolling_summary ? (
+            <>
+              {/* Main summary */}
+              <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.7' }}>
+                  {landlord.ai_rolling_summary}
+                </p>
+              </div>
+
+              {/* Two column: What to focus on + Next step */}
+              <div className="grid grid-cols-2 gap-3">
+                {landlord.ai_coaching_for_agent && (
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                    <p className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'rgb(167,139,250)' }}>
+                      What to focus on
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                      {landlord.ai_coaching_for_agent}
+                    </p>
+                  </div>
+                )}
+                {landlord.ai_next_best_action?.action && (
+                  <div className="rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    <p className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'hsl(38 92% 60%)' }}>
+                      Next step
+                    </p>
+                    <p className="text-xs font-semibold leading-relaxed" style={{ color: 'rgba(255,255,255,0.9)', lineHeight: '1.6' }}>
+                      {landlord.ai_next_best_action.action}
+                    </p>
+                    {landlord.ai_next_best_action.reasoning && (
+                      <p className="text-[10px] mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        {landlord.ai_next_best_action.reasoning}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)' }}>
+              <Sparkles className="w-6 h-6 mx-auto mb-2 text-muted-foreground opacity-40" />
+              <p className="text-sm text-muted-foreground">
+                AI summary will appear after you log a qualification and notes.
+              </p>
+              <button
+                onClick={() => orchestrateMutation.mutate()}
+                disabled={orchestrateMutation.isPending}
+                className="mt-3 text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105 disabled:opacity-50"
+                style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }}
+              >
+                {orchestrateMutation.isPending ? 'Generating…' : 'Generate Summary Now'}
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* ── CALL QUALIFICATION SUMMARY ──────────────────────────── */}
         <CallQualificationSummaryPanel landlordId={landlord.id} />
 
@@ -579,120 +660,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         )}
 
         {/* Form A Contracts List */}
-        <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <FileCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-display)' }}>Form A Contracts</span>
-          </div>
-          {(() => {
-            const contracts = Array.isArray(landlord.form_a_contracts) && landlord.form_a_contracts.length > 0
-              ? landlord.form_a_contracts
-              : (landlord.form_a_contract_number ? [{
-                  contract_number: landlord.form_a_contract_number,
-                  unit: landlord.unit_reference || null,
-                  pdf_url: landlord.form_a_pdf_url || null,
-                  mandate_type: landlord.mandate_type || null,
-                  mandate_status: landlord.mandate_status || null,
-                  mandate_start_date: landlord.mandate_start_date || null,
-                  mandate_expires_at: landlord.mandate_expires_at || null,
-                  asking_price_aed: landlord.asking_price_aed || null,
-                }] : []);
-            
-            if (contracts.length === 0) {
-              return <p className="text-xs text-muted-foreground">No Form A contracts on record</p>;
-            }
-            
-            return (
-              <div className="space-y-2">
-                {contracts.map((contract, idx) => (
-                  <div
-                    key={contract.contract_number || idx}
-                    className="p-2.5 rounded-lg border"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-accent truncate" style={{ color: 'hsl(38 92% 55%)' }}>
-                          {contract.contract_number || 'Unknown'}
-                        </p>
-                        {contract.unit && (
-                          <p className="text-xs text-muted-foreground mt-0.5">Unit: {contract.unit}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        {contract.pdf_url && (
-                          <>
-                            <a
-                              href={contract.pdf_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[9px] px-2 py-1 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
-                              title="View PDF"
-                            >
-                              <Eye className="w-3 h-3" /> View
-                            </a>
-                            <a
-                              href={(() => {
-                                const url = contract.pdf_url || '';
-                                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                                if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-                                return url;
-                              })()}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[9px] px-2 py-1 rounded-md border border-white/20 hover:bg-white/10 transition-colors"
-                              title="Download PDF"
-                            >
-                              <Download className="w-3 h-3" /> Download
-                            </a>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                      {contract.mandate_type && (
-                        <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-xs px-2 py-1 border-amber-500/30 text-amber-400 bg-amber-500/10">
-                            {contract.mandate_type.replace(/_/g, ' ')}
-                          </Badge>
-                        </div>
-                      )}
-                      {contract.mandate_status && (
-                        <div className="text-xs text-muted-foreground">
-                          Status: <span className={
-                            contract.mandate_status === 'form_a_signed' ? 'text-emerald-500 font-semibold' :
-                            contract.mandate_status === 'expired' ? 'text-red-500 font-semibold' :
-                            contract.mandate_status === 'cancelled' ? 'text-slate-500 font-semibold' : 'text-amber-400 font-semibold'
-                          }>{contract.mandate_status.replace(/_/g, ' ')}</span>
-                        </div>
-                      )}
-                      {contract.mandate_expires_at && (
-                        <div className="text-xs text-muted-foreground">
-                          Expires: <span className="text-foreground font-medium">{new Date(contract.mandate_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                      )}
-                      {contract.asking_price_aed && (
-                        <div className="text-xs text-accent font-semibold">
-                          AED {(contract.asking_price_aed / 1000000).toFixed(2)}M
-                        </div>
-                      )}
-                      {(() => {
-                        const commissionPct = contract.commission_pct_negotiated || landlord.commission_pct_negotiated;
-                        if (!commissionPct || !contract.asking_price_aed) return null;
-                        const commissionAmount = contract.asking_price_aed * (commissionPct / 100);
-                        return (
-                          <div className="text-xs" style={{ color: 'hsl(38 92% 55%)', fontWeight: 600 }}>
-                            Commission: {commissionPct}% · AED {commissionAmount.toLocaleString('en-US')}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
+        <FormAContractsList landlord={landlord} />
 
         {/* LBA result card */}
         {lbaResult?.pdf_url && (
@@ -1345,40 +1313,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <LandlordSMSPanel landlord={landlord} />
             </TabsContent>
 
-            <TabsContent value="ai" className="space-y-4">
-              {landlord.ai_rolling_summary && (
-                <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-display font-semibold" style={{ color: 'rgba(255,255,255,0.82)' }}>Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', lineHeight: '1.7' }}>{landlord.ai_rolling_summary}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {landlord.ai_next_best_action && (
-                <Card style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-display font-semibold" style={{ color: 'hsl(38 92% 60%)' }}>Next Best Action</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.ai_next_best_action.action}</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{landlord.ai_next_best_action.reasoning}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {landlord.ai_coaching_for_agent && (
-                <Card style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-display font-semibold" style={{ color: 'rgb(167,139,250)' }}>Agent Coaching</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', lineHeight: '1.7' }}>{landlord.ai_coaching_for_agent}</p>
-                  </CardContent>
-                </Card>
-              )}
+            <TabsContent value="ai">
+              <p className="text-xs text-muted-foreground text-center py-8">
+                AI insights are now shown at the top of the panel for immediate visibility.
+              </p>
             </TabsContent>
 
 
