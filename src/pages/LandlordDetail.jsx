@@ -7,13 +7,18 @@ import {
   FileText, TrendingUp, DollarSign, Clock, CheckCircle2,
   AlertCircle, Star, Target, Users, Home, Key, FileCheck,
   Video, Camera, MapPin, Languages, Globe, Plus, Send,
-  CheckSquare, Square
+  CheckSquare, Square, Zap, Sparkles, RefreshCw, Flame,
+  MessageSquare, Smartphone, Briefcase, Headphones, FolderOpen,
+  FileSignature, Shield, Database, Wifi, WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { MessagesTab } from '@/components/landlord/MessagesTab';
@@ -39,27 +44,6 @@ const STAGE_LABELS = {
   deal_closed: 'Deal Closed',
 };
 
-function ScoreGauge({ score, label, color = 'hsl(38 92% 50%)' }) {
-  const percentage = Math.max(0, Math.min(100, score || 0));
-  return (
-    <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div className="relative w-16 h-16 mx-auto mb-2">
-        <svg className="w-16 h-16 -rotate-90" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-          <circle
-            cx="18" cy="18" r="15.9155" fill="none" stroke={color} strokeWidth="4"
-            strokeDasharray={`${percentage} ${100 - percentage}`} strokeLinecap="round"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-bold" style={{ color }}>{percentage}</span>
-        </div>
-      </div>
-      <p className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
-    </div>
-  );
-}
-
 function StatusPill({ status, type = 'default' }) {
   const styles = {
     default: { bg: 'rgba(148,163,184,0.15)', color: 'rgba(255,255,255,0.6)' },
@@ -74,6 +58,34 @@ function StatusPill({ status, type = 'default' }) {
     <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
       {status}
     </span>
+  );
+}
+
+function GaugeCard({ score, label, rationale, max = 100, isPercent = false }) {
+  const percentage = Math.max(0, Math.min(100, (score || 0) / max * 100));
+  const displayValue = isPercent ? `${Math.round((score || 0) * 100)}%` : score != null ? score : '—';
+  return (
+    <Card className="p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
+      </div>
+      <p className="text-3xl font-bold mb-2" style={{ color: 'hsl(38 92% 55%)' }}>{displayValue}</p>
+      <Progress value={percentage} className="h-2 mb-2" style={{ background: 'rgba(255,255,255,0.1)' }} />
+      {rationale && <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{rationale}</p>}
+    </Card>
+  );
+}
+
+function SystemStatusCard({ icon: Icon, label, subStatus, color = '#34d399' }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+      <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</p>
+        {subStatus && <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{subStatus}</p>}
+      </div>
+    </div>
   );
 }
 
@@ -181,19 +193,21 @@ export default function LandlordDetail() {
   const latestCoach = coaches[0];
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#0d1120' }}>
+    <div className="flex flex-col h-screen" style={{ background: '#0a0e1a' }}>
       {/* Header */}
-      <div className="shrink-0 px-6 py-4 border-b border-white/10" style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <div className="shrink-0 px-6 py-4 border-b border-amber-500/20" style={{ background: 'linear-gradient(180deg, rgba(250,180,40,0.08) 0%, rgba(10,14,26,0) 100%)' }}>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/landlords')} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
-            <ArrowLeft className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.6)' }} />
+            <ArrowLeft className="w-5 h-5" style={{ color: 'hsl(38 92% 55%)' }} />
           </button>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{landlord.full_name_en}</h1>
               <StatusPill status={STAGE_LABELS[landlord.stage]} type="purple" />
-              {landlord.rapport_level && (
-                <StatusPill status={`Rapport: ${landlord.rapport_level.replace('_', ' ')}`} type="info" />
+              {landlord.ai_strike_now && (
+                <Badge className="bg-red-500 text-white border-0 animate-pulse">
+                  <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
+                </Badge>
               )}
             </div>
             <div className="flex items-center gap-4 mt-1.5 flex-wrap">
@@ -205,9 +219,10 @@ export default function LandlordDetail() {
                   <Mail className="w-3.5 h-3.5" /> {landlord.email}
                 </div>
               )}
-              {landlord.preferred_language && (
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  <Languages className="w-3.5 h-3.5" /> {landlord.preferred_language.toUpperCase()}
+              {landlord.unit_reference && (
+                <div className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded"
+                  style={{ background: 'rgba(250,180,40,0.12)', border: '1px solid rgba(250,180,40,0.3)', color: 'hsl(38 92% 60%)' }}>
+                  <Home className="w-3.5 h-3.5" /> Unit {landlord.unit_reference}
                 </div>
               )}
               {project && (
@@ -218,117 +233,111 @@ export default function LandlordDetail() {
               )}
             </div>
           </div>
+          <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['landlord', id] })} className="gap-1.5">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </Button>
         </div>
       </div>
 
       {/* Two-panel layout */}
       <div className="flex-1 overflow-hidden flex">
-        {/* LEFT PANEL — Communications & Insights */}
-        <div className="w-[45%] border-r border-white/10 flex flex-col" style={{ background: 'rgba(255,255,255,0.01)' }}>
+        {/* LEFT PANEL — Conversation & Activity */}
+        <div className="w-[48%] border-r border-white/10 flex flex-col overflow-y-auto" style={{ background: 'rgba(255,255,255,0.01)' }}>
+          {/* Channel chips */}
+          <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10">
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10">
+              <Briefcase className="w-3 h-3 mr-1" /> Business
+            </Badge>
+            <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+              <Smartphone className="w-3 h-3 mr-1" /> Personal
+            </Badge>
+          </div>
+
+          {/* AI CONVERSATION INTELLIGENCE */}
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'hsl(38 92% 55%)' }}>AI Conversation Intelligence</p>
+                  <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Real-time conversation analysis</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary bullets */}
+            {(latestInsight?.summary || landlord.ai_rolling_summary) && (
+              <div className="mb-3">
+                <p className="text-[9px] uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Summary</p>
+                <div className="space-y-1">
+                  {(latestInsight?.summary || landlord.ai_rolling_summary).split('. ').filter(s => s.trim()).slice(0, 3).map((sentence, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'hsl(38 92% 55%)' }} />
+                      <span>{sentence}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Outstanding questions */}
+            {latestInsight?.outstanding_items && (
+              <div className="mb-3">
+                <p className="text-[9px] uppercase tracking-wider font-semibold mb-1.5" style={{ color: '#f87171' }}>Outstanding · Unanswered Questions</p>
+                <div className="space-y-1">
+                  {latestInsight.outstanding_items.split('\n').filter(s => s.trim()).map((item, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs px-2 py-1.5 rounded" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: '#f87171' }} />
+                      <span style={{ color: 'rgba(255,255,255,0.75)' }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Conversation Coach box */}
+            {latestCoach && (
+              <div className="rounded-lg p-3" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: '#c4b5fd' }} />
+                  <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: '#c4b5fd' }}>Conversation Coach</p>
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Quality</p>
+                  <p className="text-lg font-bold" style={{ color: '#c4b5fd' }}>{latestCoach.quality_score || 0}/100</p>
+                </div>
+                {latestCoach.single_best_line_to_use && (
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Best Line to Use Now</p>
+                    <p className="text-xs italic px-2 py-1.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)' }}>
+                      "{latestCoach.single_best_line_to_use}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Messages/Activity tabs */}
           <Tabs defaultValue="messages" className="flex-1 flex flex-col">
             <TabsList className="shrink-0 rounded-none border-b border-white/10 bg-transparent px-4 pt-3">
               <TabsTrigger value="messages" className="data-[state=active]:bg-white/10">Messages</TabsTrigger>
               <TabsTrigger value="activity" className="data-[state=active]:bg-white/10">Activity</TabsTrigger>
-              <TabsTrigger value="insights" className="data-[state=active]:bg-white/10">AI Insights</TabsTrigger>
-              <TabsTrigger value="coach" className="data-[state=active]:bg-white/10">Coach</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="messages" className="flex-1 overflow-y-auto p-4 mt-0">
+            <TabsContent value="messages" className="flex-1 overflow-y-auto p-0 mt-0">
               <MessagesTab messages={messages} />
             </TabsContent>
 
-            <TabsContent value="activity" className="flex-1 overflow-y-auto p-4 mt-0">
+            <TabsContent value="activity" className="flex-1 overflow-y-auto p-0 mt-0">
               <ActivityTab activities={activities} />
-            </TabsContent>
-
-            <TabsContent value="insights" className="flex-1 overflow-y-auto p-4 mt-0">
-              {/* Inline insights content */}
-              {!latestInsight ? (
-                <div className="text-center py-10">
-                  <TrendingUp className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No AI insights yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" style={{ color: '#c4b5fd' }} />
-                      <p className="text-sm font-semibold" style={{ color: '#c4b5fd' }}>Conversation Summary</p>
-                    </div>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{latestInsight.summary}</p>
-                    {latestInsight.key_facts && (
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Key Facts</p>
-                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{latestInsight.key_facts}</p>
-                      </div>
-                    )}
-                  </div>
-                  {latestInsight.suggestions?.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>AI Suggestions</p>
-                      <div className="space-y-2">
-                        {latestInsight.suggestions.map((s, i) => (
-                          <div key={i} className="rounded-lg p-3 text-sm"
-                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <p className="font-medium mb-0.5" style={{ color: 'rgba(255,255,255,0.85)' }}>{s.title}</p>
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.reason}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="coach" className="flex-1 overflow-y-auto p-4 mt-0">
-              {/* Inline coach content */}
-              {!latestCoach ? (
-                <div className="text-center py-10">
-                  <Target className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No coaching insights yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-xl p-4" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" style={{ color: '#34d399' }} />
-                        <p className="text-sm font-semibold" style={{ color: '#34d399' }}>Quality Score</p>
-                      </div>
-                      <span className="text-2xl font-bold" style={{ color: '#34d399' }}>{latestCoach.quality_score || 0}/100</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                      {latestCoach.rapport_built ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                      Rapport {latestCoach.rapport_built ? 'built' : 'not yet established'}
-                    </div>
-                  </div>
-                  {latestCoach.things_done_well?.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Done Well</p>
-                      <div className="space-y-1.5">
-                        {latestCoach.things_done_well.map((item, i) => (
-                          <div key={i} className="flex items-start gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: '#34d399' }} />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {latestCoach.next_move_recommended && (
-                    <div className="rounded-lg p-3" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'hsl(38 92% 55%)' }}>Next Move</p>
-                      <p className="text-sm font-medium" style={{ color: 'hsl(38 92% 55%)' }}>{latestCoach.next_move_recommended}</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </TabsContent>
           </Tabs>
 
           {/* Bottom action bar */}
-          <div className="shrink-0 p-4 border-t border-white/10" style={{ background: 'rgba(0,0,0,0.3)' }}>
+          <div className="shrink-0 p-4 border-t border-amber-500/20" style={{ background: 'linear-gradient(180deg, rgba(250,180,40,0.05) 0%, rgba(0,0,0,0.4) 100%)' }}>
             <div className="flex items-center gap-2 mb-2">
               <select
                 value={activityType}
@@ -344,7 +353,7 @@ export default function LandlordDetail() {
                 <option value="follow_up">Follow-up</option>
               </select>
               <Button size="sm" onClick={handleLogActivity} disabled={!newActivityText.trim() || createActivity.isPending}
-                className="h-8 px-3 text-xs">
+                className="h-8 px-3 text-xs" style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 11%)' }}>
                 {createActivity.isPending ? 'Logging…' : 'Log Activity'}
               </Button>
             </div>
@@ -360,169 +369,140 @@ export default function LandlordDetail() {
         </div>
 
         {/* RIGHT PANEL — Landlord & Property Details */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* AI Scores Row */}
-          <div className="grid grid-cols-4 gap-3">
-            <ScoreGauge score={landlord.trust_score} label="Trust" color="#34d399" />
-            <ScoreGauge score={landlord.urgency_score} label="Urgency" color="#fbbf24" />
-            <ScoreGauge score={landlord.responsiveness_score} label="Responsiveness" color="#60a5fa" />
-            <ScoreGauge score={Math.round((landlord.mandate_win_probability || 0) * 100)} label="Win Prob." color="#c4b5fd" />
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* CONNECTED SYSTEMS */}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-semibold mb-2 px-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Connected Systems</p>
+            <div className="grid grid-cols-2 gap-2">
+              <SystemStatusCard icon={MessageCircle} label="WhatsApp Business" subStatus="Active" color="#34d399" />
+              <SystemStatusCard icon={Smartphone} label="WhatsApp Personal" subStatus="Active" color="#34d399" />
+              <SystemStatusCard icon={Headphones} label="Aircall" subStatus="Connected" color="#34d399" />
+              <SystemStatusCard icon={Phone} label="Twilio Dialer" subStatus="Ready" color="#34d399" />
+              <SystemStatusCard icon={MessageSquare} label="WhatsApp Call" subStatus="VAPI" color="#34d399" />
+              <SystemStatusCard icon={FolderOpen} label="Google Drive" subStatus="Synced" color="#34d399" />
+              <SystemStatusCard icon={FileSignature} label="DocuSign" subStatus="Active" color="#34d399" />
+              <SystemStatusCard icon={Shield} label="DLD" subStatus="Connected" color="#34d399" />
+            </div>
           </div>
 
-          {/* AI Rolling Summary */}
-          {landlord.ai_rolling_summary && (
-            <div className="rounded-xl p-4" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)' }}>
+          {/* STRIKE NOW banner */}
+          {landlord.ai_strike_now && (
+            <Card className="p-4 border-red-500/30" style={{ background: 'rgba(239,68,68,0.1)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4" style={{ color: '#c4b5fd' }} />
-                <p className="text-sm font-semibold" style={{ color: '#c4b5fd' }}>AI Summary</p>
+                <Flame className="w-5 h-5 text-red-500 animate-pulse" />
+                <p className="text-sm font-bold uppercase tracking-wider text-red-500">STRIKE NOW</p>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)' }}>{landlord.ai_rolling_summary}</p>
+              {landlord.ai_momentum && (
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>{landlord.ai_momentum}</p>
+              )}
+            </Card>
+          )}
+
+          {/* NEXT BEST ACTION */}
+          {landlord.ai_next_best_action && (
+            <Card className="p-4" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'hsl(38 92% 55%)' }}>Next Best Action</p>
+                {landlord.ai_next_best_action.priority === 'urgent' && (
+                  <Badge className="bg-red-500 text-white border-0 text-[9px] px-1.5 py-0">URGENT</Badge>
+                )}
+              </div>
+              <p className="text-sm font-bold mb-1" style={{ color: 'rgba(255,255,255,0.95)' }}>{landlord.ai_next_best_action.action}</p>
+              {landlord.ai_next_best_action.reasoning && (
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{landlord.ai_next_best_action.reasoning}</p>
+              )}
+            </Card>
+          )}
+
+          {/* Signal chips */}
+          {(landlord.red_flags?.length > 0 || landlord.buying_signals?.length > 0) && (
+            <div>
+              <p className="text-[9px] uppercase tracking-wider font-semibold mb-2 px-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Signals</p>
+              <div className="flex flex-wrap gap-1.5">
+                {landlord.red_flags?.map((flag, i) => (
+                  <Badge key={i} variant="outline" className="text-[9px] border-red-500/30 text-red-400 bg-red-500/10">
+                    <AlertCircle className="w-2.5 h-2.5 mr-1" /> {flag.replace(/_/g, ' ')}
+                  </Badge>
+                ))}
+                {landlord.buying_signals?.map((signal, i) => (
+                  <Badge key={i} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+                    <CheckCircle2 className="w-2.5 h-2.5 mr-1" /> {signal}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Next Best Action */}
-          {landlord.ai_next_best_action && (
-            <div className="rounded-xl p-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
+          {/* AI SUMMARY */}
+          {landlord.ai_rolling_summary && (
+            <Card className="p-4" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>Next Best Action</p>
+                <Sparkles className="w-4 h-4" style={{ color: '#c4b5fd' }} />
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#c4b5fd' }}>AI Summary</p>
               </div>
-              <p className="text-base font-bold mb-1" style={{ color: 'hsl(38 92% 55%)' }}>{landlord.ai_next_best_action.action}</p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Priority: {landlord.ai_next_best_action.priority}</p>
-              {landlord.ai_next_best_action.reasoning && (
-                <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.75)' }}>{landlord.ai_next_best_action.reasoning}</p>
-              )}
-            </div>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)' }}>{landlord.ai_rolling_summary}</p>
+            </Card>
           )}
 
           {/* Property Details */}
           {property && (
-            <div className="rounded-xl p-5 space-y-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-2">
-                <Home className="w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
-                <h2 className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>Property Details</h2>
+            <Card className="p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Home className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)' }}>Property Details</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Unit Reference</p>
-                  <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{landlord.unit_reference || '—'}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Unit</p>
+                  <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.unit_reference || '—'}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Asking Price</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Asking Price</p>
                   <p className="text-sm font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
                     {landlord.asking_price_aed ? `AED ${landlord.asking_price_aed.toLocaleString()}` : '—'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Tenancy Status</p>
-                  <StatusPill status={property.tenancy_status || 'Unknown'} type={property.tenancy_status === 'vacant' ? 'success' : 'info'} />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Mortgage</p>
-                  <StatusPill status={(property.mortgage_status || 'unknown').replace(/_/g, ' ')} type="default" />
-                </div>
-              </div>
-              {property.ai_estimated_value_aed && (
-                <div className="rounded-lg p-3" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="w-4 h-4" style={{ color: '#c4b5fd' }} />
-                    <p className="text-sm font-semibold" style={{ color: '#c4b5fd' }}>AI Valuation</p>
+                {property.ai_estimated_value_aed && (
+                  <div className="mt-2 pt-2 border-t border-white/10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="w-3.5 h-3.5" style={{ color: '#c4b5fd' }} />
+                      <p className="text-[9px] uppercase tracking-wider" style={{ color: '#c4b5fd' }}>AI Valuation</p>
+                    </div>
+                    <p className="text-lg font-bold" style={{ color: '#c4b5fd' }}>AED {property.ai_estimated_value_aed.toLocaleString()}</p>
                   </div>
-                  <p className="text-xl font-bold" style={{ color: '#c4b5fd' }}>AED {property.ai_estimated_value_aed.toLocaleString()}</p>
-                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    {property.ai_estimated_price_sqft && `AED ${property.ai_estimated_price_sqft.toLocaleString()}/sqft`}
-                    {property.ai_valuation_confidence && `· ${property.ai_valuation_confidence} confidence`}
-                  </p>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Mandate & Commission */}
+          <Card className="p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <FileCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)' }}>Mandate & Commission</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Status</p>
+                <StatusPill status={(landlord.mandate_status || 'none').replace(/_/g, ' ')} type={landlord.mandate_status === 'form_a_signed' ? 'success' : 'default'} />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Type</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{(landlord.mandate_type || '—').replace(/_/g, ' ')}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Commission</p>
+                <p className="text-sm font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{landlord.commission_pct_negotiated || 2}%</p>
+              </div>
+              {landlord.estimated_commission_aed && (
+                <div className="mt-2 pt-2 border-t border-white/10 text-center">
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'hsl(38 92% 55%)' }}>Est. Commission</p>
+                  <p className="text-lg font-bold" style={{ color: 'hsl(38 92% 50%)' }}>AED {landlord.estimated_commission_aed.toLocaleString()}</p>
                 </div>
               )}
             </div>
-          )}
-
-          {/* Landlord Information */}
-          <div className="rounded-xl p-5 space-y-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
-              <h2 className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>Landlord Information</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Archetype</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{(landlord.landlord_archetype || 'unknown').replace(/_/g, ' ')}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Nationality</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{landlord.nationality || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Residence</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  {landlord.is_resident_uae ? 'UAE Resident' : 'Overseas'} · {landlord.residence_country || '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Source</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{(landlord.source || 'unknown').replace(/_/g, ' ')}</p>
-              </div>
-            </div>
-            {(landlord.red_flags?.length > 0 || landlord.buying_signals?.length > 0) && (
-              <div className="grid grid-cols-2 gap-4">
-                {landlord.red_flags?.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(239,68,68,0.6)' }}>Red Flags</p>
-                    <div className="space-y-1">
-                      {landlord.red_flags.map((flag, i) => (
-                        <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: '#f87171' }}>
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>{flag.replace(/_/g, ' ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {landlord.buying_signals?.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(16,185,129,0.6)' }}>Buying Signals</p>
-                    <div className="space-y-1">
-                      {landlord.buying_signals.map((signal, i) => (
-                        <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: '#34d399' }}>
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>{signal}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Mandate & Commission */}
-          <div className="rounded-xl p-5 space-y-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-2">
-              <FileCheck className="w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
-              <h2 className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>Mandate & Commission</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Mandate Status</p>
-                <StatusPill status={(landlord.mandate_status || 'none').replace(/_/g, ' ')} type={landlord.mandate_status === 'form_a_signed' ? 'success' : 'default'} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Mandate Type</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{(landlord.mandate_type || '—').replace(/_/g, ' ')}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Commission %</p>
-                <p className="text-sm font-bold" style={{ color: 'hsl(38 92% 50%)' }}>{landlord.commission_pct_negotiated || 2}%</p>
-              </div>
-            </div>
-            {landlord.estimated_commission_aed && (
-              <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'hsl(38 92% 55%)' }}>Estimated Commission</p>
-                <p className="text-xl font-bold" style={{ color: 'hsl(38 92% 50%)' }}>AED {landlord.estimated_commission_aed.toLocaleString()}</p>
-              </div>
-            )}
-          </div>
+          </Card>
         </div>
       </div>
     </div>
