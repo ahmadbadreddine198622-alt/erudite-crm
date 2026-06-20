@@ -48,6 +48,7 @@ import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
+import CallQualificationTab from './CallQualificationTab';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -1113,8 +1114,9 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="messages" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-7 mb-5">
+          <Tabs defaultValue="qualification" className="px-6 py-5">
+            <TabsList className="grid w-full grid-cols-8 mb-5">
+              <TabsTrigger value="qualification" className="text-xs">Qualify</TabsTrigger>
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
               <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
@@ -1123,6 +1125,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <TabsTrigger value="sms" className="text-xs">SMS</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="qualification">
+              <CallQualificationTab landlord={landlord} />
+            </TabsContent>
 
             <TabsContent value="overview" className="space-y-4">
               <Card style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
