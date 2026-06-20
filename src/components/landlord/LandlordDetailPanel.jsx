@@ -1085,6 +1085,46 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             ))}
           </div>
 
+          {/* AI Valuation Block */}
+          {landlordProperty?.ai_estimated_value_aed && (
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(16,185,129,0.04)' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-3 font-semibold" style={{ color: 'rgba(52,211,153,0.7)', letterSpacing: '0.07em' }}>AI Market Valuation</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(52,211,153,0.6)' }}>Est. Value</p>
+                  <p className="text-lg font-bold tabular-nums" style={{ color: '#34d399' }}>
+                    AED {(landlordProperty.ai_estimated_value_aed / 1e6).toFixed(2)}M
+                  </p>
+                </div>
+                <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(52,211,153,0.6)' }}>Price/sqft</p>
+                  <p className="text-lg font-bold tabular-nums" style={{ color: '#34d399' }}>
+                    {landlordProperty.ai_estimated_price_sqft ? `AED ${landlordProperty.ai_estimated_price_sqft.toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="rounded-xl p-3 text-center" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(52,211,153,0.6)' }}>Confidence</p>
+                  <p className="text-lg font-bold capitalize" style={{
+                    color: landlordProperty.ai_valuation_confidence === 'high' ? '#34d399' :
+                           landlordProperty.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.5)'
+                  }}>
+                    {landlordProperty.ai_valuation_confidence || '—'}
+                  </p>
+                </div>
+              </div>
+              {landlordProperty.ai_valuation_basis && (
+                <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(52,211,153,0.65)' }}>
+                  {landlordProperty.ai_valuation_basis}
+                </p>
+              )}
+              {landlordProperty.ai_valuation_updated_at && (
+                <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  Updated {landlordProperty.ai_valuation_updated_at}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Tabs */}
           <Tabs defaultValue="messages" className="px-6 py-5">
             <TabsList className="grid w-full grid-cols-7 mb-5">

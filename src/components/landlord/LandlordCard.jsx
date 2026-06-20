@@ -400,6 +400,31 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
         </div>
       )}
 
+      {/* AI Valuation */}
+      {landlord.ai_estimated_value_aed && (
+        <div className="mt-1 px-1.5 py-1 rounded" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[9px] font-bold" style={{ color: '#34d399' }}>
+              🤖 {(landlord.ai_estimated_value_aed / 1e6).toFixed(2)}M
+            </span>
+            {landlord.ai_estimated_price_sqft && (
+              <span className="text-[8px]" style={{ color: 'rgba(52,211,153,0.8)' }}>
+                {landlord.ai_estimated_price_sqft.toLocaleString()} /sqft
+              </span>
+            )}
+            {landlord.ai_valuation_confidence && (
+              <span className={`text-[7px] font-bold px-1 py-0.5 rounded border ${
+                landlord.ai_valuation_confidence === 'high' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                landlord.ai_valuation_confidence === 'medium' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                'bg-slate-500/15 text-slate-400 border-slate-500/30'
+              }`}>
+                {landlord.ai_valuation_confidence}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Commission + Trust + Agent - single row */}
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         {commission > 0 && (
