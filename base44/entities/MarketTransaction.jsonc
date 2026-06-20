@@ -53,7 +53,12 @@
     "is_post_event": {
       "type": "boolean",
       "default": false,
-      "description": "True if transaction occurred after DXB Interact (2026-02-28)"
+      "description": "True if transaction occurred after DXB Interact market event date"
+    },
+    "is_outlier": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if flagged as a fractional/partial transfer outlier \u2014 excluded from valuations"
     }
   },
   "required": [
