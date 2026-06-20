@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
@@ -80,6 +80,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [contactForm, setContactForm] = useState({});
   const [mediaOpen, setMediaOpen] = useState(true);
+  const [notesInternal, setNotesInternal] = useState(landlord.notes_internal || '');
+  const [notesSaving, setNotesSaving] = useState(false);
+
+  // Sync notes when landlord prop changes
+  useEffect(() => {
+    setNotesInternal(landlord.notes_internal || '');
+  }, [landlord.notes_internal]);
 
   const STAGE_OPTIONS = [
     'initial_contact',
@@ -316,6 +323,18 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
       toast.success('Listing manager updated');
     },
     onError: (e) => toast.error('Failed: ' + e.message),
+  });
+
+  const notesMutation = useMutation({
+    mutationFn: (notes) => base44.entities.Landlord.update(landlord.id, { notes_internal: notes }),
+    onMutate: () => setNotesSaving(true),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
+      onUpdate?.();
+      toast.success('Notes saved');
+    },
+    onSettled: () => setNotesSaving(false),
+    onError: (e) => toast.error('Failed to save notes: ' + e.message),
   });
 
   const editContactMutation = useMutation({
@@ -574,6 +593,39 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </button>
             </div>
           )}
+        </div>
+
+        {/* ── AGENT NOTES (notes_internal) ───────────────────────── */}
+        <div className="px-6 py-4" style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                <Pencil className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Agent Notes</p>
+                <p className="text-[10px] text-muted-foreground">Ongoing notes — refresh AI summary to fold these in</p>
+              </div>
+            </div>
+            {notesSaving && (
+              <span className="text-[10px] text-amber-400 flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+              </span>
+            )}
+          </div>
+          <textarea
+            value={notesInternal}
+            onChange={(e) => setNotesInternal(e.target.value)}
+            onBlur={() => {
+              if (notesInternal !== (landlord.notes_internal || '')) {
+                notesMutation.mutate(notesInternal);
+              }
+            }}
+            placeholder="Type ongoing notes here… (auto-saves on blur)"
+            rows={4}
+            className="w-full px-3 py-2 text-xs rounded-lg resize-none"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+          />
         </div>
 
         {/* ── CALL QUALIFICATION SUMMARY ──────────────────────────── */}
