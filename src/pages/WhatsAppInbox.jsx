@@ -67,11 +67,12 @@ export default function WhatsAppInbox() {
   const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
 
   // Conversations list polling — 15s interval
-  // RLS already scopes: admins see all, agents see only their own assigned rows
+  // RLS scopes: admins see all (role bypass), agents see only their assigned rows
   const { data: conversations = [], isLoading, refetch } = useQuery({
-    queryKey: ['wa_conversations', isAdminUser],
-    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
+    queryKey: ['wa_conversations', currentUser?.id],
+    queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 500),
     refetchInterval: 15000,
+    enabled: !!currentUser,
   });
 
   // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate
@@ -297,7 +298,8 @@ export default function WhatsAppInbox() {
     if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
 
     // Non-admin agents: RLS already restricts the API response, but enforce client-side too
-    if (!isAdminUser && currentUser) {
+    // Skip entirely for admins — they see everything
+    if (!isAdminUser && currentUser?.email) {
       if (c.assigned_agent_email !== currentUser.email) return false;
     }
 
