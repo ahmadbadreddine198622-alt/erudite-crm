@@ -12,6 +12,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
   const [open, setOpen] = useState(false);
   const [dialNumber, setDialNumber] = useState('');
   const [callerNumber, setCallerNumber] = useState('');
+  const [twilioNumbers, setTwilioNumbers] = useState([]);
 
   // phase: idle | mic_denied | initializing | ringing | active | ended
   const [phase, setPhase] = useState('idle');
@@ -41,7 +42,8 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
     base44.functions.invoke('getTwilioNumbers', {})
       .then(res => {
         const nums = res.data?.numbers || [];
-        if (nums.length > 0) setCallerNumber(nums[0].phone_number);
+        setTwilioNumbers(nums);
+        if (nums.length > 0 && !callerNumber) setCallerNumber(nums[0].phone_number);
       })
       .catch(() => {});
   }, [open]);
@@ -225,6 +227,27 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
                 </p>
               )}
             </div>
+
+            {/* Caller ID picker */}
+            {twilioNumbers.length > 1 && (
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-widest mb-1.5 block" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Call From
+                </label>
+                <select
+                  value={callerNumber}
+                  onChange={e => setCallerNumber(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-mono outline-none"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  {twilioNumbers.map(n => (
+                    <option key={n.phone_number} value={n.phone_number} style={{ background: '#0d1b2a' }}>
+                      {n.friendly_name || n.phone_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Number input */}
             <div>

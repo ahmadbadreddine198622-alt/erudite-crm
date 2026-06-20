@@ -827,6 +827,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                     iconOnly={false}
                   />
                   <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} />
+                  <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
                 </div>
               )}
             </div>
