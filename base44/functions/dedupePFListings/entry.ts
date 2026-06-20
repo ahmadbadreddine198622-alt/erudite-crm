@@ -1,126 +1,108 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * ONE-TIME DEDUPLICATION FUNCTION FOR PFListing
- * 
- * This function removes duplicate PFListing records, keeping only the most
- * recently synced / most complete row for each pf_listing_id.
- * 
- * GUARD: This is a ONE-TIME cleanup. DO NOT RE-RUN after initial deduplication.
- * 
- * Logic:
- * 1. Group all PFListing records by pf_listing_id (fallback: reference_number)
- * 2. For each group with duplicates, KEEP the row with:
- *    - Most recent last_synced_at
- *    - Prefer one with pf_url populated
- *    - Prefer one with description populated
- * 3. DELETE all other duplicates
- * 
- * Reports: before_count, duplicates_removed, after_count
+ * dedupePFListings — idempotent deduplication of PFListing records.
+ *
+ * Groups by pf_listing_id, keeps the most-recently-updated survivor per group,
+ * merges non-null linking fields (agent_email, project_id, property_id) onto the
+ * survivor, then deletes the rest. Safe to re-run — already-clean tables are
+ * reported with 0 removed.
  */
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Admin-only check
     const user = await base44.auth.me();
     if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+      return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
     }
 
-    console.log('PF_DEDUPE: Starting one-time deduplication...');
     const startTime = Date.now();
+    console.log('PF_DEDUPE: starting...');
 
-    // Fetch ALL PFListing records
+    // ── 1. Fetch every PFListing record ──────────────────────────────────────
     const allListings = [];
-    let page = 0;
-    const PAGE_SIZE = 500;
-    
+    let offset = 0;
+    const PAGE = 500;
     while (true) {
       const batch = await base44.asServiceRole.entities.PFListing.filter(
-        {}, '-created_date', PAGE_SIZE, page * PAGE_SIZE
+        {}, '-updated_date', PAGE, offset
       );
       allListings.push(...batch);
-      if (batch.length < PAGE_SIZE) break;
-      page++;
+      if (batch.length < PAGE) break;
+      offset += PAGE;
     }
-
     const beforeCount = allListings.length;
-    console.log(`PF_DEDUPE: Fetched ${beforeCount} total records`);
+    console.log(`PF_DEDUPE: fetched ${beforeCount} records`);
 
-    // Group by pf_listing_id (primary) or reference_number (fallback)
+    // ── 2. Group by pf_listing_id ─────────────────────────────────────────────
     const groups = new Map();
-    
+    const noKey = [];
     for (const listing of allListings) {
-      const key = listing.pf_listing_id || listing.reference_number;
-      if (!key) {
-        console.warn(`PF_DEDUPE: Skipping record ${listing.id} with no pf_listing_id or reference_number`);
-        continue;
-      }
-      
-      if (!groups.has(key)) {
-        groups.set(key, []);
-      }
+      const key = listing.pf_listing_id;
+      if (!key) { noKey.push(listing.id); continue; }
+      if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(listing);
     }
 
     let duplicatesRemoved = 0;
-    const deletedIds = [];
-    const keptIds = [];
+    let mergePatched = 0;
 
-    // Process each group
+    // ── 3. Process duplicates ─────────────────────────────────────────────────
     for (const [key, group] of groups.entries()) {
-      if (group.length === 1) {
-        keptIds.push(group[0].id);
-        continue;
-      }
+      if (group.length === 1) continue; // already clean
 
-      // Sort by priority: most recent last_synced_at, then has pf_url, then has description
-      const sorted = group.sort((a, b) => {
-        // Priority 1: Most recent last_synced_at
-        const dateA = new Date(a.last_synced_at || a.created_date || 0).getTime();
-        const dateB = new Date(b.last_synced_at || b.created_date || 0).getTime();
-        if (dateB !== dateA) return dateB - dateA;
-
-        // Priority 2: Has pf_url
-        const aHasUrl = !!a.pf_url;
-        const bHasUrl = !!b.pf_url;
-        if (aHasUrl !== bHasUrl) return (bHasUrl ? 1 : 0) - (aHasUrl ? 1 : 0);
-
-        // Priority 3: Has description
-        const aHasDesc = !!a.description;
-        const bHasDesc = !!b.description;
-        if (aHasDesc !== bHasDesc) return (bHasDesc ? 1 : 0) - (aHasDesc ? 1 : 0);
-
-        return 0;
+      // Sort: most recent updated_date wins (fallback: last_synced_at, then created_date)
+      group.sort((a, b) => {
+        const ta = new Date(a.updated_date || a.last_synced_at || a.created_date || 0).getTime();
+        const tb = new Date(b.updated_date || b.last_synced_at || b.created_date || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        // Tiebreak: prefer record with pf_url populated
+        return (b.pf_url ? 1 : 0) - (a.pf_url ? 1 : 0);
       });
 
-      // Keep the first (best) record
-      const keeper = sorted[0];
-      keptIds.push(keeper.id);
-      console.log(`PF_DEDUPE: Keeping ${keeper.id} for ${key} (synced: ${keeper.last_synced_at}, has_url: ${!!keeper.pf_url})`);
+      const survivor = group[0];
 
-      // Delete the rest with rate limiting
-      for (let i = 1; i < sorted.length; i++) {
-        const dupe = sorted[i];
-        let retryCount = 0;
-        while (retryCount < 5) {
+      // Merge linking fields from all duplicates onto the survivor (if survivor is missing them)
+      const merged = {};
+      for (const dup of group.slice(1)) {
+        if (!survivor.agent_email && dup.agent_email) merged.agent_email = dup.agent_email;
+        if (!survivor.project_id  && dup.project_id)  merged.project_id  = dup.project_id;
+        if (!survivor.property_id && dup.property_id) merged.property_id = dup.property_id;
+      }
+      if (Object.keys(merged).length > 0) {
+        await new Promise(r => setTimeout(r, 600));
+        for (let attempt = 0; attempt < 5; attempt++) {
           try {
-            await base44.asServiceRole.entities.PFListing.delete(dupe.id);
-            deletedIds.push(dupe.id);
-            duplicatesRemoved++;
-            console.log(`PF_DEDUPE: Deleted duplicate ${dupe.id} for ${key}`);
+            await base44.asServiceRole.entities.PFListing.update(survivor.id, merged);
+            mergePatched++;
             break;
-          } catch (err) {
-            const errMsg = String(err.message || err);
-            if (errMsg.includes('Rate limit') && retryCount < 4) {
-              retryCount++;
-              const delay = 500 * retryCount;
-              console.log(`PF_DEDUPE: Rate limited, retrying in ${delay}ms...`);
-              await new Promise(r => setTimeout(r, delay));
+          } catch (e) {
+            if (String(e.message || e).includes('Rate limit') && attempt < 4) {
+              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             } else {
-              console.error(`PF_DEDUPE: Failed to delete ${dupe.id}:`, err.message);
+              console.error(`PF_DEDUPE: merge patch failed for survivor ${survivor.id}:`, e.message);
+              break;
+            }
+          }
+        }
+      }
+
+      // Delete the duplicates — throttled: one delete per 700ms minimum
+      for (const dup of group.slice(1)) {
+        await new Promise(r => setTimeout(r, 700));
+        let delay = 1500;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            await base44.asServiceRole.entities.PFListing.delete(dup.id);
+            duplicatesRemoved++;
+            break;
+          } catch (e) {
+            const msg = String(e.message || e);
+            if (msg.includes('Rate limit') && attempt < 4) {
+              await new Promise(r => setTimeout(r, delay));
+              delay *= 2;
+            } else {
+              console.error(`PF_DEDUPE: delete failed for ${dup.id} (key=${key}):`, msg);
               break;
             }
           }
@@ -128,24 +110,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    const afterCount = keptIds.length;
+    const afterCount = beforeCount - duplicatesRemoved;
     const duration = Date.now() - startTime;
-
-    console.log(`PF_DEDUPE: Complete in ${duration}ms`);
-    console.log(`PF_DEDUPE: Before=${beforeCount}, Removed=${duplicatesRemoved}, After=${afterCount}`);
+    console.log(`PF_DEDUPE: done in ${duration}ms — before=${beforeCount}, removed=${duplicatesRemoved}, after=${afterCount}, merged=${mergePatched}, no_key=${noKey.length}`);
 
     return Response.json({
-      success: true,
+      ok: true,
       before_count: beforeCount,
       duplicates_removed: duplicatesRemoved,
       after_count: afterCount,
-      deleted_ids: deletedIds,
-      kept_ids: keptIds,
+      survivors_merge_patched: mergePatched,
+      records_with_no_pf_listing_id: noKey.length,
+      unique_groups: groups.size,
       duration_ms: duration,
-      warning: 'DO NOT RE-RUN - This is a one-time deduplication',
     });
   } catch (error) {
-    console.error('PF_DEDUPE: Fatal error:', error.message);
+    console.error('PF_DEDUPE: fatal:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

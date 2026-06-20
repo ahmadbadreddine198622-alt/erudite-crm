@@ -363,12 +363,31 @@ Deno.serve(async (req) => {
     diagnostics.resume_from_page = resumeFromPage;
     console.log('PF_LISTINGS_RESUME: resume_from_page=' + resumeFromPage + ', has_cred_row=' + !!credRow);
 
-    // Mark sweep as in-progress (non-fatal if schema not yet deployed)
-    if (credRow && !credRow.listings_sync_in_progress_since) {
+    // Stuck-sync guard: if in_progress_since is > 15 minutes old, treat as stale and clear it
+    const STALE_LOCK_MS = 15 * 60 * 1000;
+    if (credRow) {
+      const inProgressSince = credRow.listings_sync_in_progress_since
+        ? new Date(credRow.listings_sync_in_progress_since).getTime()
+        : null;
+      const isStale = inProgressSince && (Date.now() - inProgressSince > STALE_LOCK_MS);
+      if (inProgressSince && !isStale) {
+        // Lock is fresh — another run is genuinely in progress, abort
+        const ageMs = Date.now() - inProgressSince;
+        console.log(`PF_LISTINGS_LOCK: sync already in progress (started ${Math.round(ageMs/1000)}s ago) — aborting`);
+        return Response.json({
+          ok: false,
+          skipped: true,
+          reason: 'sync_already_in_progress',
+          started_at: credRow.listings_sync_in_progress_since,
+          age_seconds: Math.round(ageMs / 1000),
+        });
+      }
+      // Either no lock, or stale lock — claim it
       try {
         await base44.asServiceRole.entities.PFCredential.update(credRow.id, {
           listings_sync_in_progress_since: new Date().toISOString(),
         });
+        if (isStale) console.log('PF_LISTINGS_LOCK: cleared stale lock and claimed new one');
       } catch (err) {
         console.error('PF_LISTINGS_PROGRESS: failed to set listings_sync_in_progress_since:', String((err && err.message) || err));
       }
@@ -581,6 +600,23 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error('PF_LISTINGS_PROGRESS: failed to record sweep completion:', String((err && err.message) || err));
       }
+      // Run linking step after a complete sweep (non-fatal)
+      try {
+        console.log('PF_LINK: triggering linkPFListings after sweep...');
+        const linkRes = await base44.functions.invoke('linkPFListings', {});
+        console.log('PF_LINK: result:', JSON.stringify(linkRes?.data || {}));
+      } catch (linkErr) {
+        console.error('PF_LINK: linkPFListings failed (non-fatal):', String((linkErr && linkErr.message) || linkErr));
+      }
+    } else if (!sweepComplete && credRow) {
+      // Partial run — clear the lock so the next run can proceed
+      try {
+        await base44.asServiceRole.entities.PFCredential.update(credRow.id, {
+          listings_sync_in_progress_since: null,
+        });
+      } catch (err) {
+        console.error('PF_LISTINGS_PROGRESS: failed to clear lock after partial run:', String((err && err.message) || err));
+      }
     }
 
     // Finalize diagnostics
@@ -641,6 +677,17 @@ Deno.serve(async (req) => {
       ...diagnostics,
     });
   } catch (error) {
+    // Always clear the lock on unhandled crash so the next run isn't blocked
+    try {
+      const base44Fallback = createClientFromRequest(req);
+      const creds = await base44Fallback.asServiceRole.entities.PFCredential.list();
+      if (creds && creds.length > 0 && creds[0].listings_sync_in_progress_since) {
+        await base44Fallback.asServiceRole.entities.PFCredential.update(creds[0].id, {
+          listings_sync_in_progress_since: null,
+        });
+        console.log('PF_LISTINGS_LOCK: cleared lock after crash');
+      }
+    } catch (_) { /* best-effort */ }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
