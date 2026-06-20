@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare, Settings, Zap, FileText, Bot, Phone, Wifi, CheckCircle2, Copy, Check, Users } from 'lucide-react';
+import { MessageCircle, Search, Loader2, ExternalLink, RefreshCw, CheckCheck, Clock, TrendingUp, AlertCircle, MessageSquare, Settings, Zap, FileText, Bot, Phone, Wifi, CheckCircle2, Copy, Check, Users, UserCheck, UserX } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import ConversationItem from '@/components/whatsapp/ConversationItem';
 import NotificationSettings from '@/components/whatsapp/NotificationSettings';
@@ -52,6 +52,10 @@ export default function WhatsAppInbox() {
   const [showInternalNote, setShowInternalNote] = useState(false);
   const [showAgentSearch, setShowAgentSearch] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  // Admin-only scope toggle: 'all' = everyone's chats, 'mine' = admin's own only
+  const [adminScope, setAdminScope] = useState('all');
+  // Inline assignment state for unassigned conversations
+  const [assigningConvId, setAssigningConvId] = useState(null);
   const queryClient = useQueryClient();
   const conversationListRef = useRef(null);
   const prevScrollPosition = useRef(0);
@@ -60,9 +64,12 @@ export default function WhatsAppInbox() {
   const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
-  // Conversations list polling — 15s interval (reduced load, acceptable latency for list)
+  const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
+
+  // Conversations list polling — 15s interval
+  // RLS already scopes: admins see all, agents see only their own assigned rows
   const { data: conversations = [], isLoading, refetch } = useQuery({
-    queryKey: ['wa_conversations'],
+    queryKey: ['wa_conversations', isAdminUser],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 200),
     refetchInterval: 15000,
   });
@@ -268,32 +275,61 @@ export default function WhatsAppInbox() {
   };
   const selectedScore = leadScores.find(s => s.conversation_id === selectedConvId) || null;
 
-  // Filter + search - Strict agent isolation
+  // Inline assignment handler for unassigned conversations
+  const handleAssignConversation = async (convId, agentEmail) => {
+    try {
+      await base44.entities.WhatsAppConversation.update(convId, { assigned_agent_email: agentEmail });
+      setAssigningConvId(null);
+      queryClient.invalidateQueries({ queryKey: ['wa_conversations'] });
+      const agent = teamMembers.find(u => u.email === agentEmail);
+      toast.success(`Assigned to ${agent?.full_name || agentEmail}`);
+    } catch {
+      toast.error('Assignment failed');
+    }
+  };
+
+  // Filter + search — ownership-aware
   const filtered = normalizedConversations.filter(c => {
-    // Exclude internal test conversations (our own numbers)
     const phone = c.wa_phone_e164 || c.phone_number || '';
     if (isInternalNumber(phone)) return false;
-    
-    // Check if current user has admin/manager permissions
-    const isAdmin = currentUser?.role === 'admin' || permissions.view_all_whatsapp || permissions.manage_team;
-    
+
     // Malik channel: only visible to admin or Malik himself
     if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
-    
-    if (!isAdmin && currentUser) {
-      // Strict isolation: agents only see conversations explicitly assigned to them
+
+    // Non-admin agents: RLS already restricts the API response, but enforce client-side too
+    if (!isAdminUser && currentUser) {
       if (c.assigned_agent_email !== currentUser.email) return false;
     }
-    
-    // Admin/manager can filter by agent, but regular agents can only see their own
-    const matchesAgent = isAdmin ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
-    
+
+    // Admin scope: 'mine' filters to just the admin's own assigned chats
+    if (isAdminUser && adminScope === 'mine') {
+      if (c.assigned_agent_email !== currentUser?.email) return false;
+    }
+
+    // 'unassigned' filter tab — admins only: show only chats with no assigned_agent_email
+    if (isAdminUser && filter === 'unassigned') {
+      if (c.assigned_agent_email) return false;
+      // still apply search + channel
+      const lead = leads.find(l => l.id === c.lead_id);
+      const name = lead?.full_name || c.wa_saved_name || c.wa_display_name || phone;
+      const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
+      const matchesChannel = filterChannel === 'all' ? true
+        : filterChannel === 'business' ? c.channel === 'business'
+        : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
+        : filterChannel === 'malik' ? c.channel === 'malik'
+        : true;
+      return matchesSearch && matchesChannel;
+    }
+
+    // Admin agent filter dropdown (only when not in 'unassigned' tab)
+    const matchesAgent = isAdminUser ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
+
     const matchesChannel = filterChannel === 'all' ? true
-      : filterChannel === 'business' ? (c.channel === 'business')
+      : filterChannel === 'business' ? c.channel === 'business'
       : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
-      : filterChannel === 'malik' ? (c.channel === 'malik')
+      : filterChannel === 'malik' ? c.channel === 'malik'
       : true;
-    
+
     const lead = leads.find(l => l.id === c.lead_id);
     const name = lead?.full_name || c.wa_saved_name || c.wa_display_name || phone;
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
@@ -302,8 +338,14 @@ export default function WhatsAppInbox() {
       filter === 'unread' ? (c.unread_count || 0) > 0 :
       filter === 'open' ? ['open', 'new', 'pending_agent', 'pending_customer'].includes(c.status) :
       filter === 'resolved' ? c.status === 'resolved' : true;
+
     return matchesSearch && matchesFilter && matchesAgent && matchesChannel;
   });
+
+  // Count unassigned for badge
+  const unassignedCount = isAdminUser
+    ? normalizedConversations.filter(c => !isInternalNumber(c.wa_phone_e164 || c.phone_number || '') && !c.assigned_agent_email).length
+    : 0;
 
   // Preserve scroll position when conversations refresh
   useEffect(() => {
@@ -708,6 +750,32 @@ export default function WhatsAppInbox() {
 
         {/* Search + Filter pills */}
         <div className="px-3 py-2 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Admin scope toggle */}
+          {isAdminUser && (
+            <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <button
+                onClick={() => setAdminScope('all')}
+                className="flex-1 py-1 rounded-md text-[10px] font-semibold transition-all"
+                style={{
+                  background: adminScope === 'all' ? 'hsl(38 92% 50%)' : 'transparent',
+                  color: adminScope === 'all' ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                <Users className="w-2.5 h-2.5 inline mr-1" />All chats
+              </button>
+              <button
+                onClick={() => setAdminScope('mine')}
+                className="flex-1 py-1 rounded-md text-[10px] font-semibold transition-all"
+                style={{
+                  background: adminScope === 'mine' ? 'rgba(99,102,241,0.8)' : 'transparent',
+                  color: adminScope === 'mine' ? 'white' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                <UserCheck className="w-2.5 h-2.5 inline mr-1" />My chats
+              </button>
+            </div>
+          )}
+
           {/* Search input */}
           <div className="relative">
             <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
@@ -719,25 +787,32 @@ export default function WhatsAppInbox() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+
           {/* Status filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'unread', 'open', 'resolved'].map(f => (
+            {['all', 'unread', 'open', 'resolved', ...(isAdminUser ? ['unassigned'] : [])].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors"
                 style={{
-                  background: filter === f ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
-                  color: filter === f ? 'hsl(222 47% 11%)' : 'rgba(255,255,255,0.6)',
-                  border: filter === f ? '1px solid hsl(38 92% 50%)' : '1px solid transparent',
+                  background: filter === f
+                    ? f === 'unassigned' ? 'rgba(239,68,68,0.8)' : 'hsl(38 92% 50%)'
+                    : 'rgba(255,255,255,0.05)',
+                  color: filter === f ? (f === 'unassigned' ? 'white' : 'hsl(222 47% 11%)') : 'rgba(255,255,255,0.6)',
+                  border: filter === f ? '1px solid transparent' : '1px solid transparent',
                 }}
               >
-                {f === 'all' ? 'All' : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}` : f.charAt(0).toUpperCase() + f.slice(1)}
+                {f === 'all' ? 'All'
+                  : f === 'unread' ? `Unread${unreadTotal > 0 ? ` (${unreadTotal})` : ''}`
+                  : f === 'unassigned' ? `Unassigned${unassignedCount > 0 ? ` (${unassignedCount})` : ''}`
+                  : f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
           </div>
-          {/* Agent filter — admin only */}
-          {permissions.view_all_whatsapp && teamMembers.length > 0 && (
+
+          {/* Agent filter dropdown — admin only, hidden in unassigned view */}
+          {isAdminUser && filter !== 'unassigned' && teamMembers.length > 0 && (
             <select
               value={filterAssignedAgent}
               onChange={e => setFilterAssignedAgent(e.target.value)}
@@ -750,6 +825,7 @@ export default function WhatsAppInbox() {
               ))}
             </select>
           )}
+
           {/* Channel filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
             {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : [])].map(c => {
@@ -783,8 +859,14 @@ export default function WhatsAppInbox() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm px-4">
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              {search || filter !== 'all' ? 'No matching conversations' : 'No conversations yet'}
-              <p className="text-xs mt-1 opacity-60">Messages will appear here when leads contact you on WhatsApp</p>
+              {filter === 'unassigned' ? 'No unassigned conversations' :
+               search || filter !== 'all' ? 'No matching conversations' :
+               isAdminUser ? 'No conversations yet' : 'No conversations assigned to you yet'}
+              <p className="text-xs mt-1 opacity-60">
+                {filter === 'unassigned' ? 'All chats have been assigned to agents' :
+                 isAdminUser ? 'Messages will appear here when leads contact you on WhatsApp' :
+                 'An admin will assign conversations to you'}
+              </p>
             </div>
           ) : (
             filtered.map(conv => {
@@ -792,16 +874,53 @@ export default function WhatsAppInbox() {
                const landlord = findLandlordByPhone(conv);
                const phone = conv.wa_phone_e164 || conv.phone_number || '';
                const isInternal = isInternalNumber(phone);
+               const isUnassigned = !conv.assigned_agent_email;
+               const isAssigningThis = assigningConvId === conv.id;
                return (
-                <ConversationItem
-                  key={conv.id}
-                  conv={conv}
-                  lead={lead}
-                  landlord={landlord}
-                  selected={conv.id === selectedConvId}
-                  onClick={() => handleSelectConv(conv.id)}
-                  isInternal={isInternal}
-                />
+                <div key={conv.id}>
+                  <ConversationItem
+                    conv={conv}
+                    lead={lead}
+                    landlord={landlord}
+                    selected={conv.id === selectedConvId}
+                    onClick={() => handleSelectConv(conv.id)}
+                    isInternal={isInternal}
+                  />
+                  {/* Inline assignment row for unassigned convos — admin only */}
+                  {isAdminUser && isUnassigned && (
+                    <div className="px-3 pb-2 -mt-1">
+                      {isAssigningThis ? (
+                        <div className="flex items-center gap-1">
+                          <select
+                            autoFocus
+                            className="flex-1 px-2 py-1 rounded-lg text-[10px] outline-none"
+                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(245,158,11,0.4)', color: 'rgba(255,255,255,0.9)' }}
+                            defaultValue=""
+                            onChange={e => e.target.value && handleAssignConversation(conv.id, e.target.value)}
+                          >
+                            <option value="">Pick agent…</option>
+                            {teamMembers.filter(u => u.email).map(u => (
+                              <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => setAssigningConvId(null)}
+                            className="text-[10px] px-1.5 py-1 rounded text-white/40 hover:text-white/70"
+                          >✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={e => { e.stopPropagation(); setAssigningConvId(conv.id); }}
+                          className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md w-full transition-all"
+                          style={{ background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.8)', border: '1px solid rgba(239,68,68,0.15)' }}
+                        >
+                          <UserX className="w-2.5 h-2.5" />
+                          Unassigned — click to assign
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })
           )}
