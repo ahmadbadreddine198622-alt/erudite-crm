@@ -1,0 +1,216 @@
+{
+  "name": "CallQualification",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord entity"
+    },
+    "landlord_name": {
+      "type": "string",
+      "description": "Cached landlord name for quick display"
+    },
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Agent who made the call and logged this qualification"
+    },
+    "call_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the call took place"
+    },
+    "call_channel": {
+      "type": "string",
+      "enum": [
+        "phone",
+        "whatsapp",
+        "in_person",
+        "video",
+        "other"
+      ],
+      "default": "phone",
+      "description": "How the call/contact happened"
+    },
+    "motivation": {
+      "type": "string",
+      "enum": [
+        "relocating",
+        "cashing_out",
+        "upgrading_downsizing",
+        "distressed_need_funds",
+        "inherited",
+        "poor_returns",
+        "just_testing_market",
+        "other",
+        "unknown"
+      ],
+      "description": "Why the landlord is selling/renting"
+    },
+    "motivation_notes": {
+      "type": "string",
+      "description": "Free-text detail on motivation in the landlord's own words"
+    },
+    "timeline_urgency": {
+      "type": "string",
+      "enum": [
+        "asap_urgent",
+        "1_3_months",
+        "3_6_months",
+        "6_12_months",
+        "no_rush_testing",
+        "unknown"
+      ],
+      "description": "How soon they want to transact"
+    },
+    "price_expectation_aed": {
+      "type": "number",
+      "description": "The price the landlord wants/expects in AED"
+    },
+    "price_vs_valuation": {
+      "type": "string",
+      "enum": [
+        "realistic",
+        "slightly_high",
+        "significantly_overpriced",
+        "below_market",
+        "not_discussed"
+      ],
+      "description": "Agent's read on their price expectation vs market valuation"
+    },
+    "mandate_openness": {
+      "type": "string",
+      "enum": [
+        "open_to_exclusive",
+        "non_exclusive_only",
+        "already_with_other_brokers",
+        "wants_to_self_sell",
+        "undecided",
+        "not_discussed"
+      ],
+      "description": "Willingness to give a mandate"
+    },
+    "competing_brokers": {
+      "type": "string",
+      "description": "Which/how many other brokers they're working with, if any"
+    },
+    "tenancy_status": {
+      "type": "string",
+      "enum": [
+        "vacant",
+        "tenanted_lease_active",
+        "tenanted_lease_expiring",
+        "owner_occupied",
+        "unknown"
+      ],
+      "description": "Occupancy status of the unit"
+    },
+    "available_from": {
+      "type": "string",
+      "format": "date",
+      "description": "When the unit becomes available for vacant possession"
+    },
+    "mortgage_status": {
+      "type": "string",
+      "enum": [
+        "free_and_clear",
+        "mortgaged_local",
+        "mortgaged_overseas",
+        "payment_plan",
+        "unknown"
+      ],
+      "description": "Mortgage situation on the unit"
+    },
+    "is_decision_maker": {
+      "type": "string",
+      "enum": [
+        "sole_decision_maker",
+        "joint_needs_spouse",
+        "represents_owner",
+        "unknown"
+      ],
+      "description": "Whether the contact can decide alone"
+    },
+    "call_outcome": {
+      "type": "string",
+      "enum": [
+        "interested_proceeding",
+        "needs_followup",
+        "callback_requested",
+        "thinking_about_it",
+        "not_ready",
+        "not_interested",
+        "no_answer",
+        "wrong_number",
+        "dead_lead"
+      ],
+      "description": "Result of this call"
+    },
+    "rapport_after_call": {
+      "type": "string",
+      "enum": [
+        "cold",
+        "warming",
+        "rapport_built",
+        "trust_established",
+        "champion"
+      ],
+      "description": "Relationship temperature after this call"
+    },
+    "next_step": {
+      "type": "string",
+      "description": "The agreed next action"
+    },
+    "followup_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When to follow up next"
+    },
+    "agent_notes": {
+      "type": "string",
+      "description": "Free-text notes / anything else from the call"
+    },
+    "ai_processed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether AI has read this qualification and updated the landlord's scores"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "agent_email",
+    "call_date"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
