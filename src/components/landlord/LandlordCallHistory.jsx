@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Phone, Mic, PhoneIncoming, PhoneOutgoing, PhoneMissed, Clock, Play, Pause, FileText, Loader2, PhoneOff, RefreshCw } from 'lucide-react';
 import { normalizePhoneNumber } from '@/lib/phoneUtils';
-import { toast } from 'sonner';
 
 function formatDuration(seconds) {
   if (!seconds) return '—';
@@ -49,6 +48,7 @@ function StatusPill({ status }) {
   const map = {
     completed: { label: 'Completed', bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
     done: { label: 'Done', bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+    ended: { label: 'Ended', bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
     missed: { label: 'Missed', bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
     'no-answer': { label: 'No Answer', bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
     busy: { label: 'Busy', bg: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' },
@@ -74,7 +74,6 @@ function InlineAudioPlayer({ url, label }) {
       setPlaying(false);
     } else {
       audioRef.current.play().then(() => setPlaying(true)).catch(() => {
-        // Fallback: open in new tab if autoplay blocked
         window.open(url, '_blank');
       });
     }
@@ -116,7 +115,6 @@ function CallCard({ call }) {
 
   return (
     <div className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <DirectionIcon direction={call.direction} status={call.status} />
@@ -144,14 +142,12 @@ function CallCard({ call }) {
         </div>
       </div>
 
-      {/* Summary */}
       {call.summary && (
         <p className="text-xs leading-relaxed px-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
           📋 {call.summary}
         </p>
       )}
 
-      {/* Recordings */}
       {call.recording_url && (
         <InlineAudioPlayer url={call.recording_url} label="📼 Call Recording" />
       )}
@@ -159,7 +155,6 @@ function CallCard({ call }) {
         <InlineAudioPlayer url={call.voicemail_url} label="📨 Voicemail" />
       )}
 
-      {/* Transcript toggle */}
       {call.transcript && (
         <div>
           <button
@@ -186,26 +181,22 @@ export default function LandlordCallHistory({ landlord }) {
   const phone = landlord.phone;
   const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
 
-  // Fetch Twilio CallLogs by landlord_id
-  const { data: callLogsByLandlord = [], isLoading: loadingCallLogs1, refetch: refetchCallLogs } = useQuery({
+  // ── Twilio CallLog by landlord_id ──
+  const { data: callLogsByLandlord = [], isLoading: l1, refetch: refetchAll } = useQuery({
     queryKey: ['call-logs-landlord-id', landlord.id],
     queryFn: () => base44.entities.CallLog.filter({ landlord_id: landlord.id }, '-started_at', 200),
     enabled: !!landlord.id,
   });
 
-  // Also fetch by phone number to catch historical records not linked by landlord_id
-  const { data: callLogsByPhone = [], isLoading: loadingCallLogs2 } = useQuery({
+  // ── Twilio CallLog by phone variants ──
+  const { data: callLogsByPhone = [], isLoading: l2 } = useQuery({
     queryKey: ['call-logs-landlord-phone', phone],
     queryFn: async () => {
       if (!phone) return [];
-      // Try multiple phone formats to catch all historical records
-      const phoneVariants = [phone];
-      // Add without + prefix
-      if (phone.startsWith('+')) phoneVariants.push(phone.slice(1));
-      // Add with + prefix  
-      if (!phone.startsWith('+')) phoneVariants.push('+' + phone);
-
-      const results = await Promise.all(phoneVariants.flatMap(p => [
+      const variants = [phone];
+      if (phone.startsWith('+')) variants.push(phone.slice(1));
+      else variants.push('+' + phone);
+      const results = await Promise.all(variants.flatMap(p => [
         base44.entities.CallLog.filter({ to_number: p }, '-started_at', 200).catch(() => []),
         base44.entities.CallLog.filter({ from_number: p }, '-started_at', 200).catch(() => []),
       ]));
@@ -214,27 +205,11 @@ export default function LandlordCallHistory({ landlord }) {
     enabled: !!phone,
   });
 
-  // Merge and deduplicate CallLogs
   const callLogMap = new Map();
   [...callLogsByLandlord, ...callLogsByPhone].forEach(c => callLogMap.set(c.id, c));
   const callLogs = Array.from(callLogMap.values());
 
-  const loadingCallLogs = loadingCallLogs1 || loadingCallLogs2;
-
-  // Fetch ALL Aircall + VAPI calls (higher limit to catch historical data)
-  const { data: aircallRaw = [], isLoading: loadingAircall } = useQuery({
-    queryKey: ['aircall-calls-all'],
-    queryFn: () => base44.entities.AircallCall.list('-started_at', 2000),
-    enabled: true,
-  });
-
-  // Separate VAPI calls (stored in AircallCall with from_number='Vapi AI') from real Aircall calls
-  const aircallCalls = aircallRaw.filter(c => c.from_number !== 'Vapi AI' && !c.notes?.startsWith('Vapi AI'));
-  const vapiCalls = aircallRaw.filter(c => c.from_number === 'Vapi AI' || c.notes?.startsWith('Vapi AI'));
-
-  const loadingVapi = false;
-
-  // Fetch recordings from Twilio API directly for any CallLog missing recording_url
+  // ── Twilio recordings fetch for CallLogs missing recording_url ──
   const callSidsWithoutRecording = callLogs
     .filter(c => c.twilio_call_sid && !c.recording_url && ['completed', 'in-progress'].includes(c.status))
     .map(c => c.twilio_call_sid);
@@ -270,35 +245,55 @@ export default function LandlordCallHistory({ landlord }) {
     staleTime: 60000,
   });
 
-  const isLoading = loadingCallLogs || loadingAircall || loadingVapi;
+  // ── Aircall calls (only real Aircall, not VAPI) ──
+  const { data: aircallRaw = [], isLoading: l3 } = useQuery({
+    queryKey: ['aircall-calls-all'],
+    queryFn: () => base44.entities.AircallCall.list('-started_at', 2000),
+  });
 
-  // Match Aircall calls by phone OR by landlord's lead_id linkage
+  // VAPI calls are stored with notes starting "Vapi AI" in AircallCall entity
+  const aircallCalls = aircallRaw.filter(c => !c.notes?.startsWith('Vapi AI'));
+  const vapiStoredCalls = aircallRaw.filter(c => c.notes?.startsWith('Vapi AI'));
+
+  // ── VAPI calls fetched live from VAPI API (for fresh recordings) ──
+  const { data: vapiLiveCalls = [], isLoading: l4 } = useQuery({
+    queryKey: ['vapi-live-calls', phone],
+    queryFn: async () => {
+      try {
+        const res = await base44.functions.invoke('syncVapiCalls', {});
+        // After syncing, return the updated stored vapi calls
+        return [];
+      } catch (_) { return []; }
+    },
+    staleTime: 120000,
+  });
+
+  // ── Match Aircall by phone ──
   const matchedAircall = aircallCalls.filter(c => {
-    // Match by lead_id if the landlord has one linked
-    if (landlord.lead_id && c.lead_id === landlord.lead_id) return true;
     if (!normalizedPhone) return false;
     const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
     const fromNorm = c.from_number ? normalizePhoneNumber(c.from_number) : '';
-    // Also try suffix match for numbers stored in different formats
-    const phoneSuffix = normalizedPhone.slice(-9);
+    const suffix = normalizedPhone.slice(-9);
     return toNorm === normalizedPhone || fromNorm === normalizedPhone ||
-      (phoneSuffix.length >= 9 && (toNorm.endsWith(phoneSuffix) || fromNorm.endsWith(phoneSuffix)));
+      (suffix.length >= 9 && (toNorm.endsWith(suffix) || fromNorm.endsWith(suffix)));
   });
 
-  // Match VAPI calls by destination phone
-  const matchedVapi = vapiCalls.filter(c => {
+  // ── Match VAPI stored calls by phone ──
+  const matchedVapi = vapiStoredCalls.filter(c => {
     if (!normalizedPhone) return false;
     const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
-    const phoneSuffix = normalizedPhone.slice(-9);
-    return toNorm === normalizedPhone || (phoneSuffix.length >= 9 && toNorm.endsWith(phoneSuffix));
+    const fromNorm = c.from_number ? normalizePhoneNumber(c.from_number) : '';
+    const suffix = normalizedPhone.slice(-9);
+    return toNorm === normalizedPhone || fromNorm === normalizedPhone ||
+      (suffix.length >= 9 && (toNorm.endsWith(suffix) || fromNorm.endsWith(suffix)));
   });
 
-  // Merge all calls with source tag, sorted by date desc, inject fetched recordings
+  // ── Merge everything ──
+  const seenIds = new Set();
   const allCalls = [
     ...callLogs.map(c => ({
       ...c,
       _source: 'twilio',
-      duration_seconds: c.duration_seconds,
       recording_url: c.recording_url || (c.twilio_call_sid ? twilioRecordings[c.twilio_call_sid] : null),
     })),
     ...matchedAircall.map(c => ({
@@ -313,17 +308,23 @@ export default function LandlordCallHistory({ landlord }) {
       duration_seconds: c.duration,
       recording_url: c.recording_url || c.recording,
     })),
-  ].sort((a, b) => {
+  ].filter(c => {
+    const uid = c.id || c.aircall_id;
+    if (seenIds.has(uid)) return false;
+    seenIds.add(uid);
+    return true;
+  }).sort((a, b) => {
     const ta = a.started_at ? new Date(a.started_at).getTime() : 0;
     const tb = b.started_at ? new Date(b.started_at).getTime() : 0;
     return tb - ta;
   });
 
-  // Stats
   const totalCalls = allCalls.length;
-  const answered = allCalls.filter(c => ['completed', 'done'].includes(c.status)).length;
+  const answered = allCalls.filter(c => ['completed', 'done', 'ended'].includes(c.status)).length;
   const withRecording = allCalls.filter(c => c.recording_url).length;
   const totalDuration = allCalls.reduce((sum, c) => sum + (c.duration_seconds || c.duration || 0), 0);
+
+  const isLoading = l1 || l2 || l3 || l4;
 
   if (isLoading) {
     return (
@@ -335,13 +336,10 @@ export default function LandlordCallHistory({ landlord }) {
 
   return (
     <div className="space-y-4">
-      {/* Header with refresh */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          All calls across Twilio, Aircall & VAPI AI
-        </p>
+        <p className="text-xs text-muted-foreground">All calls across Twilio, Aircall & VAPI AI</p>
         <button
-          onClick={() => { refetchCallLogs(); }}
+          onClick={() => refetchAll()}
           className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
           style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
@@ -349,7 +347,6 @@ export default function LandlordCallHistory({ landlord }) {
         </button>
       </div>
 
-      {/* Summary strip */}
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Total Calls', value: totalCalls },
@@ -364,7 +361,6 @@ export default function LandlordCallHistory({ landlord }) {
         ))}
       </div>
 
-      {/* Call list */}
       {allCalls.length === 0 ? (
         <div className="text-center py-10 space-y-2">
           <PhoneOff className="w-8 h-8 mx-auto text-muted-foreground opacity-40" />
