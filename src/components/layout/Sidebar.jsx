@@ -91,6 +91,7 @@ const navSections = [
     items: [
       { label: 'Dashboard',           icon: LayoutDashboard, path: '/',                    gradient: 'from-blue-600 to-blue-800' },
       { label: 'My Dashboard',        icon: UserCircle,      path: '/my-dashboard',        gradient: 'from-blue-500 to-indigo-700' },
+      { label: 'My Leads Today',      icon: Users,           path: '/my-leads-today',      gradient: 'from-emerald-500 to-teal-700' },
       { label: 'Market Intelligence', icon: LineChart,       path: '/market-intelligence', gradient: 'from-indigo-500 to-blue-700' },
       { label: 'Claude AI',           icon: Sparkles,        path: '/claude-ai',           gradient: 'from-violet-500 to-purple-800' },
       { label: 'Elite Desk',          icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-500 to-yellow-700' },
