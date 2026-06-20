@@ -27,6 +27,7 @@ export const ALL_APPS = [
   { label: 'Team',               icon: Users,          path: '/team',                gradient: 'from-slate-500 to-slate-700',      glowColor: 'rgba(148,163,184,0.40)' },
   { label: 'Team AI OS',         icon: Brain,          path: '/team-os',             gradient: 'from-indigo-500 to-violet-800',    glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Team Performance',   icon: Trophy,         path: '/team-dashboard',      gradient: 'from-yellow-500 to-amber-700',     glowColor: 'rgba(234,179,8,0.40)' },
+  { label: 'Agent Intelligence', icon: Brain,          path: '/agent-intelligence',  gradient: 'from-violet-500 to-purple-800',    glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Offers',             icon: FileSignature,  path: '/offers',              gradient: 'from-cyan-500 to-blue-800',        glowColor: 'rgba(6,182,212,0.40)' },
   { label: 'Finance',            icon: Calculator,     path: '/finance',             gradient: 'from-green-500 to-teal-800',       glowColor: 'rgba(20,184,166,0.40)' },
   { label: 'Key Handover',       icon: Key,            path: '/key-handover',        gradient: 'from-orange-500 to-red-700',       glowColor: 'rgba(249,115,22,0.40)' },
