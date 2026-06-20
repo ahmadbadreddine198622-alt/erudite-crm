@@ -218,6 +218,7 @@ export default function CallQualificationTab({ landlord }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [saved, setSaved] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -236,7 +237,6 @@ export default function CallQualificationTab({ landlord }) {
         call_date: new Date().toISOString(),
         ai_processed: false,
       };
-      // Only include non-empty optional fields
       const optionalFields = [
         'motivation', 'motivation_notes', 'timeline_urgency',
         'price_vs_valuation', 'mandate_openness', 'competing_brokers',
@@ -257,6 +257,7 @@ export default function CallQualificationTab({ landlord }) {
       qc.invalidateQueries({ queryKey: ['call-qualifications', landlord.id] });
       setForm(EMPTY);
       setSaved(true);
+      setIsExpanded(false); // Collapse after save
       setTimeout(() => setSaved(false), 3000);
       toast({ title: 'Call logged', description: 'Qualification saved. AI scoring will run shortly.' });
     },
@@ -265,104 +266,142 @@ export default function CallQualificationTab({ landlord }) {
 
   return (
     <div className="space-y-5">
-      {/* ── Form ── */}
-      <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(250,180,40,0.04)', border: '1px solid rgba(250,180,40,0.15)' }}>
-        <div className="flex items-center gap-2 mb-1">
-          <PhoneCall className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'hsl(38 92% 60%)', fontFamily: 'var(--font-display)' }}>Log This Call</span>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Motivation">
-            <Sel value={form.motivation} onChange={v => set('motivation', v)} opts={MOTIVATION_OPTS} />
-          </Field>
-          <Field label="Timeline / Urgency">
-            <Sel value={form.timeline_urgency} onChange={v => set('timeline_urgency', v)} opts={TIMELINE_OPTS} />
-          </Field>
-        </div>
-
-        <Field label="Motivation Notes">
-          <input className={inputCls} style={inputStyle} placeholder="In the owner's own words…" value={form.motivation_notes} onChange={e => set('motivation_notes', e.target.value)} />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Price Expectation (AED)">
-            <input type="number" className={inputCls} style={inputStyle} placeholder="e.g. 1400000" value={form.price_expectation_aed} onChange={e => set('price_expectation_aed', e.target.value)} />
-          </Field>
-          <Field label="Price vs Valuation">
-            <Sel value={form.price_vs_valuation} onChange={v => set('price_vs_valuation', v)} opts={PRICE_VS_VAL_OPTS} />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Mandate Openness">
-            <Sel value={form.mandate_openness} onChange={v => set('mandate_openness', v)} opts={MANDATE_OPTS} />
-          </Field>
-          <Field label="Competing Brokers">
-            <input className={inputCls} style={inputStyle} placeholder="Which / how many?" value={form.competing_brokers} onChange={e => set('competing_brokers', e.target.value)} />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Tenancy Status">
-            <Sel value={form.tenancy_status} onChange={v => set('tenancy_status', v)} opts={TENANCY_OPTS} />
-          </Field>
-          <Field label="Available From">
-            <input type="date" className={inputCls} style={inputStyle} value={form.available_from} onChange={e => set('available_from', e.target.value)} />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Mortgage Status">
-            <Sel value={form.mortgage_status} onChange={v => set('mortgage_status', v)} opts={MORTGAGE_OPTS} />
-          </Field>
-          <Field label="Decision Maker?">
-            <Sel value={form.is_decision_maker} onChange={v => set('is_decision_maker', v)} opts={DECISION_OPTS} />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Call Outcome">
-            <Sel value={form.call_outcome} onChange={v => set('call_outcome', v)} opts={OUTCOME_OPTS} />
-          </Field>
-          <Field label="Rapport After Call">
-            <Sel value={form.rapport_after_call} onChange={v => set('rapport_after_call', v)} opts={RAPPORT_OPTS} />
-          </Field>
-        </div>
-
-        <Field label="Next Step">
-          <input className={inputCls} style={inputStyle} placeholder="Agreed next action…" value={form.next_step} onChange={e => set('next_step', e.target.value)} />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Follow-Up Date">
-            <input type="date" className={inputCls} style={inputStyle} value={form.followup_date} onChange={e => set('followup_date', e.target.value)} />
-          </Field>
-        </div>
-
-        <Field label="Agent Notes">
-          <textarea
-            rows={3}
-            className={inputCls + ' resize-none'}
-            style={inputStyle}
-            placeholder="Anything else from the call…"
-            value={form.agent_notes}
-            onChange={e => set('agent_notes', e.target.value)}
-          />
-        </Field>
-
+      {/* ── Collapsible Form ── */}
+      <div className="rounded-xl overflow-hidden border" style={{ background: 'rgba(250,180,40,0.04)', borderColor: 'rgba(250,180,40,0.15)' }}>
+        {/* Header bar - always visible */}
         <button
-          onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-          style={{ background: saved ? 'rgba(16,185,129,0.2)' : 'hsl(38 92% 50%)', color: saved ? '#34d399' : 'hsl(222 47% 11%)', border: saved ? '1px solid rgba(16,185,129,0.4)' : 'none' }}
+          onClick={() => setIsExpanded(e => !e)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-amber-500/10"
         >
-          {saveMutation.isPending
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : saved
-            ? <><CheckCircle2 className="w-4 h-4" /> Saved!</>
-            : <><PhoneCall className="w-4 h-4" /> Save Call</>}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(250,180,40,0.15)' }}>
+              <PhoneCall className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+            </div>
+            <div>
+              <span className="text-sm font-semibold" style={{ color: 'hsl(38 92% 60%)', fontFamily: 'var(--font-display)' }}>
+                📞 Log This Call
+              </span>
+              <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {isExpanded ? 'Click to collapse' : 'Click to expand form'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {saved && (
+              <span className="text-[10px] font-medium text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Saved
+              </span>
+            )}
+            {isExpanded ? (
+              <ChevronUp className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            ) : (
+              <ChevronDown className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            )}
+          </div>
         </button>
+
+        {/* Expandable content with smooth animation */}
+        <div
+          className="transition-all duration-300 ease-in-out overflow-hidden"
+          style={{
+            maxHeight: isExpanded ? '2000px' : '0px',
+            opacity: isExpanded ? 1 : 0,
+          }}
+        >
+          <div className="px-4 pb-4 pt-2 space-y-3 border-t" style={{ borderColor: 'rgba(250,180,40,0.1)' }}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Motivation">
+                <Sel value={form.motivation} onChange={v => set('motivation', v)} opts={MOTIVATION_OPTS} />
+              </Field>
+              <Field label="Timeline / Urgency">
+                <Sel value={form.timeline_urgency} onChange={v => set('timeline_urgency', v)} opts={TIMELINE_OPTS} />
+              </Field>
+            </div>
+
+            <Field label="Motivation Notes">
+              <input className={inputCls} style={inputStyle} placeholder="In the owner's own words…" value={form.motivation_notes} onChange={e => set('motivation_notes', e.target.value)} />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Price Expectation (AED)">
+                <input type="number" className={inputCls} style={inputStyle} placeholder="e.g. 1400000" value={form.price_expectation_aed} onChange={e => set('price_expectation_aed', e.target.value)} />
+              </Field>
+              <Field label="Price vs Valuation">
+                <Sel value={form.price_vs_valuation} onChange={v => set('price_vs_valuation', v)} opts={PRICE_VS_VAL_OPTS} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Mandate Openness">
+                <Sel value={form.mandate_openness} onChange={v => set('mandate_openness', v)} opts={MANDATE_OPTS} />
+              </Field>
+              <Field label="Competing Brokers">
+                <input className={inputCls} style={inputStyle} placeholder="Which / how many?" value={form.competing_brokers} onChange={e => set('competing_brokers', e.target.value)} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Tenancy Status">
+                <Sel value={form.tenancy_status} onChange={v => set('tenancy_status', v)} opts={TENANCY_OPTS} />
+              </Field>
+              <Field label="Available From">
+                <input type="date" className={inputCls} style={inputStyle} value={form.available_from} onChange={e => set('available_from', e.target.value)} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Mortgage Status">
+                <Sel value={form.mortgage_status} onChange={v => set('mortgage_status', v)} opts={MORTGAGE_OPTS} />
+              </Field>
+              <Field label="Decision Maker?">
+                <Sel value={form.is_decision_maker} onChange={v => set('is_decision_maker', v)} opts={DECISION_OPTS} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Call Outcome">
+                <Sel value={form.call_outcome} onChange={v => set('call_outcome', v)} opts={OUTCOME_OPTS} />
+              </Field>
+              <Field label="Rapport After Call">
+                <Sel value={form.rapport_after_call} onChange={v => set('rapport_after_call', v)} opts={RAPPORT_OPTS} />
+              </Field>
+            </div>
+
+            <Field label="Next Step">
+              <input className={inputCls} style={inputStyle} placeholder="Agreed next action…" value={form.next_step} onChange={e => set('next_step', e.target.value)} />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Follow-Up Date">
+                <input type="date" className={inputCls} style={inputStyle} value={form.followup_date} onChange={e => set('followup_date', e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label="Agent Notes">
+              <textarea
+                rows={3}
+                className={inputCls + ' resize-none'}
+                style={inputStyle}
+                placeholder="Anything else from the call…"
+                value={form.agent_notes}
+                onChange={e => set('agent_notes', e.target.value)}
+              />
+            </Field>
+
+            <button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              style={{ background: saved ? 'rgba(16,185,129,0.2)' : 'hsl(38 92% 50%)', color: saved ? '#34d399' : 'hsl(222 47% 11%)', border: saved ? '1px solid rgba(16,185,129,0.4)' : 'none' }}
+            >
+              {saveMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : saved
+                ? <><CheckCircle2 className="w-4 h-4" /> Saved!</>
+                : <><PhoneCall className="w-4 h-4" /> Save Call</>}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── History ── */}
