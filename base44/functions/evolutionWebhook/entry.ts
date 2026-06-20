@@ -481,6 +481,7 @@ Deno.serve(async (req) => {
           to_number: fromMe ? e164Phone : myNumber,
           channel,
           media_type: parsed.media?.kind || 'none',
+          assigned_agent_email: conv.assigned_agent_email || null,
         };
         if (parsed.media?.kind === 'audio') {
           waRecord.is_voice_note = parsed.media.isVoiceNote === true;

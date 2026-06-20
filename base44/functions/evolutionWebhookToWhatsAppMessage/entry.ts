@@ -235,6 +235,7 @@ Deno.serve(async (req) => {
       timestamp: timestamp,
       from_number: fromNumber,
       to_number: toNumber,
+      assigned_agent_email: conversation.assigned_agent_email || null,
     };
 
     if (parsed.caption) waMessage.body = parsed.caption;
