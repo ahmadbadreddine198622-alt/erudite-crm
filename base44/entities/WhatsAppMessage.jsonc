@@ -14,6 +14,11 @@
       "type": "string",
       "description": "Meta message ID (dedup)"
     },
+    "assigned_agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Stamped from the parent conversation \u2014 used for RLS scoping"
+    },
     "direction": {
       "type": "string",
       "enum": [
@@ -101,5 +106,37 @@
     "direction",
     "body",
     "timestamp"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.assigned_agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.assigned_agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
