@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2 } from 'lucide-react';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -66,6 +66,7 @@ const STAGE_LABELS = {
 
 export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
+  const navigate = useNavigate();
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
@@ -263,7 +264,10 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
 
   return (
     <div
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/landlord/${landlord.id}`);
+      }}
       className={cn(
         'rounded-xl p-1.5 cursor-pointer transition-all duration-200',
         isDragging

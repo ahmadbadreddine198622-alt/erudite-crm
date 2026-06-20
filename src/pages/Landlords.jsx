@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered } from 'lucide-react';
@@ -22,7 +22,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
-import LandlordDetailPanel from '@/components/landlord/LandlordDetailPanel';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
@@ -75,7 +74,7 @@ export default function Landlords() {
   const { user: currentUser, permissions, loading: userLoading } = useCurrentUser();
   const safePermissions = permissions || {};
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedLandlordId, setSelectedLandlordId] = useState(searchParams.get('selected'));
+  const navigate = useNavigate();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showVirtualViewing, setShowVirtualViewing] = useState(false);
@@ -97,23 +96,7 @@ export default function Landlords() {
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
 
-  // Sync URL ?selected=<id> with state, both ways
-  useEffect(() => {
-    const urlSelected = searchParams.get('selected');
-    if (urlSelected && urlSelected !== selectedLandlordId) {
-      setSelectedLandlordId(urlSelected);
-    }
-  }, [searchParams]);
 
-  useEffect(() => {
-    if (selectedLandlordId && searchParams.get('selected') !== selectedLandlordId) {
-      setSearchParams({ selected: selectedLandlordId }, { replace: true });
-    } else if (!selectedLandlordId && searchParams.get('selected')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('selected');
-      setSearchParams(next, { replace: true });
-    }
-  }, [selectedLandlordId]);
 
   // Fetch all landlords and projects
   const { data: landlords = [], isLoading } = useQuery({
@@ -197,11 +180,6 @@ export default function Landlords() {
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === filterProject) || null,
     [projects, filterProject],
-  );
-
-  const selectedLandlord = useMemo(
-    () => landlords.find((l) => l.id === selectedLandlordId) || null,
-    [landlords, selectedLandlordId],
   );
 
   // Role-based isolation
@@ -291,6 +269,10 @@ export default function Landlords() {
     queryClient.invalidateQueries({ queryKey: ['landlords'] });
     setShowNewDialog(false);
     toast.success('Landlord added successfully');
+  };
+
+  const handleSelectLandlord = (id) => {
+    navigate(`/landlord/${id}`);
   };
 
   const updateStageMutation = useMutation({
@@ -497,7 +479,7 @@ export default function Landlords() {
           </button>
           {showQueuePanel && (
             <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <LockedLeadQueue onSelectLandlord={setSelectedLandlordId} />
+              <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
             </div>
           )}
         </div>
@@ -694,8 +676,8 @@ export default function Landlords() {
           stages={STAGES}
           stageLabels={STAGE_LABELS}
           stageGroups={filteredGroups}
-          selectedLandlordId={selectedLandlordId}
-          onSelectLandlord={setSelectedLandlordId}
+          selectedLandlordId={null}
+          onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
           onStageChange={handleStageChange}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
@@ -705,19 +687,6 @@ export default function Landlords() {
           getPhotoForPhone={getPhotoForPhone}
         />
       </div>
-
-      {/* Detail Panel */}
-      {selectedLandlord && (
-        <LandlordDetailPanel fullScreenOnMobile={true}
-          landlord={selectedLandlord}
-          open={!!selectedLandlord}
-          onClose={() => setSelectedLandlordId(null)}
-          onUpdate={() => {
-            queryClient.invalidateQueries({ queryKey: ['landlord', selectedLandlordId] });
-            queryClient.invalidateQueries({ queryKey: ['landlords'] });
-          }}
-        />
-      )}
 
       {/* Dialogs */}
       <AddLandlordDialog
@@ -732,11 +701,7 @@ export default function Landlords() {
       <ScheduleVirtualViewingDialog
         open={showVirtualViewing}
         onClose={() => setShowVirtualViewing(false)}
-        prefill={selectedLandlord ? {
-          landlord_name:  selectedLandlord.full_name_en,
-          landlord_email: selectedLandlord.email,
-          landlord_phone: selectedLandlord.phone,
-        } : {}}
+        prefill={{}}
       />
       <FormAUploadDialog
         open={showFormADialog}
