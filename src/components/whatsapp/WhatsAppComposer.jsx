@@ -136,24 +136,33 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
           <div className="w-full max-w-sm rounded-2xl p-5 space-y-4" style={{ background: 'hsl(222 47% 11%)', border: '1px solid rgba(255,255,255,0.15)' }}>
             <p className="text-sm font-semibold text-white text-center">Send from which number?</p>
             <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>This chat will be pinned to the chosen number</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleChannelSelect('business')}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border transition hover:scale-105"
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border transition hover:scale-105"
                 style={{ background: 'hsl(152 69% 40% / 0.1)', borderColor: 'hsl(152 69% 40% / 0.4)' }}
               >
-                <Building2 className="w-6 h-6" style={{ color: 'hsl(152 69% 55%)' }} />
-                <span className="text-xs font-semibold" style={{ color: 'hsl(152 69% 55%)' }}>Business</span>
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971582806000</span>
+                <Building2 className="w-5 h-5" style={{ color: 'hsl(152 69% 55%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(152 69% 55%)' }}>🏢 Business</span>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971582806000</span>
               </button>
               <button
                 onClick={() => handleChannelSelect('personal')}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border transition hover:scale-105"
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border transition hover:scale-105"
                 style={{ background: 'hsl(217 91% 60% / 0.1)', borderColor: 'hsl(217 91% 60% / 0.4)' }}
               >
-                <User className="w-6 h-6" style={{ color: 'hsl(217 91% 70%)' }} />
-                <span className="text-xs font-semibold" style={{ color: 'hsl(217 91% 70%)' }}>Personal</span>
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971581806000</span>
+                <User className="w-5 h-5" style={{ color: 'hsl(217 91% 70%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(217 91% 70%)' }}>👤 Ahmad</span>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971581806000</span>
+              </button>
+              <button
+                onClick={() => handleChannelSelect('malik')}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border transition hover:scale-105"
+                style={{ background: 'hsl(280 65% 55% / 0.1)', borderColor: 'hsl(280 65% 55% / 0.4)' }}
+              >
+                <User className="w-5 h-5" style={{ color: 'hsl(280 65% 70%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(280 65% 70%)' }}>👤 Malik</span>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971529871277</span>
               </button>
             </div>
             <button onClick={() => setShowChannelPicker(false)} className="w-full text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancel</button>
@@ -167,13 +176,13 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         {selectedChannel && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
             style={{
-              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
-              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
-              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : 'hsl(217 91% 70%)',
+              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : selectedChannel === 'malik' ? 'hsl(280 65% 55% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
+              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : selectedChannel === 'malik' ? '1px solid hsl(280 65% 55% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
+              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : selectedChannel === 'malik' ? 'hsl(280 65% 70%)' : 'hsl(217 91% 70%)',
             }}
           >
             {selectedChannel === 'business' ? <Building2 className="w-3 h-3 mr-0.5" /> : <User className="w-3 h-3 mr-0.5" />}
-            {selectedChannel === 'business' ? 'Business' : 'Personal'}
+            {selectedChannel === 'business' ? '🏢 Business' : selectedChannel === 'malik' ? '👤 Malik' : '👤 Ahmad'}
           </div>
         )}
 
