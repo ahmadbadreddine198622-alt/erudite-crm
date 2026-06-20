@@ -186,18 +186,46 @@ export default function LandlordCallHistory({ landlord }) {
   const phone = landlord.phone;
   const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
 
-  // Fetch Twilio CallLogs for this landlord
-  const { data: callLogs = [], isLoading: loadingCallLogs, refetch: refetchCallLogs } = useQuery({
-    queryKey: ['call-logs-landlord', landlord.id],
-    queryFn: () => base44.entities.CallLog.filter({ landlord_id: landlord.id }),
+  // Fetch Twilio CallLogs by landlord_id
+  const { data: callLogsByLandlord = [], isLoading: loadingCallLogs1, refetch: refetchCallLogs } = useQuery({
+    queryKey: ['call-logs-landlord-id', landlord.id],
+    queryFn: () => base44.entities.CallLog.filter({ landlord_id: landlord.id }, '-started_at', 200),
     enabled: !!landlord.id,
   });
 
-  // Fetch Aircall calls — match by phone number (excludes VAPI calls stored here too)
+  // Also fetch by phone number to catch historical records not linked by landlord_id
+  const { data: callLogsByPhone = [], isLoading: loadingCallLogs2 } = useQuery({
+    queryKey: ['call-logs-landlord-phone', phone],
+    queryFn: async () => {
+      if (!phone) return [];
+      // Try multiple phone formats to catch all historical records
+      const phoneVariants = [phone];
+      // Add without + prefix
+      if (phone.startsWith('+')) phoneVariants.push(phone.slice(1));
+      // Add with + prefix  
+      if (!phone.startsWith('+')) phoneVariants.push('+' + phone);
+
+      const results = await Promise.all(phoneVariants.flatMap(p => [
+        base44.entities.CallLog.filter({ to_number: p }, '-started_at', 200).catch(() => []),
+        base44.entities.CallLog.filter({ from_number: p }, '-started_at', 200).catch(() => []),
+      ]));
+      return results.flat();
+    },
+    enabled: !!phone,
+  });
+
+  // Merge and deduplicate CallLogs
+  const callLogMap = new Map();
+  [...callLogsByLandlord, ...callLogsByPhone].forEach(c => callLogMap.set(c.id, c));
+  const callLogs = Array.from(callLogMap.values());
+
+  const loadingCallLogs = loadingCallLogs1 || loadingCallLogs2;
+
+  // Fetch ALL Aircall + VAPI calls (higher limit to catch historical data)
   const { data: aircallRaw = [], isLoading: loadingAircall } = useQuery({
     queryKey: ['aircall-calls-all'],
-    queryFn: () => base44.entities.AircallCall.list('-started_at', 500),
-    enabled: !!normalizedPhone,
+    queryFn: () => base44.entities.AircallCall.list('-started_at', 2000),
+    enabled: true,
   });
 
   // Separate VAPI calls (stored in AircallCall with from_number='Vapi AI') from real Aircall calls
@@ -244,19 +272,25 @@ export default function LandlordCallHistory({ landlord }) {
 
   const isLoading = loadingCallLogs || loadingAircall || loadingVapi;
 
-  // Match Aircall calls by phone
+  // Match Aircall calls by phone OR by landlord's lead_id linkage
   const matchedAircall = aircallCalls.filter(c => {
+    // Match by lead_id if the landlord has one linked
+    if (landlord.lead_id && c.lead_id === landlord.lead_id) return true;
     if (!normalizedPhone) return false;
     const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
     const fromNorm = c.from_number ? normalizePhoneNumber(c.from_number) : '';
-    return toNorm === normalizedPhone || fromNorm === normalizedPhone;
+    // Also try suffix match for numbers stored in different formats
+    const phoneSuffix = normalizedPhone.slice(-9);
+    return toNorm === normalizedPhone || fromNorm === normalizedPhone ||
+      (phoneSuffix.length >= 9 && (toNorm.endsWith(phoneSuffix) || fromNorm.endsWith(phoneSuffix)));
   });
 
   // Match VAPI calls by destination phone
   const matchedVapi = vapiCalls.filter(c => {
     if (!normalizedPhone) return false;
     const toNorm = c.to_number ? normalizePhoneNumber(c.to_number) : '';
-    return toNorm === normalizedPhone;
+    const phoneSuffix = normalizedPhone.slice(-9);
+    return toNorm === normalizedPhone || (phoneSuffix.length >= 9 && toNorm.endsWith(phoneSuffix));
   });
 
   // Merge all calls with source tag, sorted by date desc, inject fetched recordings
@@ -307,7 +341,7 @@ export default function LandlordCallHistory({ landlord }) {
           All calls across Twilio, Aircall & VAPI AI
         </p>
         <button
-          onClick={() => refetchCallLogs()}
+          onClick={() => { refetchCallLogs(); }}
           className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
           style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
