@@ -11,6 +11,7 @@ import {
 import { formatAED } from '@/lib/constants';
 import AgentGoalCard from '@/components/dashboard/AgentGoalCard';
 import DailyStandup from '@/components/dashboard/DailyStandup';
+import AgentOutreachScoreboard from '@/components/outreach/AgentOutreachScoreboard';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function MyDashboard() {
@@ -99,6 +100,9 @@ export default function MyDashboard() {
 
       {/* Daily Standup */}
       <DailyStandup />
+
+      {/* Outreach Scoreboard */}
+      <AgentOutreachScoreboard />
 
       {/* This Month's Goal Progress */}
       <AgentGoalCard goal={thisMonthGoal} stats={stats} />

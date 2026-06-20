@@ -50,6 +50,7 @@ import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
 import CallQualificationTab from './CallQualificationTab';
 import CallQualificationSummaryPanel from './CallQualificationSummaryPanel';
+import OutreachChecklistPanel from './OutreachChecklistPanel';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -1154,7 +1155,8 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {/* Tabs */}
           <Tabs defaultValue="qualification" className="px-6 py-5">
-            <TabsList className="grid w-full grid-cols-8 mb-5">
+            <TabsList className="grid w-full grid-cols-9 mb-5">
+              <TabsTrigger value="outreach" className="text-xs">Outreach</TabsTrigger>
               <TabsTrigger value="qualification" className="text-xs">Qualify</TabsTrigger>
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               <TabsTrigger value="unit" className="text-xs">Unit</TabsTrigger>
@@ -1164,6 +1166,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <TabsTrigger value="sms" className="text-xs">SMS</TabsTrigger>
               <TabsTrigger value="ai" className="text-xs">AI</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="outreach">
+              <OutreachChecklistPanel landlord={landlord} />
+            </TabsContent>
 
             <TabsContent value="qualification">
               <CallQualificationTab landlord={landlord} />

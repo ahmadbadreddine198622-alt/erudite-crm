@@ -1,0 +1,150 @@
+{
+  "name": "OutreachChecklist",
+  "properties": {
+    "landlord_id": {
+      "description": "FK to Landlord entity",
+      "type": "string"
+    },
+    "landlord_name": {
+      "description": "Cached landlord name for quick display",
+      "type": "string"
+    },
+    "agent_email": {
+      "description": "Agent who owns this outreach sequence",
+      "format": "email",
+      "type": "string"
+    },
+    "outreach_date": {
+      "description": "The day this outreach sequence belongs to (for daily scoring)",
+      "format": "date",
+      "type": "string"
+    },
+    "email_sent": {
+      "default": false,
+      "description": "Step 1: Email sent to landlord",
+      "type": "boolean"
+    },
+    "email_sent_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "whatsapp_sent": {
+      "default": false,
+      "description": "Step 2: WhatsApp message sent",
+      "type": "boolean"
+    },
+    "whatsapp_sent_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "imessage_sent": {
+      "default": false,
+      "description": "Step 3: iMessage sent",
+      "type": "boolean"
+    },
+    "imessage_sent_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "sms_sent": {
+      "default": false,
+      "description": "Step 4: SMS sent",
+      "type": "boolean"
+    },
+    "sms_sent_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "called": {
+      "default": false,
+      "description": "Step 5: Called (phone, WhatsApp call, or FaceTime)",
+      "type": "boolean"
+    },
+    "called_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "call_method": {
+      "description": "Which call channel was used",
+      "enum": [
+        "phone",
+        "whatsapp_call",
+        "facetime",
+        "not_called"
+      ],
+      "default": "not_called",
+      "type": "string"
+    },
+    "qualification_logged": {
+      "default": false,
+      "description": "Step 6: A CallQualification was logged from this outreach",
+      "type": "boolean"
+    },
+    "qualification_logged_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "reached_landlord": {
+      "default": false,
+      "description": "Whether the agent actually connected with the landlord (vs just attempted)",
+      "type": "boolean"
+    },
+    "steps_completed": {
+      "default": 0,
+      "description": "Count of completed steps (0-6) \u2014 drives the score",
+      "type": "number"
+    },
+    "sequence_complete": {
+      "default": false,
+      "description": "True when the full Email\u2192WhatsApp\u2192iMessage\u2192SMS\u2192Call sequence is done",
+      "type": "boolean"
+    },
+    "daily_score": {
+      "default": 0,
+      "description": "Computed score for this outreach (quality-weighted)",
+      "type": "number"
+    },
+    "notes": {
+      "description": "Any notes on the outreach attempt",
+      "type": "string"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "agent_email",
+    "outreach_date"
+  ],
+  "rls": {
+    "create": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
