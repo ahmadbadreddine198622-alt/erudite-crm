@@ -27,10 +27,14 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
     
-    // Parse viewing date and time
-    const [year, month, day] = viewing_date.split('-');
-    const [hours, minutes] = viewing_time.split(':');
-    const startTime = new Date(year, parseInt(month) - 1, day, hours, minutes);
+    // Parse viewing date/time as Asia/Dubai wall-clock.
+    // Dubai is UTC+4 year-round (the UAE observes no DST), so the intended instant is
+    // Date.UTC(...) shifted back 4h. Using new Date(y, m, d, ...) instead would build the
+    // time in the server's local zone (UTC on Base44), booking every viewing 4h late.
+    const [year, month, day] = viewing_date.split('-').map(Number);
+    const [hours, minutes] = viewing_time.split(':').map(Number);
+    const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
+    const startTime = new Date(Date.UTC(year, month - 1, day, hours, minutes) - DUBAI_OFFSET_MS);
     const endTime = new Date(startTime.getTime() + (duration_minutes || 30) * 60000);
 
     const location = property_address || property_title;
@@ -42,11 +46,11 @@ Deno.serve(async (req) => {
       location,
       start: {
         dateTime: startTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: UAE_TZ
       },
       end: {
         dateTime: endTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: UAE_TZ
       }
     };
 

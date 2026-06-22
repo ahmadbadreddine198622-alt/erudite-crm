@@ -42,7 +42,7 @@ Landlord Data:
 
 Respond in JSON format only with: { briefing, opening_line, best_contact_time, key_questions: [], pain_points: [] }`;
 
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages/create', {
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': anthropicApiKey,
@@ -50,7 +50,7 @@ Respond in JSON format only with: { briefing, opening_line, best_contact_time, k
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         messages: [
           {

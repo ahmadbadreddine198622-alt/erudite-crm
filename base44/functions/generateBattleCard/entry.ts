@@ -44,7 +44,7 @@ Generate a JSON response with:
   "confidence_level": "High/Medium/Low"
 }`;
 
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages/create', {
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': anthropicApiKey,
@@ -52,7 +52,7 @@ Generate a JSON response with:
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         messages: [
           {

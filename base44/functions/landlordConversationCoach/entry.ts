@@ -37,7 +37,7 @@ Provide a JSON response with:
   "next_move_recommended": "What to do next"
 }`;
 
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages/create', {
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': anthropicApiKey,
@@ -45,7 +45,7 @@ Provide a JSON response with:
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022', // Using haiku for high-volume tasks
+        model: 'claude-haiku-4-5', // Using haiku for high-volume tasks
         max_tokens: 512,
         messages: [
           {
