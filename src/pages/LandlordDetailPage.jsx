@@ -190,7 +190,7 @@ class LandlordDetail extends React.Component {
 
     const sortedAll=[...L.stream].sort((a,b)=>a.order-b.order);
     const cf=S.channelFilter;
-    const filtered = cf==='all' ? sortedAll : sortedAll.filter(s => s.t!=='msg' || s.wa===cf);
+    const filtered = cf==='all' ? sortedAll : sortedAll.filter(s => s.t!=='msg' || s.wa===cf || s.wa==='unknown');
     const stream=filtered.map((s,idx)=>{
       if(s.t==='msg'){
         const out = s.dir==='out';
@@ -200,10 +200,10 @@ class LandlordDetail extends React.Component {
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: out ? (L.agent+' · Erudite') : L.name,
-          channel: s.wa==='personal' ? 'WA Personal' : 'WA Business',
+          channel: s.wa==='personal' ? 'WA Personal' : s.wa==='business' ? 'WA Business' : 'WA',
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-            color: s.wa==='personal' ? '#93c5fd' : '#4ade80',
-            background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)',
+            color: s.wa==='personal' ? '#93c5fd' : s.wa==='business' ? '#4ade80' : 'rgba(255,255,255,0.4)',
+            background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : s.wa==='business' ? 'rgba(37,211,102,0.12)' : 'rgba(255,255,255,0.06)',
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'82%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
@@ -1135,8 +1135,8 @@ export default function LandlordDetailPage() {
       if (digits.endsWith('1806000')) return 'personal';
       if (digits.endsWith('2806000')) return 'business';
     }
-    if (msg.channel) return msg.channel;
-    return 'business';
+    if (msg.channel === 'personal' || msg.channel === 'business') return msg.channel;
+    return 'unknown';
   };
   const stream = [];
   waStreamMessages.forEach(msg => {
