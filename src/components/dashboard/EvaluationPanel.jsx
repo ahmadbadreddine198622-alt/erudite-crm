@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { FileText, Phone } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -31,20 +33,29 @@ const formatValue = (value, key) => {
 
 export default function EvaluationPanel({ landlords = [], onUploadFormA }) {
   const [activeTab, setActiveTab] = React.useState('Qualify');
-  const latestLandlord = landlords[0];
+  
+  // Fetch latest CallQualification for the first landlord in the list
+  const landlordId = landlords[0]?.id;
+  const { data: qualifications = [] } = useQuery({
+    queryKey: ['call-qualifications', landlordId],
+    queryFn: () => landlordId ? base44.entities.CallQualification.filter({ landlord_id: landlordId }, '-call_date', 1) : Promise.resolve([]),
+    enabled: !!landlordId,
+  });
+  
+  const latestQualification = qualifications[0];
 
-  const qualificationData = latestLandlord ? {
-    motivation: latestLandlord.motivation || '—',
-    timeline_urgency: latestLandlord.timeline_urgency || '—',
-    price_expectation_aed: latestLandlord.price_expectation_aed,
-    price_vs_valuation: latestLandlord.price_vs_valuation || '—',
-    mandate_openness: latestLandlord.mandate_openness || '—',
-    is_decision_maker: latestLandlord.is_decision_maker || '—',
-    tenancy_status: latestLandlord.tenancy_status || '—',
-    mortgage_status: latestLandlord.mortgage_status || '—',
-    call_outcome: latestLandlord.call_outcome || '—',
-    next_step: latestLandlord.next_step || '—',
-    followup_date: latestLandlord.followup_date || '—',
+  const qualificationData = latestQualification ? {
+    motivation: latestQualification.motivation || '—',
+    timeline_urgency: latestQualification.timeline_urgency || '—',
+    price_expectation_aed: latestQualification.price_expectation_aed,
+    price_vs_valuation: latestQualification.price_vs_valuation || '—',
+    mandate_openness: latestQualification.mandate_openness || '—',
+    is_decision_maker: latestQualification.is_decision_maker || '—',
+    tenancy_status: latestQualification.tenancy_status || '—',
+    mortgage_status: latestQualification.mortgage_status || '—',
+    call_outcome: latestQualification.call_outcome || '—',
+    next_step: latestQualification.next_step || '—',
+    followup_date: latestQualification.followup_date || '—',
   } : null;
 
   return (
