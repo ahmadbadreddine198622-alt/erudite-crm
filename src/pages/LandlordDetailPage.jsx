@@ -1403,8 +1403,11 @@ export default function LandlordDetailPage() {
   // Map media/photography fields from LandlordProperty
   const media = {
     hasVideo: !!lp.has_video_walkthrough,
+    videoWalkthroughUrl: lp.video_walkthrough_url || null,
     has360: !!lp.has_360_tour,
+    tour360Url: lp.tour_360_url || null,
     hasDrone: !!lp.has_drone_footage,
+    droneFootageUrl: lp.drone_footage_url || null,
     hasFloorPlan: !!lp.has_floor_plan,
     floorPlanUrl: lp.floor_plan_url || null,
     photographyStatus: lp.photography_status || 'none',

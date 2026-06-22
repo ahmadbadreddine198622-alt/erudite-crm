@@ -24,46 +24,44 @@ const fmtStamp = (ts) => {
 export default function MediaPanel({ media }) {
   if (!media) return null;
 
+  const renderClickableMedia = (icon, label, hasMedia, url, type = 'link') => {
+    const isClickable = hasMedia && url;
+    return (
+      <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+        <div style={css("display:flex; align-items:center; gap:8px;")}>
+          <span style={css("font-size:14px;")}>{icon}</span>
+          <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>{label}</span>
+        </div>
+        {isClickable ? (
+          <a 
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%); text-decoration:none; display:inline-flex; align-items:center; gap:4px;")}
+          >
+            {type === 'video' ? '▶ Watch' : type === '360' ? '🔄 View 360°' : '📄 View'} →
+          </a>
+        ) : (
+          <span style={css("font-size:11px; font-weight:600; color: "+(hasMedia ? '#34d399' : 'rgba(255,255,255,0.35)'))}>
+            {hasMedia ? '✓ Available (no link)' : '✗ Not captured'}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.49s cubic-bezier(0.22,1,0.36,1) both;")}>
       <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Property Media</div>
       <div style={css("display:flex; flex-direction:column; gap:8px;")}>
         {/* Video walkthrough */}
-        <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-          <div style={css("display:flex; align-items:center; gap:8px;")}>
-            <span style={css("font-size:14px;")}>🎬</span>
-            <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Video walkthrough</span>
-          </div>
-          <span style={css("font-size:11px; font-weight:600; color: "+(media?.hasVideo ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{media?.hasVideo ? '✓ Available' : '✗ Not captured'}</span>
-        </div>
+        {renderClickableMedia('🎬', 'Video walkthrough', media?.hasVideo, media?.videoWalkthroughUrl, 'video')}
         {/* 360 tour */}
-        <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-          <div style={css("display:flex; align-items:center; gap:8px;")}>
-            <span style={css("font-size:14px;")}>🔄</span>
-            <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>360° tour</span>
-          </div>
-          <span style={css("font-size:11px; font-weight:600; color: "+(media?.has360 ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{media?.has360 ? '✓ Available' : '✗ Not captured'}</span>
-        </div>
+        {renderClickableMedia('🔄', '360° tour', media?.has360, media?.tour360Url, '360')}
         {/* Drone footage */}
-        <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-          <div style={css("display:flex; align-items:center; gap:8px;")}>
-            <span style={css("font-size:14px;")}>🚁</span>
-            <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Drone footage</span>
-          </div>
-          <span style={css("font-size:11px; font-weight:600; color: "+(media?.hasDrone ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{media?.hasDrone ? '✓ Available' : '✗ Not captured'}</span>
-        </div>
+        {renderClickableMedia('🚁', 'Drone footage', media?.hasDrone, media?.droneFootageUrl, 'video')}
         {/* Floor plan */}
-        <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-          <div style={css("display:flex; align-items:center; gap:8px;")}>
-            <span style={css("font-size:14px;")}>📐</span>
-            <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Floor plan</span>
-          </div>
-          {media?.floorPlanUrl ? (
-            <a href={media.floorPlanUrl} target="_blank" rel="noopener noreferrer" style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%); text-decoration:none;")}>✓ View floor plan →</a>
-          ) : (
-            <span style={css("font-size:11px; font-weight:600; color: "+(media?.hasFloorPlan ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{media?.hasFloorPlan ? '✓ Available (no link)' : '✗ Not uploaded'}</span>
-          )}
-        </div>
+        {renderClickableMedia('📐', 'Floor plan', media?.hasFloorPlan, media?.floorPlanUrl, 'document')}
         {/* Photography status */}
         <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
           <div style={css("display:flex; align-items:center; gap:8px;")}>
