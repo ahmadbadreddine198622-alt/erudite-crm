@@ -10,6 +10,7 @@ import { base44 } from '@/api/base44Client';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -1217,6 +1218,8 @@ export default function LandlordDetailPage() {
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);
   const [listingManagerDialogOpen, setListingManagerDialogOpen] = useState(false);
+  const [openMediaDrawers, setOpenMediaDrawers] = useState(new Set());
+  const [mediaInputs, setMediaInputs] = useState({});
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
@@ -1290,6 +1293,36 @@ export default function LandlordDetailPage() {
   const handleListingManagerSuccess = () => {
     refetchLandlord();
     setListingManagerDialogOpen(false);
+  };
+
+  const toggleMediaDrawer = (key) => {
+    setOpenMediaDrawers(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleMediaUpdate = async (field, value) => {
+    try {
+      await base44.entities.Landlord.update(id, { [field]: value });
+      refetchLandlord();
+    } catch (err) {
+      console.error('Failed to update media field:', err);
+    }
+  };
+
+  const handleAddMediaUrl = (field) => {
+    const url = mediaInputs[field]?.trim();
+    if (url) {
+      handleMediaUpdate(field, url);
+      setMediaInputs(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleRemoveMediaUrl = (field) => {
+    handleMediaUpdate(field, null);
   };
 
   if (!L) {
@@ -1422,20 +1455,14 @@ export default function LandlordDetailPage() {
   const aiCoaching = L.ai_coaching_for_agent || null;
   const mandateWinProb = L.mandate_win_probability != null ? Math.round(L.mandate_win_probability) : null;
 
-  // Map media/photography fields from LandlordProperty
+  // Map media/photography fields from Landlord entity (verbatim field names)
   const media = {
-    hasVideo: !!lp.has_video_walkthrough,
-    videoWalkthroughUrl: lp.video_walkthrough_url || null,
-    has360: !!lp.has_360_tour,
-    tour360Url: lp.tour_360_url || null,
-    hasDrone: !!lp.has_drone_footage,
-    droneFootageUrl: lp.drone_footage_url || null,
-    hasFloorPlan: !!lp.has_floor_plan,
-    floorPlanUrl: lp.floor_plan_url || null,
-    photographyStatus: lp.photography_status || 'none',
-    photoshootScheduledAt: lp.photoshoot_scheduled_at || null,
-    keysLocation: lp.keys_location || null,
-    keyAccessInstructions: lp.key_access_instructions || null,
+    videoUrl: L.media_video_url || null,
+    tour360Url: L.media_tour_360_url || null,
+    droneUrl: L.media_drone_url || null,
+    floorplanUrl: L.media_floorplan_url || null,
+    photographyStatus: L.media_photography_status || 'not_started',
+    photographyUrl: L.media_photography_url || null,
   };
   // Map valuation fields from LandlordProperty
   const valuation = lp.ai_estimated_value_aed ? {
@@ -1546,6 +1573,20 @@ export default function LandlordDetailPage() {
     ru: 'Russian', en: 'English', ar: 'Arabic', zh: 'Chinese', hi: 'Hindi', ur: 'Urdu', fa: 'Farsi',
   };
 
+  const mediaItems = [
+    { key: 'video', label: 'Video walkthrough', field: 'media_video_url', value: media.videoUrl, icon: Clapperboard },
+    { key: '360', label: '360° tour', field: 'media_tour_360_url', value: media.tour360Url, icon: Rotate3d },
+    { key: 'drone', label: 'Drone footage', field: 'media_drone_url', value: media.droneUrl, icon: Plane },
+    { key: 'floorplan', label: 'Floor plan', field: 'media_floorplan_url', value: media.floorplanUrl, icon: Ruler },
+  ];
+
+  const photographyStatusConfig = {
+    delivered: { label: 'Delivered', color: '#34d399', bg: 'rgba(16,185,129,0.16)' },
+    shot: { label: 'Shot', color: '#60a5fa', bg: 'rgba(96,165,250,0.16)' },
+    scheduled: { label: 'Scheduled', color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.16)' },
+    not_started: { label: 'Not started', color: 'rgba(255,255,255,0.4)', bg: 'rgba(255,255,255,0.06)' },
+  };
+
   const mapped = {
     passport: L.passport_no || null,
     nationality: L.nationality || null,
@@ -1617,6 +1658,17 @@ export default function LandlordDetailPage() {
         onUploadFormA={() => setFormADialogOpen(true)}
         onAssignListingManager={() => setListingManagerDialogOpen(true)}
         landlord={mapped}
+        mediaItems={mediaItems}
+        photographyStatus={media.photographyStatus}
+        photographyUrl={media.photographyUrl}
+        openMediaDrawers={openMediaDrawers}
+        toggleMediaDrawer={toggleMediaDrawer}
+        mediaInputs={mediaInputs}
+        setMediaInputs={setMediaInputs}
+        handleAddMediaUrl={handleAddMediaUrl}
+        handleRemoveMediaUrl={handleRemoveMediaUrl}
+        handleMediaUpdate={handleMediaUpdate}
+        photographyStatusConfig={photographyStatusConfig}
         />
       <FormAUploadDialog
         open={formADialogOpen}
