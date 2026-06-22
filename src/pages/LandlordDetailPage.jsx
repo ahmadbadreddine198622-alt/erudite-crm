@@ -14,6 +14,7 @@ import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import MandatePanel from '@/components/landlord/MandatePanel';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
+import CallSuite from '@/components/landlord/CallSuite';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -819,6 +820,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
                       <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.phone}</div>
+                      <CallSuite landlord={L} />
                     </div>
                   )}
                   {L.additionalPhones && L.additionalPhones.length > 0 && (

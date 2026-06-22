@@ -1,15 +1,15 @@
 import React from 'react';
 import { Phone, MessageSquare, Headphones, Video } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
+import AircallButton from '@/components/shared/AircallButton';
 
-/**
- * CallSuite — multi-system communication buttons for landlord/lead cards.
- */
 export default function CallSuite({ landlord, lead, phone }) {
   const entity = landlord || lead;
-  const targetPhone = phone || landlord?.phone || lead?.phone;
+  const targetPhone = phone || entity?.phone || entity?.whatsapp || entity?.wa_phone_e164;
 
-  if (!targetPhone) return null;
+  if (!targetPhone) {
+    return null;
+  }
 
   const buttonBase = {
     display: 'inline-flex',
@@ -32,10 +32,9 @@ export default function CallSuite({ landlord, lead, phone }) {
       gap: '8px',
       marginTop: '8px',
     }}>
-      {/* Twilio */}
       <TwilioCallDialog
-        lead={lead}
         landlord={landlord}
+        lead={lead}
         phoneOverride={targetPhone}
         iconOnly={false}
       >
@@ -50,22 +49,22 @@ export default function CallSuite({ landlord, lead, phone }) {
         </div>
       </TwilioCallDialog>
 
-      {/* Aircall */}
-      <a
-        href={`aircall://dial?phone=${encodeURIComponent(targetPhone.replace(/[\s\-()]/g, ''))}`}
-        style={{
-          ...buttonBase,
-          background: 'rgba(0,190,255,0.12)',
-          border: '1px solid rgba(0,190,255,0.25)',
-          color: '#00beff',
-          textDecoration: 'none',
-        }}
-      >
-        <Headphones className="w-3.5 h-3.5" />
-        Aircall
-      </a>
+      <AircallButton
+        phone={targetPhone}
+        name={entity?.full_name || entity?.name}
+        trigger={
+          <div style={{
+            ...buttonBase,
+            background: 'rgba(0,190,255,0.12)',
+            border: '1px solid rgba(0,190,255,0.25)',
+            color: '#00beff',
+          }}>
+            <Headphones className="w-3.5 h-3.5" />
+            Aircall
+          </div>
+        }
+      />
 
-      {/* Vapi */}
       <div style={{
         ...buttonBase,
         background: 'rgba(139,92,246,0.12)',
@@ -73,14 +72,13 @@ export default function CallSuite({ landlord, lead, phone }) {
         color: '#c4b5fd',
         opacity: 0.5,
         cursor: 'not-allowed',
-      }} title="Coming soon">
+      }} title="Vapi Coming Soon">
         <Video className="w-3.5 h-3.5" />
         Vapi
       </div>
 
-      {/* WhatsApp */}
       <a
-        href={`https://wa.me/${targetPhone.replace(/^\+/, '')}`}
+        href={`https://wa.me/${targetPhone.replace(/[^0-9]/g, '')}`}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -88,6 +86,7 @@ export default function CallSuite({ landlord, lead, phone }) {
           background: 'rgba(37,211,102,0.12)',
           border: '1px solid rgba(37,211,102,0.25)',
           color: '#4ade80',
+          textDecoration: 'none',
         }}
       >
         <MessageSquare className="w-3.5 h-3.5" />
