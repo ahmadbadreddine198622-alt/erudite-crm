@@ -8,6 +8,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
+import MediaPanel from '@/components/landlord/MediaPanel';
+import Scorecards from '@/components/landlord/Scorecards';
+import RiskSignals from '@/components/landlord/RiskSignals';
+import DocumentsTab from '@/components/landlord/DocumentsTab';
+import MandatePanel from '@/components/landlord/MandatePanel';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -848,94 +853,7 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* Property Media */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.49s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Property Media</div>
-                <div style={css("display:flex; flex-direction:column; gap:8px;")}>
-                  {/* Video walkthrough */}
-                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                    <div style={css("display:flex; align-items:center; gap:8px;")}>
-                      <span style={css("font-size:14px;")}>🎬</span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Video walkthrough</span>
-                    </div>
-                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasVideo ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasVideo ? '✓ Available' : '✗ Not captured'}</span>
-                  </div>
-                  {/* 360 tour */}
-                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                    <div style={css("display:flex; align-items:center; gap:8px;")}>
-                      <span style={css("font-size:14px;")}>🔄</span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>360° tour</span>
-                    </div>
-                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.has360 ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.has360 ? '✓ Available' : '✗ Not captured'}</span>
-                  </div>
-                  {/* Drone footage */}
-                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                    <div style={css("display:flex; align-items:center; gap:8px;")}>
-                      <span style={css("font-size:14px;")}>🚁</span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Drone footage</span>
-                    </div>
-                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasDrone ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasDrone ? '✓ Available' : '✗ Not captured'}</span>
-                  </div>
-                  {/* Floor plan */}
-                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                    <div style={css("display:flex; align-items:center; gap:8px;")}>
-                      <span style={css("font-size:14px;")}>📐</span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Floor plan</span>
-                    </div>
-                    {L.media?.floorPlanUrl ? (
-                      <a href={L.media.floorPlanUrl} target="_blank" rel="noopener noreferrer" style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%); text-decoration:none;")}>✓ View floor plan →</a>
-                    ) : (
-                      <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasFloorPlan ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasFloorPlan ? '✓ Available (no link)' : '✗ Not uploaded'}</span>
-                    )}
-                  </div>
-                  {/* Photography status */}
-                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                    <div style={css("display:flex; align-items:center; gap:8px;")}>
-                      <span style={css("font-size:14px;")}>📸</span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Photography</span>
-                    </div>
-                    <span style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>{
-                      L.media?.photographyStatus === 'none' ? 'Not started' :
-                      L.media?.photographyStatus === 'phone_quality' ? 'Phone quality' :
-                      L.media?.photographyStatus === 'professional_done' ? 'Professional done' :
-                      L.media?.photographyStatus === 'scheduled' ? 'Scheduled' : '—'
-                    }</span>
-                  </div>
-                  {/* Photoshoot scheduled */}
-                  {L.media?.photoshootScheduledAt && (
-                    <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                      <div style={css("display:flex; align-items:center; gap:8px;")}>
-                        <span style={css("font-size:14px;")}>📅</span>
-                        <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Photoshoot date</span>
-                      </div>
-                      <span style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>{fmtStamp(L.media.photoshootScheduledAt)}</span>
-                    </div>
-                  )}
-                  {/* Keys location */}
-                  {L.media?.keysLocation && (
-                    <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                      <div style={css("display:flex; align-items:center; gap:8px;")}>
-                        <span style={css("font-size:14px;")}>🔑</span>
-                        <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Keys location</span>
-                      </div>
-                      <span style={css("font-size:11px; font-weight:600; color:rgba(255,255,255,0.85);")}>{
-                        L.media?.keysLocation === 'with_landlord' ? 'With landlord' :
-                        L.media?.keysLocation === 'with_us' ? 'With us' :
-                        L.media?.keysLocation === 'lockbox' ? 'Lockbox' :
-                        L.media?.keysLocation === 'tenant' ? 'With tenant' :
-                        (L.media?.keysLocation || '').replace(/_/g, ' ')
-                      }</span>
-                    </div>
-                  )}
-                  {/* Key access instructions */}
-                  {L.media?.keyAccessInstructions && (
-                    <div style={css("padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
-                      <div style={css("font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:4px;")}>Access instructions</div>
-                      <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.8);")}>{L.media.keyAccessInstructions}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <MediaPanel media={vm.media} />
 
               {/* connections strip */}
               <div style={css("margin-top:14px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
@@ -954,56 +872,8 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* strike now banner */}
-              {signals.showStrike && (
-                <div style={signals.strikeStyle}>
-                  <span style={signals.strikeDot}></span>
-                  <div style={css("min-width:0;")}>
-                    <span style={{...css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;"), color:signals.strikeAccent}}>{signals.strikeKicker}</span>
-                    <div style={css("font-size:13px; line-height:1.45; color:rgba(255,255,255,0.88); margin-top:3px;")}>{signals.strikeText}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* next best action */}
-              {vm.nextBest.show && (
-                <div style={vm.nextBest.boxStyle}>
-                  <span style={css("font-size:16px; line-height:1.2;")}>🎯</span>
-                  <div style={css("min-width:0; flex:1;")}>
-                    <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
-                      <span style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.45);")}>Next best action</span>
-                      <span style={vm.nextBest.badgeStyle}>{vm.nextBest.priority}</span>
-                    </div>
-                    <div style={css("font-size:13.5px; font-weight:600; color:rgba(255,255,255,0.92); margin-top:5px;")}>{vm.nextBest.action}</div>
-                    <div style={css("font-size:11.5px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.45;")}>{vm.nextBest.reasoning}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* red flags + buying signals */}
-              {vm.hasFlags && (
-                <div style={css("display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;")}>
-                  {vm.flagChips.map((fc,i)=>(<span key={'f'+i} style={fc.style}>{fc.icon} {fc.label}</span>))}
-                  {vm.buyChips.map((bc,i)=>(<span key={'b'+i} style={bc.style}>{bc.icon} {bc.label}</span>))}
-                </div>
-              )}
-
-              {/* scorecard row */}
-              {vm.showSignals && (
-                <div style={css("display:grid; grid-template-columns:repeat(4, 1fr); gap:11px; margin-top:14px; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
-                  {vm.scorecards.map((sc,i)=>(
-                    <div key={i} style={css("border-radius:13px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.03); padding:12px 13px;")}>
-                      <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.42);")}>{sc.label}</div>
-                      <div style={css("display:flex; align-items:baseline; gap:3px; margin-top:5px;")}>
-                        <span style={{...css("font-size:19px; font-weight:800;"), color:sc.color}}>{sc.value}</span>
-                        <span style={css("font-size:10px; color:rgba(255,255,255,0.38);")}>{sc.unit}</span>
-                      </div>
-                      <div style={css("height:4px; border-radius:99px; background:rgba(255,255,255,0.08); margin-top:7px; overflow:hidden;")}><div style={sc.barStyle}></div></div>
-                      <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:6px; line-height:1.4;")}>{sc.why}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {vm.showSignals && <Scorecards scorecards={vm.scorecards} />}
+              <RiskSignals signals={signals} flagChips={vm.flagChips} buyChips={vm.buyChips} hasFlags={vm.hasFlags} />
 
               {/* AI summary */}
               <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
@@ -1196,20 +1066,7 @@ class LandlordDetail extends React.Component {
                 )}
 
                 {tab.isDocuments && (
-                  <div style={css("display:flex; flex-direction:column; gap:7px;")}>
-                    {tab.docs.map((dc)=>(
-                      <div key={dc.key} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-                        <div style={css("display:flex; align-items:center; gap:11px; min-width:0;")}>
-                          <span style={css("font-size:15px;")}>{dc.icon}</span>
-                          <div style={css("min-width:0;")}>
-                            <div style={css("font-size:13px; color:rgba(255,255,255,0.85);")}>{dc.label}</div>
-                            <div style={css("font-size:10.5px; color:rgba(255,255,255,0.42); margin-top:1px;")}>{dc.provider}</div>
-                          </div>
-                        </div>
-                        <span style={dc.statusStyle}>{dc.status}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <DocumentsTab docs={tab.docs} />
                 )}
               </div>
 
