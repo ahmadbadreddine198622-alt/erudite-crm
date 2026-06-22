@@ -387,6 +387,25 @@ Deno.serve(async (req) => {
     // Log ALL event types for diagnostic purposes (Stage 2 label detection)
     console.log(`[evolutionWebhook][EVENT_RECEIVED] event=${event} instance=${instanceName} channel=${channel}`);
 
+    // CAPTURE LABEL EVENTS FOR DIAGNOSTIC — store raw payload to see exact structure
+    if (event === 'labels.edit' || event === 'labels.association') {
+      console.log(`[evolutionWebhook][LABEL_PROBE] Raw payload for ${event}:`, JSON.stringify(body, null, 2));
+      // Store in WebhookDeadLetter for inspection (temporary diagnostic)
+      try {
+        await serviceRole.entities.WebhookDeadLetter.create({
+          source: 'evolution_label_diagnostic',
+          event: event,
+          instance: instanceName,
+          stage: 'label_payload_capture',
+          error: 'DIAGNOSTIC — inspect raw_payload field',
+          raw_payload: body,
+        });
+      } catch (dlErr) {
+        console.error('[evolutionWebhook][LABEL_PROBE] DeadLetter save failed:', dlErr);
+      }
+      // Don't return yet — let it fall through so we can see if it needs special handling
+    }
+
     if (event !== 'messages.upsert') {
       return Response.json({ status: 'ignored', event });
     }
