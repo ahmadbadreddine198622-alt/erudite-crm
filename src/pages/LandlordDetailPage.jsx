@@ -10,6 +10,7 @@ import { base44 } from '@/api/base44Client';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
+import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
 import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
@@ -812,85 +813,12 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* Owner Information */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Owner Information</div>
-                <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
-                  {L.phone && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
-                      <a href={`tel:${L.phone}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); text-decoration:none;")}>{L.phone}</a>
-                      <CallSuite phone={L.phone} />
-                    </div>
-                  )}
-                  {L.additionalPhones && L.additionalPhones.length > 0 && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Phones</div>
-                      <div style={css("display:flex; flex-direction:column; gap:6px; margin-top:5px;")}>
-                        {L.additionalPhones.map((p, i) => (
-                          <div key={i}>
-                            <a href={`tel:${p}`} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); text-decoration:none; display:block; margin-bottom:3px;")}>{p}</a>
-                            <CallSuite phone={p} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {L.email && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
-                      <a href={`mailto:${L.email}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis; display:block; text-decoration:none;")}>{L.email}</a>
-                    </div>
-                  )}
-                  {L.additionalEmails && L.additionalEmails.length > 0 && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Emails</div>
-                      <div style={css("display:flex; flex-direction:column; gap:4px; margin-top:5px;")}>
-                        {L.additionalEmails.map((e, i) => (
-                          <a key={i} href={`mailto:${e}`} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); text-decoration:none;")}>{e}</a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {L.whatsapp && L.whatsapp !== L.phone && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>WhatsApp</div>
-                      <a href={`tel:${L.whatsapp}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); text-decoration:none; display:block; margin-bottom:6px;")}>{L.whatsapp}</a>
-                      <CallSuite phone={L.whatsapp} />
-                    </div>
-                  )}
-                  {L.passport && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Passport</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.passport}</div>
-                    </div>
-                  )}
-                  {L.nationality && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Nationality</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.nationality}</div>
-                    </div>
-                  )}
-                  {L.residence && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Residence</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.residence}</div>
-                    </div>
-                  )}
-                  {L.language && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Language</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.language}</div>
-                    </div>
-                  )}
-                  {L.residentUAE && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>UAE Resident</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.residentUAE}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Owner Information - Modern Drawers */}
+              <OwnerInfoDrawers 
+                landlord={L}
+                openDrawers={this.props.openOwnerDrawers || new Set()}
+                toggleDrawer={this.props.toggleOwnerDrawer}
+              />
 
               <MediaPanel media={vm.media} />
 
@@ -1219,6 +1147,7 @@ export default function LandlordDetailPage() {
   const [formADialogOpen, setFormADialogOpen] = useState(false);
   const [listingManagerDialogOpen, setListingManagerDialogOpen] = useState(false);
   const [openMediaDrawers, setOpenMediaDrawers] = useState(new Set());
+  const [openOwnerDrawers, setOpenOwnerDrawers] = useState(new Set());
   const [mediaInputs, setMediaInputs] = useState({});
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
@@ -1297,6 +1226,15 @@ export default function LandlordDetailPage() {
 
   const toggleMediaDrawer = (key) => {
     setOpenMediaDrawers(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleOwnerDrawer = (key) => {
+    setOpenOwnerDrawers(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -1669,6 +1607,8 @@ export default function LandlordDetailPage() {
         handleRemoveMediaUrl={handleRemoveMediaUrl}
         handleMediaUpdate={handleMediaUpdate}
         photographyStatusConfig={photographyStatusConfig}
+        openOwnerDrawers={openOwnerDrawers}
+        toggleOwnerDrawer={toggleOwnerDrawer}
         />
       <FormAUploadDialog
         open={formADialogOpen}
