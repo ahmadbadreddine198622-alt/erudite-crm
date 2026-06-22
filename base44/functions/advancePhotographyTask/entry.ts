@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
     }
 
     // Set timestamp for the stage being entered (only if not already set)
-    const timestampUpdates: any = {};
-    const stageTimestampMap: Record<string, string> = {
+    const timestampUpdates = {};
+    const stageTimestampMap = {
       'pre_shoot_check': 'started_at',
       'shooting': 'shot_at',
       'uploaded_3d': 'uploaded_3d_at',
@@ -52,8 +52,15 @@ Deno.serve(async (req) => {
       ...timestampUpdates 
     });
 
-    // Automation: When task reaches "handed_to_listing", advance landlord from "photos_videos" to "photographer_scheduling"
+    // Automation: When task reaches "handed_to_listing", sync media to LandlordProperty and advance landlord
     if (new_stage === 'handed_to_listing' && task.landlord_id) {
+      // Sync media links to LandlordProperty
+      try {
+        await base44.functions.invoke('syncPhotographyToProperty', { task_id });
+      } catch (syncError) {
+        console.error('Failed to sync photography to property:', syncError.message);
+      }
+
       const landlord = await base44.entities.Landlord.get(task.landlord_id);
       if (landlord && landlord.stage === 'photos_videos') {
         await base44.entities.Landlord.update(task.landlord_id, {
