@@ -41,6 +41,7 @@ import FormFUpload from '@/components/leads/FormFUpload';
 import FormFParsePanel from '@/components/leads/FormFParsePanel';
 import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
 import IntentToggle from '@/components/leads/IntentToggle';
+import AppointmentComposer from '@/components/leads/AppointmentComposer';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
@@ -51,6 +52,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('details');
   const [leadFormFUrl, setLeadFormFUrl] = useState(lead.form_f_url || null);
+  const [showAppointmentComposer, setShowAppointmentComposer] = useState(false);
   const queryClient = useQueryClient();
 
   const primaryPhone = lead.phone;
@@ -258,6 +260,15 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
             {/* AI Summary */}
             <LeadAISummary lead={lead} />
+
+            {/* Appointment Composer */}
+            {showAppointmentComposer && (
+              <AppointmentComposer
+                lead={lead}
+                property={null}
+                onClose={() => setShowAppointmentComposer(false)}
+              />
+            )}
 
             {/* Ownership & Value */}
             <section>
@@ -562,6 +573,14 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
 
         {/* Actions */}
         <div className="border-t p-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAppointmentComposer(!showAppointmentComposer)}
+            className="text-purple-400 hover:text-purple-500 hover:bg-purple-50/10"
+          >
+            <Calendar className="w-4 h-4 mr-1" /> {showAppointmentComposer ? 'Close' : 'Appointment'}
+          </Button>
           <Button
             variant="outline"
             size="sm"
