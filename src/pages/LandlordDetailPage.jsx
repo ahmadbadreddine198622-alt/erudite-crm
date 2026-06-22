@@ -275,7 +275,14 @@ class LandlordDetail extends React.Component {
       nextLabel: L.stageIndex<total ? ('Next · '+this.STAGES[L.stageIndex]) : 'Final stage' };
 
     let nextBest={ show:false };
-    if(L.nextBest){
+    // First check real AI field, then legacy field
+    if(L.aiNextBestAction && typeof L.aiNextBestAction === 'object' && L.aiNextBestAction.action){
+      const [color,bg,bd]=this.priorityMeta(L.aiNextBestAction.priority || 'medium');
+      nextBest={ show:true, action:L.aiNextBestAction.action, reasoning:L.aiNextBestAction.reasoning || '', priority:this.titleize(L.aiNextBestAction.priority || 'Medium'),
+        boxStyle:{ display:'flex', alignItems:'flex-start', gap:'11px', marginTop:'12px', borderRadius:'13px', padding:'13px 15px', border:'1px solid '+bd, background:bg },
+        badgeStyle:{ flex:'none', padding:'3px 9px', borderRadius:'99px', fontSize:'9.5px', fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color, background:'rgba(255,255,255,0.06)', border:'1px solid '+bd },
+        accent:color };
+    } else if(L.nextBest){
       const [color,bg,bd]=this.priorityMeta(L.nextBest.priority);
       nextBest={ show:true, action:L.nextBest.action, reasoning:L.nextBest.reasoning, priority:this.titleize(L.nextBest.priority),
         boxStyle:{ display:'flex', alignItems:'flex-start', gap:'11px', marginTop:'12px', borderRadius:'13px', padding:'13px 15px', border:'1px solid '+bd, background:bg },
@@ -1310,6 +1317,12 @@ export default function LandlordDetailPage() {
     floor: '—',
   };
 
+  // Map real AI fields from Landlord entity
+  const aiRollingSummary = L.ai_rolling_summary || null;
+  const aiNextBestAction = L.ai_next_best_action && typeof L.ai_next_best_action === 'object' ? L.ai_next_best_action : null;
+  const aiCoaching = L.ai_coaching_for_agent || null;
+  const mandateWinProb = L.mandate_win_probability != null ? Math.round(L.mandate_win_probability) : null;
+
   const mapped = {
     id: L.id,
     name: L.full_name_en || L.full_name || 'Unnamed landlord',
@@ -1331,7 +1344,13 @@ export default function LandlordDetailPage() {
     agentNotes: L.notes_internal || '',
     redFlags: [],
     buyingSignals: [],
-    nextBest: null,
+    // Wire real AI fields
+    aiRollingSummary,
+    aiNextBestAction,
+    aiCoaching,
+    mandateWinProb,
+    // Legacy fields for backward compat
+    nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
     valuation: null,
     qualification: null,
     scores: null,
