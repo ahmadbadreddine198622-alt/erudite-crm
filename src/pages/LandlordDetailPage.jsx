@@ -89,9 +89,9 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores/signals fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores/signals/mandate fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow || prevCur.mandate !== nextCur.mandate));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -1563,6 +1563,31 @@ export default function LandlordDetailPage() {
   // Competitive context
   const hasCompetition = L.is_currently_listed_with_others === true || (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0) || (L.ai_competitive_intel && String(L.ai_competitive_intel).trim());
   const competitionText = L.ai_competitive_intel ? String(L.ai_competitive_intel) : (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0 ? `Listed with ${L.competing_brokers_count} other broker(s)` : (L.is_currently_listed_with_others === true ? 'Listed with other brokers' : ''));
+  // Map mandate/deal terms from Landlord entity
+  const formAContracts = Array.isArray(L.form_a_contracts) ? L.form_a_contracts : [];
+  const hasMandate = L.mandate_status && L.mandate_status !== 'none' && L.mandate_status !== '' || formAContracts.length > 0;
+  const mandateStatusMap = { 'form_a_signed': 'Signed', 'form_a_drafted': 'Draft', 'form_a_initiation': 'In Progress', 'expired': 'Expired', 'none': 'None', '': 'None' };
+  const mandateTypeMap = { 'exclusive': 'Exclusive', 'non_exclusive': 'Non-exclusive' };
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—';
+  const mandate = hasMandate ? {
+    status: mandateStatusMap[L.mandate_status] || L.mandate_status || 'None',
+    type: mandateTypeMap[L.mandate_type] || L.mandate_type || '—',
+    askingPrice: L.asking_price_aed ? fmtAED(L.asking_price_aed) : '—',
+    commission: L.commission_pct_negotiated != null ? `${L.commission_pct_negotiated}%` : '—',
+    startDate: fmtDate(L.mandate_start_date),
+    expiryDate: fmtDate(L.mandate_expires_at),
+    contractNumber: L.form_a_contract_number || '—',
+    pdfUrl: L.form_a_pdf_url || null,
+    contracts: formAContracts.map(c => ({
+      contractNumber: c.contract_number || '—',
+      unit: c.unit || '—',
+      type: mandateTypeMap[c.mandate_type] || c.mandate_type || '—',
+      askingPrice: c.asking_price_aed ? fmtAED(c.asking_price_aed) : '—',
+      startDate: fmtDate(c.mandate_start_date),
+      expiryDate: fmtDate(c.mandate_expires_at),
+      pdfUrl: c.pdf_url || null,
+    })),
+  } : null;
   // Map DocumentChecklistItem records to Documents tab shape
   const docs = docItems.map(d => {
     const typeLabel = (d.document_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -1617,6 +1642,7 @@ export default function LandlordDetailPage() {
   strikeText,
   strikeKicker,
   aiMomentum: L.ai_momentum || null,
+  mandate,
   // Legacy fields for backward compat
   nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
   valuation,
