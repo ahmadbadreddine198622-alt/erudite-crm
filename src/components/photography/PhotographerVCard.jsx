@@ -85,6 +85,28 @@ export default function PhotographerVCard({ item, refetch }) {
   const handleAdvance = () => {
     const next = NEXT_STAGE[item.task_stage];
     if (!next) return;
+    
+    // Auto-save links before advancing (especially for 'handed_to_listing')
+    if (next === 'handed_to_listing') {
+      const hasAnyLink = tour3dLink || videoLink || photosLink;
+      if (!hasAnyLink) {
+        toast.error('Please add at least one media link (3D tour, video, or photos) before sending to listing');
+        return;
+      }
+      // Save links first, then advance
+      const updates = {};
+      if (tour3dLink) updates.tour_3d_link = tour3dLink;
+      if (videoLink) updates.video_link = videoLink;
+      if (photosLink) updates.photos_link = photosLink;
+      
+      updateFieldsMutation.mutate({ task_id: item.task_id, updates }, {
+        onSuccess: () => {
+          advanceMutation.mutate({ task_id: item.task_id, new_stage: next });
+        }
+      });
+      return;
+    }
+    
     advanceMutation.mutate({ task_id: item.task_id, new_stage: next });
   };
 
