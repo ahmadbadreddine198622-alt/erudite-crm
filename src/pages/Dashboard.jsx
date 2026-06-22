@@ -210,17 +210,6 @@ export default function Dashboard() {
   const activityStats = dashboardData?.activityStats || {};
   const quickStats = dashboardData?.quickStats || {};
 
-  // Photography & Documents summaries
-  const { data: photoSummary } = useQuery({
-    queryKey: ['photography-summary'],
-    queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
-    refetchInterval: 60000,
-  });
-  const { data: docsSummary } = useQuery({
-    queryKey: ['documents-summary'],
-    queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
-    refetchInterval: 60000,
-  });
   const photoStageCounts = photoData?.stageCounts || {};
   const docsStatusCounts = docsData?.statusCounts || {};
 
@@ -587,12 +576,6 @@ export default function Dashboard() {
         </EruditeSection>
         <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />
-        </EruditeSection>
-        <EruditeSection title="Photography Pipeline" subtitle="Media Production Status" icon={Camera}>
-          <PhotographyDashboardWidget summary={photoSummary} />
-        </EruditeSection>
-        <EruditeSection title="Documents" subtitle="Checklist Completion" icon={FileText}>
-          <DocumentsDashboardWidget summary={docsSummary} />
         </EruditeSection>
       </div>
 
