@@ -79,6 +79,11 @@ class LandlordDetail extends React.Component {
   }
 
   componentDidMount(){ this.scrollBottom(); }
+  componentDidUpdate(prevProps){
+    if(prevProps.landlords !== this.props.landlords){
+      this.setState({ landlords: this.props.landlords }, ()=>this.scrollBottom());
+    }
+  }
   scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; }); } }
   cur(){ return this.state.landlords.find(l=>l.id===this.state.currentId); }
 
