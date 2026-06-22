@@ -819,16 +819,19 @@ class LandlordDetail extends React.Component {
                   {L.phone && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.phone}</div>
-                      <CallSuite landlord={L} />
+                      <a href={`tel:${L.phone}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); text-decoration:none;")}>{L.phone}</a>
+                      <CallSuite phone={L.phone} />
                     </div>
                   )}
                   {L.additionalPhones && L.additionalPhones.length > 0 && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Phones</div>
-                      <div style={css("display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;")}>
+                      <div style={css("display:flex; flex-direction:column; gap:6px; margin-top:5px;")}>
                         {L.additionalPhones.map((p, i) => (
-                          <span key={i} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:6px;")}>{p}</span>
+                          <div key={i}>
+                            <a href={`tel:${p}`} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); text-decoration:none; display:block; margin-bottom:3px;")}>{p}</a>
+                            <CallSuite phone={p} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -836,15 +839,15 @@ class LandlordDetail extends React.Component {
                   {L.email && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis;")}>{L.email}</div>
+                      <a href={`mailto:${L.email}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis; display:block; text-decoration:none;")}>{L.email}</a>
                     </div>
                   )}
                   {L.additionalEmails && L.additionalEmails.length > 0 && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Emails</div>
-                      <div style={css("display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;")}>
+                      <div style={css("display:flex; flex-direction:column; gap:4px; margin-top:5px;")}>
                         {L.additionalEmails.map((e, i) => (
-                          <span key={i} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:6px;")}>{e}</span>
+                          <a key={i} href={`mailto:${e}`} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); text-decoration:none;")}>{e}</a>
                         ))}
                       </div>
                     </div>
@@ -852,7 +855,8 @@ class LandlordDetail extends React.Component {
                   {L.whatsapp && L.whatsapp !== L.phone && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>WhatsApp</div>
-                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.whatsapp}</div>
+                      <a href={`tel:${L.whatsapp}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); text-decoration:none; display:block; margin-bottom:6px;")}>{L.whatsapp}</a>
+                      <CallSuite phone={L.whatsapp} />
                     </div>
                   )}
                   {L.passport && (

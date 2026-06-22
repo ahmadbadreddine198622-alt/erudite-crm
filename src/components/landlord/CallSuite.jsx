@@ -5,7 +5,7 @@ import AircallButton from '@/components/shared/AircallButton';
 
 export default function CallSuite({ landlord, lead, phone }) {
   const entity = landlord || lead;
-  const targetPhone = phone || entity?.phone || entity?.whatsapp || entity?.wa_phone_e164;
+  const targetPhone = phone || entity?.phone;
 
   if (!targetPhone) {
     return null;
