@@ -1,0 +1,47 @@
+{
+  "name": "FormA",
+  "type": "object",
+  "properties": {
+    "contract_number": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_exclusive": {
+      "type": "boolean"
+    },
+    "commission_pct": {
+      "type": "number"
+    },
+    "sell_price_aed": {
+      "type": "number"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "broker_name": {
+      "type": "string"
+    },
+    "broker_office": {
+      "type": "string"
+    },
+    "broker_orn": {
+      "type": "string"
+    },
+    "landlord_id": {
+      "type": "string"
+    },
+    "pdf_url": {
+      "type": "string"
+    }
+  }
+}

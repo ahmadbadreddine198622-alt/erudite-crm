@@ -307,6 +307,27 @@ Deno.serve(async (req) => {
 
   let written = null;
   if (wantWrite) {
+    if (match.tier && proposed_landlord_updates) {
+      try {
+        await svc.FormA.create({
+          contract_number: c.contract_number,
+          status: c.status,
+          start_date: toISO(c.start_date),
+          end_date: toISO(c.end_date),
+          is_exclusive: c.is_exclusive === 'Yes',
+          commission_pct: num(c.commission_pct),
+          sell_price_aed: num(c.sell_price_aed),
+          owner_name: c.owner_name,
+          broker_name: c.broker_name,
+          broker_office: c.broker_office,
+          broker_orn: c.broker_orn,
+          landlord_id: match.landlord_id,
+          pdf_url: fileUrl || null,
+        });
+      } catch (e) {
+        warnings.push(`Failed to create FormA entity record: ${e.message}`);
+      }
+    }
     written = { landlord_id: match.landlord_id, landlord_name: match.landlord_name, landlord_updated: false, landlordproperty_updated: false };
     try {
       await svc.Landlord.update(match.landlord_id, proposed_landlord_updates);

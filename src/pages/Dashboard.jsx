@@ -18,6 +18,7 @@ import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
+import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -513,6 +514,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
+        </EruditeSection>
+        <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
+          <FormADashboardWidget />
         </EruditeSection>
         <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />
