@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -21,6 +21,8 @@ import { Brain } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
+import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
+import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -187,7 +189,19 @@ export default function Dashboard() {
   const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
-    refetchInterval: 30000, // Refresh every 30s
+    refetchInterval: 30000,
+  });
+
+  const { data: photoData } = useQuery({
+    queryKey: ['photography-dashboard'],
+    queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
+    refetchInterval: 60000,
+  });
+
+  const { data: docsData } = useQuery({
+    queryKey: ['documents-dashboard'],
+    queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
+    refetchInterval: 60000,
   });
 
   const phaseCounts = dashboardData?.phaseCounts || {};
@@ -195,6 +209,20 @@ export default function Dashboard() {
   const formAWithLandlords = dashboardData?.formAWithLandlords || [];
   const activityStats = dashboardData?.activityStats || {};
   const quickStats = dashboardData?.quickStats || {};
+
+  // Photography & Documents summaries
+  const { data: photoSummary } = useQuery({
+    queryKey: ['photography-summary'],
+    queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
+    refetchInterval: 60000,
+  });
+  const { data: docsSummary } = useQuery({
+    queryKey: ['documents-summary'],
+    queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
+    refetchInterval: 60000,
+  });
+  const photoStageCounts = photoData?.stageCounts || {};
+  const docsStatusCounts = docsData?.statusCounts || {};
 
   const badges = {
     leads: quickStats.activeLeads || leads.filter(l => l.status === 'active').length,
@@ -546,8 +574,25 @@ export default function Dashboard() {
         <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
           <FormADashboardWidget forms={formAWithLandlords} />
         </EruditeSection>
+        <EruditeSection title="Photography" subtitle="Production Pipeline" icon={Camera}>
+          <PhotographyDashboardWidget stageCounts={photoStageCounts} totalTasks={photoData?.totalTasks || 0} />
+        </EruditeSection>
+        <EruditeSection title="Documents" subtitle="Checklist Status" icon={FileText}>
+          <DocumentsDashboardWidget 
+            statusCounts={docsStatusCounts} 
+            typeCounts={docsData?.typeCounts || {}} 
+            totalDocs={docsData?.totalDocs || 0}
+            completionRate={docsData?.completionRate || 0}
+          />
+        </EruditeSection>
         <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />
+        </EruditeSection>
+        <EruditeSection title="Photography Pipeline" subtitle="Media Production Status" icon={Camera}>
+          <PhotographyDashboardWidget summary={photoSummary} />
+        </EruditeSection>
+        <EruditeSection title="Documents" subtitle="Checklist Completion" icon={FileText}>
+          <DocumentsDashboardWidget summary={docsSummary} />
         </EruditeSection>
       </div>
 
