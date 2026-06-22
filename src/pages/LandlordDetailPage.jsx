@@ -15,6 +15,7 @@ import DocumentsTab from '@/components/landlord/DocumentsTab';
 import MandatePanel from '@/components/landlord/MandatePanel';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
 import CallSuite from '@/components/landlord/CallSuite';
+import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -922,6 +923,9 @@ class LandlordDetail extends React.Component {
                 </div>
                 <p style={css("margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.8);")}>{vm.summaryText}</p>
               </div>
+
+              {/* Contact Evaluation — Peninsula 2 */}
+              <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
 
               {/* market intelligence */}
               <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
