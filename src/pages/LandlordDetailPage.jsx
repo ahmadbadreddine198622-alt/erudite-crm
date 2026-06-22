@@ -1526,8 +1526,8 @@ export default function LandlordDetailPage() {
     const typeLabel = (d.document_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const iconMap = { 'title_deed': '📄', 'passport': '🪪', 'emirates_id_front': '🪪', 'emirates_id_back': '🪪', 'lease_brokerage_agreement': '✍', 'form_a': '✍', 'tenancy_contract': '📋', 'utility_bill': '💡', 'noc': '📝' };
     const icon = iconMap[d.document_type] || '📄';
-    const statusMap = { 'received': 'received', 'requested': 'pending', 'verified': 'received' };
-    const displayStatus = d.verified_at ? 'received' : (statusMap[d.status] || d.status || 'pending');
+    const isReceived = d.verified_at || d.status === 'received' || d.received_at;
+    const displayStatus = isReceived ? '✓ Received' : (d.status === 'requested' ? '◷ Pending' : '◷ Pending');
     const subtitle = d.received_at ? `Received ${new Date(d.received_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}` : (d.requested_at ? `Requested ${new Date(d.requested_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}` : '—');
     return {
       icon,
