@@ -20,6 +20,7 @@ import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
+import PipelineStrip from '@/components/dashboard/PipelineStrip';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -383,6 +384,9 @@ export default function Dashboard() {
           <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>HOT</p>
         </button>
       </div>
+
+      {/* Pipeline Summary Strip */}
+      <PipelineStrip landlords={landlords} />
 
       {/* Clock */}
       <div className="text-center" style={{ marginBottom: 22 }}>
