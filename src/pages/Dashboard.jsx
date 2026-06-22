@@ -192,10 +192,11 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
   
-  const { data: formAData } = useQuery({
+  const { data: formAData, isLoading: isLoadingFormA } = useQuery({
     queryKey: ['form-a-contracts'],
     queryFn: () => base44.functions.invoke('getFormAContracts', {}),
     refetchInterval: 60000,
+    staleTime: 0,
   });
 
   const { data: photoData } = useQuery({
@@ -569,7 +570,13 @@ export default function Dashboard() {
           <AIInsightsDashboard />
         </EruditeSection>
         <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
-          <FormADashboardWidget forms={formAWithLandlords} />
+          {isLoadingFormA ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <FormADashboardWidget forms={formAWithLandlords} />
+          )}
         </EruditeSection>
         <EruditeSection title="Photography" subtitle="Production Pipeline" icon={Camera}>
           <PhotographyDashboardWidget stageCounts={photoStageCounts} totalTasks={photoData?.totalTasks || 0} />
