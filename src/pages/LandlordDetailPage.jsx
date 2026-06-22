@@ -1049,6 +1049,14 @@ export default function LandlordDetailPage() {
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
 
+  // Connected Systems — live existence checks (read-only)
+  const phone = L?.phone;
+  const { data: waBusiness = [] } = useQ(['wa_conv_business', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'business' }, '-created_date', 5)), { enabled: !!phone });
+  const { data: waPersonal = [] } = useQ(['wa_conv_personal', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'personal' }, '-created_date', 5)), { enabled: !!phone });
+  const { data: waMessages = [] } = useQ(['wa_messages', id], () => safe(() => base44.entities.WhatsAppMessage.filter({ landlord_id: id }, '-created_date', 200)), { enabled: !!id });
+  const { data: aircallCalls = [] } = useQ(['aircall_calls', id], () => safe(() => base44.entities.AircallCall.filter({ landlord_id: id }, '-started_at', 50)), { enabled: !!id });
+  const { data: twilioLogs = [] } = useQ(['twilio_logs', id], () => safe(() => base44.entities.CallLog.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+
   if (isLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222 47% 6%)' }}>
@@ -1076,6 +1084,17 @@ export default function LandlordDetailPage() {
   const stageIdx = L.stage ? (PIPELINE_STAGES.indexOf(L.stage) + 1) : 1;
   const agentEmail = L.assigned_agent_email || '';
   const agentName = agentEmail ? agentEmail.split('@')[0] : 'Unassigned';
+
+  // Build connections ONLY for systems with real data — missing keys render as grey "Not linked"
+  const connections = {};
+  if (waBusiness.length) connections.wa_business = waBusiness[0]?.status ? `Active · ${waBusiness[0].status}` : 'Linked';
+  if (waPersonal.length) connections.wa_personal = 'Linked';
+  if (waMessages.some((m) => m.media_type === 'audio' || m.media_type === 'voice' || m.is_voice_note)) connections.wa_call = 'Voice call';
+  if (aircallCalls.length) connections.aircall = `${aircallCalls.length} call${aircallCalls.length > 1 ? 's' : ''}`;
+  if (twilioLogs.length) connections.twilio = `${twilioLogs.length} call${twilioLogs.length > 1 ? 's' : ''}`;
+  if (lp.title_deed_url || L.form_a_pdf_url) connections.drive = 'Files backed up';
+  if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
+  if (lp.title_deed_verified === true) connections.dld = 'Title verified';
 
   const unit = {
     label: prop.unit_no || '—',
@@ -1121,7 +1140,7 @@ export default function LandlordDetailPage() {
     offers: [],
     docs: [],
     stream: [],
-    connections: {},
+    connections,
     outreach: EMPTY_OUTREACH,
   };
 
