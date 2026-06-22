@@ -3,10 +3,11 @@
 // src/pages/LandlordDetailPage.jsx  (replace everything that's there).
 // No other files needed. The /landlord/:id route already points here.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1048,6 +1049,14 @@ class LandlordDetail extends React.Component {
 
               {/* tabs */}
               <div style={css("margin-top:18px;")}>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;")}>
+                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Documents & Mandate</span>
+                  {this.props.onUploadFormA && (
+                    <button onClick={this.props.onUploadFormA} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                      <span style={css("font-size:14px; line-height:1;")}>📄</span> Upload Form A
+                    </button>
+                  )}
+                </div>
                 <div style={css("display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:11px; margin-bottom:15px;")}>
                   {vm.tabs.map((tb)=>(
                     <button key={tb.id} onClick={tb.onClick} style={tb.style}>{tb.label}</button>
@@ -1287,8 +1296,10 @@ function temperatureFromRapport(rapport) {
 export default function LandlordDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [formAOpen, setFormAOpen] = useState(false);
+  const [formADialogOpen, setFormADialogOpen] = useState(false);
 
-  const { data: L, isLoading } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
+  const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
@@ -1349,6 +1360,11 @@ export default function LandlordDetailPage() {
       </div>
     );
   }
+
+  const handleFormASuccess = () => {
+    refetchLandlord();
+    setFormADialogOpen(false);
+  };
 
   if (!L) {
     return (
@@ -1512,56 +1528,67 @@ export default function LandlordDetailPage() {
   }));
 
   const mapped = {
-    id: L.id,
-    name: L.full_name_en || L.full_name || 'Unnamed landlord',
-    initials: initialsOf(L.full_name_en || L.full_name),
-    phone: L.phone || '',
-    additionalPhones: Array.isArray(L.additional_phones) ? L.additional_phones : [],
-    email: L.email || '',
-    additionalEmails: Array.isArray(L.additional_emails) ? L.additional_emails : [],
-    whatsapp: L.whatsapp || '',
-    source: L.source || '—',
-    archetype: L.landlord_archetype || 'first_time_seller',
-    agent: agentName,
-    agentEmail,
-    rapport,
-    temperature: temperatureFromRapport(rapport),
-    stageIndex: stageIdx >= 1 ? stageIdx : 1,
-    ownerSince: '—',
-    unit,
-    agentNotes: L.notes_internal || '',
-    redFlags: [],
-    buyingSignals: [],
-    // Wire real AI fields
-    aiRollingSummary,
-    aiNextBestAction,
-    aiCoaching,
-    mandateWinProb,
-    // Legacy fields for backward compat
-    nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
-    valuation,
-    qualification: null,
-    scores: null,
-    ai: null,
-    signals: null,
-    market: comps.length ? { comps, trendLabel: '', trendStyle: { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
-    battle: null,
-    calls,
-    offers: [],
-    docs: [],
-    stream,
-    connections,
-    outreach: EMPTY_OUTREACH,
-    media,
+  id: L.id,
+  name: L.full_name_en || L.full_name || 'Unnamed landlord',
+  initials: initialsOf(L.full_name_en || L.full_name),
+  phone: L.phone || '',
+  additionalPhones: Array.isArray(L.additional_phones) ? L.additional_phones : [],
+  email: L.email || '',
+  additionalEmails: Array.isArray(L.additional_emails) ? L.additional_emails : [],
+  whatsapp: L.whatsapp || '',
+  source: L.source || '—',
+  archetype: L.landlord_archetype || 'first_time_seller',
+  agent: agentName,
+  agentEmail,
+  rapport,
+  temperature: temperatureFromRapport(rapport),
+  stageIndex: stageIdx >= 1 ? stageIdx : 1,
+  ownerSince: '—',
+  unit,
+  agentNotes: L.notes_internal || '',
+  redFlags: [],
+  buyingSignals: [],
+  // Wire real AI fields
+  aiRollingSummary,
+  aiNextBestAction,
+  aiCoaching,
+  mandateWinProb,
+  // Legacy fields for backward compat
+  nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
+  valuation,
+  qualification: null,
+  scores: null,
+  ai: null,
+  signals: null,
+  market: comps.length ? { comps, trendLabel: '', trendStyle: { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
+  battle: null,
+  calls,
+  offers: [],
+  docs: [],
+  stream,
+  connections,
+  outreach: EMPTY_OUTREACH,
+  media,
+  formAContractNumber: L.form_a_contract_number || null,
+  mandateStatus: L.mandate_status || null,
+  mandateType: L.mandate_type || null,
   };
 
   return (
-    <LandlordDetail
-      landlords={[mapped]}
-      initialId={mapped.id}
-      onBack={() => navigate('/landlords')}
-      showCoaching
-      showSignals
-    />
+    <React.Fragment>
+      <LandlordDetail
+        landlords={[mapped]}
+        initialId={mapped.id}
+        onBack={() => navigate('/landlords')}
+        showCoaching
+        showSignals
+        onUploadFormA={() => setFormADialogOpen(true)}
+      />
+      <FormAUploadDialog
+        open={formADialogOpen}
+        onClose={() => setFormADialogOpen(false)}
+        onSuccess={handleFormASuccess}
+      />
+    </React.Fragment>
   );
 }
