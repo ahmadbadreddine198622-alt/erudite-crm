@@ -128,13 +128,7 @@ export default function PhotographerVCard({ item, refetch }) {
               <span>Unit {item.unit_reference}</span>
             )}
           </div>
-          {item.assigned_photographer_email && (
-            <div className="flex items-center gap-1.5 text-xs text-accent mt-1.5" style={{ color: 'hsl(38 92% 55%)' }}>
-              <User className="w-3 h-3" />
-              <span className="font-medium">{item.assigned_photographer_email.split('@')[0]}</span>
-              <span className="text-muted-foreground">· Photographer</span>
-            </div>
-          )}
+
         </div>
         <Badge variant="outline" className="text-xs shrink-0" 
           style={{ 
@@ -168,6 +162,25 @@ export default function PhotographerVCard({ item, refetch }) {
             );
           })}
         </div>
+      </div>
+
+      {/* Assignment section */}
+      <div className="mb-3 pb-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <p className="text-xs text-muted-foreground mb-2 font-medium">Assignment</p>
+        {item.assigned_photographer_email ? (
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-xs shrink-0"
+              style={{ color: 'hsl(38 92% 55%)', background: 'hsl(38 92% 50% / 0.2)' }}>
+              {item.assigned_photographer_email[0]?.toUpperCase()}
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{item.assigned_photographer_email.split('@')[0]}</p>
+              <p className="text-xs text-muted-foreground">Photographer · {item.assigned_photographer_email}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">No photographer assigned</p>
+        )}
       </div>
 
       {/* Pre-shoot details */}
