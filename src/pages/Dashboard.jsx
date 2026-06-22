@@ -191,6 +191,12 @@ export default function Dashboard() {
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
     refetchInterval: 30000,
   });
+  
+  const { data: formAData } = useQuery({
+    queryKey: ['form-a-contracts'],
+    queryFn: () => base44.functions.invoke('getFormAContracts', {}),
+    refetchInterval: 60000,
+  });
 
   const { data: photoData } = useQuery({
     queryKey: ['photography-dashboard'],
@@ -206,15 +212,11 @@ export default function Dashboard() {
 
   const phaseCounts = dashboardData?.phaseCounts || {};
   const landlordsWithQuals = dashboardData?.landlordsWithQualifications || [];
-  const formAWithLandlords = dashboardData?.formAWithLandlords || [];
+  const formAWithLandlords = formAData?.contracts || [];
   const activityStats = dashboardData?.activityStats || {};
   const quickStats = dashboardData?.quickStats || {};
   
-  // Debug logging
-  console.log('[Dashboard] Form A data received:', formAWithLandlords?.length, 'contracts');
-  if (formAWithLandlords?.length > 0) {
-    console.log('[Dashboard] First Form A:', formAWithLandlords[0]);
-  }
+  console.log('[Dashboard] Form A contracts:', formAWithLandlords?.length);
 
   const photoStageCounts = photoData?.stageCounts || {};
   const docsStatusCounts = docsData?.statusCounts || {};
