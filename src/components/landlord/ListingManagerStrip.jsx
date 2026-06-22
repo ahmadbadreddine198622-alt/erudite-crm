@@ -150,7 +150,7 @@ export default function ListingManagerStrip({ listingManagerEmail, assignedAgent
       </div>
 
       {/* Contact quick actions */}
-      {(phone || whatsapp) && (
+      {whatsapp && (
         <div style={{ 
           marginTop: '10px', 
           paddingTop: '10px', 
@@ -159,50 +159,27 @@ export default function ListingManagerStrip({ listingManagerEmail, assignedAgent
           gap: '8px',
           flexWrap: 'wrap'
         }}>
-          {phone && (
-            <a 
-              href={`tel:${phone}`}
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '6px 11px', 
-                borderRadius: '9px', 
-                background: 'rgba(16,185,129,0.1)', 
-                border: '1px solid rgba(16,185,129,0.25)',
-                color: '#34d399',
-                fontSize: '11px',
-                fontWeight: '600',
-                textDecoration: 'none'
-              }}
-            >
-              <Phone className="w-3.5 h-3.5" />
-              Call Owner
-            </a>
-          )}
-          {whatsapp && (
-            <a 
-              href={`https://wa.me/${whatsapp.replace('+', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '6px 11px', 
-                borderRadius: '9px', 
-                background: 'rgba(37,211,102,0.1)', 
-                border: '1px solid rgba(37,211,102,0.25)',
-                color: '#4ade80',
-                fontSize: '11px',
-                fontWeight: '600',
-                textDecoration: 'none'
-              }}
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              WhatsApp
-            </a>
-          )}
+          <a 
+            href={`https://wa.me/${whatsapp.replace('+', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '6px 11px', 
+              borderRadius: '9px', 
+              background: 'rgba(37,211,102,0.1)', 
+              border: '1px solid rgba(37,211,102,0.25)',
+              color: '#4ade80',
+              fontSize: '11px',
+              fontWeight: '600',
+              textDecoration: 'none'
+            }}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            WhatsApp
+          </a>
         </div>
       )}
     </div>
