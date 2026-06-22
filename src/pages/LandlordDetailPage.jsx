@@ -75,6 +75,7 @@ class LandlordDetail extends React.Component {
       composerText: '',
       composerTime: '',
       analyzing: false,
+      streamFilter: 'all',
     };
   }
 
@@ -91,6 +92,7 @@ class LandlordDetail extends React.Component {
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
   onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'' }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
+  setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
   setComposerType = (t)=> this.setState({ composerType:t });
   onComposerInput = (e)=> this.setState({ composerText:e.target.value });
   onClearTime = ()=> this.setState({ composerTime:'' });
@@ -192,7 +194,9 @@ class LandlordDetail extends React.Component {
     }
 
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
-    const stream=sorted.map((s,idx)=>{
+    const filterMode=S.streamFilter || 'all';
+    const filtered = filterMode==='all' ? sorted : sorted.filter(s => s.t==='act' || s.wa===filterMode);
+    const stream=filtered.map((s,idx)=>{
       if(s.t==='msg'){
         const out = s.dir==='out';
         const waveform = s.mtype==='voice' ? [9,15,7,18,11,16,6,13,9,17,8,12].map((h,k)=>React.createElement('span',{ key:k, style:{ width:'2px', height:h+'px', borderRadius:'2px', background: out?'hsl(38 92% 55% / 0.7)':'rgba(255,255,255,0.4)' } })) : null;
@@ -218,8 +222,8 @@ class LandlordDetail extends React.Component {
           actLabelStyle:{ fontSize:'12px', fontWeight:700, color } };
       }
     });
-    const msgCount=sorted.filter(s=>s.t==='msg').length;
-    const actCount=sorted.filter(s=>s.t==='act').length;
+    const msgCount=filtered.filter(s=>s.t==='msg').length;
+    const actCount=filtered.filter(s=>s.t==='act').length;
 
     const composerTypes=['Note','Task','Follow-up','Appointment'].map(t=>{
       const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅' }[t];
@@ -378,11 +382,17 @@ class LandlordDetail extends React.Component {
     return {
       currentId:S.currentId, landlordOptions,
       streamCountLabel: msgCount+' messages · '+actCount+' activities',
-      waPersonalBadgeStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600,
-        background: L.connections && L.connections.wa_personal ? 'rgba(59,130,246,0.14)' : 'rgba(255,255,255,0.04)',
-        border: '1px solid '+(L.connections && L.connections.wa_personal ? 'rgba(59,130,246,0.32)' : 'rgba(255,255,255,0.1)'),
-        color: L.connections && L.connections.wa_personal ? '#93c5fd' : 'rgba(255,255,255,0.4)' },
-      waPersonalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: L.connections && L.connections.wa_personal ? '#3b82f6' : 'rgba(255,255,255,0.25)' },
+      streamFilter: filterMode,
+      businessPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
+        background: filterMode==='business' ? 'rgba(37,211,102,0.2)' : 'rgba(37,211,102,0.05)',
+        border: '1px solid '+(filterMode==='business' ? 'rgba(37,211,102,0.5)' : 'rgba(37,211,102,0.18)'),
+        color: filterMode==='business' ? '#4ade80' : 'rgba(74,222,128,0.5)' },
+      businessDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='business' ? '#25D366' : 'rgba(37,211,102,0.35)' },
+      personalPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
+        background: filterMode==='personal' ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.05)',
+        border: '1px solid '+(filterMode==='personal' ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.18)'),
+        color: filterMode==='personal' ? '#93c5fd' : 'rgba(147,197,253,0.5)' },
+      personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='personal' ? '#3b82f6' : 'rgba(59,130,246,0.35)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
       aiReady: hasAI && !S.analyzing, aiEmpty: !hasAI,
       ai, showCoaching,
@@ -442,12 +452,12 @@ class LandlordDetail extends React.Component {
                   <div style={css("font-size:11.5px; color:rgba(255,255,255,0.4); margin-top:2px;")}>{vm.streamCountLabel}</div>
                 </div>
                 <div style={css("display:flex; align-items:center; gap:6px;")}>
-                  <span style={css("display:inline-flex; align-items:center; gap:5px; padding:5px 9px; border-radius:99px; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.3); font-size:10.5px; font-weight:600; color:#4ade80;")}>
-                    <span style={css("width:6px; height:6px; border-radius:50%; background:#25D366;")}></span> Business
-                  </span>
-                  <span style={vm.waPersonalBadgeStyle}>
-                    <span style={vm.waPersonalDotStyle}></span> Personal
-                  </span>
+                  <button onClick={()=>this.setStreamFilter('business')} style={vm.businessPillStyle}>
+                    <span style={vm.businessDotStyle}></span> Business
+                  </button>
+                  <button onClick={()=>this.setStreamFilter('personal')} style={vm.personalPillStyle}>
+                    <span style={vm.personalDotStyle}></span> Personal
+                  </button>
                 </div>
               </div>
 
