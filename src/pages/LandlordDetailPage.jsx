@@ -1057,6 +1057,22 @@ export default function LandlordDetailPage() {
   const { data: aircallCalls = [] } = useQ(['aircall_calls', id], () => safe(() => base44.entities.AircallCall.filter({ landlord_id: id }, '-started_at', 50)), { enabled: !!id });
   const { data: twilioLogs = [] } = useQ(['twilio_logs', id], () => safe(() => base44.entities.CallLog.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
 
+  // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
+  const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
+    if (!phone) return [];
+    const cleaned = phone.replace(/[\s\-()]/g, '');
+    const variants = [cleaned];
+    if (cleaned.startsWith('+')) variants.push(cleaned.slice(1));
+    else variants.push('+' + cleaned);
+    const seen = new Set(); const results = [];
+    for (const v of variants) {
+      const fromMsgs = await safe(() => base44.entities.WhatsAppMessage.filter({ from_number: v }, 'timestamp', 100));
+      const toMsgs = await safe(() => base44.entities.WhatsAppMessage.filter({ to_number: v }, 'timestamp', 100));
+      [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
+    }
+    return results;
+  }, { enabled: !!phone });
+
   if (isLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222 47% 6%)' }}>
@@ -1095,6 +1111,42 @@ export default function LandlordDetailPage() {
   if (lp.title_deed_url || L.form_a_pdf_url) connections.drive = 'Files backed up';
   if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
   if (lp.title_deed_verified === true) connections.dld = 'Title verified';
+
+  // Build the Conversation & Activity stream from live WhatsApp messages + call logs
+  const fmtMsgTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts); if (isNaN(d)) return String(ts);
+    return d.toLocaleString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  const deriveWaChannel = (msg) => {
+    if (msg.channel) return msg.channel;
+    const eruditeSide = msg.direction === 'inbound' ? msg.to_number : msg.from_number;
+    if (eruditeSide) {
+      const digits = eruditeSide.replace(/\D/g, '');
+      if (digits.endsWith('1806000')) return 'personal';
+      if (digits.endsWith('2806000')) return 'business';
+    }
+    return 'business';
+  };
+  const stream = [];
+  waStreamMessages.forEach(msg => {
+    stream.push({
+      t: 'msg',
+      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      mtype: 'text',
+      text: msg.body || '',
+      time: fmtMsgTime(msg.timestamp),
+      order: tsOf(msg.timestamp) || 0,
+      wa: deriveWaChannel(msg),
+    });
+  });
+  aircallCalls.forEach(call => {
+    stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Aircall`, body: call.from_number || call.to_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
+  });
+  twilioLogs.forEach(log => {
+    stream.push({ t: 'act', kind: 'call', title: `${log.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: log.to_number || log.from_number || '', time: fmtMsgTime(log.started_at || log.created_date), order: tsOf(log.started_at || log.created_date) || 0 });
+  });
+  stream.sort((a, b) => a.order - b.order);
 
   const unit = {
     label: prop.unit_no || '—',
@@ -1139,7 +1191,7 @@ export default function LandlordDetailPage() {
     calls: [],
     offers: [],
     docs: [],
-    stream: [],
+    stream,
     connections,
     outreach: EMPTY_OUTREACH,
   };
