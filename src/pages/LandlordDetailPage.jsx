@@ -13,6 +13,7 @@ import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import MandatePanel from '@/components/landlord/MandatePanel';
+import QualificationStrip from '@/components/landlord/QualificationStrip';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -787,6 +788,8 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
+              <QualificationStrip qualification={L.qualification} />
+
               {/* pipeline progress + stage selector */}
               <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
@@ -1420,6 +1423,23 @@ export default function LandlordDetailPage() {
   // Competitive context
   const hasCompetition = L.is_currently_listed_with_others === true || (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0) || (L.ai_competitive_intel && String(L.ai_competitive_intel).trim());
   const competitionText = L.ai_competitive_intel ? String(L.ai_competitive_intel) : (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0 ? `Listed with ${L.competing_brokers_count} other broker(s)` : (L.is_currently_listed_with_others === true ? 'Listed with other brokers' : ''));
+
+  const archetypeLabels = {
+    individual_end_user_relocating: 'End-user (relocating)',
+    professional_investor: 'Professional Investor',
+    distressed_seller: 'Distressed Seller',
+    inherited_owner: 'Inherited Owner',
+    developer_resale: 'Developer Resale',
+    overseas_owner: 'Overseas Owner',
+    default: L.landlord_archetype ? L.landlord_archetype.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : null
+  };
+
+  const qualificationData = {
+    archetype: archetypeLabels[L.landlord_archetype] || archetypeLabels.default,
+    rapport: L.rapport_level ? L.rapport_level.charAt(0).toUpperCase() + L.rapport_level.slice(1) : null,
+    competition: (L.is_currently_listed_with_others || (L.competing_brokers_count || 0) > 0) ? `Listed with ${L.competing_brokers_count || 'other'} broker(s)`: null,
+    priorBrokerage: (L.prior_brokerage_count || 0) > 0 ? `${L.prior_brokerage_count} prior brokerage(s)` : null,
+  };
   // Map mandate/deal terms from Landlord entity
   const formAContracts = Array.isArray(L.form_a_contracts) ? L.form_a_contracts : [];
   const hasMandate = L.mandate_status && L.mandate_status !== 'none' && L.mandate_status !== '' || formAContracts.length > 0;
@@ -1467,6 +1487,7 @@ export default function LandlordDetailPage() {
   }
 
   const mapped = {
+    qualification: qualificationData,
   id: L.id,
   name: L.full_name_en || L.full_name || 'Unnamed landlord',
   initials: initialsOf(L.full_name_en || L.full_name),
