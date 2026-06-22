@@ -233,11 +233,14 @@ class LandlordDetail extends React.Component {
     const msgCount=filtered.filter(s=>s.t==='msg').length;
     const actCount=filtered.filter(s=>s.t==='act').length;
 
-    const composerTypes=['Note','Task','Follow-up','Appointment'].map(t=>{
-      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅' }[t];
+    const composerTypes=['Note','Task','Follow-up','Appointment','Chat'].map(t=>{
+      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬' }[t];
+      const isChat = t==='Chat';
       return { label:t, icon:ic, onClick:()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-          background: on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)', color: on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)', border:'1px solid '+(on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)') } };
+          background: isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
+          color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
+          border:'1px solid '+(isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
     });
     const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Describe the task…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…' };
 
