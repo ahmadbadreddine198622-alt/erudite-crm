@@ -128,6 +128,13 @@ export default function PhotographerVCard({ item, refetch }) {
               <span>Unit {item.unit_reference}</span>
             )}
           </div>
+          {item.assigned_photographer_email && (
+            <div className="flex items-center gap-1.5 text-xs text-accent mt-1.5" style={{ color: 'hsl(38 92% 55%)' }}>
+              <User className="w-3 h-3" />
+              <span className="font-medium">{item.assigned_photographer_email.split('@')[0]}</span>
+              <span className="text-muted-foreground">· Photographer</span>
+            </div>
+          )}
         </div>
         <Badge variant="outline" className="text-xs shrink-0" 
           style={{ 

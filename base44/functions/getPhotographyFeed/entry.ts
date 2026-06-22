@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
         has_floor_plan: lp.has_floor_plan ?? false,
         landlord_property_id: lp.id,
 
+        // Assignment info:
+        assigned_photographer_email: task.assigned_photographer_email || null,
+
         // DELIBERATELY OMITTED: phone, whatsapp, email, commission, price, contract
       };
     });
