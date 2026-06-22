@@ -89,9 +89,9 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores/signals fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -604,16 +604,27 @@ class LandlordDetail extends React.Component {
                             </div>
                           </div>
 
-                          <div style={css("margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;")}>
-                            {ai.coach.objections.map((ob,i)=>(
-                              <span key={i} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:10.5px; color:#fca5a5;")}>⚑ {ob}</span>
-                            ))}
-                          </div>
+                          {(ai.coach.objections.length > 0 || (L.aiObjections && L.aiObjections.length > 0)) && (
+                            <div style={css("margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;")}>
+                              {ai.coach.objections.map((ob,i)=>(
+                                <span key={i} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:10.5px; color:#fca5a5;")}>⚑ {ob}</span>
+                              ))}
+                              {(L.aiObjections || []).map((ob,i)=>(
+                                <span key={`ai-${i}`} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:10.5px; color:#fca5a5;")}>⚑ {ob}</span>
+                              ))}
+                            </div>
+                          )}
 
                           {L.aiCoaching && (
                             <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
                               <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#a78bfa;")}>Agent coaching</span>
                               <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{L.aiCoaching}</div>
+                            </div>
+                          )}
+                          {L.hasCompetition && L.competitionText && (
+                            <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(245,158,11,0.08); border:1px solid hsl(38 92% 50% / 0.2);")}>
+                              <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:hsl(38 92% 60%);")}>Competition</span>
+                              <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{L.competitionText}</div>
                             </div>
                           )}
                           <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
@@ -1540,6 +1551,18 @@ export default function LandlordDetailPage() {
     mandateWin: L.mandate_win_probability != null ? L.mandate_win_probability : null,
     mandateWhy: L.mandate_win_rationale || '',
   } : null;
+  // Map risk/intelligence signals from Landlord entity
+  const redFlags = Array.isArray(L.red_flags) ? L.red_flags : [];
+  const buyingSignals = Array.isArray(L.buying_signals) ? L.buying_signals : [];
+  const aiObjections = Array.isArray(L.ai_objections) ? L.ai_objections : [];
+  // ai_strike_now type guard: can be boolean, object, or null
+  const aiStrikeNow = L.ai_strike_now;
+  const hasStrikeNow = aiStrikeNow === true || (typeof aiStrikeNow === 'object' && aiStrikeNow !== null && (aiStrikeNow.is_strike === true || aiStrikeNow.strike === true || aiStrikeNow.active === true));
+  const strikeText = typeof aiStrikeNow === 'object' && aiStrikeNow !== null && aiStrikeNow.message ? aiStrikeNow.message : (hasStrikeNow ? 'High-priority — act now.' : '');
+  const strikeKicker = hasStrikeNow ? 'Strike now' : (L.ai_momentum ? 'Momentum' : '');
+  // Competitive context
+  const hasCompetition = L.is_currently_listed_with_others === true || (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0) || (L.ai_competitive_intel && String(L.ai_competitive_intel).trim());
+  const competitionText = L.ai_competitive_intel ? String(L.ai_competitive_intel) : (typeof L.competing_brokers_count === 'number' && L.competing_brokers_count > 0 ? `Listed with ${L.competing_brokers_count} other broker(s)` : (L.is_currently_listed_with_others === true ? 'Listed with other brokers' : ''));
   // Map DocumentChecklistItem records to Documents tab shape
   const docs = docItems.map(d => {
     const typeLabel = (d.document_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -1580,20 +1603,27 @@ export default function LandlordDetailPage() {
   ownerSince: '—',
   unit,
   agentNotes: L.notes_internal || '',
-  redFlags: [],
-  buyingSignals: [],
+  redFlags,
+  buyingSignals,
   // Wire real AI fields
   aiRollingSummary,
   aiNextBestAction,
   aiCoaching,
   mandateWinProb,
+  aiObjections,
+  hasCompetition,
+  competitionText,
+  hasStrikeNow,
+  strikeText,
+  strikeKicker,
+  aiMomentum: L.ai_momentum || null,
   // Legacy fields for backward compat
   nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
   valuation,
   qualification: null,
-  scores: null,
+  scores,
   ai: null,
-  signals: null,
+  signals: hasStrikeNow ? { strikeNow: hasStrikeNow, strikeKicker, strikeText, strikeAccent: '#fca5a5' } : null,
   market: comps.length ? { comps, trendLabel: '', trendStyle: { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
   battle: null,
   calls,
@@ -1603,7 +1633,6 @@ export default function LandlordDetailPage() {
   connections,
   outreach: EMPTY_OUTREACH,
   media,
-  scores,
   formAContractNumber: L.form_a_contract_number || null,
   mandateStatus: L.mandate_status || null,
   mandateType: L.mandate_type || null,
