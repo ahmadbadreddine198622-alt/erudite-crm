@@ -1,18 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// AI conversation analysis for a landlord's WhatsApp thread.
+// AI conversation analysis for a landlord — TWO TIERS:
+//   COLD TIER (0 messages): Computes landlord_archetype, urgency_score + rationale, ai_next_best_action, ai_rolling_summary.
+//     Does NOT compute trust_score, responsiveness_score, mandate_win_probability (leaves null, no hallucination).
+//   FULL TIER (≥1 message): Complete analysis including trust/responsiveness/win-probability from actual reply data.
+//
 // Writes:
-//   - ConversationInsight (summary, temperature, suggestions, etc.)
-//   - Landlord fields: trust_score, responsiveness_score, mandate_win_probability, urgency_score
-//     + rationale fields: trust_score_rationale, urgency_score_rationale, mandate_win_rationale
+//   - ConversationInsight (full tier only): summary, temperature, suggestions, etc.
+//   - Landlord fields: archetype, urgency_score (+ rationale), ai_next_best_action, ai_rolling_summary, ai_processed_at
+//   - Full tier also: trust_score, responsiveness_score, mandate_win_probability (+ rationales)
 //
 // Also triggers detectLandlordStakeholders (fire-and-forget) so coalition map stays current.
 //
-// Debounced: skips if analyzed in the last 30s.
+// Debounced: skips if analyzed in the last 30s (full tier only).
 
 const MODEL = 'claude-opus-4-8';
 const SETTLE_MS = 10000;
 const COOLDOWN_MS = 30000;
+
+// Determine analysis tier based on message count
+function getTier(messageCount) {
+  return messageCount >= 1 ? 'full' : 'cold';
+}
 
 function stripFences(s) {
   return String(s || '').replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
@@ -85,16 +94,22 @@ Deno.serve(async (req) => {
   // Load thread
   const load = () => svc.entities.Message.filter({ landlord_id }, 'timestamp', 200);
   let messages = await load();
-  if (!messages || messages.length === 0) return Response.json({ status: 'no_messages' });
+  const messageCount = messages ? messages.length : 0;
+  const tier = getTier(messageCount);
+  
+  // Cold tier: no messages, skip debounce, compute archetype + urgency only
+  if (tier === 'cold') {
+    return await runColdTier(svc, landlord_id, apiKey);
+  }
 
-  // Trailing-edge debounce
+  // Trailing-edge debounce (full tier only)
   const latestTs = (arr) => (arr.length ? arr[arr.length - 1].timestamp : null);
   const before = latestTs(messages);
   await new Promise(r => setTimeout(r, SETTLE_MS));
   messages = await load();
   if (latestTs(messages) !== before) return Response.json({ status: 'superseded_newer_message' });
 
-  // Compute deterministic responsiveness
+  // Compute deterministic responsiveness (full tier only)
   const responsivenessScore = computeResponsiveness(messages);
 
   // Build transcript
@@ -127,6 +142,125 @@ SCORING RULES:
 - mandate_win_probability: 0–1. How likely is this landlord to sign with us? Consider: stage, rapport, competitors mentioned, objections, exclusivity interest.
 - urgency_score: 0–100. How urgently does the landlord need to transact? Consider: mentioned deadlines, financial pressure, tenant leaving, already listed, timeline.
 LANGUAGE RULE: Write summary and suggested_messages in the landlord's detected language. type/temperature stay English.`;
+
+// Cold tier analysis — no messages, compute archetype + urgency only
+async function runColdTier(svc, landlord_id, apiKey) {
+  // Load landlord record for context
+  const landlords = await svc.entities.Landlord.filter({ id: landlord_id });
+  if (!landlords || landlords.length === 0) {
+    return Response.json({ error: 'Landlord not found' }, { status: 404 });
+  }
+  const L = landlords[0];
+  
+  // Build context from available fields
+  const context = {
+    source: L.source || 'unknown',
+    stage: L.stage || 'initial_contact',
+    archetype: L.landlord_archetype || 'individual_end_user_relocating',
+    asking_price: L.asking_price_aed,
+    project: L.project_name,
+    mandate_status: L.mandate_status,
+    is_listed_with_others: L.is_currently_listed_with_others,
+    competing_brokers: L.competing_brokers_count,
+    prior_brokerage: L.prior_brokerage_count,
+    days_on_market: L.days_on_market,
+    preferred_language: L.preferred_language || 'en',
+  };
+
+  const systemPrompt = `You are a Dubai real estate AI analyst. Given a landlord record with NO conversation history, infer:
+1. landlord_archetype (from schema: professional_investor, individual_end_user_relocating, distressed_seller, inherited_owner, developer_resale, overseas_owner, first_time_seller, portfolio_optimizer, accidental_landlord, speculator_flipping)
+2. urgency_score (0-100): How urgently they need to transact
+3. ai_next_best_action: { action: string, priority: "low"|"medium"|"high"|"urgent", reasoning: string }
+4. ai_rolling_summary: One-line summary (max 120 chars)
+
+Return ONLY strict JSON — no prose, no markdown:
+{
+  "landlord_archetype": string,
+  "urgency_score": number,
+  "urgency_score_rationale": string,
+  "ai_next_best_action": { "action": string, "priority": string, "reasoning": string },
+  "ai_rolling_summary": string
+}
+
+RULES:
+- Archetype: Infer from source, stage, mandate_status, days_on_market. E.g., dld_lookup+initial_contact = overseas_owner; expired_listing = distressed_seller.
+- Urgency: High if days_on_market>60, or mandate_status=form_a_signed, or stage beyond initial_contact. Low if just created.
+- Next action: Concrete, stage-appropriate. E.g., "Call to introduce ourselves and schedule Form A signing".
+- Summary: One line, factual. E.g., "Overseas owner, uncontacted, needs introduction call".
+- Use detected language from preferred_language field.`;
+
+  let claudeText = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `Landlord record (no messages):\n${JSON.stringify(context, null, 2)}` }],
+      }),
+    });
+    const raw = await resp.text();
+    if (!resp.ok) return Response.json({ error: 'Anthropic API error', status: resp.status, detail: raw.slice(0, 800) }, { status: 502 });
+    const data = JSON.parse(raw);
+    claudeText = (data?.content || []).map(b => b?.text || '').join('').trim();
+  } catch (e) {
+    return Response.json({ error: 'Anthropic call failed', detail: String(e?.message || e) }, { status: 502 });
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(stripFences(claudeText));
+  } catch (e) {
+    return Response.json({ error: 'Model returned malformed JSON', raw: claudeText.slice(0, 800) }, { status: 502 });
+  }
+
+  // Build update object — COLD TIER: only archetype, urgency, next_best_action, rolling_summary, ai_processed_at
+  const update = {};
+  
+  const archetype = parsed.landlord_archetype;
+  const validArchetypes = ['professional_investor', 'individual_end_user_relocating', 'distressed_seller', 'inherited_owner', 'developer_resale', 'overseas_owner', 'first_time_seller', 'portfolio_optimizer', 'accidental_landlord', 'speculator_flipping'];
+  if (archetype && validArchetypes.includes(archetype)) {
+    update.landlord_archetype = archetype;
+  }
+  
+  const us = clamp(parsed.urgency_score, 0, 100);
+  if (us !== null) {
+    update.urgency_score = us;
+    update.urgency_score_rationale = asText(parsed.urgency_score_rationale);
+  }
+  
+  if (parsed.ai_next_best_action && typeof parsed.ai_next_best_action === 'object') {
+    update.ai_next_best_action = {
+      action: asText(parsed.ai_next_best_action.action),
+      priority: ['low', 'medium', 'high', 'urgent'].includes(parsed.ai_next_best_action.priority) ? parsed.ai_next_best_action.priority : 'medium',
+      reasoning: asText(parsed.ai_next_best_action.reasoning),
+    };
+  }
+  
+  update.ai_rolling_summary = asText(parsed.ai_rolling_summary).slice(0, 500);
+  update.ai_processed_at = new Date().toISOString();
+
+  // Persist to Landlord
+  try {
+    await svc.entities.Landlord.update(landlord_id, update);
+  } catch (e) {
+    return Response.json({ error: 'Failed to update landlord', detail: String(e?.message || e), update }, { status: 500 });
+  }
+
+  // Fire-and-forget stakeholder detection
+  svc.functions.invoke('detectLandlordStakeholders', { landlord_id }).catch(() => {});
+
+  return Response.json({
+    status: 'ok',
+    tier: 'cold',
+    landlord_id,
+    archetype: update.landlord_archetype,
+    urgency_score: us,
+    ai_next_best_action: update.ai_next_best_action?.action,
+  });
+}
 
   let claudeText = '';
   try {
@@ -187,7 +321,7 @@ LANGUAGE RULE: Write summary and suggested_messages in the landlord's detected l
     return Response.json({ error: 'Failed to write ConversationInsight', detail: String(e?.message || e), insightRecord }, { status: 500 });
   }
 
-  // Persist scorecards on Landlord record
+  // Persist scorecards on Landlord record (FULL TIER ONLY)
   const scorecardUpdate = {};
   const ts = clamp(parsed.trust_score, 0, 100);
   const us = clamp(parsed.urgency_score, 0, 100);
@@ -200,6 +334,8 @@ LANGUAGE RULE: Write summary and suggested_messages in the landlord's detected l
   if (parsed.trust_score_rationale) scorecardUpdate.trust_score_rationale = asText(parsed.trust_score_rationale);
   if (parsed.mandate_win_rationale) scorecardUpdate.mandate_win_rationale = asText(parsed.mandate_win_rationale);
   if (parsed.urgency_score_rationale) scorecardUpdate.urgency_score_rationale = asText(parsed.urgency_score_rationale);
+  // Also write ai_rolling_summary from full tier
+  scorecardUpdate.ai_rolling_summary = asText(parsed.summary).slice(0, 500);
   scorecardUpdate.ai_processed_at = new Date().toISOString();
 
   if (Object.keys(scorecardUpdate).length > 0) {
@@ -213,6 +349,7 @@ LANGUAGE RULE: Write summary and suggested_messages in the landlord's detected l
 
   return Response.json({
     status: 'ok',
+    tier: 'full',
     landlord_id,
     temperature: temp,
     suggestions: suggestions.length,
