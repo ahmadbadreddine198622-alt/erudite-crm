@@ -11,7 +11,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
-import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -791,6 +791,14 @@ class LandlordDetail extends React.Component {
                 whatsapp={L.whatsapp}
               />
               <CallQualificationTab landlord={this.props.landlords?.[0] || L} />
+              
+              {/* Commission Pipeline Button */}
+              <div style={css("margin-top:16px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-radius:11px; background:rgba(62,53,37,0.6); border:1px solid rgba(230,157,67,0.3); animation: ld-rise 0.47s cubic-bezier(0.22,1,0.36,1) both;")}>
+                <div style={css("display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:9px; background:rgba(62,53,37,0.8); border:1px solid rgba(230,157,67,0.4);")}>
+                  <DollarSign className="w-5 h-5" style={css("color:#E69D43;")} />
+                </div>
+                <span style={css("font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#888E96;")}>Commission Pipeline</span>
+              </div>
 
               {/* pipeline progress + stage selector */}
               <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
