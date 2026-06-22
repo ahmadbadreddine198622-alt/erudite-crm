@@ -89,9 +89,9 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -1528,6 +1528,18 @@ export default function LandlordDetailPage() {
     price: fmtAED(t.price_aed),
     psf: fmtPSF(t.price_per_sqft),
   }));
+  // Map real score fields from Landlord entity
+  const hasAnyScore = L.trust_score != null || L.responsiveness_score != null || L.urgency_score != null || L.mandate_win_probability != null;
+  const scores = hasAnyScore ? {
+    trust: L.trust_score != null ? Math.round(L.trust_score) : null,
+    trustWhy: L.trust_score_rationale || '',
+    responsiveness: L.responsiveness_score != null ? Math.round(L.responsiveness_score) : null,
+    respWhy: L.responsiveness_score_rationale || '',
+    urgency: L.urgency_score != null ? Math.round(L.urgency_score) : null,
+    urgencyWhy: L.urgency_score_rationale || '',
+    mandateWin: L.mandate_win_probability != null ? L.mandate_win_probability : null,
+    mandateWhy: L.mandate_win_rationale || '',
+  } : null;
   // Map DocumentChecklistItem records to Documents tab shape
   const docs = docItems.map(d => {
     const typeLabel = (d.document_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -1591,6 +1603,7 @@ export default function LandlordDetailPage() {
   connections,
   outreach: EMPTY_OUTREACH,
   media,
+  scores,
   formAContractNumber: L.form_a_contract_number || null,
   mandateStatus: L.mandate_status || null,
   mandateType: L.mandate_type || null,
