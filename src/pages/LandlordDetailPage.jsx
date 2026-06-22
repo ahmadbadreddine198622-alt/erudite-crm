@@ -89,9 +89,9 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact/AI/valuation fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -1308,6 +1308,8 @@ export default function LandlordDetailPage() {
     const query = prop?.building_name ? { project_name: prop.building_name } : prop?.location ? { project_name: prop.location } : {};
     return base44.entities.MarketTransaction.filter(query, '-transaction_date', 10);
   }), { enabled: !!(prop?.building_name || prop?.location) });
+  // Fetch DocumentChecklistItem records for this landlord
+  const { data: docItems = [] } = useQ(['landlord_docs', id], () => safe(() => base44.entities.DocumentChecklistItem.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
 
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
@@ -1526,6 +1528,26 @@ export default function LandlordDetailPage() {
     price: fmtAED(t.price_aed),
     psf: fmtPSF(t.price_per_sqft),
   }));
+  // Map DocumentChecklistItem records to Documents tab shape
+  const docs = docItems.map(d => {
+    const typeLabel = (d.document_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const iconMap = { 'title_deed': '📄', 'passport': '🪪', 'emirates_id_front': '🪪', 'emirates_id_back': '🪪', 'lease_brokerage_agreement': '✍', 'form_a': '✍', 'tenancy_contract': '📋', 'utility_bill': '💡', 'noc': '📝' };
+    const icon = iconMap[d.document_type] || '📄';
+    const statusMap = { 'received': 'received', 'requested': 'pending', 'verified': 'received' };
+    const displayStatus = d.verified_at ? 'received' : (statusMap[d.status] || d.status || 'pending');
+    const subtitle = d.received_at ? `Received ${new Date(d.received_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}` : (d.requested_at ? `Requested ${new Date(d.requested_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}` : '—');
+    return {
+      icon,
+      label: typeLabel,
+      provider: subtitle,
+      status: displayStatus,
+      url: d.file_url || null,
+    };
+  });
+  // Add Form A PDF from landlord record if not already in docs
+  if (L.form_a_pdf_url && !docs.some(d => d.label.includes('Form A') || d.label.includes('Brokerage'))) {
+    docs.unshift({ icon: '✍', label: 'Form A Contract', provider: L.form_a_contract_number ? `Contract ${L.form_a_contract_number}` : 'Signed Form A', status: 'received', url: L.form_a_pdf_url });
+  }
 
   const mapped = {
   id: L.id,
@@ -1564,7 +1586,7 @@ export default function LandlordDetailPage() {
   battle: null,
   calls,
   offers: [],
-  docs: [],
+  docs,
   stream,
   connections,
   outreach: EMPTY_OUTREACH,
