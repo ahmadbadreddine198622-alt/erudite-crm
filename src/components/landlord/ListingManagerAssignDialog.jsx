@@ -10,6 +10,7 @@ import { Loader2, UserCheck } from 'lucide-react';
 
 const LISTING_MANAGERS = [
   { email: 'ajwa@erudite-estate.com', name: 'Ajwa' },
+  { email: 'darry@erudite-estate.com', name: 'Darry (Videographer)' },
   { email: 'listing@erudite-estate.com', name: 'Listing Team' },
 ];
 
