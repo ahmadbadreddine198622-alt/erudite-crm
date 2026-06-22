@@ -19,6 +19,7 @@ import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
+import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -180,6 +181,11 @@ export default function Dashboard() {
   const { data: conversations = [] } = useQuery({
     queryKey: ['wa-conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
+  });
+
+  const { data: landlords = [] } = useQuery({
+    queryKey: ['landlords-dashboard'],
+    queryFn: () => base44.entities.Landlord.filter({}, '-created_date', 10),
   });
 
   const badges = {
@@ -509,6 +515,9 @@ export default function Dashboard() {
       <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
         <PFListingsGrid />
       </EruditeSection>
+
+      {/* Evaluation Panel */}
+      <EvaluationPanel landlords={landlords} onUploadFormA={() => navigate('/form-a-inbox')} />
 
       {/* AI Insights + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
