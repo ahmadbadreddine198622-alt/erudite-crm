@@ -1149,7 +1149,7 @@ export default function LandlordDetailPage() {
   if (waPersonal.length) connections.wa_personal = 'Linked';
   if (waMessages.some((m) => m.media_type === 'audio' || m.media_type === 'voice' || m.is_voice_note)) connections.wa_call = 'Voice call';
   if (aircallCalls.length) connections.aircall = `${aircallCalls.length} call${aircallCalls.length > 1 ? 's' : ''}`;
-  if (twilioLogs.length) connections.twilio = `${twilioLogs.length} call${twilioLogs.length > 1 ? 's' : ''}`;
+  if (callLogs.length) connections.twilio = `${callLogs.length} call${callLogs.length > 1 ? 's' : ''}`;
   if (lp.title_deed_url || L.form_a_pdf_url) connections.drive = 'Files backed up';
   if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
   if (lp.title_deed_verified === true) connections.dld = 'Title verified';
@@ -1203,7 +1203,12 @@ export default function LandlordDetailPage() {
     return out;
   };
   const callLogs = dedupCalls(twilioLogs);
-  const mapCallStatus = (s) => s === 'completed' ? 'done' : 'missed';
+  const mapCallStatus = (s) => {
+    if (s === 'completed') return 'done';
+    if (s === 'no-answer' || s === 'busy' || s === 'failed') return 'missed';
+    if (s === 'queued' || s === 'initiated' || s === 'ringing') return 'missed';
+    return 'missed';
+  };
   const fmtDuration = (sec, status) => {
     if (sec && sec > 0) { const m = Math.floor(sec / 60), s = sec % 60; return m > 0 ? `${m}m ${s}s` : `${s}s`; }
     if (status === 'no-answer') return 'No answer';
