@@ -75,7 +75,6 @@ class LandlordDetail extends React.Component {
       composerText: '',
       composerTime: '',
       analyzing: false,
-      channelFilter: 'all',
     };
   }
 
@@ -90,7 +89,6 @@ class LandlordDetail extends React.Component {
   setComposerType = (t)=> this.setState({ composerType:t });
   onComposerInput = (e)=> this.setState({ composerText:e.target.value });
   onClearTime = ()=> this.setState({ composerTime:'' });
-  setChannelFilter = (f)=> this.setState(s=>({ channelFilter: s.channelFilter===f ? 'all' : f }), ()=>this.scrollBottom());
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
   fillDraft = (action)=>{
@@ -188,10 +186,8 @@ class LandlordDetail extends React.Component {
       };
     }
 
-    const sortedAll=[...L.stream].sort((a,b)=>a.order-b.order);
-    const cf=S.channelFilter;
-    const filtered = cf==='all' ? sortedAll : sortedAll.filter(s => s.t!=='msg' || s.wa===cf || s.wa==='unknown');
-    const stream=filtered.map((s,idx)=>{
+    const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
+    const stream=sorted.map((s,idx)=>{
       if(s.t==='msg'){
         const out = s.dir==='out';
         const waveform = s.mtype==='voice' ? [9,15,7,18,11,16,6,13,9,17,8,12].map((h,k)=>React.createElement('span',{ key:k, style:{ width:'2px', height:h+'px', borderRadius:'2px', background: out?'hsl(38 92% 55% / 0.7)':'rgba(255,255,255,0.4)' } })) : null;
@@ -200,10 +196,10 @@ class LandlordDetail extends React.Component {
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: out ? (L.agent+' · Erudite') : L.name,
-          channel: s.wa==='personal' ? 'WA Personal' : s.wa==='business' ? 'WA Business' : 'WA',
+          channel: s.wa==='personal' ? 'WA Personal' : 'WA Business',
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-            color: s.wa==='personal' ? '#93c5fd' : s.wa==='business' ? '#4ade80' : 'rgba(255,255,255,0.4)',
-            background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : s.wa==='business' ? 'rgba(37,211,102,0.12)' : 'rgba(255,255,255,0.06)',
+            color: s.wa==='personal' ? '#93c5fd' : '#4ade80',
+            background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)',
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'82%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
@@ -217,8 +213,8 @@ class LandlordDetail extends React.Component {
           actLabelStyle:{ fontSize:'12px', fontWeight:700, color } };
       }
     });
-    const msgCount=filtered.filter(s=>s.t==='msg').length;
-    const actCount=filtered.filter(s=>s.t==='act').length;
+    const msgCount=sorted.filter(s=>s.t==='msg').length;
+    const actCount=sorted.filter(s=>s.t==='act').length;
 
     const composerTypes=['Note','Task','Follow-up','Appointment'].map(t=>{
       const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅' }[t];
@@ -377,17 +373,11 @@ class LandlordDetail extends React.Component {
     return {
       currentId:S.currentId, landlordOptions,
       streamCountLabel: msgCount+' messages · '+actCount+' activities',
-      channelFilter: cf,
-      businessPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-        background: cf==='business' ? 'rgba(37,211,102,0.16)' : 'rgba(255,255,255,0.03)',
-        border: '1px solid '+(cf==='business' ? 'rgba(37,211,102,0.42)' : 'rgba(255,255,255,0.1)'),
-        color: cf==='business' ? '#4ade80' : 'rgba(255,255,255,0.35)' },
-      businessDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: cf==='business' ? '#25D366' : 'rgba(255,255,255,0.25)' },
-      personalPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-        background: cf==='personal' ? 'rgba(59,130,246,0.16)' : 'rgba(255,255,255,0.03)',
-        border: '1px solid '+(cf==='personal' ? 'rgba(59,130,246,0.42)' : 'rgba(255,255,255,0.1)'),
-        color: cf==='personal' ? '#93c5fd' : 'rgba(255,255,255,0.35)' },
-      personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: cf==='personal' ? '#3b82f6' : 'rgba(255,255,255,0.25)' },
+      waPersonalBadgeStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600,
+        background: L.connections && L.connections.wa_personal ? 'rgba(59,130,246,0.14)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid '+(L.connections && L.connections.wa_personal ? 'rgba(59,130,246,0.32)' : 'rgba(255,255,255,0.1)'),
+        color: L.connections && L.connections.wa_personal ? '#93c5fd' : 'rgba(255,255,255,0.4)' },
+      waPersonalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: L.connections && L.connections.wa_personal ? '#3b82f6' : 'rgba(255,255,255,0.25)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
       aiReady: hasAI && !S.analyzing, aiEmpty: !hasAI,
       ai, showCoaching,
@@ -447,12 +437,12 @@ class LandlordDetail extends React.Component {
                   <div style={css("font-size:11.5px; color:rgba(255,255,255,0.4); margin-top:2px;")}>{vm.streamCountLabel}</div>
                 </div>
                 <div style={css("display:flex; align-items:center; gap:6px;")}>
-                  <button onClick={()=>this.setChannelFilter('business')} style={vm.businessPillStyle}>
-                    <span style={vm.businessDotStyle}></span> Business
-                  </button>
-                  <button onClick={()=>this.setChannelFilter('personal')} style={vm.personalPillStyle}>
-                    <span style={vm.personalDotStyle}></span> Personal
-                  </button>
+                  <span style={css("display:inline-flex; align-items:center; gap:5px; padding:5px 9px; border-radius:99px; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.3); font-size:10.5px; font-weight:600; color:#4ade80;")}>
+                    <span style={css("width:6px; height:6px; border-radius:50%; background:#25D366;")}></span> Business
+                  </span>
+                  <span style={vm.waPersonalBadgeStyle}>
+                    <span style={vm.waPersonalDotStyle}></span> Personal
+                  </span>
                 </div>
               </div>
 
@@ -1136,7 +1126,7 @@ export default function LandlordDetailPage() {
       if (digits.endsWith('2806000')) return 'business';
     }
     if (msg.channel === 'personal' || msg.channel === 'business') return msg.channel;
-    return 'unknown';
+    return 'business';
   };
   const stream = [];
   waStreamMessages.forEach(msg => {
