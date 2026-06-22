@@ -81,15 +81,23 @@ class LandlordDetail extends React.Component {
 
   componentDidMount(){ this.scrollBottom(); }
   componentDidUpdate(prevProps, prevState){
-    if(prevProps.landlords !== this.props.landlords){
-      this.setState({ landlords: this.props.landlords });
+    // Sync landlords when prop array changes OR when current landlord data changes
+    const prevLandlords = prevProps.landlords || [];
+    const nextLandlords = this.props.landlords || [];
+    const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
+    const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
+    
+    // Force sync if array ref changed OR if current landlord's contact fields changed
+    const needSync = prevProps.landlords !== this.props.landlords || 
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email));
+    
+    if (needSync && nextCur) {
+      this.setState({ landlords: nextLandlords });
     }
     // Auto-scroll when new messages arrive (count increased) or filter switched.
     // No setState here — just scroll — so no render loop.
-    const cur = this.cur();
-    const prevCur = (prevProps.landlords || []).find(l=>l.id===this.state.currentId);
     const cnt = (l) => l ? (l.stream||[]).filter(s=>s.t==='msg').length : 0;
-    if (cnt(cur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter) {
+    if (cnt(nextCur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter) {
       this.scrollBottom();
     }
   }
@@ -424,6 +432,7 @@ class LandlordDetail extends React.Component {
 
   render(){
     const vm = this.computeVM();
+    const L = this.cur();
     const { ai, hdr, stage, market, signals, tab } = vm;
 
     return (
@@ -722,7 +731,7 @@ class LandlordDetail extends React.Component {
               <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Owner Information</div>
                 <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
-                  {L.phone && L.phone !== '—' && (
+                  {L.phone && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
                       <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.phone}</div>
@@ -738,7 +747,7 @@ class LandlordDetail extends React.Component {
                       </div>
                     </div>
                   )}
-                  {L.email && L.email !== '—' && (
+                  {L.email && (
                     <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
                       <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
                       <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis;")}>{L.email}</div>
@@ -1305,11 +1314,11 @@ export default function LandlordDetailPage() {
     id: L.id,
     name: L.full_name_en || L.full_name || 'Unnamed landlord',
     initials: initialsOf(L.full_name_en || L.full_name),
-    phone: L.phone || '—',
+    phone: L.phone || '',
     additionalPhones: Array.isArray(L.additional_phones) ? L.additional_phones : [],
-    email: L.email || '—',
+    email: L.email || '',
     additionalEmails: Array.isArray(L.additional_emails) ? L.additional_emails : [],
-    whatsapp: L.whatsapp || null,
+    whatsapp: L.whatsapp || '',
     source: L.source || '—',
     archetype: L.landlord_archetype || 'first_time_seller',
     agent: agentName,
