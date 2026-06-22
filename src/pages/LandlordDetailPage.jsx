@@ -92,6 +92,8 @@ class LandlordDetail extends React.Component {
       analyzing: false,
       streamFilter: 'all',
     };
+    this.onNavigate = this.props.onNavigate || (() => {});
+    this.formAContracts = this.props.formAContracts || [];
   }
 
   componentDidMount(){ this.scrollBottom(); }
@@ -793,11 +795,29 @@ class LandlordDetail extends React.Component {
               <CallQualificationTab landlord={this.props.landlords?.[0] || L} />
               
               {/* Commission Pipeline Button */}
-              <div style={css("margin-top:16px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-radius:11px; background:rgba(62,53,37,0.6); border:1px solid rgba(230,157,67,0.3); animation: ld-rise 0.47s cubic-bezier(0.22,1,0.36,1) both;")}>
+              <div style={css("margin-top:16px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-radius:11px; background:rgba(62,53,37,0.6); border:1px solid rgba(230,157,67,0.3); animation: ld-rise 0.47s cubic-bezier(0.22,1,0.36,1) both; cursor:pointer;")}
+                onClick={() => this.onNavigate('/commissions')}>
                 <div style={css("display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:9px; background:rgba(62,53,37,0.8); border:1px solid rgba(230,157,67,0.4);")}>
                   <DollarSign className="w-5 h-5" style={css("color:#E69D43;")} />
                 </div>
-                <span style={css("font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#888E96;")}>Commission Pipeline</span>
+                <div style={css("flex:1; min-width:0;")}>
+                  <div style={css("font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#888E96;")}>Commission Pipeline</div>
+                  {L.commission_pct_negotiated != null && (
+                    <div style={css("font-size:13px; font-weight:700; color:#E69D43; margin-top:2px;")}>
+                      {L.commission_pct_negotiated}% {L.asking_price_aed ? `· ${fmtAED(L.asking_price_aed * (L.commission_pct_negotiated / 100))}` : ''}
+                    </div>
+                  )}
+                  {L.commission_pct_negotiated == null && this.formAContracts.length > 0 && (
+                    <div style={css("font-size:13px; font-weight:700; color:#E69D43; margin-top:2px;")}>
+                      {this.formAContracts.length} Form A {this.formAContracts.length === 1 ? 'Contract' : 'Contracts'}
+                    </div>
+                  )}
+                  {L.commission_pct_negotiated == null && this.formAContracts.length === 0 && (
+                    <div style={css("font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); margin-top:2px;")}>
+                      No commission yet
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* pipeline progress + stage selector */}
@@ -1629,6 +1649,8 @@ export default function LandlordDetailPage() {
         photographyStatusConfig={photographyStatusConfig}
         openOwnerDrawers={openOwnerDrawers}
         toggleOwnerDrawer={toggleOwnerDrawer}
+        onNavigate={navigate}
+        formAContracts={formAContracts}
         />
       <FormAUploadDialog
         open={formADialogOpen}
