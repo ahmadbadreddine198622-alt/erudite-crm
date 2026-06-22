@@ -22,27 +22,41 @@ function FormACard({ form }) {
       className="bg-card border border-border rounded-xl p-4 transition-all hover:border-accent/30 cursor-pointer"
       onClick={() => form.landlord_id && navigate(`/landlord/${form.landlord_id}`)}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between mb-2">
         <div>
           <p className="font-semibold text-foreground">{landlordName}</p>
-          <p className="text-xs text-muted-foreground">{form.broker_office}</p>
+          <p className="text-xs text-muted-foreground">{form.unit} · {form.broker_office}</p>
         </div>
         {form.status && <Badge className={`text-xs ${statusColor}`}>{form.status}</Badge>}
       </div>
-      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-        <div className="flex justify-between">
-          <span>Contract:</span>
+      
+      <div className="space-y-2 text-xs">
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Contract:</span>
           <span className="font-mono text-foreground">{form.contract_number}</span>
         </div>
-        <div className="flex justify-between">
-          <span>Price:</span>
-          <span className="font-medium text-foreground">{form.sell_price_aed ? `AED ${form.sell_price_aed.toLocaleString()}` : 'N/A'}</span>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Asking Price:</span>
+          <span className="font-semibold text-foreground">{form.asking_price_aed ? `AED ${form.asking_price_aed.toLocaleString()}` : 'N/A'}</span>
         </div>
-        <div className="flex justify-between">
-          <span>Expires:</span>
-          <span className="font-medium text-foreground">{form.end_date ? new Date(form.end_date).toLocaleDateString('en-GB') : 'N/A'}</span>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Commission:</span>
+          <span className="font-semibold text-accent">{form.commission_pct ? `${form.commission_pct}%` : 'N/A'}</span>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Mandate Type:</span>
+          <span className="text-foreground capitalize">{form.mandate_type?.replace('_', ' ') || 'N/A'}</span>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Expires:</span>
+          <span className="text-foreground">{form.mandate_expires_at ? new Date(form.mandate_expires_at).toLocaleDateString('en-GB') : 'N/A'}</span>
         </div>
       </div>
+      
       {form.pdf_url && (
         <a 
           href={form.pdf_url} 
@@ -51,7 +65,7 @@ function FormACard({ form }) {
           className="flex items-center gap-1.5 text-accent text-xs mt-3 hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
-          View PDF <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="w-3 h-3" /> View PDF
         </a>
       )}
     </div>

@@ -50,18 +50,45 @@ Deno.serve(async (req) => {
       }
     });
 
-    // 4. Fetch recent Form A records with landlord names
-    const recentFormA = await base44.entities.FormA.list('-created_date', 5);
-    const formAWithLandlords = await Promise.all(
-      recentFormA.map(async (form) => {
-        const landlord = form.landlord_id ? await base44.entities.Landlord.get(form.landlord_id).catch(() => null) : null;
-        return {
-          ...form,
-          landlord_name: landlord?.full_name_en || landlord?.full_name || 'Unknown',
-          landlord_id: form.landlord_id,
-        };
-      })
-    );
+    // 4. Fetch landlords with Form A contracts and extract contract data
+    const landlordsWithFormA = allLandlords.filter(ll => ll.form_a_contracts && ll.form_a_contracts.length > 0);
+    const formAWithLandlords = [];
+    
+    // Extract all Form A contracts from landlords (most recent first)
+    landlordsWithFormA.forEach(ll => {
+      ll.form_a_contracts.forEach(contract => {
+        formAWithLandlords.push({
+          id: ll.id + '_' + (contract.contract_number || ''),
+          landlord_id: ll.id,
+          landlord_name: ll.full_name_en || ll.full_name || 'Unknown',
+          contract_number: contract.contract_number || 'N/A',
+          unit: contract.unit || 'N/A',
+          mandate_type: contract.mandate_type || 'N/A',
+          mandate_status: contract.mandate_status || 'N/A',
+          mandate_start_date: contract.mandate_start_date,
+          mandate_expires_at: contract.mandate_expires_at,
+          asking_price_aed: contract.asking_price_aed,
+          pdf_url: contract.pdf_url,
+          drive_file_id: contract.drive_file_id,
+          owner_name: ll.full_name_en || ll.full_name || 'Unknown',
+          broker_office: 'Erudite Real Estate',
+          status: contract.mandate_status === 'form_a_signed' ? 'Active' : contract.mandate_status === 'expired' ? 'Expired' : 'Draft',
+          sell_price_aed: contract.asking_price_aed,
+          end_date: contract.mandate_expires_at,
+          start_date: contract.mandate_start_date,
+          is_exclusive: contract.mandate_type === 'exclusive',
+          commission_pct: ll.commission_pct_negotiated,
+        });
+      });
+    });
+    
+    // Sort by mandate start date (most recent first) and take top 5
+    formAWithLandlords.sort((a, b) => {
+      const dateA = a.mandate_start_date ? new Date(a.mandate_start_date).getTime() : 0;
+      const dateB = b.mandate_start_date ? new Date(b.mandate_start_date).getTime() : 0;
+      return dateB - dateA;
+    });
+    const recentFormA = formAWithLandlords.slice(0, 5);
 
     // 5. Activity stats
     const [totalCalls, totalWhatsApp, totalTasks] = await Promise.all([
