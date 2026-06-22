@@ -124,22 +124,6 @@ class LandlordDetail extends React.Component {
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
-  onStageChange = async (newStage)=>{
-    const L=this.cur(); if(!L||!newStage) return;
-    const idx = this.state.landlords.findIndex(l=>l.id===this.state.currentId);
-    if(idx<0) return;
-    // Optimistic update
-    this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:newStage, stageEnteredAt: new Date().toISOString()} : l) }));
-    // Persist to database
-    try {
-      await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
-    } catch(err) {
-      console.error('Failed to update stage:', err);
-      // Revert on error
-      this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:L.stage, stageEnteredAt:L.stageEnteredAt} : l) }));
-    }
-  };
-
   fillDraft = (action)=>{
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time });
@@ -170,16 +154,18 @@ class LandlordDetail extends React.Component {
   };
 
   onStageChange = async (newStage)=>{
-    if(!this.state.currentId) return;
-    // Update the landlord record
+    const L=this.cur(); if(!L||!newStage) return;
+    const idx = this.state.landlords.findIndex(l=>l.id===this.state.currentId);
+    if(idx<0) return;
+    // Optimistic update
+    this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:newStage, stageEnteredAt: new Date().toISOString()} : l) }));
+    // Persist to database
     try {
-      await base44.entities.Landlord.update(this.state.currentId, { stage: newStage, stage_changed_at: new Date().toISOString() });
-      // Update local state to reflect the change immediately
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stage: newStage} : l)
-      }));
-    } catch(e) {
-      console.error('[LandlordDetail] Failed to update stage:', e);
+      await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
+    } catch(err) {
+      console.error('Failed to update stage:', err);
+      // Revert on error
+      this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:L.stage, stageEnteredAt:L.stageEnteredAt} : l) }));
     }
   };
 
@@ -478,6 +464,9 @@ class LandlordDetail extends React.Component {
       summaryText: L.aiRollingSummary || 'No AI summary yet — run “Analyse Now” in the conversation panel to generate one.',
       market, agentNotes:L.agentNotes,
       tabs, tab,
+      media: L.media || null,
+      valuation: L.valuation || null,
+      mandate: L.mandate || null,
     };
   }
 
@@ -894,6 +883,8 @@ class LandlordDetail extends React.Component {
               </div>
 
               <MediaPanel media={vm.media} />
+
+              {vm.mandate && <MandatePanel mandate={vm.mandate} />}
 
               {/* connections strip */}
               <div style={css("margin-top:14px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
