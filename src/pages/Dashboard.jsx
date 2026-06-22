@@ -184,20 +184,26 @@ export default function Dashboard() {
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
   });
 
-  const { data: landlords = [] } = useQuery({
-    queryKey: ['landlords-dashboard'],
-    queryFn: () => base44.entities.Landlord.filter({}, '-created_date', 10),
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
+    refetchInterval: 30000, // Refresh every 30s
   });
 
+  const phaseCounts = dashboardData?.phaseCounts || {};
+  const landlordsWithQuals = dashboardData?.landlordsWithQualifications || [];
+  const formAWithLandlords = dashboardData?.formAWithLandlords || [];
+  const activityStats = dashboardData?.activityStats || {};
+  const quickStats = dashboardData?.quickStats || {};
+
   const badges = {
-    leads:     leads.filter(l => l.status === 'active').length,
-    reminders: reminders.length,
-    whatsapp:  conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
+    leads: quickStats.activeLeads || leads.filter(l => l.status === 'active').length,
+    reminders: quickStats.pendingReminders || reminders.length,
+    whatsapp: quickStats.unreadWhatsApp || conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
   };
   
   // Management intelligence
-  const todayDeals = leads.filter(l => l.stage === 'negotiation_deal_lock' || l.stage === 'closing_dld').length;
-  const hotLeads = leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
+  const hotLeads = quickStats.hotLeads || leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
 
   // Search across ALL apps (folder mode — the custom `apps` state is no longer the display grid)
   const filtered = search.trim()
@@ -386,7 +392,13 @@ export default function Dashboard() {
       </div>
 
       {/* Pipeline Summary Strip */}
-      <PipelineStrip landlords={landlords} />
+      {isLoadingDashboard ? (
+        <div className="w-full max-w-4xl mb-8 flex justify-center">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <PipelineStrip phaseCounts={phaseCounts} />
+      )}
 
       {/* Clock */}
       <div className="text-center" style={{ marginBottom: 22 }}>
@@ -521,7 +533,10 @@ export default function Dashboard() {
       </EruditeSection>
 
       {/* Evaluation Panel */}
-      <EvaluationPanel landlords={landlords} onUploadFormA={() => navigate('/form-a-inbox')} />
+      <EvaluationPanel 
+        landlords={landlordsWithQuals} 
+        onUploadFormA={() => navigate('/form-a-inbox')} 
+      />
 
       {/* AI Insights + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
@@ -529,7 +544,7 @@ export default function Dashboard() {
           <AIInsightsDashboard />
         </EruditeSection>
         <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
-          <FormADashboardWidget />
+          <FormADashboardWidget forms={formAWithLandlords} />
         </EruditeSection>
         <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />

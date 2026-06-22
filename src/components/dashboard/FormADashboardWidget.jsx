@@ -10,14 +10,21 @@ const STATUS_COLORS = {
   Draft: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
 };
 
+import { useNavigate } from 'react-router-dom';
+
 function FormACard({ form }) {
+  const navigate = useNavigate();
   const statusColor = STATUS_COLORS[form.status] || 'bg-muted text-muted-foreground';
+  const landlordName = form.landlord_name || form.owner_name || 'Unknown';
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 transition-all hover:border-accent/30">
+    <div 
+      className="bg-card border border-border rounded-xl p-4 transition-all hover:border-accent/30 cursor-pointer"
+      onClick={() => form.landlord_id && navigate(`/landlord/${form.landlord_id}`)}
+    >
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-semibold text-foreground">{form.owner_name}</p>
+          <p className="font-semibold text-foreground">{landlordName}</p>
           <p className="text-xs text-muted-foreground">{form.broker_office}</p>
         </div>
         {form.status && <Badge className={`text-xs ${statusColor}`}>{form.status}</Badge>}
@@ -37,7 +44,13 @@ function FormACard({ form }) {
         </div>
       </div>
       {form.pdf_url && (
-        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-accent text-xs mt-3 hover:underline">
+        <a 
+          href={form.pdf_url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex items-center gap-1.5 text-accent text-xs mt-3 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
           View PDF <ExternalLink className="w-3 h-3" />
         </a>
       )}
@@ -45,14 +58,17 @@ function FormACard({ form }) {
   );
 }
 
-export default function FormADashboardWidget() {
-  const { data: forms = [], isLoading } = useQuery({
-    queryKey: ['form-a-dashboard'],
-    queryFn: () => base44.entities.FormA.list('-created_date', 5),
-  });
-
-  if (isLoading) {
-    return <div>Loading Form A data...</div>;
+export default function FormADashboardWidget({ forms = [] }) {
+  if (!forms || forms.length === 0) {
+    return (
+      <div className="w-full">
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-accent" />
+          Recent Form A Contracts
+        </h3>
+        <p className="text-xs text-muted-foreground text-center py-8">No Form A records found.</p>
+      </div>
+    );
   }
 
   return (
@@ -61,13 +77,9 @@ export default function FormADashboardWidget() {
         <FileText className="w-4 h-4 text-accent" />
         Recent Form A Contracts
       </h3>
-      {forms.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-8">No Form A records found.</p>
-      ) : (
-        <div className="space-y-3">
-          {forms.map(form => <FormACard key={form.id} form={form} />)}
-        </div>
-      )}
+      <div className="space-y-3">
+        {forms.map(form => <FormACard key={form.id} form={form} />)}
+      </div>
     </div>
   );
 }

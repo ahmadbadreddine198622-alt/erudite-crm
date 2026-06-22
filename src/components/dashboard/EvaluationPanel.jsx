@@ -1,6 +1,4 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import React, { useState } from 'react';
 import { FileText, Phone } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -34,15 +32,9 @@ const formatValue = (value, key) => {
 export default function EvaluationPanel({ landlords = [], onUploadFormA }) {
   const [activeTab, setActiveTab] = React.useState('Qualify');
   
-  // Fetch latest CallQualification for the first landlord in the list
-  const landlordId = landlords[0]?.id;
-  const { data: qualifications = [] } = useQuery({
-    queryKey: ['call-qualifications', landlordId],
-    queryFn: () => landlordId ? base44.entities.CallQualification.filter({ landlord_id: landlordId }, '-call_date', 1) : Promise.resolve([]),
-    enabled: !!landlordId,
-  });
-  
-  const latestQualification = qualifications[0];
+  // Use embedded qualification data from the first landlord
+  const firstLandlord = landlords[0];
+  const latestQualification = firstLandlord?.latest_qualification;
 
   const qualificationData = latestQualification ? {
     motivation: latestQualification.motivation || '—',

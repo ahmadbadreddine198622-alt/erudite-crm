@@ -18,25 +18,17 @@ const PHASE_LABELS = {
   Marketing: 'Marketing',
 };
 
-export default function PipelineStrip({ landlords = [] }) {
+export default function PipelineStrip({ phaseCounts = {} }) {
   const navigate = useNavigate();
 
-  // Count landlords by phase
-  const counts = React.useMemo(() => {
-    const result = { New: 0, Mandate: 0, 'Docs & Media': 0, Listing: 0, Marketing: 0 };
-    
-    landlords.forEach(ll => {
-      const stage = ll.stage;
-      for (const [phase, stages] of Object.entries(PHASE_STAGES)) {
-        if (stages.includes(stage)) {
-          result[phase]++;
-          break;
-        }
-      }
-    });
-    
-    return result;
-  }, [landlords]);
+  // Use pre-calculated counts from backend
+  const counts = {
+    New: phaseCounts.New || 0,
+    Mandate: phaseCounts.Mandate || 0,
+    'Docs & Media': phaseCounts['Docs & Media'] || 0,
+    Listing: phaseCounts.Listing || 0,
+    Marketing: phaseCounts.Marketing || 0,
+  };
 
   return (
     <div className="w-full max-w-4xl mb-8">
