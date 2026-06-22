@@ -89,7 +89,7 @@ class LandlordDetail extends React.Component {
     
     // Force sync if array ref changed OR if current landlord's contact fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords });
@@ -785,6 +785,95 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
+              {/* Property Media */}
+              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.49s cubic-bezier(0.22,1,0.36,1) both;")}>
+                <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Property Media</div>
+                <div style={css("display:flex; flex-direction:column; gap:8px;")}>
+                  {/* Video walkthrough */}
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                    <div style={css("display:flex; align-items:center; gap:8px;")}>
+                      <span style={css("font-size:14px;")}>🎬</span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Video walkthrough</span>
+                    </div>
+                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasVideo ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasVideo ? '✓ Available' : '✗ Not captured'}</span>
+                  </div>
+                  {/* 360 tour */}
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                    <div style={css("display:flex; align-items:center; gap:8px;")}>
+                      <span style={css("font-size:14px;")}>🔄</span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>360° tour</span>
+                    </div>
+                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.has360 ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.has360 ? '✓ Available' : '✗ Not captured'}</span>
+                  </div>
+                  {/* Drone footage */}
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                    <div style={css("display:flex; align-items:center; gap:8px;")}>
+                      <span style={css("font-size:14px;")}>🚁</span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Drone footage</span>
+                    </div>
+                    <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasDrone ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasDrone ? '✓ Available' : '✗ Not captured'}</span>
+                  </div>
+                  {/* Floor plan */}
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                    <div style={css("display:flex; align-items:center; gap:8px;")}>
+                      <span style={css("font-size:14px;")}>📐</span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Floor plan</span>
+                    </div>
+                    {L.media?.floorPlanUrl ? (
+                      <a href={L.media.floorPlanUrl} target="_blank" rel="noopener noreferrer" style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%); text-decoration:none;")}>✓ View floor plan →</a>
+                    ) : (
+                      <span style={css("font-size:11px; font-weight:600; color: "+(L.media?.hasFloorPlan ? '#34d399' : 'rgba(255,255,255,0.35)'))}>{L.media?.hasFloorPlan ? '✓ Available (no link)' : '✗ Not uploaded'}</span>
+                    )}
+                  </div>
+                  {/* Photography status */}
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                    <div style={css("display:flex; align-items:center; gap:8px;")}>
+                      <span style={css("font-size:14px;")}>📸</span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Photography</span>
+                    </div>
+                    <span style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>{
+                      L.media?.photographyStatus === 'none' ? 'Not started' :
+                      L.media?.photographyStatus === 'phone_quality' ? 'Phone quality' :
+                      L.media?.photographyStatus === 'professional_done' ? 'Professional done' :
+                      L.media?.photographyStatus === 'scheduled' ? 'Scheduled' : '—'
+                    }</span>
+                  </div>
+                  {/* Photoshoot scheduled */}
+                  {L.media?.photoshootScheduledAt && (
+                    <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                      <div style={css("display:flex; align-items:center; gap:8px;")}>
+                        <span style={css("font-size:14px;")}>📅</span>
+                        <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Photoshoot date</span>
+                      </div>
+                      <span style={css("font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>{fmtStamp(L.media.photoshootScheduledAt)}</span>
+                    </div>
+                  )}
+                  {/* Keys location */}
+                  {L.media?.keysLocation && (
+                    <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                      <div style={css("display:flex; align-items:center; gap:8px;")}>
+                        <span style={css("font-size:14px;")}>🔑</span>
+                        <span style={css("font-size:12px; color:rgba(255,255,255,0.75);")}>Keys location</span>
+                      </div>
+                      <span style={css("font-size:11px; font-weight:600; color:rgba(255,255,255,0.85);")}>{
+                        L.media?.keysLocation === 'with_landlord' ? 'With landlord' :
+                        L.media?.keysLocation === 'with_us' ? 'With us' :
+                        L.media?.keysLocation === 'lockbox' ? 'Lockbox' :
+                        L.media?.keysLocation === 'tenant' ? 'With tenant' :
+                        (L.media?.keysLocation || '').replace(/_/g, ' ')
+                      }</span>
+                    </div>
+                  )}
+                  {/* Key access instructions */}
+                  {L.media?.keyAccessInstructions && (
+                    <div style={css("padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);")}>
+                      <div style={css("font-size:10px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:4px;")}>Access instructions</div>
+                      <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.8);")}>{L.media.keyAccessInstructions}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* connections strip */}
               <div style={css("margin-top:14px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:8px;")}>Connected systems</div>
@@ -1329,6 +1418,19 @@ export default function LandlordDetailPage() {
   const aiCoaching = L.ai_coaching_for_agent || null;
   const mandateWinProb = L.mandate_win_probability != null ? Math.round(L.mandate_win_probability) : null;
 
+  // Map media/photography fields from LandlordProperty
+  const media = {
+    hasVideo: !!lp.has_video_walkthrough,
+    has360: !!lp.has_360_tour,
+    hasDrone: !!lp.has_drone_footage,
+    hasFloorPlan: !!lp.has_floor_plan,
+    floorPlanUrl: lp.floor_plan_url || null,
+    photographyStatus: lp.photography_status || 'none',
+    photoshootScheduledAt: lp.photoshoot_scheduled_at || null,
+    keysLocation: lp.keys_location || null,
+    keyAccessInstructions: lp.key_access_instructions || null,
+  };
+
   const mapped = {
     id: L.id,
     name: L.full_name_en || L.full_name || 'Unnamed landlord',
@@ -1370,6 +1472,7 @@ export default function LandlordDetailPage() {
     stream,
     connections,
     outreach: EMPTY_OUTREACH,
+    media,
   };
 
   return (
