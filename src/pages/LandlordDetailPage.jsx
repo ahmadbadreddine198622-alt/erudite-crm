@@ -168,14 +168,16 @@ class LandlordDetail extends React.Component {
     const landlordOptions = S.landlords.map(l=>({ id:l.id, name:l.name }));
     const hasAI=!!L.ai;
 
+    const arr = (x) => Array.isArray(x) ? x : [];
     let ai={};
     if(hasAI){
+      const c = L.ai.coach || {};
       ai={
-        summary:L.ai.summary, language:L.ai.language, analysedAt:L.ai.analysedAt,
-        tempLabel:this.tempMeta(L.ai.temperature).label, tempChipStyle:this.tempChip(L.ai.temperature),
-        keyFacts:L.ai.keyFacts, outstanding:L.ai.outstanding,
-        coach:{ score:L.ai.coach.score, scoreColor:this.scoreColor(L.ai.coach.score), bestLine:L.ai.coach.bestLine, doneWell:L.ai.coach.doneWell, missed:L.ai.coach.missed, objections:L.ai.coach.objections, nextMove:L.ai.coach.nextMove },
-        actions:L.ai.suggestions.map(a=>{
+        summary:L.ai.summary || '', language:L.ai.language || '—', analysedAt:L.ai.analysedAt || '',
+        tempLabel:this.tempMeta(L.ai.temperature || 'warm').label, tempChipStyle:this.tempChip(L.ai.temperature || 'warm'),
+        keyFacts:arr(L.ai.keyFacts), outstanding:arr(L.ai.outstanding),
+        coach:{ score:c.score ?? 0, scoreColor:this.scoreColor(c.score ?? 0), bestLine:c.bestLine || '—', doneWell:arr(c.doneWell), missed:arr(c.missed), objections:arr(c.objections), nextMove:c.nextMove || '—' },
+        actions:arr(L.ai.suggestions).map(a=>{
           const [icon,bg,color]=this.sugMeta(a.type);
           return { title:a.title, reason:a.reason, time:a.time, icon, onClick:()=>this.fillDraft(a),
             iconStyle:{ flex:'none', width:'30px', height:'30px', borderRadius:'9px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', background:bg, color, marginTop:'1px' },
