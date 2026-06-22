@@ -11,7 +11,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
-import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -739,10 +739,14 @@ class LandlordDetail extends React.Component {
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
                   </div>
                 )}
-                <div style={css("display:flex; gap:6px; margin-bottom:9px;")}>
+                <div style={css("display:flex; gap:6px; margin-bottom:9px; flex-wrap:wrap;")}>
                   {vm.composerTypes.map((t)=>(
                     <button key={t.label} onClick={t.onClick} style={t.style}>{t.icon} {t.label}</button>
                   ))}
+                  <button onClick={()=>this.onNavigate('/calendar')} style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 11px; borderRadius:9px; fontSize:11.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
+                    <Calendar className="w-3.5 h-3.5" />
+                    Smart Calendar
+                  </button>
                 </div>
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
                   <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:42px; max-height:120px; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
