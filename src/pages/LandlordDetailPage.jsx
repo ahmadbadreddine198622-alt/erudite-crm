@@ -80,9 +80,17 @@ class LandlordDetail extends React.Component {
   }
 
   componentDidMount(){ this.scrollBottom(); }
-  componentDidUpdate(prevProps){
+  componentDidUpdate(prevProps, prevState){
     if(prevProps.landlords !== this.props.landlords){
-      this.setState({ landlords: this.props.landlords }, ()=>this.scrollBottom());
+      this.setState({ landlords: this.props.landlords });
+    }
+    // Auto-scroll when new messages arrive (count increased) or filter switched.
+    // No setState here — just scroll — so no render loop.
+    const cur = this.cur();
+    const prevCur = (prevProps.landlords || []).find(l=>l.id===this.state.currentId);
+    const cnt = (l) => l ? (l.stream||[]).filter(s=>s.t==='msg').length : 0;
+    if (cnt(cur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter) {
+      this.scrollBottom();
     }
   }
   scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; }); } }
@@ -1086,7 +1094,7 @@ export default function LandlordDetailPage() {
       [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
     }
     return results;
-  }, { enabled: !!phone });
+  }, { enabled: !!phone, refetchInterval: 15000, refetchOnWindowFocus: true });
 
   if (isLoading) {
     return (
