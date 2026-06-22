@@ -18,6 +18,7 @@ import QualificationStrip from '@/components/landlord/QualificationStrip';
 import CallSuite from '@/components/landlord/CallSuite';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
+import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -787,7 +788,7 @@ class LandlordDetail extends React.Component {
                 phone={L.phone}
                 whatsapp={L.whatsapp}
               />
-              <QualificationStrip qualification={L.qualification} />
+              <CallQualificationTab landlord={this.props.landlords?.[0] || L} />
 
               {/* pipeline progress + stage selector */}
               <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
