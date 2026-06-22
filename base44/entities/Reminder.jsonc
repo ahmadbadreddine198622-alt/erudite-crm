@@ -131,7 +131,7 @@
       "type": "string",
       "enum": [
         "dari",
-        "azure",
+        "ajwa",
         "none"
       ],
       "default": "none",
