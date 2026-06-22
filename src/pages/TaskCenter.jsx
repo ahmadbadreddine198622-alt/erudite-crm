@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Calendar, Eye, FileSignature, AlertCircle, CheckCircle, Clock, Phone, MessageCircle, Mail, ChevronRight, Filter } from 'lucide-react';
+import { Calendar, Eye, FileSignature, AlertCircle, CheckCircle, Clock, Phone, MessageCircle, Mail, ChevronRight, Filter, Bot, Check, X } from 'lucide-react';
 import { isToday, isTomorrow, isPast, isFuture, format, isAfter } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -24,6 +24,22 @@ function TaskCard({ task, type, onMarkComplete }) {
   const config = typeConfig[type] || { icon: AlertCircle, color: 'text-gray-500', bg: 'bg-gray-500/10' };
   const Icon = config.icon;
 
+  // AI Agent status badge
+  const aiAgentBadge = task.ai_agent_assigned && task.ai_agent_assigned !== 'none' ? (
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold ${
+      task.ai_agent_status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' :
+      task.ai_agent_status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+      task.ai_agent_status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+      'bg-white/10 text-white/60'
+    }`}>
+      <Bot className="w-3 h-3" />
+      <span className="capitalize">{task.ai_agent_assigned}</span>
+      {task.ai_agent_status === 'accepted' && <Check className="w-3 h-3" />}
+      {task.ai_agent_status === 'rejected' && <X className="w-3 h-3" />}
+      {task.ai_agent_status === 'in_progress' && <Clock className="w-3 h-3" />}
+    </div>
+  ) : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -42,12 +58,15 @@ function TaskCard({ task, type, onMarkComplete }) {
                 <p className="text-xs text-muted-foreground mt-0.5">{task.lead_name}</p>
               )}
             </div>
-            <button
-              onClick={() => onMarkComplete(task.id)}
-              className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center hover:border-accent hover:bg-accent/20 transition-colors shrink-0"
-            >
-              <CheckCircle className="w-4 h-4 text-accent opacity-0 hover:opacity-100 transition-opacity" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {aiAgentBadge}
+              <button
+                onClick={() => onMarkComplete(task.id)}
+                className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center hover:border-accent hover:bg-accent/20 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4 text-accent opacity-0 hover:opacity-100 transition-opacity" />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className={`text-xs font-medium flex items-center gap-1 ${

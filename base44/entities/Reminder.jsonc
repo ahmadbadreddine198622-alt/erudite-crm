@@ -126,6 +126,42 @@
       "type": "boolean",
       "default": true,
       "description": "False for read-only imported tasks"
+    },
+    "ai_agent_assigned": {
+      "type": "string",
+      "enum": [
+        "dari",
+        "azure",
+        "none"
+      ],
+      "default": "none",
+      "description": "Which AI agent this task was assigned to"
+    },
+    "ai_agent_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected",
+        "in_progress",
+        "completed"
+      ],
+      "default": "pending",
+      "description": "Status of AI agent task acceptance"
+    },
+    "ai_agent_assigned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the task was assigned to the AI agent"
+    },
+    "ai_agent_response_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the AI agent responded (accepted/rejected)"
+    },
+    "ai_agent_notes": {
+      "type": "string",
+      "description": "Notes or reasoning from the AI agent"
     }
   },
   "required": [
