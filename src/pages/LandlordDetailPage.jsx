@@ -1487,7 +1487,6 @@ export default function LandlordDetailPage() {
   }
 
   const mapped = {
-    qualification: qualificationData,
   id: L.id,
   name: L.full_name_en || L.full_name || 'Unnamed landlord',
   initials: initialsOf(L.full_name_en || L.full_name),
@@ -1524,7 +1523,7 @@ export default function LandlordDetailPage() {
   // Legacy fields for backward compat
   nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
   valuation,
-  qualification: null,
+  qualification: qualificationData,
   scores,
   ai: null,
   signals: hasStrikeNow ? { strikeNow: hasStrikeNow, strikeKicker, strikeText, strikeAccent: '#fca5a5' } : null,
