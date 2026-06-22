@@ -1078,7 +1078,23 @@ export default function LandlordDetailPage() {
   const { data: waPersonal = [] } = useQ(['wa_conv_personal', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'personal' }, '-created_date', 5)), { enabled: !!phone });
   const { data: waMessages = [] } = useQ(['wa_messages', id], () => safe(() => base44.entities.WhatsAppMessage.filter({ landlord_id: id }, '-created_date', 200)), { enabled: !!id });
   const { data: aircallCalls = [] } = useQ(['aircall_calls', id], () => safe(() => base44.entities.AircallCall.filter({ landlord_id: id }, '-started_at', 50)), { enabled: !!id });
-  const { data: twilioLogs = [] } = useQ(['twilio_logs', id], () => safe(() => base44.entities.CallLog.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  // Twilio CallLog — match by phone (to_number OR from_number), same proven pattern as wa_stream_msgs.
+  // Records have landlord_id: null; the real link sits in lead_id or nowhere. Phone-matching
+  // catches BOTH records in each queued+webhook pair regardless of which carries the link.
+  const { data: twilioLogs = [] } = useQ(['twilio_logs', phone], async () => {
+    if (!phone) return [];
+    const cleaned = phone.replace(/[\s\-()]/g, '');
+    const variants = [cleaned];
+    if (cleaned.startsWith('+')) variants.push(cleaned.slice(1));
+    else variants.push('+' + cleaned);
+    const seen = new Set(); const results = [];
+    for (const v of variants) {
+      const toCalls = await safe(() => base44.entities.CallLog.filter({ to_number: v }, '-started_at', 100));
+      const fromCalls = await safe(() => base44.entities.CallLog.filter({ from_number: v }, '-started_at', 100));
+      [...(toCalls || []), ...(fromCalls || [])].forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); results.push(c); } });
+    }
+    return results;
+  }, { enabled: !!phone, refetchInterval: 15000, refetchOnWindowFocus: true });
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
@@ -1163,11 +1179,50 @@ export default function LandlordDetailPage() {
       wa: deriveWaChannel(msg),
     });
   });
+  // Deduplicate queued+webhook call pairs: same number AND started_at within 30s.
+  // Prefer the record with a twilio_call_sid (webhook outcome); keep lead_id/agent_email from either.
+  const dedupCalls = (logs) => {
+    const used = new Set(); const out = [];
+    const sorted = [...logs].sort((a, b) => tsOf(a.started_at || a.created_date) - tsOf(b.started_at || b.created_date));
+    for (const c of sorted) {
+      if (used.has(c.id)) continue;
+      const t = tsOf(c.started_at || c.created_date);
+      const pair = sorted.find(o => o.id !== c.id && !used.has(o.id) &&
+        (o.to_number === c.to_number || o.from_number === c.from_number) &&
+        Math.abs(tsOf(o.started_at || o.created_date) - t) < 30000);
+      if (pair) {
+        const base = c.twilio_call_sid ? c : (pair.twilio_call_sid ? pair : c);
+        const other = base === c ? pair : c;
+        used.add(c.id); used.add(pair.id);
+        out.push({ ...base, lead_id: base.lead_id || other.lead_id, agent_email: base.agent_email || other.agent_email });
+      } else { used.add(c.id); out.push(c); }
+    }
+    return out;
+  };
+  const callLogs = dedupCalls(twilioLogs);
+  const mapCallStatus = (s) => s === 'completed' ? 'done' : 'missed';
+  const fmtDuration = (sec, status) => {
+    if (sec && sec > 0) { const m = Math.floor(sec / 60), s = sec % 60; return m > 0 ? `${m}m ${s}s` : `${s}s`; }
+    if (status === 'no-answer') return 'No answer';
+    if (status === 'busy') return 'Busy';
+    if (status === 'failed') return 'Failed';
+    if (status === 'queued') return 'Queued';
+    return '—';
+  };
+  const calls = callLogs.map(c => ({
+    provider: 'twilio',
+    dir: c.direction === 'outbound' ? 'out' : 'in',
+    title: 'Call',
+    who: (c.agent_email ? c.agent_email.split('@')[0] : '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
+    dur: fmtDuration(c.duration_seconds, c.status),
+    status: mapCallStatus(c.status),
+    recording: !!c.recording_url,
+  }));
   aircallCalls.forEach(call => {
     stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Aircall`, body: call.from_number || call.to_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
   });
-  twilioLogs.forEach(log => {
-    stream.push({ t: 'act', kind: 'call', title: `${log.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: log.to_number || log.from_number || '', time: fmtMsgTime(log.started_at || log.created_date), order: tsOf(log.started_at || log.created_date) || 0 });
+  callLogs.forEach(call => {
+    stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: call.to_number || call.from_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
   });
   stream.sort((a, b) => a.order - b.order);
 
@@ -1211,7 +1266,7 @@ export default function LandlordDetailPage() {
     signals: null,
     market: null,
     battle: null,
-    calls: [],
+    calls,
     offers: [],
     docs: [],
     stream,
