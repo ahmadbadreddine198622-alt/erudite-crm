@@ -66,10 +66,10 @@ class LandlordDetail extends React.Component {
     super(props);
     this.streamRef = React.createRef();
     this.STAGES = ['Initial Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
-    const landlords = (props.landlords && props.landlords.length) ? props.landlords : this.seed();
+    const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
     this.state = {
       landlords,
-      currentId: props.initialId || landlords[0].id,
+      currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'outreach',
       composerType: 'Note',
       composerText: '',
@@ -108,19 +108,14 @@ class LandlordDetail extends React.Component {
     }), ()=>this.scrollBottom());
   };
 
-  onAnalyse = ()=>{
+  onAnalyse = async ()=>{
+    if(!this.state.currentId) return;
     this.setState({ analyzing:true });
-    setTimeout(()=>{
-      this.setState(s=>({
-        analyzing:false,
-        landlords:s.landlords.map(l=>{
-          if(l.id!==s.currentId) return l;
-          if(l.ai) return l;
-          const c=this.cannedAnalysis(l.id);
-          return {...l, ai:c.ai, scores:c.scores, signals:c.signals, market:c.market, temperature:c.ai.temperature };
-        })
-      }), ()=>this.scrollBottom());
-    }, 1500);
+    try {
+      await base44.functions.invoke('analyzeLandlordConversation', { landlord_id: this.state.currentId });
+    } catch(e) { /* server-side error — stop spinner, keep empty state */ }
+    this.setState({ analyzing:false });
+    window.location.reload();
   };
 
   // style helpers
@@ -156,174 +151,13 @@ class LandlordDetail extends React.Component {
     return map[p]||map.medium;
   }
 
-  // ---------- seed (aligned to live Base44 schema) ----------
-  seed(){
-    return [
-      {
-        id:'l1', name:'Yelena Vasquez', initials:'YV', phone:'+971 58 204 7781', source:'Property Finder',
-        archetype:'portfolio_optimizer', ownerSince:'Mar 2022', agent:'Mohamed Adel', agentEmail:'mohamed@erudite-estate.com',
-        stageIndex:4, temperature:'hot', rapport:'rapport_built',
-        redFlags:['shopping_brokers'], buyingSignals:['requested_viewing','shared_unit_photos','stated_target_price'],
-        nextBest:{ action:'Secure the exclusive Form A at Thursday’s viewing', priority:'urgent', reasoning:'A competitor is in play and a viewing is booked in 2 days — the natural moment to close the mandate.' },
-        valuation:{ estValue:'AED 2.42M', psf:'AED 1,806/sqft', confidence:'high', basis:'Based on 6 sold 2BRs in Marquise Square (last 90 days), adjusted +4% for canal-view premium and high floor.', updatedAt:'Updated 2 days ago' },
-        outreach:{ date:'Today', stepsCompleted:4, dailyScore:67, steps:[
-          { key:'email_sent', label:'Email', done:true, at:'09:10' },
-          { key:'whatsapp_sent', label:'WhatsApp', done:true, at:'09:12' },
-          { key:'imessage_sent', label:'iMessage', done:false, at:null },
-          { key:'sms_sent', label:'SMS', done:false, at:null },
-          { key:'called', label:'Called · WhatsApp call', done:true, at:'18:10' },
-          { key:'qualification_logged', label:'Qualification logged', done:true, at:'18:30' },
-        ]},
-        qualification:{ motivation:'Upgrading to a villa; wants to free up capital', timeline:'This quarter (high)', priceExpectation:'AED 2.45M', priceVsValuation:'+1.2% above AI valuation', mandateOpenness:'Open to exclusive if price is right', tenancy:'Vacant — ready to show', mortgage:'Free-hold, no mortgage', decisionMaker:'Yes — sole owner', outcome:'Viewing booked', rapportAfter:'rapport_built', nextStep:'Present CMA & sign Form A', followupDate:'Thursday 5 PM' },
-        unit:{ label:'P2-1407', building:'Marquise Square Tower', area:'Business Bay', beds:'2 Bed', baths:'2 Bath', sqft:'1,340 sqft', view:'Canal & Burj view', parking:'1 covered', serviceCharge:'AED 18.2/sqft', asking:'AED 2.45M', target:'AED 2.40M', floor:'AED 2.30M' },
-        agentNotes:'Anchored to 2.45M from a 2.10M purchase in 2022. Responds fastest to evening voice notes. Comparing us with one other agency — push exclusivity at Thursday viewing.',
-        scores:{ trust:78, trustWhy:'Shares info openly, consistent replies', responsiveness:80, respWhy:'Avg reply < 30 min, evenings', urgency:72, urgencyWhy:'Wants to transact this quarter', mandateWin:0.72, mandateWhy:'Strong rapport; one competitor in play', quality:78 },
-        connections:{ wa_business:'erudite · connected', wa_personal:'erudite_whatsapp · connected', aircall:'2 calls · recorded', twilio:'Browser calling ready', wa_call:'1 voice call', drive:'2 files', docusign:'Form A — draft', dld:'Title verified' },
-        ai:{
-          summary:'Yelena is a motivated seller of her 2BR at Marquise Square, anchored to AED 2.45M after buying at 2.10M in 2022. She is actively comparing Erudite with one other agency and replies fastest to evening voice notes. A viewing is booked for Thursday 5 PM — the moment to convert her to a signed exclusive mandate.',
-          temperature:'hot', language:'Russian / English', analysedAt:'2 min ago',
-          keyFacts:[
-            'Owns 2BR · Marquise Square Tower (1,340 sqft, canal view)',
-            'Target AED 2.45M — paid 2.10M in Mar 2022',
-            'Comparing Erudite vs one other agency',
-            'Prefers evening voice notes · Russian / English',
-            'Viewing booked Thursday 5 PM',
-          ],
-          outstanding:[
-            'Is she open to an exclusive (vs open) listing?',
-            'Title deed & NOC readiness not yet confirmed',
-            'Flexible on price for a cash buyer closing in 14 days?',
-          ],
-          coach:{
-            score:78,
-            bestLine:'Yelena, if I bring you a verified cash buyer at AED 2.4M who can close in 14 days, would you sign an exclusive with Erudite on Thursday?',
-            doneWell:[ 'Led with the 23-day track record', 'Sent comparable evidence proactively' ],
-            missed:[ 'Never asked for the signed Form A', 'Didn’t tackle the “other agency” objection' ],
-            objections:[ 'Other agency quoted higher', 'Price anchored to purchase cost' ],
-            nextMove:'At Thursday’s viewing, present the 6-comp CMA, then ask directly for an exclusive mandate and walk her through the Form A on the spot.',
-          },
-          suggestions:[
-            { type:'followup', title:'Send comparable report', reason:'She asked for evidence before committing on price', time:'Today, 6:00 PM', message:'Hi Yelena — here’s the Marquise Square comparable report I promised. 6 similar 2BRs sold in the last 90 days at a median of AED 1,780/sqft. Happy to walk you through it before Thursday.' },
-            { type:'viewing', title:'Confirm Thursday viewing', reason:'Lock the slot and set the agenda', time:'Tomorrow, 10:00 AM', message:'Looking forward to Thursday at 5 PM. I’ll bring the listing paperwork and the price-positioning plan so we can move fast once you’re ready.' },
-            { type:'meeting', title:'Ask for exclusive mandate', reason:'Stage 5 — close the commitment while warm', time:'Thursday, 5:00 PM', message:'Yelena, with an exclusive mandate I can put Erudite’s full marketing engine behind your unit and target a 23-day sale. Shall we sign the exclusive Form A on Thursday?' },
-          ],
-        },
-        signals:{ strikeNow:true, strikeKicker:'Strike now', strikeText:'Viewing in 2 days and she’s comparing agencies — secure the exclusive Thursday before the competitor does.' },
-        market:{
-          trend:'+3.8% QoQ', trendUp:true,
-          stats:[ {value:'6', label:'Sold · 90 days'}, {value:'1,780', label:'Median AED/sqft'}, {value:'31', label:'Avg days on market'} ],
-          comps:[
-            { ref:'Marquise Square · 2BR · 14th fl', note:'Sold · canal view', price:'AED 2.38M', psf:'1,776/sqft' },
-            { ref:'Marquise Square · 2BR · 9th fl', note:'Sold · partial view', price:'AED 2.21M', psf:'1,690/sqft' },
-            { ref:'Executive Tower · 2BR · 18th fl', note:'Listed · 41 days', price:'AED 2.55M', psf:'1,840/sqft' },
-          ],
-        },
-        battle:{
-          painPoint:'Comparing two agencies; fears under-pricing and a slow, uncertain sale.',
-          motivators:['Top achievable price','Fast, certain close','Hands-off process'],
-          competitor:'A rival pitched an open listing at AED 2.55M — over-priced bait to win the mandate.',
-          pitch:'Exclusive mandate + 23-day average sale at 98% of asking, backed by 6 verified Marquise comps.',
-          closes:[ 'Assumptive: “Shall we start marketing Thursday after you sign?”', 'Scarcity: verified cash buyer ready near AED 2.4M', 'Risk-reversal: 21-day exclusivity — cancel free if no viewings' ],
-        },
-        calls:[
-          { provider:'aircall', title:'Price discussion', who:'Mohamed Adel · Mon 14:30', dur:'12m 04s', dir:'out', status:'done', recording:true },
-          { provider:'whatsapp', title:'Asked about fees', who:'Mohamed Adel · Fri 18:10', dur:'4m 22s', dir:'in', status:'done', recording:false },
-          { provider:'twilio', title:'Quick follow-up (browser)', who:'Mohamed Adel · Last Wed 16:20', dur:'3m 12s', dir:'out', status:'done', recording:true },
-          { provider:'aircall', title:'Intro call', who:'Mohamed Adel · Last Tue 11:05', dur:'0m 00s', dir:'out', status:'missed', recording:false },
-        ],
-        offers:[
-          { who:'Buyer via Erudite (cash)', time:'Yesterday', amount:'AED 2.31M', status:'pending' },
-          { who:'Buyer via portal (mortgage)', time:'4 days ago', amount:'AED 2.18M', status:'declined' },
-        ],
-        docs:[
-          { icon:'📄', label:'Title Deed', provider:'Google Drive · verified', status:'received' },
-          { icon:'✍', label:'Form A (listing agreement)', provider:'DocuSign · draft sent', status:'pending' },
-          { icon:'🪪', label:'Passport / Emirates ID', provider:'Google Drive', status:'received' },
-          { icon:'🏢', label:'NOC from developer', provider:'Awaiting request', status:'missing' },
-          { icon:'🪪', label:'Trakheesi permit', provider:'Needed for Marketing Live', status:'missing' },
-        ],
-        stream:[
-          { t:'act', kind:'stage', title:'Stage → First Contact', body:'Lead imported from Property Finder enquiry.', time:'Tue 10:40', order:1 },
-          { t:'msg', dir:'out', mtype:'text', text:'Good morning Yelena, this is Mohamed from Erudite Property. I understand you’re considering selling your 2BR at Marquise Square — I’d love to help you get the best price.', time:'Tue 10:42', order:2 },
-          { t:'msg', dir:'in', mtype:'text', text:'Hi Mohamed, yes I’m thinking about it. But I already spoke to another agency. What can you offer that’s different?', time:'Tue 11:15', order:3 },
-          { t:'act', kind:'call', title:'Call · intro & rapport', body:'Aircall · 7m 41s outbound. Discussed motivation and rough price expectation (~2.5M).', time:'Tue 11:20', order:4 },
-          { t:'msg', dir:'out', mtype:'text', text:'Completely understand. We average a 23-day sale in Business Bay at 98% of asking. I’ll send you a full comparable report so you can see exactly where your unit sits.', time:'Tue 11:34', order:5 },
-          { t:'msg', dir:'in', mtype:'voice', wa:'personal', duration:'0:38', transcriptLang:'RU', transcript:'Я заплатила два миллиона сто тысяч два года назад, и хочу как минимум два с половиной. Меньше не интересно.', translation:'I paid 2.1 million two years ago, and I want at least 2.5 million. Less than that doesn’t interest me.', time:'Fri 18:08', order:6 },
-          { t:'act', kind:'call', title:'Call · fees & process', body:'Aircall · 4m 22s inbound. Asked about agency fee (2%) and timeline.', time:'Fri 18:10', order:7 },
-          { t:'msg', dir:'in', mtype:'media', wa:'personal', mediaLabel:'IMG · living room & canal view', text:'Here are some photos of the apartment, the view is the best in the building.', time:'Fri 18:25', order:8 },
-          { t:'msg', dir:'out', mtype:'text', text:'Stunning — that canal view is a real selling point. Based on recent sales, 2.45M is achievable and I can show you the data. Could we meet at the unit Thursday at 5 PM?', time:'Fri 18:40', order:9 },
-          { t:'msg', dir:'in', mtype:'text', text:'Okay, Thursday 5 PM works. Bring the numbers.', time:'Mon 09:12', order:10 },
-          { t:'act', kind:'appointment', title:'Appointment · unit viewing', body:'Thursday 5:00 PM at Marquise Square P2-1407. Synced to Google Calendar. Bring comps + Form A.', time:'Mon 09:15', order:11 },
-          { t:'act', kind:'stage', title:'Stage → Form A Initiation', body:'Price aligned; preparing the exclusive Form A for Thursday.', time:'Mon 09:18', order:12 },
-        ],
-      },
-      {
-        id:'l2', name:'Rashid Al-Marri', initials:'RA', phone:'+971 50 661 2204', source:'Referral',
-        archetype:'overseas_owner', ownerSince:'Jan 2020', agent:'Sarah Idris', agentEmail:'sarah@erudite-estate.com',
-        stageIndex:1, temperature:'cold', rapport:'cold',
-        redFlags:[], buyingSignals:[], nextBest:null, valuation:null,
-        outreach:{ date:'Today', stepsCompleted:1, dailyScore:17, steps:[
-          { key:'email_sent', label:'Email', done:false, at:null },
-          { key:'whatsapp_sent', label:'WhatsApp', done:true, at:'09:05' },
-          { key:'imessage_sent', label:'iMessage', done:false, at:null },
-          { key:'sms_sent', label:'SMS', done:false, at:null },
-          { key:'called', label:'Called', done:false, at:null },
-          { key:'qualification_logged', label:'Qualification logged', done:false, at:null },
-        ]},
-        qualification:null,
-        unit:{ label:'P2-0905', building:'Marquise Square Tower', area:'Business Bay', beds:'1 Bed', baths:'1 Bath', sqft:'820 sqft', view:'Boulevard view', parking:'1 covered', serviceCharge:'AED 17.6/sqft', asking:'AED 1.35M', target:'AED 1.32M', floor:'AED 1.28M' },
-        agentNotes:'',
-        scores:null,
-        connections:{ wa_business:'erudite · connected', wa_personal:false, aircall:false, twilio:'Browser calling ready', wa_call:false, drive:false, docusign:false, dld:'Title verified' },
-        ai:null, signals:null, market:null,
-        battle:null,
-        calls:[], offers:[],
-        docs:[
-          { icon:'📄', label:'Title Deed', provider:'Not requested', status:'pending' },
-          { icon:'✍', label:'Form A (listing agreement)', provider:'DocuSign', status:'missing' },
-          { icon:'🪪', label:'Passport / Emirates ID', provider:'Not requested', status:'pending' },
-          { icon:'🏢', label:'NOC from developer', provider:'DocuSign', status:'missing' },
-        ],
-        stream:[
-          { t:'act', kind:'stage', title:'Stage → First Contact', body:'Referral from existing client. No reply yet.', time:'Today 09:02', order:1 },
-          { t:'msg', dir:'out', mtype:'text', text:'Hello Rashid, this is Sarah from Erudite Property. Your friend suggested I reach out about your unit at Marquise Square. Is now a good time?', time:'Today 09:05', order:2 },
-        ],
-      },
-    ];
-  }
+  // ---------- seed (removed — real data comes from the container page) ----------
+  seed(){ return []; }
 
-  cannedAnalysis(id){
-    return {
-      ai:{
-        summary:'Rashid is an early-stage referral who owns a 1BR at Marquise Square. He has not yet replied to the first outreach. Intent is unconfirmed — a short, warm follow-up referencing the mutual contact is the best next step to open the conversation.',
-        temperature:'warm', language:'English / Arabic', analysedAt:'just now',
-        keyFacts:[ 'Owns 1BR · Marquise Square Tower (820 sqft)', 'Referral from an existing Erudite client', 'No reply to first message yet', 'Owner since Jan 2020 · overseas' ],
-        outstanding:[ 'Is Rashid looking to sell or let?', 'Preferred contact channel & time unknown', 'Price expectation not established' ],
-        coach:{
-          score:41,
-          bestLine:'Hi Rashid — [referrer] mentioned you might be weighing your options on the Marquise unit. No pressure; would a quick 10-minute call this week help you see where prices are right now?',
-          doneWell:[ 'Reached out same day as referral' ],
-          missed:[ 'First message was generic — didn’t name the referrer', 'No value hook (recent sale in his building)' ],
-          objections:[ 'No engagement yet' ],
-          nextMove:'Send a warm, referrer-named follow-up with one concrete data point (a recent 1BR sale in his tower) and a low-friction call-to-action.',
-        },
-        suggestions:[
-          { type:'followup', title:'Warm referral follow-up', reason:'No reply — name the referrer to build trust', time:'Today, 5:00 PM', message:'Hi Rashid — [referrer] mentioned you might be weighing your options on the Marquise unit. A 1BR just sold in your building at AED 1.34M. Worth a quick chat this week?' },
-          { type:'call', title:'Schedule intro call', reason:'Overseas owner — a call moves faster than chat', time:'Tomorrow, 11:00 AM', message:'Quick one Rashid — happy to call and tell you what your unit could achieve today. What time works in your timezone?' },
-        ],
-      },
-      scores:{ trust:48, trustWhy:'Referral basis; unproven', responsiveness:20, respWhy:'Messaged, no reply yet', urgency:30, urgencyWhy:'No signals yet', mandateWin:0.34, mandateWhy:'Early stage, intent unclear', quality:41 },
-      signals:{ strikeNow:false, strikeKicker:'Warm up', strikeText:'No reply yet — send the referral follow-up today to open the conversation.' },
-      market:{
-        trend:'+3.8% QoQ', trendUp:true,
-        stats:[ {value:'4', label:'Sold · 90 days'}, {value:'1,620', label:'Median AED/sqft'}, {value:'38', label:'Avg days on market'} ],
-        comps:[
-          { ref:'Marquise Square · 1BR · 12th fl', note:'Sold · boulevard view', price:'AED 1.34M', psf:'1,634/sqft' },
-          { ref:'Marquise Square · 1BR · 6th fl', note:'Sold · low floor', price:'AED 1.27M', psf:'1,560/sqft' },
-        ],
-      },
-    };
-  }
+  // cannedAnalysis removed — real AI data comes from ConversationInsight/ConversationCoach
+  // entities fetched by the LandlordDetailPage container. The Analyse button invokes the
+  // real analyzeLandlordConversation backend function; no demo/fallback content is injected.
+  cannedAnalysis(){ return null; }
 
   // ---------- viewmodel ----------
   computeVM(){
