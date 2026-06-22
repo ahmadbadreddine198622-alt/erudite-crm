@@ -97,7 +97,7 @@ class LandlordDetail extends React.Component {
     
     // Force sync if array ref changed OR if current landlord's contact/AI/valuation/docs/scores/signals/mandate fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow || prevCur.mandate !== nextCur.mandate));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow || prevCur.mandate !== nextCur.mandate || prevCur.qualification !== nextCur.qualification || prevCur.passport !== nextCur.passport || prevCur.nationality !== nextCur.nationality || prevCur.residence !== nextCur.residence || prevCur.language !== nextCur.language || prevCur.residentUAE !== nextCur.residentUAE));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -853,6 +853,36 @@ class LandlordDetail extends React.Component {
                       <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.whatsapp}</div>
                     </div>
                   )}
+                  {L.passport && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Passport</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.passport}</div>
+                    </div>
+                  )}
+                  {L.nationality && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Nationality</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.nationality}</div>
+                    </div>
+                  )}
+                  {L.residence && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Residence</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.residence}</div>
+                    </div>
+                  )}
+                  {L.language && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Language</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.language}</div>
+                    </div>
+                  )}
+                  {L.residentUAE && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>UAE Resident</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.residentUAE}</div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1486,7 +1516,16 @@ export default function LandlordDetailPage() {
     docs.unshift({ icon: '✍', label: 'Form A Contract', provider: L.form_a_contract_number ? `Contract ${L.form_a_contract_number}` : 'Signed Form A', status: 'received', url: L.form_a_pdf_url });
   }
 
+    const langMap = {
+    ru: 'Russian', en: 'English', ar: 'Arabic', zh: 'Chinese', hi: 'Hindi', ur: 'Urdu', fa: 'Farsi',
+  };
+
   const mapped = {
+    passport: L.passport_no || null,
+    nationality: L.nationality || null,
+    residence: L.residence_country || null,
+    language: L.preferred_language ? (langMap[L.preferred_language] || L.preferred_language.toUpperCase()) : null,
+    residentUAE: typeof L.is_resident_uae === 'boolean' ? (L.is_resident_uae ? 'Yes' : 'No') : null,
   id: L.id,
   name: L.full_name_en || L.full_name || 'Unnamed landlord',
   initials: initialsOf(L.full_name_en || L.full_name),
