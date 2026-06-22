@@ -66,6 +66,7 @@ class LandlordDetail extends React.Component {
     super(props);
     this.streamRef = React.createRef();
     this.STAGES = ['Initial Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
+    this.STAGE_KEYS = ['initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing','owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification','listing_publication','final_confirmation','marketing_agents','marketing_network','open_house','client_blast','deal_closed'];
     const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
     this.state = {
       landlords,
@@ -114,6 +115,22 @@ class LandlordDetail extends React.Component {
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
+  onStageChange = async (newStage)=>{
+    const L=this.cur(); if(!L||!newStage) return;
+    const idx = this.state.landlords.findIndex(l=>l.id===this.state.currentId);
+    if(idx<0) return;
+    // Optimistic update
+    this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:newStage, stageEnteredAt: new Date().toISOString()} : l) }));
+    // Persist to database
+    try {
+      await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
+    } catch(err) {
+      console.error('Failed to update stage:', err);
+      // Revert on error
+      this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:L.stage, stageEnteredAt:L.stageEnteredAt} : l) }));
+    }
+  };
+
   fillDraft = (action)=>{
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time });
@@ -139,6 +156,20 @@ class LandlordDetail extends React.Component {
     } catch(e) { /* server-side error — stop spinner, keep empty state */ }
     this.setState({ analyzing:false });
     window.location.reload();
+  };
+
+  onStageChange = async (newStage)=>{
+    if(!this.state.currentId) return;
+    // Update the landlord record
+    try {
+      await base44.entities.Landlord.update(this.state.currentId, { stage: newStage, stage_changed_at: new Date().toISOString() });
+      // Update local state to reflect the change immediately
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stage: newStage} : l)
+      }));
+    } catch(e) {
+      console.error('[LandlordDetail] Failed to update stage:', e);
+    }
   };
 
   // style helpers
@@ -730,14 +761,25 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* pipeline progress */}
+              {/* pipeline progress + stage selector */}
               <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
-                  <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline · {stage.label}</span>
+                  <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline</span>
                   <span style={css("font-size:11px; color:hsl(38 92% 60%); font-weight:600;")}>Stage {stage.index} of {stage.total}</span>
                 </div>
                 <div style={css("height:6px; border-radius:99px; background:rgba(255,255,255,0.07); overflow:hidden;")}><div style={stage.barStyle}></div></div>
-                <div style={css("font-size:11px; color:rgba(255,255,255,0.45); margin-top:7px;")}>{stage.nextLabel}</div>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;")}>
+                  <span style={css("font-size:11px; color:rgba(255,255,255,0.45);")}>{stage.nextLabel}</span>
+                  <select
+                    value={L.stage || 'initial_contact'}
+                    onChange={(e)=> this.onStageChange(e.target.value)}
+                    style={css("padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}
+                  >
+                    {this.STAGES.map((s,i)=> (
+                      <option key={s} value={this.STAGE_KEYS[i]||s} style={{background:'#13182a'}}>{s}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Owner Information */}
@@ -1203,10 +1245,12 @@ const latest = (arr, dateKey) => {
   return [...arr].sort((a, b) => tsOf(b[dateKey] || b.created_date) - tsOf(a[dateKey] || a.created_date))[0];
 };
 
+// Full stage enum from Landlord entity schema (17 values)
 const PIPELINE_STAGES = [
   'initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
   'owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification',
-  'listing_publication','final_confirmation',
+  'listing_publication','final_confirmation','marketing_agents','marketing_network','open_house',
+  'client_blast','deal_closed',
 ];
 
 const EMPTY_OUTREACH = {
