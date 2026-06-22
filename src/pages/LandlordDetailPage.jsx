@@ -257,6 +257,7 @@ class LandlordDetail extends React.Component {
       stageLabel:this.STAGES[L.stageIndex-1],
       stageStyle:{ display:'inline-flex', alignItems:'center', padding:'5px 12px', borderRadius:'99px', fontSize:'11.5px', fontWeight:700, background:'rgba(139,92,246,0.16)', border:'1px solid rgba(139,92,246,0.4)', color:'#c4b5fd' },
       tempLabel:rm.label, tempChipStyle:rm.chipStyle,
+      phone: L.phone && L.phone !== '—' ? L.phone : null,
     };
 
     const total=this.STAGES.length;
@@ -685,6 +686,10 @@ class LandlordDetail extends React.Component {
                       <span style={hdr.archetypeStyle}>{hdr.archetype}</span>
                     </div>
                     <div style={css("display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:7px;")}>
+                      {L.phone && L.phone !== '—' && (
+                        <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
+                      )}
+                      {(L.phone && L.phone !== '—') && <span style={css("color:rgba(255,255,255,0.22);")}>·</span>}
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
                       <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.unitBuilding}</span>
@@ -711,6 +716,51 @@ class LandlordDetail extends React.Component {
                 </div>
                 <div style={css("height:6px; border-radius:99px; background:rgba(255,255,255,0.07); overflow:hidden;")}><div style={stage.barStyle}></div></div>
                 <div style={css("font-size:11px; color:rgba(255,255,255,0.45); margin-top:7px;")}>{stage.nextLabel}</div>
+              </div>
+
+              {/* Owner Information */}
+              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
+                <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Owner Information</div>
+                <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
+                  {L.phone && L.phone !== '—' && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.phone}</div>
+                    </div>
+                  )}
+                  {L.additionalPhones && L.additionalPhones.length > 0 && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Phones</div>
+                      <div style={css("display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;")}>
+                        {L.additionalPhones.map((p, i) => (
+                          <span key={i} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:6px;")}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {L.email && L.email !== '—' && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis;")}>{L.email}</div>
+                    </div>
+                  )}
+                  {L.additionalEmails && L.additionalEmails.length > 0 && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Additional Emails</div>
+                      <div style={css("display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;")}>
+                        {L.additionalEmails.map((e, i) => (
+                          <span key={i} style={css("font-size:12.5px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:6px;")}>{e}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {L.whatsapp && L.whatsapp !== L.phone && (
+                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>WhatsApp</div>
+                      <div style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9);")}>{L.whatsapp}</div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* connections strip */}
@@ -1256,6 +1306,10 @@ export default function LandlordDetailPage() {
     name: L.full_name_en || L.full_name || 'Unnamed landlord',
     initials: initialsOf(L.full_name_en || L.full_name),
     phone: L.phone || '—',
+    additionalPhones: Array.isArray(L.additional_phones) ? L.additional_phones : [],
+    email: L.email || '—',
+    additionalEmails: Array.isArray(L.additional_emails) ? L.additional_emails : [],
+    whatsapp: L.whatsapp || null,
     source: L.source || '—',
     archetype: L.landlord_archetype || 'first_time_seller',
     agent: agentName,
