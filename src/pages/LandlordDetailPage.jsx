@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
+import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
@@ -16,6 +17,7 @@ import MandatePanel from '@/components/landlord/MandatePanel';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
 import CallSuite from '@/components/landlord/CallSuite';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
+import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -779,6 +781,12 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
+              <ListingManagerStrip 
+                listingManagerEmail={L.listing_manager_email}
+                assignedAgentEmail={L.assigned_agent_email}
+                phone={L.phone}
+                whatsapp={L.whatsapp}
+              />
               <QualificationStrip qualification={L.qualification} />
 
               {/* pipeline progress + stage selector */}
@@ -966,11 +974,18 @@ class LandlordDetail extends React.Component {
               <div style={css("margin-top:18px;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;")}>
                   <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Documents & Mandate</span>
-                  {this.props.onUploadFormA && (
-                    <button onClick={this.props.onUploadFormA} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                      <span style={css("font-size:14px; line-height:1;")}>📄</span> Upload Form A
-                    </button>
-                  )}
+                  <div style={css("display:flex; gap:6px; flex-wrap:wrap;")}>
+                    {this.props.onUploadFormA && (
+                      <button onClick={this.props.onUploadFormA} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                        <span style={css("font-size:14px; line-height:1;")}>📄</span> Upload Form A
+                      </button>
+                    )}
+                    {this.props.onAssignListingManager && (
+                      <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                        <span style={css("font-size:14px; line-height:1;")}>👥</span> Assign Listing Manager
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={css("display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:11px; margin-bottom:15px;")}>
                   {vm.tabs.map((tb)=>(
@@ -1200,6 +1215,7 @@ export default function LandlordDetailPage() {
   const navigate = useNavigate();
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);
+  const [listingManagerDialogOpen, setListingManagerDialogOpen] = useState(false);
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
@@ -1268,6 +1284,11 @@ export default function LandlordDetailPage() {
   const handleFormASuccess = () => {
     refetchLandlord();
     setFormADialogOpen(false);
+  };
+
+  const handleListingManagerSuccess = () => {
+    refetchLandlord();
+    setListingManagerDialogOpen(false);
   };
 
   if (!L) {
@@ -1593,11 +1614,19 @@ export default function LandlordDetailPage() {
         showCoaching
         showSignals
         onUploadFormA={() => setFormADialogOpen(true)}
-      />
+        onAssignListingManager={() => setListingManagerDialogOpen(true)}
+        />
       <FormAUploadDialog
         open={formADialogOpen}
         onClose={() => setFormADialogOpen(false)}
         onSuccess={handleFormASuccess}
+      />
+      <ListingManagerAssignDialog
+        open={listingManagerDialogOpen}
+        onClose={() => setListingManagerDialogOpen(false)}
+        onSuccess={handleListingManagerSuccess}
+        landlordId={id}
+        currentListingManager={L?.listing_manager_email || null}
       />
     </React.Fragment>
   );
