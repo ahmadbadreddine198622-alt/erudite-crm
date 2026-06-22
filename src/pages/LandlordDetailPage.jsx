@@ -89,7 +89,7 @@ class LandlordDetail extends React.Component {
     
     // Force sync if array ref changed OR if current landlord's contact fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords });
@@ -431,7 +431,7 @@ class LandlordDetail extends React.Component {
       hdr, stage, connections,
       nextBest, flagChips, buyChips, hasFlags,
       showSignals: showSignals && !!L.scores, signals, scorecards,
-      summaryText: hasAI ? L.ai.summary : 'No AI summary yet — run “Analyse Now” in the conversation panel to generate one.',
+      summaryText: L.aiRollingSummary || 'No AI summary yet — run “Analyse Now” in the conversation panel to generate one.',
       market, agentNotes:L.agentNotes,
       tabs, tab,
     };
@@ -569,6 +569,12 @@ class LandlordDetail extends React.Component {
                             ))}
                           </div>
 
+                          {L.aiCoaching && (
+                            <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
+                              <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#a78bfa;")}>Agent coaching</span>
+                              <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{L.aiCoaching}</div>
+                            </div>
+                          )}
                           <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
                             <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#a78bfa;")}>Next move</span>
                             <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{ai.coach.nextMove}</div>
