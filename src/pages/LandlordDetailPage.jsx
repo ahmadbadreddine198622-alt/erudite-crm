@@ -743,6 +743,10 @@ class LandlordDetail extends React.Component {
                   {vm.composerTypes.map((t)=>(
                     <button key={t.label} onClick={t.onClick} style={t.style}>{t.icon} {t.label}</button>
                   ))}
+                  <button onClick={()=>this.onNavigate('/task-center')} style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 11px; borderRadius:9px; fontSize:11.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
+                    <Calendar className="w-3.5 h-3.5" />
+                    SmartTask
+                  </button>
                   <button onClick={()=>this.onNavigate('/calendar')} style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 11px; borderRadius:9px; fontSize:11.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
                     <Calendar className="w-3.5 h-3.5" />
                     Smart Calendar
