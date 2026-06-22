@@ -1143,17 +1143,6 @@ export default function LandlordDetailPage() {
   const agentEmail = L.assigned_agent_email || '';
   const agentName = agentEmail ? agentEmail.split('@')[0] : 'Unassigned';
 
-  // Build connections ONLY for systems with real data — missing keys render as grey "Not linked"
-  const connections = {};
-  if (waBusiness.length) connections.wa_business = waBusiness[0]?.status ? `Active · ${waBusiness[0].status}` : 'Linked';
-  if (waPersonal.length) connections.wa_personal = 'Linked';
-  if (waMessages.some((m) => m.media_type === 'audio' || m.media_type === 'voice' || m.is_voice_note)) connections.wa_call = 'Voice call';
-  if (aircallCalls.length) connections.aircall = `${aircallCalls.length} call${aircallCalls.length > 1 ? 's' : ''}`;
-  if (callLogs.length) connections.twilio = `${callLogs.length} call${callLogs.length > 1 ? 's' : ''}`;
-  if (lp.title_deed_url || L.form_a_pdf_url) connections.drive = 'Files backed up';
-  if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
-  if (lp.title_deed_verified === true) connections.dld = 'Title verified';
-
   // Build the Conversation & Activity stream from live WhatsApp messages + call logs
   const fmtMsgTime = (ts) => {
     if (!ts) return '';
@@ -1170,18 +1159,7 @@ export default function LandlordDetailPage() {
     if (msg.channel === 'personal' || msg.channel === 'business') return msg.channel;
     return 'business';
   };
-  const stream = [];
-  waStreamMessages.forEach(msg => {
-    stream.push({
-      t: 'msg',
-      dir: msg.direction === 'outbound' ? 'out' : 'in',
-      mtype: 'text',
-      text: msg.body || '',
-      time: fmtMsgTime(msg.timestamp),
-      order: tsOf(msg.timestamp) || 0,
-      wa: deriveWaChannel(msg),
-    });
-  });
+
   // Deduplicate queued+webhook call pairs: same number AND started_at within 30s.
   // Prefer the record with a twilio_call_sid (webhook outcome); keep lead_id/agent_email from either.
   const dedupCalls = (logs) => {
@@ -1203,6 +1181,30 @@ export default function LandlordDetailPage() {
     return out;
   };
   const callLogs = dedupCalls(twilioLogs);
+
+  // Build connections ONLY for systems with real data — missing keys render as grey "Not linked"
+  const connections = {};
+  if (waBusiness.length) connections.wa_business = waBusiness[0]?.status ? `Active · ${waBusiness[0].status}` : 'Linked';
+  if (waPersonal.length) connections.wa_personal = 'Linked';
+  if (waMessages.some((m) => m.media_type === 'audio' || m.media_type === 'voice' || m.is_voice_note)) connections.wa_call = 'Voice call';
+  if (aircallCalls.length) connections.aircall = `${aircallCalls.length} call${aircallCalls.length > 1 ? 's' : ''}`;
+  if (callLogs.length) connections.twilio = `${callLogs.length} call${callLogs.length > 1 ? 's' : ''}`;
+  if (lp.title_deed_url || L.form_a_pdf_url) connections.drive = 'Files backed up';
+  if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
+  if (lp.title_deed_verified === true) connections.dld = 'Title verified';
+
+  const stream = [];
+  waStreamMessages.forEach(msg => {
+    stream.push({
+      t: 'msg',
+      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      mtype: 'text',
+      text: msg.body || '',
+      time: fmtMsgTime(msg.timestamp),
+      order: tsOf(msg.timestamp) || 0,
+      wa: deriveWaChannel(msg),
+    });
+  });
   const mapCallStatus = (s) => {
     if (s === 'completed') return 'done';
     if (s === 'no-answer' || s === 'busy' || s === 'failed') return 'missed';
