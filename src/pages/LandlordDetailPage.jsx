@@ -88,12 +88,12 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
       (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media));
     
     if (needSync && nextCur) {
-      this.setState({ landlords: nextLandlords });
+      this.setState({ landlords: nextLandlords, analyzeError:'' });
     }
     // Auto-scroll when new messages arrive (count increased) or filter switched.
     // No setState here — just scroll — so no render loop.
@@ -150,12 +150,14 @@ class LandlordDetail extends React.Component {
 
   onAnalyse = async ()=>{
     if(!this.state.currentId) return;
-    this.setState({ analyzing:true });
+    this.setState({ analyzing:true, analyseError:'' });
     try {
-      await base44.functions.invoke('analyzeLandlordConversation', { landlord_id: this.state.currentId });
-    } catch(e) { /* server-side error — stop spinner, keep empty state */ }
-    this.setState({ analyzing:false });
-    window.location.reload();
+      await base44.functions.invoke('landlordOrchestrator', { landlord_id: this.state.currentId, force: true });
+      // Refetch landlord to display fresh AI fields immediately
+      window.location.reload();
+    } catch(e) {
+      this.setState({ analyzeError: e?.message || 'Analysis failed — please try again', analyzing:false });
+    }
   };
 
   onStageChange = async (newStage)=>{
@@ -243,6 +245,7 @@ class LandlordDetail extends React.Component {
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
     const filterMode=S.streamFilter || 'all';
     const filtered = filterMode==='all' ? sorted : sorted.filter(s => s.t==='act' || s.wa===filterMode);
+    const analyzeError=S.analyzeError || '';
     const stream=filtered.map((s,idx)=>{
       if(s.t==='msg'){
         const out = s.dir==='out';
@@ -441,6 +444,7 @@ class LandlordDetail extends React.Component {
       currentId:S.currentId, landlordOptions,
       streamCountLabel: msgCount+' messages · '+actCount+' activities',
       streamFilter: filterMode,
+      analyzeError,
       businessPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
         background: filterMode==='business' ? 'rgba(37,211,102,0.2)' : 'rgba(37,211,102,0.05)',
         border: '1px solid '+(filterMode==='business' ? 'rgba(37,211,102,0.5)' : 'rgba(37,211,102,0.18)'),
@@ -527,10 +531,15 @@ class LandlordDetail extends React.Component {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 60%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                     AI Conversation Intelligence
                   </span>
-                  <button onClick={this.onAnalyse} style={css("display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                  <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
                     <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
                   </button>
                 </div>
+                {vm.analyzeError && (
+                  <div style={css("padding:10px 15px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border-top:1px solid rgba(239,68,68,0.15);")}>
+                    {vm.analyzeError}
+                  </div>
+                )}
 
                 {vm.aiReady && (
                   <div style={css("padding:14px 15px; max-height:368px; overflow-y:auto;")}>
