@@ -1,3 +1,17 @@
+// LandlordDetailPage.jsx — Erudite CRM  (SELF-CONTAINED · single file)
+// Design + live data in ONE file. Paste this as the ENTIRE contents of
+// src/pages/LandlordDetailPage.jsx  (replace everything that's there).
+// No other files needed. The /landlord/:id route already points here.
+
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+
+function useQ(key, fn, extra = {}) {
+  return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
+}
+
 // LandlordDetail.jsx — Erudite CRM
 // Self-contained React component. No external packages, no separate CSS, no image assets.
 // Drop in at src/components/LandlordDetail.jsx (or src/pages/) and render <LandlordDetail />.
@@ -10,7 +24,7 @@
 //
 // Props: landlords?, initialId?, onBack?, defaultTab?, showCoaching?, showSignals?
 
-import React from "react";
+
 
 /* Convert a CSS declaration string into a React style object (preserves the design 1:1). */
 function css(str) {
@@ -47,7 +61,7 @@ const GLOBAL_CSS = `
 }
 `;
 
-export default class LandlordDetail extends React.Component {
+class LandlordDetail extends React.Component {
   constructor(props) {
     super(props);
     this.streamRef = React.createRef();
@@ -1111,4 +1125,364 @@ export default class LandlordDetail extends React.Component {
       </React.Fragment>
     );
   }
+}
+
+// LandlordDetailPage.jsx — Erudite CRM
+// Container page that fills the /landlord/:id route your app ALREADY navigates to
+// (Landlords.jsx + KanbanBoard + LockedLeadQueue all call navigate(`/landlord/${id}`)).
+//
+// It fetches the real Base44 entities by id, maps your real schema fields into the
+// presentational <LandlordDetail/> component, and degrades gracefully: any missing
+// entity/field simply yields an empty state (e.g. "Analyse Now"), never a crash.
+//
+// FILES & PLACEMENT
+//   src/components/LandlordDetail.jsx   <- the presentational component (already delivered)
+//   src/pages/LandlordDetailPage.jsx    <- THIS file
+//
+// ROUTE (add to src/App.jsx, inside the <AppLayout> group, next to /landlords):
+//   import LandlordDetailPage from '@/pages/LandlordDetailPage';
+//   <Route path="/landlord/:id" element={<LandlordDetailPage />} />
+//
+// No new npm packages. Uses your existing react-query + @/api/base44Client conventions.
+
+
+
+
+
+
+
+/* Stage keys in pipeline order — mirrors Landlords.jsx STAGES (17 stages). */
+const STAGE_KEYS = [
+  'initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
+  'owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification',
+  'listing_publication','final_confirmation','marketing_agents','marketing_network','open_house',
+  'client_blast','deal_closed',
+];
+
+/* ---- small helpers ---- */
+const initialsOf = (name) => String(name || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
+const fmtAED = (n) => {
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1_000_000) return 'AED ' + (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
+  if (n >= 1_000) return 'AED ' + Math.round(n / 1_000) + 'K';
+  return 'AED ' + n;
+};
+const fmtStamp = (ts) => {
+  if (!ts) return '';
+  const d = new Date(ts); if (isNaN(d)) return String(ts);
+  return d.toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+};
+const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
+/* Run a queryFn that may reference an entity that doesn't exist yet — never throw. */
+const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };
+const latest = (arr, dateKey) => {
+  if (!arr || !arr.length) return null;
+  return [...arr].sort((a, b) => tsOf(b[dateKey] || b.created_date) - tsOf(a[dateKey] || a.created_date))[0];
+};
+
+export default function LandlordDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  // Shares cache with the Landlords list page (same queryKey) — efficient + consistent.
+  const { data: landlords = [], isLoading: llLoading } = useQ(['landlords'], () => base44.entities.Landlord.list('-updated_date', 1000));
+  const { data: users = [] }               = useQ(['users'], () => base44.entities.User.list());
+  const { data: landlordProperties = [] }  = useQ(['landlord_properties'], () => base44.entities.LandlordProperty.list());
+  const { data: properties = [] }          = useQ(['properties'], () => base44.entities.Property.list());
+
+  // Per-landlord related records (all guarded so a missing entity won't crash the page).
+  const { data: messages = [] }      = useQ(['messages', id], () => safe(() => base44.entities.Message.filter({ landlord_id: id }, 'timestamp', 500)), { enabled: !!id });
+  const { data: activities = [] }    = useQ(['activities', id], () => safe(() => base44.entities.Activity.filter({ lead_id: id }, '-created_date', 500)), { enabled: !!id }); // NOTE: Activity keys on lead_id — empty for landlords until a landlord link is added in Base44.
+  const { data: insights = [] }      = useQ(['conv_insight', id], () => safe(() => base44.entities.ConversationInsight.filter({ landlord_id: id }, '-last_analyzed_at', 5)), { enabled: !!id });
+  const { data: coaches = [] }       = useQ(['conv_coach', id], () => safe(() => base44.entities.ConversationCoach.filter({ landlord_id: id }, '-created_date', 5)), { enabled: !!id });
+  const { data: outreaches = [] }    = useQ(['outreach', id], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id }, '-outreach_date', 5)), { enabled: !!id });
+  const { data: qualifications = [] } = useQ(['call_qual', id], () => safe(() => base44.entities.CallQualification.filter({ landlord_id: id }, '-call_date', 5)), { enabled: !!id });
+  const { data: aircall = [] }       = useQ(['aircall', id], () => safe(() => base44.entities.AircallCall.filter({ landlord_id: id }, '-started_at', 50)), { enabled: !!id });
+  const { data: callLogs = [] }      = useQ(['call_log', id], () => safe(() => base44.entities.CallLog.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  const { data: scheduledCalls = [] } = useQ(['call_sched', id], () => safe(() => base44.entities.Call.filter({ landlord_id: id }, '-scheduled_at', 50)), { enabled: !!id });
+
+  if (llLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222 47% 6%)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 40, height: 40, margin: '0 auto 12px', borderRadius: '50%', border: '3px solid rgba(245,158,11,0.3)', borderTopColor: 'hsl(38 92% 55%)', animation: 'spin 0.8s linear infinite' }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Inter,sans-serif', fontSize: 14 }}>Loading landlord…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const L = landlords.find((x) => x.id === id);
+  if (!L) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222 47% 6%)', color: 'rgba(255,255,255,0.7)', fontFamily: 'Inter,sans-serif' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 16, marginBottom: 12 }}>Landlord not found.</p>
+          <button onClick={() => navigate('/landlords')} style={{ padding: '9px 16px', borderRadius: 10, border: '1px solid hsl(38 92% 50% / 0.5)', background: 'hsl(38 92% 50% / 0.14)', color: 'hsl(38 92% 62%)', cursor: 'pointer', fontWeight: 600 }}>Back to Landlords</button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- resolve related records ---------- */
+  const lp = landlordProperties.find((x) => x.landlord_id === id) || {};
+  const prop = properties.find((p) => p.id === lp.property_id) || {};
+  const insight = latest(insights, 'last_analyzed_at');
+  const coach = latest(coaches, 'created_date');
+  const outreach = latest(outreaches, 'outreach_date');
+  const qual = latest(qualifications, 'call_date');
+  const agentUser = users.find((u) => u.email === L.assigned_agent_email);
+  const agentName = agentUser?.full_name || L.assigned_agent_email || 'Unassigned';
+
+  /* ---------- unit (Landlord + LandlordProperty + Property) ---------- */
+  const bedsLabel = prop.property_type === 'studio' ? 'Studio'
+    : prop.bedrooms != null ? `${prop.bedrooms} Bed` : '—';
+  const unit = {
+    label: L.unit_reference || prop.unit_no || '—',
+    building: L.project_name || prop.project_name || prop.building_name || '—',
+    area: prop.area || prop.community || '—',
+    beds: bedsLabel,
+    baths: prop.bathrooms != null ? `${prop.bathrooms} Bath` : '—',
+    sqft: prop.size_sqft ? `${Number(prop.size_sqft).toLocaleString()} sqft` : (prop.size ? `${prop.size} sqft` : '—'),
+    view: prop.view || '—',
+    parking: prop.parking != null ? String(prop.parking) : '—',
+    serviceCharge: prop.service_charge ? `AED ${prop.service_charge}/sqft` : '—',
+    asking: fmtAED(L.asking_price_aed),
+    target: fmtAED(L.target_price_aed ?? L.asking_price_aed),
+    floor: fmtAED(L.floor_price_aed),
+  };
+
+  /* ---------- scores (only if any present) ---------- */
+  const hasScores = [L.trust_score, L.responsiveness_score, L.urgency_score, L.mandate_win_probability].some((v) => v != null);
+  const scores = hasScores ? {
+    trust: L.trust_score ?? 0, trustWhy: L.trust_score_rationale || '',
+    responsiveness: L.responsiveness_score ?? 0, respWhy: L.responsiveness_score_rationale || '',
+    urgency: L.urgency_score ?? 0, urgencyWhy: L.urgency_score_rationale || '',
+    mandateWin: L.mandate_win_probability ?? 0, mandateWhy: L.mandate_win_rationale || '',
+    quality: coach?.quality_score ?? L.trust_score ?? 0,
+  } : null;
+
+  /* ---------- AI card (ConversationInsight + ConversationCoach) ---------- */
+  const ai = insight ? {
+    summary: insight.summary || L.ai_rolling_summary || '',
+    temperature: insight.temperature || 'warm',
+    language: insight.language || '—',
+    analysedAt: insight.last_analyzed_at ? fmtStamp(insight.last_analyzed_at) : (L.ai_processed_at ? fmtStamp(L.ai_processed_at) : 'recently'),
+    keyFacts: insight.key_facts || [],
+    outstanding: insight.outstanding_items || [],
+    coach: {
+      score: coach?.quality_score ?? 0,
+      bestLine: coach?.single_best_line_to_use || L.ai_coaching_for_agent || '—',
+      doneWell: coach?.things_done_well || [],
+      missed: coach?.missed_opportunities || [],
+      objections: coach?.objections_surfaced || L.ai_objections || [],
+      nextMove: coach?.next_move_recommended || (L.ai_next_best_action?.action || '—'),
+    },
+    suggestions: (insight.suggestions || []).map((s) => ({
+      type: s.type || 'followup',
+      title: s.title || 'Suggested action',
+      reason: s.reason || '',
+      time: s.suggested_datetime ? fmtStamp(s.suggested_datetime) : '',
+      message: s.suggested_message || '',
+    })),
+  } : null;
+
+  /* ---------- strike-now banner (uses real ai_strike_now) ---------- */
+  const signals = hasScores ? {
+    strikeNow: !!L.ai_strike_now,
+    strikeKicker: L.ai_strike_now ? 'Strike now' : 'Momentum',
+    strikeText: L.ai_strike_now
+      ? (L.ai_next_best_action?.reasoning || L.ai_momentum || 'High-priority moment — act now.')
+      : (L.ai_momentum || 'Keep the conversation moving.'),
+  } : null;
+
+  /* ---------- next best action ---------- */
+  const nextBest = L.ai_next_best_action ? {
+    action: L.ai_next_best_action.action || '—',
+    priority: L.ai_next_best_action.priority || 'medium',
+    reasoning: L.ai_next_best_action.reasoning || '',
+  } : null;
+
+  /* ---------- valuation (LandlordProperty AI valuation) ---------- */
+  const valuation = lp.ai_estimated_value_aed ? {
+    estValue: fmtAED(lp.ai_estimated_value_aed),
+    psf: lp.ai_estimated_price_sqft ? `AED ${Number(lp.ai_estimated_price_sqft).toLocaleString()}/sqft` : '',
+    confidence: lp.ai_valuation_confidence || 'medium',
+    basis: lp.ai_valuation_basis || '',
+    updatedAt: lp.ai_valuation_updated_at ? `Updated ${fmtStamp(lp.ai_valuation_updated_at)}` : '',
+  } : null;
+
+  /* ---------- connections (derived from real data presence) ---------- */
+  const hasPersonalMsg = messages.some((m) => m.channel === 'personal');
+  const connections = {
+    wa_business: 'Linked',
+    wa_personal: hasPersonalMsg ? 'Linked' : false,
+    aircall: aircall.length ? `${aircall.length} call${aircall.length > 1 ? 's' : ''}` : false,
+    twilio: callLogs.length ? `${callLogs.length} call${callLogs.length > 1 ? 's' : ''}` : false,
+    wa_call: aircall.some((c) => c.source === 'whatsapp') ? 'Voice call' : false,
+    drive: (L.form_a_contracts || []).some((f) => f.drive_file_id) ? `${(L.form_a_contracts || []).length} file(s)` : false,
+    docusign: (L.mandate_status && L.mandate_status !== 'none') ? L.mandate_status.replace(/_/g, ' ') : false,
+    dld: lp.title_deed_verified ? 'Title verified' : false,
+  };
+
+  /* ---------- outreach checklist ---------- */
+  const ocSteps = [
+    ['email_sent', 'Email'], ['whatsapp_sent', 'WhatsApp'], ['imessage_sent', 'iMessage'],
+    ['sms_sent', 'SMS'], ['called', 'Called'], ['qualification_logged', 'Qualification logged'],
+  ];
+  const oc = outreach || {};
+  const outreachVM = {
+    date: oc.outreach_date ? fmtStamp(oc.outreach_date) : 'Today',
+    stepsCompleted: oc.steps_completed ?? ocSteps.filter(([k]) => oc[k]).length,
+    dailyScore: oc.daily_score ?? 0,
+    steps: ocSteps.map(([k, label]) => ({
+      key: k,
+      label: k === 'called' && oc.call_method ? `Called · ${oc.call_method.replace(/_/g, ' ')}` : label,
+      done: !!oc[k],
+      at: oc[`${k}_at`] ? fmtStamp(oc[`${k}_at`]) : null,
+    })),
+  };
+
+  /* ---------- qualification (CallQualification) ---------- */
+  const qualification = qual ? {
+    motivation: qual.motivation || '—',
+    timeline: qual.timeline_urgency || '—',
+    priceExpectation: fmtAED(qual.price_expectation_aed),
+    priceVsValuation: qual.price_vs_valuation || '—',
+    mandateOpenness: qual.mandate_openness || '—',
+    tenancy: qual.tenancy_status || '—',
+    mortgage: qual.mortgage_status || '—',
+    decisionMaker: qual.is_decision_maker == null ? '—' : (qual.is_decision_maker ? 'Yes' : 'No'),
+    outcome: qual.call_outcome || '—',
+    rapportAfter: qual.rapport_after_call || '',
+    nextStep: qual.next_step || '—',
+    followupDate: qual.followup_date ? fmtStamp(qual.followup_date) : '—',
+  } : null;
+
+  /* ---------- battle card (from available competitive intel) ---------- */
+  const battle = (L.ai_competitive_intel || L.ai_objections?.length) ? {
+    painPoint: L.ai_momentum || '—',
+    motivators: L.buying_signals?.map((b) => String(b).replace(/_/g, ' ')) || [],
+    competitor: L.ai_competitive_intel || '—',
+    pitch: L.ai_coaching_for_agent || '—',
+    closes: (L.ai_objections || []).map((o) => String(o)),
+  } : null;
+
+  /* ---------- calls (Aircall + Twilio CallLog + scheduled Call) ---------- */
+  const calls = [
+    ...aircall.map((c) => ({
+      provider: c.source === 'whatsapp' ? 'whatsapp' : 'aircall',
+      title: c.title || (c.direction === 'inbound' ? 'Inbound call' : 'Outbound call'),
+      who: `${agentName} · ${fmtStamp(c.started_at)}`,
+      dur: c.duration ? `${Math.floor((c.duration) / 60)}m ${(c.duration) % 60}s` : '—',
+      dir: c.direction === 'inbound' ? 'in' : 'out',
+      status: c.status === 'missed' ? 'missed' : (c.status === 'voicemail' ? 'voicemail' : 'done'),
+      recording: !!c.recording_url,
+    })),
+    ...callLogs.map((c) => ({
+      provider: 'twilio',
+      title: c.summary || 'Twilio call',
+      who: `${agentName} · ${fmtStamp(c.created_date)}`,
+      dur: c.duration_seconds ? `${Math.floor(c.duration_seconds / 60)}m ${c.duration_seconds % 60}s` : '—',
+      dir: 'out',
+      status: c.status === 'no-answer' ? 'missed' : 'done',
+      recording: !!c.recording_url,
+    })),
+    ...scheduledCalls.map((c) => ({
+      provider: 'aircall',
+      title: c.title || 'Scheduled call',
+      who: `${agentName} · ${fmtStamp(c.scheduled_at)}`,
+      dur: '—',
+      dir: 'out',
+      status: c.status === 'done' ? 'done' : (c.status === 'cancelled' ? 'missed' : 'voicemail'),
+      recording: false,
+    })),
+  ];
+
+  /* ---------- documents ---------- */
+  const docs = [
+    { icon: '📄', label: 'Title Deed', provider: lp.dld_record_url ? 'DLD · linked' : 'Google Drive', status: lp.title_deed_verified ? 'received' : 'pending' },
+    { icon: '✍', label: 'Form A (listing agreement)', provider: 'DocuSign', status: L.mandate_status === 'form_a_signed' ? 'received' : (L.mandate_status === 'form_a_drafted' ? 'pending' : 'missing') },
+    { icon: '🪪', label: 'Passport / Emirates ID', provider: 'Google Drive', status: (L.passport_file_url || L.emirates_id_file_url) ? 'received' : 'pending' },
+    { icon: '🏢', label: 'NOC from developer', provider: 'Awaiting request', status: 'missing' },
+  ];
+
+  /* ---------- unified stream (Messages + Activities) ---------- */
+  const msgItems = messages.map((m) => {
+    const isVoice = m.is_voice_note || m.media_type === 'audio';
+    const isMedia = !isVoice && m.media_type && m.media_type !== 'none' && m.media_type !== 'text';
+    return {
+      t: 'msg',
+      dir: m.direction === 'outgoing' ? 'out' : 'in',
+      mtype: isVoice ? 'voice' : (isMedia ? 'media' : 'text'),
+      text: m.text || m.caption || '',
+      transcript: m.transcript || '',
+      transcriptLang: m.transcript_lang || '',
+      translation: m.translated_text || '',
+      mediaLabel: m.media_type ? `${m.media_type.toUpperCase()}${m.caption ? ' · ' + m.caption : ''}` : 'Attachment',
+      duration: m.duration || '',
+      wa: m.channel === 'personal' ? 'personal' : 'business',
+      time: fmtStamp(m.timestamp),
+      order: tsOf(m.timestamp),
+    };
+  });
+  const ACT_KIND = { note: 'note', task: 'task', follow_up: 'followup', appointment: 'appointment', meeting: 'appointment', viewing: 'appointment', call: 'call', stage_change: 'stage' };
+  const actItems = activities.map((a) => ({
+    t: 'act',
+    kind: ACT_KIND[a.type] || 'note',
+    title: a.title || (a.type ? String(a.type).replace(/_/g, ' ') : 'Activity'),
+    body: a.description || a.outcome || '',
+    time: fmtStamp(a.completed_at || a.scheduled_at || a.created_date),
+    order: tsOf(a.completed_at || a.scheduled_at || a.created_date),
+  }));
+  let stream = [...msgItems, ...actItems].sort((a, b) => a.order - b.order);
+  if (!stream.length) {
+    // keep the panel from looking broken if nothing has synced yet
+    stream = [{ t: 'act', kind: 'note', title: 'No conversation synced yet', body: 'Messages and activities for this landlord will appear here once WhatsApp / call data syncs.', time: '', order: 1 }];
+  }
+
+  /* ---------- assemble the view object (matches the component's expected shape) ---------- */
+  const mapped = {
+    id: L.id,
+    name: L.full_name_en || L.full_name || 'Unnamed landlord',
+    initials: initialsOf(L.full_name_en || L.full_name),
+    phone: L.phone || '—',
+    source: L.source || '—',
+    archetype: L.landlord_archetype || 'first_time_seller',
+    ownerSince: L.created_date ? new Date(L.created_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—',
+    agent: agentName,
+    agentEmail: L.assigned_agent_email || '',
+    stageIndex: Math.max(1, STAGE_KEYS.indexOf(L.stage) + 1 || 1),
+    temperature: (insight?.temperature) || 'warm',
+    rapport: L.rapport_level || 'cold',
+    redFlags: L.red_flags || [],
+    buyingSignals: L.buying_signals || [],
+    nextBest,
+    valuation,
+    outreach: outreachVM,
+    qualification,
+    unit,
+    agentNotes: L.notes_internal || '',
+    scores,
+    connections,
+    ai,
+    signals,
+    market: valuation ? { trend: '', trendUp: true, stats: [], comps: [] } : null,
+    battle,
+    calls,
+    offers: [],
+    docs,
+    stream,
+  };
+
+  return (
+    <LandlordDetail
+      landlords={[mapped]}
+      initialId={mapped.id}
+      onBack={() => navigate('/landlords')}
+      showCoaching
+      showSignals
+    />
+  );
 }
