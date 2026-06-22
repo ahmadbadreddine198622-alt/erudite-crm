@@ -54,6 +54,10 @@ Deno.serve(async (req) => {
     const landlordsWithFormA = allLandlords.filter(ll => ll.form_a_contracts && ll.form_a_contracts.length > 0);
     const formAWithLandlords = [];
     
+    // Debug logging
+    console.log('[getDashboardSummary] Total landlords:', allLandlords.length);
+    console.log('[getDashboardSummary] Landlords with Form A:', landlordsWithFormA.length);
+    
     // Extract all Form A contracts from landlords (most recent first)
     landlordsWithFormA.forEach(ll => {
       ll.form_a_contracts.forEach(contract => {
@@ -89,13 +93,24 @@ Deno.serve(async (req) => {
       return dateB - dateA;
     });
     const recentFormA = formAWithLandlords.slice(0, 5);
+    
+    console.log('[getDashboardSummary] Form A contracts found:', formAWithLandlords.length);
+    console.log('[getDashboardSummary] Sample:', formAWithLandlords.slice(0, 1));
 
-    // 5. Activity stats
-    const [totalCalls, totalWhatsApp, totalTasks] = await Promise.all([
-      base44.entities.AircallCall.list('', 1000).then(calls => calls.length).catch(() => 0),
-      base44.entities.WhatsAppMessage.list('', 1000).then(msgs => msgs.length).catch(() => 0),
-      base44.entities.LandlordTask.list('', 1000).then(tasks => tasks.length).catch(() => 0),
-    ]);
+    // 5. Activity stats - fetch sequentially to avoid rate limits
+    let totalCalls = 0, totalWhatsApp = 0, totalTasks = 0;
+    try {
+      const calls = await base44.entities.AircallCall.list('', 500);
+      totalCalls = calls.length;
+    } catch (e) { console.log('Calls fetch error:', e.message); }
+    try {
+      const msgs = await base44.entities.WhatsAppMessage.list('', 500);
+      totalWhatsApp = msgs.length;
+    } catch (e) { console.log('WhatsApp fetch error:', e.message); }
+    try {
+      const tasks = await base44.entities.LandlordTask.list('', 500);
+      totalTasks = tasks.length;
+    } catch (e) { console.log('Tasks fetch error:', e.message); }
 
     // 6. Build landlords with embedded qualification data
     const landlordsWithQualifications = allLandlords.slice(0, 10).map(ll => ({

@@ -209,6 +209,12 @@ export default function Dashboard() {
   const formAWithLandlords = dashboardData?.formAWithLandlords || [];
   const activityStats = dashboardData?.activityStats || {};
   const quickStats = dashboardData?.quickStats || {};
+  
+  // Debug logging
+  console.log('[Dashboard] Form A data received:', formAWithLandlords?.length, 'contracts');
+  if (formAWithLandlords?.length > 0) {
+    console.log('[Dashboard] First Form A:', formAWithLandlords[0]);
+  }
 
   const photoStageCounts = photoData?.stageCounts || {};
   const docsStatusCounts = docsData?.statusCounts || {};
