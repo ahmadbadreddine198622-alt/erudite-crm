@@ -88,9 +88,9 @@ class LandlordDetail extends React.Component {
     const prevCur = prevLandlords.find(l=>l.id===this.state.currentId);
     const nextCur = nextLandlords.find(l=>l.id===this.state.currentId);
     
-    // Force sync if array ref changed OR if current landlord's contact/AI fields changed
+    // Force sync if array ref changed OR if current landlord's contact/AI/valuation fields changed
     const needSync = prevProps.landlords !== this.props.landlords || 
-      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media));
+      (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation));
     
     if (needSync && nextCur) {
       this.setState({ landlords: nextLandlords, analyzeError:'' });
@@ -1236,10 +1236,14 @@ const STAGE_KEYS = [
 /* ---- small helpers ---- */
 const initialsOf = (name) => String(name || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
 const fmtAED = (n) => {
-  if (n == null || isNaN(n)) return '—';
-  if (n >= 1_000_000) return 'AED ' + (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
-  if (n >= 1_000) return 'AED ' + Math.round(n / 1_000) + 'K';
-  return 'AED ' + n;
+if (n == null || isNaN(n)) return '—';
+if (n >= 1_000_000) return 'AED ' + (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
+if (n >= 1_000) return 'AED ' + Math.round(n / 1_000) + 'K';
+return 'AED ' + n;
+};
+const fmtPSF = (n) => {
+if (n == null || isNaN(n)) return '';
+return 'AED ' + Math.round(n).toLocaleString() + '/sqft';
 };
 const fmtStamp = (ts) => {
   if (!ts) return '';
@@ -1288,6 +1292,11 @@ export default function LandlordDetailPage() {
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
+  // Fetch MarketTransaction comparables for the building/community
+  const { data: marketComps = [] } = useQ(['market_comps', prop?.building_name || prop?.location], () => safe(() => {
+    const query = prop?.building_name ? { project_name: prop.building_name } : prop?.location ? { project_name: prop.location } : {};
+    return base44.entities.MarketTransaction.filter(query, '-transaction_date', 10);
+  }), { enabled: !!(prop?.building_name || prop?.location) });
 
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
@@ -1483,6 +1492,24 @@ export default function LandlordDetailPage() {
     keysLocation: lp.keys_location || null,
     keyAccessInstructions: lp.key_access_instructions || null,
   };
+  // Map valuation fields from LandlordProperty
+  const valuation = lp.ai_estimated_value_aed ? {
+    estValue: fmtAED(lp.ai_estimated_value_aed),
+    psf: fmtPSF(lp.ai_estimated_price_sqft),
+    confLabel: lp.ai_valuation_confidence ? lp.ai_valuation_confidence.charAt(0).toUpperCase() + lp.ai_valuation_confidence.slice(1) + ' confidence' : '',
+    confStyle: { display:'inline-flex', alignItems:'center', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700,
+      color: lp.ai_valuation_confidence === 'high' ? '#34d399' : lp.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 62%)' : '#f87171',
+      background: lp.ai_valuation_confidence === 'high' ? 'rgba(16,185,129,0.14)' : lp.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 50% / 0.16)' : 'rgba(239,68,68,0.16)' },
+    basis: lp.ai_valuation_basis || '',
+    updatedAt: lp.ai_valuation_updated_at ? new Date(lp.ai_valuation_updated_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '',
+  } : null;
+  // Map comparables from MarketTransaction
+  const comps = marketComps.slice(0, 5).map(t => ({
+    ref: t.unit_number ? `Unit ${t.unit_number}` : '—',
+    note: `${t.bedrooms} · ${t.sale_status === 'ready' ? 'Ready' : 'Offplan'} · ${new Date(t.transaction_date).toLocaleDateString('en-GB', { month:'short', year:'2-digit' })}`,
+    price: fmtAED(t.price_aed),
+    psf: fmtPSF(t.price_per_sqft),
+  }));
 
   const mapped = {
     id: L.id,
@@ -1512,12 +1539,12 @@ export default function LandlordDetailPage() {
     mandateWinProb,
     // Legacy fields for backward compat
     nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
-    valuation: null,
+    valuation,
     qualification: null,
     scores: null,
     ai: null,
     signals: null,
-    market: null,
+    market: comps.length ? { comps, trendLabel: '', trendStyle: { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
     battle: null,
     calls,
     offers: [],
