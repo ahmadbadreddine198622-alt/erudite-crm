@@ -2,6 +2,7 @@ import React from 'react';
 import { Phone, Plus } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
+import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 
 function css(str) {
   const o = {};
@@ -49,6 +50,7 @@ function PhoneRow({ phone, label, landlord }) {
           </div>
         </TwilioCallDialog>
         <AircallButton phone={phone} iconOnly={true} />
+        <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly={true} />
         <WaButton phone={phone} />
       </div>
     </div>
