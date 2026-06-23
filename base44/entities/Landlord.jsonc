@@ -479,6 +479,76 @@
           }
         }
       }
+    },
+    "ai_model_used": {
+      "type": "string"
+    },
+    "last_orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_processing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed"
+      ]
+    },
+    "needs_human_review": {
+      "type": "boolean",
+      "default": false
+    },
+    "review_reason": {
+      "type": "string"
+    },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "entered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_days": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "ai_suggested_messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
