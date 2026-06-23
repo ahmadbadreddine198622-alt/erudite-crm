@@ -115,6 +115,7 @@ class LandlordDetail extends React.Component {
       analyzing: false,
       streamFilter: 'all',
       aiTasksCollapsed: true,
+      aiFollowupsCollapsed: true,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -1246,15 +1247,21 @@ class LandlordDetail extends React.Component {
                   const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
                   return (
                     <div style={css("margin-bottom:9px;")}>
-                      {chips.length > 0 && (
-                        <div style={css("margin-bottom:9px;")}>
-                          <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                            AI Suggested Follow-ups
-                            <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
-                          </span>
-                          <div style={css("display:flex; flex-direction:column; gap:5px; margin-top:6px; max-height:200px; overflow-y:auto;")}>
-                            {chips.map((chip, i) => {
+                      {chips.length > 0 && (() => {
+                        const collapsed = this.state.aiFollowupsCollapsed;
+                        return (
+                          <div style={css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
+                            <button onClick={() => this.setState(s => ({ aiFollowupsCollapsed: !s.aiFollowupsCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                              <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                                AI Suggested Follow-ups
+                                <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
+                              </span>
+                              <span style={css("font-size:12px; color:rgba(255,255,255,0.4);")}>{collapsed ? '▸' : '▾'}</span>
+                            </button>
+                            {!collapsed && (
+                              <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
+                                {chips.map((chip, i) => {
                               const isActive = followupAiSource === chip.template_key;
                               const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : chip.template_key;
                               const meta = `${chip.channel} · +${chip.when_offset_days}d · ${String(chip.suggested_hour).padStart(2,'0')}:00`;
@@ -1280,9 +1287,11 @@ class LandlordDetail extends React.Component {
                                 </button>
                               );
                             })}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
                         <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Channel
