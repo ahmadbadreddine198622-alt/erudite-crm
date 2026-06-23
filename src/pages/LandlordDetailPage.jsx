@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
@@ -89,6 +91,11 @@ class LandlordDetail extends React.Component {
       composerType: 'Note',
       composerText: '',
       composerTime: '',
+      // AI-draft note state — which AI field seeded the note (snake_case key) and the
+      // exact drafted string that was loaded, so we can detect edits before save.
+      noteAiSource: null,
+      noteAiDraft: null,
+      noteSaving: false,
       analyzing: false,
       streamFilter: 'all',
     };
@@ -123,21 +130,59 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'' }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
+  // Provenance (noteAiSource/noteAiDraft) follows the composer BODY, not the active type —
+  // so an AI draft retained across a Note→other→Note round-trip is still recorded as
+  // AI-originated rather than silently downgraded to from-scratch.
   setComposerType = (t)=> this.setState({ composerType:t });
-  onComposerInput = (e)=> this.setState({ composerText:e.target.value });
+  // Emptying the box after an AI draft was loaded means the agent is starting over — drop the
+  // AI provenance so a freshly typed note is correctly recorded as from-scratch.
+  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (s.noteAiSource && v==='') ? { composerText:v, noteAiSource:null, noteAiDraft:null } : { composerText:v }); };
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
   fillDraft = (action)=>{
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time });
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null });
   };
+
+  // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
+  // landlord has no content for that field yet). `key` is the exact Landlord field name
+  // persisted to LandlordNote.ai_source. ai_next_best_action is an OBJECT — type-guarded
+  // here and read as reasoning, falling back to action; never rendered directly.
+  noteDraftSources(){
+    const L = this.cur();
+    if(!L) return [];
+    // Trim at source so the drafted text, the saved (trimmed) body, and the
+    // was_edited_after_draft comparison string are all consistent — otherwise a draft
+    // with trailing whitespace (seen in live ai_next_best_action.reasoning) would falsely
+    // read as edited.
+    const str = (v)=> (typeof v === 'string' && v.trim()) ? v.trim() : '';
+    const nba = (L.aiNextBestAction && typeof L.aiNextBestAction === 'object') ? L.aiNextBestAction : null;
+    const nextActionText = nba ? (str(nba.reasoning) || str(nba.action)) : '';
+    return [
+      { key:'ai_rolling_summary',    label:'Summary',     text: str(L.aiRollingSummary), emptyMsg:'No summary yet — run Analyse' },
+      { key:'ai_coaching_for_agent', label:'Coaching',    text: str(L.aiCoaching),        emptyMsg:'No coaching yet — run Analyse' },
+      { key:'ai_next_best_action',   label:'Next Action', text: nextActionText,           emptyMsg:'No next action yet — run Analyse' },
+    ];
+  }
+
+  // Load an AI draft into the composer. Records the source key + the exact drafted string
+  // so was_edited_after_draft can be computed at save time.
+  pickNoteDraft = (src)=>{
+    if(!src || !src.text) return; // guard: never draft from an empty AI field
+    this.setState({ composerText: src.text, noteAiSource: src.key, noteAiDraft: src.text });
+  };
+
+  // Reset to a from-scratch note (clears the AI draft + selection).
+  clearNoteDraft = ()=> this.setState({ composerText:'', noteAiSource:null, noteAiDraft:null });
 
   onSend = ()=>{
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
+    // Notes persist to the LandlordNote entity; other types keep the in-memory stream.
+    if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -146,6 +191,48 @@ class LandlordDetail extends React.Component {
       landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
       composerText:'', composerTime:''
     }), ()=>this.scrollBottom());
+  };
+
+  // Persist a Note to the LandlordNote entity. From-scratch is the baseline path and never
+  // depends on AI content existing; AI provenance is set only when a source was actually used.
+  saveNote = async (body)=>{
+    const L = this.cur();
+    // Synchronous re-entry guard: this.state.noteSaving lags a same-tick double-click
+    // (setState is async), so use an instance flag to prevent a duplicate LandlordNote write.
+    if(!L || this._noteSaving) return;
+    this._noteSaving = true;
+    const { noteAiSource, noteAiDraft } = this.state;
+    const createdFromAi = !!noteAiSource;
+    const wasEdited = createdFromAi ? (body !== (noteAiDraft || '')) : false;
+
+    this.setState({ noteSaving:true });
+    let user = this.props.currentUser;
+    if(!user){ try { user = await base44.auth.me(); } catch(_) { user = null; } }
+
+    try {
+      await base44.entities.LandlordNote.create({
+        landlord_id: L.id,
+        author_email: user?.email || null,
+        author_name: user?.full_name || user?.email?.split('@')[0] || null,
+        body,
+        created_from_ai: createdFromAi,
+        ai_source: noteAiSource || null,
+        was_edited_after_draft: wasEdited,
+        pinned: false,
+      });
+      toast.success(createdFromAi ? 'AI-drafted note saved' : 'Note saved');
+      const order = Date.now();
+      const item = { t:'act', kind:'note', title:'Note' + (createdFromAi ? ' · AI' : ''), body, time:'Just now', order };
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+        composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, noteSaving:false,
+      }), ()=>this.scrollBottom());
+    } catch(e){
+      toast.error('Failed to save note: ' + (e?.message || 'unknown error'));
+      this.setState({ noteSaving:false });
+    } finally {
+      this._noteSaving = false;
+    }
   };
 
   onAnalyse = async ()=>{
@@ -752,9 +839,56 @@ class LandlordDetail extends React.Component {
                     Smart Calendar
                   </button>
                 </div>
+
+                {/* AI draft control — only for Notes. Pre-fills the editable body from one of
+                    three AI sources. Empty sources are disabled (no empty notes). */}
+                {this.state.composerType === 'Note' && (()=>{
+                  const noteSources = this.noteDraftSources();
+                  const noteAiSource = this.state.noteAiSource;
+                  const noneAvailable = noteSources.every(s => !s.text);
+                  return (
+                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:9px; flex-wrap:wrap;")}>
+                      <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                        AI draft
+                      </span>
+                      {noteSources.map((src)=>{
+                        const available = !!src.text;
+                        const active = noteAiSource === src.key;
+                        return (
+                          <button
+                            key={src.key}
+                            onClick={()=> available && this.pickNoteDraft(src)}
+                            disabled={!available}
+                            title={available ? `Draft this note from ${src.label}` : src.emptyMsg}
+                            style={css(
+                              "display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:600; font-family:'Inter',sans-serif; "+
+                              (available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
+                              "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
+                              "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
+                              "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
+                            )}
+                          >
+                            {src.label}{!available && <span style={css("font-size:9px; font-weight:600; opacity:0.85;")}>· run Analyse</span>}
+                          </button>
+                        );
+                      })}
+                      {noteAiSource && (
+                        <button onClick={this.clearNoteDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
+                      )}
+                      {noteAiSource && (
+                        <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>Drafted from AI · edits tracked</span>
+                      )}
+                      {!noteAiSource && noneAvailable && (
+                        <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI draft yet — run Analyse</span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
                   <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:42px; max-height:120px; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
-                  <button onClick={this.onSend} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center;")}>➤</button>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+(this.state.noteSaving?0.6:1)+";")}>{this.state.noteSaving ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
@@ -1191,6 +1325,7 @@ function temperatureFromRapport(rapport) {
 export default function LandlordDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useCurrentUser();
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);
   const [listingManagerDialogOpen, setListingManagerDialogOpen] = useState(false);
@@ -1659,6 +1794,7 @@ export default function LandlordDetailPage() {
         toggleOwnerDrawer={toggleOwnerDrawer}
         onNavigate={navigate}
         formAContracts={formAContracts}
+        currentUser={currentUser}
         />
       <FormAUploadDialog
         open={formADialogOpen}
