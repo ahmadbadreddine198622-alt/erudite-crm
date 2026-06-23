@@ -19,6 +19,20 @@
     "done": {
       "type": "boolean",
       "default": false
+    },
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "true when the title was pre-filled from an AI source, even if later edited"
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Which AI field seeded the task, e.g. ai_next_best_action"
+    },
+    "was_edited_after_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "true if the user changed the AI draft before saving"
     }
   },
   "required": [
