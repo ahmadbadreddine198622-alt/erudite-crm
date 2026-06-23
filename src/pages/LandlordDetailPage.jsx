@@ -24,6 +24,7 @@ import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
+import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1294,10 +1295,13 @@ class LandlordDetail extends React.Component {
                 })()}
 
                 {this.state.composerType === 'Chat' && (
-                  <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
-                    <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
-                    WhatsApp
-                  </div>
+                  <React.Fragment>
+                    <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text })} />
+                    <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
+                      <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
+                      WhatsApp
+                    </div>
+                  </React.Fragment>
                 )}
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
@@ -2141,6 +2145,7 @@ export default function LandlordDetailPage() {
   photographerEmail: (landlordPhotographyTasks || []).map(t => t && t.assigned_photographer_email).find(Boolean) || '',
   aiSuggestedTasks: Array.isArray(L.ai_suggested_tasks) ? L.ai_suggested_tasks : [],
   aiSuggestedFollowups: Array.isArray(L.ai_suggested_followups) ? L.ai_suggested_followups : [],
+  aiSuggestedMessages: Array.isArray(L.ai_suggested_messages) ? L.ai_suggested_messages : [],
   rapport,
   temperature: temperatureFromRapport(rapport),
   stageIndex: stageIdx >= 1 ? stageIdx : 1,

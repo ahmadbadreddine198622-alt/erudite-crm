@@ -165,18 +165,14 @@ Deno.serve(async (req) => {
   const delayMs = body.delay_ms || DELAY_MS_DEFAULT;
   const skip = body.skip || 0;
 
-  // Fetch landlords where ai_processed_at is null (or failed previously)
-  // Note: Base44 filter doesn't support $or, so we fetch all and filter client-side
-  const allLandlords = await svc.entities.Landlord.filter({}, 'created_date', batchSize * 3, skip);
-  console.log(`Fetched ${allLandlords?.length || 0} landlords from skip=${skip}`);
-  const landlords = (allLandlords || []).filter(l => {
-    const isUnprocessed = !l.ai_processed_at || l.ai_processing_status === 'failed';
-    if (isUnprocessed) {
-      console.log(`Landlord ${l.id} (${l.full_name_en}) is unprocessed: ai_processed_at=${l.ai_processed_at}, status=${l.ai_processing_status}`);
-    }
-    return isUnprocessed;
-  }).slice(0, batchSize);
-  console.log(`Filtered to ${landlords.length} unprocessed landlords`);
+  // Fetch ALL landlords, then filter client-side for unprocessed ones.
+  // (Base44 filter doesn't support $or, and a shallow paged window can sit entirely on
+  // already-processed records — falsely reporting "complete" while unprocessed records remain
+  // deeper in the list. Scanning the full list is the only reliable way to find them all.)
+  const allLandlords = await svc.entities.Landlord.list('-created_date', 5000);
+  const allUnprocessed = (allLandlords || []).filter(l => !l.ai_processed_at || l.ai_processing_status === 'failed');
+  console.log(`Found ${allUnprocessed.length} unprocessed landlords total`);
+  const landlords = allUnprocessed.slice(0, batchSize);
 
   if (!landlords || landlords.length === 0) {
     return Response.json({ 
@@ -185,6 +181,7 @@ Deno.serve(async (req) => {
       failures: [],
       has_more: false,
       next_skip: null,
+      remaining: 0,
       message: 'Backfill complete - no remaining unprocessed landlords'
     });
   }
@@ -253,21 +250,21 @@ Deno.serve(async (req) => {
     }
   }
 
-  const hasMore = landlords.length === batchSize;
-  const nextSkip = hasMore ? skip + batchSize : null;
+  const remaining = Math.max(0, allUnprocessed.length - results.processed);
+  const hasMore = remaining > 0;
 
   return Response.json({
     status: 'in_progress',
     batch_info: {
       batch_size: batchSize,
-      skip,
       fetched: landlords.length,
       delay_ms: delayMs
     },
     processed: results.processed,
     failures: results.failures.slice(0, 20),
     has_more: hasMore,
-    next_skip: nextSkip,
-    summary: `Processed ${results.processed}/${landlords.length} landlords in this batch. ${results.failures.length} failures.`
+    remaining,
+    next_skip: null,
+    summary: `Processed ${results.processed}/${landlords.length} landlords in this batch. ${remaining} remaining. ${results.failures.length} failures.`
   });
 });
