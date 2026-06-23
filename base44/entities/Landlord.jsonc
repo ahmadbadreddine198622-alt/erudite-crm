@@ -365,6 +365,35 @@
         }
       }
     },
+    "ai_suggested_followups": {
+      "type": "array",
+      "description": "AI-ranked shortlist of suggested follow-ups (3-5), most-important first. Written by the orchestrator; each item references a FollowupTemplate by template_key.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template_key": {
+            "type": "string"
+          },
+          "when_offset_days": {
+            "type": "number"
+          },
+          "suggested_hour": {
+            "type": "number"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "call",
+              "email"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ai_objections": {
       "type": "array",
       "items": {
