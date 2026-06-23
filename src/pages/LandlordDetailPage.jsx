@@ -19,7 +19,7 @@ import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import MandatePanel from '@/components/landlord/MandatePanel';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
-import CallSuite from '@/components/landlord/CallSuite';
+import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
@@ -1365,8 +1365,6 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              <CallSuite landlord={L} phone={L.phone} />
-
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
                 assignedAgentEmail={L.assigned_agent_email}
@@ -1422,24 +1420,15 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* Owner Information - Legacy grid (kept for class component compat) */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Owner Information</div>
-                <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
-                  {L.phone && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Phone</div>
-                      <a href={`tel:${L.phone}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); text-decoration:none;")}>{L.phone}</a>
-                    </div>
-                  )}
-                  {L.email && (
-                    <div style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                      <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
-                      <a href={`mailto:${L.email}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis; display:block; text-decoration:none;")}>{L.email}</a>
-                    </div>
-                  )}
+              <PhoneNumbersPanel landlord={L} />
+
+              {/* Email — compact card */}
+              {L.email && (
+                <div style={css("margin-top:8px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:11px 15px;")}>
+                  <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
+                  <a href={`mailto:${L.email}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis; display:block; text-decoration:none;")}>{L.email}</a>
                 </div>
-              </div>
+              )}
 
               <MediaPanel media={vm.media} />
 
