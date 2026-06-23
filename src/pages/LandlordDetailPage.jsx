@@ -503,7 +503,7 @@ class LandlordDetail extends React.Component {
             background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)',
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
-          bubbleStyle:{ maxWidth:'82%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
+          bubbleStyle:{ maxWidth:'96%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
           senderStyle:{ fontSize:'10px', fontWeight:700, letterSpacing:'0.03em', textTransform:'uppercase', color: out?'hsl(38 92% 58%)':'rgba(255,255,255,0.45)' },
           timeStyle:{ fontSize:'9.5px', color:'rgba(255,255,255,0.35)', marginTop:'6px', textAlign: out?'right':'left' },
         };
@@ -766,19 +766,19 @@ class LandlordDetail extends React.Component {
                   <button onClick={()=>this.setStreamFilter('personal')} style={vm.personalPillStyle}>
                     <span style={vm.personalDotStyle}></span> Personal
                   </button>
+                  <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
+                    <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
+                  </button>
                 </div>
               </div>
 
               {/* pinned AI card */}
               <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("display:flex; align-items:center; justify-content:space-between; padding:12px 15px; border-bottom:1px solid hsl(38 92% 50% / 0.16);")}>
+                <div style={css("display:flex; align-items:center; padding:12px 15px; border-bottom:1px solid hsl(38 92% 50% / 0.16);")}>
                   <span style={css("display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%);")}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 60%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                     AI Conversation Intelligence
                   </span>
-                  <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
-                    <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
-                  </button>
                 </div>
                 {vm.analyzeError && (
                   <div style={css("padding:10px 15px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border-top:1px solid rgba(239,68,68,0.15);")}>
