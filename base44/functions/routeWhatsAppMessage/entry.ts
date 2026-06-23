@@ -179,6 +179,28 @@ Deno.serve(async (req) => {
         console.warn('update existing entity failed', err);
       }
 
+      // ── Propagate assigned_agent_email to conversation + messages (RLS fix) ──
+      // The webhook creates conversations with no assigned_agent_email, so
+      // non-admin users can't see them. Fix: stamp the entity's agent onto
+      // the conversation so RLS allows the assigned agent to read it.
+      const agentEmail = e.assigned_agent_email || e.listing_manager_email || null;
+      if (conversation_id && agentEmail) {
+        try {
+          await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {
+            assigned_agent_email: agentEmail,
+            lead_id: entityType === 'lead' ? e.id : undefined,
+          });
+          // Also stamp any unassigned WhatsAppMessage records in this conversation
+          const msgs = await base44.asServiceRole.entities.WhatsAppMessage.filter({ conversation_id });
+          for (const m of (msgs || [])) {
+            if (!m.assigned_agent_email) {
+              await base44.asServiceRole.entities.WhatsAppMessage.update(m.id, { assigned_agent_email: agentEmail }).catch(() => {});
+            }
+          }
+          console.log(`[routeWhatsAppMessage] Propagated assigned_agent_email=${agentEmail} to conversation ${conversation_id}`);
+        } catch (err) { console.warn('conversation agent propagation failed', err); }
+      }
+
       try {
         await base44.asServiceRole.entities.Activity.create({
           lead_id: e.id,

@@ -194,6 +194,7 @@ Deno.serve(async (req) => {
         phone_number: phoneE164,
         landlord_id: landlord_id || null,
         lead_id: null,
+        assigned_agent_email: landlord?.assigned_agent_email || landlord?.listing_manager_email || null,
         status: 'open',
         channel,
         first_message_at: now,
@@ -226,7 +227,7 @@ Deno.serve(async (req) => {
         to_number: '+' + number,
         channel: effectiveChannel,
         media_type: 'none',
-        assigned_agent_email: conversation?.assigned_agent_email || null,
+        assigned_agent_email: conversation?.assigned_agent_email || landlord?.assigned_agent_email || landlord?.listing_manager_email || null,
       });
     } else {
       message = existingWAMsg[0];
