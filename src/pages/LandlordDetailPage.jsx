@@ -104,6 +104,14 @@ class LandlordDetail extends React.Component {
       taskDueDate: '',
       taskAssignee: '',
       taskSaving: false,
+      // AI-draft follow-up state — mirrors the task state. composerText holds the notes/reason;
+      // followupDraft is its snapshot for edit-detection. channel/date/hour are editable fields.
+      followupAiSource: null,
+      followupDraft: null,
+      followupChannel: 'whatsapp',
+      followupDate: '',
+      followupHour: 10,
+      followupSaving: false,
       analyzing: false,
       streamFilter: 'all',
       aiTasksCollapsed: true,
@@ -139,7 +147,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
   // Provenance (noteAiSource/noteAiDraft) follows the composer BODY, not the active type —
@@ -148,7 +156,7 @@ class LandlordDetail extends React.Component {
   setComposerType = (t)=> this.setState({ composerType:t });
   // Emptying the box after an AI draft was loaded means the agent is starting over — drop the
   // AI provenance (note OR task) so a freshly typed entry is correctly recorded as from-scratch.
-  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null } : { composerText:v }); };
+  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null } : { composerText:v }); };
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
@@ -156,7 +164,7 @@ class LandlordDetail extends React.Component {
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     // A suggested-action chip is NOT the Task "Next Action" AI-draft source, so clear task
     // provenance — a task sent from here is recorded as from-scratch.
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' });
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
   };
 
   // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
@@ -292,11 +300,67 @@ class LandlordDetail extends React.Component {
   // Reset to a from-scratch task (clears the drafted title, provenance, due_date, assignee).
   clearTaskDraft = ()=> this.setState({ composerText:'', taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' });
 
+  // Resolve landlord.ai_suggested_followups against the loaded FollowupTemplate library. Each chip
+  // carries the matched template + the suggestion's reason/timing/channel (falling back to the
+  // template's defaults). Items whose template_key has no active template are dropped silently.
+  suggestedFollowupChips(){
+    const L = this.cur();
+    if(!L) return [];
+    const templates = Array.isArray(this.props.followupTemplates) ? this.props.followupTemplates : [];
+    if(!templates.length) return [];
+    const byKey = {};
+    templates.forEach(t => { if(t && typeof t.template_key === 'string') byKey[t.template_key] = t; });
+    const items = Array.isArray(L.aiSuggestedFollowups) ? L.aiSuggestedFollowups : [];
+    return items
+      .filter(it => it && typeof it === 'object' && typeof it.template_key === 'string')
+      .map(it => {
+        const tpl = byKey[it.template_key];
+        if(!tpl) return null;
+        const offset = typeof it.when_offset_days === 'number' ? it.when_offset_days
+          : (typeof tpl.default_offset_days === 'number' ? tpl.default_offset_days : 1);
+        const hour = typeof it.suggested_hour === 'number' ? it.suggested_hour
+          : (typeof tpl.default_hour === 'number' ? tpl.default_hour : 10);
+        const channel = ['whatsapp','call','email'].includes(it.channel) ? it.channel
+          : (['whatsapp','call','email'].includes(tpl.default_channel) ? tpl.default_channel : 'whatsapp');
+        return {
+          template_key: it.template_key,
+          reason: typeof it.reason === 'string' ? it.reason : '',
+          when_offset_days: Math.max(0, Math.round(offset)),
+          suggested_hour: Math.min(23, Math.max(0, Math.round(hour))),
+          channel,
+          template: tpl,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  // Pre-fill the follow-up composer from a suggestion chip (no auto-save — agent reviews then
+  // sends). ai_source records the template_key; the reason snapshot drives edit-detection.
+  pickSuggestedFollowup = (chip)=>{
+    if(!chip || !chip.template) return;
+    const reason = (typeof chip.reason === 'string' && chip.reason.trim())
+      ? chip.reason.trim()
+      : (typeof chip.template.label === 'string' ? chip.template.label.trim() : '');
+    this.setState({
+      composerType: 'Follow-up',
+      composerText: reason,
+      followupDraft: reason,
+      followupAiSource: chip.template_key,
+      followupChannel: chip.channel || 'whatsapp',
+      followupDate: this.dueDateInDays(chip.when_offset_days),
+      followupHour: chip.suggested_hour,
+    });
+  };
+
+  // Reset to a from-scratch follow-up.
+  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
+
   onSend = ()=>{
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
     // Notes and Tasks persist to their entities; other types keep the in-memory stream.
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
     if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
+    if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -385,6 +449,56 @@ class LandlordDetail extends React.Component {
       this.setState({ taskSaving:false });
     } finally {
       this._taskSaving = false;
+    }
+  };
+
+  // Persist a Follow-up as a LandlordAppointment (no Google Calendar — that's Phase 3).
+  // datetime is built in Asia/Dubai (fixed UTC+4, no DST). Edit-detection tracks the AI-authored
+  // notes/reason only — changing channel/date/hour does NOT count as editing the draft.
+  saveFollowup = async (notes)=>{
+    const L = this.cur();
+    // Synchronous re-entry guard (this.state.followupSaving lags a same-tick double-click).
+    if(!L || this._followupSaving) return;
+    this._followupSaving = true;
+    const { followupAiSource, followupDraft, followupChannel } = this.state;
+    const createdFromAi = !!followupAiSource;
+    const wasEdited = createdFromAi ? (notes !== (followupDraft || '')) : false;
+    const date = this.state.followupDate || this.dueDateInDays(1);
+    const hourNum = Math.min(23, Math.max(0, parseInt(this.state.followupHour, 10) || 0));
+    const hh = String(hourNum).padStart(2, '0');
+    const datetime = `${date}T${hh}:00:00+04:00`; // Asia/Dubai is a fixed +04:00 offset
+    const channel = ['whatsapp','call','email'].includes(followupChannel) ? followupChannel : 'whatsapp';
+    const apptType = channel === 'call' ? 'call' : 'meeting'; // legacy required field; channel carries the real axis
+
+    this.setState({ followupSaving:true });
+    let user = this.props.currentUser;
+    if(!user){ try { user = await base44.auth.me(); } catch(_) { user = null; } }
+
+    try {
+      await base44.entities.LandlordAppointment.create({
+        landlord_id: L.id,
+        agent_email: user?.email || L.agentEmail || null,
+        datetime,
+        type: apptType,
+        channel,
+        notes,
+        status: 'scheduled',
+        created_from_ai: createdFromAi,
+        ai_source: followupAiSource || null,
+        was_edited_after_draft: wasEdited,
+      });
+      toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
+      const order = Date.now();
+      const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${hh}:00`, body:notes, time:'Just now', order };
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+        composerText:'', composerTime:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false,
+      }), ()=>this.scrollBottom());
+    } catch(e){
+      toast.error('Failed to schedule follow-up: ' + (e?.message || 'unknown error'));
+      this.setState({ followupSaving:false });
+    } finally {
+      this._followupSaving = false;
     }
   };
 
@@ -1123,9 +1237,86 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
 
+                {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
+                    Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
+                    (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
+                {this.state.composerType === 'Follow-up' && (()=>{
+                  const chips = this.suggestedFollowupChips();
+                  const followupAiSource = this.state.followupAiSource;
+                  const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
+                  return (
+                    <div style={css("margin-bottom:9px;")}>
+                      {chips.length > 0 && (
+                        <div style={css("margin-bottom:9px;")}>
+                          <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                            AI Suggested Follow-ups
+                            <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
+                          </span>
+                          <div style={css("display:flex; flex-direction:column; gap:5px; margin-top:6px; max-height:200px; overflow-y:auto;")}>
+                            {chips.map((chip, i) => {
+                              const isActive = followupAiSource === chip.template_key;
+                              const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : chip.template_key;
+                              const meta = `${chip.channel} · +${chip.when_offset_days}d · ${String(chip.suggested_hour).padStart(2,'0')}:00`;
+                              return (
+                                <button
+                                  key={chip.template_key + '-' + i}
+                                  onClick={() => this.pickSuggestedFollowup(chip)}
+                                  title={chip.reason || label}
+                                  style={css(
+                                    "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
+                                    "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
+                                    "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
+                                  )}
+                                >
+                                  <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
+                                    <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
+                                    <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
+                                    <span style={css("flex:none; margin-left:auto; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.45);")}>{meta}</span>
+                                  </span>
+                                  {chip.reason && (
+                                    <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                          Channel
+                          <select value={this.state.followupChannel} onChange={(e)=>this.setState({ followupChannel:e.target.value })} style={fieldStyle}>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="call">Call</option>
+                            <option value="email">Email</option>
+                          </select>
+                        </label>
+                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                          Date
+                          <input type="date" value={this.state.followupDate} onChange={(e)=>this.setState({ followupDate:e.target.value })} style={fieldStyle} />
+                        </label>
+                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                          Hour
+                          <input type="number" min="0" max="23" value={this.state.followupHour} onChange={(e)=>this.setState({ followupHour:e.target.value })} style={{...fieldStyle, width:'58px'}} />
+                        </label>
+                        {followupAiSource && (
+                          <button onClick={this.clearFollowupDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
+                        )}
+                        {followupAiSource && (
+                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>Drafted from AI · edits tracked</span>
+                        )}
+                        {!followupAiSource && chips.length === 0 && (
+                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI follow-ups yet — run Analyse</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
                   <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:56px; max-height:160px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving) ? '…' : '➤'}</button>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving) ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
@@ -1583,6 +1774,8 @@ export default function LandlordDetailPage() {
   const { data: docItems = [] } = useQ(['landlord_docs', id], () => safe(() => base44.entities.DocumentChecklistItem.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
   // TaskTemplate library (active only) — powers the AI suggested-tasks shortlist; loaded once.
   const { data: taskTemplates = [] } = useQ(['task_templates'], () => safe(() => base44.entities.TaskTemplate.filter({ is_active: true })));
+  // FollowupTemplate library (active only) — powers the AI suggested-follow-ups shortlist; loaded once.
+  const { data: followupTemplates = [] } = useQ(['followup_templates'], () => safe(() => base44.entities.FollowupTemplate.filter({ is_active: true })));
   // Photography tasks for this landlord — used to resolve a photographer email for
   // routes_to=photographer suggestions (first task with an assigned photographer; blank if none).
   const { data: landlordPhotographyTasks = [] } = useQ(['landlord_photography_tasks', id], () => safe(() => base44.entities.PhotographyTask.filter({ landlord_id: id }, '-created_date', 5)), { enabled: !!id });
@@ -1971,6 +2164,7 @@ export default function LandlordDetailPage() {
   listingManagerEmail: L.listing_manager_email || '',
   photographerEmail: (landlordPhotographyTasks || []).map(t => t && t.assigned_photographer_email).find(Boolean) || '',
   aiSuggestedTasks: Array.isArray(L.ai_suggested_tasks) ? L.ai_suggested_tasks : [],
+  aiSuggestedFollowups: Array.isArray(L.ai_suggested_followups) ? L.ai_suggested_followups : [],
   rapport,
   temperature: temperatureFromRapport(rapport),
   stageIndex: stageIdx >= 1 ? stageIdx : 1,
@@ -2041,6 +2235,7 @@ export default function LandlordDetailPage() {
         formAContracts={formAContracts}
         currentUser={currentUser}
         taskTemplates={taskTemplates}
+        followupTemplates={followupTemplates}
         />
       <FormAUploadDialog
         open={formADialogOpen}

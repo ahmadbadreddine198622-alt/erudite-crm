@@ -367,7 +367,7 @@
     },
     "ai_suggested_followups": {
       "type": "array",
-      "description": "AI-ranked shortlist of suggested follow-ups (3-5), most-important first. Written by the orchestrator; each item references a FollowupTemplate by template_key.",
+      "description": "AI-suggested time-based follow-ups (2-4). Written by landlordOrchestrator; each item references a FollowupTemplate by template_key.",
       "items": {
         "type": "object",
         "properties": {

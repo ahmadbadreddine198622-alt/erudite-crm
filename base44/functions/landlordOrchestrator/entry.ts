@@ -43,6 +43,11 @@ const TASK_TEMPLATE_KEYS = [
   'switch_channel', 'map_stakeholder', 'verify_permit', 'publish_listing'
 ];
 
+const FOLLOWUP_TEMPLATE_KEYS = [
+  'post_call_recap', 'silence_nudge_24h', 'silence_nudge_72h', 'docs_reminder',
+  'price_check_in', 'post_viewing_followup', 'weekly_touch', 'mandate_renewal_warn'
+];
+
 const ORCHESTRATOR_SCHEMA = {
   type: 'object',
   properties: {
@@ -88,6 +93,27 @@ const ORCHESTRATOR_SCHEMA = {
           }
         },
         required: ['template_key', 'reason']
+      }
+    },
+    suggested_followups: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 4,
+      description: '2-4 recommended time-based follow-ups for this landlord.',
+      items: {
+        type: 'object',
+        properties: {
+          template_key: {
+            type: 'string',
+            enum: FOLLOWUP_TEMPLATE_KEYS,
+            description: 'Which FollowupTemplate this suggestion maps to. MUST be one of the enumerated keys.'
+          },
+          when_offset_days: { type: 'number', description: 'Days from today for the follow-up (0 = today).' },
+          suggested_hour: { type: 'number', description: 'Hour of day 0-23 (Asia/Dubai) for the follow-up.' },
+          channel: { type: 'string', enum: ['whatsapp', 'call', 'email'], description: 'Channel for the follow-up.' },
+          reason: { type: 'string', description: 'One short sentence: why this follow-up matters for THIS landlord.' }
+        },
+        required: ['template_key', 'when_offset_days', 'channel', 'reason']
       }
     },
     ai_momentum: { type: 'string', enum: ['accelerating', 'steady', 'slowing', 'stalled'] },
@@ -171,6 +197,7 @@ You wake up hourly to assess a single landlord and decide:
 9. STRIKE_NOW: true if momentum=accelerating AND urgency>70 AND mandate_win_probability>0.4
 10. ESCALATION: needs_human_review = true if value >10M AED with red flag, OR competing_brokers_count >= 3, OR stuck >14d in same stage.
 11. SUGGESTED TASKS: Recommend 3-5 concrete next tasks for this landlord, ranked most-important first. Each task MUST reference exactly one of these template keys: chase_document, clarify_price, reduce_price, send_comps, book_call, book_viewing, schedule_photographer, get_mandate_signed, follow_up_silence, switch_channel, map_stakeholder, verify_permit, publish_listing. Give a one-sentence reason per task, specific to THIS landlord. Choose keys that fit the current stage, document status, pricing gap, silence/responsiveness, and signals. Do NOT invent keys outside this list.
+12. SUGGESTED FOLLOW-UPS: Recommend 2-4 time-based follow-ups for this landlord. Each MUST reference exactly one of these FollowupTemplate keys: post_call_recap, silence_nudge_24h, silence_nudge_72h, docs_reminder, price_check_in, post_viewing_followup, weekly_touch, mandate_renewal_warn. For each, give: when_offset_days (days from today, 0=today), suggested_hour (0-23, Asia/Dubai business hours ~9-19), channel (whatsapp | call | email), and a one-sentence reason specific to THIS landlord. Pace them sensibly (e.g. a 24h nudge then a 72h nudge). Do NOT invent keys outside this list.
 
 Rules:
 - STRICT JSON output. No prose.
@@ -244,6 +271,20 @@ Analyze and emit orchestrator JSON.`;
             .slice(0, 5)
             .map(t => ({ template_key: t.template_key, reason: typeof t.reason === 'string' ? t.reason : '' }))
         : [],
+      // Validate AI-suggested follow-ups: drop unknown keys, clamp hour to 0-23, default a missing
+      // channel to whatsapp, cap at 4, default to [] so a model miss is harmless.
+      suggested_followups: Array.isArray(result.suggested_followups)
+        ? result.suggested_followups
+            .filter(f => f && typeof f === 'object' && FOLLOWUP_TEMPLATE_KEYS.includes(f.template_key))
+            .slice(0, 4)
+            .map(f => ({
+              template_key: f.template_key,
+              when_offset_days: (typeof f.when_offset_days === 'number' && isFinite(f.when_offset_days)) ? Math.max(0, Math.round(f.when_offset_days)) : 1,
+              suggested_hour: (typeof f.suggested_hour === 'number' && isFinite(f.suggested_hour)) ? Math.min(23, Math.max(0, Math.round(f.suggested_hour))) : 10,
+              channel: ['whatsapp', 'call', 'email'].includes(f.channel) ? f.channel : 'whatsapp',
+              reason: typeof f.reason === 'string' ? f.reason : '',
+            }))
+        : [],
     };
 
     const update = {
@@ -260,6 +301,7 @@ Analyze and emit orchestrator JSON.`;
       ai_coaching_for_agent: normalizedResult.ai_coaching_for_agent,
       ai_next_best_action: normalizedResult.ai_next_best_action,
       ai_suggested_tasks: normalizedResult.suggested_tasks,
+      ai_suggested_followups: normalizedResult.suggested_followups,
       ai_momentum: normalizedResult.ai_momentum,
       ai_strike_now: normalizedResult.ai_strike_now,
       needs_human_review: normalizedResult.needs_human_review,
