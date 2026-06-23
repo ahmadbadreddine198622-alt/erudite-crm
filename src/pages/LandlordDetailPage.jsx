@@ -118,6 +118,7 @@ class LandlordDetail extends React.Component {
       streamFilter: 'all',
       aiTasksCollapsed: true,
       aiFollowupsCollapsed: true,
+      aiIntelligenceCollapsed: true,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -945,7 +946,7 @@ class LandlordDetail extends React.Component {
                 </div>
               )}
               {vm.aiReady && (
-                <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} />
+                <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
               )}
               {vm.aiEmpty && (
                 <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:14px 15px; display:flex; align-items:center; gap:8px;")}>
