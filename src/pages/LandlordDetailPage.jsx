@@ -82,6 +82,7 @@ class LandlordDetail extends React.Component {
   constructor(props) {
     super(props);
     this.streamRef = React.createRef();
+    this.composerRef = React.createRef();
     this.STAGES = ['Initial Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
     this.STAGE_KEYS = ['initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing','owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification','listing_publication','final_confirmation','marketing_agents','marketing_network','open_house','client_blast','deal_closed'];
     const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
@@ -145,6 +146,12 @@ class LandlordDetail extends React.Component {
     if (cnt(nextCur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter) {
       this.scrollBottom();
     }
+    // Auto-grow/shrink the composer textarea when text changes (incl. clear-after-send,
+    // AI-draft load, landlord switch) — onComposerInput handles in-flight typing, this
+    // catches programmatic composerText changes.
+    if (prevState.composerText !== this.state.composerText || prevState.composerType !== this.state.composerType) {
+      this.autoGrowComposer();
+    }
   }
   scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; }); } }
   cur(){ return this.state.landlords.find(l=>l.id===this.state.currentId); }
@@ -160,7 +167,19 @@ class LandlordDetail extends React.Component {
   setComposerType = (t)=> this.setState({ composerType:t });
   // Emptying the box after an AI draft was loaded means the agent is starting over — drop the
   // AI provenance (note OR task) so a freshly typed entry is correctly recorded as from-scratch.
-  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null } : { composerText:v }); };
+  onComposerInput = (e)=>{
+    const v=e.target.value;
+    const ta=e.target;
+    ta.style.height='auto';
+    ta.style.height=Math.min(200, Math.max(96, ta.scrollHeight))+'px';
+    this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null } : { composerText:v });
+  };
+  autoGrowComposer = ()=>{
+    const ta=this.composerRef.current;
+    if(!ta) return;
+    ta.style.height='auto';
+    ta.style.height=Math.min(200, Math.max(96, ta.scrollHeight))+'px';
+  };
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
@@ -1060,7 +1079,7 @@ class LandlordDetail extends React.Component {
               })()}
 
               {/* composer */}
-              <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:11px 16px 13px; background:rgba(8,12,22,0.5);")}>
+              <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:16px 16px 18px; background:rgba(8,12,22,0.5);")}>
                 {vm.composerHasTime && (
                   <div style={css("display:inline-flex; align-items:center; gap:6px; margin-bottom:8px; padding:4px 10px; border-radius:99px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3); font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
@@ -1273,7 +1292,7 @@ class LandlordDetail extends React.Component {
                   </div>
                 )}
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
-                  <textarea value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey && this.state.composerType==='Chat'){ e.preventDefault(); this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:56px; max-height:160px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
+                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:96px; max-height:200px; padding:14px 16px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.5; overflow-y:auto;")}></textarea>
                   <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending) ? '…' : '➤'}</button>
                 </div>
               </div>
