@@ -113,6 +113,7 @@ class LandlordDetail extends React.Component {
       followupHour: 10,
       followupSaving: false,
       analyzing: false,
+      chatSending: false,
       streamFilter: 'all',
       aiTasksCollapsed: true,
       aiFollowupsCollapsed: true,
@@ -362,6 +363,7 @@ class LandlordDetail extends React.Component {
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
     if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
     if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
+    if(this.state.composerType === 'Chat'){ this.sendChat(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -503,6 +505,31 @@ class LandlordDetail extends React.Component {
     }
   };
 
+  sendChat = async (text)=>{
+    const L = this.cur();
+    if(!L || this._chatSending) return;
+    this._chatSending = true;
+    this.setState({ chatSending:true });
+    const channel = this.state.streamFilter === 'business' ? 'business' : 'personal';
+    try {
+      const res = await base44.functions.invoke('sendMultiChannelWhatsApp', { landlord_id: L.id, text, channel });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Sent via ' + (channel === 'business' ? 'Business WhatsApp' : 'Personal WhatsApp'));
+      const order = Date.now();
+      const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+        composerText:'', chatSending:false,
+      }), ()=>this.scrollBottom());
+    } catch(e){
+      toast.error('Failed to send WhatsApp: ' + (e?.message || 'unknown error'));
+      this.setState({ chatSending:false });
+    } finally {
+      this._chatSending = false;
+    }
+  };
+
   onAnalyse = async ()=>{
     if(!this.state.currentId) return;
     this.setState({ analyzing:true, analyseError:'' });
@@ -641,7 +668,7 @@ class LandlordDetail extends React.Component {
           color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
           border:'1px solid '+(isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
     });
-    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…' };
+    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)' };
 
     const rm=this.rapportMeta(L.rapport);
     const hdr={
@@ -1323,9 +1350,17 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
 
+                {this.state.composerType === 'Chat' && (
+                  <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:10.5px; color:rgba(255,255,255,0.4);")}>
+                    Sending via
+                    <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
+                    WhatsApp
+                    <span style={css("opacity:0.5;")}>· toggle Business/Personal above to switch</span>
+                  </div>
+                )}
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
-                  <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:56px; max-height:160px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving) ? '…' : '➤'}</button>
+                  <textarea value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey && this.state.composerType==='Chat'){ e.preventDefault(); this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:56px; max-height:160px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending) ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
