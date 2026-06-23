@@ -106,6 +106,7 @@ class LandlordDetail extends React.Component {
       taskSaving: false,
       analyzing: false,
       streamFilter: 'all',
+      aiTasksCollapsed: true,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -248,6 +249,7 @@ class LandlordDetail extends React.Component {
       : (typeof tpl.label === 'string' ? tpl.label.trim() : '');
     if(!title) return; // never draft an empty task
     this.setState({
+      composerType: 'Task',
       composerText: title,
       taskTitleDraft: title,
       taskAiSource: chip.template_key,
@@ -895,21 +897,10 @@ class LandlordDetail extends React.Component {
                   </div>
                 )}
 
-                {vm.aiEmpty && (
-                  <div style={css("padding:26px 18px; text-align:center;")}>
-                    {vm.analyzing && (
-                      <React.Fragment>
-                        <div style={css("display:inline-block; width:26px; height:26px; border:2.5px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
-                        <div style={css("font-size:12.5px; color:rgba(255,255,255,0.55); margin-top:12px;")}>Analysing conversation…</div>
-                      </React.Fragment>
-                    )}
-                    {vm.notAnalyzing && (
-                      <React.Fragment>
-                        <div style={css("font-size:30px; opacity:0.5;")}>✦</div>
-                        <div style={css("font-size:13px; color:rgba(255,255,255,0.6); margin-top:8px; line-height:1.5;")}>No analysis yet for this landlord.<br/>Run the AI to surface insights &amp; coaching.</div>
-                        <button onClick={this.onAnalyse} style={css("margin-top:14px; padding:10px 20px; border-radius:11px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:13px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif;")}>Analyse Now</button>
-                      </React.Fragment>
-                    )}
+                {vm.aiEmpty && vm.analyzing && (
+                  <div style={css("padding:8px 15px; display:flex; align-items:center; gap:8px;")}>
+                    <div style={css("display:inline-block; width:14px; height:14px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
+                    <span style={css("font-size:11.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
                   </div>
                 )}
               </div>
@@ -969,6 +960,54 @@ class LandlordDetail extends React.Component {
                   </div>
                 ))}
               </div>
+
+              {/* AI Suggested Tasks — standalone collapsible below conversation, above toolbar */}
+              {(() => {
+                const chips = this.suggestedTaskChips();
+                if (!chips.length) return null;
+                const hasMessages = Array.isArray(vm.stream) && vm.stream.some(s => s.isMsg);
+                const collapsed = this.state.aiTasksCollapsed && hasMessages;
+                return (
+                  <div style={css("flex:none; margin:0 16px 8px; border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
+                    <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                      <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                        AI Suggested Tasks
+                        <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
+                      </span>
+                      <span style={css("font-size:12px; color:rgba(255,255,255,0.4);")}>{collapsed ? '▸' : '▾'}</span>
+                    </button>
+                    {!collapsed && (
+                      <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
+                        {chips.map((chip, i) => {
+                          const isActive = this.state.taskAiSource === chip.template_key;
+                          const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : (chip.template.title_template || chip.template_key);
+                          return (
+                            <button
+                              key={chip.template_key + '-' + i}
+                              onClick={() => this.pickSuggestedTask(chip)}
+                              title={chip.reason || label}
+                              style={css(
+                                "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
+                                "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
+                                "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
+                              )}
+                            >
+                              <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
+                                <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
+                                <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
+                              </span>
+                              {chip.reason && (
+                                <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* composer */}
               <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:11px 16px 13px; background:rgba(8,12,22,0.5);")}>
@@ -1046,49 +1085,7 @@ class LandlordDetail extends React.Component {
                   const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
                   return (
                     <div style={css("margin-bottom:9px;")}>
-                      {/* AI Suggested Tasks shortlist — ranked one-tap chips from
-                          landlord.ai_suggested_tasks, resolved via the TaskTemplate library.
-                          Renders nothing when absent/empty (the Next Action draft below is the
-                          fallback). Clicking a chip pre-fills (no auto-save). */}
-                      {(()=>{
-                        const chips = this.suggestedTaskChips();
-                        if(!chips.length) return null;
-                        const taskAiSource = this.state.taskAiSource;
-                        return (
-                          <div style={css("margin-bottom:10px;")}>
-                            <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                              AI Suggested Tasks
-                            </span>
-                            <div style={css("display:flex; flex-direction:column; gap:5px; margin-top:6px;")}>
-                              {chips.map((chip, i)=>{
-                                const isActive = taskAiSource === chip.template_key;
-                                const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : (chip.template.title_template || chip.template_key);
-                                return (
-                                  <button
-                                    key={chip.template_key + '-' + i}
-                                    onClick={()=>this.pickSuggestedTask(chip)}
-                                    title={chip.reason || label}
-                                    style={css(
-                                      "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
-                                      "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
-                                      "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
-                                    )}
-                                  >
-                                    <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
-                                      <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
-                                      <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
-                                    </span>
-                                    {chip.reason && (
-                                      <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      {/* AI Suggested Tasks moved to standalone collapsible below the conversation stream */}
                       <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;")}>
                         <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
