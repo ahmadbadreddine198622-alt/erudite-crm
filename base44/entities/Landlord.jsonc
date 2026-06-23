@@ -549,6 +549,22 @@
           }
         }
       }
+    },
+    "imessage_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "available",
+        "not_available",
+        "error"
+      ],
+      "default": "unknown",
+      "description": "Whether the landlord's number is iMessage-capable"
+    },
+    "imessage_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the iMessage availability check last ran"
     }
   },
   "required": [

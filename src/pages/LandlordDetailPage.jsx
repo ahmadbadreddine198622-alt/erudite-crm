@@ -25,6 +25,7 @@ import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
+import IMessageBadge from '@/components/landlord/IMessageBadge';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -121,12 +122,48 @@ class LandlordDetail extends React.Component {
       aiTasksCollapsed: true,
       aiFollowupsCollapsed: true,
       aiIntelligenceCollapsed: true,
+      imessageChecking: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
   }
 
-  componentDidMount(){ this.scrollBottom(); }
+  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); }
+
+  // Auto-check iMessage availability once when a landlord is opened and the status is
+  // unknown OR the last check is older than 7 days. Fire-and-forget, background only.
+  maybeAutoCheckIMessage = ()=>{
+    const L = this.cur();
+    if(!L || this._imessageChecking) return;
+    const status = L.imessageStatus || 'unknown';
+    const checkedAt = L.imessageCheckedAt ? new Date(L.imessageCheckedAt).getTime() : 0;
+    const stale = !checkedAt || (Date.now() - checkedAt) > 7 * 24 * 60 * 60 * 1000;
+    if(status === 'unknown' || stale){ this.checkIMessage(); }
+  };
+
+  checkIMessage = async ()=>{
+    const L = this.cur();
+    if(!L || this._imessageChecking) return;
+    this._imessageChecking = true;
+    this.setState({ imessageChecking:true });
+    try {
+      const res = await base44.functions.invoke('checkIMessageAvailability', { landlord_id: L.id });
+      const data = res?.data ?? res;
+      const status = data?.imessage_status || 'error';
+      const checkedAt = data?.imessage_checked_at || new Date().toISOString();
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:status, imessageCheckedAt:checkedAt} : l),
+        imessageChecking:false,
+      }));
+    } catch(e){
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:'error', imessageCheckedAt:new Date().toISOString()} : l),
+        imessageChecking:false,
+      }));
+    } finally {
+      this._imessageChecking = false;
+    }
+  };
   componentDidUpdate(prevProps, prevState){
     // Sync landlords when prop array changes OR when current landlord data changes
     const prevLandlords = prevProps.landlords || [];
@@ -1371,6 +1408,9 @@ class LandlordDetail extends React.Component {
                       {L.phone && L.phone !== '—' && (
                         <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
                       )}
+                      {L.phone && L.phone !== '—' && (
+                        <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} />
+                      )}
                       {(L.phone && L.phone !== '—') && <span style={css("color:rgba(255,255,255,0.22);")}>·</span>}
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
                       <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
@@ -2228,6 +2268,8 @@ export default function LandlordDetailPage() {
   aiSuggestedTasks: Array.isArray(L.ai_suggested_tasks) ? L.ai_suggested_tasks : [],
   aiSuggestedFollowups: Array.isArray(L.ai_suggested_followups) ? L.ai_suggested_followups : [],
   aiSuggestedMessages: Array.isArray(L.ai_suggested_messages) ? L.ai_suggested_messages : [],
+  imessageStatus: L.imessage_status || 'unknown',
+  imessageCheckedAt: L.imessage_checked_at || null,
   rapport,
   temperature: temperatureFromRapport(rapport),
   stageIndex: stageIdx >= 1 ? stageIdx : 1,
