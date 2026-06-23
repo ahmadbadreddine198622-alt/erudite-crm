@@ -189,14 +189,72 @@ class LandlordDetail extends React.Component {
   // Reset to a from-scratch note (clears the AI draft + selection).
   clearNoteDraft = ()=> this.setState({ composerText:'', noteAiSource:null, noteAiDraft:null });
 
-  // Map ai_next_best_action.priority to a due_date N days out (local date, YYYY-MM-DD to match
-  // the schema's date format). urgent -> +1, high -> +3, medium/low/absent -> +7.
-  dueDateFromPriority(priority){
-    const days = priority === 'urgent' ? 1 : priority === 'high' ? 3 : 7;
-    const d = new Date(); d.setDate(d.getDate() + days);
+  // Local YYYY-MM-DD, N days from today (N may be 0). Shared by the priority-based draft and
+  // the TaskTemplate offset-based suggestions, so all due dates use one date-math impl.
+  dueDateInDays(days){
+    const n = (typeof days === 'number' && isFinite(days)) ? days : 0;
+    const d = new Date(); d.setDate(d.getDate() + n);
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
+
+  // Map ai_next_best_action.priority to a due_date N days out (YYYY-MM-DD).
+  // urgent -> +1, high -> +3, medium/low/absent -> +7.
+  dueDateFromPriority(priority){
+    return this.dueDateInDays(priority === 'urgent' ? 1 : priority === 'high' ? 3 : 7);
+  }
+
+  // Resolve a TaskTemplate.routes_to to an email from the current landlord.
+  // photographer -> the landlord's assigned photographer if set, else the team photographer
+  // (Dari). assigned_agent / listing_manager come from the landlord record and stay blank
+  // (editable) when unset — never invent an agent/manager email.
+  resolveAssignee(routesTo){
+    const L = this.cur();
+    if(!L) return '';
+    if(routesTo === 'photographer') return L.photographerEmail || 'dari@erudite-estate.com';
+    if(routesTo === 'listing_manager') return L.listingManagerEmail || '';
+    return L.agentEmail || ''; // assigned_agent (default)
+  }
+
+  // Resolve landlord.ai_suggested_tasks against the loaded TaskTemplate library. Each chip
+  // carries the matched template + the suggestion's reason. Items whose template_key has no
+  // active template are dropped silently (never render an unresolvable button).
+  suggestedTaskChips(){
+    const L = this.cur();
+    if(!L) return [];
+    const templates = Array.isArray(this.props.taskTemplates) ? this.props.taskTemplates : [];
+    if(!templates.length) return [];
+    const byKey = {};
+    templates.forEach(t => { if(t && typeof t.template_key === 'string') byKey[t.template_key] = t; });
+    const items = Array.isArray(L.aiSuggestedTasks) ? L.aiSuggestedTasks : [];
+    return items
+      .filter(it => it && typeof it === 'object' && typeof it.template_key === 'string')
+      .map(it => {
+        const tpl = byKey[it.template_key];
+        if(!tpl) return null;
+        return { template_key: it.template_key, reason: typeof it.reason === 'string' ? it.reason : '', template: tpl };
+      })
+      .filter(Boolean);
+  }
+
+  // Pre-fill the composer from a suggested-task chip (no auto-save — agent reviews then sends).
+  // ai_source records the specific template_key (more precise than 'ai_next_best_action'); the
+  // title_template snapshot drives title-only edit-detection at save.
+  pickSuggestedTask = (chip)=>{
+    if(!chip || !chip.template) return;
+    const tpl = chip.template;
+    const title = (typeof tpl.title_template === 'string' && tpl.title_template.trim())
+      ? tpl.title_template.trim()
+      : (typeof tpl.label === 'string' ? tpl.label.trim() : '');
+    if(!title) return; // never draft an empty task
+    this.setState({
+      composerText: title,
+      taskTitleDraft: title,
+      taskAiSource: chip.template_key,
+      taskDueDate: this.dueDateInDays(tpl.due_offset_days),
+      taskAssignee: this.resolveAssignee(tpl.routes_to),
+    });
+  };
 
   // The single AI-draft source for a Task: ai_next_best_action (an OBJECT — type-guarded).
   // title from .action (snake_case label -> spaced, first letter capitalized; existing caps
@@ -988,6 +1046,49 @@ class LandlordDetail extends React.Component {
                   const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
                   return (
                     <div style={css("margin-bottom:9px;")}>
+                      {/* AI Suggested Tasks shortlist — ranked one-tap chips from
+                          landlord.ai_suggested_tasks, resolved via the TaskTemplate library.
+                          Renders nothing when absent/empty (the Next Action draft below is the
+                          fallback). Clicking a chip pre-fills (no auto-save). */}
+                      {(()=>{
+                        const chips = this.suggestedTaskChips();
+                        if(!chips.length) return null;
+                        const taskAiSource = this.state.taskAiSource;
+                        return (
+                          <div style={css("margin-bottom:10px;")}>
+                            <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                              AI Suggested Tasks
+                            </span>
+                            <div style={css("display:flex; flex-direction:column; gap:5px; margin-top:6px;")}>
+                              {chips.map((chip, i)=>{
+                                const isActive = taskAiSource === chip.template_key;
+                                const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : (chip.template.title_template || chip.template_key);
+                                return (
+                                  <button
+                                    key={chip.template_key + '-' + i}
+                                    onClick={()=>this.pickSuggestedTask(chip)}
+                                    title={chip.reason || label}
+                                    style={css(
+                                      "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
+                                      "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
+                                      "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
+                                    )}
+                                  >
+                                    <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
+                                      <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
+                                      <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
+                                    </span>
+                                    {chip.reason && (
+                                      <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;")}>
                         <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
@@ -1489,6 +1590,11 @@ export default function LandlordDetailPage() {
   }), { enabled: !!(prop?.building_name || prop?.location) });
   // Fetch DocumentChecklistItem records for this landlord
   const { data: docItems = [] } = useQ(['landlord_docs', id], () => safe(() => base44.entities.DocumentChecklistItem.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  // TaskTemplate library (active only) — powers the AI suggested-tasks shortlist; loaded once.
+  const { data: taskTemplates = [] } = useQ(['task_templates'], () => safe(() => base44.entities.TaskTemplate.filter({ is_active: true })));
+  // Photography tasks for this landlord — used to resolve a photographer email for
+  // routes_to=photographer suggestions (first task with an assigned photographer; blank if none).
+  const { data: landlordPhotographyTasks = [] } = useQ(['landlord_photography_tasks', id], () => safe(() => base44.entities.PhotographyTask.filter({ landlord_id: id }, '-created_date', 5)), { enabled: !!id });
 
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
@@ -1871,6 +1977,9 @@ export default function LandlordDetailPage() {
   archetype: L.landlord_archetype || 'first_time_seller',
   agent: agentName,
   agentEmail,
+  listingManagerEmail: L.listing_manager_email || '',
+  photographerEmail: (landlordPhotographyTasks || []).map(t => t && t.assigned_photographer_email).find(Boolean) || '',
+  aiSuggestedTasks: Array.isArray(L.ai_suggested_tasks) ? L.ai_suggested_tasks : [],
   rapport,
   temperature: temperatureFromRapport(rapport),
   stageIndex: stageIdx >= 1 ? stageIdx : 1,
@@ -1940,6 +2049,7 @@ export default function LandlordDetailPage() {
         onNavigate={navigate}
         formAContracts={formAContracts}
         currentUser={currentUser}
+        taskTemplates={taskTemplates}
         />
       <FormAUploadDialog
         open={formADialogOpen}
