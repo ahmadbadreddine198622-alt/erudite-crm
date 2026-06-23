@@ -1365,6 +1365,8 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
+              <CallSuite landlord={L} phone={L.phone} />
+
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
                 assignedAgentEmail={L.assigned_agent_email}
