@@ -14,6 +14,23 @@
       "type": "string",
       "description": "Meta message ID (dedup)"
     },
+    "imessage_guid": {
+      "type": "string",
+      "description": "BlueBubbles message GUID, for iMessage/SMS dedup (the iMessage equivalent of wa_message_id)"
+    },
+    "chat_guid": {
+      "type": "string",
+      "description": "BlueBubbles chat identifier, needed to send replies back via the BlueBubbles API"
+    },
+    "source_platform": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "imessage",
+        "sms"
+      ],
+      "description": "Which platform this message came from, so the UI can badge the channel"
+    },
     "assigned_agent_email": {
       "type": "string",
       "format": "email",
@@ -91,10 +108,12 @@
       "type": "string",
       "enum": [
         "business",
-        "personal"
+        "personal",
+        "imessage",
+        "sms"
       ],
       "default": "personal",
-      "description": "Which WhatsApp channel"
+      "description": "Which channel: business/personal (WhatsApp), imessage, or sms (both via BlueBubbles)"
     },
     "raw_payload": {
       "type": "object",
