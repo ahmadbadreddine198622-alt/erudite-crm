@@ -520,7 +520,7 @@ class LandlordDetail extends React.Component {
     const composerTypes=['Note','Task','Follow-up','Appointment','Chat'].map(t=>{
       const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬' }[t];
       const isChat = t==='Chat';
-      return { label:t, icon:ic, onClick:()=>this.setComposerType(t),
+      return { label:t, icon:ic, onClick: t==='Task' ? ()=>{ this.setComposerType('Task'); this.setState(s=>({ aiTasksCollapsed: !s.aiTasksCollapsed })); } : ()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
           background: isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
           color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
@@ -752,7 +752,7 @@ class LandlordDetail extends React.Component {
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
             {/* LEFT PANEL */}
-            <div className="ld-panel" style={css("flex:0 0 45%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
+            <div className="ld-panel" style={css("flex:0 0 54%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
 
               <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:16px 20px 12px;")}>
                 <div>
@@ -772,14 +772,8 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* pinned AI card */}
+              {/* pinned AI card — header bar removed; intelligence content renders directly */}
               <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("display:flex; align-items:center; padding:12px 15px; border-bottom:1px solid hsl(38 92% 50% / 0.16);")}>
-                  <span style={css("display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%);")}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 60%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                    AI Conversation Intelligence
-                  </span>
-                </div>
                 {vm.analyzeError && (
                   <div style={css("padding:10px 15px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border-top:1px solid rgba(239,68,68,0.15);")}>
                     {vm.analyzeError}
@@ -966,7 +960,7 @@ class LandlordDetail extends React.Component {
                 const chips = this.suggestedTaskChips();
                 if (!chips.length) return null;
                 const hasMessages = Array.isArray(vm.stream) && vm.stream.some(s => s.isMsg);
-                const collapsed = this.state.aiTasksCollapsed && hasMessages;
+                const collapsed = this.state.aiTasksCollapsed;
                 return (
                   <div style={css("flex:none; margin:0 16px 8px; border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
                     <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
@@ -1130,7 +1124,7 @@ class LandlordDetail extends React.Component {
                 })()}
 
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
-                  <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:42px; max-height:120px; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
+                  <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:56px; max-height:160px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
                   <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving) ? '…' : '➤'}</button>
                 </div>
               </div>
