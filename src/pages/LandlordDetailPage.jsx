@@ -941,10 +941,54 @@ class LandlordDetail extends React.Component {
             {/* LEFT PANEL */}
             <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
 
-              {/* AI Intelligence panel moved to TOP */}
-              {vm.aiReady && (
-                <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
-              )}
+              {/* AI Intelligence + Suggested Tasks row */}
+              <div style={css("flex:none; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 6px;")}>
+                {vm.aiReady && (
+                  <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
+                )}
+                {(() => {
+                  const chips = this.suggestedTaskChips();
+                  if (!chips.length) return null;
+                  const collapsed = this.state.aiTasksCollapsed;
+                  return (
+                    <div style={css("border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
+                      <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                        <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                          AI Tasks
+                          <span style={css("font-size:8.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
+                        </span>
+                        <span style={css("display:inline-flex; align-items:center; color:rgba(255,255,255,0.4);")}><ChevronDown size={13} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} /></span>
+                      </button>
+                      {!collapsed && (
+                        <div style={css("display:flex; flex-direction:column; gap:4px; padding:0 10px 9px; max-height:180px; overflow-y:auto;")}>
+                          {chips.map((chip, i) => {
+                            const isActive = this.state.taskAiSource === chip.template_key;
+                            const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : (chip.template.title_template || chip.template_key);
+                            return (
+                              <button
+                                key={chip.template_key + '-' + i}
+                                onClick={() => this.pickSuggestedTask(chip)}
+                                title={chip.reason || label}
+                                style={css(
+                                  "display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left; width:100%; padding:6px 9px; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif; "+
+                                  "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
+                                  "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
+                                )}
+                              >
+                                <span style={css("font-size:11px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.85)")+";")}>{label}</span>
+                                {chip.reason && (
+                                  <span style={css("font-size:9.5px; line-height:1.3; color:rgba(255,255,255,0.5);")}>{chip.reason}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
               {vm.aiEmpty && (
                 <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:8px 13px; display:flex; align-items:center; gap:6px;")}>
                   <div style={css("display:inline-block; width:11px; height:11px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
@@ -1032,53 +1076,7 @@ class LandlordDetail extends React.Component {
                 ))}
               </div>
 
-              {/* AI Suggested Tasks — standalone collapsible below conversation, above toolbar */}
-              {(() => {
-                const chips = this.suggestedTaskChips();
-                if (!chips.length) return null;
-                const hasMessages = Array.isArray(vm.stream) && vm.stream.some(s => s.isMsg);
-                const collapsed = this.state.aiTasksCollapsed;
-                return (
-                  <div style={css("flex:none; margin:0 16px 8px; border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
-                    <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                      <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                        AI Suggested Tasks
-                        <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
-                      </span>
-                      <span style={css("display:inline-flex; align-items:center; color:rgba(255,255,255,0.4);")}><ChevronDown size={14} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} /></span>
-                    </button>
-                    {!collapsed && (
-                      <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
-                        {chips.map((chip, i) => {
-                          const isActive = this.state.taskAiSource === chip.template_key;
-                          const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : (chip.template.title_template || chip.template_key);
-                          return (
-                            <button
-                              key={chip.template_key + '-' + i}
-                              onClick={() => this.pickSuggestedTask(chip)}
-                              title={chip.reason || label}
-                              style={css(
-                                "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
-                                "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
-                                "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
-                              )}
-                            >
-                              <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
-                                <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
-                                <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
-                              </span>
-                              {chip.reason && (
-                                <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
               <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);")}>
