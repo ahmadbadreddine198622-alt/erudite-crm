@@ -941,10 +941,10 @@ class LandlordDetail extends React.Component {
             {/* LEFT PANEL */}
             <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
 
-              <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px;")}>
+              <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:6px 16px 4px;")}>
                 <div>
-                  <div style={css("font-family:'Playfair Display',serif; font-size:19px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
-                  <div style={css("font-size:11.5px; color:rgba(255,255,255,0.4); margin-top:2px;")}>{vm.streamCountLabel}</div>
+                  <div style={css("font-family:'Playfair Display',serif; font-size:17px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
+                  <div style={css("font-size:10.5px; color:rgba(255,255,255,0.4); margin-top:1px;")}>{vm.streamCountLabel}</div>
                 </div>
                 <div style={css("display:flex; align-items:center; gap:6px;")}>
                   <button onClick={()=>this.setStreamFilter('business')} style={vm.businessPillStyle}>
@@ -960,7 +960,7 @@ class LandlordDetail extends React.Component {
               </div>
 
               {vm.analyzeError && (
-                <div style={css("flex:none; margin:0 16px 8px; padding:8px 12px; border-radius:10px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);")}>
+                <div style={css("flex:none; margin:0 16px 6px; padding:6px 12px; border-radius:8px; font-size:10.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);")}>
                   {vm.analyzeError}
                 </div>
               )}
@@ -968,14 +968,14 @@ class LandlordDetail extends React.Component {
                 <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
               )}
               {vm.aiEmpty && (
-                <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:14px 15px; display:flex; align-items:center; gap:8px;")}>
-                  <div style={css("display:inline-block; width:14px; height:14px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
-                  <span style={css("font-size:11.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
+                <div style={css("flex:none; margin:0 16px 8px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:10px 13px; display:flex; align-items:center; gap:6px;")}>
+                  <div style={css("display:inline-block; width:12px; height:12px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
+                  <span style={css("font-size:10.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
                 </div>
               )}
 
               {/* unified stream */}
-              <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px 14px; display:flex; flex-direction:column; gap:12px;")}>
+              <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:4px 16px 10px; display:flex; flex-direction:column; gap:10px;")}>
                 {vm.stream.map((s)=> s.isMsg ? (
                   <div key={s.key} style={s.rowStyle}>
                     <div style={s.bubbleStyle}>
