@@ -1867,7 +1867,7 @@ export default function LandlordDetailPage() {
       [...(toCalls || []), ...(fromCalls || [])].forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); results.push(c); } });
     }
     return results;
-  }, { enabled: !!phone, refetchInterval: 15000, refetchOnWindowFocus: true });
+  }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // Emails for the stream — match by the landlord's email (from_email OR to)
   const landlordEmail = L?.email;
@@ -1878,10 +1878,10 @@ export default function LandlordDetailPage() {
     const toMsgs = await safe(() => base44.entities.Email.filter({ to: landlordEmail }, '-received_at', 100));
     [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
     return results;
-  }, { enabled: !!landlordEmail, refetchInterval: 15000, refetchOnWindowFocus: true });
+  }, { enabled: !!landlordEmail, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
-  const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 15000, refetchOnWindowFocus: true });
+  const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
@@ -1897,7 +1897,7 @@ export default function LandlordDetailPage() {
       [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
     }
     return results;
-  }, { enabled: !!phone, refetchInterval: 15000, refetchOnWindowFocus: true });
+  }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   if (isLoading) {
     return (
