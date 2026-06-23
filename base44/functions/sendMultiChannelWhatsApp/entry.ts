@@ -148,8 +148,8 @@ Deno.serve(async (req) => {
     evoBody.message?.key?.id       // Evolution API (alt)
   )) || null;
   let message;
+  let conversation = null;
   try {
-    let conversation = null;
     
     // ALWAYS resolve the correct conversation for the requested channel.
     // Even when conversation_id is provided, we must check whether its channel
