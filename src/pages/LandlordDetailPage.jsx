@@ -17,7 +17,7 @@ import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
-import MandatePanel from '@/components/landlord/MandatePanel';
+import MandateDrawer from '@/components/landlord/MandateDrawer';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
 import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
@@ -1412,7 +1412,7 @@ class LandlordDetail extends React.Component {
 
               <MediaPanel media={vm.media} />
 
-              {vm.mandate && <MandatePanel mandate={vm.mandate} />}
+              {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
 
               {/* connections strip */}
               <div style={css("margin-top:14px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
