@@ -166,17 +166,17 @@ Deno.serve(async (req) => {
   const skip = body.skip || 0;
 
   // Fetch landlords where ai_processed_at is null (or failed previously)
-  const landlords = await svc.entities.Landlord.filter(
-    { 
-      $or: [
-        { ai_processed_at: null },
-        { ai_processing_status: 'failed' }
-      ]
-    },
-    'created_date',
-    batchSize,
-    skip
-  );
+  // Note: Base44 filter doesn't support $or, so we fetch all and filter client-side
+  const allLandlords = await svc.entities.Landlord.filter({}, 'created_date', batchSize * 3, skip);
+  console.log(`Fetched ${allLandlords?.length || 0} landlords from skip=${skip}`);
+  const landlords = (allLandlords || []).filter(l => {
+    const isUnprocessed = !l.ai_processed_at || l.ai_processing_status === 'failed';
+    if (isUnprocessed) {
+      console.log(`Landlord ${l.id} (${l.full_name_en}) is unprocessed: ai_processed_at=${l.ai_processed_at}, status=${l.ai_processing_status}`);
+    }
+    return isUnprocessed;
+  }).slice(0, batchSize);
+  console.log(`Filtered to ${landlords.length} unprocessed landlords`);
 
   if (!landlords || landlords.length === 0) {
     return Response.json({ 
