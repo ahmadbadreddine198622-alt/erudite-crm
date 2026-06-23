@@ -21,6 +21,20 @@
       "type": "boolean",
       "default": false,
       "description": "Pinned notes always appear at the top"
+    },
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "true when the body was pre-filled from an AI summary, even if later edited"
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Which AI field seeded the note, e.g. ai_rolling_summary or conversation_insight"
+    },
+    "was_edited_after_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "true if the user changed the AI draft before saving"
     }
   },
   "required": [
