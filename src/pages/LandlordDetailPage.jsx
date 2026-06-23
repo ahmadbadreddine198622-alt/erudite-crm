@@ -1081,22 +1081,22 @@ class LandlordDetail extends React.Component {
               })()}
 
               {/* composer */}
-              <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:16px 16px 18px; background:rgba(8,12,22,0.5);")}>
+              <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);")}>
                 {vm.composerHasTime && (
-                  <div style={css("display:inline-flex; align-items:center; gap:6px; margin-bottom:8px; padding:4px 10px; border-radius:99px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3); font-size:11px; font-weight:600; color:hsl(38 92% 60%);")}>
+                  <div style={css("display:inline-flex; align-items:center; gap:6px; margin-bottom:6px; padding:3px 9px; border-radius:99px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3); font-size:10px; font-weight:600; color:hsl(38 92% 60%);")}>
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
                   </div>
                 )}
-                <div style={css("display:flex; gap:6px; margin-bottom:9px; flex-wrap:wrap;")}>
+                <div style={css("display:flex; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
                   {vm.composerTypes.map((t)=>(
                     <button key={t.label} onClick={t.onClick} style={t.style}>{t.icon} {t.label}</button>
                   ))}
-                  <button onClick={()=>this.onNavigate('/task-center')} style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 11px; borderRadius:9px; fontSize:11.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
-                    <Calendar className="w-3.5 h-3.5" />
+                  <button onClick={()=>this.onNavigate('/task-center')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
+                    <Calendar className="w-3 h-3" />
                     SmartTask
                   </button>
-                  <button onClick={()=>this.onNavigate('/calendar')} style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 11px; borderRadius:9px; fontSize:11.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
-                    <Calendar className="w-3.5 h-3.5" />
+                  <button onClick={()=>this.onNavigate('/calendar')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
+                    <Calendar className="w-3 h-3" />
                     Smart Calendar
                   </button>
                 </div>
@@ -1108,7 +1108,7 @@ class LandlordDetail extends React.Component {
                   const noteAiSource = this.state.noteAiSource;
                   const noneAvailable = noteSources.every(s => !s.text);
                   return (
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:9px; flex-wrap:wrap;")}>
+                    <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
                       <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                         AI draft
@@ -1123,25 +1123,25 @@ class LandlordDetail extends React.Component {
                             disabled={!available}
                             title={available ? `Draft this note from ${src.label}` : src.emptyMsg}
                             style={css(
-                              "display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:600; font-family:'Inter',sans-serif; "+
+                              "display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:7px; font-size:10px; font-weight:600; font-family:'Inter',sans-serif; "+
                               (available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
                               "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
                               "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
                               "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
                             )}
                           >
-                            {src.label}{!available && <span style={css("font-size:9px; font-weight:600; opacity:0.85;")}>· run Analyse</span>}
+                            {src.label}{!available && <span style={css("font-size:8.5px; font-weight:600; opacity:0.85;")}>· Analyse</span>}
                           </button>
                         );
                       })}
                       {noteAiSource && (
-                        <button onClick={this.clearNoteDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
+                        <button onClick={this.clearNoteDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 7px; border-radius:7px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
                       )}
                       {noteAiSource && (
-                        <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>Drafted from AI · edits tracked</span>
+                        <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>AI draft</span>
                       )}
                       {!noteAiSource && noneAvailable && (
-                        <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI draft yet — run Analyse</span>
+                        <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>Run Analyse</span>
                       )}
                     </div>
                   );
@@ -1153,9 +1153,9 @@ class LandlordDetail extends React.Component {
                   const src = this.taskDraftSource();
                   const taskAiSource = this.state.taskAiSource;
                   const active = taskAiSource === 'ai_next_best_action';
-                  const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
+                  const fieldStyle = css("padding:4px 7px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:10.5px; font-family:'Inter',sans-serif;");
                   return (
-                    <div style={css("margin-bottom:9px;")}>
+                    <div style={css("margin-bottom:7px;")}>
                       {/* AI Suggested Tasks moved to standalone collapsible below the conversation stream */}
                       <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;")}>
                         <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
@@ -1186,12 +1186,12 @@ class LandlordDetail extends React.Component {
                           <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI draft yet — run Analyse</span>
                         )}
                       </div>
-                      <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
-                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                      <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Due
                           <input type="date" value={this.state.taskDueDate} onChange={(e)=>this.setState({ taskDueDate:e.target.value })} style={fieldStyle} />
                         </label>
-                        <label style={css("display:inline-flex; align-items:center; gap:5px; flex:1; min-width:180px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:4px; flex:1; min-width:160px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Assignee
                           <input type="email" value={this.state.taskAssignee} onChange={(e)=>this.setState({ taskAssignee:e.target.value })} placeholder="assignee@email" style={{...fieldStyle, flex:1, minWidth:0}} />
                         </label>
@@ -1254,8 +1254,8 @@ class LandlordDetail extends React.Component {
                           </div>
                         );
                       })()}
-                      <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
-                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                      <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Channel
                           <select value={this.state.followupChannel} onChange={(e)=>this.setState({ followupChannel:e.target.value })} style={fieldStyle}>
                             <option value="whatsapp">WhatsApp</option>
@@ -1263,22 +1263,22 @@ class LandlordDetail extends React.Component {
                             <option value="email">Email</option>
                           </select>
                         </label>
-                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Date
                           <input type="date" value={this.state.followupDate} onChange={(e)=>this.setState({ followupDate:e.target.value })} style={fieldStyle} />
                         </label>
-                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
                           Hour
-                          <input type="number" min="0" max="23" value={this.state.followupHour} onChange={(e)=>this.setState({ followupHour:e.target.value })} style={{...fieldStyle, width:'58px'}} />
+                          <input type="number" min="0" max="23" value={this.state.followupHour} onChange={(e)=>this.setState({ followupHour:e.target.value })} style={{...fieldStyle, width:'52px'}} />
                         </label>
                         {followupAiSource && (
-                          <button onClick={this.clearFollowupDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
+                          <button onClick={this.clearFollowupDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 7px; border-radius:7px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
                         )}
                         {followupAiSource && (
-                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>Drafted from AI · edits tracked</span>
+                          <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>AI draft</span>
                         )}
                         {!followupAiSource && chips.length === 0 && (
-                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI follow-ups yet — run Analyse</span>
+                          <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>Run Analyse</span>
                         )}
                       </div>
                     </div>
@@ -1286,16 +1286,14 @@ class LandlordDetail extends React.Component {
                 })()}
 
                 {this.state.composerType === 'Chat' && (
-                  <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:10.5px; color:rgba(255,255,255,0.4);")}>
-                    Sending via
+                  <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
                     <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
                     WhatsApp
-                    <span style={css("opacity:0.5;")}>· toggle Business/Personal above to switch</span>
                   </div>
                 )}
-                <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
-                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:96px; max-height:200px; padding:14px 16px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13.5px; font-family:'Inter',sans-serif; line-height:1.5; overflow-y:auto;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending) ? '…' : '➤'}</button>
+                <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
+                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending) ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
