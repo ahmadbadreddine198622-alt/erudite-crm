@@ -72,7 +72,7 @@ const GLOBAL_CSS = `
 @media (max-width: 820px) {
   .ld-root { height: auto !important; }
   .ld-panels { flex-direction: column !important; }
-  .ld-panel { flex: 1 1 auto !important; height: auto !important; max-height: none !important; border-right: none !important; }
+  .ld-panel { flex: 1 1 auto !important; width: 100% !important; height: auto !important; max-height: none !important; border-right: none !important; }
   .ld-scroll { max-height: 640px; }
 }
 `;
@@ -752,9 +752,9 @@ class LandlordDetail extends React.Component {
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
             {/* LEFT PANEL */}
-            <div className="ld-panel" style={css("flex:0 0 54%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
+            <div className="ld-panel" style={css("flex:0 0 38%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
 
-              <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:16px 20px 12px;")}>
+              <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px;")}>
                 <div>
                   <div style={css("font-family:'Playfair Display',serif; font-size:19px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
                   <div style={css("font-size:11.5px; color:rgba(255,255,255,0.4); margin-top:2px;")}>{vm.streamCountLabel}</div>
@@ -1131,7 +1131,7 @@ class LandlordDetail extends React.Component {
             </div>
 
             {/* RIGHT PANEL */}
-            <div className="ld-panel ld-scroll" style={css("flex:1; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px;")}>
+            <div className="ld-panel ld-scroll" style={css("flex:1 1 62%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 26px 28px;")}>
 
               {/* header */}
               <div style={css("display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
