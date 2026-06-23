@@ -676,7 +676,9 @@ class LandlordDetail extends React.Component {
 
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
     const filterMode=S.streamFilter || 'all';
-    const filtered = filterMode==='all' ? sorted : sorted.filter(s => s.t==='act' || s.wa===filterMode);
+    const filtered = filterMode==='all' ? sorted
+      : filterMode==='email' ? sorted.filter(s => s.channel==='email' || s.kind==='email')
+      : sorted.filter(s => s.t==='act' || s.wa===filterMode);
     const analyzeError=S.analyzeError || '';
     const stream=filtered.map((s,idx)=>{
       if(s.t==='msg'){
@@ -687,10 +689,10 @@ class LandlordDetail extends React.Component {
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: out ? (L.agent+' · Erudite') : L.name,
-          channel: s.wa==='personal' ? 'WA Personal' : 'WA Business',
+          channel: s.channel==='email' ? 'Email' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-            color: s.wa==='personal' ? '#93c5fd' : '#4ade80',
-            background: s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)',
+            color: s.channel==='email' ? 'hsl(38 92% 62%)' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
+            background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)'),
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'96%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
@@ -887,6 +889,11 @@ class LandlordDetail extends React.Component {
         border: '1px solid '+(filterMode==='personal' ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.18)'),
         color: filterMode==='personal' ? '#93c5fd' : 'rgba(147,197,253,0.5)' },
       personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='personal' ? '#3b82f6' : 'rgba(59,130,246,0.35)' },
+      emailPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
+        background: filterMode==='email' ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.05)',
+        border: '1px solid '+(filterMode==='email' ? 'hsl(38 92% 50% / 0.5)' : 'hsl(38 92% 50% / 0.18)'),
+        color: filterMode==='email' ? 'hsl(38 92% 62%)' : 'hsl(38 92% 50% / 0.5)' },
+      emailDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='email' ? 'hsl(38 92% 55%)' : 'hsl(38 92% 50% / 0.35)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
       aiReady: hasAIProcessed, aiEmpty: !hasAIProcessed,
       ai, showCoaching,
@@ -1024,6 +1031,9 @@ class LandlordDetail extends React.Component {
                   </button>
                   <button onClick={()=>this.setStreamFilter('personal')} style={vm.personalPillStyle}>
                     <span style={vm.personalDotStyle}></span> Personal
+                  </button>
+                  <button onClick={()=>this.setStreamFilter('email')} style={vm.emailPillStyle}>
+                    <span style={vm.emailDotStyle}></span> Email
                   </button>
                   <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
                     <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
@@ -1784,6 +1794,17 @@ export default function LandlordDetailPage() {
     return results;
   }, { enabled: !!phone, refetchInterval: 15000, refetchOnWindowFocus: true });
 
+  // Emails for the stream — match by the landlord's email (from_email OR to)
+  const landlordEmail = L?.email;
+  const { data: emailMessages = [] } = useQ(['landlord_emails', landlordEmail], async () => {
+    if (!landlordEmail) return [];
+    const seen = new Set(); const results = [];
+    const fromMsgs = await safe(() => base44.entities.Email.filter({ from_email: landlordEmail }, '-received_at', 100));
+    const toMsgs = await safe(() => base44.entities.Email.filter({ to: landlordEmail }, '-received_at', 100));
+    [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
+    return results;
+  }, { enabled: !!landlordEmail, refetchInterval: 15000, refetchOnWindowFocus: true });
+
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
     if (!phone) return [];
@@ -1928,6 +1949,18 @@ export default function LandlordDetailPage() {
   if (lp.title_deed_verified === true) connections.dld = 'Title verified';
 
   const stream = [];
+  emailMessages.forEach(em => {
+    const fromLandlord = em.from_email && landlordEmail && em.from_email.toLowerCase() === landlordEmail.toLowerCase();
+    stream.push({
+      t: 'msg',
+      dir: fromLandlord ? 'in' : 'out',
+      mtype: 'text',
+      channel: 'email',
+      text: (em.subject ? em.subject + '\n' : '') + (em.snippet || em.body_text || ''),
+      time: fmtMsgTime(em.received_at || em.created_date),
+      order: tsOf(em.received_at || em.created_date) || 0,
+    });
+  });
   waStreamMessages.forEach(msg => {
     stream.push({
       t: 'msg',
