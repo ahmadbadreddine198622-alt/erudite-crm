@@ -635,7 +635,7 @@ class LandlordDetail extends React.Component {
     const composerTypes=['Note','Task','Follow-up','Appointment','Chat'].map(t=>{
       const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬' }[t];
       const isChat = t==='Chat';
-      return { label:t, icon:ic, onClick: t==='Task' ? ()=>{ this.setComposerType('Task'); this.setState(s=>({ aiTasksCollapsed: !s.aiTasksCollapsed })); } : ()=>this.setComposerType(t),
+      return { label:t, icon:ic, onClick: ()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
           background: isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
           color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
@@ -1084,7 +1084,7 @@ class LandlordDetail extends React.Component {
                         AI Suggested Tasks
                         <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
                       </span>
-                      <span style={css("font-size:12px; color:rgba(255,255,255,0.4);")}>{collapsed ? '▸' : '▾'}</span>
+                      <span style={css("display:inline-flex; align-items:center; color:rgba(255,255,255,0.4);")}><ChevronDown size={14} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} /></span>
                     </button>
                     {!collapsed && (
                       <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
@@ -1257,7 +1257,7 @@ class LandlordDetail extends React.Component {
                                 AI Suggested Follow-ups
                                 <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
                               </span>
-                              <span style={css("font-size:12px; color:rgba(255,255,255,0.4);")}>{collapsed ? '▸' : '▾'}</span>
+                              <span style={css("display:inline-flex; align-items:center; color:rgba(255,255,255,0.4);")}><ChevronDown size={14} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} /></span>
                             </button>
                             {!collapsed && (
                               <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
