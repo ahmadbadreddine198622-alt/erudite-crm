@@ -922,12 +922,6 @@ class LandlordDetail extends React.Component {
                 <span style={css("display:block; width:14px; height:2px; background:#808080; margin-bottom:2px; border-radius:1px;")}></span>
                 <span style={css("display:block; width:14px; height:2px; background:#808080; border-radius:1px;")}></span>
               </button>
-              <button onClick={()=>this.onNavigate('/')} title="Dashboard" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(102,153,204,0.25); background:rgba(32,38,54,0.95); cursor:pointer;")}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6699cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              </button>
-              <button onClick={()=>this.onNavigate('/command-center')} title="Command" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(170,153,204,0.25); background:rgba(46,36,54,0.95); cursor:pointer;")}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#aa99cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
-              </button>
             </div>
             
             {/* Centered banner text */}
