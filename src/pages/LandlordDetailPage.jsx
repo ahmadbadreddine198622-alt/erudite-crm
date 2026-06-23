@@ -23,6 +23,7 @@ import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
+import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -424,32 +425,44 @@ class LandlordDetail extends React.Component {
     // Synchronous re-entry guard (this.state.taskSaving lags a same-tick double-click).
     if(!L || this._taskSaving) return;
     this._taskSaving = true;
-    const { taskAiSource, taskTitleDraft, taskDueDate, taskAssignee } = this.state;
+    const { taskAiSource, taskTitleDraft } = this.state;
     const createdFromAi = !!taskAiSource;
     const wasEdited = createdFromAi ? (title !== (taskTitleDraft || '')) : false;
+    // Sensible defaults so one-tap save works: assignee defaults to the landlord's
+    // assigned agent; due date defaults to 2 days from now when left blank.
+    const assignee = (this.state.taskAssignee || '').trim() || L.agentEmail || undefined;
+    const dueDate = this.state.taskDueDate || this.dueDateInDays(2);
+
+    // Optimistic add — reverted on error so the user can retry.
+    const order = Date.now();
+    const item = { t:'act', kind:'task', title:'Task' + (createdFromAi ? ' · AI' : '') + ' · due '+dueDate, body:title, time:'Just now', order };
+    this.setState(s=>({
+      landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+      composerText:'', composerTime:'',
+    }), ()=>this.scrollBottom());
 
     this.setState({ taskSaving:true });
     try {
       await base44.entities.LandlordTask.create({
         landlord_id: L.id,
         title,
-        due_date: taskDueDate || undefined,
-        assignee_email: taskAssignee || undefined,
+        due_date: dueDate,
+        assignee_email: assignee,
         done: false,
         created_from_ai: createdFromAi,
-        ai_source: taskAiSource || null,
+        ai_source: taskAiSource || undefined,
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI-drafted task saved' : 'Task saved');
-      const order = Date.now();
-      const item = { t:'act', kind:'task', title:'Task' + (createdFromAi ? ' · AI' : '') + (taskDueDate ? ' · due '+taskDueDate : ''), body:title, time:'Just now', order };
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', composerTime:'', taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', taskSaving:false,
-      }), ()=>this.scrollBottom());
+      this.setState(s=>({ taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', taskSaving:false }));
     } catch(e){
+      // Revert optimistic add and restore the composer so the user can retry.
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream: l.stream.filter(si => si.order !== order)} : l),
+        composerText: title,
+        taskSaving:false,
+      }));
       toast.error('Failed to save task: ' + (e?.message || 'unknown error'));
-      this.setState({ taskSaving:false });
     } finally {
       this._taskSaving = false;
     }
@@ -473,6 +486,14 @@ class LandlordDetail extends React.Component {
     const channel = ['whatsapp','call','email'].includes(followupChannel) ? followupChannel : 'whatsapp';
     const apptType = channel === 'call' ? 'call' : 'meeting'; // legacy required field; channel carries the real axis
 
+    // Optimistic add — reverted on error so the user can retry.
+    const order = Date.now();
+    const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${hh}:00`, body:notes, time:'Just now', order };
+    this.setState(s=>({
+      landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+      composerText:'', composerTime:'',
+    }), ()=>this.scrollBottom());
+
     this.setState({ followupSaving:true });
     let user = this.props.currentUser;
     if(!user){ try { user = await base44.auth.me(); } catch(_) { user = null; } }
@@ -480,26 +501,26 @@ class LandlordDetail extends React.Component {
     try {
       await base44.entities.LandlordAppointment.create({
         landlord_id: L.id,
-        agent_email: user?.email || L.agentEmail || null,
+        agent_email: user?.email || L.agentEmail || undefined,
         datetime,
         type: apptType,
         channel,
         notes,
         status: 'scheduled',
         created_from_ai: createdFromAi,
-        ai_source: followupAiSource || null,
+        ai_source: followupAiSource || undefined,
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
-      const order = Date.now();
-      const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${hh}:00`, body:notes, time:'Just now', order };
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', composerTime:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false,
-      }), ()=>this.scrollBottom());
+      this.setState(s=>({ followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false }));
     } catch(e){
+      // Revert optimistic add and restore the composer so the user can retry.
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream: l.stream.filter(si => si.order !== order)} : l),
+        composerText: notes,
+        followupSaving:false,
+      }));
       toast.error('Failed to schedule follow-up: ' + (e?.message || 'unknown error'));
-      this.setState({ followupSaving:false });
     } finally {
       this._followupSaving = false;
     }
@@ -609,18 +630,25 @@ class LandlordDetail extends React.Component {
     const hasAIProcessed = !!L.aiProcessedAt;
 
     const arr = (x) => Array.isArray(x) ? x : [];
+    const sc = L.scores || {};
     // Intelligence panel is driven by ai_processed_at (source of truth for "has this been
-    // analysed"). The `ai` VM object is built from real Landlord fields — not the legacy
-    // L.ai object which is always null in the container mapping.
+    // analysed"). The `ai` VM object is built from real Landlord fields — consumed by the
+    // AIIntelligenceCard component (Part B redesign).
     const ai={
       summary: L.aiRollingSummary || '',
-      language: '—',
-      analysedAt: L.aiProcessedAt ? new Date(L.aiProcessedAt).toLocaleString('en-GB', { weekday:'short', hour:'2-digit', minute:'2-digit' }) : '',
-      tempLabel:this.tempMeta(L.temperature || 'warm').label, tempChipStyle:this.tempChip(L.temperature || 'warm'),
-      keyFacts: [],
-      outstanding: [],
-      coach:{ score:0, scoreColor:this.scoreColor(0), bestLine:'—', doneWell:[], missed:[], objections: arr(L.aiObjections), nextMove:'—' },
-      actions: [],
+      analysedAt: L.aiProcessedAt || null,
+      trust: sc.trust != null ? sc.trust : null,
+      trustRationale: sc.trustWhy || '',
+      urgency: sc.urgency != null ? sc.urgency : null,
+      urgencyRationale: sc.urgencyWhy || '',
+      win: sc.mandateWin != null ? Math.round(sc.mandateWin * 100) : null,
+      winRationale: sc.mandateWhy || '',
+      momentum: L.aiMomentum || '',
+      strikeNow: L.hasStrikeNow === true,
+      strikeText: L.strikeText || '',
+      nextBestAction: L.aiNextBestAction || null,
+      coaching: L.aiCoaching || '',
+      objections: arr(L.aiObjections),
     };
 
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
@@ -911,138 +939,20 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* pinned AI card — header bar removed; intelligence content renders directly */}
-              <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
-                {vm.analyzeError && (
-                  <div style={css("padding:10px 15px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border-top:1px solid rgba(239,68,68,0.15);")}>
-                    {vm.analyzeError}
-                  </div>
-                )}
-
-                {vm.aiReady && (
-                  <div style={css("padding:14px 15px; max-height:368px; overflow-y:auto;")}>
-                    {vm.analyzing && (
-                      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; border-radius:8px; background:hsl(38 92% 50% / 0.08); border:1px solid hsl(38 92% 50% / 0.2); font-size:11px; color:hsl(38 92% 62%);")}>
-                        <div style={css("display:inline-block; width:12px; height:12px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
-                        Re-analysing… showing last result
-                      </div>
-                    )}
-                    <div style={css("display:flex; align-items:flex-start; gap:10px; margin-bottom:6px;")}>
-                      <span style={ai.tempChipStyle}>{ai.tempLabel}</span>
-                      <p style={css("margin:0; font-size:13px; line-height:1.55; color:rgba(255,255,255,0.82);")}>{ai.summary}</p>
-                    </div>
-                    <div style={css("font-size:10px; color:rgba(255,255,255,0.32); margin-bottom:8px;")}>Detected language · {ai.language} · analysed {ai.analysedAt}</div>
-
-                    <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin:14px 0 7px;")}>Key facts</div>
-                    <div style={css("display:flex; flex-direction:column; gap:5px;")}>
-                      {ai.keyFacts.map((f,i)=>(
-                        <div key={i} style={css("display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:rgba(255,255,255,0.74); line-height:1.45;")}>
-                          <span style={css("flex:none; width:5px; height:5px; border-radius:50%; background:hsl(38 92% 55%); margin-top:6px;")}></span>{f}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:#fca5a5; margin:15px 0 7px;")}>Outstanding · unanswered questions</div>
-                    <div style={css("display:flex; flex-direction:column; gap:6px;")}>
-                      {ai.outstanding.map((q,i)=>(
-                        <div key={i} style={css("display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:9px; background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.18); font-size:12.5px; color:rgba(255,255,255,0.78); line-height:1.45;")}>
-                          <span style={css("flex:none; color:#f87171; font-weight:700;")}>?</span>{q}
-                        </div>
-                      ))}
-                    </div>
-
-                    {vm.showCoaching && (
-                      <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(139,92,246,0.3); background:linear-gradient(180deg, rgba(139,92,246,0.12), rgba(139,92,246,0.03)); overflow:hidden;")}>
-                        <div style={css("display:flex; align-items:center; justify-content:space-between; padding:10px 13px; border-bottom:1px solid rgba(139,92,246,0.18);")}>
-                          <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#c4b5fd;")}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/></svg>
-                            Conversation Coach
-                          </span>
-                          <span style={css("display:inline-flex; align-items:baseline; gap:5px;")}>
-                            <span style={css("font-size:10px; color:rgba(255,255,255,0.45);")}>Quality</span>
-                            <span style={{...css("font-size:15px; font-weight:800;"), color:ai.coach.scoreColor}}>{ai.coach.score}</span>
-                            <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>/100</span>
-                          </span>
-                        </div>
-                        <div style={css("padding:11px 13px;")}>
-                          <div style={css("font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:#a78bfa; margin-bottom:5px;")}>Best line to use now</div>
-                          <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.92); font-style:italic; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.1); border-left:2px solid #8b5cf6;")}>“{ai.coach.bestLine}”</div>
-
-                          <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:12px;")}>
-                            <div>
-                              <div style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#34d399; margin-bottom:5px;")}>Done well</div>
-                              <div style={css("display:flex; flex-direction:column; gap:4px;")}>
-                                {ai.coach.doneWell.map((w,i)=>(
-                                  <div key={i} style={css("display:flex; align-items:flex-start; gap:6px; font-size:11.5px; color:rgba(255,255,255,0.66); line-height:1.4;")}><span style={css("flex:none; color:#34d399;")}>✓</span>{w}</div>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <div style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#f0abfc; margin-bottom:5px;")}>Missed</div>
-                              <div style={css("display:flex; flex-direction:column; gap:4px;")}>
-                                {ai.coach.missed.map((m,i)=>(
-                                  <div key={i} style={css("display:flex; align-items:flex-start; gap:6px; font-size:11.5px; color:rgba(255,255,255,0.66); line-height:1.4;")}><span style={css("flex:none; color:#f0abfc;")}>✕</span>{m}</div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          {(ai.coach.objections.length > 0 || (L.aiObjections && L.aiObjections.length > 0)) && (
-                            <div style={css("margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;")}>
-                              {ai.coach.objections.map((ob,i)=>(
-                                <span key={i} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:10.5px; color:#fca5a5;")}>⚑ {ob}</span>
-                              ))}
-                              {(L.aiObjections || []).map((ob,i)=>(
-                                <span key={`ai-${i}`} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:10.5px; color:#fca5a5;")}>⚑ {ob}</span>
-                              ))}
-                            </div>
-                          )}
-
-                          {L.aiCoaching && (
-                            <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
-                              <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#a78bfa;")}>Agent coaching</span>
-                              <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{L.aiCoaching}</div>
-                            </div>
-                          )}
-                          {L.hasCompetition && L.competitionText && (
-                            <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(245,158,11,0.08); border:1px solid hsl(38 92% 50% / 0.2);")}>
-                              <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:hsl(38 92% 60%);")}>Competition</span>
-                              <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{L.competitionText}</div>
-                            </div>
-                          )}
-                          <div style={css("margin-top:11px; padding:9px 11px; border-radius:9px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2);")}>
-                            <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#a78bfa;")}>Next move</span>
-                            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin-top:3px;")}>{ai.coach.nextMove}</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin:16px 0 8px;")}>Suggested actions · tap to draft</div>
-                    <div style={css("display:flex; flex-direction:column; gap:7px;")}>
-                      {ai.actions.map((a,i)=>(
-                        <button key={i} onClick={a.onClick} style={a.chipStyle}>
-                          <span style={a.iconStyle}>{a.icon}</span>
-                          <span style={css("min-width:0; flex:1;")}>
-                            <span style={css("display:flex; align-items:center; justify-content:space-between; gap:8px;")}>
-                              <span style={css("font-weight:600; font-size:12.5px; color:rgba(255,255,255,0.9);")}>{a.title}</span>
-                              <span style={css("flex:none; font-size:10px; font-weight:600; color:hsl(38 92% 60%);")}>{a.time}</span>
-                            </span>
-                            <span style={css("display:block; font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px; line-height:1.4;")}>{a.reason}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {vm.aiEmpty && (
-                  <div style={css("padding:14px 15px; display:flex; align-items:center; gap:8px;")}>
-                    <div style={css("display:inline-block; width:14px; height:14px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
-                    <span style={css("font-size:11.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
-                  </div>
-                )}
-              </div>
+              {vm.analyzeError && (
+                <div style={css("flex:none; margin:0 16px 8px; padding:8px 12px; border-radius:10px; font-size:11.5px; color:#fca5a5; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);")}>
+                  {vm.analyzeError}
+                </div>
+              )}
+              {vm.aiReady && (
+                <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} />
+              )}
+              {vm.aiEmpty && (
+                <div style={css("flex:none; margin:0 16px 10px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:14px 15px; display:flex; align-items:center; gap:8px;")}>
+                  <div style={css("display:inline-block; width:14px; height:14px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
+                  <span style={css("font-size:11.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
+                </div>
+              )}
 
               {/* unified stream */}
               <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px 14px; display:flex; flex-direction:column; gap:12px;")}>
