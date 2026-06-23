@@ -386,6 +386,7 @@ class LandlordDetail extends React.Component {
     if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
     if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
     if(this.state.composerType === 'Chat'){ this.sendChat(txt); return; }
+    if(this.state.composerType === 'iMessage'){ this.sendIMessage(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -572,6 +573,30 @@ class LandlordDetail extends React.Component {
     }
   };
 
+  sendIMessage = async (text)=>{
+    const L = this.cur();
+    if(!L || this._imessageSending) return;
+    this._imessageSending = true;
+    this.setState({ imessageSending:true });
+    try {
+      const res = await base44.functions.invoke('sendIMessage', { landlord_id: L.id, text });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      toast.success('iMessage sent');
+      const order = Date.now();
+      const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+        composerText:'', imessageSending:false,
+      }), ()=>this.scrollBottom());
+    } catch(e){
+      toast.error('Failed to send iMessage: ' + (e?.message || 'unknown error'));
+      this.setState({ imessageSending:false });
+    } finally {
+      this._imessageSending = false;
+    }
+  };
+
   onAnalyse = async ()=>{
     if(!this.state.currentId) return;
     this.setState({ analyzing:true, analyseError:'' });
@@ -678,6 +703,7 @@ class LandlordDetail extends React.Component {
     const filterMode=S.streamFilter || 'all';
     const filtered = filterMode==='all' ? sorted
       : filterMode==='email' ? sorted.filter(s => s.channel==='email' || s.kind==='email')
+      : filterMode==='imessage' ? sorted.filter(s => s.channel==='imessage')
       : sorted.filter(s => s.t==='act' || s.wa===filterMode);
     const analyzeError=S.analyzeError || '';
     const stream=filtered.map((s,idx)=>{
@@ -689,10 +715,10 @@ class LandlordDetail extends React.Component {
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: out ? (L.agent+' · Erudite') : L.name,
-          channel: s.channel==='email' ? 'Email' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
+          channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-            color: s.channel==='email' ? 'hsl(38 92% 62%)' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
-            background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)'),
+            color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
+            background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : s.channel==='imessage' ? 'rgba(10,132,255,0.14)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)'),
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'96%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
@@ -709,16 +735,17 @@ class LandlordDetail extends React.Component {
     const msgCount=filtered.filter(s=>s.t==='msg').length;
     const actCount=filtered.filter(s=>s.t==='act').length;
 
-    const composerTypes=['Note','Task','Follow-up','Appointment','Chat'].map(t=>{
-      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬' }[t];
+    const composerTypes=['Note','Task','Follow-up','Appointment','Chat','iMessage'].map(t=>{
+      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬','iMessage':'' }[t];
       const isChat = t==='Chat';
+      const isIMessage = t==='iMessage';
       return { label:t, icon:ic, onClick: ()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-          background: isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
-          color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
-          border:'1px solid '+(isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
+          background: isIMessage ? (on?'rgba(10,132,255,0.2)':'rgba(10,132,255,0.08)') : isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
+          color: isIMessage ? (on?'#0A84FF':'#60a5fa') : isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
+          border:'1px solid '+(isIMessage ? (on?'rgba(10,132,255,0.5)':'rgba(10,132,255,0.3)') : isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
     });
-    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)' };
+    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)', 'iMessage':'Type an iMessage… (Enter to send)' };
 
     const rm=this.rapportMeta(L.rapport);
     const hdr={
@@ -894,6 +921,11 @@ class LandlordDetail extends React.Component {
         border: '1px solid '+(filterMode==='email' ? 'hsl(38 92% 50% / 0.5)' : 'hsl(38 92% 50% / 0.18)'),
         color: filterMode==='email' ? 'hsl(38 92% 62%)' : 'hsl(38 92% 50% / 0.5)' },
       emailDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='email' ? 'hsl(38 92% 55%)' : 'hsl(38 92% 50% / 0.35)' },
+      imessagePillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
+        background: filterMode==='imessage' ? 'rgba(10,132,255,0.2)' : 'rgba(10,132,255,0.05)',
+        border: '1px solid '+(filterMode==='imessage' ? 'rgba(10,132,255,0.5)' : 'rgba(10,132,255,0.18)'),
+        color: filterMode==='imessage' ? '#60a5fa' : 'rgba(96,165,250,0.5)' },
+      imessageDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='imessage' ? '#0A84FF' : 'rgba(10,132,255,0.35)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
       aiReady: hasAIProcessed, aiEmpty: !hasAIProcessed,
       ai, showCoaching,
@@ -1034,6 +1066,9 @@ class LandlordDetail extends React.Component {
                   </button>
                   <button onClick={()=>this.setStreamFilter('email')} style={vm.emailPillStyle}>
                     <span style={vm.emailDotStyle}></span> Email
+                  </button>
+                  <button onClick={()=>this.setStreamFilter('imessage')} style={vm.imessagePillStyle}>
+                    <span style={vm.imessageDotStyle}></span> iMessage
                   </button>
                   <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
                     <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
@@ -1315,7 +1350,7 @@ class LandlordDetail extends React.Component {
                 )}
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending) ? '…' : '➤'}</button>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending || this.state.imessageSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending) ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
@@ -1805,6 +1840,9 @@ export default function LandlordDetailPage() {
     return results;
   }, { enabled: !!landlordEmail, refetchInterval: 15000, refetchOnWindowFocus: true });
 
+  // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
+  const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 15000, refetchOnWindowFocus: true });
+
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
     if (!phone) return [];
@@ -1970,6 +2008,17 @@ export default function LandlordDetailPage() {
       time: fmtMsgTime(msg.timestamp),
       order: tsOf(msg.timestamp) || 0,
       wa: deriveWaChannel(msg),
+    });
+  });
+  iMessages.forEach(msg => {
+    stream.push({
+      t: 'msg',
+      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      mtype: 'text',
+      channel: 'imessage',
+      text: msg.body || '',
+      time: fmtMsgTime(msg.sent_at || msg.created_date),
+      order: tsOf(msg.sent_at || msg.created_date) || 0,
     });
   });
   const mapCallStatus = (s) => {
