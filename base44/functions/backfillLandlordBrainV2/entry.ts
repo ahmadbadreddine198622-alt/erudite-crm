@@ -121,7 +121,32 @@ Analyze and emit JSON.`;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result;
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      console.error('JSON parse failed:', parseErr.message);
+      return null;
+    }
+    
+    // Normalize suggested_hour to numbers (Claude sometimes returns strings like "same day")
+    if (Array.isArray(result.ai_suggested_followups)) {
+      result.ai_suggested_followups = result.ai_suggested_followups.map(f => {
+        if (f && typeof f.suggested_hour === 'string') {
+          const numMatch = f.suggested_hour.match(/\d+/);
+          f.suggested_hour = numMatch ? parseInt(numMatch[0], 10) : 10;
+        } else if (f && (f.suggested_hour == null || isNaN(f.suggested_hour))) {
+          f.suggested_hour = 10;
+        }
+        return f;
+      });
+    }
+    
+    // Normalize ai_coaching_for_agent to string (Claude sometimes returns array)
+    if (Array.isArray(result.ai_coaching_for_agent)) {
+      result.ai_coaching_for_agent = result.ai_coaching_for_agent.join(' ');
+    }
+    
     return { ...result, model_used: modelToUse };
   } catch (err) {
     console.error('Claude call failed:', err);
