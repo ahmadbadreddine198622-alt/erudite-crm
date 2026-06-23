@@ -238,6 +238,16 @@ Rules:
       console.warn(`[processCallQualifications] Could not mark qualification ${q.id} processed:`, e?.message);
     }
   }
+
+  // ── 9. Hand off to the V2 brain ───────────────────────────────────────────
+  // The deterministic mappings above are a fast pre-pass; landlordOrchestrator (full tier)
+  // is the source of truth — it re-reads the qualification we just stamped and produces the
+  // full intelligence set (scores, drafts, stage progression, model/status stamps).
+  try {
+    await svc.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true, tier: 'full' });
+  } catch (e) {
+    console.warn(`[processCallQualifications] Orchestrator handoff failed for ${landlord.id}:`, e?.message);
+  }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────

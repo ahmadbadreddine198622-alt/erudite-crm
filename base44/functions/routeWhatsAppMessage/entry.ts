@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
         });
       } catch {}
 
-      base44.asServiceRole.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }).catch(() => {});
+      base44.asServiceRole.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true, tier: 'cold' }).catch(() => {});
 
       await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
       await createAgentReminder(base44, agentEmail, landlord.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
