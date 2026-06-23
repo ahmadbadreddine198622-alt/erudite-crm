@@ -606,25 +606,22 @@ class LandlordDetail extends React.Component {
     const showSignals = this.props.showSignals!==false;
 
     const landlordOptions = S.landlords.map(l=>({ id:l.id, name:l.name }));
-    const hasAI=!!L.ai;
+    const hasAIProcessed = !!L.aiProcessedAt;
 
     const arr = (x) => Array.isArray(x) ? x : [];
-    let ai={};
-    if(hasAI){
-      const c = L.ai.coach || {};
-      ai={
-        summary:L.ai.summary || '', language:L.ai.language || '—', analysedAt:L.ai.analysedAt || '',
-        tempLabel:this.tempMeta(L.ai.temperature || 'warm').label, tempChipStyle:this.tempChip(L.ai.temperature || 'warm'),
-        keyFacts:arr(L.ai.keyFacts), outstanding:arr(L.ai.outstanding),
-        coach:{ score:c.score ?? 0, scoreColor:this.scoreColor(c.score ?? 0), bestLine:c.bestLine || '—', doneWell:arr(c.doneWell), missed:arr(c.missed), objections:arr(c.objections), nextMove:c.nextMove || '—' },
-        actions:arr(L.ai.suggestions).map(a=>{
-          const [icon,bg,color]=this.sugMeta(a.type);
-          return { title:a.title, reason:a.reason, time:a.time, icon, onClick:()=>this.fillDraft(a),
-            iconStyle:{ flex:'none', width:'30px', height:'30px', borderRadius:'9px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', background:bg, color, marginTop:'1px' },
-            chipStyle:{ display:'flex', alignItems:'flex-start', gap:'10px', padding:'9px 11px', borderRadius:'11px', border:'1px solid hsl(38 92% 50% / 0.28)', background:'hsl(38 92% 50% / 0.06)', cursor:'pointer', fontFamily:"'Inter',sans-serif", textAlign:'left', width:'100%' } };
-        }),
-      };
-    }
+    // Intelligence panel is driven by ai_processed_at (source of truth for "has this been
+    // analysed"). The `ai` VM object is built from real Landlord fields — not the legacy
+    // L.ai object which is always null in the container mapping.
+    const ai={
+      summary: L.aiRollingSummary || '',
+      language: '—',
+      analysedAt: L.aiProcessedAt ? new Date(L.aiProcessedAt).toLocaleString('en-GB', { weekday:'short', hour:'2-digit', minute:'2-digit' }) : '',
+      tempLabel:this.tempMeta(L.temperature || 'warm').label, tempChipStyle:this.tempChip(L.temperature || 'warm'),
+      keyFacts: [],
+      outstanding: [],
+      coach:{ score:0, scoreColor:this.scoreColor(0), bestLine:'—', doneWell:[], missed:[], objections: arr(L.aiObjections), nextMove:'—' },
+      actions: [],
+    };
 
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
     const filterMode=S.streamFilter || 'all';
@@ -840,7 +837,7 @@ class LandlordDetail extends React.Component {
         color: filterMode==='personal' ? '#93c5fd' : 'rgba(147,197,253,0.5)' },
       personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='personal' ? '#3b82f6' : 'rgba(59,130,246,0.35)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
-      aiReady: hasAI && !S.analyzing, aiEmpty: !hasAI,
+      aiReady: hasAIProcessed, aiEmpty: !hasAIProcessed,
       ai, showCoaching,
       analyseLabel: S.analyzing?'Analysing…':'Analyse Now',
       analyseIconStyle:{ display:'inline-block', animation: S.analyzing?'ld-spin 0.8s linear infinite':'none' },
@@ -924,6 +921,12 @@ class LandlordDetail extends React.Component {
 
                 {vm.aiReady && (
                   <div style={css("padding:14px 15px; max-height:368px; overflow-y:auto;")}>
+                    {vm.analyzing && (
+                      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:10px; padding:6px 10px; border-radius:8px; background:hsl(38 92% 50% / 0.08); border:1px solid hsl(38 92% 50% / 0.2); font-size:11px; color:hsl(38 92% 62%);")}>
+                        <div style={css("display:inline-block; width:12px; height:12px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
+                        Re-analysing… showing last result
+                      </div>
+                    )}
                     <div style={css("display:flex; align-items:flex-start; gap:10px; margin-bottom:6px;")}>
                       <span style={ai.tempChipStyle}>{ai.tempLabel}</span>
                       <p style={css("margin:0; font-size:13px; line-height:1.55; color:rgba(255,255,255,0.82);")}>{ai.summary}</p>
@@ -1033,8 +1036,8 @@ class LandlordDetail extends React.Component {
                   </div>
                 )}
 
-                {vm.aiEmpty && vm.analyzing && (
-                  <div style={css("padding:8px 15px; display:flex; align-items:center; gap:8px;")}>
+                {vm.aiEmpty && (
+                  <div style={css("padding:14px 15px; display:flex; align-items:center; gap:8px;")}>
                     <div style={css("display:inline-block; width:14px; height:14px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
                     <span style={css("font-size:11.5px; color:rgba(255,255,255,0.55);")}>Analysing conversation…</span>
                   </div>
@@ -2220,6 +2223,7 @@ export default function LandlordDetailPage() {
   strikeText,
   strikeKicker,
   aiMomentum: L.ai_momentum || null,
+  aiProcessedAt: L.ai_processed_at || null,
   mandate,
   // Legacy fields for backward compat
   nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
