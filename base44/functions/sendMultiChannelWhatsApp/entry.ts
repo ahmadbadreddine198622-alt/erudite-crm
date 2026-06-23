@@ -169,21 +169,29 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Step 2: Find the conversation that matches phone + channel (strict)
+    // Step 2: Find the conversation that matches phone + channel (strict).
+    // There may be duplicate threads — always reuse the MOST RECENTLY ACTIVE one
+    // so replies don't split across threads (which looks like the wrong number).
     const phoneE164 = '+' + number;
+    const pickNewest = (list) => {
+      if (!list || !list.length) return null;
+      return [...list].sort((a, b) =>
+        new Date(b.last_message_at || b.updated_date || 0) - new Date(a.last_message_at || a.updated_date || 0)
+      )[0];
+    };
     const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
-    conversation = byPhoneAndChannel[0] || null;
+    conversation = pickNewest(byPhoneAndChannel);
 
     // Fallback: try digits-only phone_number field
     if (!conversation) {
       const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
-      conversation = byPhoneNumber[0] || null;
+      conversation = pickNewest(byPhoneNumber);
     }
 
     // Step 3: If landlord_id provided and still no match, try landlord + channel
     if (!conversation && landlord_id) {
       const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
-      conversation = byLandlord[0] || null;
+      conversation = pickNewest(byLandlord);
     }
 
     // Step 4: Create a new conversation for this channel if none found

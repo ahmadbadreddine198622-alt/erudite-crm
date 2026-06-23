@@ -66,7 +66,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
       });
       if (res.data?.error) throw new Error(res.data.error);
       toast.success(`Template "${template.name}" sent via Business!`);
-      qc.invalidateQueries({ queryKey: ['landlord-wa-msgs', conversation?.id] });
+      qc.invalidateQueries({ queryKey: ['landlord-wa-msgs'] });
     } catch (e) {
       toast.error(e.message || 'Failed to send template');
     } finally {
@@ -74,24 +74,40 @@ export default function LandlordWhatsAppPanel({ landlord }) {
     }
   };
 
-  // Find conversation for current channel
+  // Find ALL conversations for current channel (there may be duplicates from older syncs)
   const { data: conversations = [] } = useQuery({
     queryKey: ['landlord-wa-conv', landlord?.id, channel],
     queryFn: async () => {
       if (!phoneE164) return [];
-      const r = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
-      if (r.length) return r;
-      return base44.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
+      let r = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
+      if (!r.length) r = await base44.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
+      // Most-recently-active conversation first, so the primary thread is the live one.
+      return [...r].sort((a, b) =>
+        new Date(b.last_message_at || b.updated_date || 0) - new Date(a.last_message_at || a.updated_date || 0)
+      );
     },
     enabled: !!phoneE164,
   });
   const conversation = conversations[0] || null;
+  // All conversation IDs for this phone+channel — messages are merged across duplicate threads.
+  const conversationIds = conversations.map((c) => c.id).filter(Boolean);
 
-  // Fetch messages
+  // Fetch messages across ALL matching conversations, merged and time-sorted.
   const { data: messages = [], isLoading, refetch } = useQuery({
-    queryKey: ['landlord-wa-msgs', conversation?.id],
-    queryFn: () => base44.entities.WhatsAppMessage.filter({ conversation_id: conversation.id }, 'timestamp', 200),
-    enabled: !!conversation?.id,
+    queryKey: ['landlord-wa-msgs', conversationIds.join(',')],
+    queryFn: async () => {
+      const batches = await Promise.all(
+        conversationIds.map((cid) =>
+          base44.entities.WhatsAppMessage.filter({ conversation_id: cid }, 'timestamp', 200)
+        )
+      );
+      const seen = new Set();
+      return batches
+        .flat()
+        .filter((m) => (m.id && !seen.has(m.id) ? (seen.add(m.id), true) : false))
+        .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    },
+    enabled: conversationIds.length > 0,
     refetchInterval: 8000,
   });
 
@@ -107,7 +123,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
       if (data?.error) { toast.error('Send failed: ' + data.error); return; }
       setText('');
       setSmartReplies([]);
-      qc.invalidateQueries({ queryKey: ['landlord-wa-msgs', conversation?.id] });
+      qc.invalidateQueries({ queryKey: ['landlord-wa-msgs'] });
       qc.invalidateQueries({ queryKey: ['landlord-wa-conv', landlord?.id, channel] });
     },
     onError: (e) => toast.error('Send failed: ' + (e?.response?.data?.error || e?.message)),
