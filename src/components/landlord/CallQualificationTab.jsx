@@ -255,6 +255,8 @@ export default function CallQualificationTab({ landlord }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['call-qualifications', landlord.id] });
+      // New qualification → full re-analysis (best-effort, fire-and-forget).
+      base44.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }).catch(() => {});
       setForm(EMPTY);
       setSaved(true);
       setIsExpanded(false); // Collapse after save
