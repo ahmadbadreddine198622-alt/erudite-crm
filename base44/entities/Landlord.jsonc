@@ -350,6 +350,21 @@
     "ai_coaching_for_agent": {
       "type": "string"
     },
+    "ai_suggested_tasks": {
+      "type": "array",
+      "description": "AI-ranked shortlist of suggested next tasks (3-5), most-important first. Written by landlordOrchestrator; each item references a TaskTemplate by template_key.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ai_objections": {
       "type": "array",
       "items": {

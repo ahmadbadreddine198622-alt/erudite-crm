@@ -34,6 +34,15 @@ const STAGES = [
   'offer_negotiation', 'form_f_and_deposit', 'closing', 'post_completion'
 ];
 
+// The only valid TaskTemplate keys (seeded in the TaskTemplate library). Used both to
+// constrain the model via the tool schema enum AND to validate the model's output in code
+// (defence-in-depth: any hallucinated key is dropped before write-back).
+const TASK_TEMPLATE_KEYS = [
+  'chase_document', 'clarify_price', 'reduce_price', 'send_comps', 'book_call',
+  'book_viewing', 'schedule_photographer', 'get_mandate_signed', 'follow_up_silence',
+  'switch_channel', 'map_stakeholder', 'verify_permit', 'publish_listing'
+];
+
 const ORCHESTRATOR_SCHEMA = {
   type: 'object',
   properties: {
@@ -58,6 +67,27 @@ const ORCHESTRATOR_SCHEMA = {
         draft_language: { type: 'string' },
         reasoning: { type: 'string' },
         confidence: { type: 'number' }
+      }
+    },
+    suggested_tasks: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 5,
+      description: '3-5 recommended next tasks for this landlord, ranked most-important first.',
+      items: {
+        type: 'object',
+        properties: {
+          template_key: {
+            type: 'string',
+            enum: TASK_TEMPLATE_KEYS,
+            description: 'Which TaskTemplate this suggestion maps to. MUST be one of the enumerated keys.'
+          },
+          reason: {
+            type: 'string',
+            description: 'One short sentence: why this task matters for THIS landlord right now.'
+          }
+        },
+        required: ['template_key', 'reason']
       }
     },
     ai_momentum: { type: 'string', enum: ['accelerating', 'steady', 'slowing', 'stalled'] },
@@ -140,6 +170,7 @@ You wake up hourly to assess a single landlord and decide:
 8. MOMENTUM: accelerating | steady | slowing | stalled
 9. STRIKE_NOW: true if momentum=accelerating AND urgency>70 AND mandate_win_probability>0.4
 10. ESCALATION: needs_human_review = true if value >10M AED with red flag, OR competing_brokers_count >= 3, OR stuck >14d in same stage.
+11. SUGGESTED TASKS: Recommend 3-5 concrete next tasks for this landlord, ranked most-important first. Each task MUST reference exactly one of these template keys: chase_document, clarify_price, reduce_price, send_comps, book_call, book_viewing, schedule_photographer, get_mandate_signed, follow_up_silence, switch_channel, map_stakeholder, verify_permit, publish_listing. Give a one-sentence reason per task, specific to THIS landlord. Choose keys that fit the current stage, document status, pricing gap, silence/responsiveness, and signals. Do NOT invent keys outside this list.
 
 Rules:
 - STRICT JSON output. No prose.
@@ -205,6 +236,14 @@ Analyze and emit orchestrator JSON.`;
       mandate_win_probability: normalizeScore(result.mandate_win_probability, 1),
       red_flags: Array.isArray(result.red_flags) ? result.red_flags : [],
       buying_signals: Array.isArray(result.buying_signals) ? result.buying_signals : [],
+      // Validate AI-suggested tasks in code: drop non-objects and any key not in the library,
+      // keep only {template_key, reason}, cap at 5, default to [] so a model miss is harmless.
+      suggested_tasks: Array.isArray(result.suggested_tasks)
+        ? result.suggested_tasks
+            .filter(t => t && typeof t === 'object' && TASK_TEMPLATE_KEYS.includes(t.template_key))
+            .slice(0, 5)
+            .map(t => ({ template_key: t.template_key, reason: typeof t.reason === 'string' ? t.reason : '' }))
+        : [],
     };
 
     const update = {
@@ -220,6 +259,7 @@ Analyze and emit orchestrator JSON.`;
       ai_rolling_summary: normalizedResult.ai_rolling_summary,
       ai_coaching_for_agent: normalizedResult.ai_coaching_for_agent,
       ai_next_best_action: normalizedResult.ai_next_best_action,
+      ai_suggested_tasks: normalizedResult.suggested_tasks,
       ai_momentum: normalizedResult.ai_momentum,
       ai_strike_now: normalizedResult.ai_strike_now,
       needs_human_review: normalizedResult.needs_human_review,
