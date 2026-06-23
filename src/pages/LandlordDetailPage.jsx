@@ -99,7 +99,37 @@ export default function LandlordDetailPage() {
   }
   
   const vm = {
-      // This is where the viewModel logic will go.
+      calls: [],
+      mandate: L.mandate_status && L.mandate_status !== 'none' ? { 
+          commission: L.commission_pct_negotiated ? `${L.commission_pct_negotiated}%` : 'N/A',
+          askingPrice: L.asking_price_aed ? `AED ${L.asking_price_aed.toLocaleString()}` : 'N/A',
+          status: L.mandate_status,
+          type: L.mandate_type || '—',
+          startDate: '—',
+          expiryDate: '—',
+          contractNumber: L.form_a_contract_number || '—',
+          pdfUrl: L.form_a_pdf_url || null,
+          contracts: [],
+      } : null,
+      mediaItems: [],
+      media: {
+        videoUrl: L.media_video_url || null,
+        tour360Url: L.media_tour_360_url || null,
+        droneUrl: L.media_drone_url || null,
+        floorplanUrl: L.media_floorplan_url || null,
+        photographyStatus: L.media_photography_status || 'not_started',
+        photographyUrl: L.media_photography_url || null,
+      },
+      showSignals: L.trust_score != null || L.urgency_score != null,
+      scorecards: [],
+      signals: {},
+      flagChips: (L.red_flags || []).map(f => ({ label: f.replace(/_/g, ' '), style: {} })),
+      buyChips: (L.buying_signals || []).map(b => ({ label: b, style: {} })),
+      hasFlags: (L.red_flags && L.red_flags.length > 0) || (L.buying_signals && L.buying_signals.length > 0),
+      summaryText: L.ai_rolling_summary || 'No AI summary yet — run "Analyse Now" to generate one.',
+      valuation: null,
+      market: { comps: [] },
+      docs: [],
   };
 
   return (

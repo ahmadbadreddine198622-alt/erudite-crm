@@ -63,9 +63,9 @@ const LandlordDetailPanels = ({ L, vm, openSections, toggleSection, onNavigate, 
             title="Call History"
             isOpen={openSections.callHistory}
             onToggle={() => toggleSection('callHistory')}
-            count={vm.calls.length}
+            count={(vm.calls && vm.calls.length) || 0}
         >
-            {vm.calls.length > 0 ? (
+            {vm.calls && vm.calls.length > 0 ? (
                 <div style={css("display:flex; flex-direction:column; gap:8px;")}>
                 {vm.calls.map((cl)=>(
                     <div key={cl.key} style={css("display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
@@ -102,8 +102,8 @@ const LandlordDetailPanels = ({ L, vm, openSections, toggleSection, onNavigate, 
 
         {vm.mandate && <MandatePanel mandate={vm.mandate} />}
 
-        {vm.showSignals && <Scorecards scorecards={vm.scorecards} />}
-        <RiskSignals signals={vm.signals} flagChips={vm.flagChips} buyChips={vm.buyChips} hasFlags={vm.hasFlags} />
+        {vm.showSignals && vm.scorecards && <Scorecards scorecards={vm.scorecards} />}
+        <RiskSignals signals={vm.signals || {}} flagChips={vm.flagChips || []} buyChips={vm.buyChips || []} hasFlags={vm.hasFlags || false} />
 
         <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
             <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:10px;")}>
@@ -113,13 +113,13 @@ const LandlordDetailPanels = ({ L, vm, openSections, toggleSection, onNavigate, 
             <p style={css("margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.8);")}>{vm.summaryText}</p>
         </div>
 
-        <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
+        <ContactEvaluation valuation={vm.valuation || null} comps={(vm.market && vm.market.comps) || []} />
 
         <div style={css("margin-top:18px;")}>
             <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;")}>
             <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Documents & Mandate</span>
             </div>
-            <DocumentsTab docs={vm.docs} />
+            <DocumentsTab docs={vm.docs || []} />
         </div>
     </div>
   );
