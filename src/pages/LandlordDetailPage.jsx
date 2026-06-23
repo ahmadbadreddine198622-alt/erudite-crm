@@ -915,19 +915,19 @@ class LandlordDetail extends React.Component {
         <div className="ld-root" style={css("height:100vh; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
           {/* Top bar */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:13px 22px; border-bottom:1px solid rgba(255,255,255,0.07); background:rgba(8,12,22,0.6); backdrop-filter:blur(14px);")}>
-            <div style={css("display:flex; align-items:center; gap:14px; min-width:0;")}>
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 22px 11px; border-bottom:1px solid rgba(255,255,255,0.07); background:rgba(8,12,22,0.6); backdrop-filter:blur(14px);")}>
+            <div style={css("display:flex; align-items:center; gap:10px;")}>
               <button onClick={this.onBack} style={css("flex:none; display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.7); font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                 <span style={css("font-size:14px; line-height:1;")}>‹</span> Landlords
               </button>
-              <div style={css("display:flex; align-items:center; gap:9px; min-width:0;")}>
-                <div style={css("width:6px; height:6px; border-radius:2px; background:hsl(38 92% 50%); box-shadow:0 0 9px hsl(38 92% 50% / 0.7);")}></div>
-                <span style={css("font-size:10.5px; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:hsl(38 92% 55%); white-space:nowrap;")}>Erudite · Landlord</span>
+              <div style={css("display:flex; align-items:center; gap:7px;")}>
+                <div style={css("width:5px; height:5px; border-radius:2px; background:hsl(38 92% 50%); box-shadow:0 0 8px hsl(38 92% 50% / 0.7);")}></div>
+                <span style={css("font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:hsl(38 92% 55%); white-space:nowrap;")}>Landlord</span>
               </div>
             </div>
-            <div style={css("display:flex; align-items:center; gap:10px;")}>
-              <span style={css("font-size:11.5px; color:rgba(255,255,255,0.4);")}>Viewing</span>
-              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:13px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}>
+            <div style={css("display:flex; align-items:center; gap:9px;")}>
+              <span style={css("font-size:10.5px; color:rgba(255,255,255,0.45);")}>Viewing</span>
+              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}>
                 {vm.landlordOptions.map(o=>(
                   <option key={o.id} value={o.id} style={{background:'#13182a'}}>{o.name}</option>
                 ))}
