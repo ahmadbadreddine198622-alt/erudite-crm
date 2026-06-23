@@ -916,12 +916,14 @@ class LandlordDetail extends React.Component {
 
           {/* Top bar — centered banner with action buttons */}
           <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 22px 12px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
-            <div style={css("display:flex; align-items:center; gap:8px;")}>
-              <button onClick={this.onBack} title="Back to Landlords" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(38,35,34,0.9); color:rgba(255,255,255,0.65); cursor:pointer; transition:all 0.15s ease;")}>
-                <span style={css("font-size:16px; line-height:1;")}>⋮</span>
+            <div style={css("display:flex; align-items:center; gap:9px;")}>
+              <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:11px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
+                <span style={css("display:block; width:18px; height:2px; background:#ccaa66; margin-bottom:3px; border-radius:1px;")}></span>
+                <span style={css("display:block; width:18px; height:2px; background:#808080; margin-bottom:3px; border-radius:1px;")}></span>
+                <span style={css("display:block; width:18px; height:2px; background:#808080; border-radius:1px;")}></span>
               </button>
-              <button onClick={()=>this.onNavigate('/')} title="Dashboard" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(100,150,200,0.25); background:rgba(32,38,54,0.9); color:rgba(102,153,204,0.85); cursor:pointer; transition:all 0.15s ease;")}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <button onClick={()=>this.onNavigate('/')} title="Dashboard" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:11px; border:1px solid rgba(102,153,204,0.25); background:rgba(32,38,54,0.95); cursor:pointer;")}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6699cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               </button>
               <button onClick={()=>this.onNavigate('/command-center')} title="Command Center" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(170,153,204,0.25); background:rgba(46,36,54,0.9); color:rgba(170,153,204,0.85); cursor:pointer; transition:all 0.15s ease;")}>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
