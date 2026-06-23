@@ -914,20 +914,32 @@ class LandlordDetail extends React.Component {
         <style>{GLOBAL_CSS}</style>
         <div className="ld-root" style={css("height:100vh; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
-          {/* Top bar */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 22px 11px; border-bottom:1px solid rgba(255,255,255,0.07); background:rgba(8,12,22,0.6); backdrop-filter:blur(14px);")}>
-            <div style={css("display:flex; align-items:center; gap:10px;")}>
-              <button onClick={this.onBack} style={css("flex:none; display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.7); font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                <span style={css("font-size:14px; line-height:1;")}>‹</span> Landlords
+          {/* Top bar — centered banner with action buttons */}
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 22px 12px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
+            <div style={css("display:flex; align-items:center; gap:8px;")}>
+              <button onClick={this.onBack} title="Back to Landlords" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(38,35,34,0.9); color:rgba(255,255,255,0.65); cursor:pointer; transition:all 0.15s ease;")}>
+                <span style={css("font-size:16px; line-height:1;")}>⋮</span>
               </button>
-              <div style={css("display:flex; align-items:center; gap:7px;")}>
-                <div style={css("width:5px; height:5px; border-radius:2px; background:hsl(38 92% 50%); box-shadow:0 0 8px hsl(38 92% 50% / 0.7);")}></div>
-                <span style={css("font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:hsl(38 92% 55%); white-space:nowrap;")}>Landlord</span>
+              <button onClick={()=>this.onNavigate('/')} title="Dashboard" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(100,150,200,0.25); background:rgba(32,38,54,0.9); color:rgba(102,153,204,0.85); cursor:pointer; transition:all 0.15s ease;")}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </button>
+              <button onClick={()=>this.onNavigate('/command-center')} title="Command Center" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid rgba(170,153,204,0.25); background:rgba(46,36,54,0.9); color:rgba(170,153,204,0.85); cursor:pointer; transition:all 0.15s ease;")}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
+              </button>
+            </div>
+            
+            {/* Centered banner text */}
+            <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
+              <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02)); border:1px solid hsl(38 92% 50% / 0.25); box-shadow:0 4px 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.05);")}>
+                <div style={css("width:6px; height:6px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 12px hsl(38 92% 55% / 0.8), 0 0 24px hsl(38 92% 50% / 0.5); animation: pulse 2s ease-in-out infinite;")}></div>
+                <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
+                <span style={css("font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; background:linear-gradient(135deg, hsl(38 92% 62%), hsl(38 92% 50%)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-shadow:0 2px 10px rgba(245,158,11,0.3);")}>Landlord Intelligence</span>
               </div>
             </div>
-            <div style={css("display:flex; align-items:center; gap:9px;")}>
-              <span style={css("font-size:10.5px; color:rgba(255,255,255,0.45);")}>Viewing</span>
-              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:8px 11px; border-radius:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}>
+            
+            <div style={css("display:flex; align-items:center; gap:10px;")}>
+              <span style={css("font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Viewing</span>
+              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:9px 13px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:rgba(255,255,255,0.88); font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; min-width:140px;")}>
                 {vm.landlordOptions.map(o=>(
                   <option key={o.id} value={o.id} style={{background:'#13182a'}}>{o.name}</option>
                 ))}
