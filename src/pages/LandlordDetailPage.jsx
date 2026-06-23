@@ -96,6 +96,14 @@ class LandlordDetail extends React.Component {
       noteAiSource: null,
       noteAiDraft: null,
       noteSaving: false,
+      // AI-draft task state — mirrors the note state. The drafted TITLE lives in composerText
+      // (shared with the textarea); taskTitleDraft is its snapshot for edit-detection. due_date
+      // and assignee are Task-only editable fields seeded from the AI draft.
+      taskAiSource: null,
+      taskTitleDraft: null,
+      taskDueDate: '',
+      taskAssignee: '',
+      taskSaving: false,
       analyzing: false,
       streamFilter: 'all',
     };
@@ -130,7 +138,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
   // Provenance (noteAiSource/noteAiDraft) follows the composer BODY, not the active type —
@@ -138,14 +146,16 @@ class LandlordDetail extends React.Component {
   // AI-originated rather than silently downgraded to from-scratch.
   setComposerType = (t)=> this.setState({ composerType:t });
   // Emptying the box after an AI draft was loaded means the agent is starting over — drop the
-  // AI provenance so a freshly typed note is correctly recorded as from-scratch.
-  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (s.noteAiSource && v==='') ? { composerText:v, noteAiSource:null, noteAiDraft:null } : { composerText:v }); };
+  // AI provenance (note OR task) so a freshly typed entry is correctly recorded as from-scratch.
+  onComposerInput = (e)=>{ const v=e.target.value; this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null } : { composerText:v }); };
   onClearTime = ()=> this.setState({ composerTime:'' });
   onNotesInput = (e)=>{ const v=e.target.value; this.setState(s=>({ landlords:s.landlords.map(l=> l.id===s.currentId ? {...l, agentNotes:v} : l) })); };
 
   fillDraft = (action)=>{
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null });
+    // A suggested-action chip is NOT the Task "Next Action" AI-draft source, so clear task
+    // provenance — a task sent from here is recorded as from-scratch.
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' });
   };
 
   // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
@@ -179,10 +189,54 @@ class LandlordDetail extends React.Component {
   // Reset to a from-scratch note (clears the AI draft + selection).
   clearNoteDraft = ()=> this.setState({ composerText:'', noteAiSource:null, noteAiDraft:null });
 
+  // Map ai_next_best_action.priority to a due_date N days out (local date, YYYY-MM-DD to match
+  // the schema's date format). urgent -> +1, high -> +3, medium/low/absent -> +7.
+  dueDateFromPriority(priority){
+    const days = priority === 'urgent' ? 1 : priority === 'high' ? 3 : 7;
+    const d = new Date(); d.setDate(d.getDate() + days);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // The single AI-draft source for a Task: ai_next_best_action (an OBJECT — type-guarded).
+  // title from .action (snake_case label -> spaced, first letter capitalized; existing caps
+  // preserved so proper nouns in natural-language actions aren't mangled), falling back to
+  // .reasoning. due_date derived from .priority; assignee from the landlord's agent. Trimmed
+  // at source so an unedited draft compares equal at save time.
+  taskDraftSource(){
+    const L = this.cur();
+    if(!L) return { available:false, title:'', dueDate:'', assignee:'', emptyMsg:'No next action yet — run Analyse' };
+    const str = (v)=> (typeof v === 'string' && v.trim()) ? v.trim() : '';
+    const nba = (L.aiNextBestAction && typeof L.aiNextBestAction === 'object') ? L.aiNextBestAction : null;
+    const raw = nba ? (str(nba.action) || str(nba.reasoning)) : '';
+    const spaced = raw.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const title = spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : '';
+    const priority = nba ? str(nba.priority).toLowerCase() : '';
+    return {
+      available: !!title,
+      title,
+      dueDate: this.dueDateFromPriority(priority),
+      assignee: L.agentEmail || '',
+      emptyMsg: 'No next action yet — run Analyse',
+    };
+  }
+
+  // Load the AI task draft: title into the shared composer box, due_date + assignee into their
+  // own fields, and record provenance + the exact title snapshot for edit-detection.
+  pickTaskDraft = ()=>{
+    const src = this.taskDraftSource();
+    if(!src.available) return; // never draft an empty task
+    this.setState({ composerText: src.title, taskTitleDraft: src.title, taskAiSource: 'ai_next_best_action', taskDueDate: src.dueDate, taskAssignee: src.assignee });
+  };
+
+  // Reset to a from-scratch task (clears the drafted title, provenance, due_date, assignee).
+  clearTaskDraft = ()=> this.setState({ composerText:'', taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'' });
+
   onSend = ()=>{
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
-    // Notes persist to the LandlordNote entity; other types keep the in-memory stream.
+    // Notes and Tasks persist to their entities; other types keep the in-memory stream.
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
+    if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -232,6 +286,45 @@ class LandlordDetail extends React.Component {
       this.setState({ noteSaving:false });
     } finally {
       this._noteSaving = false;
+    }
+  };
+
+  // Persist a Task to the LandlordTask entity. From-scratch is the baseline path and never
+  // depends on AI content. Edit-detection tracks the AI-authored TITLE only — changing
+  // due_date or assignee does NOT count as editing the draft.
+  saveTask = async (title)=>{
+    const L = this.cur();
+    // Synchronous re-entry guard (this.state.taskSaving lags a same-tick double-click).
+    if(!L || this._taskSaving) return;
+    this._taskSaving = true;
+    const { taskAiSource, taskTitleDraft, taskDueDate, taskAssignee } = this.state;
+    const createdFromAi = !!taskAiSource;
+    const wasEdited = createdFromAi ? (title !== (taskTitleDraft || '')) : false;
+
+    this.setState({ taskSaving:true });
+    try {
+      await base44.entities.LandlordTask.create({
+        landlord_id: L.id,
+        title,
+        due_date: taskDueDate || undefined,
+        assignee_email: taskAssignee || undefined,
+        done: false,
+        created_from_ai: createdFromAi,
+        ai_source: taskAiSource || null,
+        was_edited_after_draft: wasEdited,
+      });
+      toast.success(createdFromAi ? 'AI-drafted task saved' : 'Task saved');
+      const order = Date.now();
+      const item = { t:'act', kind:'task', title:'Task' + (createdFromAi ? ' · AI' : '') + (taskDueDate ? ' · due '+taskDueDate : ''), body:title, time:'Just now', order };
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
+        composerText:'', composerTime:'', taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', taskSaving:false,
+      }), ()=>this.scrollBottom());
+    } catch(e){
+      toast.error('Failed to save task: ' + (e?.message || 'unknown error'));
+      this.setState({ taskSaving:false });
+    } finally {
+      this._taskSaving = false;
     }
   };
 
@@ -373,7 +466,7 @@ class LandlordDetail extends React.Component {
           color: isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
           border:'1px solid '+(isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
     });
-    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Describe the task…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…' };
+    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…' };
 
     const rm=this.rapportMeta(L.rapport);
     const hdr={
@@ -886,9 +979,61 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
 
+                {/* AI draft control + extra fields — only for Tasks. Drafts the title from
+                    ai_next_best_action; due_date + assignee are editable below. */}
+                {this.state.composerType === 'Task' && (()=>{
+                  const src = this.taskDraftSource();
+                  const taskAiSource = this.state.taskAiSource;
+                  const active = taskAiSource === 'ai_next_best_action';
+                  const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
+                  return (
+                    <div style={css("margin-bottom:9px;")}>
+                      <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;")}>
+                        <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                          AI draft
+                        </span>
+                        <button
+                          onClick={()=> src.available && this.pickTaskDraft()}
+                          disabled={!src.available}
+                          title={src.available ? 'Draft this task from the next best action' : src.emptyMsg}
+                          style={css(
+                            "display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:600; font-family:'Inter',sans-serif; "+
+                            (src.available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
+                            "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
+                            "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
+                            "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
+                          )}
+                        >
+                          Next Action{!src.available && <span style={css("font-size:9px; font-weight:600; opacity:0.85;")}>· run Analyse</span>}
+                        </button>
+                        {taskAiSource && (
+                          <button onClick={this.clearTaskDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
+                        )}
+                        {taskAiSource && (
+                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>Drafted from AI · title edits tracked</span>
+                        )}
+                        {!taskAiSource && !src.available && (
+                          <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>No AI draft yet — run Analyse</span>
+                        )}
+                      </div>
+                      <div style={css("display:flex; align-items:center; gap:8px; flex-wrap:wrap;")}>
+                        <label style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                          Due
+                          <input type="date" value={this.state.taskDueDate} onChange={(e)=>this.setState({ taskDueDate:e.target.value })} style={fieldStyle} />
+                        </label>
+                        <label style={css("display:inline-flex; align-items:center; gap:5px; flex:1; min-width:180px; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+                          Assignee
+                          <input type="email" value={this.state.taskAssignee} onChange={(e)=>this.setState({ taskAssignee:e.target.value })} placeholder="assignee@email" style={{...fieldStyle, flex:1, minWidth:0}} />
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div style={css("display:flex; align-items:flex-end; gap:9px;")}>
                   <textarea value={vm.composerText} onChange={this.onComposerInput} placeholder={vm.composerPlaceholder} rows={1} style={css("flex:1; resize:none; min-height:42px; max-height:120px; padding:11px 13px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:13px; font-family:'Inter',sans-serif; line-height:1.45;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+(this.state.noteSaving?0.6:1)+";")}>{this.state.noteSaving ? '…' : '➤'}</button>
+                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving} style={css("flex:none; width:42px; height:42px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving) ? '…' : '➤'}</button>
                 </div>
               </div>
             </div>
