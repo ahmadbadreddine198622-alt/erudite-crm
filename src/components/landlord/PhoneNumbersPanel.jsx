@@ -27,7 +27,7 @@ function WaButton({ phone }) {
       target="_blank"
       rel="noopener noreferrer"
       title={`WhatsApp ${phone}`}
-      style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.25); color:#4ade80; text-decoration:none;")}
+      style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:600; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.25); color:#4ade80; text-decoration:none;")}
     >
       WA
     </a>
@@ -37,15 +37,15 @@ function WaButton({ phone }) {
 function PhoneRow({ phone, label, landlord }) {
   if (!phone) return null;
   return (
-    <div style={css("display:flex; flex-direction:column; gap:6px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-      <div style={css("display:flex; align-items:center; gap:8px; min-width:0;")}>
-        <Phone className="w-3.5 h-3.5" style={css("color:rgba(255,255,255,0.5);")} />
-        {label && <span style={css("font-size:9.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>}
-        <a href={`tel:${phone}`} style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.9); text-decoration:none; margin-left:auto;")}>{phone}</a>
+    <div style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+      <div style={css("display:flex; align-items:center; gap:6px; min-width:0;")}>
+        <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.5);")} />
+        {label && <span style={css("font-size:8.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>}
+        <a href={`tel:${phone}`} style={css("font-size:12px; font-weight:600; color:rgba(255,255,255,0.9); text-decoration:none; margin-left:auto;")}>{phone}</a>
       </div>
-      <div style={css("display:flex; flex-wrap:wrap; gap:5px;")}>
+      <div style={css("display:flex; flex-wrap:wrap; gap:4px;")}>
         <TwilioCallDialog landlord={landlord} phoneOverride={phone} iconOnly={true}>
-          <div style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#4ade80; cursor:pointer;")}>
+          <div style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:600; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#4ade80; cursor:pointer;")}>
             Twilio
           </div>
         </TwilioCallDialog>
@@ -77,15 +77,15 @@ export default function PhoneNumbersPanel({ landlord }) {
   if (phones.length === 0) return null;
 
   return (
-    <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
-      <div style={css("display:flex; align-items:center; gap:7px; margin-bottom:10px;")}>
-        <Phone className="w-3.5 h-3.5" style={css("color:rgba(255,255,255,0.4);")} />
-        <span style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38);")}>Phone Numbers</span>
-        <span style={css("display:inline-flex; align-items:center; gap:4px; margin-left:auto; font-size:10px; font-weight:600; color:rgba(255,255,255,0.35);")}>
-          <Plus className="w-3 h-3" /> {phones.length} number{phones.length > 1 ? 's' : ''}
+    <div style={css("margin-top:12px; border-radius:11px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:10px 12px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
+        <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.4);")} />
+        <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38);")}>Phone Numbers</span>
+        <span style={css("display:inline-flex; align-items:center; gap:4px; margin-left:auto; font-size:9px; font-weight:600; color:rgba(255,255,255,0.35);")}>
+          <Plus className="w-2.5 h-2.5" /> {phones.length} number{phones.length > 1 ? 's' : ''}
         </span>
       </div>
-      <div style={css("display:flex; flex-direction:column; gap:7px;")}>
+      <div style={css("display:flex; flex-direction:column; gap:5px;")}>
         {phones.map((entry, i) => (
           <PhoneRow key={i} phone={entry.phone} label={entry.label} landlord={landlord} />
         ))}
