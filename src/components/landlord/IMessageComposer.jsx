@@ -1,15 +1,10 @@
 // IMessageComposer — draft & send a landlord iMessage, inline on the V-card.
 //
-// SHARED BRAIN, NOT A FORK: this reuses the exact same drafting engine as email —
-// `draftLandlordEmail` — passing channel:'imessage'. The MODES, psychology profiles, and
-// per-unit understanding are identical to the email side; only the channel parameter (and
-// therefore the rendering: plain text, no subject) differs. Sending goes through the existing
-// `sendIMessage` function, which appends the CompanySettings iMessage signature on every
-// message and attaches the branded banner on first contact.
-//
-// Two sections, side by side (templates do NOT replace the manual box):
-//   1) Template choices — same cold-open/reply MODES as email, rendered plain-text for iMessage.
-//   2) Manual free-text — type a normal message by hand; signature still appends automatically.
+// SAME BEHAVIOR AS THE EMAIL COMPOSER: pressing "iMessage" opens this panel exactly like
+// pressing "Email" opens EmailComposer. Same shared brain (`draftLandlordEmail` with
+// channel:'imessage'), same mode picker + owner-psychology + generate-then-send flow.
+// Sending goes through the existing `sendIMessage` function (which appends the signature
+// and the branded banner on first contact). A manual free-text box sits below the AI draft.
 //
 // Props:
 //   landlordId   (string)  — current landlord id
@@ -64,7 +59,6 @@ const PSYCHOLOGY_OPTIONS = [
   { value: 'status_conscious', label: 'Proud / status-conscious' },
 ];
 
-const BLUE = '#0A84FF';
 const fieldStyle = css("padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; width:100%;");
 
 export default function IMessageComposer({ landlordId, onSent, onFallback }) {
