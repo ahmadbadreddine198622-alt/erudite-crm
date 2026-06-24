@@ -66,6 +66,10 @@
       "type": "string",
       "description": "Public URL of the full-width branded email signature banner. Single source of truth used by outbound email functions."
     },
+    "imessage_signature_text": {
+      "type": "string",
+      "description": "Plain-text signature appended to outgoing iMessages. Single source of truth for iMessage signatures. No HTML."
+    },
     "logo_base64": {
       "type": "string",
       "description": "Base64 data URL of company logo \u2014 embedded directly by PDF functions"
