@@ -1870,7 +1870,14 @@ export default function LandlordDetailPage() {
   // Today's outreach checklist — the REAL sequence state shown in the Outreach tab. Auto-ticked by
   // the composer success handlers (tickOutreachStep) and by Call/Qualification entity automations.
   const OUTREACH_TODAY = new Date().toISOString().slice(0, 10);
-  const { data: outreachRows = [], refetch: refetchOutreach } = useQ(['outreach_checklist', id, OUTREACH_TODAY], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id, outreach_date: OUTREACH_TODAY })), { enabled: !!id, refetchInterval: 15000 });
+  // Load ALL of this landlord's outreach rows (newest first). The Outreach tab shows today's row
+  // if it exists, otherwise the most recent prior row — so existing progress is never hidden behind
+  // the date filter. Toggles always target today's row (create/update) via tickOutreachStep.
+  const { data: outreachAll = [], refetch: refetchOutreach } = useQ(['outreach_checklist', id], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id }, '-outreach_date', 30)), { enabled: !!id, refetchInterval: 15000 });
+  const outreachRows = (() => {
+    const todays = outreachAll.find(r => r.outreach_date === OUTREACH_TODAY);
+    return todays ? [todays] : (outreachAll[0] ? [outreachAll[0]] : []);
+  })();
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
