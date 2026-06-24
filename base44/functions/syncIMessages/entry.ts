@@ -26,8 +26,13 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Allow authenticated users OR scheduled runs (no user). Reject anonymous HTTP if a user context exists but is invalid.
+    // Admin-gated bulk job (matches processDueScheduledMessages). The work below uses asServiceRole,
+    // which bypasses RLS — so an open endpoint would let any anonymous caller trigger a full
+    // BlueBubbles pull + bulk writes across all landlords. (If a cron must run this unauthenticated,
+    // gate the no-user path behind a shared-secret header instead of leaving it open.)
     const user = await base44.auth.me().catch(() => null);
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     // How far back to pull, in days (default 30). Scheduled runs pass a small window.
@@ -105,10 +110,21 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, scanned: messages.length, matched: 0, imported: 0 });
     }
 
-    // 4. Dedup against already-imported messages by GUID.
+    // 4. Dedup against already-imported messages by GUID. Fail CLOSED: there is no DB unique
+    // constraint on bb_guid, so this lookup is the ONLY idempotency gate — if it errors we must NOT
+    // proceed, because an empty "existing" set would re-import the entire batch as duplicates. Chunk
+    // the $in to stay well under backend query-size limits.
     const guids = candidates.map((c) => c.bb_guid);
-    const existing = await base44.asServiceRole.entities.IMessage.filter({ bb_guid: { $in: guids } }, '-sent_at', guids.length).catch(() => []);
-    const existingGuids = new Set((existing || []).map((e) => e.bb_guid).filter(Boolean));
+    const existingGuids = new Set();
+    try {
+      for (let i = 0; i < guids.length; i += 200) {
+        const slice = guids.slice(i, i + 200);
+        const existing = await base44.asServiceRole.entities.IMessage.filter({ bb_guid: { $in: slice } }, '-sent_at', slice.length);
+        for (const e of (existing || [])) { if (e.bb_guid) existingGuids.add(e.bb_guid); }
+      }
+    } catch (dedupErr) {
+      return Response.json({ error: 'Dedup lookup failed — aborting to avoid duplicate import', detail: String(dedupErr?.message || dedupErr) }, { status: 502 });
+    }
 
     const toCreate = candidates.filter((c) => !existingGuids.has(c.bb_guid));
 
@@ -119,6 +135,25 @@ Deno.serve(async (req) => {
       if (chunk.length === 0) continue;
       await base44.asServiceRole.entities.IMessage.bulkCreate(chunk);
       imported += chunk.length;
+    }
+
+    // Mirror the newly-imported iMessages (both directions) into the unified Message entity so
+    // landlordOrchestrator — which reads conversation history ONLY from Message — sees iMessages
+    // (especially inbound landlord replies). Same GUID dedup as above (only `toCreate`); best-effort.
+    const messageRows = toCreate.map((c) => ({
+      landlord_id: c.landlord_id,
+      phone: c.address,
+      direction: c.direction === 'outbound' ? 'outgoing' : 'incoming',
+      text: c.body,
+      timestamp: c.sent_at,
+      status: c.status,
+      channel: 'imessage',
+      wa_message_id: c.bb_guid,
+    }));
+    for (let i = 0; i < messageRows.length; i += 100) {
+      const chunk = messageRows.slice(i, i + 100);
+      if (chunk.length === 0) continue;
+      try { await base44.asServiceRole.entities.Message.bulkCreate(chunk); } catch (_) { /* best-effort mirror */ }
     }
 
     return Response.json({
