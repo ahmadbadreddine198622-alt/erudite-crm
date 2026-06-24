@@ -62,6 +62,10 @@
       "type": "string",
       "description": "Public URL of the company stamp image"
     },
+    "signature_banner_url": {
+      "type": "string",
+      "description": "Public URL of the full-width branded email signature banner. Single source of truth used by outbound email functions."
+    },
     "logo_base64": {
       "type": "string",
       "description": "Base64 data URL of company logo \u2014 embedded directly by PDF functions"
