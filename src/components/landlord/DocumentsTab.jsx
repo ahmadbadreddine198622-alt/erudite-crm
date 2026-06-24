@@ -1,4 +1,5 @@
 import React from 'react';
+import DocumentDriveButton from '@/components/landlord/DocumentDriveButton';
 
 /* Convert a CSS declaration string into a React style object (preserves the design 1:1). */
 function css(str) {
@@ -21,7 +22,7 @@ const statusStyleMap = {
   missing: { padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:'rgba(239,68,68,0.16)', color:'#f87171' },
 };
 
-export default function DocumentsTab({ docs }) {
+export default function DocumentsTab({ docs, landlordName }) {
   if (!docs || !docs.length) {
     return (
       <div style={css("display:flex; flex-direction:column; gap:7px;")}>
@@ -34,7 +35,8 @@ export default function DocumentsTab({ docs }) {
     <div style={css("display:flex; flex-direction:column; gap:7px;")}>
       {docs.map((dc, i)=>{
         const statusKey = dc.status === '✓ Received' ? 'received' : dc.status === '◷ Pending' ? 'pending' : dc.status === '✕ Missing' ? 'missing' : 'pending';
-        const sStyle = statusStyleMap[statusKey] || statusStyleMap.pending;
+        const sStyle = dc.statusStyle || statusStyleMap[statusKey] || statusStyleMap.pending;
+        const onDrive = dc.url && /drive\.google\.com/.test(dc.url);
         return (
           <div key={dc.key || dc.label || i} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
             <div style={css("display:flex; align-items:center; gap:11px; min-width:0;")}>
@@ -50,7 +52,10 @@ export default function DocumentsTab({ docs }) {
                   📄 View
                 </a>
               )}
-              <span style={sStyle}>{dc.status === 'received' ? '✓ Received' : dc.status === 'pending' ? '◷ Pending' : dc.status === 'missing' ? '✕ Missing' : dc.status}</span>
+              {dc.url && !onDrive && (
+                <DocumentDriveButton url={dc.url} label={dc.label} landlordName={landlordName} />
+              )}
+              <span style={sStyle}>{dc.status}</span>
             </div>
           </div>
         );

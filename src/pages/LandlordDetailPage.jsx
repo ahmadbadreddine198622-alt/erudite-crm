@@ -1044,9 +1044,9 @@ class LandlordDetail extends React.Component {
         return { key:i, who:o.who, time:o.time, amount:o.amount, status:sm[2], statusStyle:{ padding:'3px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:700, background:sm[0], color:sm[1] } };
       });
     } else if(at==='documents'){
-      tab.isDocuments=true; tab.docs=L.docs.map((d,i)=>{
+      tab.isDocuments=true; tab.docsLandlordName=L.name; tab.docs=L.docs.map((d,i)=>{
         const sm={ received:['rgba(16,185,129,0.16)','#34d399','✓ Received'], pending:['rgba(245,158,11,0.16)','hsl(38 92% 62%)','◷ Pending'], missing:['rgba(239,68,68,0.16)','#f87171','✕ Missing'] }[d.status]||['rgba(148,163,184,0.16)','rgba(255,255,255,0.6)',d.status];
-        return { key:i, icon:d.icon, label:d.label, provider:d.provider, status:sm[2], statusStyle:{ padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:sm[0], color:sm[1] } };
+        return { key:i, icon:d.icon, label:d.label, provider:d.provider, url:d.url || null, status:sm[2], statusStyle:{ padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:sm[0], color:sm[1] } };
       });
     }
 
@@ -1793,7 +1793,7 @@ class LandlordDetail extends React.Component {
                 )}
 
                 {tab.isDocuments && (
-                  <DocumentsTab docs={tab.docs} />
+                  <DocumentsTab docs={tab.docs} landlordName={tab.docsLandlordName} />
                 )}
               </div>
 
