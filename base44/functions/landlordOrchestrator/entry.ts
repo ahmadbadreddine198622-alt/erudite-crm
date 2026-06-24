@@ -103,6 +103,19 @@ const FULL_SCHEMA = {
     buying_signals: { type: 'array', items: { type: 'string' } },
     ai_objections: { type: 'array', items: { type: 'string' } },
     ai_rolling_summary: { type: 'string' },
+    ai_deal_thesis: { type: 'string', description: 'Persistent strategic narrative for winning THIS mandate — durable across runs (evolve the prior thesis, don\'t restate the tactical summary). 2-4 sentences.' },
+    ai_open_questions: {
+      type: 'array', minItems: 0, maxItems: 3,
+      description: '0-3 specific uncertainties a HUMAN can resolve (e.g. "Is the spouse a co-decision-maker?"). Only when genuinely unsure — empty is correct when nothing is blocking.',
+      items: {
+        type: 'object',
+        properties: {
+          question: { type: 'string', description: 'The question for the agent, one sentence.' },
+          why: { type: 'string', description: 'Why it matters / what it unblocks.' }
+        },
+        required: ['question']
+      }
+    },
     ai_coaching_for_agent: { type: 'string' },
     ai_next_best_action: NBA_SCHEMA,
     suggested_tasks: {
@@ -326,6 +339,8 @@ Decide and emit:
 11. SUGGESTED TASKS (state-aware): recommend NEW tasks ONLY, each referencing one of: ${TASK_TEMPLATE_KEYS.join(', ')}. Do NOT suggest anything that already exists as an open or done task (listed below) — reference those as pending instead. 0 is valid if everything is already covered.
 12. SUGGESTED FOLLOW-UPS (state-aware): recommend NEW time-based follow-ups ONLY, each referencing one of: ${FOLLOWUP_TEMPLATE_KEYS.join(', ')}, with when_offset_days, suggested_hour (0-23 Asia/Dubai), channel. Do NOT duplicate an already-scheduled appointment/follow-up (listed below).
 13. SUGGESTED MESSAGES (reply mode): 2-3 send-ready WhatsApp drafts (mode="reply", channel="whatsapp") in the landlord's preferred_language that advance the next-best-action — ready to send, NO placeholders. Vary the angle (e.g. direct vs soft). Each with tone, intent, rationale. Ground them in the actual conversation and the price reality.
+14. DEAL THESIS (persistent — EVOLVE, don't reset): ai_deal_thesis is the durable 2-4 sentence strategy for winning THIS mandate — the through-line that should hold across many runs (who the decision-maker is, the core lever, the path to signature, the main risk). You are given the PRIOR thesis below: keep what is still true, revise only what genuinely changed, and let it accrue. This is DISTINCT from ai_rolling_summary (which is the tactical current-state) — do not just repeat the summary here.
+15. OPEN QUESTIONS (ask-the-agent — be honest about uncertainty): ai_open_questions is 0-3 specific things a HUMAN could answer that would materially sharpen the strategy (e.g. "Is the owner's spouse a co-decision-maker?", "Did the last viewing actually happen?"). Each with a one-line 'why'. Return an EMPTY array when nothing is genuinely blocking — do not invent questions to fill the slot.
 
 Rules: STRICT tool output. Drafts in the landlord's preferred_language. Weight the AGENT'S OWN NOTES heavily — they are direct operator intelligence. Never fabricate confident scores without evidence; if data is thin, return low/neutral scores and add 'insufficient_contact_data' to red_flags.`;
 
@@ -357,6 +372,7 @@ DOCUMENTS: ${docsReceived}/${docsTotal} received. Pending: ${docs.filter(d => d.
 STAKEHOLDERS (${stakeholders.length}): ${stakeholders.map(s => `${s.name}(${s.role})`).join(', ') || '(none)'}
 NEGOTIATION: ${negotiation ? JSON.stringify({ asking: negotiation.asking_price_current, cma: negotiation.cma_value_aed, gap_pct: negotiation.pricing_gap_pct }) : '(none)'}
 PRIOR ROLLING SUMMARY (refine, don't blindly restate): ${landlord.ai_rolling_summary || '(none)'}
+PRIOR DEAL THESIS (evolve it — keep what holds, revise only what changed): ${landlord.ai_deal_thesis || '(none yet — establish it)'}
 
 Reason over all of the above and emit the orchestrator result.`;
 
@@ -440,6 +456,31 @@ Reason over all of the above and emit the orchestrator result.`;
     }
 
     await svc.entities.Landlord.update(landlord.id, update);
+
+    // V3 Phase 2 (REMEMBER): persistent deal thesis + ask-the-agent open questions, written in a
+    // SEPARATE, non-fatal update. If these two fields are not yet live in the Base44 schema, a rejected
+    // write degrades HERE instead of bricking the core orchestrator update above; once the fields are
+    // applied it simply starts persisting. Full tier only (cold has no thesis); skipped if the model
+    // returned neither. An empty ai_open_questions array is intentional — it clears stale questions.
+    if (effectiveTier === 'full') {
+      const memoryUpdate = {};
+      if (typeof result.ai_deal_thesis === 'string' && result.ai_deal_thesis.trim()) {
+        memoryUpdate.ai_deal_thesis = result.ai_deal_thesis.trim();
+      }
+      if (Array.isArray(result.ai_open_questions)) {
+        memoryUpdate.ai_open_questions = result.ai_open_questions
+          .filter(q => q && typeof q === 'object' && typeof q.question === 'string' && q.question.trim())
+          .slice(0, 3)
+          .map(q => ({ question: q.question.trim(), why: typeof q.why === 'string' ? q.why.trim() : '' }));
+      }
+      if (Object.keys(memoryUpdate).length) {
+        try {
+          await svc.entities.Landlord.update(landlord.id, memoryUpdate);
+        } catch (memErr) {
+          console.error('ai_deal_thesis/ai_open_questions write failed (non-fatal — apply live schema):', memErr?.message);
+        }
+      }
+    }
 
     // V3 Phase 0 (RECORD): append-only score snapshot — exactly ONE per successful run, built from the
     // same values just written. Pure instrumentation: it does NOT alter the update above or the

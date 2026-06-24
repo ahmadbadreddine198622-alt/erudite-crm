@@ -812,6 +812,10 @@ class LandlordDetail extends React.Component {
       nextBestAction: L.aiNextBestAction || null,
       coaching: L.aiCoaching || '',
       objections: arr(L.aiObjections),
+      // V3 Phase 2 (REMEMBER): trajectory + persistent thesis + ask-the-agent questions.
+      scoreTrend: L.scoreTrend || null,
+      dealThesis: L.aiDealThesis || '',
+      openQuestions: arr(L.aiOpenQuestions),
     };
 
     const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
@@ -1964,6 +1968,10 @@ export default function LandlordDetailPage() {
   }), { enabled: !!(prop?.building_name || prop?.location) });
   // Fetch DocumentChecklistItem records for this landlord
   const { data: docItems = [] } = useQ(['landlord_docs', id], () => safe(() => base44.entities.DocumentChecklistItem.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  // V3 Phase 2 (REMEMBER): append-only score history written by the orchestrator (P0). Read-only
+  // here — turns the otherwise-invisible LandlordScoreSnapshot rows into a visible trajectory so the
+  // agent can see whether trust/win/urgency are climbing or decaying run-over-run. Newest first.
+  const { data: scoreSnapshots = [] } = useQ(['landlord_snapshots', id], () => safe(() => base44.entities.LandlordScoreSnapshot.filter({ landlord_id: id }, '-captured_at', 30)), { enabled: !!id });
   // TaskTemplate library (active only) — powers the AI suggested-tasks shortlist; loaded once.
   const { data: taskTemplates = [] } = useQ(['task_templates'], () => safe(() => base44.entities.TaskTemplate.filter({ is_active: true })));
   // FollowupTemplate library (active only) — powers the AI suggested-follow-ups shortlist; loaded once.
@@ -2248,6 +2256,31 @@ export default function LandlordDetailPage() {
   const aiNextBestAction = L.ai_next_best_action && typeof L.ai_next_best_action === 'object' ? L.ai_next_best_action : null;
   const aiCoaching = L.ai_coaching_for_agent || null;
   const mandateWinProb = L.mandate_win_probability != null ? Math.round(L.mandate_win_probability) : null;
+  // V3 Phase 2 (REMEMBER): persistent strategy + open questions (degrade to null/[] until the
+  // orchestrator + live schema populate them; safe to render either way).
+  const aiDealThesis = (typeof L.ai_deal_thesis === 'string' && L.ai_deal_thesis.trim()) ? L.ai_deal_thesis.trim() : null;
+  const aiOpenQuestions = Array.isArray(L.ai_open_questions)
+    ? L.ai_open_questions
+        .map((q) => (typeof q === 'string' ? { question: q, why: '' } : (q && typeof q === 'object' ? { question: String(q.question || '').trim(), why: String(q.why || '').trim() } : null)))
+        .filter((q) => q && q.question)
+    : [];
+  // V3 Phase 2 (REMEMBER): compact score trajectory derived from the append-only snapshot history.
+  // Needs ≥2 runs to show movement; each metric carries its recent series + last-run delta.
+  const scoreTrend = (() => {
+    const snaps = Array.isArray(scoreSnapshots) ? scoreSnapshots : [];
+    if (snaps.length < 2) return null;
+    const chrono = [...snaps].reverse(); // loaded newest-first → oldest-first for the series
+    const metric = (pick) => {
+      const s = chrono.map(pick).filter((v) => typeof v === 'number' && isFinite(v));
+      if (s.length < 2) return null;
+      return { series: s.slice(-12), latest: s[s.length - 1], delta: Math.round((s[s.length - 1] - s[s.length - 2]) * 10) / 10 };
+    };
+    const trust = metric((x) => x.trust_score);
+    const win = metric((x) => (typeof x.mandate_win_probability === 'number' ? x.mandate_win_probability * 100 : null));
+    const urgency = metric((x) => x.urgency_score);
+    if (!trust && !win && !urgency) return null;
+    return { count: snaps.length, since: chrono[0].captured_at || null, lastAt: chrono[chrono.length - 1].captured_at || null, trust, win, urgency };
+  })();
 
   // Map media/photography fields from Landlord entity (verbatim field names)
   const media = {
@@ -2424,6 +2457,9 @@ export default function LandlordDetailPage() {
   aiNextBestAction,
   aiCoaching,
   mandateWinProb,
+  aiDealThesis,
+  aiOpenQuestions,
+  scoreTrend,
   aiObjections,
   hasCompetition,
   competitionText,
