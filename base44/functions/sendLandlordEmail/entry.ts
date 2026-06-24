@@ -16,29 +16,6 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Signature + stamp are embedded as inline CID attachments (base64 in multipart MIME)
-// so they render reliably in every client — including Gmail's image proxy and forwards.
-const SIGNATURE_URL = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/bb9f3a11f_erudite-signature.png';
-const STAMP_URL     = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/5db8f82f5_erudite-stamp.png';
-
-// Fetch a remote image and return base64 (no data: prefix) for MIME embedding.
-async function fetchImageBase64(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`image fetch failed (${r.status})`);
-  const bytes = new Uint8Array(await r.arrayBuffer());
-  let bin = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin);
-}
-
-// Wrap a base64 string at 76 chars per line, per RFC 2045.
-function wrap76(b64) {
-  return b64.replace(/.{76}/g, '$&\r\n');
-}
-
 const COMPANY = {
   principal:  'Ahmad Badreddine',
   title:      'CEO',
@@ -106,15 +83,10 @@ function buildHtml(bodyNative) {
             </td>
           </tr>
           <tr>
-            <td style="padding:8px;">
-              <img src="cid:eruditeSignature" alt="Signature" width="190" style="display:block;height:auto;max-width:190px;border:0;"/>
-              <img src="cid:eruditeStamp" alt="${COMPANY.name} stamp" width="96" style="display:block;height:auto;max-width:96px;margin-top:4px;border:0;"/>
-            </td>
-          </tr>
-          <tr>
             <td style="padding:18px 8px 0;border-top:1px solid #e2e8f0;">
               <p style="margin:0 0 1px;font-weight:bold;color:#1a2744;font-size:15px;">${COMPANY.principal}</p>
               <p style="margin:0 0 6px;color:#475569;font-size:12px;">${COMPANY.title}, ${COMPANY.name} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
+              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#b8860b;letter-spacing:0.01em;">🏆 AED 100M+ closed in Peninsula</p>
               <p style="margin:0 0 10px;color:#475569;font-size:12px;line-height:1.7;">
                 <a href="tel:${COMPANY.phone.replace(/\s/g, '')}" style="color:#1a2744;text-decoration:none;">${COMPANY.phone}</a>
                 &nbsp;&bull;&nbsp;
@@ -126,7 +98,7 @@ function buildHtml(bodyNative) {
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
                 <tr>
-                  ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals', { from: '#1a2744', to: '#2d4060', text: '#ffffff' }, '⭐')}
+                  ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals · AED 100M+', { from: '#1a2744', to: '#2d4060', text: '#ffffff' }, '⭐')}
                   ${linkPill(COMPANY.links.pf_broker, 'Erudite Listings', 'All live listings for sale', { from: '#b8860b', to: '#d4af37', text: '#1a1205' }, '🏛')}
                 </tr>
                 <tr>
@@ -188,42 +160,14 @@ Deno.serve(async (req) => {
 
     const html = buildHtml(bodyNative);
 
-    // Fetch signature + stamp and embed them inline as base64 CID attachments.
-    const [sigB64, stampB64] = await Promise.all([
-      fetchImageBase64(SIGNATURE_URL),
-      fetchImageBase64(STAMP_URL),
-    ]);
-
-    const boundary = `erudite_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const mime = [
       `To: ${to}`,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
-      `Content-Type: multipart/related; boundary="${boundary}"`,
-      '',
-      `--${boundary}`,
       'Content-Type: text/html; charset="UTF-8"',
       'Content-Transfer-Encoding: 7bit',
       '',
       html,
-      '',
-      `--${boundary}`,
-      'Content-Type: image/png',
-      'Content-Transfer-Encoding: base64',
-      'Content-ID: <eruditeSignature>',
-      'Content-Disposition: inline; filename="signature.png"',
-      '',
-      wrap76(sigB64),
-      '',
-      `--${boundary}`,
-      'Content-Type: image/png',
-      'Content-Transfer-Encoding: base64',
-      'Content-ID: <eruditeStamp>',
-      'Content-Disposition: inline; filename="stamp.png"',
-      '',
-      wrap76(stampB64),
-      '',
-      `--${boundary}--`,
     ].join('\r\n');
 
     const raw = toBase64Url(mime);
