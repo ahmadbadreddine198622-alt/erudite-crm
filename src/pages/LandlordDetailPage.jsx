@@ -29,6 +29,9 @@ import IMessageBadge from '@/components/landlord/IMessageBadge';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
+import FollowupComposerFields from '@/components/landlord/FollowupComposerFields';
+import ComposerConfirmChip from '@/components/landlord/ComposerConfirmChip';
+import { commitComposerDraft } from '@/components/landlord/composerCommit';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 
 function useQ(key, fn, extra = {}) {
@@ -119,6 +122,12 @@ class LandlordDetail extends React.Component {
       aiIntelligenceCollapsed: true,
       imessageChecking: false,
       telegramJustSent: false,
+      // Shared composerBrain parse→confirm→commit flow (Note/Task/Follow-up). composerParsing
+      // shows the "parsing…" send state; composerDraft holds the confirmable { type, draft,
+      // confirm_label, rawText } until Confirm/Cancel. composerCommitting guards the create.
+      composerParsing: false,
+      composerDraft: null,
+      composerCommitting: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -196,7 +205,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Collapse every open panel/composer on the page without navigating away — one tap to
   // tidy up when too many things are expanded at once.
@@ -432,10 +441,12 @@ class LandlordDetail extends React.Component {
     // Appointments are parsed & booked from the dedicated AppointmentComposer panel.
     if(this.state.composerType === 'Appointment'){ return; }
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
-    // Notes and Tasks persist to their entities; other types keep the in-memory stream.
-    if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
-    if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
-    if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
+    // Note/Task/Follow-up now run through the shared composerBrain (parse→confirm→commit),
+    // mirroring the Smart Calendar flow. On any failure parseWithBrain falls back to the
+    // original saveNote/saveTask/saveFollowup so nothing is ever lost.
+    if(this.state.composerType === 'Note'){ this.parseWithBrain('note', txt); return; }
+    if(this.state.composerType === 'Task'){ this.parseWithBrain('task', txt); return; }
+    if(this.state.composerType === 'Follow-up'){ this.parseWithBrain('followup', txt); return; }
     if(this.state.composerType === 'Chat'){ this.sendChat(txt); return; }
     if(this.state.composerType === 'Telegram'){ this.sendTelegram(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
@@ -448,13 +459,10 @@ class LandlordDetail extends React.Component {
     }), ()=>this.scrollBottom());
   };
 
-  // Persist a Note to the LandlordNote entity. From-scratch is the baseline path and never
-  // depends on AI content existing; AI provenance is set only when a source was actually used.
+  // Persist a Note to the LandlordNote entity (from-scratch baseline / brain fallback).
   saveNote = async (body)=>{
     const L = this.cur();
-    // Synchronous re-entry guard: this.state.noteSaving lags a same-tick double-click
-    // (setState is async), so use an instance flag to prevent a duplicate LandlordNote write.
-    if(!L || this._noteSaving) return;
+    if(!L || this._noteSaving) return; // sync re-entry guard (noteSaving state lags a same-tick double-click)
     this._noteSaving = true;
     const { noteAiSource, noteAiDraft } = this.state;
     const createdFromAi = !!noteAiSource;
@@ -1263,6 +1271,17 @@ class LandlordDetail extends React.Component {
               {/* composer */}
               <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
                 {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
+                {this.state.composerDraft && (
+                  <ComposerConfirmChip
+                    type={this.state.composerDraft.type}
+                    draft={this.state.composerDraft.draft}
+                    confirmLabel={this.state.composerDraft.confirm_label}
+                    committing={this.state.composerCommitting}
+                    onChange={this.updateComposerDraft}
+                    onConfirm={this.confirmComposerDraft}
+                    onCancel={this.cancelComposerDraft}
+                  />
+                )}
                 {vm.composerHasTime && (
                   <div style={css("display:inline-flex; align-items:center; gap:6px; margin-bottom:6px; padding:3px 9px; border-radius:99px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3); font-size:10px; font-weight:600; color:hsl(38 92% 60%);")}>
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
@@ -1384,87 +1403,22 @@ class LandlordDetail extends React.Component {
                 {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
                     Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
                     (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
-                {this.state.composerType === 'Follow-up' && (()=>{
-                  const chips = this.suggestedFollowupChips();
-                  const followupAiSource = this.state.followupAiSource;
-                  const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
-                  return (
-                    <div style={css("margin-bottom:9px;")}>
-                      {chips.length > 0 && (() => {
-                        const collapsed = this.state.aiFollowupsCollapsed;
-                        return (
-                          <div style={css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
-                            <button onClick={() => this.setState(s => ({ aiFollowupsCollapsed: !s.aiFollowupsCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                              <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                                AI Suggested Follow-ups
-                                <span style={css("font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
-                              </span>
-                              <span style={css("display:inline-flex; align-items:center; color:rgba(255,255,255,0.4);")}><ChevronDown size={14} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} /></span>
-                            </button>
-                            {!collapsed && (
-                              <div style={css("display:flex; flex-direction:column; gap:5px; padding:0 11px 10px; max-height:200px; overflow-y:auto;")}>
-                                {chips.map((chip, i) => {
-                              const isActive = followupAiSource === chip.template_key;
-                              const label = (typeof chip.template.label === 'string' && chip.template.label.trim()) ? chip.template.label : chip.template_key;
-                              const meta = `${chip.channel} · +${chip.when_offset_days}d · ${String(chip.suggested_hour).padStart(2,'0')}:00`;
-                              return (
-                                <button
-                                  key={chip.template_key + '-' + i}
-                                  onClick={() => this.pickSuggestedFollowup(chip)}
-                                  title={chip.reason || label}
-                                  style={css(
-                                    "display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; width:100%; padding:7px 11px; border-radius:9px; cursor:pointer; font-family:'Inter',sans-serif; "+
-                                    "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
-                                    "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
-                                  )}
-                                >
-                                  <span style={css("display:flex; align-items:center; gap:7px; width:100%;")}>
-                                    <span style={css("flex:none; font-size:9px; font-weight:800; color:#a78bfa;")}>{i+1}</span>
-                                    <span style={css("font-size:12px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.88)")+";")}>{label}</span>
-                                    <span style={css("flex:none; margin-left:auto; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.45);")}>{meta}</span>
-                                  </span>
-                                  {chip.reason && (
-                                    <span style={css("font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.5); padding-left:16px;")}>{chip.reason}</span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
-                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
-                          Channel
-                          <select value={this.state.followupChannel} onChange={(e)=>this.setState({ followupChannel:e.target.value })} style={fieldStyle}>
-                            <option value="whatsapp">WhatsApp</option>
-                            <option value="call">Call</option>
-                            <option value="email">Email</option>
-                          </select>
-                        </label>
-                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
-                          Date
-                          <input type="date" value={this.state.followupDate} onChange={(e)=>this.setState({ followupDate:e.target.value })} style={fieldStyle} />
-                        </label>
-                        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
-                          Hour
-                          <input type="number" min="0" max="23" value={this.state.followupHour} onChange={(e)=>this.setState({ followupHour:e.target.value })} style={{...fieldStyle, width:'52px'}} />
-                        </label>
-                        {followupAiSource && (
-                          <button onClick={this.clearFollowupDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 7px; border-radius:7px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
-                        )}
-                        {followupAiSource && (
-                          <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>AI draft</span>
-                        )}
-                        {!followupAiSource && chips.length === 0 && (
-                          <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>Run Analyse</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                {this.state.composerType === 'Follow-up' && (
+                  <FollowupComposerFields
+                    chips={this.suggestedFollowupChips()}
+                    followupAiSource={this.state.followupAiSource}
+                    collapsed={this.state.aiFollowupsCollapsed}
+                    onToggleCollapsed={() => this.setState(s => ({ aiFollowupsCollapsed: !s.aiFollowupsCollapsed }))}
+                    onPickChip={this.pickSuggestedFollowup}
+                    channel={this.state.followupChannel}
+                    date={this.state.followupDate}
+                    hour={this.state.followupHour}
+                    onChannel={(v) => this.setState({ followupChannel: v })}
+                    onDate={(v) => this.setState({ followupDate: v })}
+                    onHour={(v) => this.setState({ followupHour: v })}
+                    onClearDraft={this.clearFollowupDraft}
+                  />
+                )}
 
                 {this.state.composerType === 'Email' && (
                   <EmailComposer
@@ -1512,7 +1466,9 @@ class LandlordDetail extends React.Component {
                 {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
-                  <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending || this.state.imessageSending || this.state.telegramSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending) ? '…' : '➤'}</button>
+                  {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
+                  <button onClick={this.onSend} disabled={busy} title={this.state.composerParsing ? 'Parsing…' : 'Send'} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+(busy?0.6:1)+";")}>{this.state.composerParsing ? '✦' : busy ? '…' : '➤'}</button>
+                  ); })()}
                 </div>
                 )}
               </div>
