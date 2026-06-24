@@ -214,7 +214,9 @@ Deno.serve(async (req) => {
     await base44.entities.ClosingDeal.update(deal_id, core);
     await writeClosingMemory(base44, deal_id, memory);
     await writeClosingSnapshot(base44, deal, core);
-    return new Response(JSON.stringify({ ok: true, deal_id, ...core }), { status: 200, headers });
+    // Include memory in the RESPONSE (not just the DB write) so the UI can show the thesis/questions
+    // immediately after Run AI without waiting for a refetch.
+    return new Response(JSON.stringify({ ok: true, deal_id, ...core, ...memory }), { status: 200, headers });
   }
 
   // Otherwise orchestrate ALL non-complete deals (batch mode — for scheduled automation)

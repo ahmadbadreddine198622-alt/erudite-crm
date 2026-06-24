@@ -33,6 +33,8 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
     ai_next_best_action: deal.ai_next_best_action ?? null,
     ai_rolling_summary: deal.ai_rolling_summary ?? null,
     ai_predicted_close_date: deal.ai_predicted_close_date ?? null,
+    ai_deal_thesis: deal.ai_deal_thesis ?? null,
+    ai_open_questions: Array.isArray(deal.ai_open_questions) ? deal.ai_open_questions : [],
   });
 
   const handleRunAI = async () => {
@@ -45,6 +47,8 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
           ai_next_best_action: res.data.ai_next_best_action,
           ai_rolling_summary: res.data.ai_rolling_summary,
           ai_predicted_close_date: res.data.ai_predicted_close_date,
+          ai_deal_thesis: res.data.ai_deal_thesis ?? null,
+          ai_open_questions: Array.isArray(res.data.ai_open_questions) ? res.data.ai_open_questions : [],
         });
         qc.invalidateQueries({ queryKey: ['closing_deals'] });
         toast.success('AI analysis complete');
@@ -176,6 +180,29 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Summary</p>
                 <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{aiData.ai_rolling_summary}</p>
+              </div>
+            )}
+
+            {/* V3 P2 REMEMBER: persistent strategy the brain carries across runs */}
+            {aiData.ai_deal_thesis && (
+              <div className="rounded-md p-2" style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.22)', borderLeft: '2px solid rgba(139,92,246,0.7)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#c4b5fd' }}>Strategy</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{aiData.ai_deal_thesis}</p>
+              </div>
+            )}
+
+            {/* V3 P2 REMEMBER: ask-the-agent — uncertainties the brain wants a human to resolve */}
+            {Array.isArray(aiData.ai_open_questions) && aiData.ai_open_questions.filter(q => q && q.question).length > 0 && (
+              <div className="rounded-md p-2" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.28)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#93c5fd' }}>Needs your input</p>
+                <div className="flex flex-col gap-1.5">
+                  {aiData.ai_open_questions.filter(q => q && q.question).map((q, i) => (
+                    <div key={i}>
+                      <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>? {q.question}</p>
+                      {q.why && <p className="text-[10px] leading-snug" style={{ color: 'rgba(255,255,255,0.5)' }}>{q.why}</p>}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
