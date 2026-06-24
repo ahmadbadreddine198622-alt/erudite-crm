@@ -29,7 +29,14 @@ Deno.serve(async (req) => {
     // If a secret is configured, enforce it. (Still 200 so Telegram won't retry forever.)
     if (expected && provided !== expected) return ok();
 
-    const base44 = createClientFromRequest(req);
+    let base44;
+    try {
+      base44 = createClientFromRequest(req);
+    } catch (_) {
+      // Telegram POSTs carry no Base44 auth headers; if client creation throws, bail gracefully.
+      return ok();
+    }
+
     const update = await req.json().catch(() => ({}));
 
     const msg = update?.message || update?.edited_message;
