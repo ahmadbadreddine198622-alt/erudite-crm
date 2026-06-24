@@ -139,6 +139,33 @@ Emit orchestrator JSON.`;
 
     await base44.asServiceRole.entities.Deal.update(deal_id, update);
 
+    // V3 Phase 0 (RECORD): append-only Aurora score snapshot — exactly ONE per successful run, built
+    // from the same values just written. Pure instrumentation: it does NOT alter the update above or the
+    // terminal/debounce skip logic (those return earlier), and a failure here is non-fatal (must never
+    // break the orchestrator). Mirrors LandlordScoreSnapshot — the score time-series that V3 REMEMBER
+    // (trend, thesis) and LEARN build on. Deal scores are clobbered each run, so this is the only history.
+    try {
+      const fc = (result.aurora_forecast && typeof result.aurora_forecast === 'object') ? result.aurora_forecast : {};
+      await base44.asServiceRole.entities.DealScoreSnapshot.create({
+        deal_id: deal.id,
+        captured_at: now,
+        orchestrator_run_at: now,
+        stage: update.stage || deal.stage || null,
+        sub_stage: (update.sub_stage != null) ? update.sub_stage : (deal.sub_stage || null),
+        aurora_score: (typeof result.aurora_score === 'number') ? result.aurora_score : null,
+        aurora_velocity: (typeof result.aurora_velocity === 'number') ? result.aurora_velocity : null,
+        aurora_temperature: result.aurora_temperature || null,
+        aurora_risk_score: (typeof result.aurora_risk_score === 'number') ? result.aurora_risk_score : null,
+        close_probability: (typeof fc.close_probability === 'number') ? fc.close_probability : null,
+        weighted_value: (typeof fc.weighted_value === 'number') ? fc.weighted_value : null,
+        predicted_close_date: fc.predicted_close_date || null,
+        needs_human_review: (result.needs_human_review != null) ? result.needs_human_review : null,
+        review_reason: update.review_reason || null,
+      });
+    } catch (snapErr) {
+      console.error('DealScoreSnapshot create failed (non-fatal):', snapErr?.message);
+    }
+
     if (newSignals.length > 0) {
       await Promise.all(newSignals.map(s => base44.asServiceRole.entities.DealSignal.update(s.id, { consumed_by_orchestrator: true })));
     }

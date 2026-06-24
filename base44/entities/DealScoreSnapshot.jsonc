@@ -1,0 +1,57 @@
+{
+  "name": "DealScoreSnapshot",
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string",
+      "description": "FK to Deal"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this snapshot row was written"
+    },
+    "orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The auroraOrchestrator run timestamp (last_orchestrator_run_at) this snapshot reflects"
+    },
+    "stage": {
+      "type": "string"
+    },
+    "sub_stage": {
+      "type": "string"
+    },
+    "aurora_score": {
+      "type": "number"
+    },
+    "aurora_velocity": {
+      "type": "number"
+    },
+    "aurora_temperature": {
+      "type": "string"
+    },
+    "aurora_risk_score": {
+      "type": "number"
+    },
+    "close_probability": {
+      "type": "number",
+      "description": "aurora_forecast.close_probability (0-1) at this run"
+    },
+    "weighted_value": {
+      "type": "number",
+      "description": "aurora_forecast.weighted_value at this run"
+    },
+    "predicted_close_date": {
+      "type": "string",
+      "description": "aurora_forecast.predicted_close_date at this run"
+    },
+    "needs_human_review": {
+      "type": "boolean"
+    },
+    "review_reason": {
+      "type": "string"
+    }
+  },
+  "required": ["deal_id", "captured_at"]
+}
