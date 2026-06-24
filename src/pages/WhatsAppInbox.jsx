@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -75,8 +75,12 @@ export default function WhatsAppInbox() {
     enabled: !!currentUser,
   });
 
-  // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate
-  const normalizedConversations = (() => {
+  // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate.
+  // Memoized on `conversations`: this builds a 500-entry Map (with phone-normalize + Date parsing
+  // per row) and sorts — recomputing it on every render (search keystrokes, hovers, the 2s thread
+  // poll) was pure waste. Now it only re-runs when the conversation list actually changes (~15s
+  // poll), and returns a stable reference so useDesktopNotifications doesn't see a new array each render.
+  const normalizedConversations = useMemo(() => {
     const map = new Map();
     conversations.forEach(conv => {
       const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
@@ -101,7 +105,7 @@ export default function WhatsAppInbox() {
       const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return tb - ta;
     });
-  })();
+  }, [conversations]);
 
   // Desktop notifications
   const notificationHook = useDesktopNotifications({
@@ -181,14 +185,19 @@ export default function WhatsAppInbox() {
   // });
   // return () => { unsubConv(); unsubMsg(); };
 
+  // Enrichment data for matching conversations → lead/landlord and the assignment menu. Slow-moving
+  // relative to the 15s conversation poll, so staleTime stops them refetching on every remount/focus.
+  // Mutations below invalidate ['leads'] explicitly where needed, so action freshness is unaffected.
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 500),
+    staleTime: 60_000,
   });
 
   const { data: landlords = [] } = useQuery({
     queryKey: ['landlords'],
     queryFn: () => base44.entities.Landlord.list('-created_date', 500),
+    staleTime: 60_000,
   });
 
   const { data: teamMembers = [] } = useQuery({
@@ -197,11 +206,13 @@ export default function WhatsAppInbox() {
       const users = await base44.entities.User.list();
       return Array.isArray(users) ? users : [];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: leadScores = [] } = useQuery({
     queryKey: ['lead_scores'],
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
+    staleTime: 60_000,
   });
 
   // Find lead by normalized phone match

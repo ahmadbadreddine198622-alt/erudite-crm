@@ -76,19 +76,25 @@ export default function Pipeline() {
   const { user: currentUser, permissions } = useCurrentUser();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
 
+  // staleTime stops these heavy loads (two are 5000-row lists) from refetching on every
+  // remount/focus, matching the `users` query just below and the rest of the app. The drag-stage and
+  // bulk mutations invalidate ['pipeline-leads'] explicitly, so pipeline freshness is unaffected.
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pipeline-leads'],
     queryFn: () => base44.entities.Lead.list('-stage_entered_at', 5000),
+    staleTime: 30_000,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('name', 200),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: listings = [] } = useQuery({
     queryKey: ['pipeline-listings'],
     queryFn: () => base44.entities.PFListing.list('-updated_date', 5000),
+    staleTime: 60_000,
   });
 
   const { data: users = [] } = useQuery({
