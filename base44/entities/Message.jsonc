@@ -2,6 +2,29 @@
   "name": "Message",
   "type": "object",
   "properties": {
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "V3 Phase 0: true when the outgoing message text was pre-filled from an AI draft (even if edited before send)"
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Which AI feature produced the draft, e.g. landlordOrchestrator.ai_suggested_messages"
+    },
+    "ai_draft_text": {
+      "type": "string",
+      "description": "The original AI-proposed text, for edit-distance against the sent text"
+    },
+    "was_edited_after_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the sent text differs from ai_draft_text"
+    },
+    "ai_disposition": {
+      "type": "string",
+      "enum": ["accepted", "edited", "ignored"],
+      "description": "accepted = sent unchanged from draft; edited = changed before send; ignored = draft generated but not used (the ignored case is derived in aggregation, not set at send time)"
+    },
     "landlord_id": {
       "type": "string",
       "description": "FK to Landlord entity (optional - null for unmatched numbers)"

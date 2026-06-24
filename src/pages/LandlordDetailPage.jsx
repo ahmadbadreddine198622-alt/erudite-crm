@@ -117,6 +117,11 @@ class LandlordDetail extends React.Component {
       followupDate: '',
       followupHour: 10,
       followupSaving: false,
+      // AI-draft MESSAGE state (V3 Phase 0: RECORD) — mirrors the note/task pattern. composerText holds
+      // the message text; messageAiDraft is the snapshot for edit-detection; messageAiSource is which AI
+      // feature drafted it. Used only to STAMP provenance on the sent Message — no behavior change.
+      messageAiSource: null,
+      messageAiDraft: null,
       analyzing: false,
       chatSending: false,
       streamFilter: 'all',
@@ -201,7 +206,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
   // Provenance (noteAiSource/noteAiDraft) follows the composer BODY, not the active type —
@@ -215,7 +220,7 @@ class LandlordDetail extends React.Component {
     const ta=e.target;
     ta.style.height='auto';
     ta.style.height=Math.min(200, Math.max(96, ta.scrollHeight))+'px';
-    this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null } : { composerText:v });
+    this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource || s.messageAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null } : { composerText:v });
   };
   autoGrowComposer = ()=>{
     const ta=this.composerRef.current;
@@ -230,7 +235,7 @@ class LandlordDetail extends React.Component {
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     // A suggested-action chip is NOT the Task "Next Action" AI-draft source, so clear task
     // provenance — a task sent from here is recorded as from-scratch.
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
   };
 
   // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
@@ -419,7 +424,7 @@ class LandlordDetail extends React.Component {
   };
 
   // Reset to a from-scratch follow-up.
-  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
+  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
 
   onSend = ()=>{
     // Email is composed and sent from the dedicated EmailComposer panel (its own buttons),
@@ -579,7 +584,7 @@ class LandlordDetail extends React.Component {
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
-      this.setState(s=>({ followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false }));
+      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false }));
     } catch(e){
       // Revert optimistic add and restore the composer so the user can retry.
       this.setState(s=>({
@@ -599,8 +604,21 @@ class LandlordDetail extends React.Component {
     this._chatSending = true;
     this.setState({ chatSending:true });
     const channel = this.state.streamFilter === 'business' ? 'business' : 'personal';
+    // V3 Phase 0 (RECORD): AI-draft provenance, mirroring saveTask. created_from_ai is true when the
+    // text was seeded from an AI message draft (even if edited); was_edited compares sent vs draft.
+    const { messageAiSource, messageAiDraft } = this.state;
+    const createdFromAi = !!messageAiSource;
+    const wasEdited = createdFromAi ? (text !== (messageAiDraft || '')) : false;
+    const aiDisposition = createdFromAi ? (wasEdited ? 'edited' : 'accepted') : undefined;
     try {
-      const res = await base44.functions.invoke('sendMultiChannelWhatsApp', { landlord_id: L.id, text, channel });
+      const res = await base44.functions.invoke('sendMultiChannelWhatsApp', {
+        landlord_id: L.id, text, channel,
+        created_from_ai: createdFromAi,
+        ai_source: createdFromAi ? messageAiSource : undefined,
+        ai_draft_text: createdFromAi ? messageAiDraft : undefined,
+        was_edited_after_draft: wasEdited,
+        ai_disposition: aiDisposition,
+      });
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
       toast.success('Sent via ' + (channel === 'business' ? 'Business WhatsApp' : 'Personal WhatsApp'));
@@ -608,7 +626,7 @@ class LandlordDetail extends React.Component {
       const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
       this.setState(s=>({
         landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', chatSending:false,
+        composerText:'', chatSending:false, messageAiSource:null, messageAiDraft:null,
       }), ()=>this.scrollBottom());
     } catch(e){
       toast.error('Failed to send WhatsApp: ' + (e?.message || 'unknown error'));
@@ -1405,7 +1423,7 @@ class LandlordDetail extends React.Component {
                 )}
                 {this.state.composerType === 'Chat' && (
                   <React.Fragment>
-                    <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text })} />
+                    <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })} />
                     <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
                       <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
                       WhatsApp
