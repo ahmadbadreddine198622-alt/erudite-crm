@@ -56,6 +56,31 @@ const FOLLOWUP_TEMPLATE_KEYS = [
 const FULL_MODEL = 'claude-opus-4-8';            // strongest — quality matters for the brain
 const COLD_MODEL = 'claude-haiku-4-5-20251001';  // lighter — used only when there's no conversation yet
 
+// ───────────────────────────────────────────────────────────────────────────
+// KEEP IN SYNC across all 3 writers (landlordOrchestrator, backfillLandlordBrainV2,
+// backfillLandlordAIAnalysis). Engagement-wins tier routing with a force_cold escape hatch.
+//
+// Engagement signals (ANY one ⇒ engaged):
+//   • stage beyond initial_contact
+//   • rapport beyond cold
+//   • any inbound message OR any activity on record
+//
+// Resolution order:
+//   1. forceCold === true → 'cold'  (explicit, deliberate bulk cost-control — overrides engagement)
+//   2. engaged            → 'full'  (auto-upgrade — an engaged lead is never thesis-starved)
+//   3. otherwise          → requestedTier === 'full' ? 'full' : 'cold'
+//
+// requestedTier is the caller's hint ('full' | 'cold' | undefined). It can only be UPGRADED by
+// engagement, never used to downgrade an engaged lead — only forceCold downgrades.
+function resolveTier({ landlord, hasInbound, hasActivity, forceCold = false, requestedTier }) {
+  if (forceCold === true) return 'cold';
+  const stageEngaged = !!landlord.stage && landlord.stage !== 'initial_contact';
+  const rapportEngaged = !!landlord.rapport_level && landlord.rapport_level !== 'cold';
+  const contactEngaged = !!hasInbound || !!hasActivity;
+  if (stageEngaged || rapportEngaged || contactEngaged) return 'full';
+  return requestedTier === 'full' ? 'full' : 'cold';
+}
+
 // Shape of ai_suggested_messages items (matches the live Landlord schema). Shared by both tiers.
 const MESSAGE_ITEM_SCHEMA = {
   type: 'object',
@@ -219,7 +244,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { landlord_id, force = false, tier = 'full' } = await req.json();
+    const { landlord_id, force = false, tier = 'full', force_cold = false } = await req.json();
     if (!landlord_id) return Response.json({ error: 'landlord_id required' }, { status: 400 });
     const svc = base44.asServiceRole;
 
@@ -284,7 +309,12 @@ Deno.serve(async (req) => {
     const askingPrice = num(landlord.asking_price_aed) ?? num(prop.asking_price_aed) ?? (latestQual ? num(latestQual.price_expectation_aed) : null);
     const priceGapPct = (askingPrice && valuation) ? Math.round(((askingPrice - valuation) / valuation) * 100) : null;
 
-    const effectiveTier = tier === 'cold' ? 'cold' : 'full';
+    // Engagement-wins routing: an engaged lead always gets the full (thesis-capable) tier, even
+    // when the caller hinted 'cold' — unless force_cold is explicitly set for a deliberate
+    // cost-control run. hasInbound/hasActivity derived from data already loaded above.
+    const hasInbound = Array.isArray(messages) && messages.some(m => m.direction === 'incoming');
+    const hasActivity = Array.isArray(activities) && activities.length > 0;
+    const effectiveTier = resolveTier({ landlord, hasInbound, hasActivity, forceCold: force_cold, requestedTier: tier });
 
     let result = null;
     let modelUsed = FULL_MODEL;

@@ -12,6 +12,36 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 const BATCH_SIZE_DEFAULT = 10;
 const DELAY_MS_DEFAULT = 3000;
 
+// ── Handoff bounding (180s ceiling + 429 safety) ──
+// Engaged leads are routed to landlordOrchestrator (full/Opus tier) via a synchronous invoke.
+// Opus is much slower than the inline Haiku path, so handoffs are doubly bounded: a hard count
+// cap AND a wall-clock budget. When either is hit we STOP handing off and DEFER the rest —
+// leaving them unprocessed (not stamped) so the next sweep picks them up. Same resumable pattern
+// as the cold path. HANDOFF_BACKOFF_MS spaces out Opus calls to avoid 429s.
+const TIME_BUDGET_MS = 150_000;       // hard wall-clock stop (margin under the 180s ceiling)
+const HANDOFF_RESERVE_MS = 30_000;    // headroom reserved for one in-flight Opus call + its write
+const MAX_HANDOFFS_DEFAULT = 4;       // cap Opus handoffs per invocation
+const HANDOFF_BACKOFF_MS = 1500;      // backoff between handoff invokes
+
+// ── Shared tier router — KEEP IN SYNC across all 3 writers (landlordOrchestrator,
+// backfillLandlordBrainV2, backfillLandlordAIAnalysis). forceCold wins → engagement upgrades
+// cold→full → else requested/cold. (Full doc in landlordOrchestrator.)
+function resolveTier({ landlord, hasInbound, hasActivity, forceCold = false, requestedTier }) {
+  if (forceCold === true) return 'cold';
+  const stageEngaged = !!landlord.stage && landlord.stage !== 'initial_contact';
+  const rapportEngaged = !!landlord.rapport_level && landlord.rapport_level !== 'cold';
+  const contactEngaged = !!hasInbound || !!hasActivity;
+  if (stageEngaged || rapportEngaged || contactEngaged) return 'full';
+  return requestedTier === 'full' ? 'full' : 'cold';
+}
+
+// True if the error looks like a rate limit (HTTP 429 / "rate limit"). On these we back off the
+// whole sweep rather than hammering further.
+function isRateLimit(err) {
+  const s = `${err?.status || ''} ${err?.message || err || ''}`.toLowerCase();
+  return s.includes('429') || s.includes('rate limit') || s.includes('rate_limit') || s.includes('too many requests');
+}
+
 const STAGES = [
   'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
   'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification',
@@ -53,8 +83,11 @@ async function analyzeLandlord(base44, landlord) {
   const docsTotal = docs.filter(d => d.status !== 'not_required').length;
   const docsCompletionPct = docsTotal > 0 ? (docsReceived / docsTotal) * 100 : 0;
 
+  // COLD-ONLY: this backfill no longer runs the Opus/full path. Engaged leads are handed off to
+  // landlordOrchestrator (the single thesis-capable path) in the loop below — they never reach here.
+  // So this is always the lighter Haiku model.
   const hasConversation = conversations && conversations.length > 0;
-  const modelToUse = hasConversation ? 'claude-opus-4-8' : 'claude-haiku-4-5';
+  const modelToUse = 'claude-haiku-4-5';
 
   const systemPrompt = `You are LANDLORD AURORA — an autonomous AI co-pilot for a Dubai real-estate agent pursuing landlord mandates.
 
@@ -164,6 +197,9 @@ Deno.serve(async (req) => {
   const batchSize = body.batch_size || BATCH_SIZE_DEFAULT;
   const delayMs = body.delay_ms || DELAY_MS_DEFAULT;
   const skip = body.skip || 0;
+  const forceCold = body.force_cold === true;          // deliberate bulk cost-control: stay cold even for engaged
+  const maxHandoffs = body.max_handoffs || MAX_HANDOFFS_DEFAULT;
+  const startTime = Date.now();
 
   // Fetch ALL landlords, then filter client-side for unprocessed ones.
   // (Base44 filter doesn't support $or, and a shallow paged window can sit entirely on
@@ -186,9 +222,60 @@ Deno.serve(async (req) => {
     });
   }
 
-  const results = { processed: 0, failures: [] };
+  const results = { processed: 0, handed_off: 0, deferred_handoffs: 0, failures: [] };
+  let handoffsThisRun = 0;
+  let rateLimited = false;
 
   for (const landlord of landlords) {
+    // ── Tier routing ──
+    // Cheap engagement signal: stage/rapport are on the record already. Only when neither marks
+    // the lead engaged do we pay for a lightweight inbound/activity existence check (limit 1 each).
+    let hasInbound = false, hasActivity = false;
+    const stageEngaged = !!landlord.stage && landlord.stage !== 'initial_contact';
+    const rapportEngaged = !!landlord.rapport_level && landlord.rapport_level !== 'cold';
+    if (!forceCold && !stageEngaged && !rapportEngaged) {
+      const [msgs, acts] = await Promise.all([
+        svc.entities.WhatsAppMessage.filter({ landlord_id: landlord.id }, '-timestamp', 1).catch(() => []),
+        svc.entities.Activity.filter({ lead_id: landlord.id }, '-created_at', 1).catch(() => [])
+      ]);
+      hasInbound = (msgs || []).length > 0;
+      hasActivity = (acts || []).length > 0;
+    }
+    const tier = resolveTier({ landlord, hasInbound, hasActivity, forceCold, requestedTier: 'cold' });
+
+    // ── Engaged → hand off to the orchestrator (single thesis-capable path) ──
+    if (tier === 'full') {
+      // Skip if the orchestrator already ran recently (<6h) — it would no-op the debounce anyway,
+      // and it's already out of the unprocessed set. No wasted Opus call.
+      if (landlord.last_orchestrator_run_at) {
+        const hoursSince = (Date.now() - new Date(landlord.last_orchestrator_run_at).getTime()) / 3.6e6;
+        if (hoursSince < 6) { continue; }
+      }
+      // Bounding: stop handing off when the count cap OR the time budget is nearly spent. DEFER the
+      // rest — leave them UNPROCESSED (no status write, no stamp) so the next sweep picks them up.
+      const elapsed = Date.now() - startTime;
+      if (handoffsThisRun >= maxHandoffs || elapsed > (TIME_BUDGET_MS - HANDOFF_RESERVE_MS)) {
+        results.deferred_handoffs++;
+        continue;
+      }
+      try {
+        // Synchronous handoff. force:true beats the 6h debounce (its ONLY skip gate — confirmed safe,
+        // the orchestrator is stateless and re-analysis every run is its contract). On success the
+        // orchestrator stamps ai_processed_at itself, so the backfill writes NOTHING to this lead.
+        await svc.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true, tier: 'full' });
+        handoffsThisRun++;
+        results.handed_off++;
+      } catch (err) {
+        // 429 or any failure → LEAVE THE LEAD UNPROCESSED (no status, no stamp) so the next cycle
+        // retries it. On a rate limit, back off the WHOLE sweep — stop handing off this run.
+        results.failures.push({ landlord_id: landlord.id, stage: 'handoff', error: err.message || String(err) });
+        if (isRateLimit(err)) { rateLimited = true; break; }
+      }
+      await sleep(HANDOFF_BACKOFF_MS);
+      continue;
+    }
+
+    // ── Cold → inline Haiku analysis (existing path) ──
     try {
       // Mark as in_progress
       await svc.entities.Landlord.update(landlord.id, {
@@ -292,21 +379,28 @@ Deno.serve(async (req) => {
     }
   }
 
-  const remaining = Math.max(0, allUnprocessed.length - results.processed);
+  // Both cold-processed and handed-off leads leave the unprocessed set (the orchestrator stamps
+  // ai_processed_at on a successful handoff). Deferred + rate-limited + failed handoffs stay in it.
+  const remaining = Math.max(0, allUnprocessed.length - results.processed - results.handed_off);
   const hasMore = remaining > 0;
 
   return Response.json({
-    status: 'in_progress',
+    status: rateLimited ? 'rate_limited' : 'in_progress',
     batch_info: {
       batch_size: batchSize,
       fetched: landlords.length,
-      delay_ms: delayMs
+      delay_ms: delayMs,
+      max_handoffs: maxHandoffs,
+      elapsed_ms: Date.now() - startTime,
+      rate_limited: rateLimited
     },
     processed: results.processed,
+    handed_off: results.handed_off,
+    deferred_handoffs: results.deferred_handoffs,
     failures: results.failures.slice(0, 20),
     has_more: hasMore,
     remaining,
     next_skip: null,
-    summary: `Processed ${results.processed}/${landlords.length} landlords in this batch. ${remaining} remaining. ${results.failures.length} failures.`
+    summary: `Cold-processed ${results.processed}, handed off ${results.handed_off} to orchestrator${results.deferred_handoffs ? `, deferred ${results.deferred_handoffs} handoffs` : ''}${rateLimited ? ' (rate-limited — backed off)' : ''}. ${remaining} remaining. ${results.failures.length} failures.`
   });
 });
