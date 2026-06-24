@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
     try {
       await base44.asServiceRole.entities.Email.create({
         landlord_id: landlordId,
+        from_email: user.email || null,
         to_email: to,
         subject,
         body: bodyNative,
