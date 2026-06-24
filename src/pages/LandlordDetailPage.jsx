@@ -34,6 +34,7 @@ import FollowupComposerFields from '@/components/landlord/FollowupComposerFields
 import ComposerConfirmChip from '@/components/landlord/ComposerConfirmChip';
 import { commitComposerDraft } from '@/components/landlord/composerCommit';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
+import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -631,6 +632,7 @@ class LandlordDetail extends React.Component {
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
       toast.success('Sent via ' + (channel === 'business' ? 'Business WhatsApp' : 'Personal WhatsApp'));
+      tickOutreachStep('whatsapp_sent', L); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
       this.setState(s=>({
@@ -663,6 +665,7 @@ class LandlordDetail extends React.Component {
       }
       if (data?.error) throw new Error(data.error);
       toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
+      tickOutreachStep('imessage_sent', L); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
       this.setState(s=>({
@@ -1425,6 +1428,7 @@ class LandlordDetail extends React.Component {
                     landlordId={L.id}
                     toEmail={L.email}
                     onLogged={({ subject })=>{
+                      tickOutreachStep('email_sent', L); // auto-tick today's outreach sequence
                       const order = Date.now();
                       const item = { t:'act', kind:'note', title:'Email draft created', body: subject ? ('Subject: ' + subject) : 'Branded Gmail draft created', time:'Just now', order };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
@@ -1447,6 +1451,7 @@ class LandlordDetail extends React.Component {
                   <IMessageComposer
                     landlordId={L.id}
                     onSent={({ text })=>{
+                      tickOutreachStep('imessage_sent', L); // auto-tick today's outreach sequence
                       const order = Date.now();
                       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
@@ -1842,18 +1847,6 @@ const PIPELINE_STAGES = [
   'client_blast','deal_closed',
 ];
 
-const EMPTY_OUTREACH = {
-  date: 'Today', stepsCompleted: 0, dailyScore: 0,
-  steps: [
-    { key:'email_sent', label:'Email', done:false, at:null },
-    { key:'whatsapp_sent', label:'WhatsApp', done:false, at:null },
-    { key:'imessage_sent', label:'iMessage', done:false, at:null },
-    { key:'sms_sent', label:'SMS', done:false, at:null },
-    { key:'called', label:'Called', done:false, at:null },
-    { key:'qualification_logged', label:'Qualification logged', done:false, at:null },
-  ],
-};
-
 function temperatureFromRapport(rapport) {
   if (rapport === 'champion' || rapport === 'trust_established') return 'hot';
   if (rapport === 'warming' || rapport === 'rapport_built') return 'warm';
@@ -1872,6 +1865,10 @@ export default function LandlordDetailPage() {
   const [mediaInputs, setMediaInputs] = useState({});
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
+  // Today's outreach checklist — the REAL sequence state shown in the Outreach tab. Auto-ticked by
+  // the composer success handlers (tickOutreachStep) and by Call/Qualification entity automations.
+  const OUTREACH_TODAY = new Date().toISOString().slice(0, 10);
+  const { data: outreachRows = [] } = useQ(['outreach_checklist', id, OUTREACH_TODAY], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id, outreach_date: OUTREACH_TODAY })), { enabled: !!id, refetchInterval: 15000 });
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
@@ -2436,7 +2433,7 @@ export default function LandlordDetailPage() {
   docs,
   stream,
   connections,
-  outreach: EMPTY_OUTREACH,
+  outreach: buildOutreachVM(outreachRows[0]),
   media,
   formAContractNumber: L.form_a_contract_number || null,
   mandateStatus: L.mandate_status || null,
