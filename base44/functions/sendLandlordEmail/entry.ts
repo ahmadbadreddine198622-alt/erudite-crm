@@ -158,6 +158,19 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: msg }, { status: 502 });
     }
 
+    // Read the sent message back to confirm Gmail accepted it for delivery.
+    // labelIds containing SENT means Gmail queued/handed it off to the recipient's MX.
+    let delivery = 'accepted';
+    try {
+      const getResp = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${data.id}?format=metadata&metadataHeaders=To`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      );
+      const msgData = await getResp.json().catch(() => ({}));
+      const labels = Array.isArray(msgData.labelIds) ? msgData.labelIds : [];
+      if (labels.includes('SENT')) delivery = 'sent';
+    } catch (_) { /* best-effort confirmation */ }
+
     // Best-effort: log the sent email to the Email entity so it appears in the stream.
     try {
       await base44.asServiceRole.entities.Email.create({
@@ -174,7 +187,7 @@ Deno.serve(async (req) => {
       });
     } catch (_) { /* best-effort log */ }
 
-    return Response.json({ ok: true, message_id: data.id, to, subject });
+    return Response.json({ ok: true, message_id: data.id, thread_id: data.threadId || null, to, subject, delivery });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }

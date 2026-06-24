@@ -50,6 +50,8 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
+  // Delivery status of the last send: null | { state, thread_id, message_id, reason, checking }
+  const [delivery, setDelivery] = useState(null);
 
   // Generated draft (editable before sending to Gmail).
   const [subject, setSubject] = useState('');
@@ -89,11 +91,30 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     }
   };
 
+  const recheckDelivery = async (threadId, messageId) => {
+    if (!threadId) return;
+    setDelivery((d) => (d ? { ...d, checking: true } : d));
+    try {
+      const res = await base44.functions.invoke('checkEmailDeliveryStatus', {
+        thread_id: threadId, message_id: messageId,
+      });
+      const data = res?.data ?? res;
+      if (data?.ok) {
+        setDelivery({ state: data.status, thread_id: threadId, message_id: messageId, reason: data.bounce_reason || null, checking: false });
+      } else {
+        setDelivery((d) => (d ? { ...d, checking: false } : d));
+      }
+    } catch (_) {
+      setDelivery((d) => (d ? { ...d, checking: false } : d));
+    }
+  };
+
   const sendEmail = async () => {
     if (sending) return;
     if (!to.trim()) { toast.error('Add a recipient email'); return; }
     if (!subject.trim() || !bodyNative.trim()) { toast.error('Subject and body are required'); return; }
     setSending(true);
+    setDelivery(null);
     try {
       const res = await base44.functions.invoke('sendLandlordEmail', {
         to: to.trim(), subject: subject.trim(), body_native: bodyNative, landlord_id: landlordId,
@@ -101,12 +122,24 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Email send failed');
       toast.success('Email sent to ' + to.trim());
+      setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
+      // Bounces arrive seconds-to-minutes later — re-check the thread after a short delay.
+      if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
       if (onLogged) onLogged({ subject: subject.trim(), to: to.trim() });
     } catch (e) {
       toast.error(e?.message || 'Failed to send email');
+      setDelivery({ state: 'failed', reason: e?.message || 'Send failed', checking: false });
     } finally {
       setSending(false);
     }
+  };
+
+  const DELIVERY_META = {
+    accepted:  { label: 'Sent — accepted by Gmail', color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
+    sent:      { label: 'Sent — handed to recipient server', color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
+    delivered: { label: 'Delivered ✓', color: '#34d399', bg: 'rgba(16,185,129,0.14)', border: 'rgba(16,185,129,0.35)' },
+    bounced:   { label: 'Bounced — not received', color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)' },
+    failed:    { label: 'Failed to send', color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)' },
   };
 
   const activeMode = MODES.find(m => m.key === mode);
@@ -182,6 +215,28 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
             {sending ? 'Sending…' : '✉ Send branded email'}
           </button>
           <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center;")}>Sends immediately from your connected Gmail — no draft step.</div>
+
+          {delivery && (() => {
+            const meta = DELIVERY_META[delivery.state] || DELIVERY_META.accepted;
+            return (
+              <div style={{ ...css("border-radius:8px; padding:7px 10px; display:flex; flex-direction:column; gap:4px;"), background: meta.bg, border: '1px solid ' + meta.border }}>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:8px;")}>
+                  <span style={{ ...css("font-size:11px; font-weight:700;"), color: meta.color }}>
+                    {delivery.checking ? 'Checking delivery…' : meta.label}
+                  </span>
+                  {delivery.thread_id && delivery.state !== 'bounced' && (
+                    <button onClick={() => recheckDelivery(delivery.thread_id, delivery.message_id)} disabled={delivery.checking}
+                      style={css("font-size:9.5px; font-weight:600; cursor:pointer; padding:2px 8px; border-radius:99px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7); font-family:'Inter',sans-serif;")}>
+                      ↻ Re-check
+                    </button>
+                  )}
+                </div>
+                {delivery.reason && (
+                  <span style={css("font-size:10px; color:rgba(255,255,255,0.6); line-height:1.4;")}>{delivery.reason}</span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
