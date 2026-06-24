@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     const resp = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
       body: JSON.stringify(payload),
     });
 

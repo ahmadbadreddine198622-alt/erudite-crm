@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       const url = `${serverUrl}/api/v1/handle/availability/imessage?address=${encodeURIComponent(address)}&password=${encodeURIComponent(password)}`;
       const resp = await fetch(url, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
       });
 
       const raw = await resp.text();

@@ -59,10 +59,11 @@ Deno.serve(async (req) => {
     const queryUrl = `${serverUrl}/api/v1/message/query?password=${encodeURIComponent(password)}`;
     const resp = await fetch(queryUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
       body: JSON.stringify({
+        // NOTE: do NOT send `offset` — the Zrok share's request filter rejects the
+        // { sort, after, offset } combination with a 403 (offset defaults to 0 anyway).
         limit,
-        offset: 0,
         with: ['handle', 'chats'],
         sort: 'DESC',
         after: afterTs,
