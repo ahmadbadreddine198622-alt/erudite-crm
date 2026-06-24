@@ -383,6 +383,13 @@ Reason over all of the above and emit the orchestrator result.`;
       return Response.json({ error: 'Claude call failed', tier: effectiveTier, last_run: new Date().toISOString() }, { status: 500 });
     }
 
+    // TEMP DIAGNOSTIC (remove after investigation): prove whether the model emitted ai_deal_thesis.
+    console.log('[THESIS-DIAG] result keys:', Object.keys(result || {}).join(', '));
+    console.log('[THESIS-DIAG] has ai_deal_thesis key:', Object.prototype.hasOwnProperty.call(result || {}, 'ai_deal_thesis'));
+    console.log('[THESIS-DIAG] ai_deal_thesis value:', JSON.stringify(result?.ai_deal_thesis));
+    console.log('[THESIS-DIAG] has ai_open_questions key:', Object.prototype.hasOwnProperty.call(result || {}, 'ai_open_questions'));
+    console.log('[THESIS-DIAG] ai_open_questions value:', JSON.stringify(result?.ai_open_questions));
+
     // Build the Landlord.update — only fields the tier produced; always idempotent (single update).
     const update = {
       last_orchestrator_run_at: new Date().toISOString(),
@@ -473,12 +480,17 @@ Reason over all of the above and emit the orchestrator result.`;
           .slice(0, 3)
           .map(q => ({ question: q.question.trim(), why: typeof q.why === 'string' ? q.why.trim() : '' }));
       }
+      console.log('[THESIS-DIAG] memoryUpdate to write:', JSON.stringify(memoryUpdate));
       if (Object.keys(memoryUpdate).length) {
         try {
           await svc.entities.Landlord.update(landlord.id, memoryUpdate);
+          console.log('[THESIS-DIAG] memoryUpdate write SUCCEEDED');
         } catch (memErr) {
+          console.error('[THESIS-DIAG] memoryUpdate write FAILED (full error):', memErr);
           console.error('ai_deal_thesis/ai_open_questions write failed (non-fatal — apply live schema):', memErr?.message);
         }
+      } else {
+        console.log('[THESIS-DIAG] memoryUpdate is EMPTY — nothing to write (model omitted thesis & questions)');
       }
     }
 
