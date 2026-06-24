@@ -329,11 +329,11 @@
     },
     "ai_deal_thesis": {
       "type": "string",
-      "description": "V3 Phase 2 (REMEMBER): the persistent strategic narrative for winning this mandate — the durable 'where this deal is going and how we win it' plan that EVOLVES across orchestrator runs (distinct from ai_rolling_summary, which is the tactical current-state). Written by landlordOrchestrator (full tier); prior value is fed back in so it accrues rather than resets."
+      "description": "V3 Phase 2 (REMEMBER): the persistent strategic narrative for winning this mandate \u2014 the durable 'where this deal is going and how we win it' plan that EVOLVES across orchestrator runs (distinct from ai_rolling_summary, which is the tactical current-state). Written by landlordOrchestrator (full tier); prior value is fed back in so it accrues rather than resets."
     },
     "ai_open_questions": {
       "type": "array",
-      "description": "V3 Phase 2 (REMEMBER): ask-the-agent — specific uncertainties the brain wants a human to resolve (0-3). Only populated when the model is genuinely unsure about something a human can answer. Surfaced in the AI Intelligence card as 'Needs your input'.",
+      "description": "V3 Phase 2 (REMEMBER): ask-the-agent \u2014 specific uncertainties the brain wants a human to resolve (0-3). Only populated when the model is genuinely unsure about something a human can answer. Surfaced in the AI Intelligence card as 'Needs your input'.",
       "items": {
         "type": "object",
         "properties": {
@@ -512,7 +512,8 @@
         "pending",
         "in_progress",
         "completed",
-        "failed"
+        "failed",
+        "needs_retry"
       ]
     },
     "needs_human_review": {
