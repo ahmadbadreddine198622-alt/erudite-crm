@@ -18,8 +18,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SIGNATURE_URL = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/bb9f3a11f_erudite-signature.png';
 const STAMP_URL     = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/5db8f82f5_erudite-stamp.png';
-// Full CEO signature banner (the dark Ahmad Badreddine / Erudite card).
-const BANNER_URL    = 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/d1c825d23_image.png';
 
 const COMPANY = {
   principal:  'Ahmad Badreddine',
@@ -92,13 +90,6 @@ function buildHtml(bodyNative) {
           </tr>
           <tr>
             <td style="padding:18px 8px 0;border-top:1px solid #e2e8f0;">
-              <a href="${COMPANY.website}" style="text-decoration:none;">
-                <img src="${BANNER_URL}" alt="${COMPANY.principal} — ${COMPANY.title}, ${COMPANY.name}" width="468" style="display:block;width:100%;max-width:468px;height:auto;border:0;border-radius:8px;"/>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 8px 0;">
               <p style="margin:0 0 1px;font-weight:bold;color:#1a2744;font-size:15px;">${COMPANY.principal}</p>
               <p style="margin:0 0 6px;color:#475569;font-size:12px;">${COMPANY.title}, ${COMPANY.name} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
               <p style="margin:0 0 10px;color:#475569;font-size:12px;line-height:1.7;">
