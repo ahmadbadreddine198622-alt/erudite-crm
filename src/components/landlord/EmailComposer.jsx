@@ -73,10 +73,28 @@ const MODES = [
 const REQUIRES_BUYER = ['real_buyer', 'funds_ready'];
 const REQUIRES_MARKET = ['market_gift'];
 
+// Optional reader-psychology profiles. value '' = default tone (psychology omitted from the call).
+const PSYCHOLOGY_OPTIONS = [
+  { value: '', label: 'Default tone' },
+  { value: 'stubborn', label: 'Stubborn / set in their ways' },
+  { value: 'dislikes_email', label: 'Dislikes email' },
+  { value: 'avoids_talking', label: "Doesn't want to call or meet" },
+  { value: 'stressed', label: 'Stressed / overwhelmed' },
+  { value: 'skeptical', label: 'Skeptical / distrustful' },
+  { value: 'time_poor', label: 'Busy / time-poor' },
+  { value: 'analytical', label: 'Analytical / data-driven' },
+  { value: 'emotionally_attached', label: 'Attached to the home' },
+  { value: 'price_anchored', label: 'High price expectation' },
+  { value: 'previously_burned', label: 'Burned by a past broker' },
+  { value: 'non_committal', label: 'Slow to respond' },
+  { value: 'status_conscious', label: 'Proud / status-conscious' },
+];
+
 const fieldStyle = css("padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; width:100%;");
 
 export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [mode, setMode] = useState('asset_proof');
+  const [psychology, setPsychology] = useState('');
   const [to, setTo] = useState(toEmail || '');
   const [buyerDetail, setBuyerDetail] = useState('');
   const [marketFigure, setMarketFigure] = useState('');
@@ -111,7 +129,9 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (marketFigure.trim()) agent_inputs.market_figure = marketFigure.trim();
       if (compReference.trim()) agent_inputs.comp_reference = compReference.trim();
 
-      const res = await base44.functions.invoke('draftLandlordEmail', { landlord_id: landlordId, mode, agent_inputs });
+      const payload = { landlord_id: landlordId, mode, agent_inputs };
+      if (psychology) payload.psychology = psychology;
+      const res = await base44.functions.invoke('draftLandlordEmail', payload);
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
@@ -230,6 +250,17 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         })}
       </div>
       {activeMode && <div style={css("font-size:10px; color:rgba(255,255,255,0.45); margin-bottom:8px; line-height:1.4;")}>{activeMode.hint}</div>}
+
+      {/* optional owner psychology */}
+      <div style={css("margin-bottom:9px;")}>
+        <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Owner psychology</div>
+        <select value={psychology} onChange={(e) => setPsychology(e.target.value)}
+          style={{ ...fieldStyle, cursor: 'pointer', appearance: 'auto' }}>
+          {PSYCHOLOGY_OPTIONS.map((p) => (
+            <option key={p.value || 'default'} value={p.value} style={{ background: '#1a2235', color: '#fff' }}>{p.label}</option>
+          ))}
+        </select>
+      </div>
 
       {/* conditional agent inputs */}
       {needsBuyer && (
