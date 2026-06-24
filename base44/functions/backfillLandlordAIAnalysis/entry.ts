@@ -90,6 +90,19 @@ Deno.serve(async (req) => {
         updatePayload.landlord_archetype = 'individual_end_user_relocating';
       }
 
+      // STATUS CORRECTNESS: only "completed" when valid core output exists — both ai_rolling_summary
+      // AND ai_next_best_action non-null. Otherwise needs_retry with a clear review_reason. Applied
+      // identically across all three writers. (Cold tier builds both fields above, so this normally
+      // passes — the gate guards against a future change that drops one.)
+      const hasSummary = typeof updatePayload.ai_rolling_summary === 'string' && updatePayload.ai_rolling_summary.trim().length > 0;
+      const hasNBA = !!(updatePayload.ai_next_best_action && typeof updatePayload.ai_next_best_action === 'object'
+        && typeof updatePayload.ai_next_best_action.action === 'string' && updatePayload.ai_next_best_action.action.trim().length > 0);
+      const isValidRun = hasSummary && hasNBA;
+      updatePayload.ai_processing_status = isValidRun ? 'completed' : 'needs_retry';
+      if (!isValidRun) {
+        updatePayload.review_reason = `needs_retry: hollow run — ${!hasSummary ? 'ai_rolling_summary missing' : ''}${(!hasSummary && !hasNBA) ? ' & ' : ''}${!hasNBA ? 'ai_next_best_action missing' : ''}`;
+      }
+
       await svc.entities.Landlord.update(landlord.id, updatePayload);
       results.processed++;
     } catch (err) {
