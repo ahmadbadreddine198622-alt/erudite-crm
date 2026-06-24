@@ -26,6 +26,7 @@ import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
+import EmailComposer from '@/components/landlord/EmailComposer';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -417,6 +418,9 @@ class LandlordDetail extends React.Component {
   clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
 
   onSend = ()=>{
+    // Email is composed and sent from the dedicated EmailComposer panel (its own buttons),
+    // so the shared textarea/send-arrow does nothing for it.
+    if(this.state.composerType === 'Email'){ return; }
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
     // Notes and Tasks persist to their entities; other types keep the in-memory stream.
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
@@ -772,8 +776,8 @@ class LandlordDetail extends React.Component {
     const msgCount=filtered.filter(s=>s.t==='msg').length;
     const actCount=filtered.filter(s=>s.t==='act').length;
 
-    const composerTypes=['Note','Task','Follow-up','Appointment','Chat','iMessage'].map(t=>{
-      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬','iMessage':'' }[t];
+    const composerTypes=['Note','Task','Follow-up','Appointment','Chat','iMessage','Email'].map(t=>{
+      const on=S.composerType===t; const ic={ 'Note':'📝','Task':'✓','Follow-up':'↻','Appointment':'📅','Chat':'💬','iMessage':'','Email':'✉' }[t];
       const isChat = t==='Chat';
       const isIMessage = t==='iMessage';
       return { label:t, icon:ic, onClick: ()=>this.setComposerType(t),
@@ -782,7 +786,7 @@ class LandlordDetail extends React.Component {
           color: isIMessage ? (on?'#0A84FF':'#60a5fa') : isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
           border:'1px solid '+(isIMessage ? (on?'rgba(10,132,255,0.5)':'rgba(10,132,255,0.3)') : isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
     });
-    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)', 'iMessage':'Type an iMessage… (Enter to send)' };
+    const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)', 'iMessage':'Type an iMessage… (Enter to send)', 'Email':'Use the AI Email Draft panel above to compose…' };
 
     const rm=this.rapportMeta(L.rapport);
     const hdr={
@@ -1376,6 +1380,17 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
 
+                {this.state.composerType === 'Email' && (
+                  <EmailComposer
+                    landlordId={L.id}
+                    toEmail={L.email}
+                    onLogged={({ subject })=>{
+                      const order = Date.now();
+                      const item = { t:'act', kind:'note', title:'Email draft created', body: subject ? ('Subject: ' + subject) : 'Branded Gmail draft created', time:'Just now', order };
+                      this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
+                    }}
+                  />
+                )}
                 {this.state.composerType === 'Chat' && (
                   <React.Fragment>
                     <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text })} />
@@ -1385,10 +1400,12 @@ class LandlordDetail extends React.Component {
                     </div>
                   </React.Fragment>
                 )}
+                {this.state.composerType !== 'Email' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
                   <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending || this.state.imessageSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending) ? '…' : '➤'}</button>
                 </div>
+                )}
               </div>
             </div>
 
