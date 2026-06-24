@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { X, Loader2, CheckCircle2, ArrowRight, Sparkles, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,6 +9,23 @@ const fmtAed = (n) => n ? `AED ${Number(n).toLocaleString('en-AE', { maximumFrac
 
 const NOC_OPTS = ['not_required', 'pending', 'received', 'rejected'];
 const LABEL = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+// V3 Phase 2 (REMEMBER): tiny inline sparkline (auto-scaled) for the closing-risk trajectory.
+function RiskSparkline({ series }) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const w = 60, h = 16, pad = 2;
+  const lo = Math.min(...series), hi = Math.max(...series), span = (hi - lo) || 1;
+  const pts = series.map((v, i) => {
+    const x = pad + (i * (w - pad * 2)) / (series.length - 1);
+    const y = pad + (h - pad * 2) * (1 - (v - lo) / span);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block' }}>
+      <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
   const qc = useQueryClient();
@@ -36,6 +53,26 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
     ai_deal_thesis: deal.ai_deal_thesis ?? null,
     ai_open_questions: Array.isArray(deal.ai_open_questions) ? deal.ai_open_questions : [],
   });
+
+  // V3 Phase 2 (REMEMBER): closing-risk trajectory from the append-only snapshot history. Read-only;
+  // degrades to nothing until >=2 snapshots exist (entity created + accrued post-publish). The queryFn
+  // swallows errors so it's harmless before ClosingDealScoreSnapshot is live.
+  const { data: riskSnapshots = [] } = useQuery({
+    queryKey: ['closing_snapshots', deal.id],
+    queryFn: async () => {
+      try { return await base44.entities.ClosingDealScoreSnapshot.filter({ closing_deal_id: deal.id }, '-captured_at', 30); }
+      catch { return []; }
+    },
+    enabled: !!deal?.id,
+    retry: false,
+    staleTime: 30000,
+  });
+  const riskTrend = (() => {
+    const series = [...(Array.isArray(riskSnapshots) ? riskSnapshots : [])].reverse()
+      .map(s => s.ai_risk_score).filter(v => typeof v === 'number' && isFinite(v));
+    if (series.length < 2) return null;
+    return { series: series.slice(-12), delta: Math.round(series[series.length - 1] - series[series.length - 2]) };
+  })();
 
   const handleRunAI = async () => {
     setRunningAI(true);
@@ -166,6 +203,18 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
                     Predicted close: {aiData.ai_predicted_close_date}
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* V3 P2 REMEMBER: risk trajectory over the orchestrator's run history (rising risk = red) */}
+            {riskTrend && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk trend</span>
+                <RiskSparkline series={riskTrend.series} />
+                <span className="text-[10px] font-bold"
+                  style={{ color: riskTrend.delta > 0 ? '#fca5a5' : riskTrend.delta < 0 ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                  {riskTrend.delta > 0 ? '▲' : riskTrend.delta < 0 ? '▼' : '→'}{riskTrend.delta !== 0 ? Math.abs(riskTrend.delta) : ''}
+                </span>
               </div>
             )}
 
