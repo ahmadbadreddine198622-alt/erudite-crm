@@ -221,11 +221,22 @@ Deno.serve(async (req) => {
         ai_suggested_followups: Array.isArray(analysis.ai_suggested_followups)
           ? analysis.ai_suggested_followups.filter(f => f && FOLLOWUP_TEMPLATE_KEYS.includes(f.template_key)).slice(0, 4)
           : [],
-        ai_processing_status: 'completed',
         ai_processed_at: new Date().toISOString(),
         last_orchestrator_run_at: new Date().toISOString(),
         ai_model_used: analysis.model_used || 'claude-haiku-4-5'
       };
+
+      // STATUS CORRECTNESS: only "completed" when valid core output exists — both ai_rolling_summary
+      // AND ai_next_best_action non-null (non-empty .action). Otherwise needs_retry with a clear
+      // review_reason. Identical gate to backfillLandlordAIAnalysis and landlordOrchestrator.
+      const hasSummary = typeof update.ai_rolling_summary === 'string' && update.ai_rolling_summary.trim().length > 0;
+      const hasNBA = !!(update.ai_next_best_action && typeof update.ai_next_best_action === 'object'
+        && typeof update.ai_next_best_action.action === 'string' && update.ai_next_best_action.action.trim().length > 0);
+      const isValidRun = hasSummary && hasNBA;
+      update.ai_processing_status = isValidRun ? 'completed' : 'needs_retry';
+      if (!isValidRun) {
+        update.review_reason = `needs_retry: hollow run — ${!hasSummary ? 'ai_rolling_summary missing' : ''}${(!hasSummary && !hasNBA) ? ' & ' : ''}${!hasNBA ? 'ai_next_best_action missing' : ''}`;
+      }
 
       await svc.entities.Landlord.update(landlord.id, update);
       results.processed++;
