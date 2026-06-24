@@ -41,7 +41,9 @@ export function buildOutreachVM(checklist) {
 
 // stepKey: one of STEP_KEYS. landlord: the live landlord object (needs id + a name).
 // Returns silently on any failure — auto-ticking must never break the send it follows.
-export async function tickOutreachStep(stepKey, landlord, extra = {}) {
+// When toggleTo is provided (true/false) the step is set to that exact value (manual checkbox);
+// when omitted it ticks ON and is idempotent (auto-tick on send).
+export async function tickOutreachStep(stepKey, landlord, extra = {}, toggleTo) {
   if (!STEP_KEYS.includes(stepKey) || !landlord?.id) return;
   try {
     const user = await base44.auth.me().catch(() => null);
@@ -54,11 +56,12 @@ export async function tickOutreachStep(stepKey, landlord, extra = {}) {
     });
     const checklist = rows?.[0] ?? null;
 
-    // Idempotent: already ticked → nothing to do.
-    if (checklist?.[stepKey]) return;
+    const target = toggleTo === undefined ? true : !!toggleTo;
+    // Idempotent: already at the target value → nothing to do.
+    if (!!checklist?.[stepKey] === target) return;
 
     const now = new Date().toISOString();
-    const patch = { [stepKey]: true, [stepKey + '_at']: now, ...extra };
+    const patch = { [stepKey]: target, [stepKey + '_at']: target ? now : null, ...extra };
     const merged = { ...(checklist || {}), ...patch };
     const steps_completed = STEP_KEYS.filter(k => merged[k]).length;
     const sequence_complete = SEQUENCE_KEYS.every(k => merged[k]);

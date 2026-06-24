@@ -18,6 +18,7 @@ import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import CallsTabList from '@/components/landlord/CallsTabList';
+import OutreachTab from '@/components/landlord/OutreachTab';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
 import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
@@ -209,6 +210,28 @@ class LandlordDetail extends React.Component {
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
   onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
+  // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
+  // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
+  onToggleOutreachStep = async (stepKey)=>{
+    const L = this.cur();
+    if(!L || this._outreachToggling) return;
+    const current = !!(L.outreach && L.outreach.steps.find(s=>s.key===stepKey)?.done);
+    const next = !current;
+    this._outreachToggling = stepKey;
+    // Optimistic local flip so the checkbox responds instantly.
+    this.setState(s=>({ landlords: s.landlords.map(l=>{
+      if(l.id!==s.currentId || !l.outreach) return l;
+      const steps = l.outreach.steps.map(st=> st.key===stepKey ? {...st, done:next, at: next ? 'now' : '—'} : st);
+      const stepsCompleted = steps.filter(st=>st.done).length;
+      return {...l, outreach:{...l.outreach, steps, stepsCompleted}};
+    }) }));
+    try {
+      await tickOutreachStep(stepKey, L, {}, next);
+    } finally {
+      this._outreachToggling = null;
+      if(this.props.onOutreachChanged) this.props.onOutreachChanged();
+    }
+  };
   // Collapse every open panel/composer on the page without navigating away — one tap to
   // tidy up when too many things are expanded at once.
   collapseAll = ()=> this.setState({
@@ -632,7 +655,7 @@ class LandlordDetail extends React.Component {
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
       toast.success('Sent via ' + (channel === 'business' ? 'Business WhatsApp' : 'Personal WhatsApp'));
-      tickOutreachStep('whatsapp_sent', L); // auto-tick today's outreach sequence
+      tickOutreachStep('whatsapp_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
       this.setState(s=>({
@@ -665,7 +688,7 @@ class LandlordDetail extends React.Component {
       }
       if (data?.error) throw new Error(data.error);
       toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
-      tickOutreachStep('imessage_sent', L); // auto-tick today's outreach sequence
+      tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
       this.setState(s=>({
@@ -1428,7 +1451,7 @@ class LandlordDetail extends React.Component {
                     landlordId={L.id}
                     toEmail={L.email}
                     onLogged={({ subject })=>{
-                      tickOutreachStep('email_sent', L); // auto-tick today's outreach sequence
+                      tickOutreachStep('email_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
                       const item = { t:'act', kind:'note', title:'Email draft created', body: subject ? ('Subject: ' + subject) : 'Branded Gmail draft created', time:'Just now', order };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
@@ -1451,7 +1474,7 @@ class LandlordDetail extends React.Component {
                   <IMessageComposer
                     landlordId={L.id}
                     onSent={({ text })=>{
-                      tickOutreachStep('imessage_sent', L); // auto-tick today's outreach sequence
+                      tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
                       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
@@ -1686,28 +1709,7 @@ class LandlordDetail extends React.Component {
                 </div>
 
                 {tab.isOutreach && (
-                  <React.Fragment>
-                    <div style={css("display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px;")}>
-                      <div>
-                        <div style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.9);")}>Daily outreach sequence · {tab.outreachDate}</div>
-                        <div style={css("font-size:11.5px; color:rgba(255,255,255,0.45); margin-top:2px;")}>{tab.stepsCompleted} of 6 steps complete</div>
-                      </div>
-                      <div style={css("text-align:right;")}>
-                        <div style={css("font-size:20px; font-weight:800; color:hsl(38 92% 60%);")}>{tab.dailyScore}</div>
-                        <div style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>daily score</div>
-                      </div>
-                    </div>
-                    <div style={css("height:6px; border-radius:99px; background:rgba(255,255,255,0.07); overflow:hidden; margin-bottom:14px;")}><div style={tab.progressStyle}></div></div>
-                    <div style={css("display:flex; flex-direction:column; gap:7px;")}>
-                      {tab.steps.map((os)=>(
-                        <div key={os.key} style={css("display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-                          <span style={os.iconStyle}>{os.icon}</span>
-                          <span style={os.labelStyle}>{os.label}</span>
-                          <span style={css("margin-left:auto; font-size:11px; color:rgba(255,255,255,0.4);")}>{os.at}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </React.Fragment>
+                  <OutreachTab tab={tab} onToggleStep={this.onToggleOutreachStep} toggling={this._outreachToggling} />
                 )}
 
                 {tab.isList && (
@@ -1868,7 +1870,7 @@ export default function LandlordDetailPage() {
   // Today's outreach checklist — the REAL sequence state shown in the Outreach tab. Auto-ticked by
   // the composer success handlers (tickOutreachStep) and by Call/Qualification entity automations.
   const OUTREACH_TODAY = new Date().toISOString().slice(0, 10);
-  const { data: outreachRows = [] } = useQ(['outreach_checklist', id, OUTREACH_TODAY], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id, outreach_date: OUTREACH_TODAY })), { enabled: !!id, refetchInterval: 15000 });
+  const { data: outreachRows = [], refetch: refetchOutreach } = useQ(['outreach_checklist', id, OUTREACH_TODAY], () => safe(() => base44.entities.OutreachChecklist.filter({ landlord_id: id, outreach_date: OUTREACH_TODAY })), { enabled: !!id, refetchInterval: 15000 });
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
@@ -2469,6 +2471,7 @@ export default function LandlordDetailPage() {
         currentUser={currentUser}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
+        onOutreachChanged={refetchOutreach}
         />
       <FormAUploadDialog
         open={formADialogOpen}
