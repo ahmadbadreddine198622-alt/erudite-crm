@@ -17,6 +17,7 @@ import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
+import CallsTabList from '@/components/landlord/CallsTabList';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
 import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
@@ -1716,23 +1717,7 @@ class LandlordDetail extends React.Component {
                 )}
 
                 {tab.isCalls && (
-                  <div style={css("display:flex; flex-direction:column; gap:8px;")}>
-                    {tab.calls.map((cl)=>(
-                      <div key={cl.key} style={css("display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-                        <span style={cl.iconStyle}>{cl.icon}</span>
-                        <div style={css("flex:1; min-width:0;")}>
-                          <div style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.88);")}>{cl.title}</div>
-                          <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px;")}>
-                            <span style={cl.provStyle}>{cl.provIcon} {cl.provLabel}</span>
-                            <span style={cl.statusStyle}>{cl.statusLabel}</span>
-                            {cl.recording && (<span style={cl.recStyle}>▶ Recording</span>)}
-                            <span style={css("font-size:11px; color:rgba(255,255,255,0.42);")}>{cl.meta}</span>
-                          </div>
-                        </div>
-                        <span style={css("font-size:12px; font-weight:600; color:rgba(255,255,255,0.6);")}>{cl.dur}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <CallsTabList calls={this.cur().calls || []} />
                 )}
 
                 {tab.isNegotiation && (
@@ -1915,6 +1900,21 @@ export default function LandlordDetailPage() {
   const { data: waPersonal = [] } = useQ(['wa_conv_personal', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'personal' }, '-created_date', 5)), { enabled: !!phone });
   const { data: waMessages = [] } = useQ(['wa_messages', id], () => safe(() => base44.entities.WhatsAppMessage.filter({ landlord_id: id }, '-created_date', 200)), { enabled: !!id });
   const { data: aircallCalls = [] } = useQ(['aircall_calls', id], () => safe(() => base44.entities.AircallCall.filter({ landlord_id: id }, '-started_at', 50)), { enabled: !!id });
+  // VAPI + Aircall calls also matched by phone (AircallCall rows often carry no landlord_id) — this is
+  // what surfaces VAPI recordings for a number even when the link wasn't stamped. Trigger a VAPI sync
+  // first so freshly-placed calls + recordings land before we read them.
+  useQ(['vapi_sync_landlord'], () => base44.functions.invoke('syncVapiCalls', {}).catch(() => ({})), { staleTime: 120000 });
+  const { data: aircallByPhone = [] } = useQ(['aircall_calls_phone', phone], async () => {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (digits.length < 9) return [];
+    const suffix = digits.slice(-9);
+    const all = await safe(() => base44.entities.AircallCall.list('-started_at', 2000));
+    return all.filter(c => {
+      const to = String(c.to_number || '').replace(/\D/g, '');
+      const from = String(c.from_number || '').replace(/\D/g, '');
+      return to.endsWith(suffix) || from.endsWith(suffix);
+    });
+  }, { enabled: !!phone });
   // Twilio CallLog — match by phone (to_number OR from_number), same proven pattern as wa_stream_msgs.
   // Records have landlord_id: null; the real link sits in lead_id or nowhere. Phone-matching
   // catches BOTH records in each queued+webhook pair regardless of which carries the link.
@@ -2156,7 +2156,31 @@ export default function LandlordDetailPage() {
     dur: fmtDuration(c.duration_seconds, c.status),
     status: mapCallStatus(c.status),
     recording: !!c.recording_url,
+    recordingUrl: c.recording_url || null,
+    _ts: tsOf(c.started_at || c.created_date),
   }));
+  // Merge VAPI + Aircall calls (by landlord_id AND by phone), deduped, into the Calls tab so their
+  // recordings get an inline play button. VAPI rows are distinguished by source==='vapi'.
+  const seenCallIds = new Set();
+  [...aircallCalls, ...aircallByPhone].forEach(c => {
+    const uid = c.id || c.aircall_id;
+    if (!uid || seenCallIds.has(uid)) return;
+    seenCallIds.add(uid);
+    const isVapi = c.source === 'vapi' || (c.notes && String(c.notes).startsWith('Vapi'));
+    calls.push({
+      provider: isVapi ? 'vapi' : 'aircall',
+      dir: c.direction === 'inbound' ? 'in' : 'out',
+      title: 'Call',
+      who: (c.agent_name || 'AI') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
+      dur: fmtDuration(c.duration, c.status),
+      status: ['done', 'ended', 'completed'].includes(c.status) ? 'done' : mapCallStatus(c.status),
+      recording: !!(c.recording_url || c.voicemail_url),
+      recordingUrl: c.recording_url || c.voicemail_url || null,
+      _ts: tsOf(c.started_at || c.created_date),
+    });
+  });
+  // Newest-first so the most recent VAPI call (with its recording) sits at the top of the Calls tab.
+  calls.sort((a, b) => (b._ts || 0) - (a._ts || 0));
   aircallCalls.forEach(call => {
     stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Aircall`, body: call.from_number || call.to_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
   });
