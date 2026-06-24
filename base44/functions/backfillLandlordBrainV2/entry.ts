@@ -227,21 +227,13 @@ Deno.serve(async (req) => {
   let rateLimited = false;
 
   for (const landlord of landlords) {
-    // ── Tier routing ──
-    // Cheap engagement signal: stage/rapport are on the record already. Only when neither marks
-    // the lead engaged do we pay for a lightweight inbound/activity existence check (limit 1 each).
-    let hasInbound = false, hasActivity = false;
-    const stageEngaged = !!landlord.stage && landlord.stage !== 'initial_contact';
-    const rapportEngaged = !!landlord.rapport_level && landlord.rapport_level !== 'cold';
-    if (!forceCold && !stageEngaged && !rapportEngaged) {
-      const [msgs, acts] = await Promise.all([
-        svc.entities.WhatsAppMessage.filter({ landlord_id: landlord.id }, '-timestamp', 1).catch(() => []),
-        svc.entities.Activity.filter({ lead_id: landlord.id }, '-created_at', 1).catch(() => [])
-      ]);
-      hasInbound = (msgs || []).length > 0;
-      hasActivity = (acts || []).length > 0;
-    }
-    const tier = resolveTier({ landlord, hasInbound, hasActivity, forceCold, requestedTier: 'cold' });
+    // ── Tier routing ── Engagement is decided ONLY from stage/rapport already on the record — NO
+    // per-lead message/activity query (avoids the 429 surface of up to 2 queries × batch size, and
+    // avoids depending on unverified entity names). A contact-engaged lead that is still
+    // initial_contact + cold stays cold here; it gets upgraded to full the instant it replies, via
+    // routeWhatsAppMessage → orchestrator (which loads real messages/activities). This is sufficient
+    // because contact-engaged leads are nearly always already past initial_contact or warmer.
+    const tier = resolveTier({ landlord, hasInbound: false, hasActivity: false, forceCold, requestedTier: 'cold' });
 
     // ── Engaged → hand off to the orchestrator (single thesis-capable path) ──
     if (tier === 'full') {
