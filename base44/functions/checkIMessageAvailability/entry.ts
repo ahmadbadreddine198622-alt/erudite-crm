@@ -52,11 +52,10 @@ Deno.serve(async (req) => {
     }
 
     try {
-      const url = `${serverUrl}/api/v1/handle/availability/imessage?password=${encodeURIComponent(password)}`;
+      const url = `${serverUrl}/api/v1/handle/availability/imessage?address=${encodeURIComponent(address)}&password=${encodeURIComponent(password)}`;
       const resp = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address }),
       });
 
       const raw = await resp.text();
