@@ -40,6 +40,9 @@ Deno.serve(async (req) => {
     const location = property_address || property_title;
     const tourLine = virtual_tour_link ? `\n🎥 Virtual Tour: ${virtual_tour_link}` : '';
 
+    // Add the acting agent as an attendee so the event also lands on their personal calendar.
+    const actingAgentEmail = user?.email || agentEmail || null;
+
     const event = {
       summary: `🏠 Viewing: ${property_title} — ${lead_name}`,
       description: `Lead: ${lead_name}\nLead ID: ${lead_id}\nPhone: ${lead_phone || 'N/A'}\nLocation: ${location}${tourLine}`,
@@ -51,10 +54,11 @@ Deno.serve(async (req) => {
       end: {
         dateTime: endTime.toISOString(),
         timeZone: UAE_TZ
-      }
+      },
+      ...(actingAgentEmail ? { attendees: [{ email: actingAgentEmail }] } : {})
     };
 
-    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,

@@ -54,11 +54,13 @@ Deno.serve(async (req) => {
       `Status: ${appt.status || 'scheduled'}`,
     ].join('\n');
 
+    // Add the acting agent as an attendee so the event also lands on their personal calendar.
     const event_data = {
       summary: `${(appt.type || 'meeting')} — ${landlordName}`,
       description,
       start: { dateTime: startWall, timeZone: 'Asia/Dubai' },
       end: { dateTime: endWall, timeZone: 'Asia/Dubai' },
+      ...(appt.agent_email ? { attendees: [{ email: appt.agent_email }] } : {}),
     };
 
     const authHeaders = {
@@ -68,7 +70,7 @@ Deno.serve(async (req) => {
     const baseUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
     const createEvent = async () => {
-      const response = await fetch(baseUrl, {
+      const response = await fetch(`${baseUrl}?sendUpdates=all`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(event_data),
@@ -85,7 +87,7 @@ Deno.serve(async (req) => {
     const existingEventId = appt.google_event_id || null;
 
     if (existingEventId) {
-      const patchRes = await fetch(`${baseUrl}/${encodeURIComponent(existingEventId)}`, {
+      const patchRes = await fetch(`${baseUrl}/${encodeURIComponent(existingEventId)}?sendUpdates=all`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify(event_data),
