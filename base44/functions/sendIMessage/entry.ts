@@ -56,12 +56,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
+    // Pull the plain-text signature + banner URL from CompanySettings (single source of truth).
+    let signatureText = '';
+    let bannerUrl = '';
+    try {
+      const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
+      signatureText = settings?.[0]?.imessage_signature_text || '';
+      bannerUrl = settings?.[0]?.signature_banner_url || '';
+    } catch (_) { /* signature/banner are best-effort */ }
+
+    // Append the signature on agent-composed sends (default). Automated callers can pass
+    // skip_signature: true to opt out. Guard against double-stamping.
+    let messageBody = String(text);
+    if (signatureText && !body.skip_signature && !messageBody.trimEnd().endsWith(signatureText.trimEnd())) {
+      messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
+    }
+
+    // First-contact detection: send the branded banner only on the FIRST outbound iMessage to
+    // this address. Subsequent messages are text + signature only.
+    let isFirstContact = false;
+    if (bannerUrl && !body.skip_signature) {
+      try {
+        const prior = await base44.asServiceRole.entities.IMessage.filter(
+          { address, direction: 'outbound' }, '-sent_at', 1
+        );
+        isFirstContact = !prior || prior.length === 0;
+      } catch (_) { isFirstContact = false; }
+    }
+
     // BlueBubbles Private API send-text endpoint.
     const url = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
     const payload = {
       chatGuid: `iMessage;-;${address}`,
       tempGuid: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      message: String(text),
+      message: messageBody,
       method: 'private-api',
     };
 
@@ -83,6 +111,30 @@ Deno.serve(async (req) => {
       }, { status: 502 });
     }
 
+    // First-contact: forward the branded banner as a multipart attachment (best-effort —
+    // never blocks the text send response).
+    let bannerSent = false;
+    if (isFirstContact && bannerUrl) {
+      try {
+        const imgResp = await fetch(bannerUrl);
+        if (imgResp.ok) {
+          const blob = await imgResp.blob();
+          const ext = (bannerUrl.split('.').pop() || 'png').split('?')[0].toLowerCase();
+          const form = new FormData();
+          form.append('chatGuid', `iMessage;-;${address}`);
+          form.append('tempGuid', `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+          form.append('name', `erudite-banner.${ext}`);
+          form.append('method', 'private-api');
+          form.append('attachment', blob, `erudite-banner.${ext}`);
+          const attResp = await fetch(
+            `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`,
+            { method: 'POST', headers: { 'skip_zrok_interstitial': 'true' }, body: form }
+          );
+          bannerSent = attResp.ok;
+        }
+      } catch (_) { bannerSent = false; }
+    }
+
     // Log the sent message to the conversation stream (best-effort).
     let logged = false;
     if (landlord_id) {
@@ -93,7 +145,7 @@ Deno.serve(async (req) => {
           landlord_id,
           direction: 'outbound',
           address,
-          body: String(text),
+          body: messageBody,
           status: 'sent',
           sent_at: nowIso,
           agent_email: user.email || null,
@@ -111,7 +163,7 @@ Deno.serve(async (req) => {
           landlord_id,
           phone: address,
           direction: 'outgoing',
-          text: String(text),
+          text: messageBody,
           timestamp: nowIso,
           status: 'sent',
           channel: 'imessage',
@@ -120,7 +172,7 @@ Deno.serve(async (req) => {
       } catch (_) { /* best-effort mirror */ }
     }
 
-    return Response.json({ success: true, address, logged, guid: data?.data?.guid || null });
+    return Response.json({ success: true, address, logged, bannerSent, firstContact: isFirstContact, guid: data?.data?.guid || null });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
