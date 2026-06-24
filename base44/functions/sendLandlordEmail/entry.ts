@@ -18,6 +18,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SIGNATURE_URL = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/bb9f3a11f_erudite-signature.png';
 const STAMP_URL     = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/5db8f82f5_erudite-stamp.png';
+// Full CEO signature banner (the dark Ahmad Badreddine / Erudite card).
+const BANNER_URL    = 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/d1c825d23_image.png';
 
 const COMPANY = {
   principal:  'Ahmad Badreddine',
@@ -57,6 +59,16 @@ function bodyToHtml(text) {
     .join('');
 }
 
+// A modern, professional "card pill" link — a title plus a sublabel describing what's behind it.
+function linkPill(href, title, sub) {
+  return `<td style="padding:0 10px 8px 0;vertical-align:top;">
+    <a href="${href}" style="display:block;text-decoration:none;background:#f1f5f9;border:1px solid #e2e8f0;border-left:3px solid #1d4ed8;border-radius:8px;padding:7px 12px;min-width:178px;">
+      <span style="display:block;color:#1d4ed8;font-size:12.5px;font-weight:700;line-height:1.3;">${title} &rarr;</span>
+      <span style="display:block;color:#64748b;font-size:10.5px;font-weight:500;line-height:1.4;margin-top:1px;">${sub}</span>
+    </a>
+  </td>`;
+}
+
 function buildHtml(bodyNative) {
   const site = COMPANY.website.replace(/^https?:\/\//, '');
   return `<!DOCTYPE html>
@@ -79,10 +91,17 @@ function buildHtml(bodyNative) {
             </td>
           </tr>
           <tr>
-            <td style="padding:16px 8px 0;border-top:1px solid #e2e8f0;">
+            <td style="padding:18px 8px 0;border-top:1px solid #e2e8f0;">
+              <a href="${COMPANY.website}" style="text-decoration:none;">
+                <img src="${BANNER_URL}" alt="${COMPANY.principal} — ${COMPANY.title}, ${COMPANY.name}" width="468" style="display:block;width:100%;max-width:468px;height:auto;border:0;border-radius:8px;"/>
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:14px 8px 0;">
               <p style="margin:0 0 1px;font-weight:bold;color:#1a2744;font-size:15px;">${COMPANY.principal}</p>
               <p style="margin:0 0 6px;color:#475569;font-size:12px;">${COMPANY.title}, ${COMPANY.name} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
-              <p style="margin:0 0 6px;color:#475569;font-size:12px;line-height:1.7;">
+              <p style="margin:0 0 10px;color:#475569;font-size:12px;line-height:1.7;">
                 <a href="tel:${COMPANY.phone.replace(/\s/g, '')}" style="color:#1a2744;text-decoration:none;">${COMPANY.phone}</a>
                 &nbsp;&bull;&nbsp;
                 <a href="mailto:${COMPANY.email}" style="color:#1a2744;text-decoration:none;">${COMPANY.email}</a>
@@ -91,17 +110,20 @@ function buildHtml(bodyNative) {
                 &nbsp;&bull;&nbsp;
                 <a href="${COMPANY.website}" style="color:#1a2744;text-decoration:none;">${site}</a>
               </p>
-              <p style="margin:0;font-size:12px;line-height:1.9;">
-                <a href="${COMPANY.links.team}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Meet the team</a>
-                &nbsp;&bull;&nbsp;
-                <a href="${COMPANY.links.pf_broker}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Erudite on Property Finder</a>
-                &nbsp;&bull;&nbsp;
-                <a href="${COMPANY.links.pf_agent}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Ahmad's PF profile</a>
-                &nbsp;&bull;&nbsp;
-                <a href="${COMPANY.links.instagram}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">@eruditeproperty7</a>
-                &nbsp;&bull;&nbsp;
-                <a href="${COMPANY.links.linkedin}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">LinkedIn</a>
-              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+                <tr>
+                  ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals')}
+                  ${linkPill(COMPANY.links.pf_broker, 'Erudite Listings', 'All live listings for sale')}
+                </tr>
+                <tr>
+                  ${linkPill(COMPANY.links.team, 'Meet the Team', 'eruditeproperty.com')}
+                  ${linkPill(COMPANY.links.instagram, 'Instagram', '@eruditeproperty7')}
+                </tr>
+                <tr>
+                  ${linkPill(COMPANY.links.linkedin, 'LinkedIn', "Ahmad's profile")}
+                  <td></td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>
