@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
   // already-processed records — falsely reporting "complete" while unprocessed records remain
   // deeper in the list. Scanning the full list is the only reliable way to find them all.)
   const allLandlords = await svc.entities.Landlord.list('-created_date', 5000);
-  const allUnprocessed = (allLandlords || []).filter(l => !l.ai_processed_at || l.ai_processing_status === 'failed');
+  const allUnprocessed = (allLandlords || []).filter(l => !l.ai_processed_at || l.ai_processing_status === 'failed' || l.ai_processing_status === 'needs_retry');
   console.log(`Found ${allUnprocessed.length} unprocessed landlords total`);
   const landlords = allUnprocessed.slice(0, batchSize);
 

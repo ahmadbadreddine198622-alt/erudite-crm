@@ -77,13 +77,12 @@ Deno.serve(async (req) => {
   const maxHandoffs = body.max_handoffs || MAX_HANDOFFS_DEFAULT;
   const startTime = Date.now();
 
-  // Fetch landlords without ai_processed_at
-  const landlords = await svc.entities.Landlord.filter(
-    { ai_processed_at: null },
-    'created_date',
-    batchSize,
-    skip
-  );
+  // Eligibility: scan the full list and apply the SAME predicate as backfillLandlordBrainV2 —
+  // never-processed OR failed OR needs_retry. A server-side {ai_processed_at: null} filter can't
+  // express this (needs_retry records have a non-null ai_processed_at), so scan + filter in code.
+  const allLandlords = await svc.entities.Landlord.list('-created_date', 5000);
+  const allUnprocessed = (allLandlords || []).filter(l => !l.ai_processed_at || l.ai_processing_status === 'failed' || l.ai_processing_status === 'needs_retry');
+  const landlords = allUnprocessed.slice(skip, skip + batchSize);
 
   if (!landlords || landlords.length === 0) {
     return Response.json({ 
