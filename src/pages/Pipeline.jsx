@@ -41,6 +41,23 @@ function mostRecentSync(credRow) {
   return candidates.sort().reverse()[0];
 }
 
+// V3 Phase 1 (SEE-ACROSS) for Leads — mirrors landlordPriority / dealPriority. The list arrived by
+// stage_entered_at; this floats the leads worth working NOW to the top: active buying signals, then
+// conversion likelihood, then churn risk (act before losing them), then base lead score. Pure
+// client-side ordering — no LLM/schema/send; heuristic pre-calibration (P3 LEARN tunes the weights).
+function leadPriority(l) {
+  if (!l) return -1;
+  const n = (v) => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const score = n(l.ai_lead_score) ?? n(l.lead_score) ?? 0;        // 0-100 base health
+  const conv = n(l.ai_conversion_probability) ?? 0;                // 0-1 likelihood
+  const churn = n(l.ai_churn_prediction) ?? 0;                     // 0-1, high = at risk of loss
+  const signals = Array.isArray(l.ai_buying_signals) ? l.ai_buying_signals.length : 0;
+  return signals * 25   // active buying signals = hot, act now
+       + conv * 40      // most-likely-to-convert first
+       + churn * 35     // at-risk-of-loss floats up
+       + score;         // base lead health / tiebreaker
+}
+
 export default function Pipeline() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -150,6 +167,8 @@ export default function Pipeline() {
       if (assignmentFilter === 'assigned') result = result.filter(l => !!l.assigned_agent_email);
       if (assignmentFilter === 'unassigned') result = result.filter(l => !l.assigned_agent_email);
       if (financeFilter) result = result.filter(l => l.financing_type === financeFilter);
+      // V3 P1 SEE: order by triage priority (next-to-act first). result is a fresh filtered array.
+      result.sort((a, b) => leadPriority(b) - leadPriority(a));
       return result;
     },
     [leads, projectFilter, searchQuery, agentFilter, languageFilter, assignmentFilter, financeFilter, currentUser, permissions],
