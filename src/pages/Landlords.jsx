@@ -98,35 +98,44 @@ export default function Landlords() {
 
 
 
-  // Fetch all landlords and projects
+  // Fetch all landlords and projects. staleTime keeps the board from refetching these (three of
+  // which are whole-table loads) on every remount/refocus — mutations below still invalidate
+  // explicitly, so freshness on user actions is unaffected. Values follow the codebase convention:
+  // board data ~30s, slow-moving reference data ~minutes.
   const { data: landlords = [], isLoading } = useQuery({
     queryKey: ['landlords'],
     queryFn: () => base44.entities.Landlord.list('-updated_date', 1000),
+    staleTime: 30_000,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: landlordProperties = [] } = useQuery({
     queryKey: ['landlord_properties'],
     queryFn: () => base44.entities.LandlordProperty.list(),
+    staleTime: 60_000,
   });
 
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
     queryFn: () => base44.entities.Property.list(),
+    staleTime: 60_000,
   });
 
   const { data: photographyTasks = [] } = useQuery({
     queryKey: ['photography_tasks'],
     queryFn: () => base44.entities.PhotographyTask.list(),
+    staleTime: 60_000,
   });
 
   // Derive floor number from a unit_no string
@@ -150,12 +159,15 @@ export default function Landlords() {
     return '21+';
   };
 
-  // Build a map: landlord_id → { floor, layout }
+  // Build a map: landlord_id → { floor, layout }. Index properties by id ONCE (O(1) lookups) instead
+  // of a linear properties.find() per landlordProperty — that was O(landlordProperties × properties)
+  // and re-ran on every refetch of either whole table.
   const landlordPropertyMap = useMemo(() => {
+    const propsById = new Map(properties.map(p => [p.id, p]));
     const map = {};
     landlordProperties.forEach(lp => {
       if (!lp.landlord_id) return;
-      const prop = properties.find(p => p.id === lp.property_id);
+      const prop = propsById.get(lp.property_id);
       if (!prop) return;
       const floor = deriveFloor(prop.unit_no);
       let layout = null;
