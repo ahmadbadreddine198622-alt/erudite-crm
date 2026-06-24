@@ -209,6 +209,14 @@ class LandlordDetail extends React.Component {
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
   onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
+  // Collapse every open panel/composer on the page without navigating away — one tap to
+  // tidy up when too many things are expanded at once.
+  collapseAll = ()=> this.setState({
+    aiTasksCollapsed: true,
+    aiFollowupsCollapsed: true,
+    aiIntelligenceCollapsed: true,
+    composerType: 'Note',
+  });
   setStreamFilter = (mode)=> this.setState(s=>({ streamFilter: s.streamFilter===mode ? 'all' : mode }));
   // Provenance (noteAiSource/noteAiDraft) follows the composer BODY, not the active type —
   // so an AI draft retained across a Note→other→Note round-trip is still recorded as
@@ -1074,6 +1082,9 @@ class LandlordDetail extends React.Component {
                 <span style={css("display:block; width:14px; height:2px; background:#ccaa66; margin-bottom:2px; border-radius:1px;")}></span>
                 <span style={css("display:block; width:14px; height:2px; background:#808080; margin-bottom:2px; border-radius:1px;")}></span>
                 <span style={css("display:block; width:14px; height:2px; background:#808080; border-radius:1px;")}></span>
+              </button>
+              <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
               </button>
             </div>
             
