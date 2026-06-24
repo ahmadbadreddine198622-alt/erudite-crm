@@ -20,12 +20,22 @@ const SIGNATURE_URL = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/file
 const STAMP_URL     = 'https://base44.app/api/apps/69cabceaeeb8bb5e3a62ead3/files/mp/public/69cabceaeeb8bb5e3a62ead3/5db8f82f5_erudite-stamp.png';
 
 const COMPANY = {
-  name:    'Erudite Real Estate',
-  city:    'Dubai, U.A.E.',
-  orn:     '29322',
-  phone:   '+971 58 180 6000',
-  email:   'info@erudite-estate.com',
-  website: 'www.eruditeproperty.com',
+  principal:  'Ahmad Badreddine',
+  title:      'CEO',
+  name:       'Erudite Real Estate',
+  address:    'The Burlington Tower, Business Bay, Dubai, U.A.E.',
+  orn:        '29322',
+  phone:      '+971 58 180 6000',
+  email:      'ahmad@erudite-estate.com',
+  website:    'https://eruditeproperty.com',
+  // Verify-me / who-we-are links — all clickable in the signature.
+  links: {
+    team:        'https://eruditeproperty.com/pages-folder/team',
+    pf_broker:   'https://www.propertyfinder.ae/en/broker/erudite-real-estate-5308?properties%5Bfilter%5Bcategory_id%5D%5D=1',
+    pf_agent:    'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264',
+    instagram:   'https://www.instagram.com/eruditeproperty7/',
+    linkedin:    'https://www.linkedin.com/in/badreddine-ahmad-34b4679b',
+  },
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,14 +80,27 @@ function buildHtml(bodyNative) {
           </tr>
           <tr>
             <td style="padding:16px 8px 0;border-top:1px solid #e2e8f0;">
-              <p style="margin:0 0 4px;font-weight:bold;color:#1a2744;font-size:14px;">${COMPANY.name}</p>
-              <p style="margin:0 0 4px;color:#475569;font-size:12px;">${COMPANY.city} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
-              <p style="margin:0;color:#475569;font-size:12px;">
-                <a href="mailto:${COMPANY.email}" style="color:#1a2744;text-decoration:none;">${COMPANY.email}</a>
-                &nbsp;&bull;&nbsp;
+              <p style="margin:0 0 1px;font-weight:bold;color:#1a2744;font-size:15px;">${COMPANY.principal}</p>
+              <p style="margin:0 0 6px;color:#475569;font-size:12px;">${COMPANY.title}, ${COMPANY.name} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
+              <p style="margin:0 0 6px;color:#475569;font-size:12px;line-height:1.7;">
                 <a href="tel:${COMPANY.phone.replace(/\s/g, '')}" style="color:#1a2744;text-decoration:none;">${COMPANY.phone}</a>
                 &nbsp;&bull;&nbsp;
-                <a href="https://${site}" style="color:#1a2744;text-decoration:none;">${site}</a>
+                <a href="mailto:${COMPANY.email}" style="color:#1a2744;text-decoration:none;">${COMPANY.email}</a>
+                <br/>
+                ${COMPANY.address}
+                &nbsp;&bull;&nbsp;
+                <a href="${COMPANY.website}" style="color:#1a2744;text-decoration:none;">${site}</a>
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.9;">
+                <a href="${COMPANY.links.team}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Meet the team</a>
+                &nbsp;&bull;&nbsp;
+                <a href="${COMPANY.links.pf_broker}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Erudite on Property Finder</a>
+                &nbsp;&bull;&nbsp;
+                <a href="${COMPANY.links.pf_agent}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Ahmad's PF profile</a>
+                &nbsp;&bull;&nbsp;
+                <a href="${COMPANY.links.instagram}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">@eruditeproperty7</a>
+                &nbsp;&bull;&nbsp;
+                <a href="${COMPANY.links.linkedin}" style="color:#1d4ed8;text-decoration:none;font-weight:600;">LinkedIn</a>
               </p>
             </td>
           </tr>
