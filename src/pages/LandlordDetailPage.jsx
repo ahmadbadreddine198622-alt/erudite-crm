@@ -36,6 +36,7 @@ import ComposerConfirmChip from '@/components/landlord/ComposerConfirmChip';
 import { commitComposerDraft } from '@/components/landlord/composerCommit';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
+import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -136,7 +137,20 @@ class LandlordDetail extends React.Component {
     this.formAContracts = this.props.formAContracts || [];
   }
 
-  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); }
+  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); }
+
+  // Auto-run AI analysis once when a V-card opens, only if never analysed (no ai_processed_at).
+  // Already-analysed landlords are left to the manual "Analyse Now" — no reload, refetch in place.
+  maybeAutoAnalyse = async ()=>{
+    const L = this.cur();
+    if(!L || this._autoAnalysed || L.aiProcessedAt || !this.state.currentId) return;
+    this._autoAnalysed = true;
+    this.setState({ analyzing:true, analyseError:'' });
+    try {
+      await base44.functions.invoke('landlordOrchestrator', { landlord_id: this.state.currentId, force: true });
+      if(this.props.onAnalysed) this.props.onAnalysed();
+    } catch(e){ this.setState({ analyseError: e?.message || 'Analysis failed', analyzing:false }); }
+  };
 
   // Auto-check iMessage availability once when a landlord is opened and the status is
   // unknown OR the last check is older than 7 days. Fire-and-forget, background only.
@@ -2218,28 +2232,8 @@ export default function LandlordDetailPage() {
   // V3 Phase 2 (REMEMBER): persistent strategy + open questions (degrade to null/[] until the
   // orchestrator + live schema populate them; safe to render either way).
   const aiDealThesis = (typeof L.ai_deal_thesis === 'string' && L.ai_deal_thesis.trim()) ? L.ai_deal_thesis.trim() : null;
-  const aiOpenQuestions = Array.isArray(L.ai_open_questions)
-    ? L.ai_open_questions
-        .map((q) => (typeof q === 'string' ? { question: q, why: '' } : (q && typeof q === 'object' ? { question: String(q.question || '').trim(), why: String(q.why || '').trim() } : null)))
-        .filter((q) => q && q.question)
-    : [];
-  // V3 Phase 2 (REMEMBER): compact score trajectory derived from the append-only snapshot history.
-  // Needs ≥2 runs to show movement; each metric carries its recent series + last-run delta.
-  const scoreTrend = (() => {
-    const snaps = Array.isArray(scoreSnapshots) ? scoreSnapshots : [];
-    if (snaps.length < 2) return null;
-    const chrono = [...snaps].reverse(); // loaded newest-first → oldest-first for the series
-    const metric = (pick) => {
-      const s = chrono.map(pick).filter((v) => typeof v === 'number' && isFinite(v));
-      if (s.length < 2) return null;
-      return { series: s.slice(-12), latest: s[s.length - 1], delta: Math.round((s[s.length - 1] - s[s.length - 2]) * 10) / 10 };
-    };
-    const trust = metric((x) => x.trust_score);
-    const win = metric((x) => (typeof x.mandate_win_probability === 'number' ? x.mandate_win_probability * 100 : null));
-    const urgency = metric((x) => x.urgency_score);
-    if (!trust && !win && !urgency) return null;
-    return { count: snaps.length, since: chrono[0].captured_at || null, lastAt: chrono[chrono.length - 1].captured_at || null, trust, win, urgency };
-  })();
+  const aiOpenQuestions = deriveOpenQuestions(L.ai_open_questions);
+  const scoreTrend = deriveScoreTrend(scoreSnapshots);
 
   // Map media/photography fields from Landlord entity (verbatim field names)
   const media = {
@@ -2479,6 +2473,7 @@ export default function LandlordDetailPage() {
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
+        onAnalysed={refetchLandlord}
         />
       <FormAUploadDialog
         open={formADialogOpen}
