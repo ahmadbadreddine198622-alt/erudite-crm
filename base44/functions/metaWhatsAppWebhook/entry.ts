@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
             // ── Landlord match (legacy backup write) ─────────────────────────
             const matchedLandlord = await findLandlordByDigits(svc, digitsPhone).catch(() => null);
             if (matchedLandlord) {
-              await svc.entities.Message.create({
+              const brainMsg = await svc.entities.Message.create({
                 landlord_id: matchedLandlord.id,
                 phone: digitsPhone,
                 direction: 'incoming',
@@ -178,7 +178,16 @@ Deno.serve(async (req) => {
                 status: 'received',
                 wa_message_id: waMessageId,
                 channel: 'business',
-              }).catch(() => {});
+                // Stamp voice metadata so the transcription pipeline knows what to do with it.
+                ...(isVoice ? { media_type: 'audio', is_voice_note: true, media_mime: msg.audio?.mime_type || 'audio/ogg', media_status: 'pending_download' } : {}),
+              }).catch(() => null);
+              // Business-number voice: Meta delivers a media_id (not a URL), so transcription can't
+              // happen inline. Hand off the download+transcribe off the webhook hot path so the brain
+              // reads the actual words instead of "🎤 Voice message". Fire-and-forget + non-fatal:
+              // if metaDownloadVoice isn't deployed or fails, the placeholder row is left untouched.
+              if (isVoice && brainMsg?.id && msg.audio?.id) {
+                svc.functions.invoke('metaDownloadVoice', { message_id: brainMsg.id, media_id: msg.audio.id }).catch(() => {});
+              }
               svc.functions.invoke('analyzeLandlordConversation', { landlord_id: matchedLandlord.id }).catch(() => {});
             }
 
