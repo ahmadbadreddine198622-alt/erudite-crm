@@ -72,6 +72,8 @@ Deno.serve(async (req) => {
     // Log the sent message to the conversation stream (best-effort).
     let logged = false;
     if (landlord_id) {
+      const nowIso = new Date().toISOString();
+      const guid = data?.data?.guid || null;
       try {
         await base44.entities.IMessage.create({
           landlord_id,
@@ -79,14 +81,29 @@ Deno.serve(async (req) => {
           address,
           body: String(text),
           status: 'sent',
-          sent_at: new Date().toISOString(),
+          sent_at: nowIso,
           agent_email: user.email || null,
-          bb_guid: data?.data?.guid || null,
+          bb_guid: guid,
         });
         logged = true;
       } catch (logErr) {
         logged = false;
       }
+      // Mirror into the unified Message entity (direction 'outgoing') so landlordOrchestrator — which
+      // reads conversation history ONLY from Message — sees outbound iMessages, exactly as
+      // sendMultiChannelWhatsApp does for WhatsApp. Best-effort; never blocks the send response.
+      try {
+        await base44.asServiceRole.entities.Message.create({
+          landlord_id,
+          phone: address,
+          direction: 'outgoing',
+          text: String(text),
+          timestamp: nowIso,
+          status: 'sent',
+          channel: 'imessage',
+          wa_message_id: guid || undefined,
+        });
+      } catch (_) { /* best-effort mirror */ }
     }
 
     return Response.json({ success: true, address, logged, guid: data?.data?.guid || null });
