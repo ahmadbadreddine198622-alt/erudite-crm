@@ -26,7 +26,17 @@ const STEP_LABELS = [
   ['qualification_logged', 'Qualification logged'],
 ];
 
+// Per-lead outreach score: 10 per completed step, +15 if a qualification was logged,
+// +25 bonus when the full Email→WhatsApp→iMessage→SMS→Call sequence is done.
+function computeLeadScore(c) {
+  const stepsDone = STEP_KEYS.filter(k => c[k]).length;
+  const sequenceComplete = SEQUENCE_KEYS.every(k => c[k]);
+  return stepsDone * 10 + (c.qualification_logged ? 15 : 0) + (sequenceComplete ? 25 : 0);
+}
+
 // Build the Outreach-tab view object from today's checklist row (or null → all steps unticked).
+// dailyScore is computed from the steps so it always reflects current progress (the row's stored
+// daily_score is the agent-level rollup, not this lead's score).
 export function buildOutreachVM(checklist) {
   const c = checklist || {};
   const fmt = (ts) => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
@@ -34,7 +44,7 @@ export function buildOutreachVM(checklist) {
   return {
     date: 'Today',
     stepsCompleted: typeof c.steps_completed === 'number' ? c.steps_completed : steps.filter(s => s.done).length,
-    dailyScore: typeof c.daily_score === 'number' ? c.daily_score : 0,
+    dailyScore: computeLeadScore(c),
     steps,
   };
 }
@@ -65,9 +75,10 @@ export async function tickOutreachStep(stepKey, landlord, extra = {}, toggleTo) 
     const merged = { ...(checklist || {}), ...patch };
     const steps_completed = STEP_KEYS.filter(k => merged[k]).length;
     const sequence_complete = SEQUENCE_KEYS.every(k => merged[k]);
+    const lead_score = computeLeadScore(merged);
 
     if (checklist) {
-      await base44.entities.OutreachChecklist.update(checklist.id, { ...patch, steps_completed, sequence_complete });
+      await base44.entities.OutreachChecklist.update(checklist.id, { ...patch, steps_completed, sequence_complete, daily_score: lead_score });
     } else {
       await base44.entities.OutreachChecklist.create({
         landlord_id: landlord.id,
@@ -77,6 +88,7 @@ export async function tickOutreachStep(stepKey, landlord, extra = {}, toggleTo) 
         ...patch,
         steps_completed,
         sequence_complete,
+        daily_score: lead_score,
       });
     }
 
