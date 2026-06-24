@@ -224,6 +224,21 @@
         "type": "string"
       }
     },
+    "aurora_thesis": {
+      "type": "string",
+      "description": "V3 Phase 2 (REMEMBER): persistent strategic narrative for winning THIS deal — the durable 'how we close it' plan that EVOLVES across auroraOrchestrator runs (distinct from the forecast/next-action). Prior value is fed back into the prompt so it accrues rather than resets."
+    },
+    "aurora_open_questions": {
+      "type": "array",
+      "description": "V3 Phase 2 (REMEMBER): ask-the-agent — specific uncertainties the brain wants a human to resolve (0-3). Only populated when genuinely unsure about something a human can answer.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string" },
+          "why": { "type": "string" }
+        }
+      }
+    },
     "aurora_forecast": {
       "type": "object",
       "properties": {

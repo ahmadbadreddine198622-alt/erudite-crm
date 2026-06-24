@@ -172,6 +172,28 @@ Deno.serve(async (req) => {
       lead_score: overall_score,
     });
 
+    // V3 Phase 0 (RECORD): append-only Lead score snapshot. The LeadScore row above is UPSERTED
+    // (one per conversation, overwritten each run), so it carries no real history — this snapshot is
+    // the time-series V3 REMEMBER/LEARN need. Pure instrumentation, non-fatal (must never break
+    // scoring; no-ops until LeadScoreSnapshot exists in the live schema). Mirrors LandlordScoreSnapshot.
+    try {
+      await base44.asServiceRole.entities.LeadScoreSnapshot.create({
+        lead_id,
+        conversation_id,
+        captured_at: new Date().toISOString(),
+        overall_score,
+        engagement_score,
+        intent_score,
+        sentiment_score,
+        budget_alignment_score,
+        property_fit_score,
+        trend,
+        risk_factors,
+      });
+    } catch (snapErr) {
+      console.error('LeadScoreSnapshot create failed (non-fatal):', snapErr?.message);
+    }
+
     return Response.json({
       overall_score,
       breakdown: {

@@ -164,6 +164,21 @@
       "type": "string",
       "format": "date",
       "description": "AI-predicted date the deal reaches complete stage"
+    },
+    "ai_deal_thesis": {
+      "type": "string",
+      "description": "V3 Phase 2 (REMEMBER): persistent strategy to get this deal to 'complete' — evolves across closingDealOrchestrator runs (prior fed back into the prompt); distinct from ai_rolling_summary."
+    },
+    "ai_open_questions": {
+      "type": "array",
+      "description": "V3 Phase 2 (REMEMBER): ask-the-agent — 0-3 specific uncertainties a human can resolve to unblock the close.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string" },
+          "why": { "type": "string" }
+        }
+      }
     }
   },
   "required": []
