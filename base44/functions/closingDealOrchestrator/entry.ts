@@ -133,6 +133,24 @@ Return ONLY valid JSON, no markdown, no explanation.`;
   };
 }
 
+// V3 Phase 0 (RECORD): append-only closing-risk snapshot — one per orchestrated deal per run. The
+// ClosingDeal row clobbers aiFields each run, so this is the only score time-series (risk + predicted
+// close date over time) that V3 REMEMBER/LEARN can build on. Non-fatal: a failure (e.g. the entity is
+// not yet in the live schema) must never break orchestration. Called at BOTH update seams below.
+async function writeClosingSnapshot(base44, deal, aiFields) {
+  try {
+    await base44.entities.ClosingDealScoreSnapshot.create({
+      closing_deal_id: deal.id,
+      captured_at: new Date().toISOString(),
+      stage: deal.stage || null,
+      ai_risk_score: (typeof aiFields.ai_risk_score === 'number') ? aiFields.ai_risk_score : null,
+      ai_predicted_close_date: aiFields.ai_predicted_close_date || null,
+    });
+  } catch (snapErr) {
+    console.error('ClosingDealScoreSnapshot create failed (non-fatal):', snapErr?.message);
+  }
+}
+
 Deno.serve(async (req) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -162,6 +180,7 @@ Deno.serve(async (req) => {
 
     const aiFields = await orchestrateDeal(deal);
     await base44.entities.ClosingDeal.update(deal_id, aiFields);
+    await writeClosingSnapshot(base44, deal, aiFields);
     return new Response(JSON.stringify({ ok: true, deal_id, ...aiFields }), { status: 200, headers });
   }
 
@@ -177,6 +196,7 @@ Deno.serve(async (req) => {
   for (const deal of active) {
     const aiFields = await orchestrateDeal(deal);
     await base44.entities.ClosingDeal.update(deal.id, aiFields);
+    await writeClosingSnapshot(base44, deal, aiFields);
     results.push({ deal_id: deal.id, reference: deal.closing_reference, ...aiFields });
   }
 
