@@ -84,6 +84,19 @@ Deno.serve(async (req) => {
     if (!number) return Response.json({ error: 'Conversation has no phone number', conversation_id }, { status: 422 });
   }
 
+  // ---- GUARD: never send to one of our own instance numbers (self-send loop) ----
+  // Bug: replies were resolving the destination to the sending line itself
+  // (from === to === +971581806000), so the customer never received them.
+  // Reject any send where the recipient equals a known own-number.
+  const OWN_NUMBERS = Object.values(FROM_NUMBER_MAP).map(toDigits);
+  if (OWN_NUMBERS.includes(toDigits(number))) {
+    return Response.json({
+      error: 'Refusing to send: destination is one of our own WhatsApp numbers (self-send loop)',
+      destination: '+' + number,
+      channel,
+    }, { status: 422 });
+  }
+
   // ---- Send via appropriate API depending on channel ----
   let evoStatus = 0;
   let evoBody = null;
