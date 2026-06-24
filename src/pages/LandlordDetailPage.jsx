@@ -29,23 +29,11 @@ import IMessageBadge from '@/components/landlord/IMessageBadge';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
+import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
 }
-
-// LandlordDetail.jsx — Erudite CRM
-// Self-contained React component. No external packages, no separate CSS, no image assets.
-// Drop in at src/components/LandlordDetail.jsx (or src/pages/) and render <LandlordDetail />.
-//
-// Wiring to live Base44 data (optional): pass a `landlords` array prop shaped like the seed()
-// objects below. With no prop it renders the built-in sample data so it works immediately.
-//
-//   import LandlordDetail from "@/components/LandlordDetail";
-//   <LandlordDetail landlords={rows} initialId={rows[0]?.id} onBack={() => navigate(-1)} />
-//
-// Props: landlords?, initialId?, onBack?, defaultTab?, showCoaching?, showSignals?
-
 
 
 /* Convert a CSS declaration string into a React style object (preserves the design 1:1). */
@@ -113,6 +101,7 @@ class LandlordDetail extends React.Component {
       aiFollowupsCollapsed: true,
       aiIntelligenceCollapsed: true,
       imessageChecking: false,
+      telegramJustSent: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -679,6 +668,12 @@ class LandlordDetail extends React.Component {
         return;
       }
       if (data?.error) throw new Error(data.error);
+      // Multi-sensory confirmation: sound + Telegram-blue flash overlay + toast (matches iMessage).
+      playSentSound();
+      if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
+      this.setState({ telegramJustSent:true });
+      if (this._telegramFlashTimer) clearTimeout(this._telegramFlashTimer);
+      this._telegramFlashTimer = setTimeout(()=> this.setState({ telegramJustSent:false }), 1700);
       toast.success('Telegram sent');
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'telegram', text, time:'Just now', order };
@@ -1245,7 +1240,8 @@ class LandlordDetail extends React.Component {
               {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
-              <div style={css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);")}>
+              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
+                {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
                 {vm.composerHasTime && (
                   <div style={css("display:inline-flex; align-items:center; gap:6px; margin-bottom:6px; padding:3px 9px; border-radius:99px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3); font-size:10px; font-weight:600; color:hsl(38 92% 60%);")}>
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
@@ -1840,27 +1836,6 @@ class LandlordDetail extends React.Component {
     );
   }
 }
-
-// LandlordDetailPage.jsx — Erudite CRM
-// Container page that fills the /landlord/:id route your app ALREADY navigates to
-// (Landlords.jsx + KanbanBoard + LockedLeadQueue all call navigate(`/landlord/${id}`)).
-//
-// It fetches the real Base44 entities by id, maps your real schema fields into the
-// presentational <LandlordDetail/> component, and degrades gracefully: any missing
-// entity/field simply yields an empty state (e.g. "Analyse Now"), never a crash.
-//
-// FILES & PLACEMENT
-//   src/components/LandlordDetail.jsx   <- the presentational component (already delivered)
-//   src/pages/LandlordDetailPage.jsx    <- THIS file
-//
-// ROUTE (add to src/App.jsx, inside the <AppLayout> group, next to /landlords):
-//   import LandlordDetailPage from '@/pages/LandlordDetailPage';
-//   <Route path="/landlord/:id" element={<LandlordDetailPage />} />
-//
-// No new npm packages. Uses your existing react-query + @/api/base44Client conventions.
-
-
-
 
 
 
