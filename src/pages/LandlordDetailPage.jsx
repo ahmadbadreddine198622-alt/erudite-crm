@@ -136,24 +136,28 @@ class LandlordDetail extends React.Component {
   maybeAutoCheckIMessage = ()=>{
     const L = this.cur();
     if(!L || this._imessageChecking) return;
-    const status = L.imessageStatus || 'unknown';
-    const checkedAt = L.imessageCheckedAt ? new Date(L.imessageCheckedAt).getTime() : 0;
-    const stale = !checkedAt || (Date.now() - checkedAt) > 7 * 24 * 60 * 60 * 1000;
-    if(status === 'unknown' || stale){ this.checkIMessage(); }
+    // Re-resolve when never resolved OR the last resolution is older than 7 days.
+    const resolvedAt = L.imessageResolvedAt ? new Date(L.imessageResolvedAt).getTime() : 0;
+    const stale = !resolvedAt || (Date.now() - resolvedAt) > 7 * 24 * 60 * 60 * 1000;
+    if(stale){ this.checkIMessage(); }
   };
 
+  // Resolves ALL of the landlord's iMessage handles (phones + emails) and the primary one,
+  // via resolveLandlordIMessage — not just the single primary phone.
   checkIMessage = async ()=>{
     const L = this.cur();
     if(!L || this._imessageChecking) return;
     this._imessageChecking = true;
     this.setState({ imessageChecking:true });
     try {
-      const res = await base44.functions.invoke('checkIMessageAvailability', { landlord_id: L.id });
+      const res = await base44.functions.invoke('resolveLandlordIMessage', { landlord_id: L.id });
       const data = res?.data ?? res;
       const status = data?.imessage_status || 'error';
-      const checkedAt = data?.imessage_checked_at || new Date().toISOString();
+      const resolvedAt = data?.imessage_resolved_at || new Date().toISOString();
+      const handles = Array.isArray(data?.handles) ? data.handles : [];
+      const handle = data?.imessage_handle || '';
       this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:status, imessageCheckedAt:checkedAt} : l),
+        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:status, imessageCheckedAt:resolvedAt, imessageResolvedAt:resolvedAt, imessageHandles:handles, imessageHandle:handle} : l),
         imessageChecking:false,
       }));
     } catch(e){
@@ -622,8 +626,16 @@ class LandlordDetail extends React.Component {
     try {
       const res = await base44.functions.invoke('sendIMessage', { landlord_id: L.id, text });
       const data = res?.data ?? res;
+      // Graceful fallback: no iMessage-available handle → offer to send via WhatsApp instead.
+      if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
+        toast.error('No iMessage handle for this landlord — sending via WhatsApp instead.');
+        this._imessageSending = false;
+        this.setState({ imessageSending:false });
+        await this.sendChat(text);
+        return;
+      }
       if (data?.error) throw new Error(data.error);
-      toast.success('iMessage sent');
+      toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
       this.setState(s=>({
@@ -1426,7 +1438,7 @@ class LandlordDetail extends React.Component {
                         <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
                       )}
                       {L.phone && L.phone !== '—' && (
-                        <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} />
+                        <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
                       )}
                       {(L.phone && L.phone !== '—') && <span style={css("color:rgba(255,255,255,0.22);")}>·</span>}
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
@@ -2287,6 +2299,9 @@ export default function LandlordDetailPage() {
   aiSuggestedMessages: Array.isArray(L.ai_suggested_messages) ? L.ai_suggested_messages : [],
   imessageStatus: L.imessage_status || 'unknown',
   imessageCheckedAt: L.imessage_checked_at || null,
+  imessageResolvedAt: L.imessage_resolved_at || null,
+  imessageHandle: L.imessage_handle || '',
+  imessageHandles: Array.isArray(L.imessage_handles) ? L.imessage_handles : [],
   rapport,
   temperature: temperatureFromRapport(rapport),
   stageIndex: stageIdx >= 1 ? stageIdx : 1,

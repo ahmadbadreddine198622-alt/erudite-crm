@@ -25,15 +25,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Message text is required' }, { status: 400 });
     }
 
-    // Resolve the destination address: explicit address wins, else landlord's phone.
+    // Resolve the destination address. Priority:
+    //   1. explicit address from the caller
+    //   2. the resolved primary iMessage handle (resolveLandlordIMessage)
+    //   3. the landlord's phone / whatsapp (legacy fallback)
     let landlord = null;
     if (landlord_id) {
       landlord = await base44.entities.Landlord.get(landlord_id).catch(() => null);
-      if (!address && landlord) address = landlord.phone || landlord.whatsapp;
+      if (!address && landlord) address = landlord.imessage_handle || landlord.phone || landlord.whatsapp;
     }
     if (!address) {
       return Response.json({ error: 'No destination address (phone or Apple ID) found' }, { status: 400 });
     }
+
+    // Graceful fallback signal: when the landlord has been resolved and NO handle is
+    // iMessage-available, tell the caller so the UI can route to WhatsApp/SMS instead.
+    if (landlord && landlord.imessage_resolved_at && !landlord.imessage_handle && !body.address) {
+      return Response.json({
+        error: 'No iMessage-available handle for this landlord',
+        imessage_status: landlord.imessage_status || 'not_available',
+        fallback: 'whatsapp',
+      }, { status: 409 });
+    }
+
     address = normalizeAddress(address);
 
     const serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');

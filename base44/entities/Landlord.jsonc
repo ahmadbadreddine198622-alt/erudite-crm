@@ -559,12 +559,55 @@
         "error"
       ],
       "default": "unknown",
-      "description": "Whether the landlord's number is iMessage-capable"
+      "description": "Resolved iMessage capability for the primary handle (mirrors the best confirmed handle from imessage_handles)"
     },
     "imessage_checked_at": {
       "type": "string",
       "format": "date-time",
       "description": "When the iMessage availability check last ran"
+    },
+    "imessage_handles": {
+      "type": "array",
+      "description": "All candidate iMessage handles auto-derived from the landlord's contact data (phones + emails), each with its resolved availability. Written by resolveLandlordIMessage.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "Normalized handle \u2014 phone in E.164 or lowercased email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "phone",
+              "email"
+            ]
+          },
+          "source_field": {
+            "type": "string",
+            "description": "Which Landlord field this handle came from (e.g. phone, whatsapp, additional_phones, email, additional_emails)"
+          },
+          "imessage_status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "not_available",
+              "unknown",
+              "error"
+            ],
+            "default": "unknown"
+          }
+        }
+      }
+    },
+    "imessage_handle": {
+      "type": "string",
+      "description": "The primary confirmed-available iMessage handle (phones prioritized over emails). Empty when no handle is iMessage-available. Default send target for iMessage."
+    },
+    "imessage_resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When resolveLandlordIMessage last derived and checked all handles"
     }
   },
   "required": [
