@@ -83,6 +83,48 @@ function ScorePill({ label, value, suffix, rationale, displayOnly }) {
   );
 }
 
+/* Tiny inline sparkline (auto-scaled to its own min/max so small movements stay visible). */
+function Sparkline({ series, color }) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const w = 46, h = 15, pad = 2;
+  const lo = Math.min(...series), hi = Math.max(...series), span = (hi - lo) || 1;
+  const pts = series.map((v, i) => {
+    const x = pad + (i * (w - pad * 2)) / (series.length - 1);
+    const y = pad + (h - pad * 2) * (1 - (v - lo) / span);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={color || '#c4b5fd'} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* Direction + colour for a run-over-run delta. invert=true (urgency): rising = attention, not "good". */
+function deltaMeta(delta, invert) {
+  if (delta == null || delta === 0) return { arrow: '→', color: 'rgba(255,255,255,0.38)' };
+  const up = delta > 0;
+  if (invert) return { arrow: up ? '▲' : '▼', color: up ? 'hsl(38 92% 62%)' : 'rgba(255,255,255,0.5)' };
+  return { arrow: up ? '▲' : '▼', color: up ? '#34d399' : '#f87171' };
+}
+
+/* One metric in the trajectory strip: label, sparkline, latest value, run-over-run delta. */
+function TrendCell({ label, metric, suffix, sparkColor, invert }) {
+  if (!metric) return null;
+  const d = deltaMeta(metric.delta, invert);
+  const deltaTxt = metric.delta == null ? '' : `${metric.delta > 0 ? '+' : ''}${Math.round(metric.delta)}`;
+  return (
+    <div style={css("flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;")}>
+      <span style={css("font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>
+      <Sparkline series={metric.series} color={sparkColor} />
+      <span style={css("display:inline-flex; align-items:baseline; gap:4px;")}>
+        <span style={css("font-size:12px; font-weight:800; color:rgba(255,255,255,0.85);")}>{Math.round(metric.latest)}{suffix || ''}</span>
+        {deltaTxt && <span style={{...css("font-size:9.5px; font-weight:700;"), color:d.color}}>{d.arrow}{deltaTxt}</span>}
+      </span>
+    </div>
+  );
+}
+
 export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle }) {
   const hasSummary = !!ai.summary;
   const nba = ai.nextBestAction;
@@ -94,6 +136,10 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
   const hasWin = ai.win != null;
   const hasScores = hasTrust || hasUrgency || hasWin;
   const hasMomentum = !!ai.momentum;
+  const hasThesis = typeof ai.dealThesis === 'string' && ai.dealThesis.trim().length > 0;
+  const openQuestions = Array.isArray(ai.openQuestions) ? ai.openQuestions.filter(q => q && q.question) : [];
+  const hasQuestions = openQuestions.length > 0;
+  const trend = ai.scoreTrend && (ai.scoreTrend.trust || ai.scoreTrend.win || ai.scoreTrend.urgency) ? ai.scoreTrend : null;
   const priority = nba && typeof nba.priority === 'string' ? nba.priority.toLowerCase() : '';
   const pMeta = PRIORITY_META[priority] || PRIORITY_META.medium;
   const isCollapsed = collapsed === true;
@@ -163,6 +209,14 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
               <p style={css("margin:0 0 8px; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{ai.summary}</p>
             )}
 
+            {/* Deal thesis — the persistent strategy the brain carries across runs (V3 P2 REMEMBER) */}
+            {hasThesis && (
+              <div style={css("margin:0 0 8px; padding:7px 10px; border-radius:9px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.22); border-left:2px solid rgba(139,92,246,0.7);")}>
+                <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#c4b5fd; margin-bottom:3px;")}>Strategy</span>
+                <p style={css("margin:0; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.78);")}>{ai.dealThesis}</p>
+              </div>
+            )}
+
             {/* Next Best Action */}
             {hasNba && (
               <div style={css("margin-bottom:8px; padding:7px 10px; border-radius:9px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-left:2px solid "+pMeta.color+";")}>
@@ -175,6 +229,36 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 {nba.reasoning && nba.action && (
                   <p style={css("margin:4px 0 0; font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55);")}>{nba.reasoning}</p>
                 )}
+              </div>
+            )}
+
+            {/* Ask-the-agent — questions the brain needs a human to resolve (V3 P2 REMEMBER) */}
+            {hasQuestions && (
+              <div style={css("margin-bottom:8px; padding:7px 10px; border-radius:9px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.28);")}>
+                <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#93c5fd; margin-bottom:5px;")}>Needs your input</span>
+                <div style={css("display:flex; flex-direction:column; gap:6px;")}>
+                  {openQuestions.map((q, i) => (
+                    <div key={i}>
+                      <p style={css("margin:0; font-size:11.5px; line-height:1.4; color:rgba(255,255,255,0.85); font-weight:600;")}>? {q.question}</p>
+                      {q.why && <p style={css("margin:1px 0 0; font-size:10px; line-height:1.4; color:rgba(255,255,255,0.5);")}>{q.why}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trajectory — score movement run-over-run from the snapshot history (V3 P2 REMEMBER) */}
+            {trend && (
+              <div style={css("margin-bottom:8px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:6px;")}>
+                  <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Trajectory</span>
+                  <span style={css("font-size:9px; color:rgba(255,255,255,0.35);")}>{trend.count} runs{trend.since ? ` · since ${relativeTime(trend.since)}` : ''}</span>
+                </div>
+                <div style={css("display:flex; align-items:flex-start; gap:12px;")}>
+                  <TrendCell label="Trust" metric={trend.trust} sparkColor="#34d399" />
+                  <TrendCell label="Win" metric={trend.win} suffix="%" sparkColor="#93c5fd" />
+                  <TrendCell label="Urgency" metric={trend.urgency} sparkColor="hsl(38 92% 62%)" invert />
+                </div>
               </div>
             )}
 
