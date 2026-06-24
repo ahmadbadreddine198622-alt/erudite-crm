@@ -268,6 +268,14 @@ Deno.serve(async (req) => {
           status: 'sent',
           wa_message_id: waId,
           channel: channel,
+          // V3 Phase 0 (RECORD): AI-draft provenance, set ONLY when the send originated from an AI
+          // draft (passed by the composer). Non-AI messages keep created_from_ai:false and are otherwise
+          // unaffected. Instrumentation only — no behavior/wording/timing change.
+          created_from_ai: body.created_from_ai === true,
+          ai_source: body.created_from_ai === true ? (body.ai_source || null) : null,
+          ai_draft_text: body.created_from_ai === true ? (body.ai_draft_text || null) : null,
+          was_edited_after_draft: body.created_from_ai === true ? (body.was_edited_after_draft === true) : false,
+          ai_disposition: body.created_from_ai === true && ['accepted', 'edited', 'ignored'].includes(body.ai_disposition) ? body.ai_disposition : null,
         });
       }
     }

@@ -440,6 +440,34 @@ Reason over all of the above and emit the orchestrator result.`;
     }
 
     await svc.entities.Landlord.update(landlord.id, update);
+
+    // V3 Phase 0 (RECORD): append-only score snapshot — exactly ONE per successful run, built from the
+    // same values just written. Pure instrumentation: it does NOT alter the update above or the
+    // skip/idempotency logic, and a failure here is non-fatal (must never break the orchestrator).
+    // Skipped/recently-run and Claude-failure paths return earlier, so snapshots only accrue on real runs.
+    try {
+      await svc.entities.LandlordScoreSnapshot.create({
+        landlord_id: landlord.id,
+        captured_at: new Date().toISOString(),
+        orchestrator_run_at: update.last_orchestrator_run_at,
+        ai_model_used: update.ai_model_used,
+        stage: update.stage || landlord.stage || null,
+        sub_stage: (update.sub_stage != null) ? update.sub_stage : (landlord.sub_stage || null),
+        days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : daysInStage,
+        trust_score: (update.trust_score != null) ? update.trust_score : null,
+        responsiveness_score: (update.responsiveness_score != null) ? update.responsiveness_score : null,
+        mandate_win_probability: (update.mandate_win_probability != null) ? update.mandate_win_probability : null,
+        urgency_score: (update.urgency_score != null) ? update.urgency_score : null,
+        rapport_level: update.rapport_level || null,
+        ai_momentum: update.ai_momentum || null,
+        ai_strike_now: (update.ai_strike_now != null) ? update.ai_strike_now : null,
+        needs_human_review: (update.needs_human_review != null) ? update.needs_human_review : null,
+        review_reason: update.review_reason || null,
+      });
+    } catch (snapErr) {
+      console.error('LandlordScoreSnapshot create failed (non-fatal):', snapErr?.message);
+    }
+
     return Response.json({ ok: true, tier: effectiveTier, ...update });
   } catch (error) {
     console.error('landlordOrchestrator error:', error);
