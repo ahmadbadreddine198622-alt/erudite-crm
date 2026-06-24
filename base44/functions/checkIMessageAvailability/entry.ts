@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
 
     const checkedAt = new Date().toISOString();
     let status = 'error';
+    let _error_detail = null;
 
     if (!serverUrl || !password) {
       if (landlord_id) {
@@ -69,9 +70,12 @@ Deno.serve(async (req) => {
         status = available ? 'available' : 'not_available';
       } else {
         status = 'error';
+        _error_detail = `BlueBubbles HTTP ${resp.status}`;
       }
     } catch (fetchErr) {
       status = 'error';
+      // Most common cause: the BLUEBUBBLES_SERVER_URL tunnel (e.g. trycloudflare.com) has expired.
+      _error_detail = `Cannot reach BlueBubbles server — ${String(fetchErr?.message || fetchErr)}`;
     }
 
     if (landlord_id) {
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    return Response.json({ success: true, address, imessage_status: status, imessage_checked_at: checkedAt });
+    return Response.json({ success: true, address, imessage_status: status, imessage_checked_at: checkedAt, error_detail: _error_detail });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
