@@ -32,6 +32,24 @@ function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
 }
 
+// Phone → the +/- match variants used by the by-number stream queries (CallLog, WhatsAppMessage),
+// cleaned of spaces/dashes/parens. Returns [] for an empty phone so callers can short-circuit.
+function phoneVariants(phone) {
+  const cleaned = String(phone || '').replace(/[\s\-()]/g, '');
+  if (!cleaned) return [];
+  return cleaned.startsWith('+') ? [cleaned, cleaned.slice(1)] : [cleaned, '+' + cleaned];
+}
+
+// Dedupe entity rows by id, preserving first-seen order. Flattens nested arrays first so callers
+// can pass the raw Promise.all result (an array of per-query arrays) straight in.
+function dedupeById(batches) {
+  const seen = new Set(); const out = [];
+  for (const row of (batches || []).flat()) {
+    if (row && !seen.has(row.id)) { seen.add(row.id); out.push(row); }
+  }
+  return out;
+}
+
 // LandlordDetail.jsx — Erudite CRM
 // Self-contained React component. No external packages, no separate CSS, no image assets.
 // Drop in at src/components/LandlordDetail.jsx (or src/pages/) and render <LandlordDetail />.
@@ -1902,29 +1920,27 @@ export default function LandlordDetailPage() {
   // Records have landlord_id: null; the real link sits in lead_id or nowhere. Phone-matching
   // catches BOTH records in each queued+webhook pair regardless of which carries the link.
   const { data: twilioLogs = [] } = useQ(['twilio_logs', phone], async () => {
-    if (!phone) return [];
-    const cleaned = phone.replace(/[\s\-()]/g, '');
-    const variants = [cleaned];
-    if (cleaned.startsWith('+')) variants.push(cleaned.slice(1));
-    else variants.push('+' + cleaned);
-    const seen = new Set(); const results = [];
-    for (const v of variants) {
-      const toCalls = await safe(() => base44.entities.CallLog.filter({ to_number: v }, '-started_at', 100));
-      const fromCalls = await safe(() => base44.entities.CallLog.filter({ from_number: v }, '-started_at', 100));
-      [...(toCalls || []), ...(fromCalls || [])].forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); results.push(c); } });
-    }
-    return results;
+    const variants = phoneVariants(phone);
+    if (!variants.length) return [];
+    // Fan the to_number/from_number lookups across all variants out CONCURRENTLY (was a serial
+    // await-loop = up to 4 round-trips back-to-back). dedupeById preserves the same first-seen order.
+    const batches = await Promise.all(variants.flatMap(v => [
+      safe(() => base44.entities.CallLog.filter({ to_number: v }, '-started_at', 100)),
+      safe(() => base44.entities.CallLog.filter({ from_number: v }, '-started_at', 100)),
+    ]));
+    return dedupeById(batches);
   }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // Emails for the stream — match by the landlord's email (from_email OR to)
   const landlordEmail = L?.email;
   const { data: emailMessages = [] } = useQ(['landlord_emails', landlordEmail], async () => {
     if (!landlordEmail) return [];
-    const seen = new Set(); const results = [];
-    const fromMsgs = await safe(() => base44.entities.Email.filter({ from_email: landlordEmail }, '-received_at', 100));
-    const toMsgs = await safe(() => base44.entities.Email.filter({ to: landlordEmail }, '-received_at', 100));
-    [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
-    return results;
+    // from_email / to lookups in parallel (was two serial awaits).
+    const batches = await Promise.all([
+      safe(() => base44.entities.Email.filter({ from_email: landlordEmail }, '-received_at', 100)),
+      safe(() => base44.entities.Email.filter({ to: landlordEmail }, '-received_at', 100)),
+    ]);
+    return dedupeById(batches);
   }, { enabled: !!landlordEmail, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
@@ -1932,18 +1948,15 @@ export default function LandlordDetailPage() {
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
-    if (!phone) return [];
-    const cleaned = phone.replace(/[\s\-()]/g, '');
-    const variants = [cleaned];
-    if (cleaned.startsWith('+')) variants.push(cleaned.slice(1));
-    else variants.push('+' + cleaned);
-    const seen = new Set(); const results = [];
-    for (const v of variants) {
-      const fromMsgs = await safe(() => base44.entities.WhatsAppMessage.filter({ from_number: v }, 'timestamp', 100));
-      const toMsgs = await safe(() => base44.entities.WhatsAppMessage.filter({ to_number: v }, 'timestamp', 100));
-      [...(fromMsgs || []), ...(toMsgs || [])].forEach(m => { if (!seen.has(m.id)) { seen.add(m.id); results.push(m); } });
-    }
-    return results;
+    const variants = phoneVariants(phone);
+    if (!variants.length) return [];
+    // from_number/to_number across all variants CONCURRENTLY (was a serial await-loop). Keep the
+    // from-before-to order per variant so dedupeById's first-seen result matches the old behaviour.
+    const batches = await Promise.all(variants.flatMap(v => [
+      safe(() => base44.entities.WhatsAppMessage.filter({ from_number: v }, 'timestamp', 100)),
+      safe(() => base44.entities.WhatsAppMessage.filter({ to_number: v }, 'timestamp', 100)),
+    ]));
+    return dedupeById(batches);
   }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   if (isLoading) {
