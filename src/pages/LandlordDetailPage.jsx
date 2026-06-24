@@ -990,7 +990,7 @@ class LandlordDetail extends React.Component {
       tab.isOutreach=true; const oc=L.outreach;
       tab.outreachDate=oc.date; tab.stepsCompleted=oc.stepsCompleted; tab.dailyScore=oc.dailyScore;
       tab.progressStyle={ height:'100%', width:Math.round((oc.stepsCompleted/6)*100)+'%', background:'linear-gradient(90deg, hsl(38 92% 52%), hsl(38 92% 62%))' };
-      tab.steps=oc.steps.map((st,i)=>({ key:i, label:st.label, at: st.at||'—', done:st.done,
+      tab.steps=oc.steps.map((st)=>({ key:st.key, label:st.label, at: st.at||'—', done:st.done,
         iconStyle:{ flex:'none', width:'24px', height:'24px', borderRadius:'7px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:800, color: st.done?'#34d399':'rgba(255,255,255,0.35)', background: st.done?'rgba(16,185,129,0.16)':'rgba(255,255,255,0.05)', border:'1px solid '+(st.done?'rgba(16,185,129,0.35)':'rgba(255,255,255,0.1)') },
         icon: st.done?'✓':'○',
         labelStyle:{ fontSize:'13px', fontWeight:600, color: st.done?'rgba(255,255,255,0.88)':'rgba(255,255,255,0.5)' } }));
