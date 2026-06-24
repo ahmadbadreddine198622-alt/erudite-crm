@@ -222,6 +222,24 @@ Deno.serve(async (req) => {
       });
     } catch (_) { /* best-effort log */ }
 
+    // Mirror into the unified Message entity so landlordOrchestrator — which reads the landlord
+    // conversation ONLY from Message — can see emails the agent sends. Same outbound-channel
+    // convention as sendMultiChannelWhatsApp / sendWhatsAppMessage (direction 'outgoing', the
+    // readable text, a timestamp, channel). landlord_id is required and validated above, so it always
+    // links; email here is outbound-only (inbound email is lead-side via handleGmailWebhook), so there
+    // is no inbound counterpart to dedupe against. Best-effort + non-fatal — never block the send.
+    try {
+      await base44.asServiceRole.entities.Message.create({
+        landlord_id: landlordId,
+        direction: 'outgoing',
+        channel: 'email',
+        message_type: 'email',
+        text: subject ? `${subject}\n\n${bodyNative}` : bodyNative,
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      });
+    } catch (_) { /* best-effort mirror */ }
+
     return Response.json({ ok: true, message_id: data.id, thread_id: data.threadId || null, to, subject, delivery });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
