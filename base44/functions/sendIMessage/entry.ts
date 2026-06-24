@@ -111,27 +111,24 @@ Deno.serve(async (req) => {
       }, { status: 502 });
     }
 
-    // First-contact: forward the branded banner as a multipart attachment (best-effort —
-    // never blocks the text send response).
+    // First-contact: send the branded banner URL as a SECOND text message. iMessage detects
+    // the bare URL and auto-renders a rich link preview (showing the banner image) at the end
+    // of the conversation — exactly the behaviour the user wants. Best-effort; never blocks
+    // the main text send response.
     let bannerSent = false;
     if (isFirstContact && bannerUrl) {
       try {
-        const imgResp = await fetch(bannerUrl);
-        if (imgResp.ok) {
-          const blob = await imgResp.blob();
-          const ext = (bannerUrl.split('.').pop() || 'png').split('?')[0].toLowerCase();
-          const form = new FormData();
-          form.append('chatGuid', `iMessage;-;${address}`);
-          form.append('tempGuid', `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-          form.append('name', `erudite-banner.${ext}`);
-          form.append('method', 'private-api');
-          form.append('attachment', blob, `erudite-banner.${ext}`);
-          const attResp = await fetch(
-            `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`,
-            { method: 'POST', headers: { 'skip_zrok_interstitial': 'true' }, body: form }
-          );
-          bannerSent = attResp.ok;
-        }
+        const linkResp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+          body: JSON.stringify({
+            chatGuid: `iMessage;-;${address}`,
+            tempGuid: `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            message: bannerUrl,
+            method: 'private-api',
+          }),
+        });
+        bannerSent = linkResp.ok;
       } catch (_) { bannerSent = false; }
     }
 

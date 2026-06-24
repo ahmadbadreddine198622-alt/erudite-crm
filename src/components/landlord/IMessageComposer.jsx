@@ -11,9 +11,41 @@
 //   onSent       (fn)      — called after an iMessage is sent (e.g. push a stream item)
 //   onFallback   (fn)      — called when no iMessage handle exists (caller may route to WhatsApp)
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+
+/* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
+function playSentSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(1180, now + 0.18);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+    const ping = ctx.createOscillator();
+    const pgain = ctx.createGain();
+    ping.type = 'triangle';
+    ping.frequency.setValueAtTime(1320, now + 0.16);
+    pgain.gain.setValueAtTime(0.0001, now + 0.16);
+    pgain.gain.exponentialRampToValueAtTime(0.1, now + 0.2);
+    pgain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    ping.connect(pgain).connect(ctx.destination);
+    ping.start(now + 0.16);
+    ping.stop(now + 0.52);
+    setTimeout(() => ctx.close().catch(() => {}), 700);
+  } catch (_) { /* sound is best-effort */ }
+}
 
 /* Convert a CSS declaration string into a React style object (matches the V-card pattern). */
 function css(str) {
@@ -79,6 +111,10 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
   const [manualText, setManualText] = useState('');
   const [sendingManual, setSendingManual] = useState(false);
 
+  // Brief celebratory flash overlay right after a successful send (blue).
+  const [justSent, setJustSent] = useState(false);
+  const flashTimer = useRef(null);
+
   const needsBuyer = REQUIRES_BUYER.includes(mode);
   const needsMarket = REQUIRES_MARKET.includes(mode);
   const activeMode = MODES.find((m) => m.key === mode);
@@ -126,8 +162,13 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         return;
       }
       if (data?.error) throw new Error(data.error);
+      // Multi-sensory confirmation: sound + blue flash overlay + toast.
+      playSentSound();
+      if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
+      setJustSent(true);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setJustSent(false), 1700);
       toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
-      if (navigator.vibrate) { try { navigator.vibrate([16, 30, 16]); } catch (_) {} }
       if (onSent) onSent({ text });
       if (onDone) onDone();
     } catch (e) {
@@ -138,8 +179,26 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
   };
 
   return (
-    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(10,132,255,0.28); background:rgba(10,132,255,0.05); padding:11px 12px;"), position: 'relative' }}>
-      <style>{`@keyframes imc-spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(10,132,255,0.28); background:rgba(10,132,255,0.05); padding:11px 12px;"), position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes imc-spin { to { transform: rotate(360deg); } }
+        @keyframes imc-flash-in { 0% { opacity:0; transform:scale(0.6); } 55% { opacity:1; transform:scale(1.08); } 70% { transform:scale(0.97); } 100% { opacity:1; transform:scale(1); } }
+        @keyframes imc-flash-out { to { opacity:0; } }
+        @keyframes imc-plane { 0% { transform:translate(-6px,4px) rotate(-8deg); opacity:0; } 30% { opacity:1; } 100% { transform:translate(70px,-46px) rotate(12deg); opacity:0; } }
+        @keyframes imc-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
+      `}</style>
+
+      {/* celebratory send flash (blue) */}
+      {justSent && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'imc-flash-out 0.4s ease forwards 1.3s' }}>
+          <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid rgba(96,165,250,0.7)', animation: 'imc-ring 0.9s ease-out' }} />
+            <div style={{ width: 46, height: 46, borderRadius: '50%', background: '#0A84FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#fff', animation: 'imc-flash-in 0.5s cubic-bezier(0.34,1.56,0.64,1)' }}>✓</div>
+            <span style={{ position: 'absolute', fontSize: 20, animation: 'imc-plane 0.9s ease-out forwards' }}>➤</span>
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', color: '#60a5fa', animation: 'imc-flash-in 0.5s ease' }}>Sent!</span>
+        </div>
+      )}
 
       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
         <span style={{ ...css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;"), color: '#60a5fa' }}>AI iMessage Draft</span>
