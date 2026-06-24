@@ -49,7 +49,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [compReference, setCompReference] = useState('');
 
   const [generating, setGenerating] = useState(false);
-  const [drafting, setDrafting] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Generated draft (editable before sending to Gmail).
   const [subject, setSubject] = useState('');
@@ -89,23 +89,23 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     }
   };
 
-  const createGmailDraft = async () => {
-    if (drafting) return;
+  const sendEmail = async () => {
+    if (sending) return;
     if (!to.trim()) { toast.error('Add a recipient email'); return; }
     if (!subject.trim() || !bodyNative.trim()) { toast.error('Subject and body are required'); return; }
-    setDrafting(true);
+    setSending(true);
     try {
-      const res = await base44.functions.invoke('createLandlordGmailDraft', {
+      const res = await base44.functions.invoke('sendLandlordEmail', {
         to: to.trim(), subject: subject.trim(), body_native: bodyNative, landlord_id: landlordId,
       });
       const data = res?.data ?? res;
-      if (!data?.ok) throw new Error(data?.error || 'Gmail draft create failed');
-      toast.success('Branded Gmail draft created — open Gmail to review & send');
+      if (!data?.ok) throw new Error(data?.error || 'Email send failed');
+      toast.success('Email sent to ' + to.trim());
       if (onLogged) onLogged({ subject: subject.trim(), to: to.trim() });
     } catch (e) {
-      toast.error(e?.message || 'Failed to create Gmail draft');
+      toast.error(e?.message || 'Failed to send email');
     } finally {
-      setDrafting(false);
+      setSending(false);
     }
   };
 
@@ -174,14 +174,14 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
               <div style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); margin-top:6px; white-space:pre-wrap;")}>{bodyGloss}</div>
             </details>
           )}
-          <button onClick={createGmailDraft} disabled={drafting}
+          <button onClick={sendEmail} disabled={sending}
             style={css(
               "width:100%; padding:9px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; "+
-              "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(drafting ? 0.6 : 1)+";"
+              "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(sending ? 0.6 : 1)+";"
             )}>
-            {drafting ? 'Creating Gmail draft…' : '✉ Create branded Gmail draft'}
+            {sending ? 'Sending…' : '✉ Send branded email'}
           </button>
-          <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center;")}>Creates a draft in Gmail — nothing is sent automatically.</div>
+          <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center;")}>Sends immediately from your connected Gmail — no draft step.</div>
         </div>
       )}
     </div>
