@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
       // backfillLandlordAIAnalysis). Append-only score snapshot — exactly ONE per successful
       // Landlord.update, built from the values just written. Non-fatal: a failure here must never
       // break the writer. Forward-only — never fabricates historical snapshots.
+      // Logic identical across all 3 EXCEPT (1) payload var name (update vs updatePayload),
+      // (2) the orchestrator's days_in_stage falls back to the computed daysInStage variable
+      // (in scope there only) — this backfill keeps null; do NOT add daysInStage here.
       try {
         await svc.entities.LandlordScoreSnapshot.create({
           landlord_id: landlord.id,

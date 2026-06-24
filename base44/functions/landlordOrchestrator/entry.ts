@@ -498,6 +498,9 @@ Reason over all of the above and emit the orchestrator result.`;
     // backfillLandlordAIAnalysis). Append-only score snapshot — exactly ONE per successful
     // Landlord.update, built from the values just written. Non-fatal: a failure here must never
     // break the writer. Forward-only — never fabricates historical snapshots.
+    // Logic identical across all 3 EXCEPT (1) payload var name (update vs updatePayload),
+    // (2) the orchestrator's days_in_stage falls back to the computed daysInStage variable
+    // (in scope here only) — do NOT "fix" it to null to match the backfills.
     try {
       await svc.entities.LandlordScoreSnapshot.create({
         landlord_id: landlord.id,
@@ -506,7 +509,7 @@ Reason over all of the above and emit the orchestrator result.`;
         ai_model_used: update.ai_model_used || null,
         stage: update.stage || landlord.stage || null,
         sub_stage: (update.sub_stage != null) ? update.sub_stage : (landlord.sub_stage || null),
-        days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : null,
+        days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : daysInStage,
         trust_score: (update.trust_score != null) ? update.trust_score : null,
         responsiveness_score: (update.responsiveness_score != null) ? update.responsiveness_score : null,
         mandate_win_probability: (update.mandate_win_probability != null) ? update.mandate_win_probability : null,
