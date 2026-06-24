@@ -77,12 +77,15 @@ function bodyToHtml(text) {
     .join('');
 }
 
-// A modern, professional "card pill" link — a title plus a sublabel describing what's behind it.
-function linkPill(href, title, sub) {
-  return `<td style="padding:0 10px 8px 0;vertical-align:top;">
-    <a href="${href}" style="display:block;text-decoration:none;background:#f1f5f9;border:1px solid #e2e8f0;border-left:3px solid #1d4ed8;border-radius:8px;padding:7px 12px;min-width:178px;">
-      <span style="display:block;color:#1d4ed8;font-size:12.5px;font-weight:700;line-height:1.3;">${title} &rarr;</span>
-      <span style="display:block;color:#64748b;font-size:10.5px;font-weight:500;line-height:1.4;margin-top:1px;">${sub}</span>
+// A vibrant brand-colored "card pill" link — accent gradient, emoji glyph, title + sublabel.
+// `accent` = { from, to, text } gradient colors; `glyph` = leading emoji icon.
+function linkPill(href, title, sub, accent, glyph) {
+  return `<td style="padding:0 8px 8px 0;vertical-align:top;">
+    <a href="${href}" style="display:block;text-decoration:none;background:linear-gradient(135deg, ${accent.from} 0%, ${accent.to} 100%);border-radius:10px;padding:10px 13px;min-width:186px;box-shadow:0 2px 6px rgba(15,23,42,0.18);">
+      <span style="display:block;color:${accent.text};font-size:12.5px;font-weight:700;line-height:1.3;">
+        <span style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;background:rgba(255,255,255,0.18);border-radius:6px;font-size:12px;margin-right:7px;vertical-align:middle;">${glyph}</span>${title}&nbsp;&rarr;
+      </span>
+      <span style="display:block;color:${accent.text};opacity:0.78;font-size:10.5px;font-weight:500;line-height:1.4;margin-top:3px;">${sub}</span>
     </a>
   </td>`;
 }
@@ -123,15 +126,15 @@ function buildHtml(bodyNative) {
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
                 <tr>
-                  ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals')}
-                  ${linkPill(COMPANY.links.pf_broker, 'Erudite Listings', 'All live listings for sale')}
+                  ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals', { from: '#1a2744', to: '#2d4060', text: '#ffffff' }, '⭐')}
+                  ${linkPill(COMPANY.links.pf_broker, 'Erudite Listings', 'All live listings for sale', { from: '#b8860b', to: '#d4af37', text: '#1a1205' }, '🏛')}
                 </tr>
                 <tr>
-                  ${linkPill(COMPANY.links.team, 'Meet the Team', 'eruditeproperty.com')}
-                  ${linkPill(COMPANY.links.instagram, 'Instagram', '@eruditeproperty7')}
+                  ${linkPill(COMPANY.links.team, 'Meet the Team', 'eruditeproperty.com', { from: '#0f766e', to: '#14b8a6', text: '#ffffff' }, '👥')}
+                  ${linkPill(COMPANY.links.instagram, 'Instagram', '@eruditeproperty7', { from: '#c026d3', to: '#f43f5e', text: '#ffffff' }, '📸')}
                 </tr>
                 <tr>
-                  ${linkPill(COMPANY.links.linkedin, 'LinkedIn', "Ahmad's profile")}
+                  ${linkPill(COMPANY.links.linkedin, 'LinkedIn', "Ahmad's profile", { from: '#0a66c2', to: '#378fe9', text: '#ffffff' }, '💼')}
                   <td></td>
                 </tr>
               </table>
