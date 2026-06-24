@@ -14,9 +14,10 @@
 //   agentEmail   (string)  — assigned agent (fallback for the appointment's agent_email)
 //   onBooked     (fn)      — called after the appointment is created (push a timeline card)
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 
 // Single point of truth for which brain parses the text. Repoint to a v3 brain in one line.
 const BRAIN_FN = 'scribeBrain';
@@ -66,6 +67,8 @@ export default function AppointmentComposer({ landlordId, propertyId, agentEmail
   const [pending, setPending] = useState(null);
   const [slots, setSlots] = useState([]);
   const [address, setAddress] = useState('');
+  const [justBooked, setJustBooked] = useState(false);
+  const flashTimer = useRef(null);
 
   const parse = async () => {
     const t = text.trim();
@@ -104,6 +107,12 @@ export default function AppointmentComposer({ landlordId, propertyId, agentEmail
         notes: text.trim(),
         status: 'scheduled',
       });
+      // Multi-sensory confirmation: sound + flash overlay + toast (matches iMessage).
+      playSentSound();
+      if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
+      setJustBooked(true);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setJustBooked(false), 1700);
       toast.success('Appointment booked · syncing to calendar');
       if (onBooked) onBooked({ when: prettySlot(pending.date, pending.time), type: pending.type, notes: text.trim() });
       setText(''); setPending(null); setSlots([]); setAddress('');
@@ -115,8 +124,9 @@ export default function AppointmentComposer({ landlordId, propertyId, agentEmail
   };
 
   return (
-    <div style={css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(139,92,246,0.28); background:rgba(139,92,246,0.05); padding:11px 12px;")}>
+    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(139,92,246,0.28); background:rgba(139,92,246,0.05); padding:11px 12px;"), position: 'relative', overflow: 'hidden' }}>
       <style>{`@keyframes ap-spin { to { transform: rotate(360deg); } }`}</style>
+      {justBooked && <SendFlash color="#8b5cf6" label="Booked!" glyph="📅" />}
 
       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
         <span style={css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#c4b5fd;")}>Smart Appointment</span>
