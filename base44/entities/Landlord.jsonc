@@ -608,6 +608,14 @@
       "type": "string",
       "format": "date-time",
       "description": "When resolveLandlordIMessage last derived and checked all handles"
+    },
+    "telegram_chat_id": {
+      "type": "string",
+      "description": "Telegram numeric chat_id \u2014 set after the landlord starts a chat with the bot. Default send target for Telegram. Empty when not connected."
+    },
+    "telegram_username": {
+      "type": "string",
+      "description": "Telegram @username of the landlord, if known (display/reference only \u2014 sending requires telegram_chat_id)"
     }
   },
   "required": [

@@ -70,6 +70,10 @@
       "type": "string",
       "description": "Plain-text signature appended to outgoing iMessages. Single source of truth for iMessage signatures. No HTML."
     },
+    "telegram_signature_text": {
+      "type": "string",
+      "description": "Plain-text signature appended to outgoing Telegram messages. Falls back to imessage_signature_text when empty. No HTML."
+    },
     "logo_base64": {
       "type": "string",
       "description": "Base64 data URL of company logo \u2014 embedded directly by PDF functions"

@@ -1,0 +1,56 @@
+{
+  "name": "TelegramMessage",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Optional FK to Lead"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "default": "outbound"
+    },
+    "chat_id": {
+      "type": "string",
+      "description": "Telegram chat_id the message was sent to / received from"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "failed"
+      ],
+      "default": "sent"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent_email": {
+      "type": "string",
+      "description": "Email of the agent who sent the message"
+    },
+    "tg_message_id": {
+      "type": "string",
+      "description": "Telegram message_id for dedup/status updates"
+    }
+  },
+  "required": [
+    "direction",
+    "chat_id",
+    "body"
+  ]
+}
