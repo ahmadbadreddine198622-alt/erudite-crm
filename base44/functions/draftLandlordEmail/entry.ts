@@ -1,39 +1,39 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 
-/**
- * draftLandlordEmail — draft a standout, project-aware email to a landlord in their
- * preferred_language, plus a faithful English back-translation for the agent.
- *
- * DRAFT ONLY. No Gmail, no send, no entity writes. Read-only on Landlord.
- * Idempotent — repeated calls write nothing.
- *
- * Input (JSON body):
- *   landlord_id   (string, required)
- *   mode          (string, required): asset_proof | real_buyer | market_gift |
- *                  no_ask_interrupt | collaboration | funds_ready
- *   agent_inputs  (object, optional): { buyer_detail, market_figure, comp_reference }
- *   tone          (string, optional, default "senior_courteous")
- *
- * Output:
- *   { ok:true, draft:{ subject, body_native, body_english_gloss, language, mode_used } }
- *   { ok:false, error:"<message>" } with non-200 on error.
- */
-
 const VALID_MODES = [
   'asset_proof', 'real_buyer', 'market_gift',
   'no_ask_interrupt', 'collaboration', 'funds_ready'
 ];
 
-// Languages Ahmad personally speaks — when the owner's preferred_language is one of
-// these, that becomes a trust/benefit point in the body.
-const AHMAD_LANGUAGES = ['en', 'ar', 'fr', 'ru', 'zh'];
+// The shared drafting brain is parameterized by CHANNEL, not forked. The owner data pull,
+// cold-open vs reply MODES, psychology profiles, and credibility block are identical for every
+// channel. Only two things differ per channel: (1) the length/format the model writes for, and
+// (2) whether a subject line is produced. Everything else — the actual "brain" — is shared.
+const VALID_CHANNELS = ['email', 'imessage'];
+
+const CHANNEL_GUIDANCE = {
+  email: {
+    needsSubject: true,
+    // Email keeps the original 110-170 word ceiling.
+    formatRule: `LENGTH — STRICT: keep the body SHORT — roughly 110-170 words, and never more than ~1,400 characters. A busy owner must be able to read it in under a minute. Brevity signals seniority; a long email reads as a junior pitch. Pick the ONE or TWO credibility points that fit this mode and stop — do not stack every fact, do not repeat yourself, do not pad with filler.`,
+  },
+  imessage: {
+    needsSubject: false,
+    // iMessage is a chat bubble, not an email — much shorter, no subject, no greeting block.
+    formatRule: `CHANNEL IS iMESSAGE (a text-message bubble, NOT an email). FORMAT — STRICT:
+- Write VERY SHORT — 2 to 4 sentences, roughly 30-70 words, never more than ~480 characters. It must read like a personal text from a senior principal, not an email.
+- Do NOT write a subject line, a salutation block, or an email-style sign-off. You may open with the owner's first name only (e.g. "Hi Ahmed,") if it reads naturally as a text.
+- Plain text only. No markdown, no bullet points, no links, no HTML — the channel renders raw text. ONE clear point, then stop.
+- Pick exactly ONE credibility point that fits this mode (not two) — a text has no room to stack facts.`,
+  },
+};
 
 const DRAFT_SCHEMA = {
   type: 'object',
   properties: {
-    subject: { type: 'string', description: "Email subject line, in the owner's language." },
-    body_native: { type: 'string', description: "Email body in the owner's preferred_language. Plain text. No signature/footer." },
+    subject: { type: 'string', description: "Subject line, in the owner's language. For iMessage, return an empty string — texts have no subject." },
+    body_native: { type: 'string', description: "Message body in the owner's preferred_language. Plain text. No signature/footer." },
     body_english_gloss: { type: 'string', description: 'Faithful English translation of body_native for the agent. If the body is already English, repeat it verbatim.' },
     language: { type: 'string', description: 'Language code used for the body (e.g. "ru", "en").' },
     mode_used: { type: 'string', description: 'Echo of the requested mode.' }
@@ -41,7 +41,8 @@ const DRAFT_SCHEMA = {
   required: ['subject', 'body_native', 'body_english_gloss', 'language', 'mode_used']
 };
 
-// The ONLY credibility facts the model may use. Each is framed as an owner-benefit, never a boast.
+const AHMAD_LANGUAGES = ['en', 'ar', 'fr', 'ru', 'zh'];
+
 const CREDIBILITY_BLOCK = `ERUDITE CREDIBILITY — the ONLY credibility facts you may use. Each MUST be expressed as an owner-benefit, never a standalone boast. Weave in only what fits this mode; do not list them all.
 - Ahmad Badreddine: SuperAgent on Property Finder, 4.3★ rating, 12+ years in Dubai real estate (since 2014), Dubai BRN 34625, CEO of Erudite Real Estate. Frame as: a senior, accountable principal handling the owner's unit personally.
 - Erudite is a 25-agent brokerage. Frame as: "25 active buyer-handlers working your unit from day one" — never just "we are a big team."
@@ -56,7 +57,6 @@ VERIFIED PUBLIC FIGURES (an owner can confirm these on the PF profile — safe t
 
 HARD GUARDRAIL: NEVER use larger or rounder figures (e.g. "200+ deals", "AED 1 billion", "hundreds of clients"). They exceed the publicly shown numbers, so a cross-checking owner sees a mismatch and the claim backfires. Never fabricate or inflate any number, price, date, or transaction. If you are unsure of a fact, leave it out.`;
 
-// Per-mode opening + intent instructions.
 const MODE_GUIDANCE = {
   asset_proof: `MODE: asset_proof (safe default). OPEN by demonstrating exact, specific knowledge of the owner's unit — name the project and unit reference and (only if genuinely known) bed/size context — so the owner immediately sees this is about THEIR specific asset, not a blast. Make NO buyer claim. Intent: prove you actually know and follow this unit, and that a senior principal is paying attention to it.`,
   real_buyer: `MODE: real_buyer. OPEN by referencing the specific, real buyer behaviour supplied by the agent (the buyer detail). Build the email around that concrete buyer. NEVER write a generic "I have a serious buyer" line. Intent: a real, specific buyer interest in this exact unit, made credible by the supplied detail.`,
@@ -66,6 +66,22 @@ const MODE_GUIDANCE = {
   funds_ready: `MODE: funds_ready. OPEN around the supplied buyer detail of a buyer who is ready to place a deposit on signing — emphasise readiness and seriousness grounded in that specific detail. NEVER a generic "serious buyer" line. Intent: a transaction-ready buyer, made credible by the supplied detail.`
 };
 
+const PSYCHOLOGY_PROFILES = {
+  stubborn: `READER PSYCHOLOGY — stubborn / set in their ways: They resist anything that feels like being "sold" or pushed. Give them full control and zero pressure. State facts plainly, make no demands, and explicitly leave the next move entirely to them. No persuasion language.`,
+  dislikes_email: `READER PSYCHOLOGY — dislikes email: They find email a chore. Keep it to a few short lines, one clear point, easy to skim, and make replying effortless (a one-line reply is enough). Get to the point in the first sentence.`,
+  avoids_talking: `READER PSYCHOLOGY — avoids calls and meetings: Do NOT ask them to call, meet, or "hop on a quick chat". Make clear everything can be handled in writing, at their pace, with no phone pressure whatsoever.`,
+  stressed: `READER PSYCHOLOGY — stressed / overwhelmed: Be calm and reassuring. Reduce their mental load — make clear you carry the heavy lifting. No urgency, no deadlines, no long lists. At most one small, easy step.`,
+  skeptical: `READER PSYCHOLOGY — skeptical / distrustful: Lead with what they can independently verify and use the look-me-up anchor. No hype, no superlatives, no adjectives — only checkable facts, framed as their reassurance.`,
+  time_poor: `READER PSYCHOLOGY — busy / time-poor: Bottom line in the first sentence. One decision, clearly stated. Respect their time explicitly. No preamble.`,
+  analytical: `READER PSYCHOLOGY — analytical / data-driven: Be precise and structured. Use only verified figures; never invent data. Lead with the concrete over the relational.`,
+  emotionally_attached: `READER PSYCHOLOGY — emotionally attached to the home: Acknowledge that this is more than an asset to them. Warm and respectful, never coldly transactional. Move gently.`,
+  price_anchored: `READER PSYCHOLOGY — high price expectation: Do NOT challenge or correct their price. If you mention any market reality, frame it as a useful gift, never as "you are wrong". Protect their pride.`,
+  previously_burned: `READER PSYCHOLOGY — burned by a past broker: Acknowledge (without naming anyone) that their previous experience may have been frustrating. Differentiate through accountability and responsiveness shown, not claimed. Low pressure; earn trust.`,
+  non_committal: `READER PSYCHOLOGY — slow to respond / went quiet: Make re-entry easy and guilt-free — no "just following up again". One low-friction, specific question they can answer in seconds.`,
+  status_conscious: `READER PSYCHOLOGY — proud / status-conscious: Treat them as a valued principal — respectful, a touch of exclusivity, never fawning. Make them feel handled at a senior level.`
+};
+const VALID_PSYCHOLOGIES = Object.keys(PSYCHOLOGY_PROFILES);
+
 async function callClaude(system, prompt, model = 'claude-opus-4-7') {
   const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
   const response = await anthropic.messages.create({
@@ -74,11 +90,11 @@ async function callClaude(system, prompt, model = 'claude-opus-4-7') {
     system,
     messages: [{ role: 'user', content: prompt }],
     tools: [{
-      name: 'emit_landlord_email',
-      description: "Emit the drafted landlord email with the subject, native-language body, English gloss, language code and mode.",
+      name: 'emit_landlord_message',
+      description: "Emit the drafted landlord message with the subject (empty for iMessage), native-language body, English gloss, language code and mode.",
       input_schema: DRAFT_SCHEMA
     }],
-    tool_choice: { type: 'tool', name: 'emit_landlord_email' }
+    tool_choice: { type: 'tool', name: 'emit_landlord_message' }
   });
   const toolBlock = response.content.find(b => b.type === 'tool_use');
   return toolBlock ? toolBlock.input : null;
@@ -91,7 +107,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { landlord_id, mode, agent_inputs = {}, tone = 'senior_courteous' } = body || {};
+    const { landlord_id, mode, agent_inputs = {}, tone = 'senior_courteous', psychology = null, channel = 'email' } = body || {};
 
     if (!landlord_id) {
       return Response.json({ ok: false, error: 'landlord_id is required' }, { status: 400 });
@@ -99,11 +115,16 @@ Deno.serve(async (req) => {
     if (!mode || !VALID_MODES.includes(mode)) {
       return Response.json({ ok: false, error: `mode is required and must be one of: ${VALID_MODES.join(', ')}` }, { status: 400 });
     }
+    if (psychology && !VALID_PSYCHOLOGIES.includes(psychology)) {
+      return Response.json({ ok: false, error: `psychology must be one of: ${VALID_PSYCHOLOGIES.join(', ')}` }, { status: 400 });
+    }
+    if (channel && !VALID_CHANNELS.includes(channel)) {
+      return Response.json({ ok: false, error: `channel must be one of: ${VALID_CHANNELS.join(', ')}` }, { status: 400 });
+    }
+    const channelCfg = CHANNEL_GUIDANCE[channel] || CHANNEL_GUIDANCE.email;
 
     const inputs = agent_inputs && typeof agent_inputs === 'object' ? agent_inputs : {};
 
-    // Mode-specific required-input guardrails. These MUST error rather than paper over
-    // with a generic claim.
     if ((mode === 'real_buyer' || mode === 'funds_ready') && !inputs.buyer_detail) {
       return Response.json({ ok: false, error: `${mode} mode requires agent_inputs.buyer_detail` }, { status: 400 });
     }
@@ -111,8 +132,6 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'market_gift mode requires agent_inputs.market_figure' }, { status: 400 });
     }
 
-    // Load Landlord (read-only). Only the whitelisted fields below are read; contact and
-    // financial fields are NEVER read or passed into the prompt.
     let landlord;
     try {
       landlord = await base44.asServiceRole.entities.Landlord.get(landlord_id);
@@ -142,29 +161,35 @@ Deno.serve(async (req) => {
     const lang = safe.preferred_language;
     const ahmadSpeaksOwnerLang = AHMAD_LANGUAGES.includes(lang);
 
-    const systemPrompt = `You are Ahmad Badreddine, CEO of Erudite Real Estate in Dubai, drafting a personal, standout email to a property OWNER (landlord). You write like a senior, courteous principal — concise, specific, never salesy, never a template.
+    const channelNoun = channel === 'imessage' ? 'iMessage (a personal text message)' : 'email';
+    const systemPrompt = `You are Ahmad Badreddine, CEO of Erudite Real Estate in Dubai, drafting a personal, standout ${channelNoun} to a property OWNER (landlord). You write like a senior, courteous principal — concise, specific, never salesy, never a template.
 
 ${CREDIBILITY_BLOCK}
 
 GLOBAL RULES:
-- Address the owner by their English full name.
-- Be specific to the named project and unit reference. NEVER generic — a generic email is a failure.
+- Address the owner by their English full name (or first name for an iMessage, if more natural).
+- Be specific to the named project and unit reference. NEVER generic — a generic message is a failure.
 - Write the body in the owner's preferred language. If the language code is "ru", write natural, native-quality Russian. If "ar", Arabic. If "fr", French. If "zh", Mandarin. If "en", English.
 - Tone: senior, courteous, concise. No emojis. No exclamation-heavy hype.
+- ${channelCfg.formatRule}
 - Do NOT fabricate any fact, price, date, number, comp, or transaction. Use only the credibility facts above and the real agent-supplied specifics.
 - Credibility must appear woven in as an OWNER-BENEFIT appropriate to this mode — never a brag, and never as the opener. Do NOT open with "I have a serious buyer."
-- Do NOT include any signature, sign-off block, footer, or contact details — the template layer adds that identically every time. End the body on the last substantive sentence.
-- body_english_gloss must be a faithful English translation of body_native (verbatim if the body is already English).`;
+- If a READER PSYCHOLOGY is provided, let it shape tone, emphasis, and what to avoid — but it NEVER overrides the mode's core intent, the length/format ceiling, the no-fabrication rule, or the no-signature rule.
+- Do NOT include any signature, sign-off block, footer, or contact details — the template/send layer adds that identically every time. End the body on the last substantive sentence.
+- body_english_gloss must be a faithful English translation of body_native (verbatim if the body is already English).
+- ${channelCfg.needsSubject ? "Produce a short subject line in the owner's language." : 'Return an EMPTY STRING for subject — an iMessage has no subject line.'}`;
 
     const agentInputLines = [];
     if (inputs.buyer_detail) agentInputLines.push(`- buyer_detail (real, specific buyer behaviour): ${inputs.buyer_detail}`);
     if (inputs.market_figure) agentInputLines.push(`- market_figure (real market/transaction insight): ${inputs.market_figure}`);
     if (inputs.comp_reference) agentInputLines.push(`- comp_reference (real Peninsula comparable — you MAY reference this specifically): ${inputs.comp_reference}`);
 
+    const psychologyGuidance = psychology ? PSYCHOLOGY_PROFILES[psychology] : null;
+
     const userPrompt = `Draft the email now.
 
 ${MODE_GUIDANCE[mode]}
-
+${psychologyGuidance ? `\n${psychologyGuidance}\n` : ''}
 OWNER & UNIT (the only facts about them you may use):
 - Owner English name (address them by this): ${safe.full_name_en}
 - Project: ${safe.project_name || '(unknown — do not invent one)'}
@@ -179,29 +204,31 @@ ${agentInputLines.join('\n') || '(none)'}
 
 TONE PREFERENCE: ${tone}
 
-Produce: a subject line in the owner's language, the body in the owner's language (no signature), and a faithful English gloss of that body. Set language to "${lang}" and mode_used to "${mode}".`;
+Produce: ${channelCfg.needsSubject ? "a SHORT subject line in the owner's language, " : 'an EMPTY subject (this is an iMessage), '}a CONCISE body in the owner's language (${channel === 'imessage' ? '2-4 sentences, ~30-70 words, under ~480 characters, no subject, no signature' : '110-170 words, under ~1,400 characters, no signature'}), and a faithful English gloss of that body. Set language to "${lang}" and mode_used to "${mode}".`;
 
     const result = await callClaude(systemPrompt, userPrompt);
 
-    if (!result || !result.subject || !result.body_native) {
+    // For iMessage the subject is intentionally empty — only body_native is required.
+    if (!result || !result.body_native) {
       return Response.json({ ok: false, error: 'draft generation failed' }, { status: 502 });
     }
 
-    // Normalize: force language/mode echoes, and guarantee the gloss == body for English.
     const language = result.language || lang;
     const draft = {
-      subject: result.subject,
+      subject: result.subject || '',
       body_native: result.body_native,
       body_english_gloss: (lang === 'en')
         ? result.body_native
         : (result.body_english_gloss || ''),
       language,
-      mode_used: mode
+      mode_used: mode,
+      channel_used: channel,
+      psychology_used: psychology || null
     };
 
     return Response.json({ ok: true, draft });
   } catch (error) {
     console.error('draftLandlordEmail error:', error);
-    return Response.json({ ok: false, error: error.message }, { status: 500 });
+    return Response.json({ ok: false, error: String(error?.message || error) }, { status: 500 });
   }
 });
