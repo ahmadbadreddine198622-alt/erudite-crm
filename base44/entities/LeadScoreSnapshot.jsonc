@@ -1,0 +1,50 @@
+{
+  "name": "LeadScoreSnapshot",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "FK to Lead"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "FK to the WhatsAppConversation this score was computed from"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this snapshot row was written (= the calculateLeadScore run time)"
+    },
+    "overall_score": {
+      "type": "number"
+    },
+    "engagement_score": {
+      "type": "number"
+    },
+    "intent_score": {
+      "type": "number"
+    },
+    "sentiment_score": {
+      "type": "number"
+    },
+    "budget_alignment_score": {
+      "type": "number"
+    },
+    "property_fit_score": {
+      "type": "number"
+    },
+    "trend": {
+      "type": "string"
+    },
+    "risk_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "lead_id",
+    "captured_at"
+  ]
+}

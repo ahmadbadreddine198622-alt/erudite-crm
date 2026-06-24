@@ -28,6 +28,7 @@ import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
+import AppointmentComposer from '@/components/landlord/AppointmentComposer';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -62,25 +63,7 @@ function css(str) {
   return o;
 }
 
-const GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
-.ld-root *, .ld-root *::before, .ld-root *::after { box-sizing: border-box; }
-.ld-root ::-webkit-scrollbar { width: 8px; height: 8px; }
-.ld-root ::-webkit-scrollbar-track { background: transparent; }
-.ld-root ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-.ld-root ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-@keyframes ld-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes ld-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes ld-spin { to { transform: rotate(360deg); } }
-@keyframes ld-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-.ld-panels { display: flex; }
-@media (max-width: 820px) {
-  .ld-root { height: auto !important; }
-  .ld-panels { flex-direction: column !important; }
-  .ld-panel { flex: 1 1 auto !important; width: 100% !important; height: auto !important; max-height: none !important; border-right: none !important; }
-  .ld-scroll { max-height: 640px; }
-}
-`;
+import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
 
 class LandlordDetail extends React.Component {
   constructor(props) {
@@ -440,6 +423,8 @@ class LandlordDetail extends React.Component {
     // so the shared textarea/send-arrow does nothing for them.
     if(this.state.composerType === 'Email'){ return; }
     if(this.state.composerType === 'iMessage'){ return; }
+    // Appointments are parsed & booked from the dedicated AppointmentComposer panel.
+    if(this.state.composerType === 'Appointment'){ return; }
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
     // Notes and Tasks persist to their entities; other types keep the in-memory stream.
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
@@ -1274,7 +1259,7 @@ class LandlordDetail extends React.Component {
                     <Calendar className="w-3 h-3" />
                     SmartTask
                   </button>
-                  <button onClick={()=>this.onNavigate('/calendar')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
+                  <button onClick={()=>this.setComposerType('Appointment')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.35); color:#c4b5fd;")}>
                     <Calendar className="w-3 h-3" />
                     Smart Calendar
                   </button>
@@ -1475,6 +1460,18 @@ class LandlordDetail extends React.Component {
                     }}
                   />
                 )}
+                {this.state.composerType === 'Appointment' && (
+                  <AppointmentComposer
+                    landlordId={L.id}
+                    propertyId={L.unit && L.unit.propertyId}
+                    agentEmail={L.agentEmail}
+                    onBooked={({ when, type })=>{
+                      const order = Date.now();
+                      const item = { t:'act', kind:'appointment', title:'Appointment booked · ' + (type || 'meeting'), body: when, time:'Just now', order };
+                      this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
+                    }}
+                  />
+                )}
                 {this.state.composerType === 'iMessage' && (
                   <IMessageComposer
                     landlordId={L.id}
@@ -1495,7 +1492,7 @@ class LandlordDetail extends React.Component {
                     </div>
                   </React.Fragment>
                 )}
-                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && (
+                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
                   <button onClick={this.onSend} disabled={this.state.noteSaving || this.state.taskSaving || this.state.followupSaving || this.state.chatSending || this.state.imessageSending || this.state.telegramSending} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+((this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending)?0.6:1)+";")}>{(this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending) ? '…' : '➤'}</button>
