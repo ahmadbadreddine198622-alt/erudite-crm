@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileCheck, Eye, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import FormADriveButton from '@/components/landlord/FormADriveButton';
 
 export default function FormAContractsList({ landlord }) {
   const contracts = Array.isArray(landlord.form_a_contracts) && landlord.form_a_contracts.length > 0
@@ -76,6 +77,9 @@ export default function FormAContractsList({ landlord }) {
                     >
                       <Download className="w-3 h-3" /> Download
                     </a>
+                    {!/drive\.google\.com/.test(contract.pdf_url) && !contract.drive_file_id && (
+                      <FormADriveButton contract={contract} landlord={landlord} />
+                    )}
                   </>
                 )}
               </div>
