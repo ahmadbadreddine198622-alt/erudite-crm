@@ -8,9 +8,43 @@
 //   toEmail      (string)  — recipient (landlord's email), prefilled & editable
 //   onLogged     (fn)      — called after a Gmail draft is created (e.g. push a stream item)
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+
+/* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
+function playSentSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    // Rising swoosh
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(1180, now + 0.18);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+    // Bright confirm "ping" at the end
+    const ping = ctx.createOscillator();
+    const pgain = ctx.createGain();
+    ping.type = 'triangle';
+    ping.frequency.setValueAtTime(1320, now + 0.16);
+    pgain.gain.setValueAtTime(0.0001, now + 0.16);
+    pgain.gain.exponentialRampToValueAtTime(0.1, now + 0.2);
+    pgain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    ping.connect(pgain).connect(ctx.destination);
+    ping.start(now + 0.16);
+    ping.stop(now + 0.52);
+    setTimeout(() => ctx.close().catch(() => {}), 700);
+  } catch (_) { /* sound is best-effort */ }
+}
 
 /* Convert a CSS declaration string into a React style object (matches the V-card pattern). */
 function css(str) {
@@ -52,6 +86,9 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [sending, setSending] = useState(false);
   // Delivery status of the last send: null | { state, thread_id, message_id, reason, checking }
   const [delivery, setDelivery] = useState(null);
+  // Brief celebratory flash overlay right after a successful send.
+  const [justSent, setJustSent] = useState(false);
+  const flashTimer = useRef(null);
 
   // Generated draft (editable before sending to Gmail).
   const [subject, setSubject] = useState('');
@@ -121,7 +158,13 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       });
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Email send failed');
-      toast.success('Email sent to ' + to.trim());
+      // Multi-sensory confirmation: sound + flash overlay + toast.
+      playSentSound();
+      if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
+      setJustSent(true);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setJustSent(false), 1700);
+      toast.success('✉ Sent to ' + to.trim(), { description: 'Your email is on its way.' });
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       // Bounces arrive seconds-to-minutes later — re-check the thread after a short delay.
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
@@ -145,7 +188,27 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const activeMode = MODES.find(m => m.key === mode);
 
   return (
-    <div style={css("margin-bottom:9px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.22); background:hsl(38 92% 50% / 0.04); padding:11px 12px;")}>
+    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.22); background:hsl(38 92% 50% / 0.04); padding:11px 12px;"), position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes ec-spin { to { transform: rotate(360deg); } }
+        @keyframes ec-flash-in { 0% { opacity:0; transform:scale(0.6); } 55% { opacity:1; transform:scale(1.08); } 70% { transform:scale(0.97); } 100% { opacity:1; transform:scale(1); } }
+        @keyframes ec-flash-out { to { opacity:0; } }
+        @keyframes ec-plane { 0% { transform:translate(-6px,4px) rotate(-8deg); opacity:0; } 30% { opacity:1; } 100% { transform:translate(70px,-46px) rotate(12deg); opacity:0; } }
+        @keyframes ec-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
+      `}</style>
+
+      {/* celebratory send flash */}
+      {justSent && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'ec-flash-out 0.4s ease forwards 1.3s' }}>
+          <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid rgba(52,211,153,0.6)', animation: 'ec-ring 0.9s ease-out' }} />
+            <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(16,185,129,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#04231a', animation: 'ec-flash-in 0.5s cubic-bezier(0.34,1.56,0.64,1)' }}>✓</div>
+            <span style={{ position: 'absolute', fontSize: 20, animation: 'ec-plane 0.9s ease-out forwards' }}>✈</span>
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', color: '#34d399', animation: 'ec-flash-in 0.5s ease' }}>Sent!</span>
+        </div>
+      )}
+
       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
         <span style={css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 62%);")}>AI Email Draft</span>
         {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
@@ -209,10 +272,15 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
           )}
           <button onClick={sendEmail} disabled={sending}
             style={css(
-              "width:100%; padding:9px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; "+
-              "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(sending ? 0.6 : 1)+";"
+              "width:100%; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; transition:transform 0.12s ease; "+
+              "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(sending ? 0.85 : 1)+";"
             )}>
-            {sending ? 'Sending…' : '✉ Send branded email'}
+            {sending ? (
+              <>
+                <span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(26,18,5,0.35)', borderTopColor: '#1a1205', borderRadius: '50%', animation: 'ec-spin 0.7s linear infinite' }} />
+                Sending…
+              </>
+            ) : '✈ Send branded email'}
           </button>
           <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center;")}>Sends immediately from your connected Gmail — no draft step.</div>
 
