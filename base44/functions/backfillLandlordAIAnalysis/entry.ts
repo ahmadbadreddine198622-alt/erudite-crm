@@ -104,6 +104,34 @@ Deno.serve(async (req) => {
       }
 
       await svc.entities.Landlord.update(landlord.id, updatePayload);
+
+      // KEEP IN SYNC across all 3 writers (landlordOrchestrator, backfillLandlordBrainV2,
+      // backfillLandlordAIAnalysis). Append-only score snapshot — exactly ONE per successful
+      // Landlord.update, built from the values just written. Non-fatal: a failure here must never
+      // break the writer. Forward-only — never fabricates historical snapshots.
+      try {
+        await svc.entities.LandlordScoreSnapshot.create({
+          landlord_id: landlord.id,
+          captured_at: new Date().toISOString(),
+          orchestrator_run_at: updatePayload.last_orchestrator_run_at || updatePayload.ai_processed_at || new Date().toISOString(),
+          ai_model_used: updatePayload.ai_model_used || null,
+          stage: updatePayload.stage || landlord.stage || null,
+          sub_stage: (updatePayload.sub_stage != null) ? updatePayload.sub_stage : (landlord.sub_stage || null),
+          days_in_stage: (typeof updatePayload.days_in_stage === 'number') ? updatePayload.days_in_stage : null,
+          trust_score: (updatePayload.trust_score != null) ? updatePayload.trust_score : null,
+          responsiveness_score: (updatePayload.responsiveness_score != null) ? updatePayload.responsiveness_score : null,
+          mandate_win_probability: (updatePayload.mandate_win_probability != null) ? updatePayload.mandate_win_probability : null,
+          urgency_score: (updatePayload.urgency_score != null) ? updatePayload.urgency_score : null,
+          rapport_level: updatePayload.rapport_level || null,
+          ai_momentum: updatePayload.ai_momentum || null,
+          ai_strike_now: (updatePayload.ai_strike_now != null) ? updatePayload.ai_strike_now : null,
+          needs_human_review: (updatePayload.needs_human_review != null) ? updatePayload.needs_human_review : null,
+          review_reason: updatePayload.review_reason || null,
+        });
+      } catch (snapErr) {
+        console.error('LandlordScoreSnapshot create failed (non-fatal):', snapErr?.message);
+      }
+
       results.processed++;
     } catch (err) {
       results.failures.push({ 

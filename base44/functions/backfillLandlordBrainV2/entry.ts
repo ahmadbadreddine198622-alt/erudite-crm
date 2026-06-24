@@ -239,6 +239,34 @@ Deno.serve(async (req) => {
       }
 
       await svc.entities.Landlord.update(landlord.id, update);
+
+      // KEEP IN SYNC across all 3 writers (landlordOrchestrator, backfillLandlordBrainV2,
+      // backfillLandlordAIAnalysis). Append-only score snapshot — exactly ONE per successful
+      // Landlord.update, built from the values just written. Non-fatal: a failure here must never
+      // break the writer. Forward-only — never fabricates historical snapshots.
+      try {
+        await svc.entities.LandlordScoreSnapshot.create({
+          landlord_id: landlord.id,
+          captured_at: new Date().toISOString(),
+          orchestrator_run_at: update.last_orchestrator_run_at || update.ai_processed_at || new Date().toISOString(),
+          ai_model_used: update.ai_model_used || null,
+          stage: update.stage || landlord.stage || null,
+          sub_stage: (update.sub_stage != null) ? update.sub_stage : (landlord.sub_stage || null),
+          days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : null,
+          trust_score: (update.trust_score != null) ? update.trust_score : null,
+          responsiveness_score: (update.responsiveness_score != null) ? update.responsiveness_score : null,
+          mandate_win_probability: (update.mandate_win_probability != null) ? update.mandate_win_probability : null,
+          urgency_score: (update.urgency_score != null) ? update.urgency_score : null,
+          rapport_level: update.rapport_level || null,
+          ai_momentum: update.ai_momentum || null,
+          ai_strike_now: (update.ai_strike_now != null) ? update.ai_strike_now : null,
+          needs_human_review: (update.needs_human_review != null) ? update.needs_human_review : null,
+          review_reason: update.review_reason || null,
+        });
+      } catch (snapErr) {
+        console.error('LandlordScoreSnapshot create failed (non-fatal):', snapErr?.message);
+      }
+
       results.processed++;
       
       // Rate limit delay between records

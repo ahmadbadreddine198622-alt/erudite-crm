@@ -494,19 +494,19 @@ Reason over all of the above and emit the orchestrator result.`;
       }
     }
 
-    // V3 Phase 0 (RECORD): append-only score snapshot — exactly ONE per successful run, built from the
-    // same values just written. Pure instrumentation: it does NOT alter the update above or the
-    // skip/idempotency logic, and a failure here is non-fatal (must never break the orchestrator).
-    // Skipped/recently-run and Claude-failure paths return earlier, so snapshots only accrue on real runs.
+    // KEEP IN SYNC across all 3 writers (landlordOrchestrator, backfillLandlordBrainV2,
+    // backfillLandlordAIAnalysis). Append-only score snapshot — exactly ONE per successful
+    // Landlord.update, built from the values just written. Non-fatal: a failure here must never
+    // break the writer. Forward-only — never fabricates historical snapshots.
     try {
       await svc.entities.LandlordScoreSnapshot.create({
         landlord_id: landlord.id,
         captured_at: new Date().toISOString(),
-        orchestrator_run_at: update.last_orchestrator_run_at,
-        ai_model_used: update.ai_model_used,
+        orchestrator_run_at: update.last_orchestrator_run_at || update.ai_processed_at || new Date().toISOString(),
+        ai_model_used: update.ai_model_used || null,
         stage: update.stage || landlord.stage || null,
         sub_stage: (update.sub_stage != null) ? update.sub_stage : (landlord.sub_stage || null),
-        days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : daysInStage,
+        days_in_stage: (typeof update.days_in_stage === 'number') ? update.days_in_stage : null,
         trust_score: (update.trust_score != null) ? update.trust_score : null,
         responsiveness_score: (update.responsiveness_score != null) ? update.responsiveness_score : null,
         mandate_win_probability: (update.mandate_win_probability != null) ? update.mandate_win_probability : null,
