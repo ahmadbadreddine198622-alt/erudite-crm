@@ -441,12 +441,11 @@ class LandlordDetail extends React.Component {
     // Appointments are parsed & booked from the dedicated AppointmentComposer panel.
     if(this.state.composerType === 'Appointment'){ return; }
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
-    // Note/Task/Follow-up now run through the shared composerBrain (parse→confirm→commit),
-    // mirroring the Smart Calendar flow. On any failure parseWithBrain falls back to the
-    // original saveNote/saveTask/saveFollowup so nothing is ever lost.
-    if(this.state.composerType === 'Note'){ this.parseWithBrain('note', txt); return; }
-    if(this.state.composerType === 'Task'){ this.parseWithBrain('task', txt); return; }
-    if(this.state.composerType === 'Follow-up'){ this.parseWithBrain('followup', txt); return; }
+    // Note/Task/Follow-up persist directly through their dedicated save methods,
+    // which already handle provenance, optimistic stream updates and error recovery.
+    if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
+    if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
+    if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
     if(this.state.composerType === 'Chat'){ this.sendChat(txt); return; }
     if(this.state.composerType === 'Telegram'){ this.sendTelegram(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
