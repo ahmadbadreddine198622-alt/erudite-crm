@@ -4,9 +4,16 @@ Merge → schema → publish → verify sequence for the branches built in the 2
 All changes are **additive and degrade-safe**: each one no-ops (not breaks) until its schema/env
 prerequisites exist. Order below is by risk/breadth (safest first) and dependency.
 
-> ⚠️ Two things only a human can do: **(1)** create the live Base44 schema (entities/fields marked
-> below); **(2)** run a real build — there was no local Node toolchain, so everything is verified by
-> code review, not `npm run build`. Let Base44's build gate the backend functions before publish.
+> ✅ **LIVE SCHEMA ALREADY APPLIED (2026-06-24, via Base44 MCP).** All schema prerequisites below are
+> DONE — do NOT re-create them. Created entities: `DealScoreSnapshot`, `LeadScoreSnapshot`,
+> `ClosingDealScoreSnapshot`. Added fields: `Landlord.ai_deal_thesis` + `ai_open_questions`;
+> `Deal.aurora_thesis` + `aurora_open_questions`; `ClosingDeal.ai_deal_thesis` + `ai_open_questions`.
+> Each verified (existing fields preserved). So the only remaining steps are **merge + publish the code**
+> and **wire the heartbeat crons**.
+>
+> ⚠️ Still human-only: **(1)** run a real build — there was no local Node toolchain, so everything is
+> verified by code review, not `npm run build`; let Base44's build gate the backend functions before
+> publish. **(2)** the merges + publish + cron wiring themselves.
 
 ---
 
