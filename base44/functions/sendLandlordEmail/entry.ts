@@ -67,8 +67,15 @@ function linkPill(href, title, sub, accent, glyph) {
   </td>`;
 }
 
-function buildHtml(bodyNative) {
+function buildHtml(bodyNative, bannerUrl) {
   const site = COMPANY.website.replace(/^https?:\/\//, '');
+  const bannerRow = bannerUrl
+    ? `<tr>
+            <td style="padding:0 8px 14px;">
+              <img src="${bannerUrl}" alt="${COMPANY.name}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:8px;"/>
+            </td>
+          </tr>`
+    : '';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
@@ -82,20 +89,10 @@ function buildHtml(bodyNative) {
               ${bodyToHtml(bodyNative)}
             </td>
           </tr>
+          ${bannerRow}
           <tr>
-            <td style="padding:18px 8px 0;border-top:1px solid #e2e8f0;">
-              <p style="margin:0 0 1px;font-weight:bold;color:#1a2744;font-size:15px;">${COMPANY.principal}</p>
-              <p style="margin:0 0 6px;color:#475569;font-size:12px;">${COMPANY.title}, ${COMPANY.name} &nbsp;&bull;&nbsp; ORN ${COMPANY.orn}</p>
-              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#b8860b;letter-spacing:0.01em;">🏆 AED 100M+ closed in Peninsula</p>
-              <p style="margin:0 0 10px;color:#475569;font-size:12px;line-height:1.7;">
-                <a href="tel:${COMPANY.phone.replace(/\s/g, '')}" style="color:#1a2744;text-decoration:none;">${COMPANY.phone}</a>
-                &nbsp;&bull;&nbsp;
-                <a href="mailto:${COMPANY.email}" style="color:#1a2744;text-decoration:none;">${COMPANY.email}</a>
-                <br/>
-                ${COMPANY.address}
-                &nbsp;&bull;&nbsp;
-                <a href="${COMPANY.website}" style="color:#1a2744;text-decoration:none;">${site}</a>
-              </p>
+            <td style="padding:4px 8px 0;border-top:1px solid #e2e8f0;">
+              <p style="margin:14px 0 8px;font-size:12px;font-weight:700;color:#b8860b;letter-spacing:0.01em;">🏆 AED 100M+ closed in Peninsula</p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
                 <tr>
                   ${linkPill(COMPANY.links.pf_agent, 'Ahmad on Property Finder', 'SuperAgent · 4.3★ · 56 deals · AED 100M+', { from: '#1a2744', to: '#2d4060', text: '#ffffff' }, '⭐')}
@@ -158,7 +155,14 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'landlord_id is required' }, { status: 400 });
     }
 
-    const html = buildHtml(bodyNative);
+    // Pull the signature banner URL from CompanySettings — single source of truth.
+    let bannerUrl = '';
+    try {
+      const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
+      bannerUrl = settings?.[0]?.signature_banner_url || '';
+    } catch (_) { /* banner is best-effort */ }
+
+    const html = buildHtml(bodyNative, bannerUrl);
 
     const mime = [
       `To: ${to}`,
