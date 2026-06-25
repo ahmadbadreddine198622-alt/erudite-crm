@@ -240,14 +240,14 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 pb-8 pt-8 overflow-hidden"
+      className="relative min-h-screen flex flex-col items-center px-4 pb-8 pt-6 overflow-hidden"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
         maxWidth: '100vw',
       }}
     >
-      {/* Animated Hero Banner */}
-      <div className="w-full max-w-5xl mb-6">
+      {/* Animated Hero Banner - dedicated container, no clipping */}
+      <div className="w-full max-w-5xl mb-4">
         <EruditeHeroBanner />
       </div>
 
