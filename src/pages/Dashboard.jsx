@@ -280,7 +280,7 @@ export default function Dashboard() {
       }}
     >
       {/* Animated Hero Banner - dedicated container, no clipping */}
-      <div className="w-full max-w-5xl mb-4">
+      <div className="w-full max-w-5xl mb-4 mt-8">
         <EruditeHeroBanner />
       </div>
 
