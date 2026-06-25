@@ -18,7 +18,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const INSTANCE_MAP = {
   business: 'erudite',
   personal: 'erudite_whatsapp',
-  malik: 'malik_whatsapp',
+  malik: 'Malik',
   sameie: 'Samy',
 };
 
