@@ -681,12 +681,12 @@ export default function Landlords() {
         </div>
       </div>
 
-      {/* Kanban Board — fills remaining height, scrolls horizontally on its own.
+      {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <div
         ref={boardScrollRef}
         tabIndex={0}
-        className="board-scroll flex-1 min-h-0 overflow-x-auto overflow-y-hidden pb-4 cursor-grab focus:outline-none"
+        className="board-scroll flex-1 min-h-0 overflow-auto pb-4 cursor-grab focus:outline-none"
         style={{
           WebkitOverflowScrolling: 'touch',
           marginLeft: 'calc(-1 * var(--board-pad-l))',
@@ -698,12 +698,27 @@ export default function Landlords() {
         <style>{`
           :root { --board-pad-l: 0.5rem; --board-pad-r: 0.5rem; }
           @media (min-width: 768px) { :root { --board-pad-l: 0.75rem; --board-pad-r: 0.75rem; } }
-          /* Always-visible, slim horizontal scrollbar so the pan affordance is obvious */
-          .board-scroll { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.5) transparent; scroll-behavior: smooth; }
-          .board-scroll::-webkit-scrollbar { height: 10px; }
-          .board-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
-          .board-scroll::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.45); border-radius: 99px; }
-          .board-scroll::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.7); }
+          /* Free 2D scrolling — both axes available with smooth, on-brand scrollbars */
+          .board-scroll { 
+            scrollbar-width: thin; 
+            scrollbar-color: hsl(38 92% 50% / 0.5) transparent; 
+            scroll-behavior: smooth; 
+          }
+          .board-scroll::-webkit-scrollbar { 
+            width: 10px; 
+            height: 10px; 
+          }
+          .board-scroll::-webkit-scrollbar-track { 
+            background: rgba(255,255,255,0.04); 
+            border-radius: 99px; 
+          }
+          .board-scroll::-webkit-scrollbar-thumb { 
+            background: hsl(38 92% 50% / 0.45); 
+            border-radius: 99px; 
+          }
+          .board-scroll::-webkit-scrollbar-thumb:hover { 
+            background: hsl(38 92% 50% / 0.7); 
+          }
           /* Filter track — slim, on-brand horizontal scrollbar when it overflows */
           .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
           .filter-track::-webkit-scrollbar { height: 6px; }
