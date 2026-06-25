@@ -222,13 +222,13 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* REAL ESTATE CRM — elegant subtitle with subtle glow, stretched to match ERUDITE width */}
+        {/* REAL ESTATE CRM — elegant subtitle with continuous motion, stretched to match ERUDITE width */}
         <p
           className={`text-xs md:text-sm font-light uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
           style={{
             color: '#E0E0E0',
             textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
-            animation: 'shimmerGlow 6s ease-in-out infinite',
+            animation: 'realEstateMove 8s ease-in-out infinite',
             letterSpacing: '0.7em',
             width: '100%',
             textAlign: 'center',
@@ -311,6 +311,32 @@ export default function EruditeHeroBanner() {
           30% { opacity: 0.5; }
           70% { opacity: 0.5; }
           100% { left: -40px; opacity: 0; }
+        }
+        @keyframes realEstateMove {
+          0%, 100% { 
+            transform: translateY(0) scale(1);
+            opacity: 0.85;
+            text-shadow: 0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15);
+            letterSpacing: '0.7em';
+          }
+          25% { 
+            transform: translateY(-1px) scale(1.01);
+            opacity: 0.95;
+            text-shadow: 0 3px 12px rgba(212,175,55,0.4), 0 0 18px rgba(255,255,255,0.25);
+            letterSpacing: '0.72em';
+          }
+          50% { 
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            text-shadow: 0 4px 16px rgba(212,175,55,0.5), 0 0 24px rgba(255,255,255,0.35);
+            letterSpacing: '0.75em';
+          }
+          75% { 
+            transform: translateY(1px) scale(0.99);
+            opacity: 0.95;
+            text-shadow: 0 3px 12px rgba(212,175,55,0.4), 0 0 18px rgba(255,255,255,0.25);
+            letterSpacing: '0.72em';
+          }
         }
       `}</style>
     </div>
