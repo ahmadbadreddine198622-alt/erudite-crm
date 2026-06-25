@@ -138,7 +138,7 @@ export default function Sidebar({ open = false, onClose }) {
       open ? "translate-x-0" : "-translate-x-full"
     )}>
       {/* Close button */}
-      <div className="flex items-center justify-end px-4 h-16 border-b border-sidebar-border shrink-0">
+      <div className="flex items-center justify-end px-4 h-12 border-b border-sidebar-border shrink-0">
         <button
           onClick={onClose}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
