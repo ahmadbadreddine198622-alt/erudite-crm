@@ -137,13 +137,8 @@ export default function Sidebar({ open = false, onClose }) {
       "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
       open ? "translate-x-0" : "-translate-x-full"
     )}>
-      {/* Logo + close */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
-        <img
-          src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
-          alt="Erudite Property"
-          className="h-10 w-auto object-contain invert"
-        />
+      {/* Close button */}
+      <div className="flex items-center justify-end px-4 h-16 border-b border-sidebar-border shrink-0">
         <button
           onClick={onClose}
           className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
