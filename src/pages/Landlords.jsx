@@ -391,7 +391,7 @@ export default function Landlords() {
   return (
     <div
       className="h-[100dvh] w-full flex flex-col overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at 30% 40%, #0e1526 0%, #0a0e1a 100%)' }}
     >
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
