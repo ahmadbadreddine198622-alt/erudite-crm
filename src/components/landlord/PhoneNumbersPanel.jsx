@@ -37,7 +37,7 @@ function WaButton({ phone }) {
 function PhoneRow({ phone, label, landlord }) {
   if (!phone) return null;
   return (
-    <div style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);")}>
+    <div style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
       <div style={css("display:flex; align-items:center; gap:6px; min-width:0;")}>
         <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.5);")} />
         {label && <span style={css("font-size:8.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>}
@@ -77,7 +77,7 @@ export default function PhoneNumbersPanel({ landlord }) {
   if (phones.length === 0) return null;
 
   return (
-    <div style={css("margin-top:12px; border-radius:11px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:10px 12px; font-family:'Montserrat','Inter',sans-serif; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
+    <div style={css("margin-top:12px; border-radius:11px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:10px 12px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
         <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.4);")} />
         <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38);")}>Phone Numbers</span>

@@ -16,14 +16,13 @@ function css(str) {
   return o;
 }
 
-export default function ListingManagerStrip({ listingManagerEmail, assignedAgentEmail, ownerSince, phone, whatsapp }) {
+export default function ListingManagerStrip({ listingManagerEmail, assignedAgentEmail, phone, whatsapp }) {
   const hasListingManager = listingManagerEmail && listingManagerEmail.trim() !== '';
   const hasAgent = assignedAgentEmail && assignedAgentEmail.trim() !== '';
-  const hasOwnerSince = ownerSince && ownerSince !== '—';
 
-  if (!hasListingManager && !hasAgent && !hasOwnerSince && !phone && !whatsapp) {
+  if (!hasListingManager && !hasAgent && !phone && !whatsapp) {
     return (
-      <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:13px 15px; font-family:'Montserrat','Inter',sans-serif;")}>
+      <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px;")}>
         <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Listing Manager & Contact</div>
         <p style={css("font-size:12px; color:rgba(255,255,255,0.4);")}>No listing manager assigned yet. Progress to listing_creation stage to auto-assign.</p>
       </div>
@@ -31,7 +30,7 @@ export default function ListingManagerStrip({ listingManagerEmail, assignedAgent
   }
 
   return (
-    <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:13px 15px; font-family:'Montserrat','Inter',sans-serif; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
+    <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
       <div style={css("font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:10px;")}>Listing Manager & Contact</div>
       
       <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
@@ -149,14 +148,6 @@ export default function ListingManagerStrip({ listingManagerEmail, assignedAgent
           </div>
         )}
       </div>
-
-      {/* Owner Since — relocated from the removed Overview tab */}
-      {hasOwnerSince && (
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Owner Since</span>
-          <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginLeft: 'auto' }}>{ownerSince}</span>
-        </div>
-      )}
 
       {/* Contact quick actions */}
       {whatsapp && (

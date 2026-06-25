@@ -40,7 +40,7 @@ export default function OutreachTab({ tab, onToggleStep, toggling }) {
               onClick={()=> onToggleStep && onToggleStep(os.key)}
               disabled={busy}
               title={os.done ? 'Tap to mark not done' : 'Tap to mark done'}
-              style={css("display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 12px; border-radius:11px; cursor:pointer; font-family:'Montserrat','Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); opacity:" + (busy ? 0.6 : 1) + ";")}
+              style={css("display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 12px; border-radius:11px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); opacity:" + (busy ? 0.6 : 1) + ";")}
             >
               <span style={os.iconStyle}>{os.icon}</span>
               <span style={os.labelStyle}>{os.label}</span>

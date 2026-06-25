@@ -253,6 +253,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                   value={commissionPct ? `${commissionPct}${estComm ? ` (~${estComm})` : ''}` : null}
                   valueColor={GOLD}
                 />
+                <Fact label="Win" value={winPct != null ? `${winPct}%` : null} valueColor={winColor} />
                 <Fact label="Form A" value={has(L.form_a_contract_number) ? L.form_a_contract_number : null} />
               </div>
               {/* Row B — expiry / stage age / source / residency */}
