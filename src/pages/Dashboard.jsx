@@ -56,11 +56,11 @@ export default function Dashboard() {
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
 
-  // Rotate quotes every 2 minutes (same as original MotivationalQuote component)
+  // Rotate quotes every 30 seconds for continuous motivation
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
-    }, 120000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
