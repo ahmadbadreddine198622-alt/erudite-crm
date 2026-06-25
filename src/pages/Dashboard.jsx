@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  // Logo URL removed - Dashboard uses plain navy background for readability (splash screen handles branding on launch)
+  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
@@ -243,6 +243,12 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
+      {/* Logo */}
+      {logoUrl && (
+        <div className="mb-6">
+          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
+        </div>
+      )}
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (

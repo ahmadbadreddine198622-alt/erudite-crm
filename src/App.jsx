@@ -2,7 +2,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -11,7 +10,6 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-import SplashScreen from '@/components/SplashScreen';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
@@ -104,14 +102,6 @@ import AgentIntelligence from '@/pages/AgentIntelligence';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    // Show splash on every page load after auth completes
-    if (!isLoadingAuth && !isLoadingPublicSettings && !authError) {
-      setShowSplash(true);
-    }
-  }, [isLoadingAuth, isLoadingPublicSettings, authError]);
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -126,10 +116,6 @@ const AuthenticatedApp = () => {
 
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
-  }
-
-  if (showSplash) {
-    return <SplashScreen onDone={() => setShowSplash(false)} />;
   }
 
   return (
