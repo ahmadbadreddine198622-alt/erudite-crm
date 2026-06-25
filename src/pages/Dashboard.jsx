@@ -285,7 +285,9 @@ export default function Dashboard() {
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <MotivationalQuote />
+      <div style={{ marginBottom: -8 }}>
+        <MotivationalQuote />
+      </div>
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
@@ -399,7 +401,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 12, marginBottom: 24, marginTop: 40 }}
+        style={{ gap: 12, marginBottom: 24, marginTop: 8 }}
       >
         {/* Active Leads */}
         <button
