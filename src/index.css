@@ -68,6 +68,12 @@ div[id*="Base44"] {
   }
 }
 
+/* Global background gradient — midnight blue radial gradient matching reference */
+body {
+  background: radial-gradient(ellipse at 30% 40%, #0e1526 0%, #0a0e1a 100%);
+  min-height: 100vh;
+}
+
 @keyframes ios-slide-down {
   from {
     opacity: 0;
