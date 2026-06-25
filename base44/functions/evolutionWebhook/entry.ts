@@ -340,9 +340,9 @@ Deno.serve(async (req) => {
 
   const event = body?.event || '';
   const instanceName = (body?.instance || '').toLowerCase();
-  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "malik_whatsapp" (Malik), "samy" (Sameie)
+  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "Malik"/"malik" (Malik), "Samy"/"samy" (Sameie)
   const channel = instanceName === 'erudite' ? 'business'
-    : instanceName === 'malik_whatsapp' ? 'malik'
+    : instanceName === 'malik' || instanceName === 'malik_whatsapp' ? 'malik'
     : instanceName === 'samy' ? 'sameie'
     : 'personal';
   const myNumber = channel === 'business' ? BUSINESS_NUMBER
