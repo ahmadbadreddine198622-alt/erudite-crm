@@ -1,260 +1,172 @@
 /**
- * MobileDock — iPhone-style bottom dock with app picker.
- * Tap any icon to navigate or hold to open full app picker.
+ * MobileDock — Redesigned for mobile portrait ONLY.
+ * Desktop and landscape keep original dock unchanged.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, Building2, KanbanSquare, MessageCircle, FileSignature, Plus, Clock, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ALL_APPS } from '@/lib/navApps';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AppPickerModal from '@/components/mobile/AppPickerModal';
 
-const SZ      = 50;
-const R       = `${Math.round(SZ * 0.28)}px`;
-const GLYPH   = Math.round(SZ * 0.50);
-const HOME_SZ = 62;
-const HOME_R  = `${Math.round(HOME_SZ * 0.28)}px`;
+const SZ = 48;
+const HOME_SZ = 64;
 
-function loadDockSelection() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('dock_selection') || 'null');
-    if (saved) return saved.map(p => p.startsWith('/') ? p : `/${p}`);
-    return ['/pipeline', '/leads', '/contacts', '/whatsapp'];
-  } catch { return ['/pipeline', '/leads', '/contacts', '/whatsapp']; }
-}
+// Fixed dock order: Landlord · Pipeline · [HOME] · WhatsApp · Forms
+const DOCK_APPS = [
+  { path: '/landlords', appKey: 'landlords' },
+  { path: '/pipeline', appKey: 'pipeline' },
+  { path: '/whatsapp', appKey: 'whatsapp' },
+  { path: '/form-a-referral', appKey: 'forma' },
+];
 
-function DockIcon({ app, active, onPress }) {
-  const { icon: Icon, label, gradient, glowColor } = app;
+// Quick actions per dock app
+const QUICK_ACTIONS = {
+  landlords: [
+    { label: 'Add Landlord', icon: Building2, path: '/landlords' },
+    { label: 'View Listings', icon: KanbanSquare, path: '/landlords' },
+    { label: 'Recent', icon: Clock, path: '/landlords' },
+  ],
+  pipeline: [
+    { label: 'New Lead', icon: Plus, path: '/leads' },
+    { label: 'Hot Leads', icon: Star, path: '/leads' },
+    { label: "Today's Follow-ups", icon: Clock, path: '/reminders' },
+  ],
+  whatsapp: [
+    { label: 'New Message', icon: MessageCircle, path: '/whatsapp' },
+    { label: 'Unread', icon: MessageCircle, path: '/whatsapp' },
+    { label: 'Broadcasts', icon: Star, path: '/broadcasts' },
+  ],
+  forma: [
+    { label: 'New Form A', icon: FileSignature, path: '/form-a-referral' },
+    { label: 'Drafts', icon: FileSignature, path: '/form-a-inbox' },
+    { label: 'Templates', icon: FileSignature, path: '/email-templates' },
+  ],
+};
+
+function PortraitDockIcon({ app, active, onPress, onLongPress }) {
+  const { icon: Icon, label, gradient, glowColor } = app || {};
+  const pressTimer = useRef(null);
+  if (!Icon) return null;
+
+  const handleTouchStart = () => { pressTimer.current = setTimeout(() => onLongPress(), 600); };
+  const handleTouchEnd = () => { if (pressTimer.current) clearTimeout(pressTimer.current); };
+
   return (
     <button
-      type="button"
-      onClick={onPress}
-      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+      type="button" onClick={onPress} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}
+      onMouseDown={handleTouchStart} onMouseUp={handleTouchEnd} onMouseLeave={handleTouchEnd}
+      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
     >
-      <div className="flex flex-col items-center select-none" style={{ gap: 5 }}>
-        <ExtremeLiquidIcon
-          icon={Icon}
-          gradient={gradient}
-          glowColor={glowColor || 'rgba(255,255,255,0.25)'}
-          size={SZ}
-          iconSize={GLYPH}
-          active={active}
-          badge={0}
-          tiltX={0}
-          tiltY={0}
-          index={0}
-          isDragging={false}
-        />
-        <span style={{
-          fontSize: 9.5,
-          fontWeight: active ? 700 : 400,
-          color: active ? 'hsl(38 92% 65%)' : 'rgba(255,255,255,0.40)',
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-          transition: 'color 0.2s ease',
-          lineHeight: 1,
-          maxWidth: SZ + 8,
-          textAlign: 'center',
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
-        }}>{label}</span>
+      <div className="flex flex-col items-center" style={{ gap: 4 }}>
+        <ExtremeLiquidIcon icon={Icon} gradient={gradient} glowColor={glowColor || 'rgba(255,255,255,0.25)'}
+          size={SZ} iconSize={Math.round(SZ * 0.50)} active={active} badge={0} tiltX={0} tiltY={0} index={0} isDragging={false} />
+        {active && <div style={{ width: 4, height: 4, borderRadius: 2, background: 'hsl(38 92% 55%)', boxShadow: '0 0 8px hsl(38 92% 55%)' }} />}
       </div>
     </button>
   );
 }
 
-export default function MobileDock() {
-  const location  = useLocation();
-  const navigate  = useNavigate();
-  const isHome    = location.pathname === '/';
+function QuickActionsPopover({ actions, position, onClose, navigate }) {
+  if (!actions || !position) return null;
+  return (
+    <>
+      <div className="fixed inset-0 z-[10000]" onClick={onClose} style={{ background: 'transparent' }} />
+      <div className="absolute z-[10001] rounded-2xl overflow-hidden" style={{
+        left: position.left, bottom: position.bottom, transform: 'translateX(-50%)',
+        background: 'rgba(15,20,30,0.92)', backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
+        padding: 8, minWidth: 140, animation: 'popoverScale 0.18s cubic-bezier(0.34,1.26,0.64,1)',
+      }}>
+        {actions.map((action, idx) => {
+          const ActionIcon = action.icon;
+          return (
+            <button key={idx} onClick={() => { navigate(action.path); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5"
+            >
+              <ActionIcon className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+              <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{action.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
 
-  const [dockSelection, setDockSelection] = useState(() => loadDockSelection());
-  const [showPicker, setShowPicker] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
+export default function MobileDock() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [activePopover, setActivePopover] = useState(null);
+  const [popoverPosition, setPopoverPosition] = useState(null);
 
   useEffect(() => {
-    const check = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    const check = () => setIsMobilePortrait(window.innerWidth <= 768 && window.innerWidth < window.innerHeight);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
   const dockApps = useMemo(() => {
-    return dockSelection.slice(0, 4)
-      .map(path => ALL_APPS.find(a => a.path === path))
-      .filter(Boolean);
-  }, [dockSelection]);
+    return DOCK_APPS.map(d => ALL_APPS.find(a => a.path === d.path)).filter(Boolean).map((app, i) => ({ ...app, ...DOCK_APPS[i] }));
+  }, []);
 
-  const leftItems  = dockApps.slice(0, 2);
-  const rightItems = dockApps.slice(2, 4);
+  const { data: reminders = [] } = useQuery({ queryKey: ['dock-reminders'], queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20), staleTime: 60_000 });
+  const { data: conversations = [] } = useQuery({ queryKey: ['dock-wa'], queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20), staleTime: 60_000 });
+  const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
+  const homeGlow = urgentCount > 0 ? 'rgba(239,68,68,0.45)' : 'rgba(212,175,55,0.45)';
 
-  const handleNav = (path) => { navigate(path); };
-
-  const { data: reminders = [] } = useQuery({
-    queryKey: ['dock-reminders'],
-    queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20),
-    staleTime: 60_000,
-  });
-  const { data: conversations = [] } = useQuery({
-    queryKey: ['dock-wa'],
-    queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20),
-    staleTime: 60_000,
-  });
-
-  const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length
-    + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
-  const isUrgent  = urgentCount > 0;
-  const homeColor = isUrgent ? '#ef4444' : 'hsl(38 92% 52%)';
-  const homeGlow  = isUrgent ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.40)';
-
-  if (isLandscape) {
+  // Landscape - simple original dock
+  if (!isMobilePortrait) {
     return (
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
-        <button type="button" onClick={() => navigate('/')} aria-label="Home"
-          style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'rgba(245,158,11,0.14)',
-            border: '1.5px solid rgba(245,158,11,0.35)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+        <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245,158,11,0.14)', border: '1.5px solid rgba(245,158,11,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Home style={{ width: 22, height: 22, color: 'hsl(38 92% 55%)' }} />
         </button>
       </nav>
     );
   }
 
+  const handleLongPress = (appKey, event) => {
+    const positions = { landlords: '20%', pipeline: '38%', whatsapp: '62%', forma: '80%' };
+    setPopoverPosition({ left: positions[appKey], bottom: 85 });
+    setActivePopover(appKey);
+  };
+
   return (
     <>
-      <nav
-        className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center"
-        style={{ bottom: 0, padding: '0 12px', paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
-      >
-        {/* Dock pill */}
+      <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 0, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
         <div style={{
-          background: 'rgba(10,14,30,0.80)',
-          backdropFilter: 'blur(60px) saturate(280%)',
-          WebkitBackdropFilter: 'blur(60px) saturate(280%)',
-          borderRadius: 34,
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderTopColor: 'rgba(255,255,255,0.22)',
-          boxShadow: '0 -1px 0 rgba(255,255,255,0.05) inset, 0 24px 64px rgba(0,0,0,0.70), 0 8px 24px rgba(0,0,0,0.45)',
-          padding: '10px 18px',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-around',
-          gap: 6,
-          width: '100%',
-          maxWidth: 460,
-          position: 'relative',
-          overflow: 'hidden',
+          background: 'rgba(11,31,58,0.85)', backdropFilter: 'blur(60px) saturate(280%)',
+          borderRadius: 24, border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 16px 56px rgba(0,0,0,0.65)',
+          padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6,
+          width: '100%', maxWidth: 420, position: 'relative', margin: '0 auto 12px',
         }}>
-
-          {/* Top gloss */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '45%',
-            borderRadius: '34px 34px 0 0',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* Left 2 */}
-          {leftItems.map(item => (
-            <DockIcon
-              key={item.path}
-              app={item}
-              active={location.pathname === item.path}
-              onPress={() => handleNav(item.path)}
-            />
-          ))}
-
-          {/* Center Home — elevated */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-            {/* Glow bloom */}
-            <div style={{
-              position: 'absolute',
-              width: HOME_SZ + 10, height: HOME_SZ + 10,
-              borderRadius: HOME_R,
-              background: homeGlow,
-              filter: 'blur(12px)',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -60%)',
-              pointerEvents: 'none', zIndex: 0,
-              transition: 'background 0.4s ease',
-            }} />
-
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              aria-label="Home"
-              style={{
-                width: HOME_SZ, height: HOME_SZ,
-                borderRadius: HOME_R,
-                position: 'relative',
-                top: -10,
-                zIndex: 2,
-                border: `1.5px solid rgba(245,158,11,0.28)`,
-                borderTopColor: `rgba(255,255,255,0.28)`,
-                boxShadow: `0 6px 18px ${homeGlow.replace('0.40', '0.18')}, 0 2px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14)`,
-                background: 'rgba(245,158,11,0.10)',
-                backdropFilter: 'blur(32px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-                cursor: 'pointer',
-                transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              {/* Inner gradient */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: HOME_R,
-                background: 'linear-gradient(145deg, rgba(245,158,11,0.50) 0%, rgba(160,90,0,0.35) 100%)',
-              }} />
-              {/* Top sheen */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: HOME_R,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 52%)',
-                pointerEvents: 'none',
-              }} />
-              <Home style={{
-                width: Math.round(HOME_SZ * 0.50),
-                height: Math.round(HOME_SZ * 0.50),
-                position: 'relative', zIndex: 2,
-                color: 'hsl(38 92% 58%)',
-                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.55))',
-                strokeWidth: 2.2,
-              }} />
+          <PortraitDockIcon app={dockApps[0]} active={location.pathname.startsWith('/landlords')} onLongPress={(e) => handleLongPress('landlords', e)} onPress={() => navigate('/landlords')} />
+          <PortraitDockIcon app={dockApps[1]} active={location.pathname.startsWith('/pipeline')} onLongPress={(e) => handleLongPress('pipeline', e)} onPress={() => navigate('/pipeline')} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', width: HOME_SZ+12, height: HOME_SZ+12, borderRadius: Math.round(HOME_SZ*0.28), background: homeGlow, filter: 'blur(14px)', top: '50%', left: '50%', transform: 'translate(-50%, -55%)', pointerEvents: 'none' }} />
+            <button onClick={() => navigate('/')} style={{
+              width: HOME_SZ, height: HOME_SZ, borderRadius: Math.round(HOME_SZ*0.28), position: 'relative', top: -8,
+              border: '1.5px solid rgba(212,175,55,0.32)', background: 'rgba(212,175,55,0.12)', backdropFilter: 'blur(32px)',
+              boxShadow: `0 8px 24px ${homeGlow.replace('0.45','0.20')}, 0 3px 10px rgba(0,0,0,0.45)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: Math.round(HOME_SZ*0.28), background: 'linear-gradient(145deg, rgba(212,175,55,0.55) 0%, rgba(160,120,40,0.35) 100%)' }} />
+              <Home style={{ width: Math.round(HOME_SZ*0.52), height: Math.round(HOME_SZ*0.52), color: 'hsl(38 92% 55%)', strokeWidth: 2.2 }} />
             </button>
-
-            <span style={{
-              fontSize: 9.5,
-              fontWeight: isHome ? 700 : 400,
-              color: isHome ? 'hsl(38 92% 65%)' : 'rgba(255,255,255,0.42)',
-              letterSpacing: '0.05em',
-              marginTop: 6,
-              textTransform: 'uppercase',
-              lineHeight: 1,
-            }}>Home</span>
           </div>
-
-          {/* Right 2 */}
-          {rightItems.map(item => (
-            <DockIcon
-              key={item.path}
-              app={item}
-              active={location.pathname === item.path}
-              onPress={() => handleNav(item.path)}
-            />
-          ))}
+          <PortraitDockIcon app={dockApps[2]} active={location.pathname.startsWith('/whatsapp')} onLongPress={(e) => handleLongPress('whatsapp', e)} onPress={() => navigate('/whatsapp')} />
+          <PortraitDockIcon app={dockApps[3]} active={location.pathname.startsWith('/form-a')} onLongPress={(e) => handleLongPress('forma', e)} onPress={() => navigate('/form-a-referral')} />
         </div>
       </nav>
-
-      {/* App Picker Modal */}
-      {showPicker && <AppPickerModal onClose={() => setShowPicker(false)} />}
-
+      {activePopover && <QuickActionsPopover actions={QUICK_ACTIONS[activePopover]} position={popoverPosition} onClose={() => { setActivePopover(null); setPopoverPosition(null); }} navigate={navigate} />}
+      <style>{`@keyframes popoverScale { from { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(8px); } to { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); } }`}</style>
     </>
   );
 }
