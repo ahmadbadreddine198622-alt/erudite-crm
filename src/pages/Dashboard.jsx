@@ -37,14 +37,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [logoUrl] = useState(() => {
-    const stored = localStorage.getItem('erudite_logo');
-    if (!stored) {
-      localStorage.setItem('erudite_logo', 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/8802b0c47_generated_image.png');
-      return 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/8802b0c47_generated_image.png';
-    }
-    return stored;
-  });
+  const [logoUrl] = useState('https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/4bc872954_generated_image.png');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
@@ -250,27 +243,18 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
-      {/* Erudite Real Estate Logo Watermark */}
+      {/* Erudite Real Estate Logo - Main Centered Watermark (Behind Content) */}
       {logoUrl && (
         <div
-          className="fixed bottom-8 right-8 w-72 h-72 opacity-[0.07] pointer-events-none z-0"
-          style={{
-            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
-          }}
+          className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
+          style={{ opacity: 0.15 }}
         >
           <img
             src={logoUrl}
             alt="Erudite Real Estate"
-            className="w-full h-full object-contain"
-            style={{ maxWidth: '280px', maxHeight: '280px' }}
+            className="w-full max-w-3xl h-auto object-contain"
+            style={{ maxWidth: '900px', maxHeight: '600px', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))' }}
           />
-        </div>
-      )}
-      
-      {/* Logo */}
-      {logoUrl && (
-        <div className="mb-6">
-          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
         </div>
       )}
 
