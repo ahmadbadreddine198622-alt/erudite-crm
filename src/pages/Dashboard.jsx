@@ -37,7 +37,14 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
+  const [logoUrl] = useState(() => {
+    const stored = localStorage.getItem('erudite_logo');
+    if (!stored) {
+      localStorage.setItem('erudite_logo', 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/8802b0c47_generated_image.png');
+      return 'https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/8802b0c47_generated_image.png';
+    }
+    return stored;
+  });
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
@@ -243,6 +250,23 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
+      {/* Erudite Real Estate Logo Watermark */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          width: '280px',
+          height: '280px',
+          opacity: 0.08,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background: `url(${logoUrl}) no-repeat center`,
+          backgroundSize: 'contain',
+          filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))',
+        }}
+      />
+      
       {/* Logo */}
       {logoUrl && (
         <div className="mb-6">
