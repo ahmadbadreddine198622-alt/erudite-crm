@@ -16,11 +16,12 @@ const SZ = 48;
 const HOME_SZ = 64;
 
 // Fixed dock order: Landlord · Pipeline · [HOME] · WhatsApp · Forms
+// Colors pulled directly from ALL_APPS gradients for perfect harmony
 const DOCK_APPS = [
-  { path: '/landlords', appKey: 'landlords' },
-  { path: '/pipeline', appKey: 'pipeline' },
-  { path: '/whatsapp', appKey: 'whatsapp' },
-  { path: '/form-a-referral', appKey: 'forma' },
+  { path: '/landlords', appKey: 'landlords', gradient: 'from-amber-500 to-orange-700', glowColor: 'rgba(245,158,11,0.40)' },
+  { path: '/pipeline', appKey: 'pipeline', gradient: 'from-indigo-500 to-purple-700', glowColor: 'rgba(106,90,205,0.40)' },
+  { path: '/whatsapp', appKey: 'whatsapp', gradient: 'from-green-500 to-green-700', glowColor: 'rgba(34,197,94,0.40)' },
+  { path: '/form-a-referral', appKey: 'forma', gradient: 'from-amber-500 to-orange-700', glowColor: 'rgba(245,158,11,0.40)' },
 ];
 
 // Quick actions per dock app
@@ -112,7 +113,11 @@ export default function MobileDock() {
   }, []);
 
   const dockApps = useMemo(() => {
-    return DOCK_APPS.map(d => ALL_APPS.find(a => a.path === d.path)).filter(Boolean).map((app, i) => ({ ...app, ...DOCK_APPS[i] }));
+    // Merge DOCK_APPS config with ALL_APPS for complete app data
+    return DOCK_APPS.map((dock, i) => {
+      const app = ALL_APPS.find(a => a.path === dock.path);
+      return app ? { ...app, appKey: dock.appKey } : null;
+    }).filter(Boolean);
   }, []);
 
   const { data: reminders = [] } = useQuery({ queryKey: ['dock-reminders'], queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20), staleTime: 60_000 });
