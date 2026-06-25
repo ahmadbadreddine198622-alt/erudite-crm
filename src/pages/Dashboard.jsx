@@ -286,50 +286,80 @@ export default function Dashboard() {
     <div
       className="relative min-h-screen flex flex-col px-4 pb-6 pt-4"
       style={{
-        background: 'linear-gradient(180deg, #0B1F3A 0%, #071224 60%, #050A14 100%)',
+        background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
       {/* Compact Hero Banner */}
-      <div className="w-full max-w-6xl mx-auto mb-4 scale-95" style={{ transformOrigin: 'top center' }}>
+      <div className="w-full max-w-6xl mx-auto mb-5" style={{ transformOrigin: 'top center' }}>
         <EruditeHeroBanner />
       </div>
 
-      {/* Smart Search Bar with Motivational Quote Placeholder - Full Width */}
-      <div className="relative mb-4 w-full max-w-6xl mx-auto">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={search ? '' : QUOTES[quoteIndex]}
-          className="w-full pl-14 pr-12 py-3.5 rounded-full text-sm border focus:outline-none transition-all"
+      {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design */}
+      <div className="relative mb-5 w-full max-w-6xl mx-auto">
+        {/* Outer glow ring */}
+        <div
+          className="absolute inset-0 rounded-full opacity-30 blur-xl"
           style={{
-            background: 'rgba(26,43,61,0.85)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(58,77,101,0.6)',
-            color: 'rgba(255,255,255,0.95)',
-            fontSize: '14px',
-            fontStyle: search ? 'normal' : 'italic',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50% / 0.6)';
-            e.target.style.background = 'rgba(30,50,75,0.9)';
-            e.target.style.boxShadow = '0 0 0 2px hsl(38 92% 50% / 0.15)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(58,77,101,0.6)';
-            e.target.style.background = 'rgba(26,43,61,0.85)';
-            e.target.style.boxShadow = 'none';
+            background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.15) 0%, transparent 70%)',
+            transform: 'scale(1.02)',
           }}
         />
-        {/* Subtle search hint icon on right */}
-        {!search && (
-          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Search className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+        {/* Main search container */}
+        <div
+          className="relative rounded-full overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(15,28,48,0.95) 0%, rgba(10,22,40,0.9) 100%)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(212,175,55,0.35)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px rgba(212,175,55,0.08)',
+          }}
+        >
+          <div className="flex items-center">
+            {/* Left search icon with luxury container */}
+            <div className="pl-5 pr-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)',
+                  border: '1px solid rgba(212,175,55,0.4)',
+                  boxShadow: '0 2px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                }}
+              >
+                <Search className="w-4 h-4" style={{ color: '#D4AF37' }} />
+              </div>
             </div>
+            {/* Input field */}
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={search ? '' : QUOTES[quoteIndex]}
+              className="flex-1 py-4 text-sm focus:outline-none bg-transparent"
+              style={{
+                color: 'rgba(255,255,255,0.95)',
+                fontSize: '14px',
+                fontStyle: search ? 'normal' : 'italic',
+                letterSpacing: search ? '0.01em' : '0.02em',
+              }}
+            />
+            {/* Right decorative icon */}
+            {!search && (
+              <div className="pr-5 pl-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(184,141,60,0.1) 100%)',
+                    border: '1px solid rgba(212,175,55,0.3)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <Search className="w-3.5 h-3.5" style={{ color: '#C5A059' }} />
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Logged-in account badge with foldable profile */}
@@ -444,122 +474,142 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPI Strip - tight horizontal dashboard metric bar */}
+      {/* Luxe KPI Strip - Premium Gold & Dark Navy */}
       <div
-        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-2 mb-5"
+        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-3 mb-6"
         style={{}}
       >
         {/* Active Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
+          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(212,175,55,0.25)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
-            e.currentTarget.style.transform = 'scale(1.02)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
-            <Users className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
+            <Users className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>ACTIVE</p>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Active</p>
         </button>
 
         {/* Reminders */}
         <button
           onClick={() => navigate('/reminders')}
-          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
+          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(212,175,55,0.25)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
-            e.currentTarget.style.transform = 'scale(1.02)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
-            <Bell className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
+            <Bell className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>REMINDERS</p>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Reminders</p>
         </button>
 
         {/* Unread */}
         <button
           onClick={() => navigate('/whatsapp')}
-          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
+          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(212,175,55,0.25)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
-            e.currentTarget.style.transform = 'scale(1.02)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
-            <MessageCircle className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
+            <MessageCircle className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>UNREAD</p>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Unread</p>
         </button>
 
         {/* Hot Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
+          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(52,211,153,0.25)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            e.currentTarget.style.borderColor = 'rgba(36,167,125,0.3)';
-            e.currentTarget.style.transform = 'scale(1.02)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(52,211,153,0.5)';
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
+            e.currentTarget.style.borderColor = 'rgba(52,211,153,0.25)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(36,167,125,0.12)', border: '1px solid rgba(36,167,125,0.25)' }}>
-            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#24a77d' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(16,185,129,0.15) 100%)', border: '1px solid rgba(52,211,153,0.35)', boxShadow: '0 4px 12px rgba(52,211,153,0.2)' }}>
+            <TrendingUp className="w-4 h-4" style={{ color: '#34D399' }} />
           </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#24a77d', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>HOT</p>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: '#34D399', lineHeight: 1, textShadow: '0 2px 12px rgba(52,211,153,0.4)' }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Hot</p>
         </button>
       </div>
 
-      {/* WORKSPACES section header */}
-      <div className="w-full max-w-6xl mx-auto mb-3">
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
-          <span className="text-[10px] uppercase font-semibold tracking-[0.15em]" style={{ color: 'hsl(38 92% 50% / 0.7)' }}>Workspaces</span>
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+      {/* WORKSPACES section header - Premium Gold Divider */}
+      <div className="w-full max-w-6xl mx-auto mb-4">
+        <div className="flex items-center gap-4">
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.4), rgba(212,175,55,0.6))' }} />
+          <span className="text-[11px] uppercase font-bold tracking-[0.2em]" style={{ color: '#D4AF37', textShadow: '0 0 20px rgba(212,175,55,0.5)' }}>Workspaces</span>
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.6), rgba(212,175,55,0.4), transparent)' }} />
         </div>
       </div>
 
