@@ -405,6 +405,16 @@ export default function Landlords() {
               <h1 className="text-2xl font-bold page-title">Landlord Pipeline</h1>
               <p className="page-subtitle mt-0.5">Agent's A-to-Z Mandate Acquisition Engine</p>
             </div>
+
+            {/* Commission Pipeline — inline pill on the header line */}
+            <div className="hidden md:flex items-center gap-2 px-3 h-10 rounded-xl ml-2"
+              style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <DollarSign className="w-4 h-4 shrink-0" style={{ color: 'hsl(38 92% 50%)' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
+              <span className="text-base font-bold whitespace-nowrap" style={{ color: 'hsl(38 92% 50%)' }}>
+                {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -443,18 +453,7 @@ export default function Landlords() {
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
-            </div>
-            <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
-              {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
