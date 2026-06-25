@@ -134,7 +134,7 @@ export default function Sidebar({ open = false, onClose }) {
 
   return (
     <aside className={cn(
-      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
+      "fixed top-0 left-0 h-screen bg-transparent text-sidebar-foreground flex flex-col border-r border-sidebar-border/30 z-50 w-[260px] transition-transform duration-300",
       open ? "translate-x-0" : "-translate-x-full"
     )}>
       {/* Close button */}
