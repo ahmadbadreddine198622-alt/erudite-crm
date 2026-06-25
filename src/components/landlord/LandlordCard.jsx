@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2 } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2, GripVertical } from 'lucide-react';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -64,7 +64,7 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
+function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const navigate = useNavigate();
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
@@ -276,8 +276,20 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
     >
-      {/* Top row: checkbox + avatar + name */}
+      {/* Top row: grip handle + checkbox + avatar + name */}
       <div className="flex items-center gap-1.5">
+        {dragHandleProps && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 -ml-0.5 flex items-center justify-center w-4 h-5 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 cursor-grab active:cursor-grabbing touch-none transition-colors"
+            title="Drag to move stage"
+            aria-label="Drag to move stage"
+          >
+            <GripVertical className="w-3 h-3" />
+          </button>
+        )}
         <input
           type="checkbox"
           checked={!!isChecked}

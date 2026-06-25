@@ -27,8 +27,10 @@ function KanbanCardRow({
     opacity: isActive ? 0.4 : 1,
   };
 
+  // Only the grip handle drags (listeners passed down to the card's handle), so the card body
+  // click reliably navigates and the inline buttons reliably fire — no drag-vs-tap ambiguity.
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style}>
       <LandlordCard
         landlord={landlord}
         isSelected={landlord.id === selectedLandlordId}
@@ -40,6 +42,7 @@ function KanbanCardRow({
         onSingleAssign={onSingleAssign}
         photographyTasks={photographyTasks}
         getPhotoForPhone={getPhotoForPhone}
+        dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
   );
