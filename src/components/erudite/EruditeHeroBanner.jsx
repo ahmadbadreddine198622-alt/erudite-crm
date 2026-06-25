@@ -277,18 +277,41 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* Decorative animated line */}
+        {/* Vibrant emotional decorative line with gradient glow */}
         <div
           className={`relative transition-opacity duration-1000 delay-300 ${lineProgress > 0 ? 'opacity-100' : 'opacity-0'}`}
           style={{
-            width: 160,
-            height: 2,
-            marginTop: 12,
-            marginBottom: 12,
-            background: 'transparent',
+            width: 200,
+            marginTop: 16,
+            marginBottom: 8,
           }}
         >
-          {/* Line is drawn by canvas animation */}
+          <div
+            className="relative w-full h-1 rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.3) 20%, rgba(245,158,11,0.8) 50%, rgba(245,158,11,0.3) 80%, transparent 100%)',
+              boxShadow: '0 0 20px rgba(245,158,11,0.5), 0 0 40px rgba(245,158,11,0.3), inset 0 0 10px rgba(255,255,255,0.2)',
+            }}
+          >
+            {/* Animated shimmer effect */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmerSlide 3s ease-in-out infinite',
+              }}
+            />
+            {/* Colorful particle glow underneath */}
+            <div
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-2 rounded-full blur-md"
+              style={{
+                background: 'radial-gradient(ellipse, rgba(245,158,11,0.6) 0%, rgba(16,185,129,0.4) 50%, rgba(59,130,246,0.2) 100%)',
+                filter: 'blur(8px)',
+                opacity: 0.7,
+              }}
+            />
+          </div>
         </div>
 
         {/* REAL ESTATE — elegant subtitle */}
