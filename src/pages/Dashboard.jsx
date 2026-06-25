@@ -252,7 +252,7 @@ export default function Dashboard() {
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
-        <div className="absolute top-4 right-4 z-50" ref={menuRef}>
+        <div className="absolute top-0 right-0 z-50" ref={menuRef}>
           <div
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
