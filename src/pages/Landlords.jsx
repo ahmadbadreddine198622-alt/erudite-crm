@@ -29,6 +29,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
+import useHorizontalPan from '@/hooks/useHorizontalPan';
 
 const STAGES = [
   'initial_contact',
@@ -95,6 +96,7 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
+  const boardScrollRef = useHorizontalPan();
 
 
 
@@ -682,9 +684,11 @@ export default function Landlords() {
         </div>
       </div>
 
-      {/* Kanban Board — breaks out of page-root padding to use the full screen width */}
+      {/* Kanban Board — breaks out of page-root padding to use the full screen width.
+          Grab-to-pan + wheel-to-horizontal scroll via useHorizontalPan (card DnD stays intact). */}
       <div
-        className="flex-1 overflow-x-auto pb-4"
+        ref={boardScrollRef}
+        className="board-scroll flex-1 overflow-x-auto pb-4"
         style={{
           minHeight: '420px',
           marginLeft: 'calc(-1 * var(--board-pad-l))',
@@ -696,6 +700,12 @@ export default function Landlords() {
         <style>{`
           :root { --board-pad-l: 1rem; --board-pad-r: 1rem; }
           @media (min-width: 768px) { :root { --board-pad-l: 4.5rem; --board-pad-r: 2rem; } }
+          /* Always-visible, slim horizontal scrollbar so the pan affordance is obvious */
+          .board-scroll { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.5) transparent; scroll-behavior: smooth; }
+          .board-scroll::-webkit-scrollbar { height: 10px; }
+          .board-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
+          .board-scroll::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.45); border-radius: 99px; }
+          .board-scroll::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.7); }
         `}</style>
         <KanbanBoard
           stages={STAGES}
