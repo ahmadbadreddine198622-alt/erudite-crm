@@ -285,21 +285,23 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col px-4 pb-6 pt-4"
+      className="relative min-h-screen flex flex-col px-4 pb-6 pt-2"
       style={{
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
       {/* Compact Hero Banner */}
-      <div className="w-full max-w-6xl mx-auto mb-2" style={{ transformOrigin: 'top center' }}>
+      <div className="w-full max-w-6xl mx-auto mb-1" style={{ transformOrigin: 'top center' }}>
         <EruditeHeroBanner />
       </div>
 
       {/* iOS Lock-Screen Style Clock — centered under logo */}
-      <IOSLockScreenClock />
+      <div className="w-full max-w-6xl mx-auto -mt-1 mb-2">
+        <IOSLockScreenClock />
+      </div>
 
       {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design with Continuous Motion */}
-      <div className="relative mb-5 w-full max-w-6xl mx-auto">
+      <div className="relative mb-4 w-full max-w-6xl mx-auto">
         {/* Outer glow ring - animated breathing */}
         <div
           className="absolute inset-0 rounded-full blur-xl"
@@ -486,7 +488,7 @@ export default function Dashboard() {
 
       {/* Luxe KPI Strip - Premium Gold & Dark Navy */}
       <div
-        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-3 mb-6"
+        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-2.5 mb-4"
         style={{}}
       >
         {/* Active Leads */}
@@ -615,7 +617,7 @@ export default function Dashboard() {
       </div>
 
       {/* WORKSPACES section header - Premium Gold Divider */}
-      <div className="w-full max-w-6xl mx-auto mb-4">
+      <div className="w-full max-w-6xl mx-auto mb-3">
         <div className="flex items-center gap-4">
           <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.4), rgba(212,175,55,0.6))' }} />
           <span className="text-[11px] uppercase font-bold tracking-[0.2em]" style={{ color: '#FFFFFF', textShadow: '0 0 25px rgba(255,255,255,0.6), 0 0 50px rgba(255,255,255,0.3)', animation: 'whitePulse 5s ease-in-out infinite', letterSpacing: '0.25em' }}>Workspaces</span>
@@ -636,7 +638,7 @@ export default function Dashboard() {
       )}
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-2" style={{ marginTop: -8 }}>
+      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -6 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">
