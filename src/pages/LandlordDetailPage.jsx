@@ -820,17 +820,17 @@ class LandlordDetail extends React.Component {
     return map[k]||map.note;
   }
   sugMeta(type){
-    const map={ followup:['↻','hsl(38 92% 50% / 0.18)','hsl(38 92% 60%)'], meeting:['🤝','rgba(139,92,246,0.18)','#c4b5fd'], viewing:['🏠','rgba(16,185,129,0.18)','#34d399'], call:['📞','rgba(59,130,246,0.18)','#93c5fd'] };
+    const map={ followup:['↻','hsl(38 92% 50% / 0.14)','hsl(38 92% 60%)'], meeting:['🤝','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'], viewing:['🏠','rgba(16,185,129,0.14)','#34d399'], call:['📞','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'] };
     return map[type]||map.followup;
   }
   titleize(s){ return String(s||'').replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase()); }
   rapportMeta(r){
     const map={
-      cold:['❄ Cold','rgba(59,130,246,0.16)','rgba(59,130,246,0.4)','#93c5fd'],
-      warming:['◐ Warming','hsl(38 92% 50% / 0.16)','hsl(38 92% 50% / 0.4)','hsl(38 92% 62%)'],
-      rapport_built:['◑ Rapport built','rgba(16,185,129,0.16)','rgba(16,185,129,0.4)','#34d399'],
-      trust_established:['● Trust established','rgba(16,185,129,0.18)','rgba(16,185,129,0.45)','#34d399'],
-      champion:['★ Champion','hsl(38 92% 50% / 0.18)','hsl(38 92% 50% / 0.5)','hsl(38 92% 62%)'],
+      cold:['❄ Cold','rgba(255,255,255,0.04)','rgba(255,255,255,0.12)','rgba(255,255,255,0.6)'],
+      warming:['◐ Warming','hsl(38 92% 50% / 0.12)','hsl(38 92% 50% / 0.3)','hsl(38 92% 62%)'],
+      rapport_built:['◑ Rapport built','rgba(16,185,129,0.12)','rgba(16,185,129,0.3)','#34d399'],
+      trust_established:['● Trust established','rgba(16,185,129,0.14)','rgba(16,185,129,0.4)','#34d399'],
+      champion:['★ Champion','hsl(38 92% 50% / 0.16)','hsl(38 92% 50% / 0.45)','hsl(38 92% 62%)'],
     };
     const m=map[r]||map.cold;
     return { label:m[0], chipStyle:{ display:'inline-flex', alignItems:'center', flex:'none', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:m[1], border:'1px solid '+m[2], color:m[3], whiteSpace:'nowrap' } };
@@ -927,9 +927,9 @@ class LandlordDetail extends React.Component {
       const isTelegram = t==='Telegram';
       return { label:t, icon:ic, onClick: ()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-          background: isTelegram ? (on?'rgba(41,182,246,0.2)':'rgba(41,182,246,0.08)') : isIMessage ? (on?'rgba(10,132,255,0.2)':'rgba(10,132,255,0.08)') : isChat ? (on?'rgba(37,211,102,0.2)':'rgba(37,211,102,0.08)') : (on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)'),
-          color: isTelegram ? (on?'#29b6f6':'#4fc3f7') : isIMessage ? (on?'#0A84FF':'#60a5fa') : isChat ? (on?'#22c55e':'#86efac') : (on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)'),
-          border:'1px solid '+(isTelegram ? (on?'rgba(41,182,246,0.5)':'rgba(41,182,246,0.3)') : isIMessage ? (on?'rgba(10,132,255,0.5)':'rgba(10,132,255,0.3)') : isChat ? (on?'rgba(37,211,102,0.5)':'rgba(37,211,102,0.3)') : (on?'hsl(38 92% 50% / 0.45)':'rgba(255,255,255,0.1)')) } };
+         background: on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)',
+         color: on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)',
+         border:'1px solid '+(on?'hsl(38 92% 50% / 0.4)':'rgba(255,255,255,0.1)') } };
     });
     const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)', 'iMessage':'Type an iMessage… (Enter to send)', 'Telegram':'Type a Telegram message… (Enter to send)', 'Email':'Use the AI Email Draft panel above to compose…' };
 
