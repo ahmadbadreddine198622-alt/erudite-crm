@@ -9,7 +9,7 @@ import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { useState, memo } from 'react';
 
-const ARCHETYPE_COLORS = {
+export const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
   individual_end_user_relocating: 'bg-accent/10 text-accent border-accent/20',
   distressed_seller: 'bg-red-500/10 text-red-600 border-red-500/20',
@@ -22,7 +22,7 @@ const ARCHETYPE_COLORS = {
   speculator_flipping: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
 };
 
-const ARCHETYPE_LABELS = {
+export const ARCHETYPE_LABELS = {
   professional_investor: 'Pro Investor',
   individual_end_user_relocating: 'Relocating',
   distressed_seller: 'Distressed',

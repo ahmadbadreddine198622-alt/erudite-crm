@@ -28,6 +28,7 @@ import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
+import LandlordHeaderTags from '@/components/landlord/LandlordHeaderTags';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
@@ -1522,18 +1523,12 @@ class LandlordDetail extends React.Component {
                 <div style={css("display:flex; align-items:center; gap:14px; min-width:0;")}>
                   <div style={hdr.avatarStyle}>{hdr.initials}</div>
                   <div style={css("min-width:0;")}>
-                    <div style={css("display:flex; align-items:center; gap:9px; flex-wrap:wrap;")}>
+                    {/* Name line — keep the unit/property chip here as-is */}
+                    <div style={css("display:flex; align-items:center; gap:10px; flex-wrap:wrap;")}>
                       <h1 style={css("font-family:'Playfair Display',serif; font-weight:600; font-size:27px; letter-spacing:-0.01em; margin:0; color:rgba(255,255,255,0.97);")}>{hdr.name}</h1>
-                      <span style={hdr.archetypeStyle}>{hdr.archetype}</span>
-                    </div>
-                    <div style={css("display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:7px;")}>
                       {L.phone && L.phone !== '—' && (
                         <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
                       )}
-                      {L.phone && L.phone !== '—' && (
-                        <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
-                      )}
-                      {(L.phone && L.phone !== '—') && <span style={css("color:rgba(255,255,255,0.22);")}>·</span>}
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
                       <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.unitBuilding}</span>
@@ -1544,11 +1539,20 @@ class LandlordDetail extends React.Component {
                       <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.askingLabel}</span>
                     </div>
+
+                    {/* Grouped tag rail — Profile · Pipeline · Channel */}
+                    <div style={css("margin-top:9px;")}>
+                      <LandlordHeaderTags
+                        archetypeKey={L.archetype}
+                        stageLabel={hdr.stageLabel}
+                        temperature={L.temperature}
+                        momentum={L.aiMomentum}
+                        channel={(L.phone && L.phone !== '—')
+                          ? <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
+                          : <span style={css("font-size:11px; color:rgba(255,255,255,0.4);")}>No phone</span>}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div style={css("display:flex; align-items:center; gap:9px;")}>
-                  <span style={hdr.stageStyle}>{hdr.stageLabel}</span>
-                  <span style={hdr.tempChipStyle}>{hdr.tempLabel}</span>
                 </div>
               </div>
 
