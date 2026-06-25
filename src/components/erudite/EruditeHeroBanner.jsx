@@ -33,9 +33,9 @@ export default function EruditeHeroBanner() {
     <div
       className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 180,
-        maxHeight: 220,
-        background: 'linear-gradient(135deg, rgba(14,42,71,0.85) 0%, rgba(11,31,58,0.88) 50%, rgba(7,21,40,0.92) 100%)',
+        minHeight: 140,
+        maxHeight: 160,
+        background: 'linear-gradient(135deg, rgba(14,42,71,0.75) 0%, rgba(11,31,58,0.80) 50%, rgba(7,21,40,0.85) 100%)',
         backdropFilter: 'blur(20px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
         border: '1px solid rgba(201,162,75,0.2)',
@@ -129,101 +129,67 @@ export default function EruditeHeroBanner() {
           animation: !prefersReducedMotion.current ? 'elegantFloat 6s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
         }}
       >
-        {/* Top signature line with stepped notch */}
+        {/* Elegant curved signature line */}
         <div className="mb-3 relative">
           <svg
-            width="240"
-            height="24"
-            viewBox="0 0 240 24"
-            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}
+            width="280"
+            height="32"
+            viewBox="0 0 280 32"
+            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
           >
             <defs>
-              {/* Dynamic gradient that shifts */}
-              <linearGradient id="dynamicLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#B8B8B8">
+              {/* Premium gold gradient */}
+              <linearGradient id="signatureGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#C9A961">
                   {!prefersReducedMotion.current && (
-                    <animate attributeName="stop-color" values="#B8B8B8;#C9A961;#B8B8B8" dur="5s" repeatCount="indefinite" />
+                    <animate attributeName="stop-color" values="#C9A961;#D4AF37;#C9A961" dur="6s" repeatCount="indefinite" />
                   )}
                 </stop>
-                <stop offset="35%" stopColor="#D4AF37">
+                <stop offset="50%" stopColor="#F5E6A3">
                   {!prefersReducedMotion.current && (
-                    <animate attributeName="stop-color" values="#D4AF37;#E8D68A;#D4AF37" dur="5s" repeatCount="indefinite" />
+                    <animate attributeName="stop-color" values="#F5E6A3;#FFD700;#F5E6A3" dur="6s" repeatCount="indefinite" />
                   )}
                 </stop>
-                <stop offset="65%" stopColor="#C9A961">
+                <stop offset="100%" stopColor="#D4AF37">
                   {!prefersReducedMotion.current && (
-                    <animate attributeName="stop-color" values="#C9A961;#D4AF37;#C9A961" dur="5s" repeatCount="indefinite" />
-                  )}
-                </stop>
-                <stop offset="100%" stopColor="#E5C875">
-                  {!prefersReducedMotion.current && (
-                    <animate attributeName="stop-color" values="#E5C875;#F0D99C;#E5C875" dur="5s" repeatCount="indefinite" />
+                    <animate attributeName="stop-color" values="#D4AF37;#E5C875;#D4AF37" dur="6s" repeatCount="indefinite" />
                   )}
                 </stop>
               </linearGradient>
 
-              {/* Glow filter */}
-              <filter id="lineGlow">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+              {/* Enhanced glow */}
+              <filter id="signatureGlow">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
                 <feMerge>
                   <feMergeNode in="coloredBlur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-
-              {/* Shimmer gradient */}
-              <linearGradient id="lineShimmer" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-                <stop offset="45%" stopColor="rgba(255,255,255,0.3)" />
-                <stop offset="50%" stopColor="rgba(255,255,255,0.5)" />
-                <stop offset="55%" stopColor="rgba(255,255,255,0.3)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-              </linearGradient>
             </defs>
 
-            {/* Main line path with stepped notch */}
+            {/* Elegant curved path with decorative loops */}
             <path
-              d="M 15 12 L 135 12 L 135 8 L 160 8 L 160 12 L 225 12"
+              d="M 10 16 C 60 16, 80 10, 100 12 C 120 14, 140 18, 160 16 C 180 14, 200 10, 270 16"
               fill="none"
-              stroke="url(#dynamicLineGradient)"
-              strokeWidth="1.5"
+              stroke="url(#signatureGradient)"
+              strokeWidth="2"
               strokeLinecap="round"
-              strokeLinejoin="round"
-              filter="url(#lineGlow)"
-              style={{ opacity: 0.85 }}
+              filter="url(#signatureGlow)"
+              style={{ opacity: 0.9 }}
             />
 
-            {/* Traveling shimmer */}
-            {!prefersReducedMotion.current && (
-              <rect x="0" y="4" width="60" height="16" fill="url(#lineShimmer)">
-                <animate attributeName="x" from="-60" to="240" dur="7s" repeatCount="indefinite" />
-              </rect>
-            )}
+            {/* Center ornamental flourish */}
+            <circle cx="140" cy="14" r="2.5" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 8px rgba(245,230,163,0.8))' }}>
+              {!prefersReducedMotion.current && (
+                <animate attributeName="r" values="2.5;3.2;2.5" dur="2s" repeatCount="indefinite" />
+              )}
+            </circle>
 
-            {/* Animated gold walker with glow trail */}
+            {/* Traveling light effect */}
             {!prefersReducedMotion.current && (
-              <g>
-                {/* Glow trail */}
-                <ellipse cx="0" cy="12" rx="8" ry="3" fill="rgba(212,175,55,0.25)">
-                  <animateMotion
-                    dur="10s"
-                    repeatCount="indefinite"
-                    path="M 15 12 L 135 12 L 135 8 L 160 8 L 160 12 L 225 12"
-                    keyPoints="0;0.53;0.53;0.65;0.65;1"
-                    keyTimes="0;0.40;0.45;0.55;0.60;1"
-                  />
-                </ellipse>
-                {/* Main walker dot */}
-                <circle r="3" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 6px rgba(245,230,163,0.7))' }}>
-                  <animateMotion
-                    dur="10s"
-                    repeatCount="indefinite"
-                    path="M 15 12 L 135 12 L 135 8 L 160 8 L 160 12 L 225 12"
-                    keyPoints="0;0.53;0.53;0.65;0.65;1"
-                    keyTimes="0;0.40;0.45;0.55;0.60;1"
-                  />
-                </circle>
-              </g>
+              <ellipse cx="0" cy="16" rx="20" ry="6" fill="rgba(245,230,163,0.15)">
+                <animate attributeName="cx" from="-20" to="300" dur="8s" repeatCount="indefinite" />
+              </ellipse>
             )}
           </svg>
         </div>
@@ -241,15 +207,15 @@ export default function EruditeHeroBanner() {
 
         {/* ERUDITE wordmark */}
         <h1
-          className="text-4xl md:text-5xl font-medium tracking-tight mb-2"
+          className="text-5xl md:text-6xl font-semibold tracking-tight mb-2"
           style={{
             fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-            background: 'linear-gradient(180deg, #F0F0F0 0%, #D8D8D8 15%, #C0C0C0 30%, #D4AF37 55%, #C9A961 75%, #E5C875 100%)',
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 12%, #D8D8D8 25%, #D4AF37 55%, #C9A961 75%, #E5C875 100%)',
             backgroundSize: '100% 200%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            filter: 'drop-shadow(0 3px 12px rgba(0,0,0,0.5))',
+            filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.6))',
             animation: !prefersReducedMotion.current ? 'metallicFlow 8s ease-in-out infinite' : 'none',
           }}
         >
