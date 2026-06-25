@@ -520,7 +520,7 @@ export default function Dashboard() {
       )}
 
       {/* Search with integrated motivational quote placeholder */}
-      <div className="relative mb-0 w-full max-w-xs" style={{ marginTop: -3 }}>
+      <div className="relative mb-0 w-full max-w-md" style={{ marginTop: -3 }}>
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
