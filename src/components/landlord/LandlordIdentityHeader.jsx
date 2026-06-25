@@ -5,8 +5,7 @@
 
 import React from 'react';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
-
-const GOLD = '#C9A24B';
+import { GOLD, CHIP, ARCHETYPE_CHIP, stageChipFamily, LEAD_TYPE_CHIP, scoreColor } from '@/lib/landlordTheme.js';
 
 // ── tiny formatters ──────────────────────────────────────────────────────────
 const fmtAED = (n) => {
@@ -133,7 +132,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const estComm = fmtAEDShort(L.estimated_commission_aed);
   const winRaw = L.mandate_win_probability;
   const winPct = winRaw != null ? Math.round(winRaw <= 1 ? winRaw * 100 : winRaw) : null;
-  const winColor = winPct == null ? null : winPct < 34 ? '#f87171' : winPct < 67 ? 'hsl(38 92% 62%)' : '#34d399';
+  const winColor = winPct == null ? null : scoreColor(winPct);  // shared 0-33/34-66/67-100 scale
 
   // Mandate expiry countdown
   const expiry = (() => {
@@ -219,21 +218,31 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
 
           {/* TIER 3 — Status chips */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 11 }}>
-            {has(L.landlord_archetype) && (
-              <Pill color="#93c5fd" bg="rgba(59,130,246,0.12)" border="rgba(59,130,246,0.3)">
-                {ARCHETYPE_LABEL[L.landlord_archetype] || titleize(L.landlord_archetype)}
-              </Pill>
-            )}
-            {has(L.lead_type) && (
-              <Pill color="#5eead4" bg="rgba(20,184,166,0.12)" border="rgba(20,184,166,0.3)">
-                {LEAD_TYPE_LABEL[L.lead_type] || titleize(L.lead_type)}
-              </Pill>
-            )}
-            {has(L.stage) && (
-              <Pill outline color={GOLD} border="rgba(201,162,75,0.45)" title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined}>
-                ◷ {STAGE_LABEL[L.stage] || titleize(L.stage)}
-              </Pill>
-            )}
+            {has(L.landlord_archetype) && (() => {
+              const c = CHIP[ARCHETYPE_CHIP[L.landlord_archetype] || 'blue'];
+              return (
+                <Pill color={c.text} bg={c.bg} border={c.border}>
+                  {ARCHETYPE_LABEL[L.landlord_archetype] || titleize(L.landlord_archetype)}
+                </Pill>
+              );
+            })()}
+            {has(L.lead_type) && (() => {
+              const c = CHIP[LEAD_TYPE_CHIP[L.lead_type] || 'teal'];
+              return (
+                <Pill color={c.text} bg={c.bg} border={c.border}>
+                  {LEAD_TYPE_LABEL[L.lead_type] || titleize(L.lead_type)}
+                </Pill>
+              );
+            })()}
+            {has(L.stage) && (() => {
+              // Stage chip colored by PHASE band, same as the pipeline: Phase 1/2 = gold, Phase 3 = green.
+              const c = CHIP[stageChipFamily(L.stage)];
+              return (
+                <Pill color={c.text} bg={c.bg} border={c.border} title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined}>
+                  ◷ {STAGE_LABEL[L.stage] || titleize(L.stage)}
+                </Pill>
+              );
+            })()}
             {rapport && (
               <Pill color={rapport.color} bg={rapport.bg} border={rapport.border}>{rapport.label}</Pill>
             )}

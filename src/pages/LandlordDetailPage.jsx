@@ -16,6 +16,7 @@ import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
 import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
+import { scoreColor as themeScoreColor } from '@/lib/landlordTheme.js';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import CallsTabList from '@/components/landlord/CallsTabList';
 import OutreachTab from '@/components/landlord/OutreachTab';
@@ -793,8 +794,9 @@ class LandlordDetail extends React.Component {
     }
   };
 
-  // style helpers
-  scoreColor(n){ return n>=70 ? '#34d399' : n>=40 ? 'hsl(38 92% 58%)' : '#f87171'; }
+  // style helpers — value scale comes from the shared landlord theme (0-33 red, 34-66 amber, 67-100 green),
+  // used IDENTICALLY here (score cards) and in the AI Intelligence strip (AIIntelligenceCard).
+  scoreColor(n){ return themeScoreColor(n); }
   tempMeta(t){
     if(t==='hot') return { label:'🔥 Hot', bg:'rgba(239,68,68,0.16)', border:'rgba(239,68,68,0.4)', color:'#fca5a5' };
     if(t==='warm') return { label:'☀ Warm', bg:'hsl(38 92% 50% / 0.16)', border:'hsl(38 92% 50% / 0.4)', color:'hsl(38 92% 62%)' };
@@ -855,7 +857,7 @@ class LandlordDetail extends React.Component {
       trustRationale: sc.trustWhy || '',
       urgency: sc.urgency != null ? sc.urgency : null,
       urgencyRationale: sc.urgencyWhy || '',
-      win: sc.mandateWin != null ? Math.round(sc.mandateWin * 100) : null,
+      win: sc.mandateWin != null ? Math.round(sc.mandateWin <= 1 ? sc.mandateWin * 100 : sc.mandateWin) : null,
       winRationale: sc.mandateWhy || '',
       momentum: L.aiMomentum || '',
       strikeNow: L.hasStrikeNow === true,
@@ -938,7 +940,7 @@ class LandlordDetail extends React.Component {
     const total=this.STAGES.length;
     const pct=Math.round((L.stageIndex/total)*100);
     const stage={ index:L.stageIndex, total, label:this.STAGES[L.stageIndex-1],
-      barStyle:{ height:'100%', width:pct+'%', background:'linear-gradient(90deg, #8b5cf6, #c4b5fd)' },
+      barStyle:{ height:'100%', width:pct+'%', background:'linear-gradient(90deg, hsl(38 92% 52%), hsl(38 92% 62%))' },
       nextLabel: L.stageIndex<total ? ('Next · '+this.STAGES[L.stageIndex]) : 'Final stage' };
 
     let nextBest={ show:false };
@@ -982,8 +984,10 @@ class LandlordDetail extends React.Component {
     }
     if(L.scores){
       const s=L.scores;
-      const mk=(label,val,unit,why)=>{ const n = unit==='%'? Math.round(val*100): val; const col=this.scoreColor(n);
-        return { label, value:n, unit, why, color:col, barStyle:{ height:'100%', width:n+'%', background:col } }; };
+      // Normalize a 0–1 OR 0–100 probability to a 0–100 integer so the Mandate-win card colors on the
+      // same value scale as everything else (prevents the >100 overflow that forced a constant red/green bar).
+      const mk=(label,val,unit,why)=>{ const raw = (val == null || isNaN(val)) ? null : (unit==='%' ? Math.round(val <= 1 ? val*100 : val) : val); const n = raw; const col=this.scoreColor(n);
+        return { label, value:n, unit, why, color:col, barStyle:{ height:'100%', width:Math.min(100, Math.max(0, n||0))+'%', background:col } }; };
       scorecards=[ mk('Trust',s.trust,'/100',s.trustWhy), mk('Responsive',s.responsiveness,'/100',s.respWhy), mk('Urgency',s.urgency,'/100',s.urgencyWhy), mk('Mandate win',s.mandateWin,'%',s.mandateWhy) ];
     }
 
