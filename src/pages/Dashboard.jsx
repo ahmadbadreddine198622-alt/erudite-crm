@@ -359,6 +359,94 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Stats Row — compact single row of 4 */}
+      <div
+        className="grid grid-cols-4 max-w-4xl w-full mx-auto"
+        style={{ gap: 12, marginBottom: 24, marginTop: 40 }}
+      >
+        {/* Active Leads */}
+        <button
+          onClick={() => navigate('/leads')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
+        </button>
+
+        {/* Reminders */}
+        <button
+          onClick={() => navigate('/reminders')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
+        </button>
+
+        {/* Unread */}
+        <button
+          onClick={() => navigate('/whatsapp')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
+        </button>
+
+        {/* Hot Leads */}
+        <button
+          onClick={() => navigate('/leads')}
+          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+        >
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <TrendingUp className="w-4 h-4" style={{ color: '#34d399' }} />
+          </div>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
+        </button>
+      </div>
+
+      {/* Vibrant decorative line under stats — matches app color theme */}
+      <div className="w-full max-w-4xl mx-auto mb-6">
+        <div
+          className="relative w-full h-1.5 rounded-full overflow-hidden"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.4) 15%, rgba(245,158,11,0.9) 35%, rgba(16,185,129,0.7) 50%, rgba(245,158,11,0.9) 65%, rgba(245,158,11,0.4) 85%, transparent 100%)',
+            boxShadow: '0 0 24px rgba(245,158,11,0.5), 0 0 48px rgba(16,185,129,0.3), inset 0 0 12px rgba(255,255,255,0.15)',
+          }}
+        >
+          {/* Animated shimmer */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmerSlide 4s ease-in-out infinite',
+            }}
+          />
+          {/* Colorful glow underneath */}
+          <div
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2/3 h-3 rounded-full blur-md"
+            style={{
+              background: 'radial-gradient(ellipse, rgba(245,158,11,0.7) 0%, rgba(16,185,129,0.5) 40%, rgba(59,130,246,0.3) 100%)',
+              filter: 'blur(10px)',
+              opacity: 0.8,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Pipeline Summary Strip */}
       {isLoadingDashboard ? (
         <div className="w-full max-w-4xl mb-6 flex justify-center">
