@@ -294,51 +294,42 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
-      {/* Motivational Quote - pill-shaped bordered container */}
-      <div className="w-full max-w-lg mx-auto mb-3">
-        <div
-          className="px-5 py-2.5 rounded-full text-center"
-          style={{
-            border: '1px solid rgba(125,131,150,0.4)',
-            background: 'rgba(255,255,255,0.02)',
-          }}
-        >
-          <p
-            className="text-xs font-medium"
-            style={{
-              color: 'rgba(255,255,255,0.65)',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {QUOTES[quoteIndex]}
-          </p>
-        </div>
-      </div>
-
-      {/* Search bar - constrained width */}
-      <div className="relative mb-4 w-full max-w-[480px] mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+      {/* Smart Search Bar with Motivational Quote Placeholder */}
+      <div className="relative mb-4 w-full max-w-lg mx-auto">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search apps..."
-          className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none transition-all"
+          placeholder={search ? '' : QUOTES[quoteIndex]}
+          className="w-full pl-11 pr-4 py-3 rounded-full text-sm border focus:outline-none transition-all"
           style={{
-            background: 'rgba(255,255,255,0.05)',
+            background: 'rgba(26,43,61,0.85)',
             backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(58,77,101,0.6)',
             color: 'rgba(255,255,255,0.95)',
+            fontSize: '13px',
+            fontStyle: search ? 'normal' : 'italic',
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50% / 0.5)';
-            e.target.style.background = 'rgba(255,255,255,0.08)';
+            e.target.style.borderColor = 'hsl(38 92% 50% / 0.6)';
+            e.target.style.background = 'rgba(30,50,75,0.9)';
+            e.target.style.boxShadow = '0 0 0 2px hsl(38 92% 50% / 0.15)';
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.08)';
-            e.target.style.background = 'rgba(255,255,255,0.05)';
+            e.target.style.borderColor = 'rgba(58,77,101,0.6)';
+            e.target.style.background = 'rgba(26,43,61,0.85)';
+            e.target.style.boxShadow = 'none';
           }}
         />
+        {/* Subtle search hint icon on right */}
+        {!search && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <Search className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Logged-in account badge with foldable profile */}
