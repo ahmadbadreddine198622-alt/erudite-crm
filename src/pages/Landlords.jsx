@@ -395,7 +395,7 @@ export default function Landlords() {
     >
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
-      <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+      <div className="shrink-0 sticky top-0 z-20 pt-12 pb-2" style={{ paddingLeft: '11rem', paddingRight: '0.5rem' }}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
