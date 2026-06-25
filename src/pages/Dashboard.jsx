@@ -294,21 +294,21 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
-      {/* Smart Search Bar with Motivational Quote Placeholder */}
-      <div className="relative mb-4 w-full max-w-lg mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+      {/* Smart Search Bar with Motivational Quote Placeholder - Full Width */}
+      <div className="relative mb-4 w-full max-w-6xl mx-auto">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={search ? '' : QUOTES[quoteIndex]}
-          className="w-full pl-11 pr-4 py-3 rounded-full text-sm border focus:outline-none transition-all"
+          className="w-full pl-14 pr-12 py-3.5 rounded-full text-sm border focus:outline-none transition-all"
           style={{
             background: 'rgba(26,43,61,0.85)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(58,77,101,0.6)',
             color: 'rgba(255,255,255,0.95)',
-            fontSize: '13px',
+            fontSize: '14px',
             fontStyle: search ? 'normal' : 'italic',
           }}
           onFocus={(e) => {
@@ -324,9 +324,9 @@ export default function Dashboard() {
         />
         {/* Subtle search hint icon on right */}
         {!search && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Search className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <Search className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
             </div>
           </div>
         )}
