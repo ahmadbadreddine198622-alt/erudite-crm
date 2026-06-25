@@ -91,36 +91,80 @@ function FolderThumbnail({ apps }) {
   const preview = apps.slice(0, 4);
   return (
     <div
-      className="grid grid-cols-2 gap-4 p-4 rounded-3xl"
       style={{
-        width: 160, height: 160,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '16px',
+        padding: '16px',
+        width: '160px',
+        height: '160px',
+        borderRadius: '24px',
         background: 'rgba(255,255,255,0.08)',
         border: '1px solid rgba(255,255,255,0.12)',
+        boxSizing: 'border-box',
+        WebkitBoxSizing: 'border-box',
       }}
     >
       {Array.from({ length: 4 }).map((_, i) => {
         const app = preview[i];
         if (!app) return (
-          <div key={i} className="rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)' }} />
+          <div key={i} style={{ borderRadius: '16px', background: 'rgba(255,255,255,0.05)' }} />
         );
         const Icon = app.icon;
+        // Parse gradient colors for Safari-compatible inline styles
+        const getGradient = (gradient) => {
+          if (!gradient) return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+          // Handle Tailwind-like gradients: from-purple-500 to-pink-500
+          const colorMap = {
+            'purple-500': '#a855f7', 'purple-600': '#9333ea',
+            'pink-500': '#ec4899', 'pink-600': '#db2777',
+            'blue-500': '#3b82f6', 'blue-600': '#2563eb',
+            'green-500': '#22c55e', 'green-600': '#16a34a',
+            'orange-500': '#f97316', 'orange-600': '#ea580c',
+            'red-500': '#ef4444', 'red-600': '#dc2626',
+            'slate-600': '#475569', 'slate-800': '#1e293b',
+            'indigo-500': '#6366f1', 'indigo-600': '#4f46e5',
+            'cyan-500': '#06b6d4', 'cyan-600': '#0891b2',
+            'rose-500': '#f43f5e', 'rose-600': '#e11d48',
+            'amber-500': '#f59e0b', 'amber-600': '#d97706',
+            'emerald-500': '#10b981', 'emerald-600': '#059669',
+          };
+          const match = gradient.match(/from-(\w+-\d+)\s+to-(\w+-\d+)/);
+          if (match) {
+            const from = colorMap[match[1]] || '#667eea';
+            const to = colorMap[match[2]] || '#764ba2';
+            return `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
+          }
+          return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        };
         return (
           <div
             key={app.label}
-            className="rounded-2xl flex items-center justify-center shadow-lg"
             style={{
-              background: `linear-gradient(135deg, var(--tw-gradient-from, #333), var(--tw-gradient-to, #111))`,
-              backgroundImage: `linear-gradient(135deg, ${app.gradient?.includes('from-') ? '' : ''})`,
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+              background: getGradient(app.gradient),
             }}
           >
             {/* Use a simple coloured square with the icon — lightweight vs full ExtremeLiquidIcon */}
             <div
-              className={`w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               {Icon ? (
-                <Icon className="w-7 h-7 text-white/95" strokeWidth={1.8} />
+                <Icon style={{ width: '28px', height: '28px', color: 'rgba(255,255,255,0.95)', strokeWidth: 1.8 }} />
               ) : (
-                <span className="text-[11px] text-white/30">?</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>?</span>
               )}
             </div>
           </div>
@@ -184,19 +228,44 @@ function FolderTile({ folder, badges, onOpen }) {
   return (
     <button
       onClick={() => onOpen(folder.id)}
-      className="flex flex-col items-center gap-4 select-none focus:outline-none transition-transform active:scale-95 group"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '16px',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        transform: 'scale(1)',
+        transition: 'transform 0.15s ease',
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
+      }}
+      className="group active:scale-95 focus:outline-none"
     >
       {/* Tile */}
       <div
-        className="relative rounded-3xl p-4 flex flex-col items-center justify-center gap-4 transition-all group-hover:border-amber-500/40"
         style={{
-          width: 180,
-          minHeight: 180,
+          position: 'relative',
+          borderRadius: '24px',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          width: '180px',
+          minHeight: '180px',
           background: 'rgba(255,255,255,0.08)',
           border: '1px solid rgba(255,255,255,0.14)',
           backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+          transition: 'border-color 0.2s ease',
         }}
+        className="group-hover:border-amber-500/40"
       >
         {/* Aggregate badge */}
         {totalBadge > 0 && (
@@ -298,7 +367,20 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   return (
     <>
       {/* Folder grid */}
-      <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-4 gap-x-8 gap-y-10 justify-items-center mx-auto overflow-hidden">
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '896px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '32px',
+          justifyItems: 'center',
+          margin: '0 auto',
+          boxSizing: 'border-box',
+          WebkitBoxSizing: 'border-box',
+        }}
+        className="sm:grid-cols-4"
+      >
         {FOLDERS.map(folder => (
           <FolderTile
             key={folder.id}
