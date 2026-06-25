@@ -1126,7 +1126,7 @@ class LandlordDetail extends React.Component {
 
           {/* Top bar — centered banner with action buttons */}
           <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
-            <div style={css("display:flex; align-items:center; gap:6px;")}>
+            <div style={css("display:flex; align-items:center; gap:6px; padding-left:56px;")}>
               <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
                 <span style={css("display:block; width:14px; height:2px; background:#ccaa66; margin-bottom:2px; border-radius:1px;")}></span>
                 <span style={css("display:block; width:14px; height:2px; background:#808080; margin-bottom:2px; border-radius:1px;")}></span>
