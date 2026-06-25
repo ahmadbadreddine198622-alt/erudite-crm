@@ -200,7 +200,7 @@ export default function EruditeHeroBanner() {
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark PNG - fully visible, centered */}
+        {/* ERUDITE wordmark - elegant with subtle motion */}
         <div
           className={`relative transition-all duration-1000 ease-out ${showWordmark ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
         >
@@ -208,28 +208,30 @@ export default function EruditeHeroBanner() {
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #F8F8F8 12%, #D4AF37 45%, #C9A961 68%, #E5C875 100%)',
               backgroundSize: '100% 200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.3))',
-              letterSpacing: '0.05em',
+              filter: 'drop-shadow(0 4px 20px rgba(212,175,55,0.4))',
+              letterSpacing: '0.08em',
+              animation: 'metallicFlow 8s ease-in-out infinite',
             }}
           >
             ERUDITE
           </h1>
         </div>
 
-        {/* REAL ESTATE — elegant subtitle */}
+        {/* CRM — elegant subtitle with subtle glow */}
         <p
-          className={`text-sm md:text-base font-light tracking-[0.35em] uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+          className={`text-sm md:text-base font-light tracking-[0.45em] uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
           style={{
-            color: 'rgba(255,255,255,0.7)',
-            textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+            color: 'rgba(255,255,255,0.85)',
+            textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
+            animation: 'shimmerGlow 6s ease-in-out infinite',
           }}
         >
-          Real Estate
+          CRM
         </p>
 
         {/* Elegant decorative line with subtle gradient - positioned BELOW Real Estate */}
