@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 
 const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
@@ -64,7 +64,7 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
+function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const navigate = useNavigate();
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
@@ -535,3 +535,20 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
     </div>
   );
 }
+
+// Memoized so a drag (which re-renders the board on every pointer move) only repaints the
+// card whose props actually changed — not all ~600 cards. Without this, dragging hangs.
+export default memo(LandlordCard, (prev, next) => {
+  const a = prev.landlord, b = next.landlord;
+  return (
+    a === b &&
+    prev.isSelected === next.isSelected &&
+    prev.isDragging === next.isDragging &&
+    prev.isChecked === next.isChecked &&
+    prev.users === next.users &&
+    prev.photographyTasks === next.photographyTasks &&
+    prev.getPhotoForPhone === next.getPhotoForPhone &&
+    prev.onToggleCheck === next.onToggleCheck &&
+    prev.onSingleAssign === next.onSingleAssign
+  );
+});
