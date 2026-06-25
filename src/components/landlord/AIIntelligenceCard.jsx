@@ -38,10 +38,18 @@ const FONT_TITLE = "'Cormorant Garamond', serif";
 const FONT_BODY = "'Montserrat', sans-serif";
 
 /* Score pill colour: ≥67 green, 34-66 amber, ≤33 red (pipeline accents). */
-function scorePillMeta(val) {
-  if (val >= 67) return { color: '#34d399', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' };
-  if (val >= 34) return { color: GOLD_SOFT, bg: 'rgba(201,162,75,0.15)', border: 'rgba(201,162,75,0.32)' };
-  return { color: '#f87171', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' };
+// TRUST / URGENCY / WIN pills — always the gold/amber accent (pipeline-card style),
+// independent of value. Fill ~12% opacity, border ~30%, text at full strength.
+function scorePillMeta() {
+  return { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' };
+}
+
+// Status (momentum) pill — green when active, red when stalled, gold otherwise.
+function momentumPillMeta(momentum) {
+  const s = String(momentum || '').toLowerCase();
+  if (/active|hot|building|surge|accelerat|strong|warm/.test(s)) return { color: 'hsl(142 71% 45%)', bg: 'hsl(142 71% 45% / 0.12)', border: 'hsl(142 71% 45% / 0.3)' };
+  if (/stall|stuck|cold|dormant|dead|lost/.test(s)) return { color: 'hsl(0 72% 51%)', bg: 'hsl(0 72% 51% / 0.12)', border: 'hsl(0 72% 51% / 0.3)' };
+  return { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' };
 }
 
 // Priority scale (pipeline tokens): urgent = red, high = amber/orange, medium = blue, low = grey.
@@ -60,13 +68,14 @@ const chevronStyle = (collapsed) => ({
 
 function ScorePill({ label, value, suffix, rationale, displayOnly }) {
   const [showTip, setShowTip] = useState(false);
-  if (value == null) return null;
-  const c = scorePillMeta(value);
+  const c = scorePillMeta();
+  // Type-guard: render a dash instead of crashing when the value is null/undefined.
+  const display = (value == null) ? '—' : (value + (suffix || ''));
   if (displayOnly) {
     return (
-      <span style={css("display:inline-flex; align-items:baseline; gap:3px; padding:3px 9px; borderRadius:99px; fontSize:11px; fontWeight:700; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; whiteSpace:nowrap;")}>
-        <span style={css("fontSize:9px; textTransform:uppercase; letterSpacing:0.04em; opacity:0.7;")}>{label}</span>
-        <span style={css("fontSize:13px;")}>{value}{suffix}</span>
+      <span style={css("display:inline-flex; align-items:baseline; gap:5px; padding:4px 12px; borderRadius:99px; fontSize:12px; fontWeight:500; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; whiteSpace:nowrap; fontFamily:'Montserrat',sans-serif;")}>
+        <span style={css("fontSize:10px; textTransform:uppercase; letterSpacing:0.06em; opacity:0.85;")}>{label}</span>
+        <span style={css("fontSize:12px; fontWeight:600;")}>{display}</span>
       </span>
     );
   }
@@ -76,10 +85,10 @@ function ScorePill({ label, value, suffix, rationale, displayOnly }) {
         onClick={() => rationale && setShowTip(s => !s)}
         onMouseEnter={() => rationale && setShowTip(true)}
         onMouseLeave={() => setShowTip(false)}
-        style={css("display:inline-flex; align-items:baseline; gap:3px; padding:3px 9px; borderRadius:99px; fontSize:11px; fontWeight:700; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; cursor:"+(rationale ? 'pointer' : 'default')+"; fontFamily:'Montserrat',sans-serif; whiteSpace:nowrap;")}
+        style={css("display:inline-flex; align-items:baseline; gap:5px; padding:4px 12px; borderRadius:99px; fontSize:12px; fontWeight:500; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; cursor:"+(rationale ? 'pointer' : 'default')+"; fontFamily:'Montserrat',sans-serif; whiteSpace:nowrap;")}
       >
-        <span style={css("fontSize:9px; textTransform:uppercase; letterSpacing:0.04em; opacity:0.7;")}>{label}</span>
-        <span style={css("fontSize:13px;")}>{value}{suffix}</span>
+        <span style={css("fontSize:10px; textTransform:uppercase; letterSpacing:0.06em; opacity:0.85;")}>{label}</span>
+        <span style={css("fontSize:12px; fontWeight:600;")}>{display}</span>
       </button>
       {showTip && rationale && (
         <div style={css("position:absolute; top:100%; right:0; marginTop:4px; maxWidth:220px; padding:7px 10px; borderRadius:8px; background:rgba(15,20,35,0.97); border:1px solid rgba(255,255,255,0.12); fontSize:11px; lineHeight:1.4; color:rgba(255,255,255,0.75); zIndex:10; boxShadow:0 8px 24px rgba(0,0,0,0.5);")}>
@@ -166,11 +175,11 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" displayOnly />}
               </span>
             )}
-            {hasMomentum && (
-              <span style={css("display:inline-flex; align-items:center; padding:2px 7px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>
+            {hasMomentum && (() => { const m = momentumPillMeta(ai.momentum); return (
+              <span style={css("display:inline-flex; align-items:center; padding:4px 12px; borderRadius:99px; fontSize:10px; fontWeight:500; textTransform:uppercase; letterSpacing:0.06em; background:"+m.bg+"; border:1px solid "+m.border+"; color:"+m.color+"; whiteSpace:nowrap; fontFamily:'Montserrat',sans-serif;")}>
                 {ai.momentum}
               </span>
-            )}
+            ); })()}
             <ChevronDown size={12} style={chevronStyle(true)} />
           </span>
         </button>
@@ -198,11 +207,11 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                     {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" rationale={ai.winRationale} />}
                   </div>
                 )}
-                {hasMomentum && (
-                  <span style={css("display:inline-flex; align-items:center; padding:2px 7px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>
+                {hasMomentum && (() => { const m = momentumPillMeta(ai.momentum); return (
+                  <span style={css("display:inline-flex; align-items:center; padding:4px 12px; borderRadius:99px; fontSize:10px; fontWeight:500; textTransform:uppercase; letterSpacing:0.06em; background:"+m.bg+"; border:1px solid "+m.border+"; color:"+m.color+"; whiteSpace:nowrap; fontFamily:'Montserrat',sans-serif;")}>
                     {ai.momentum}
                   </span>
-                )}
+                ); })()}
                 {ai.strikeNow && (
                   <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, "+GOLD_SOFT+", "+GOLD+"); border:1px solid "+GOLD_SOFT+"; color:#0B1F3A; box-shadow:0 0 8px rgba(201,162,75,0.4); whiteSpace:nowrap;")}>
                     ⚡ STRIKE
