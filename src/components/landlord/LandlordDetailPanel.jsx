@@ -10,6 +10,7 @@ import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
 import CommentsThread from "@/components/photography/CommentsThread";
 import ListingNotesThread from './ListingNotesThread';
+import LandlordCommandCenter from './LandlordCommandCenter';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -386,127 +387,33 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const renderContent = () => {
     return (
       <>
-        {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between gap-4" style={{ background: 'hsl(222 47% 9%)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            {landlord.ai_strike_now && (
-              <Badge className="bg-red-500 text-white border-0 animate-pulse shrink-0">
-                <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
-              </Badge>
-            )}
-            {/* Avatar */}
-            {photoUrl ? (
-              <>
-                <button
-                  onClick={() => {
-                    console.log('[LandlordDetailPanel] Avatar clicked, photoUrl:', photoUrl);
-                    setPhotoLightboxOpen(true);
-                  }}
-                  className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-white/20 hover:border-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer"
-                  title="View full-size photo"
-                >
-                  <img src={photoUrl} alt="" className="w-full h-full object-cover" />
-                </button>
-                <Dialog open={photoLightboxOpen} onOpenChange={setPhotoLightboxOpen}>
-                  <DialogContent className="max-w-3xl p-0 overflow-hidden" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-                    <div className="relative w-full h-[85vh] flex items-center justify-center bg-black/95 rounded-lg">
-                      <img src={photoUrl} alt="" className="max-h-full max-w-full object-contain" />
-                      <button
-                        onClick={() => setPhotoLightboxOpen(false)}
-                        className="absolute top-3 right-3 p-2 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
-                      >
-                        <X className="w-5 h-5 text-white" />
-                      </button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </>
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0 border border-accent/30">
-                {(landlord.full_name_en || landlord.full_name || '?')[0]?.toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display font-semibold text-lg truncate" style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}>
-                {landlord.full_name_en || landlord.full_name}
-              </h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {(landlord.unit_reference || landlord.project_name) && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0" style={{ background: 'rgba(250,180,40,0.12)', border: '1px solid rgba(250,180,40,0.3)' }}>
-                    {landlord.unit_reference && (
-                      <span className="text-xs font-bold tabular-nums" style={{ color: 'hsl(38 92% 60%)' }}>
-                        Unit {landlord.unit_reference}
-                      </span>
-                    )}
-                    {landlord.unit_reference && landlord.project_name && (
-                      <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                    )}
-                    {landlord.project_name && (
-                      <span className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'rgba(250,180,40,0.75)' }}>
-                        {landlord.project_name}
-                      </span>
-                    )}
-                    {unitTypeLabel && (
-                      <>
-                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                        <span className="text-xs font-bold" style={{ color: 'hsl(38 92% 70%)' }}>{unitTypeLabel}</span>
-                      </>
-                    )}
-                    {linkedProperty?.area_sqft && (
-                      <>
-                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                        <span className="text-xs font-medium tabular-nums" style={{ color: 'rgba(250,180,40,0.8)' }}>
-                          {Math.round(linkedProperty.area_sqft).toLocaleString()} sqft
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">
-                  {STAGE_LABELS[landlord.stage] || landlord.stage}
-                </Badge>
-              </div>
-              {(landlord.landlord_archetype || landlord.ai_momentum) && (
-                <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
-                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
-                </p>
-              )}
-            </div>
-            <div className="shrink-0">
-              <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAGE_OPTIONS.map((stage) => (
-                    <SelectItem key={stage} value={stage} className="text-xs">
-                      {STAGE_LABELS[stage] || stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <TwilioCallDialog
-              lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
-              size="icon"
-              iconOnly
-            />
-            <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
-            <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
-            <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
-              <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
-              <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin text-accent' : 'text-muted-foreground'}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
-              <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-400' : 'text-muted-foreground'}`} />
-            </Button>
-          </div>
-        </div>
+        {/* Header — Command Center (5 stacked zones) */}
+        <LandlordCommandCenter
+          landlord={landlord}
+          photoUrl={photoUrl}
+          onUpdate={onUpdate}
+          onAct={() => setWhisperOpen(true)}
+          actions={
+            <>
+              <TwilioCallDialog
+                lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
+                size="icon"
+                iconOnly
+              />
+              <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
+              <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
+              <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
+                <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
+              </Button>
+              <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
+                <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin text-accent' : 'text-muted-foreground'}`} />
+              </Button>
+              <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
+                <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-400' : 'text-muted-foreground'}`} />
+              </Button>
+            </>
+          }
+        />
 
         {/* ── MARKET INTELLIGENCE CALL PANEL ─────────────────────── */}
         <MarketIntelligencePanel
@@ -1147,34 +1054,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           {/* AI Insights */}
           <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <LandlordIntelligenceTab landlord={landlord} />
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="px-6 py-5 grid grid-cols-4 gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            {[
-              { label: 'Trust', value: landlord.trust_score != null ? landlord.trust_score : '—', rationale: landlord.trust_score_rationale },
-              { label: 'Response', value: landlord.responsiveness_score != null ? landlord.responsiveness_score : '—', rationale: landlord.responsiveness_score ? 'Computed from average reply time & reply rate in the message thread.' : null },
-              { label: 'Mandate Win', value: landlord.mandate_win_probability != null ? `${(landlord.mandate_win_probability * 100).toFixed(0)}%` : '—', rationale: landlord.mandate_win_rationale },
-              { label: 'Urgency', value: landlord.urgency_score != null ? landlord.urgency_score : '—', rationale: landlord.urgency_score_rationale },
-            ].map(({ label, value, rationale }) => (
-              <div key={label} className="rounded-xl p-3 text-center relative" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.07em' }}>{label}</p>
-                <p className="text-xl font-bold tabular-nums" style={{ color: 'hsl(38 92% 55%)' }}>{value}</p>
-                {rationale && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="absolute top-1.5 right-1.5 p-0.5 rounded hover:bg-white/10 transition-colors">
-                        <Info className="w-2.5 h-2.5 text-muted-foreground" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3 text-xs" style={{ background: 'hsl(222 47% 13%)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
-                      <p className="text-[9px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'hsl(38 92% 55%)' }}>{label} Rationale</p>
-                      {rationale}
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-            ))}
           </div>
 
           {/* Tabs */}
