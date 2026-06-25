@@ -214,11 +214,21 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
+        {/* Horizontal line above Real Estate */}
+        <div
+          className="mb-2"
+          style={{
+            width: 120,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+          }}
+        />
+
         {/* REAL ESTATE — elegant subtitle */}
         <p
-          className="text-[10px] md:text-[11px] font-light tracking-[0.35em] uppercase"
+          className="text-sm md:text-base font-light tracking-[0.35em] uppercase"
           style={{
-            color: 'rgba(255,255,255,0.6)',
+            color: 'rgba(255,255,255,0.7)',
             textShadow: '0 1px 6px rgba(0,0,0,0.5)',
           }}
         >
