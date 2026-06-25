@@ -257,18 +257,18 @@ export default function Landlords() {
   const mandateCount = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed').length;
   const now = new Date();
   const mandatesThisMonth = visibleLandlords.filter(l => {
-    if (l.mandate_status !== 'form_a_signed' || !l.mandate_start_date) return false;
-    const signedDate = new Date(l.mandate_start_date);
+    if (!l.mandate_signed_at) return false;
+    const signedDate = new Date(l.mandate_signed_at);
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
     return signedDate >= monthAgo;
   }).length;
   const avgDaysToFormA = (() => {
-    const withFormA = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_start_date);
+    const withFormA = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
     if (withFormA.length === 0) return 0;
     const totalDays = withFormA.reduce((sum, l) => {
       const created = new Date(l.created_date).getTime();
-      const signed = new Date(l.mandate_start_date).getTime();
+      const signed = new Date(l.mandate_signed_at).getTime();
       return sum + ((signed - created) / (1000 * 60 * 60 * 24));
     }, 0);
     return Math.round(totalDays / withFormA.length);
