@@ -37,6 +37,7 @@ import { commitComposerDraft } from '@/components/landlord/composerCommit';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
+import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1220,11 +1221,15 @@ class LandlordDetail extends React.Component {
                 </div>
               )}
 
-              {/* Conversation & Activity header — moved below AI panel */}
+              {/* Conversation & Activity header — moved below AI panel with animated lion divider */}
               <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:4px 16px 2px;")}>
                 <div>
                   <div style={css("font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
                   <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:1px;")}>{vm.streamCountLabel}</div>
+                </div>
+                {/* Animated lion decorative element */}
+                <div style={css("flex:1; margin:0 16px; position:relative;")}>
+                  <LionAnimatedDivider color="hsl(38 92% 50%)" />
                 </div>
                 <div style={css("display:flex; align-items:center; gap:5px;")}>
                   <button onClick={()=>this.setStreamFilter('business')} style={vm.businessPillStyle}>
