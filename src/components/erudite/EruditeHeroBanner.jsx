@@ -187,31 +187,7 @@ export default function EruditeHeroBanner() {
         position: 'relative',
       }}
     >
-      {/* Canvas layer for particles and subtle effects */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0"
-        style={{ pointerEvents: 'none', opacity: 0.3 }}
-      />
-
-      {/* Ultra-subtle atmospheric haze */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.008) 0%, transparent 55%)',
-          filter: 'blur(60px)',
-        }}
-      />
-
-      {/* Minimal glass reflections */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.008) 0%, transparent 50%, rgba(255,255,255,0.004) 100%)',
-        }}
-      />
-
-      {/* Main content — refined logo */}
+      {/* Main content — pure logo, no background */}
       <div
         className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-3"
         style={{
@@ -269,14 +245,6 @@ export default function EruditeHeroBanner() {
           />
         </div>
       </div>
-
-      {/* Subtle vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.12) 75%, rgba(0,0,0,0.18) 100%)',
-        }}
-      />
 
       {/* CSS Animations */}
       <style>{`
