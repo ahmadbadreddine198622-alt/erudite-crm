@@ -1705,7 +1705,7 @@ class LandlordDetail extends React.Component {
                 {tab.isList && (
                   <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
                     {tab.rows.map((r,i)=>(
-                      <div key={i} style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
+                      <div key={i} style={css("border-radius:11px; background:"+PIPE_SURFACE+"; border:1px solid "+PIPE_BORDER+"; box-shadow:"+PIPE_SHADOW+"; padding:11px 13px;")}>
                         <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{r.label}</div>
                         <div style={r.valueStyle}>{r.value}</div>
                       </div>
@@ -1767,7 +1767,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:7px;")}>Offers received</div>
                     <div style={css("display:flex; flex-direction:column; gap:6px;")}>
                       {tab.offers.map((of)=>(
-                        <div key={of.key} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                        <div key={of.key} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; background:"+PIPE_SURFACE+"; border:1px solid "+PIPE_BORDER+"; box-shadow:"+PIPE_SHADOW+";")}>
                           <div>
                             <div style={css("font-size:12.5px; font-weight:600; color:rgba(255,255,255,0.85);")}>{of.who}</div>
                             <div style={css("font-size:11px; color:rgba(255,255,255,0.45); margin-top:1px;")}>{of.time}</div>
