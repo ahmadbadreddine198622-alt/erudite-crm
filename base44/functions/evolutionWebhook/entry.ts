@@ -421,15 +421,21 @@ Deno.serve(async (req) => {
     if (!data) return Response.json({ status: 'no_data' });
 
     const key = data.key || {};
-    const remoteJid = key.remoteJid || '';
+    let remoteJid = key.remoteJid || '';
     const fromMe = key.fromMe === true;
     const waMessageId = key.id || '';
 
     if (remoteJid.includes('@g.us')) return Response.json({ status: 'skipped_group' });
     if (remoteJid.includes('@broadcast') || remoteJid === 'status@broadcast') return Response.json({ status: 'skipped_broadcast' });
 
+    // @lid (Linked ID) — Evolution v2 privacy JID format used by some instances (e.g. Samy).
+    // The actual phone is stored in key.remoteJidAlt. Fall back to it so messages are routed correctly.
+    if (remoteJid.includes('@lid') && key.remoteJidAlt) {
+      remoteJid = key.remoteJidAlt;
+    }
+
     const digitsPhone = jidToDigits(remoteJid);
-    if (!digitsPhone) return Response.json({ status: 'no_phone' });
+    if (!digitsPhone || remoteJid.includes('@lid')) return Response.json({ status: 'no_phone', remoteJid });
 
     const e164Phone = normalizePhone(digitsPhone);
     const timestamp = tsToIso(data.messageTimestamp);
