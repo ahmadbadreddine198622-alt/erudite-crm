@@ -84,8 +84,20 @@ const PIPE_SURFACE = '#0B1F3A';
 const PIPE_BORDER = 'rgba(201,162,75,0.18)';
 const PIPE_SHADOW = '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
 const GOLD = '#C9A24B';
+const GOLD_HSL = 'hsl(38 92% 50%)';
+const GOLD_SOFT = 'hsl(38 92% 62%)';
 const FONT_TITLE = "'Cormorant Garamond','Playfair Display',serif";
 const FONT_BODY = "'Montserrat','Inter',sans-serif";
+
+/* Semantic colors — only where meaning is carried. */
+const SEMANTIC = {
+  red: '#f87171',
+  green: '#34d399',
+  amber: GOLD_SOFT,
+  blue: '#93c5fd',
+  purple: '#c4b5fd',
+  slate: 'rgba(255,255,255,0.5)',
+};
 
 class LandlordDetail extends React.Component {
   constructor(props) {
@@ -798,13 +810,13 @@ class LandlordDetail extends React.Component {
   // used IDENTICALLY here (score cards) and in the AI Intelligence strip (AIIntelligenceCard).
   scoreColor(n){ return themeScoreColor(n); }
   tempMeta(t){
-    if(t==='hot') return { label:'🔥 Hot', bg:'rgba(239,68,68,0.16)', border:'rgba(239,68,68,0.4)', color:'#fca5a5' };
-    if(t==='warm') return { label:'☀ Warm', bg:'hsl(38 92% 50% / 0.16)', border:'hsl(38 92% 50% / 0.4)', color:'hsl(38 92% 62%)' };
-    return { label:'❄ Cold', bg:'rgba(59,130,246,0.16)', border:'rgba(59,130,246,0.4)', color:'#93c5fd' };
+    if(t==='hot') return { label:'🔥 Hot', bg:'rgba(239,68,68,0.12)', border:'rgba(239,68,68,0.3)', color:'hsl(0 72% 51%)' };
+    if(t==='warm') return { label:'☀ Warm', bg:'hsl(38 92% 50% / 0.12)', border:'hsl(38 92% 50% / 0.3)', color:'hsl(38 92% 62%)' };
+    return { label:'❄ Cold', bg:'rgba(255,255,255,0.04)', border:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.6)' };
   }
   tempChip(t){ const m=this.tempMeta(t); return { display:'inline-flex', alignItems:'center', flex:'none', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:m.bg, border:'1px solid '+m.border, color:m.color, whiteSpace:'nowrap' }; }
   actKindMeta(k){
-    const map={ call:['📞','rgba(59,130,246,0.18)','#93c5fd'], note:['📝','rgba(148,163,184,0.18)','rgba(255,255,255,0.7)'], task:['✓','rgba(16,185,129,0.18)','#34d399'], followup:['↻','hsl(38 92% 50% / 0.18)','hsl(38 92% 62%)'], appointment:['📅','rgba(139,92,246,0.18)','#c4b5fd'], stage:['⇪','rgba(16,185,129,0.18)','#34d399'] };
+    const map={ call:['📞','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'], note:['📝','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'], task:['✓','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'], followup:['↻','hsl(38 92% 50% / 0.12)','hsl(38 92% 62%)'], appointment:['📅','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'], stage:['⇪','rgba(255,255,255,0.06)','rgba(255,255,255,0.7)'] };
     return map[k]||map.note;
   }
   sugMeta(type){
@@ -824,7 +836,7 @@ class LandlordDetail extends React.Component {
     return { label:m[0], chipStyle:{ display:'inline-flex', alignItems:'center', flex:'none', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:m[1], border:'1px solid '+m[2], color:m[3], whiteSpace:'nowrap' } };
   }
   priorityMeta(p){
-    const map={ urgent:['#f87171','rgba(239,68,68,0.12)','rgba(239,68,68,0.35)'], high:['hsl(38 92% 62%)','hsl(38 92% 50% / 0.1)','hsl(38 92% 50% / 0.3)'], medium:['#93c5fd','rgba(59,130,246,0.1)','rgba(59,130,246,0.3)'], low:['rgba(255,255,255,0.6)','rgba(255,255,255,0.04)','rgba(255,255,255,0.12)'] };
+    const map={ urgent:['hsl(0 72% 51%)','hsl(0 72% 51% / 0.12)','hsl(0 72% 51% / 0.3)'], high:['hsl(38 92% 62%)','hsl(38 92% 50% / 0.12)','hsl(38 92% 50% / 0.3)'], medium:['rgba(255,255,255,0.7)','rgba(255,255,255,0.06)','rgba(255,255,255,0.15)'], low:['rgba(255,255,255,0.5)','rgba(255,255,255,0.04)','rgba(255,255,255,0.1)'] };
     return map[p]||map.medium;
   }
 
@@ -926,13 +938,13 @@ class LandlordDetail extends React.Component {
       name:L.name, initials:L.initials,
       avatarStyle:{ flex:'none', width:'52px', height:'52px', borderRadius:'14px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', fontWeight:700, color:'hsl(38 92% 62%)', background:'hsl(38 92% 50% / 0.12)', border:'1px solid hsl(38 92% 50% / 0.32)' },
       archetype:this.titleize(L.archetype),
-      archetypeStyle:{ display:'inline-flex', alignItems:'center', padding:'3px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:700, letterSpacing:'0.03em', textTransform:'uppercase', background:'rgba(139,92,246,0.14)', border:'1px solid rgba(139,92,246,0.32)', color:'#c4b5fd' },
+      archetypeStyle:{ display:'inline-flex', alignItems:'center', padding:'3px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:700, letterSpacing:'0.03em', textTransform:'uppercase', background:'rgba(201,162,75,0.12)', border:'1px solid rgba(201,162,75,0.32)', color:GOLD_SOFT },
       bedsSqft: L.unit.beds+' · '+L.unit.sqft,
       unitBuilding: L.unit.building,
       unitLabel: L.unit.label,
       askingLabel: 'Asking '+L.unit.asking,
       stageLabel:this.STAGES[L.stageIndex-1],
-      stageStyle:{ display:'inline-flex', alignItems:'center', padding:'5px 12px', borderRadius:'99px', fontSize:'11.5px', fontWeight:700, background:'rgba(139,92,246,0.16)', border:'1px solid rgba(139,92,246,0.4)', color:'#c4b5fd' },
+      stageStyle:{ display:'inline-flex', alignItems:'center', padding:'5px 12px', borderRadius:'99px', fontSize:'11.5px', fontWeight:700, background:'rgba(201,162,75,0.14)', border:'1px solid rgba(201,162,75,0.4)', color:GOLD_SOFT },
       tempLabel:rm.label, tempChipStyle:rm.chipStyle,
       phone: L.phone && L.phone !== '—' ? L.phone : null,
     };
@@ -1083,25 +1095,25 @@ class LandlordDetail extends React.Component {
         color: filterMode==='business' ? '#4ade80' : 'rgba(74,222,128,0.5)' },
       businessDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='business' ? '#25D366' : 'rgba(37,211,102,0.35)' },
       personalPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-        background: filterMode==='personal' ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.05)',
-        border: '1px solid '+(filterMode==='personal' ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.18)'),
-        color: filterMode==='personal' ? '#93c5fd' : 'rgba(147,197,253,0.5)' },
-      personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='personal' ? '#3b82f6' : 'rgba(59,130,246,0.35)' },
+        background: filterMode==='personal' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid '+(filterMode==='personal' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)'),
+        color: filterMode==='personal' ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)' },
+      personalDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='personal' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)' },
       emailPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
         background: filterMode==='email' ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.05)',
         border: '1px solid '+(filterMode==='email' ? 'hsl(38 92% 50% / 0.5)' : 'hsl(38 92% 50% / 0.18)'),
         color: filterMode==='email' ? 'hsl(38 92% 62%)' : 'hsl(38 92% 50% / 0.5)' },
       emailDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='email' ? 'hsl(38 92% 55%)' : 'hsl(38 92% 50% / 0.35)' },
       imessagePillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-        background: filterMode==='imessage' ? 'rgba(10,132,255,0.2)' : 'rgba(10,132,255,0.05)',
-        border: '1px solid '+(filterMode==='imessage' ? 'rgba(10,132,255,0.5)' : 'rgba(10,132,255,0.18)'),
-        color: filterMode==='imessage' ? '#60a5fa' : 'rgba(96,165,250,0.5)' },
-      imessageDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='imessage' ? '#0A84FF' : 'rgba(10,132,255,0.35)' },
+        background: filterMode==='imessage' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid '+(filterMode==='imessage' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)'),
+        color: filterMode==='imessage' ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)' },
+      imessageDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='imessage' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)' },
       telegramPillStyle:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'5px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-        background: filterMode==='telegram' ? 'rgba(41,182,246,0.2)' : 'rgba(41,182,246,0.05)',
-        border: '1px solid '+(filterMode==='telegram' ? 'rgba(41,182,246,0.5)' : 'rgba(41,182,246,0.18)'),
-        color: filterMode==='telegram' ? '#4fc3f7' : 'rgba(79,195,247,0.5)' },
-      telegramDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='telegram' ? '#29b6f6' : 'rgba(41,182,246,0.35)' },
+        background: filterMode==='telegram' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid '+(filterMode==='telegram' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.1)'),
+        color: filterMode==='telegram' ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)' },
+      telegramDotStyle:{ width:'6px', height:'6px', borderRadius:'50%', background: filterMode==='telegram' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)' },
       analyzing:S.analyzing, notAnalyzing:!S.analyzing,
       aiReady: hasAIProcessed, aiEmpty: !hasAIProcessed,
       ai, showCoaching,
@@ -1178,10 +1190,10 @@ class LandlordDetail extends React.Component {
                   if (!chips.length) return null;
                   const collapsed = this.state.aiTasksCollapsed;
                   return (
-                    <div style={css("border-radius:12px; border:1px solid rgba(139,92,246,0.22); background:rgba(139,92,246,0.04); overflow:hidden;")}>
+                    <div style={css("border-radius:12px; border:1px solid rgba(201,162,75,0.22); background:rgba(201,162,75,0.04); overflow:hidden;")}>
                       <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 13px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                        <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                        <span style={css("display:inline-flex; align-items:center; gap:7px; font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:"+GOLD_SOFT+";")}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={GOLD_SOFT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                           AI Tasks
                           <span style={css("font-size:8.5px; font-weight:600; color:rgba(255,255,255,0.4);")}>{chips.length}</span>
                         </span>
@@ -1199,11 +1211,11 @@ class LandlordDetail extends React.Component {
                                 title={chip.reason || label}
                                 style={css(
                                   "display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left; width:100%; padding:6px 9px; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif; "+
-                                  "background:"+(isActive ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.06)")+"; "+
-                                  "border:1px solid "+(isActive ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.22)")+";"
+                                  "background:"+(isActive ? "rgba(201,162,75,0.2)" : "rgba(201,162,75,0.06)")+"; "+
+                                  "border:1px solid "+(isActive ? "rgba(201,162,75,0.55)" : "rgba(201,162,75,0.22)")+";"
                                 )}
                               >
-                                <span style={css("font-size:11px; font-weight:600; color:"+(isActive ? "#ddd6fe" : "rgba(255,255,255,0.85)")+";")}>{label}</span>
+                                <span style={css("font-size:11px; font-weight:600; color:"+(isActive ? "hsl(38 92% 65%)" : "rgba(255,255,255,0.85)")+";")}>{label}</span>
                                 {chip.reason && (
                                   <span style={css("font-size:9.5px; line-height:1.3; color:rgba(255,255,255,0.5);")}>{chip.reason}</span>
                                 )}
