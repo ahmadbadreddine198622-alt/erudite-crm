@@ -20,7 +20,7 @@ import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
-import PipelineStrip from '@/components/dashboard/PipelineStrip';
+import SmartPipelineVisualizer from '@/components/dashboard/SmartPipelineVisualizer';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 
@@ -410,13 +410,13 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Pipeline Summary Strip */}
+      {/* Smart Pipeline Visualizer */}
       {isLoadingDashboard ? (
-        <div className="w-full max-w-4xl mb-8 flex justify-center">
+        <div className="w-full max-w-6xl mb-12 flex justify-center">
           <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <PipelineStrip phaseCounts={phaseCounts} />
+        <SmartPipelineVisualizer phaseCounts={phaseCounts} />
       )}
 
       {/* Clock */}
