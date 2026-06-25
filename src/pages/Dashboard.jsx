@@ -240,10 +240,9 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 pb-8 pt-6 overflow-hidden"
+      className="relative min-h-screen flex flex-col items-center px-4 pb-8 pt-6"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
-        maxWidth: '100vw',
       }}
     >
       {/* Animated Hero Banner - dedicated container, no clipping */}
@@ -363,7 +362,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 12, marginBottom: 20, marginTop: 40 }}
+        style={{ gap: 12, marginBottom: 24, marginTop: 40 }}
       >
         {/* Active Leads */}
         <button
@@ -418,7 +417,35 @@ export default function Dashboard() {
         </button>
       </div>
 
-
+      {/* Vibrant decorative line under stats — matches app color theme */}
+      <div className="w-full max-w-4xl mx-auto mb-6">
+        <div
+          className="relative w-full h-1.5 rounded-full overflow-hidden"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.4) 15%, rgba(245,158,11,0.9) 35%, rgba(16,185,129,0.7) 50%, rgba(245,158,11,0.9) 65%, rgba(245,158,11,0.4) 85%, transparent 100%)',
+            boxShadow: '0 0 24px rgba(245,158,11,0.5), 0 0 48px rgba(16,185,129,0.3), inset 0 0 12px rgba(255,255,255,0.15)',
+          }}
+        >
+          {/* Animated shimmer */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmerSlide 4s ease-in-out infinite',
+            }}
+          />
+          {/* Colorful glow underneath */}
+          <div
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2/3 h-3 rounded-full blur-md"
+            style={{
+              background: 'radial-gradient(ellipse, rgba(245,158,11,0.7) 0%, rgba(16,185,129,0.5) 40%, rgba(59,130,246,0.3) 100%)',
+              filter: 'blur(10px)',
+              opacity: 0.8,
+            }}
+          />
+        </div>
+      </div>
 
       {/* Pipeline Summary Strip */}
       {isLoadingDashboard ? (
