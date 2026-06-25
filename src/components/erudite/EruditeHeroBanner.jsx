@@ -50,46 +50,46 @@ export default function EruditeHeroBanner() {
   return (
     <div
       ref={bannerRef}
-      className="relative w-full overflow-hidden rounded-3xl mb-6"
+      className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 200,
-        maxHeight: 240,
-        background: 'radial-gradient(ellipse at 50% -20%, rgba(20,35,60,0.75) 0%, rgba(10,20,40,0.82) 40%, rgba(5,12,25,0.9) 100%)',
-        backdropFilter: 'blur(30px) saturate(180%)',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.4)',
-        border: '1px solid rgba(201,162,75,0.25)',
-        transform: !prefersReducedMotion.current ? `perspective(1000px) rotateX(${mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg)` : 'none',
+        minHeight: 110,
+        maxHeight: 130,
+        background: 'radial-gradient(ellipse at 50% -30%, rgba(15,25,45,0.35) 0%, rgba(8,15,30,0.42) 50%, rgba(5,10,20,0.5) 100%)',
+        backdropFilter: 'blur(24px) saturate(200%)',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
+        border: '1px solid rgba(201,162,75,0.18)',
+        transform: !prefersReducedMotion.current ? `perspective(800px) rotateX(${mousePos.y * 0.3}deg) rotateY(${mousePos.x * 0.3}deg)` : 'none',
         transition: 'transform 0.1s ease-out',
       }}
     >
-      {/* Animated aurora borealis background */}
+      {/* Animated aurora borealis - ultra subtle */}
       <div
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse at 20% 30%, rgba(212,175,55,0.12) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(100,150,255,0.1) 0%, transparent 45%),
-            radial-gradient(ellipse at 50% 80%, rgba(180,100,255,0.08) 0%, transparent 50%)
+            radial-gradient(ellipse at 25% 40%, rgba(212,175,55,0.06) 0%, transparent 60%),
+            radial-gradient(ellipse at 75% 30%, rgba(100,150,255,0.05) 0%, transparent 55%),
+            radial-gradient(ellipse at 50% 90%, rgba(180,100,255,0.04) 0%, transparent 60%)
           `,
-          animation: !prefersReducedMotion.current ? 'auroraShift 15s ease-in-out infinite' : 'none',
-          filter: 'blur(40px)',
+          animation: !prefersReducedMotion.current ? 'auroraShift 18s ease-in-out infinite' : 'none',
+          filter: 'blur(50px)',
         }}
       />
 
-      {/* Dynamic mesh gradient overlay */}
+      {/* Holographic mesh - barely visible */}
       <div
-        className="absolute inset-0 opacity-50"
+        className="absolute inset-0 opacity-30"
         style={{
           backgroundImage: `
-            repeating-linear-gradient(45deg, rgba(212,175,55,0.02) 0px, rgba(212,175,55,0.02) 2px, transparent 2px, transparent 40px),
-            repeating-linear-gradient(-45deg, rgba(100,150,255,0.02) 0px, rgba(100,150,255,0.02) 2px, transparent 2px, transparent 40px)
+            repeating-linear-gradient(45deg, rgba(212,175,55,0.015) 0px, rgba(212,175,55,0.015) 1px, transparent 1px, transparent 32px),
+            repeating-linear-gradient(-45deg, rgba(100,150,255,0.015) 0px, rgba(100,150,255,0.015) 1px, transparent 1px, transparent 32px)
           `,
-          animation: !prefersReducedMotion.current ? 'meshFlow 20s linear infinite' : 'none',
+          animation: !prefersReducedMotion.current ? 'meshFlow 25s linear infinite' : 'none',
         }}
       />
 
-      {/* Floating energy orbs - multi-layered */}
-      {!prefersReducedMotion.current && particles.map((p) => {
+      {/* Micro particles - subtle */}
+      {!prefersReducedMotion.current && particles.slice(0, 12).map((p) => {
         const colors = ['rgba(212,175,55,', 'rgba(100,180,255,', 'rgba(180,100,255,'];
         const color = colors[p.layer % 3];
         return (
@@ -99,96 +99,59 @@ export default function EruditeHeroBanner() {
             style={{
               left: `${p.x}%`,
               top: `${p.y}%`,
-              width: p.size * 2,
-              height: p.size * 2,
-              background: `radial-gradient(circle, ${color}${p.opacity}) 0%, transparent 70%)`,
-              boxShadow: `0 0 ${p.size * 8}px ${color}${p.opacity * 0.8})`,
-              animation: `orbFloat ${p.duration}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+              width: p.size,
+              height: p.size,
+              background: `radial-gradient(circle, ${color}${p.opacity * 0.5}) 0%, transparent 70%)`,
+              boxShadow: `0 0 ${p.size * 4}px ${color}${p.opacity * 0.4})`,
+              animation: `orbFloat ${p.duration * 0.8}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
               animationDelay: `${p.delay}s`,
             }}
           />
         );
       })}
 
-      {/* Animated concentric rings */}
+      {/* Minimal corner accents */}
       {!prefersReducedMotion.current && (
         <>
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="absolute top-2 left-2 w-8 h-8"
             style={{
-              width: 400,
-              height: 400,
-              border: '1px solid rgba(212,175,55,0.06)',
-              animation: 'ringPulse 8s ease-out infinite',
-            }}
-          />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{
-              width: 300,
-              height: 300,
-              border: '1px solid rgba(100,180,255,0.06)',
-              animation: 'ringPulse 8s ease-out infinite 2s',
-            }}
-          />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{
-              width: 200,
-              height: 200,
-              border: '1px solid rgba(180,100,255,0.06)',
-              animation: 'ringPulse 8s ease-out infinite 4s',
-            }}
-          />
-        </>
-      )}
-
-      {/* Luxury corner accents with glow */}
-      {!prefersReducedMotion.current && (
-        <>
-          <div
-            className="absolute top-3 left-3 w-14 h-14"
-            style={{
-              border: '1px solid rgba(201,162,75,0.2)',
+              border: '1px solid rgba(201,162,75,0.15)',
               borderRight: 'none',
               borderBottom: 'none',
-              borderRadius: '8px 0 0 0',
-              boxShadow: '0 0 20px rgba(201,162,75,0.15)',
-              animation: 'luxuryFadeIn 2s ease-out',
+              borderRadius: '6px 0 0 0',
+              animation: 'luxuryFadeIn 2.5s ease-out',
             }}
           />
           <div
-            className="absolute top-3 right-3 w-16 h-16"
+            className="absolute top-2 right-2 w-8 h-8"
             style={{
-              background: 'linear-gradient(-135deg, rgba(100,180,255,0.12) 0%, transparent 60%)',
-              borderRadius: '0 10px 0 0',
-              border: '1px solid rgba(100,180,255,0.25)',
+              border: '1px solid rgba(100,180,255,0.15)',
               borderLeft: 'none',
               borderBottom: 'none',
-              boxShadow: '0 0 30px rgba(100,180,255,0.2)',
-              animation: 'luxuryFadeIn 2s ease-out 0.15s both',
+              borderRadius: '0 6px 0 0',
+              animation: 'luxuryFadeIn 2.5s ease-out 0.2s both',
             }}
           />
         </>
       )}
 
-      {/* Main content container */}
+      {/* Main content - compact layout */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-6"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-3"
         style={{
-          animation: !prefersReducedMotion.current ? 'elegantFloat 6s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
+          animation: !prefersReducedMotion.current ? 'elegantFloat 5s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
         }}
       >
-        {/* Signature line at top */}
-        <div className="mb-2 relative">
+        {/* Signature line - minimalist */}
+        <div className="mb-1.5 relative">
           <svg
-            width="320"
-            height="28"
-            viewBox="0 0 320 28"
-            style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
+            width="200"
+            height="20"
+            viewBox="0 0 200 20"
+            style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.3))' }}
           >
             <defs>
-              {/* Premium gold gradient */}
               <linearGradient id="signatureGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#C9A961">
                   {!prefersReducedMotion.current && (
@@ -206,10 +169,8 @@ export default function EruditeHeroBanner() {
                   )}
                 </stop>
               </linearGradient>
-
-              {/* Enhanced glow */}
               <filter id="signatureGlow">
-                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
                 <feMerge>
                   <feMergeNode in="coloredBlur" />
                   <feMergeNode in="SourceGraphic" />
@@ -217,81 +178,67 @@ export default function EruditeHeroBanner() {
               </filter>
             </defs>
 
-            {/* Elegant curved path */}
             <path
-              d="M 8 14 C 70 14, 100 8, 130 10 C 160 12, 190 16, 220 14 C 250 12, 280 8, 312 14"
+              d="M 5 10 C 40 10, 55 7, 70 8 C 85 9, 100 11, 115 10 C 130 9, 145 7, 195 10"
               fill="none"
               stroke="url(#signatureGradient)"
-              strokeWidth="1.8"
+              strokeWidth="1.5"
               strokeLinecap="round"
               filter="url(#signatureGlow)"
-              style={{ opacity: 0.9 }}
+              style={{ opacity: 0.85 }}
             />
 
-            {/* Center ornamental flourish */}
-            <circle cx="160" cy="12" r="2.5" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 8px rgba(245,230,163,0.8))' }}>
+            <circle cx="100" cy="9" r="2" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 5px rgba(245,230,163,0.7))' }}>
               {!prefersReducedMotion.current && (
-                <animate attributeName="r" values="2.5;3.2;2.5" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="r" values="2;2.6;2" dur="2.5s" repeatCount="indefinite" />
               )}
             </circle>
 
-            {/* Traveling light effect */}
             {!prefersReducedMotion.current && (
-              <ellipse cx="0" cy="14" rx="25" ry="5" fill="rgba(245,230,163,0.12)">
-                <animate attributeName="cx" from="-25" to="345" dur="8s" repeatCount="indefinite" />
+              <ellipse cx="0" cy="10" rx="18" ry="4" fill="rgba(245,230,163,0.08)">
+                <animate attributeName="cx" from="-18" to="218" dur="10s" repeatCount="indefinite" />
               </ellipse>
             )}
           </svg>
         </div>
 
-        {/* HOLD THE LINE */}
-        <p
-          className="text-[7px] font-extralight tracking-[0.3em] uppercase mb-1"
-          style={{
-            color: 'rgba(210,220,230,0.7)',
-            textShadow: '0 1px 6px rgba(0,0,0,0.4)',
-          }}
-        >
-          Hold The Line
-        </p>
-
-        {/* ERUDITE wordmark */}
+        {/* ERUDITE wordmark - prominent */}
         <h1
-          className="text-5xl md:text-6xl font-semibold tracking-tight mb-1"
+          className="text-4xl md:text-5xl font-bold tracking-tight mb-0.5"
           style={{
             fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-            background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 12%, #D8D8D8 25%, #D4AF37 55%, #C9A961 75%, #E5C875 100%)',
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 10%, #D8D8D8 22%, #D4AF37 52%, #C9A961 72%, #E5C875 100%)',
             backgroundSize: '100% 200%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.6))',
-            animation: !prefersReducedMotion.current ? 'metallicFlow 8s ease-in-out infinite' : 'none',
+            filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.5))',
+            animation: !prefersReducedMotion.current ? 'metallicFlow 7s ease-in-out infinite' : 'none',
           }}
         >
           ERUDITE
         </h1>
 
-        {/* REAL ESTATE */}
+        {/* REAL ESTATE - subtle */}
         <p
-          className="text-[8px] font-light tracking-[0.28em] uppercase"
+          className="text-[7px] font-light tracking-[0.25em] uppercase"
           style={{
             background: 'linear-gradient(135deg, #D4AF37 0%, #C9A961 50%, #E5C875 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            textShadow: '0 1px 6px rgba(212,175,55,0.35)',
+            textShadow: '0 1px 4px rgba(212,175,55,0.3)',
           }}
         >
           Real Estate
         </p>
       </div>
 
-      {/* Vignette overlay for depth */}
+      {/* Ultra-subtle vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 80%, rgba(0,0,0,0.5) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.4) 100%)',
         }}
       />
 
