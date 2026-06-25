@@ -147,25 +147,23 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
   return (
     <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
 
-      {/* Collapsed — thin toggle bar: label + pills + momentum + chevron */}
+      {/* Collapsed — thin toggle bar: chevron + status + pills + label (mirrored RTL flow) */}
       {isCollapsed ? (
-        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
-          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
-          <span style={css("display:flex; align-items:center; gap:4px; flex-wrap:wrap;")}>
-            {hasScores && (
-              <span style={css("display:flex; align-items:center; gap:3px;")}>
-                {hasTrust && <ScorePill label="Trust" value={ai.trust} displayOnly />}
-                {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} displayOnly />}
-                {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" displayOnly />}
-              </span>
-            )}
-            {hasMomentum && (
-              <span style={css("display:inline-flex; align-items:center; padding:2px 7px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>
-                {ai.momentum}
-              </span>
-            )}
-            <ChevronDown size={12} style={chevronStyle(true)} />
-          </span>
+        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:flex-start; gap:10px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
+          <ChevronDown size={12} style={chevronStyle(true)} />
+          {hasMomentum && (
+            <span style={css("display:inline-flex; align-items:center; padding:2px 7px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>
+              {ai.momentum}
+            </span>
+          )}
+          {hasScores && (
+            <span style={css("display:flex; align-items:center; gap:3px; flex-direction:row-reverse;")}>
+              {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" displayOnly />}
+              {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} displayOnly />}
+              {hasTrust && <ScorePill label="Trust" value={ai.trust} displayOnly />}
+            </span>
+          )}
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5); marginLeft:auto;")}>AI Intelligence</span>
         </button>
       ) : (
         <React.Fragment>
@@ -177,29 +175,29 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
           )}
 
           <div style={css("padding:9px 12px;")}>
-            {/* Header row — label is the toggle, with chevron */}
-            <div style={css("display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; flex-wrap:wrap;")}>
+            {/* Header row — mirrored RTL: chevron + status + pills + label */}
+            <div style={css("display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-bottom:7px; flex-wrap:wrap;")}>
               <button onClick={onToggle} style={css("display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; padding:0;")}>
-                <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
                 <ChevronDown size={12} style={chevronStyle(false)} />
+                <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
               </button>
-              <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
-                {hasScores && (
-                  <div style={css("display:flex; align-items:center; gap:5px;")}>
-                    {hasTrust && <ScorePill label="Trust" value={ai.trust} rationale={ai.trustRationale} />}
-                    {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} rationale={ai.urgencyRationale} />}
-                    {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" rationale={ai.winRationale} />}
-                  </div>
+              <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex-direction:row-reverse; marginLeft:auto;")}>
+                {ai.strikeNow && (
+                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 48%)); border:1px solid hsl(38 92% 60%); color:#1a1205; box-shadow:0 0 8px hsl(38 92% 50% / 0.4); whiteSpace:nowrap;")}>
+                    ⚡ STRIKE
+                  </span>
                 )}
                 {hasMomentum && (
                   <span style={css("display:inline-flex; align-items:center; padding:2px 7px; borderRadius:99px; fontSize:9.5px; fontWeight:600; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>
                     {ai.momentum}
                   </span>
                 )}
-                {ai.strikeNow && (
-                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 48%)); border:1px solid hsl(38 92% 60%); color:#1a1205; box-shadow:0 0 8px hsl(38 92% 50% / 0.4); whiteSpace:nowrap;")}>
-                    ⚡ STRIKE
-                  </span>
+                {hasScores && (
+                  <div style={css("display:flex; align-items:center; gap:5px; flex-direction:row-reverse;")}>
+                    {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" rationale={ai.winRationale} />}
+                    {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} rationale={ai.urgencyRationale} />}
+                    {hasTrust && <ScorePill label="Trust" value={ai.trust} rationale={ai.trustRationale} />}
+                  </div>
                 )}
               </div>
             </div>
