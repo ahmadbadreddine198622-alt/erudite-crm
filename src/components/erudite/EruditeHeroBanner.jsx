@@ -208,12 +208,12 @@ export default function EruditeHeroBanner() {
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #FFFFFF 0%, #F8F8F8 12%, #D4AF37 45%, #C9A961 68%, #E5C875 100%)',
+              background: 'linear-gradient(180deg, #F1E09C 0%, #D4B86E 25%, #B88D3C 50%, #D4B86E 75%, #F1E09C 100%)',
               backgroundSize: '100% 200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 4px 20px rgba(212,175,55,0.4))',
+              filter: 'drop-shadow(0 4px 24px rgba(212,175,55,0.5))',
               letterSpacing: '0.08em',
               animation: 'metallicFlow 8s ease-in-out infinite',
             }}
@@ -226,7 +226,7 @@ export default function EruditeHeroBanner() {
         <p
           className={`text-xs md:text-sm font-light uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
           style={{
-            color: 'rgba(255,255,255,0.85)',
+            color: '#E0E0E0',
             textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
             animation: 'shimmerGlow 6s ease-in-out infinite',
             letterSpacing: '0.7em',
@@ -248,8 +248,8 @@ export default function EruditeHeroBanner() {
           <div
             className="relative w-full h-1 rounded-full overflow-hidden"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.25) 10%, rgba(212,175,55,0.45) 25%, rgba(180,200,220,0.35) 50%, rgba(212,175,55,0.45) 75%, rgba(212,175,55,0.25) 90%, transparent 100%)',
-              boxShadow: '0 0 16px rgba(212,175,55,0.2), 0 0 32px rgba(180,200,220,0.15), inset 0 0 8px rgba(255,255,255,0.1)',
+              background: 'linear-gradient(90deg, rgba(180,200,220,0.2) 0%, rgba(241,224,156,0.3) 15%, rgba(184,141,60,0.5) 35%, rgba(184,141,60,0.6) 50%, rgba(184,141,60,0.5) 65%, rgba(241,224,156,0.3) 85%, rgba(180,200,220,0.2) 100%)',
+              boxShadow: '0 0 20px rgba(212,175,55,0.35), 0 0 40px rgba(184,141,60,0.25), inset 0 0 10px rgba(255,255,255,0.15)',
             }}
           >
             {/* Animated shimmer effect - slow, elegant */}
