@@ -9,6 +9,12 @@ import { ALL_APPS } from '@/lib/navApps';
 // Maps exact app labels to folders. Apps not listed fall into Tools & Reference.
 const FOLDER_DEFS = [
   {
+    id: 'ceo',
+    name: 'CEO & Admin',
+    emoji: '👑',
+    appLabels: ['Company Settings', 'Brand Settings', 'Team Management', 'Analytics', 'Finance', 'Policies & HR', 'Design System', 'Team AI OS', 'Team Performance', 'Agent Intelligence', 'Team Dashboard', 'Dubai Intelligence', 'Cheque Register', 'Command Center'],
+  },
+  {
     id: 'leads',
     name: 'Leads & Pipeline',
     emoji: '🎯',
@@ -290,7 +296,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   return (
     <>
       {/* Folder grid */}
-      <div className="w-full max-w-2xl grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-6 justify-items-center mx-auto">
+      <div className="w-full max-w-3xl grid grid-cols-3 sm:grid-cols-4 gap-x-5 gap-y-7 justify-items-center mx-auto">
         {FOLDERS.map(folder => (
           <FolderTile
             key={folder.id}
