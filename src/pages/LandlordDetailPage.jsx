@@ -1122,10 +1122,10 @@ class LandlordDetail extends React.Component {
     return (
       <React.Fragment>
         <style>{GLOBAL_CSS}</style>
-        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
+        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
           {/* Top bar — centered banner with action buttons */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); backdrop-filter:blur(16px);")}>
             <div style={css("display:flex; align-items:center; gap:6px; padding-left:50px;")}>
               <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
@@ -1137,10 +1137,10 @@ class LandlordDetail extends React.Component {
             
             {/* Centered banner text */}
             <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
-              <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02)); border:1px solid hsl(38 92% 50% / 0.25); box-shadow:0 4px 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.05);")}>
+              <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35);")}>
                 <div style={css("width:6px; height:6px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 12px hsl(38 92% 55% / 0.8), 0 0 24px hsl(38 92% 50% / 0.5); animation: pulse 2s ease-in-out infinite;")}></div>
                 <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
-                <span style={css("font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; background:linear-gradient(135deg, hsl(38 92% 62%), hsl(38 92% 50%)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-shadow:0 2px 10px rgba(245,158,11,0.3);")}>Landlord Intelligence</span>
+                <span style={css("font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:hsl(38 92% 55%);")}>Landlord Intelligence</span>
               </div>
             </div>
             
@@ -1158,7 +1158,7 @@ class LandlordDetail extends React.Component {
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
             {/* LEFT PANEL */}
-            <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
+            <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.01);")}>
 
               {/* AI Intelligence + Suggested Tasks row */}
               <div style={css("flex:none; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 6px;")}>
@@ -1209,13 +1209,13 @@ class LandlordDetail extends React.Component {
                 })()}
               </div>
               {vm.aiEmpty && (
-                <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:8px 13px; display:flex; align-items:center; gap:6px;")}>
+                <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:8px 13px; display:flex; align-items:center; gap:6px;")}>
                   <div style={css("display:inline-block; width:11px; height:11px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
                   <span style={css("font-size:10px; color:rgba(255,255,255,0.55);")}>Analysing…</span>
                 </div>
               )}
               {vm.analyzeError && (
-                <div style={css("flex:none; margin:0 16px 6px; padding:5px 12px; border-radius:8px; font-size:10px; color:#fca5a5; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);")}>
+                <div style={css("flex:none; margin:0 16px 6px; padding:5px 12px; border-radius:8px; font-size:10px; color:#f87171; background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.5);")}>
                   {vm.analyzeError}
                 </div>
               )}
@@ -1307,7 +1307,7 @@ class LandlordDetail extends React.Component {
               {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
-              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
+              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(255,255,255,0.02);"), position: 'relative', overflow: 'hidden' }}>
                 {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
                 {this.state.composerDraft && (
                   <ComposerConfirmChip
@@ -1326,8 +1326,8 @@ class LandlordDetail extends React.Component {
                   </div>
                 )}
                 <div style={css("display:flex; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
-                  {vm.composerTypes.map((t)=>(
-                    <button key={t.label} onClick={t.onClick} style={t.style}>{t.icon} {t.label}</button>
+                  {vm.composerTypes.map((t,i)=>(
+                    <button key={t.label} onClick={t.onClick} style={{...t.style, background: t.label==='Chat' ? (t.style.background.includes('37,211,102') ? 'rgba(37,211,102,0.15)' : t.style.background.includes('10,132,255') ? 'rgba(10,132,255,0.15)' : t.style.background.includes('41,182,246') ? 'rgba(41,182,246,0.15)' : 'rgba(245,158,11,0.15)') : t.style.background}}>{t.icon} {t.label}</button>
                   ))}
                   <button onClick={()=>this.onNavigate('/task-center')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
                     <Calendar className="w-3 h-3" />
@@ -1560,7 +1560,7 @@ class LandlordDetail extends React.Component {
               </div>
 
               {/* pipeline progress + stage selector */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
+              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
                   <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline</span>
                   <span style={css("font-size:11px; color:hsl(38 92% 60%); font-weight:600;")}>Stage {stage.index} of {stage.total}</span>
@@ -1615,21 +1615,21 @@ class LandlordDetail extends React.Component {
               <RiskSignals signals={signals} flagChips={vm.flagChips} buyChips={vm.buyChips} hasFlags={vm.hasFlags} />
 
               {/* AI summary */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:16px 17px;")}>
                 <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:10px;")}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 60%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>AI Summary</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 50%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Summary</span>
                 </div>
-                <p style={css("margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.8);")}>{vm.summaryText}</p>
+                <p style={css("margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.82);")}>{vm.summaryText}</p>
               </div>
 
               {/* Contact Evaluation — Peninsula 2 */}
               <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
 
               {/* market intelligence */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:16px 17px;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;")}>
-                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Market Intelligence</span>
+                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Market Intelligence</span>
                   <span style={market.trendStyle}>{market.trendLabel}</span>
                 </div>
                 {market.hasVal && (
@@ -1665,8 +1665,8 @@ class LandlordDetail extends React.Component {
               </div>
 
               {/* agent notes */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
-                <div style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:9px;")}>Agent Notes</div>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:16px 17px;")}>
+                <div style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:9px;")}>Agent Notes</div>
                 <textarea value={vm.agentNotes} onChange={this.onNotesInput} rows={3} style={css("width:100%; resize:vertical; min-height:64px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:13px; line-height:1.55; font-family:'Inter',sans-serif;")}></textarea>
               </div>
 
