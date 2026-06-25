@@ -37,13 +37,6 @@ const GOLD_SOFT = '#C9A961';
 const FONT_TITLE = "'Cormorant Garamond', serif";
 const FONT_BODY = "'Montserrat', sans-serif";
 
-<<<<<<< Updated upstream
-/* Score pill colour: ≥67 green, 34-66 amber, ≤33 red (pipeline accents). */
-function scorePillMeta(val) {
-  if (val >= 67) return { color: '#34d399', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' };
-  if (val >= 34) return { color: GOLD_SOFT, bg: 'rgba(201,162,75,0.15)', border: 'rgba(201,162,75,0.32)' };
-  return { color: '#f87171', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' };
-=======
 /* Score pill colour — VALUE-BASED per the pipeline design system:
    <40 → red, 40–69 → amber, ≥70 → green. Fill 12% opacity, border 30%, text full strength.
    mandate_win_probability is already converted to a 0–100 percentage upstream, so the same
@@ -63,7 +56,6 @@ function momentumPillMeta(momentum) {
   if (/slow|cool|soft|ebb|fad/.test(s)) return { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' };
   if (/stall|stuck|stagnant|cold|dead|dormant|lost|declin|drop|stale/.test(s)) return { color: 'hsl(0 72% 51%)', bg: 'hsl(0 72% 51% / 0.12)', border: 'hsl(0 72% 51% / 0.3)' };
   return { color: 'hsl(222 10% 60%)', bg: 'hsl(222 10% 60% / 0.12)', border: 'hsl(222 10% 60% / 0.3)' };
->>>>>>> Stashed changes
 }
 
 // Priority scale (design-system tokens): urgent = red, high = amber, medium = blue, low = grey.
@@ -82,14 +74,9 @@ const chevronStyle = (collapsed) => ({
 
 function ScorePill({ label, value, suffix, rationale, displayOnly }) {
   const [showTip, setShowTip] = useState(false);
-<<<<<<< Updated upstream
-  if (value == null) return null;
-  const c = scorePillMeta(value);
-=======
   const c = scorePillMeta(value);
   // Type-guard: render a dash instead of crashing when the value is null/undefined.
   const display = (value == null) ? '—' : (value + (suffix || ''));
->>>>>>> Stashed changes
   if (displayOnly) {
     return (
       <span style={css("display:inline-flex; align-items:baseline; gap:3px; padding:3px 9px; borderRadius:99px; fontSize:11px; fontWeight:700; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; whiteSpace:nowrap;")}>
