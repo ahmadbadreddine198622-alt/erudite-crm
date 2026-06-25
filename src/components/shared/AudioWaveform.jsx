@@ -48,6 +48,19 @@ export default function AudioWaveform({
     return Math.max(0.15, Math.min(1.2, combined));
   });
 
+  // Generate wavy path for dotted line
+  const generateWavePath = (startX, endX, amplitude, frequency) => {
+    let path = `M ${startX} 16`;
+    const steps = 30;
+    const stepSize = (endX - startX) / steps;
+    for (let i = 1; i <= steps; i++) {
+      const x = startX + i * stepSize;
+      const wave = Math.sin(i * frequency + phase) * amplitude;
+      path += ` L ${x} ${16 + wave}`;
+    }
+    return path;
+  };
+
   return (
     <div className={className} style={{ width, height: `${height}px` }} aria-hidden="true">
       <svg viewBox="0 0 400 32" preserveAspectRatio="none" className="w-full h-full block">
@@ -61,32 +74,28 @@ export default function AudioWaveform({
           </radialGradient>
         </defs>
         
-        {/* Left dotted line with flowing motion */}
-        <line
-          x1="0"
-          y1="16"
-          x2={centerX - 22}
-          y2="16"
+        {/* Left wavy dotted line */}
+        <path
+          d={generateWavePath(0, centerX - 22, 3, 0.4)}
           stroke={primaryColor}
           strokeWidth="1.2"
           strokeOpacity="0.6"
           strokeDasharray="2.5,3.5"
           strokeDashoffset={-flowOffset % 6}
           strokeLinecap="round"
+          fill="none"
         />
         
-        {/* Right dotted line with flowing motion */}
-        <line
-          x1={centerX + 22}
-          y1="16"
-          x2="400"
-          y2="16"
+        {/* Right wavy dotted line */}
+        <path
+          d={generateWavePath(centerX + 22, 400, 3, 0.4)}
           stroke={primaryColor}
           strokeWidth="1.2"
           strokeOpacity="0.6"
           strokeDasharray="2.5,3.5"
           strokeDashoffset={-flowOffset % 6}
           strokeLinecap="round"
+          fill="none"
         />
         
         {/* Pulsing glow background */}
