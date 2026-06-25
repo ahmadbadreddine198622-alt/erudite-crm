@@ -480,44 +480,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Clock — Compact metallic design */}
-      <div className="text-center mb-8">
-        {/* Date */}
-        <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginBottom: 4, letterSpacing: '0.05em' }}>
+      {/* iOS-style Clock Widget */}
+      <div className="text-center mb-6">
+        {/* Date - smaller, lighter */}
+        <p style={{ 
+          fontSize: 15, 
+          fontWeight: 400, 
+          color: '#D1D5DB', 
+          letterSpacing: '0.02em',
+          marginBottom: 2,
+        }}>
           {format(new Date(), 'EEE MMM d')}
         </p>
         
-        {/* Metallic clock with subtle background text */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <p style={{
-            fontSize: 56,
-            fontWeight: 700,
-            background: 'linear-gradient(180deg, #E8F0F8 0%, #B0B9C3 35%, #7D8898 65%, #5A6675 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))',
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-          }}>
-            {format(new Date(), 'h:mm')}
-          </p>
-        </div>
-        
-        {/* Compact quotes with gold dividers */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', marginTop: 6 }}>
-          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Discipline Today
-          </p>
-          <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.35), transparent)' }} />
-          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Freedom Tomorrow
-          </p>
-          <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.35), transparent)' }} />
-          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Focus On Your Goals
-          </p>
-        </div>
+        {/* Time - large, bold, geometric */}
+        <p style={{
+          fontSize: 64,
+          fontWeight: 700,
+          color: '#D1D5DB',
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
+        }}>
+          {format(new Date(), 'h:mm')}
+        </p>
       </div>
 
       {/* Done button — only visible in edit mode */}
