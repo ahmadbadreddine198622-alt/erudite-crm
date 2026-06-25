@@ -230,9 +230,11 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
       <div
         className="relative w-full max-w-lg rounded-3xl p-5 max-h-[85vh] overflow-y-auto"
         style={{
-          background: 'rgba(14,20,36,0.99)',
-          border: '1px solid rgba(245,158,11,0.3)',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
+          background: 'rgba(14,20,36,0.65)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(245,158,11,0.35)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
         onClick={e => e.stopPropagation()}
       >
