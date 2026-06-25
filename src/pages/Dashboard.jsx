@@ -417,6 +417,36 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Vibrant emotional decorative line under stats — colorful & smart */}
+      <div className="w-full max-w-4xl mx-auto mb-6">
+        <div
+          className="relative w-full h-2 rounded-full overflow-hidden"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 10%, rgba(245,158,11,1) 25%, rgba(16,185,129,0.8) 40%, rgba(59,130,246,0.7) 50%, rgba(16,185,129,0.8) 60%, rgba(245,158,11,1) 75%, rgba(245,158,11,0.5) 90%, transparent 100%)',
+            boxShadow: '0 0 28px rgba(245,158,11,0.6), 0 0 56px rgba(16,185,129,0.4), 0 0 84px rgba(59,130,246,0.25), inset 0 0 16px rgba(255,255,255,0.2)',
+          }}
+        >
+          {/* Animated shimmer flow */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,1) 50%, transparent 100%)',
+              backgroundSize: '220% 100%',
+              animation: 'shimmerSlide 3.5s ease-in-out infinite',
+            }}
+          />
+          {/* Multi-color particle glow underneath */}
+          <div
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-4 rounded-full blur-lg"
+            style={{
+              background: 'radial-gradient(ellipse, rgba(245,158,11,0.8) 0%, rgba(16,185,129,0.6) 35%, rgba(59,130,246,0.4) 65%, rgba(139,92,246,0.3) 100%)',
+              filter: 'blur(12px)',
+              opacity: 0.85,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Clock — Compact metallic design */}
       <div className="text-center mb-8">
         {/* Date */}
