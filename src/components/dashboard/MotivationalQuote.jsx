@@ -59,21 +59,12 @@ export default function MotivationalQuote() {
     <div
       className="w-full max-w-md mx-auto mb-6 px-4"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: 24,
-        padding: '20px 24px',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'transparent',
+        borderRadius: 0,
+        padding: '8px 24px',
+        border: 'none',
       }}
     >
-      {/* Gradient bar at top */}
-      <div
-        className="w-full h-1 rounded-full mb-4"
-        style={{
-          background: 'linear-gradient(90deg, #6B7280 0%, #D4AF37 100%)',
-          boxShadow: '0 2px 8px rgba(212,175,55,0.2)',
-        }}
-      />
-
       {/* Quote text */}
       <p
         className="text-center text-sm font-medium"

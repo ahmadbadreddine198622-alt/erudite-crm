@@ -280,9 +280,12 @@ export default function Dashboard() {
       }}
     >
       {/* Animated Hero Banner - dedicated container, no clipping */}
-      <div className="w-full max-w-5xl mb-4 mt-8">
+      <div className="w-full max-w-5xl mb-2 mt-8">
         <EruditeHeroBanner />
       </div>
+
+      {/* Motivational Quote - rotates every 2 minutes */}
+      <MotivationalQuote />
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
@@ -482,7 +485,7 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-2">
+      <div className="text-center mb-6">
         {/* Date - smaller, lighter */}
         <p style={{ 
           fontSize: 15, 
@@ -506,9 +509,6 @@ export default function Dashboard() {
           {format(new Date(), 'h:mm')}
         </p>
       </div>
-
-      {/* Motivational Quote - rotates every 2 minutes */}
-      <MotivationalQuote />
 
       {/* Done button — only visible in edit mode */}
       {editMode && (
