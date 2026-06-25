@@ -428,13 +428,22 @@ export default function Dashboard() {
         <PipelineStrip phaseCounts={phaseCounts} />
       )}
 
-      {/* Clock */}
-      <div className="text-center" style={{ marginBottom: 22 }}>
-        <p style={{ fontSize: 34, fontWeight: 300, color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
+      {/* Clock — Apple-style transparent widget */}
+      <div
+        className="text-center px-6 py-4 rounded-2xl mb-8"
+        style={{
+          background: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'inline-block',
+        }}
+      >
+        <p style={{ fontSize: 48, fontWeight: 200, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-0.02em' }}>
           {format(new Date(), 'h:mm')}
-          <span style={{ fontSize: 16, color: 'hsl(38 92% 55%)', marginLeft: 4 }}>{format(new Date(), 'a')}</span>
+          <span style={{ fontSize: 20, fontWeight: 600, color: '#F39C12', marginLeft: 6 }}>{format(new Date(), 'a')}</span>
         </p>
-        <p style={{ fontSize: 13, fontWeight: 600, color: 'hsl(38 92% 50%)', marginTop: 4 }}>{format(new Date(), 'EEEE, MMMM d')}</p>
+        <p style={{ fontSize: 15, fontWeight: 500, color: '#F39C12', marginTop: 6, letterSpacing: '0.02em' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
       {/* Done button — only visible in edit mode */}
