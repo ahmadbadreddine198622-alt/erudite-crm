@@ -222,16 +222,16 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* CRM — elegant subtitle with subtle glow */}
+        {/* REAL ESTATE CRM — elegant subtitle with subtle glow */}
         <p
-          className={`text-sm md:text-base font-light tracking-[0.45em] uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+          className={`text-xs md:text-sm font-light tracking-[0.35em] uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
           style={{
             color: 'rgba(255,255,255,0.85)',
             textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
             animation: 'shimmerGlow 6s ease-in-out infinite',
           }}
         >
-          CRM
+          REAL ESTATE CRM
         </p>
 
         {/* Elegant decorative line with subtle gradient - positioned BELOW Real Estate */}
