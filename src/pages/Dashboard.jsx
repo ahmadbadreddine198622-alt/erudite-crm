@@ -240,7 +240,7 @@ export default function Dashboard() {
     <div
       className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
       style={{
-        background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(250,180,40,0.04) 0%, transparent 70%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(100,120,200,0.04) 0%, transparent 60%), hsl(222 47% 7%)',
+        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
       {/* Logo */}
@@ -257,9 +257,9 @@ export default function Dashboard() {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
             style={{
-              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
-              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(20px)',
+              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
+              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(12px)',
               color: 'rgba(255,255,255,0.75)',
             }}
           >
@@ -285,9 +285,9 @@ export default function Dashboard() {
             <div
               className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
               style={{
-                background: 'rgba(255,255,255,0.06)',
+                background: 'rgba(15,20,30,0.95)',
                 backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid rgba(245,158,11,0.35)',
               }}
             >
               <div className="p-3 border-b border-white/10">
@@ -368,52 +368,52 @@ export default function Dashboard() {
         <button
           onClick={() => navigate('/leads')}
           className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <Users className="w-4 h-4" style={{ color: '#34d399' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
           <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.45)' }}>ACTIVE</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
         </button>
 
         {/* Reminders */}
         <button
           onClick={() => navigate('/reminders')}
           className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
           <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
             <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
           <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.45)' }}>REMINDERS</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
         </button>
 
         {/* Unread */}
         <button
           onClick={() => navigate('/whatsapp')}
           className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: '#93c5fd' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
           <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.45)' }}>UNREAD</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
         </button>
 
         {/* Hot Leads */}
         <button
           onClick={() => navigate('/leads')}
           className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(244,63,94,0.15)', border: '1px solid rgba(244,63,94,0.3)' }}>
-            <TrendingUp className="w-4 h-4" style={{ color: '#fda4af' }} />
+          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <TrendingUp className="w-4 h-4" style={{ color: '#34d399' }} />
           </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.45)' }}>HOT</p>
+          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
         </button>
       </div>
 
@@ -455,18 +455,18 @@ export default function Dashboard() {
           placeholder="Search apps"
           className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
             color: 'rgba(255,255,255,0.95)',
           }}
           onFocus={(e) => {
             e.target.style.borderColor = 'hsl(38 92% 50%)';
-            e.target.style.background = 'rgba(255,255,255,0.08)';
+            e.target.style.background = 'rgba(255,255,255,0.1)';
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.1)';
-            e.target.style.background = 'rgba(255,255,255,0.06)';
+            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.target.style.background = 'rgba(255,255,255,0.07)';
           }}
         />
       </div>
@@ -517,9 +517,9 @@ export default function Dashboard() {
             navigate('/landlords');
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <Building2 className="w-4 h-4" />
           Landlord Pipeline
         </button>
         <button
@@ -528,9 +528,9 @@ export default function Dashboard() {
             navigate('/landlords');
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <UserCheck className="w-4 h-4" />
           Assign Leads
         </button>
         <button
@@ -538,17 +538,17 @@ export default function Dashboard() {
             window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <UserCircle className="w-4 h-4" />
           PF Agent Profile
         </button>
         <button
           onClick={() => navigate('/policies')}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Shield className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <Shield className="w-4 h-4" />
           Policies & HR
         </button>
       </div>
