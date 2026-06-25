@@ -428,22 +428,105 @@ export default function Dashboard() {
         <PipelineStrip phaseCounts={phaseCounts} />
       )}
 
-      {/* Clock — Apple-style transparent widget */}
-      <div
-        className="text-center px-6 py-4 rounded-2xl mb-8"
-        style={{
-          background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          display: 'inline-block',
-        }}
-      >
-        <p style={{ fontSize: 48, fontWeight: 200, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-0.02em' }}>
-          {format(new Date(), 'h:mm')}
-          <span style={{ fontSize: 20, fontWeight: 600, color: '#F39C12', marginLeft: 6 }}>{format(new Date(), 'a')}</span>
+      {/* Clock — Metallic 3D style with motivational text */}
+      <div className="text-center mb-10">
+        {/* Date above clock */}
+        <p style={{ fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,0.9)', marginBottom: 8, letterSpacing: '0.05em' }}>
+          {format(new Date(), 'EEE MMM d')}
         </p>
-        <p style={{ fontSize: 15, fontWeight: 500, color: '#F39C12', marginTop: 6, letterSpacing: '0.02em' }}>{format(new Date(), 'EEEE, MMMM d')}</p>
+        
+        {/* Metallic 3D clock numbers */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {/* Motivational background text */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          >
+            <p style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.12)',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              lineHeight: 1.4,
+              textAlign: 'center',
+            }}>
+              YOU ARE CAPABLE<br />OF MORE THAN<br />YOU KNOW
+            </p>
+          </div>
+          
+          {/* Clock time with metallic effect */}
+          <p style={{
+            fontSize: 72,
+            fontWeight: 700,
+            background: 'linear-gradient(180deg, #E8F0F8 0%, #B0B9C3 35%, #7D8898 65%, #5A6675 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))',
+            letterSpacing: '-0.04em',
+            position: 'relative',
+            zIndex: 1,
+          }}>
+            {format(new Date(), 'h:mm')}
+          </p>
+        </div>
+        
+        {/* Gold divider */}
+        <div style={{
+          width: 80,
+          height: 2,
+          background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.6), transparent)',
+          margin: '16px auto',
+        }} />
+        
+        {/* Motivational quotes */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+          <p style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}>
+            Discipline Today
+          </p>
+          <div style={{
+            width: 60,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)',
+          }} />
+          <p style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}>
+            Freedom Tomorrow
+          </p>
+          <div style={{
+            width: 60,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)',
+          }} />
+          <p style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}>
+            Focus On Your Goals
+          </p>
+        </div>
       </div>
 
       {/* Done button — only visible in edit mode */}
