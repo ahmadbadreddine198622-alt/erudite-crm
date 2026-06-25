@@ -251,21 +251,21 @@ export default function Dashboard() {
       }}
     >
       {/* Erudite Real Estate Logo Watermark */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          width: '280px',
-          height: '280px',
-          opacity: 0.08,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background: `url(${logoUrl}) no-repeat center`,
-          backgroundSize: 'contain',
-          filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))',
-        }}
-      />
+      {logoUrl && (
+        <div
+          className="fixed bottom-8 right-8 w-72 h-72 opacity-[0.07] pointer-events-none z-0"
+          style={{
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
+          }}
+        >
+          <img
+            src={logoUrl}
+            alt="Erudite Real Estate"
+            className="w-full h-full object-contain"
+            style={{ maxWidth: '280px', maxHeight: '280px' }}
+          />
+        </div>
+      )}
       
       {/* Logo */}
       {logoUrl && (
