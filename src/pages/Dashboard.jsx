@@ -39,7 +39,6 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [logoUrl] = useState(() => localStorage.getItem('erudite_logo') || '');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState(null);
