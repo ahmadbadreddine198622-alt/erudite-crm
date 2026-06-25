@@ -3,8 +3,18 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Save, Shield, Upload, Camera } from 'lucide-react';
+import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -12,6 +22,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '' });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -47,6 +59,19 @@ export default function Profile() {
       toast.error(e.message || 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      // Note: Base44 doesn't support user deletion via API, so we show a message
+      toast.error('Account deletion requires admin assistance. Please contact support.');
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -181,7 +206,56 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Danger Zone */}
+        <Card className="glass-card border-red-500/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-red-400">
+              <AlertTriangle className="w-4 h-4" /> Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Account deletion is permanent and cannot be undone. This action requires admin assistance.
+            </p>
+            <Button
+              onClick={() => setShowDeleteDialog(true)}
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Account?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              This action requires admin assistance. Your account and all associated data will be permanently removed.
+              Please contact Base44 support for account deletion requests.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                toast.info('Please contact support@base44.com for account deletion');
+                setShowDeleteDialog(false);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Contact Support
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

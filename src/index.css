@@ -66,6 +66,10 @@ div[id*="Base44"] {
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
   }
+
+  html, body {
+    overscroll-behavior: none;
+  }
 }
 
 @keyframes ios-slide-down {
@@ -285,6 +289,22 @@ div[id*="Base44"] {
 
 /* ─── Numeric / Money ─── */
 .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* ─── iOS Touch Optimizations ─── */
+.select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button, a, .cursor-pointer {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area insets for iOS devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 
 @layer base {
   * {
