@@ -229,7 +229,7 @@ export default function EruditeHeroBanner() {
             color: 'rgba(255,255,255,0.85)',
             textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
             animation: 'shimmerGlow 6s ease-in-out infinite',
-            letterSpacing: '0.5em',
+            letterSpacing: '0.7em',
             width: '100%',
             textAlign: 'center',
           }}
