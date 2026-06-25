@@ -1,11 +1,13 @@
 import { memo } from 'react';
-import { Droppable } from '@hello-pangea/dnd';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import KanbanCardRow from './KanbanCardRow';
 
 // One pipeline column. Memoized so dragging within / over another column doesn't re-render
-// columns whose card list is unchanged.
+// columns whose card list is unchanged. The whole column body is a droppable so an EMPTY
+// column is still a valid drop target.
 function KanbanColumn({
   stage,
   label,
@@ -18,25 +20,21 @@ function KanbanColumn({
   onSingleAssign,
   photographyTasks,
   getPhotoForPhone,
+  activeId,
 }) {
   const totalCommission = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
+  const { setNodeRef, isOver } = useDroppable({ id: stage });
+  const itemIds = landlords.map((l) => l.id);
 
   return (
     <div
-      className="flex-shrink-0 w-[320px] rounded-2xl flex flex-col self-start"
-      style={{
-        scrollSnapAlign: 'start',
-        background: 'rgba(20,28,48,0.85)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderTopColor: 'rgba(255,255,255,0.15)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-      }}
+      className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start border border-border bg-card"
     >
       {/* Column Header — pinned to the top of the column */}
-      <div className="p-3 shrink-0 sticky top-0 z-10 rounded-t-2xl" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)', background: 'rgba(28,38,62,0.97)' }}>
+      <div className="p-3 shrink-0 sticky top-0 z-10 rounded-t-2xl bg-secondary border-b-2" style={{ borderBottomColor: 'hsl(38 92% 50% / 0.2)' }}>
         <div className="flex items-center justify-between mb-1.5">
-          <h3 className="font-bold text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>{label}</h3>
-          <Badge variant="outline" className="text-xs" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}>
+          <h3 className="font-bold text-sm text-foreground">{label}</h3>
+          <Badge variant="outline" className="text-xs bg-muted border-border text-foreground">
             {landlords.length}
           </Badge>
         </div>
@@ -45,42 +43,38 @@ function KanbanColumn({
         </p>
       </div>
 
-      {/* Cards Container - droppable, internal scroll */}
-      <Droppable droppableId={stage}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={cn(
-              'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)]',
-              snapshot.isDraggingOver ? 'bg-white/5' : '',
-            )}
-          >
-            {landlords.map((landlord, index) => (
-              <KanbanCardRow
-                key={landlord.id}
-                landlord={landlord}
-                index={index}
-                selectedLandlordId={selectedLandlordId}
-                selectedIds={selectedIds}
-                onSelectLandlord={onSelectLandlord}
-                onToggleSelect={onToggleSelect}
-                users={users}
-                onSingleAssign={onSingleAssign}
-                photographyTasks={photographyTasks}
-                getPhotoForPhone={getPhotoForPhone}
-              />
-            ))}
-            {provided.placeholder}
+      {/* Cards Container — droppable, independent vertical scroll */}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)] rounded-b-2xl',
+          isOver ? 'bg-accent/5' : '',
+        )}
+      >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {landlords.map((landlord) => (
+            <KanbanCardRow
+              key={landlord.id}
+              landlord={landlord}
+              selectedLandlordId={selectedLandlordId}
+              selectedIds={selectedIds}
+              onSelectLandlord={onSelectLandlord}
+              onToggleSelect={onToggleSelect}
+              users={users}
+              onSingleAssign={onSingleAssign}
+              photographyTasks={photographyTasks}
+              getPhotoForPhone={getPhotoForPhone}
+              isActive={activeId === landlord.id}
+            />
+          ))}
+        </SortableContext>
 
-            {landlords.length === 0 && !snapshot.isDraggingOver && (
-              <div className="flex items-center justify-center h-32 text-muted-foreground text-xs text-center p-2">
-                No landlords in this stage
-              </div>
-            )}
+        {landlords.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-muted-foreground text-xs text-center p-2">
+            No landlords in this stage
           </div>
         )}
-      </Droppable>
+      </div>
     </div>
   );
 }

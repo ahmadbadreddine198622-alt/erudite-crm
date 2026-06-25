@@ -269,18 +269,12 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         navigate(`/landlord/${landlord.id}`);
       }}
       className={cn(
-        'rounded-xl p-1.5 cursor-pointer transition-all duration-200',
+        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 bg-secondary border shadow-sm',
         isDragging
-          ? 'scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.45)]'
-          : 'hover:shadow-md',
+          ? 'scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.45)] border-accent/60'
+          : 'hover:shadow-md border-border',
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
-      style={{
-        background: isDragging ? 'rgba(40,52,80,0.95)' : 'rgba(32,42,66,0.92)',
-        border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
-        borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-      }}
     >
       {/* Top row: checkbox + avatar + name */}
       <div className="flex items-center gap-1.5">

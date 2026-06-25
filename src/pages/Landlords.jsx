@@ -29,7 +29,6 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
-import useHorizontalPan from '@/hooks/useHorizontalPan';
 
 const STAGES = [
   'initial_contact',
@@ -96,7 +95,6 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
-  const boardScrollRef = useHorizontalPan();
 
 
 
@@ -389,9 +387,12 @@ export default function Landlords() {
   }
 
   return (
-    <div className="page-root" style={{ paddingLeft: 0, paddingRight: 0 }}>
-      {/* Header */}
-      <div className="mb-6" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+    <div
+      className="h-[100dvh] w-full flex flex-col overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
+    >
+      {/* Header — flush at the top, sticky, no gap above */}
+      <div className="shrink-0 sticky top-0 z-20 pt-4 pb-3" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center"
@@ -684,14 +685,11 @@ export default function Landlords() {
         </div>
       </div>
 
-      {/* Kanban Board — breaks out of page-root padding to use the full screen width.
-          Grab-to-pan + wheel-to-horizontal scroll via useHorizontalPan (card DnD stays intact). */}
+      {/* Kanban Board — fills remaining height, scrolls horizontally on its own.
+          dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <div
-        ref={boardScrollRef}
-        className="board-scroll overflow-x-auto overflow-y-hidden pb-4"
+        className="board-scroll flex-1 min-h-0 overflow-x-auto overflow-y-hidden pb-4"
         style={{
-          minHeight: '420px',
-          willChange: 'transform',
           WebkitOverflowScrolling: 'touch',
           marginLeft: 'calc(-1 * var(--board-pad-l))',
           marginRight: 'calc(-1 * var(--board-pad-r))',
