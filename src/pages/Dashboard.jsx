@@ -329,7 +329,7 @@ export default function Dashboard() {
                 <Search className="w-4 h-4" style={{ color: '#D4AF37' }} />
               </div>
             </div>
-            {/* Input field */}
+            {/* Input field with animated white text */}
             <input
               type="text"
               value={search}
@@ -341,6 +341,8 @@ export default function Dashboard() {
                 fontSize: '14px',
                 fontStyle: search ? 'normal' : 'italic',
                 letterSpacing: search ? '0.01em' : '0.02em',
+                textShadow: '0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)',
+                animation: search ? 'none' : 'whiteGlow 3s ease-in-out infinite',
               }}
             />
             {/* Right decorative icon */}
@@ -507,7 +509,7 @@ export default function Dashboard() {
             <Users className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
           <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Active</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Active</p>
         </button>
 
         {/* Reminders */}
@@ -538,7 +540,7 @@ export default function Dashboard() {
             <Bell className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
           <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Reminders</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.3s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Reminders</p>
         </button>
 
         {/* Unread */}
@@ -569,7 +571,7 @@ export default function Dashboard() {
             <MessageCircle className="w-4 h-4" style={{ color: '#D4AF37' }} />
           </div>
           <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Unread</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.6s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Unread</p>
         </button>
 
         {/* Hot Leads */}
@@ -600,7 +602,7 @@ export default function Dashboard() {
             <TrendingUp className="w-4 h-4" style={{ color: '#34D399' }} />
           </div>
           <p className="text-2xl font-bold tabular-nums" style={{ color: '#34D399', lineHeight: 1, textShadow: '0 2px 12px rgba(52,211,153,0.4)' }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)' }}>Hot</p>
+          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.9s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Hot</p>
         </button>
       </div>
 
@@ -608,7 +610,7 @@ export default function Dashboard() {
       <div className="w-full max-w-6xl mx-auto mb-4">
         <div className="flex items-center gap-4">
           <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.4), rgba(212,175,55,0.6))' }} />
-          <span className="text-[11px] uppercase font-bold tracking-[0.2em]" style={{ color: '#D4AF37', textShadow: '0 0 20px rgba(212,175,55,0.5)' }}>Workspaces</span>
+          <span className="text-[11px] uppercase font-bold tracking-[0.2em]" style={{ color: '#FFFFFF', textShadow: '0 0 25px rgba(255,255,255,0.6), 0 0 50px rgba(255,255,255,0.3)', animation: 'whitePulse 5s ease-in-out infinite', letterSpacing: '0.25em' }}>Workspaces</span>
           <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.6), rgba(212,175,55,0.4), transparent)' }} />
         </div>
       </div>
@@ -733,6 +735,27 @@ export default function Dashboard() {
           title="Add to Dashboard"
         />
       )}
+
+      {/* White Text Motion Animations */}
+      <style>{`
+        @keyframes whiteGlow {
+          0%, 100% { opacity: 0.85; text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1); }
+          50% { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,255,255,0.2); }
+        }
+        @keyframes whiteFloat {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(-1.5px); opacity: 0.75; }
+        }
+        @keyframes whitePulse {
+          0%, 100% { opacity: 0.85; text-shadow: 0 0 25px rgba(255,255,255,0.5), 0 0 50px rgba(255,255,255,0.25); }
+          50% { opacity: 1; text-shadow: 0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4); }
+        }
+        @keyframes whiteShimmer {
+          0% { background-position: -200% center; opacity: 0.6; }
+          50% { opacity: 0.95; }
+          100% { background-position: 200% center; opacity: 0.6; }
+        }
+      `}</style>
     </div>
   );
 }
