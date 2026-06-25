@@ -176,12 +176,12 @@ export default function EruditeHeroBanner() {
       ref={containerRef}
       className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 140,
-        maxHeight: 160,
-        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.28) 0%, rgba(8,12,22,0.35) 50%, rgba(3,5,10,0.45) 100%)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        boxShadow: '0 16px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-        border: '1px solid rgba(212,175,55,0.12)',
+        minHeight: 150,
+        maxHeight: 170,
+        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.18) 0%, rgba(8,12,22,0.22) 50%, rgba(3,5,10,0.28) 100%)',
+        backdropFilter: 'blur(16px) saturate(160%)',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+        border: '1px solid rgba(212,175,55,0.08)',
         transform: `perspective(1000px) rotateX(${mousePos.y * 0.25}deg) rotateY(${mousePos.x * 0.25}deg)`,
         transition: 'transform 0.12s ease-out',
         position: 'relative',
@@ -191,14 +191,14 @@ export default function EruditeHeroBanner() {
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ pointerEvents: 'none', opacity: 0.6 }}
+        style={{ pointerEvents: 'none', opacity: 0.5 }}
       />
 
       {/* Ultra-subtle atmospheric haze */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.025) 0%, transparent 55%)',
+          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.02) 0%, transparent 55%)',
           filter: 'blur(60px)',
         }}
       />
@@ -207,7 +207,7 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 50%, rgba(255,255,255,0.015) 100%)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(255,255,255,0.01) 100%)',
         }}
       />
 
@@ -219,7 +219,7 @@ export default function EruditeHeroBanner() {
         }}
       >
         {/* ERUDITE wordmark — clean refined design */}
-        <div className="relative mb-1.5">
+        <div className="relative mb-2">
           <h1
             className="text-4xl md:text-5xl font-semibold tracking-wide"
             style={{
@@ -238,12 +238,12 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* REAL ESTATE — minimal subtitle */}
+        {/* REAL ESTATE — elegant larger subtitle */}
         <p
-          className="text-[7px] font-extralight tracking-[0.28em] uppercase"
+          className="text-[11px] md:text-[13px] font-light tracking-[0.35em] uppercase"
           style={{
-            color: 'rgba(255,255,255,0.45)',
-            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+            color: 'rgba(255,255,255,0.65)',
+            textShadow: '0 1px 6px rgba(0,0,0,0.5)',
           }}
         >
           Real Estate
@@ -274,7 +274,7 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.4) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.28) 100%)',
         }}
       />
 
