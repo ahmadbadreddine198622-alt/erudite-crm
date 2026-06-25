@@ -174,174 +174,107 @@ export default function EruditeHeroBanner() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-3xl mb-8"
+      className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 260,
-        maxHeight: 300,
-        background: 'radial-gradient(ellipse at 50% -30%, rgba(18,28,48,0.65) 0%, rgba(8,12,22,0.78) 45%, rgba(3,5,10,0.92) 100%)',
-        backdropFilter: 'blur(40px) saturate(220%)',
-        boxShadow: '0 32px 120px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.6)',
-        border: '1px solid rgba(212,175,55,0.15)',
-        transform: `perspective(1200px) rotateX(${mousePos.y * 0.4}deg) rotateY(${mousePos.x * 0.4}deg)`,
-        transition: 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        minHeight: 140,
+        maxHeight: 160,
+        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.28) 0%, rgba(8,12,22,0.35) 50%, rgba(3,5,10,0.45) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: '0 16px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+        border: '1px solid rgba(212,175,55,0.12)',
+        transform: `perspective(1000px) rotateX(${mousePos.y * 0.25}deg) rotateY(${mousePos.x * 0.25}deg)`,
+        transition: 'transform 0.12s ease-out',
         position: 'relative',
       }}
     >
-      {/* Canvas layer for particles, grid, and energy effects */}
+      {/* Canvas layer for particles and subtle effects */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ pointerEvents: 'none' }}
+        style={{ pointerEvents: 'none', opacity: 0.6 }}
       />
 
-      {/* Volumetric light cones from top */}
+      {/* Ultra-subtle atmospheric haze */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.08) 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.025) 0%, transparent 55%)',
           filter: 'blur(60px)',
-          opacity: 0.6,
         }}
       />
 
-      {/* Subtle atmospheric haze layers */}
+      {/* Minimal glass reflections */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 30% 50%, rgba(100,140,200,0.04) 0%, transparent 50%)',
-          filter: 'blur(80px)',
-        }}
-      />
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at 70% 40%, rgba(180,140,200,0.03) 0%, transparent 50%)',
-          filter: 'blur(80px)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 50%, rgba(255,255,255,0.015) 100%)',
         }}
       />
 
-      {/* Glass surface reflections */}
+      {/* Main content — refined logo */}
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%, rgba(255,255,255,0.02) 100%)',
-        }}
-      />
-
-      {/* Main content — sculptural logo */}
-      <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-8"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-4"
         style={{
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark — sculptural metallic */}
-        <div
-          className="relative mb-2"
-          style={{
-            transform: `translateZ(40px)`,
-          }}
-        >
+        {/* ERUDITE wordmark — clean refined design */}
+        <div className="relative mb-1.5">
           <h1
-            className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight"
+            className="text-4xl md:text-5xl font-semibold tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #FFE8B8 0%, #F5D89E 8%, #D4AF37 22%, #B8942E 45%, #C9A961 62%, #E5C875 78%, #F5E6A3 100%)',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
               backgroundSize: '100% 200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 8px 32px rgba(212,175,55,0.4))',
-              animation: 'metallicBreath 12s ease-in-out infinite',
-              letterSpacing: '-0.02em',
-              position: 'relative',
+              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
+              animation: 'metallicBreath 10s ease-in-out infinite',
+              letterSpacing: '0.05em',
             }}
           >
             ERUDITE
-            {/* Illuminated edge effect overlay */}
-            <svg
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{ mixBlendMode: 'overlay' }}
-            >
-              <defs>
-                <linearGradient id="edgeGlow" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
-                  <stop offset="50%" stopColor="transparent" />
-                  <stop offset="100%" stopColor="rgba(0,0,0,0.3)" />
-                </linearGradient>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#edgeGlow)" />
-            </svg>
           </h1>
-
-          {/* Subtle reflection beneath logo */}
-          <div
-            className="absolute -bottom-8 left-0 right-0 h-12 pointer-events-none"
-            style={{
-              background: 'linear-gradient(180deg, rgba(212,175,55,0.08) 0%, transparent 100%)',
-              filter: 'blur(8px)',
-              transform: 'scaleY(-1)',
-              opacity: 0.3,
-            }}
-          />
         </div>
 
-        {/* REAL ESTATE — refined subtitle */}
+        {/* REAL ESTATE — minimal subtitle */}
         <p
-          className="text-[9px] font-light tracking-[0.35em] uppercase"
+          className="text-[7px] font-extralight tracking-[0.28em] uppercase"
           style={{
-            color: 'rgba(255,255,255,0.55)',
-            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            letterSpacing: '0.35em',
+            color: 'rgba(255,255,255,0.45)',
+            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
           }}
         >
           Real Estate
         </p>
 
-        {/* Signature energy ring — the iconic ERUDITE element */}
+        {/* Minimal energy arc — signature element */}
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{
-            width: 520,
-            height: 520,
-            border: '1px solid rgba(212,175,55,0.06)',
+            width: 380,
+            height: 380,
+            border: '1px solid rgba(212,175,55,0.04)',
             borderRadius: '50%',
-            animation: 'energyRingRotate 40s linear infinite',
+            animation: 'energyRingRotate 50s linear infinite',
           }}
         >
-          {/* Broken ring segments for architectural feel */}
+          {/* Single top accent mark */}
           <div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-16"
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-10"
             style={{
-              background: 'linear-gradient(180deg, rgba(212,175,55,0.3) 0%, transparent 100%)',
-            }}
-          />
-          <div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-16"
-            style={{
-              background: 'linear-gradient(0deg, rgba(212,175,55,0.3) 0%, transparent 100%)',
-            }}
-          />
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-16 h-px"
-            style={{
-              background: 'linear-gradient(90deg, rgba(212,175,55,0.3) 0%, transparent 100%)',
-            }}
-          />
-          <div
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-16 h-px"
-            style={{
-              background: 'linear-gradient(270deg, rgba(212,175,55,0.3) 0%, transparent 100%)',
+              background: 'linear-gradient(180deg, rgba(212,175,55,0.2) 0%, transparent 100%)',
             }}
           />
         </div>
       </div>
 
-      {/* Deep vignette for cinematic depth */}
+      {/* Subtle vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.7) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.25) 75%, rgba(0,0,0,0.4) 100%)',
         }}
       />
 
