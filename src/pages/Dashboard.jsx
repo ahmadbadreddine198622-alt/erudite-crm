@@ -284,29 +284,29 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-3 pb-1 pt-1"
+      className="relative min-h-screen flex flex-col px-4 pb-6 pt-4"
       style={{
-        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
+        background: 'linear-gradient(180deg, #0B1F3A 0%, #071224 60%, #050A14 100%)',
       }}
     >
-      {/* Animated Hero Banner - dedicated container, no clipping */}
-      <div className="w-full max-w-4xl mb-0 mt-0 scale-90" style={{ transformOrigin: 'top center' }}>
+      {/* Compact Hero Banner */}
+      <div className="w-full max-w-6xl mx-auto mb-4 scale-95" style={{ transformOrigin: 'top center' }}>
         <EruditeHeroBanner />
       </div>
 
       {/* Motivational Quote - pill-shaped bordered container */}
-      <div className="w-full max-w-xl mx-auto mb-3 px-3">
+      <div className="w-full max-w-lg mx-auto mb-3">
         <div
-          className="px-4 py-2 rounded-full text-center"
+          className="px-5 py-2.5 rounded-full text-center"
           style={{
-            border: '1px solid rgba(125,131,150,0.5)',
-            background: 'transparent',
+            border: '1px solid rgba(125,131,150,0.4)',
+            background: 'rgba(255,255,255,0.02)',
           }}
         >
           <p
             className="text-xs font-medium"
             style={{
-              color: 'rgba(255,255,255,0.7)',
+              color: 'rgba(255,255,255,0.65)',
               letterSpacing: '0.02em',
             }}
           >
@@ -315,28 +315,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="relative mb-3 w-full max-w-md">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+      {/* Search bar - constrained width */}
+      <div className="relative mb-4 w-full max-w-[480px] mx-auto">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search apps..."
-          className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border focus:outline-none transition-all"
+          className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none transition-all"
           style={{
-            background: 'rgba(255,255,255,0.07)',
+            background: 'rgba(255,255,255,0.05)',
             backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.95)',
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50%)';
-            e.target.style.background = 'rgba(255,255,255,0.1)';
+            e.target.style.borderColor = 'hsl(38 92% 50% / 0.5)';
+            e.target.style.background = 'rgba(255,255,255,0.08)';
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.target.style.background = 'rgba(255,255,255,0.07)';
+            e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+            e.target.style.background = 'rgba(255,255,255,0.05)';
           }}
         />
       </div>
@@ -453,84 +453,123 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Row — redesigned as dark cards with borders */}
+      {/* KPI Strip - tight horizontal dashboard metric bar */}
       <div
-        className="grid grid-cols-4 max-w-4xl w-full mx-auto gap-3"
-        style={{ marginBottom: 0, marginTop: 0 }}
+        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-2 mb-5"
+        style={{}}
       >
         {/* Active Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-4 px-2 transition-all active:scale-[0.98] rounded-xl"
+          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
           style={{
-            background: 'rgba(14,19,34,0.8)',
-            border: '1px solid rgba(63,68,82,0.6)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
+            e.currentTarget.style.transform = 'scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(217,138,48,0.15)', border: '1px solid rgba(217,138,48,0.4)' }}>
-            <Users className="w-4 h-4" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
+            <Users className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-medium mt-1.5" style={{ fontSize: 9, letterSpacing: '0.15em', color: 'rgba(125,131,150,0.8)' }}>ACTIVE</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.leads}</p>
+          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>ACTIVE</p>
         </button>
 
         {/* Reminders */}
         <button
           onClick={() => navigate('/reminders')}
-          className="flex flex-col items-center justify-center py-4 px-2 transition-all active:scale-[0.98] rounded-xl"
+          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
           style={{
-            background: 'rgba(14,19,34,0.8)',
-            border: '1px solid rgba(63,68,82,0.6)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
+            e.currentTarget.style.transform = 'scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(217,138,48,0.15)', border: '1px solid rgba(217,138,48,0.4)' }}>
-            <Bell className="w-4 h-4" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
+            <Bell className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-medium mt-1.5" style={{ fontSize: 9, letterSpacing: '0.15em', color: 'rgba(125,131,150,0.8)' }}>REMINDERS</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.reminders}</p>
+          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>REMINDERS</p>
         </button>
 
         {/* Unread */}
         <button
           onClick={() => navigate('/whatsapp')}
-          className="flex flex-col items-center justify-center py-4 px-2 transition-all active:scale-[0.98] rounded-xl"
+          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
           style={{
-            background: 'rgba(14,19,34,0.8)',
-            border: '1px solid rgba(63,68,82,0.6)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            e.currentTarget.style.borderColor = 'rgba(217,138,48,0.3)';
+            e.currentTarget.style.transform = 'scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(217,138,48,0.15)', border: '1px solid rgba(217,138,48,0.4)' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: '#d98a30' }} />
+          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(217,138,48,0.12)', border: '1px solid rgba(217,138,48,0.25)' }}>
+            <MessageCircle className="w-3.5 h-3.5" style={{ color: '#d98a30' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-medium mt-1.5" style={{ fontSize: 9, letterSpacing: '0.15em', color: 'rgba(125,131,150,0.8)' }}>UNREAD</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#d98a30', lineHeight: 1 }}>{badges.whatsapp}</p>
+          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>UNREAD</p>
         </button>
 
         {/* Hot Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-4 px-2 transition-all active:scale-[0.98] rounded-xl"
+          className="group flex flex-col items-center justify-center py-3 px-2 transition-all rounded-lg"
           style={{
-            background: 'rgba(14,19,34,0.8)',
-            border: '1px solid rgba(63,68,82,0.6)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+            e.currentTarget.style.borderColor = 'rgba(36,167,125,0.3)';
+            e.currentTarget.style.transform = 'scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(36,167,125,0.15)', border: '1px solid rgba(36,167,125,0.4)' }}>
-            <TrendingUp className="w-4 h-4" style={{ color: '#24a77d' }} />
+          <div className="flex items-center justify-center mb-1.5" style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(36,167,125,0.12)', border: '1px solid rgba(36,167,125,0.25)' }}>
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#24a77d' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#24a77d', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-medium mt-1.5" style={{ fontSize: 9, letterSpacing: '0.15em', color: 'rgba(125,131,150,0.8)' }}>HOT</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#24a77d', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-medium mt-1" style={{ fontSize: 8, letterSpacing: '0.12em', color: 'rgba(125,131,150,0.7)' }}>HOT</p>
         </button>
       </div>
 
-      {/* Horizontal line below stats */}
-      <div className="w-full max-w-4xl mx-auto mt-3 mb-4">
-        <div
-          className="h-px w-full"
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(63,68,82,0.8) 20%, rgba(63,68,82,0.8) 80%, transparent 100%)',
-          }}
-        />
+      {/* WORKSPACES section header */}
+      <div className="w-full max-w-6xl mx-auto mb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+          <span className="text-[10px] uppercase font-semibold tracking-[0.15em]" style={{ color: 'hsl(38 92% 50% / 0.7)' }}>Workspaces</span>
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+        </div>
       </div>
 
 
@@ -546,10 +585,10 @@ export default function Dashboard() {
       )}
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-0 mx-auto" style={{ marginTop: 0 }}>
+      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-2" style={{ marginTop: -8 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
-          <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
+          <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">
             {filtered.map((app, idx) => {
               const Icon = app.icon;
               const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
@@ -578,54 +617,12 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          /* Folder grid */
+          /* Folder grid - responsive command center layout */}
           <AppFolderGrid badges={badges} tilt={tilt} />
         )}
       </div>
 
-      {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-0.5 justify-center w-full max-w-3xl mt-0 mb-0 mx-auto" style={{ marginTop: -1 }}>
-        <button
-          onClick={() => {
-            console.log('Navigating to Landlord Pipeline');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all"
-          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
-        >
-          <Building2 className="w-2 h-2" />
-          Landlord Pipeline
-        </button>
-        <button
-          onClick={() => {
-            console.log('Navigating to Assign Leads');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all"
-          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
-        >
-          <UserCheck className="w-2 h-2" />
-          Assign Leads
-        </button>
-        <button
-          onClick={() => {
-            window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
-          }}
-          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
-        >
-          <UserCircle className="w-2 h-2" />
-          PF Agent Profile
-        </button>
-        <button
-          onClick={() => navigate('/policies')}
-          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
-        >
-          <Shield className="w-2 h-2" />
-          Policies & HR
-        </button>
-      </div>
+
 
       {/* Property Finder Listings */}
       <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-0 mx-auto">

@@ -94,13 +94,13 @@ function FolderThumbnail({ apps }) {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px',
-        padding: '10px',
-        width: '130px',
-        height: '130px',
-        borderRadius: '20px',
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        gap: '8px',
+        padding: '8px',
+        width: '120px',
+        height: '120px',
+        borderRadius: '16px',
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.08)',
         boxSizing: 'border-box',
         WebkitBoxSizing: 'border-box',
       }}
@@ -108,7 +108,7 @@ function FolderThumbnail({ apps }) {
       {Array.from({ length: 4 }).map((_, i) => {
         const app = preview[i];
         if (!app) return (
-          <div key={i} style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.05)' }} />
+          <div key={i} style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.03)' }} />
         );
         const Icon = app.icon;
         // Parse gradient colors for Safari-compatible inline styles
@@ -141,11 +141,11 @@ function FolderThumbnail({ apps }) {
           <div
             key={app.label}
             style={{
-              borderRadius: '12px',
+              borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               overflow: 'hidden',
               background: getGradient(app.gradient),
             }}
@@ -155,16 +155,16 @@ function FolderThumbnail({ apps }) {
               style={{
                 width: '100%',
                 height: '100%',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
               {Icon ? (
-                <Icon style={{ width: '22px', height: '22px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2 }} />
+                <Icon style={{ width: '20px', height: '20px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2 }} />
               ) : (
-                <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>?</span>
+                <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)' }}>?</span>
               )}
             </div>
           </div>
@@ -230,44 +230,36 @@ function FolderTile({ folder, badges, onOpen }) {
   return (
     <button
       onClick={() => onOpen(folder.id)}
+      className="group active:scale-[0.98] focus:outline-none transition-all duration-200"
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '10px',
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTapHighlightColor: 'transparent',
-        transform: 'scale(1)',
-        transition: 'transform 0.15s ease',
-        background: 'none',
-        border: 'none',
-        padding: 0,
-        cursor: 'pointer',
       }}
-      className="group active:scale-95 focus:outline-none"
     >
-      {/* Tile */}
+      {/* Tile - refined glass card */}
       <div
+        className="relative rounded-[20px] p-3 flex flex-col items-center justify-center gap-3"
         style={{
-          position: 'relative',
-          borderRadius: '20px',
-          padding: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          width: '150px',
-          minHeight: '150px',
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.14)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
-          transition: 'border-color 0.2s ease',
+          width: '100%',
+          minHeight: '160px',
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          transition: 'all 0.2s ease',
         }}
-        className="group-hover:border-amber-500/40"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+          e.currentTarget.style.borderColor = 'rgba(201,162,75,0.25)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
       >
         {/* Aggregate badge */}
         {totalBadge > 0 && (
@@ -282,8 +274,12 @@ function FolderTile({ folder, badges, onOpen }) {
       </div>
       {/* Label */}
       <span
-        className="text-[11px] text-center leading-tight max-w-[120px] font-semibold text-white/80"
-        style={{ fontFamily: 'var(--font-sans)' }}
+        className="text-[11px] text-center font-semibold mt-2"
+        style={{
+          fontFamily: 'var(--font-sans)',
+          color: 'rgba(255,255,255,0.75)',
+          letterSpacing: '0.02em',
+        }}
       >
         {folder.name}
       </span>
@@ -368,21 +364,13 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
 
   return (
     <>
-      {/* Folder grid */}
+      {/* Folder grid - responsive command center layout */}
       <div
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
         style={{
-          width: '100%',
-          maxWidth: '896px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '20px',
-          justifyItems: 'center',
-          margin: '0 auto',
-          boxSizing: 'border-box',
-          WebkitBoxSizing: 'border-box',
-          paddingTop: '24px',
+          paddingTop: '16px',
+          paddingBottom: '8px',
         }}
-        className="sm:grid-cols-3 lg:grid-cols-4"
       >
         {FOLDERS.map(folder => (
           <FolderTile
