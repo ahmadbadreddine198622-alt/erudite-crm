@@ -91,9 +91,9 @@ function FolderThumbnail({ apps }) {
   const preview = apps.slice(0, 4);
   return (
     <div
-      className="grid grid-cols-2 gap-1 p-1.5 rounded-2xl"
+      className="grid grid-cols-2 gap-3 p-3 rounded-2xl"
       style={{
-        width: 72, height: 72,
+        width: 110, height: 110,
         background: 'rgba(255,255,255,0.07)',
         border: '1px solid rgba(255,255,255,0.1)',
       }}
@@ -101,13 +101,13 @@ function FolderThumbnail({ apps }) {
       {Array.from({ length: 4 }).map((_, i) => {
         const app = preview[i];
         if (!app) return (
-          <div key={i} className="rounded-lg" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          <div key={i} className="rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }} />
         );
         const Icon = app.icon;
         return (
           <div
             key={app.label}
-            className="rounded-lg flex items-center justify-center"
+            className="rounded-xl flex items-center justify-center"
             style={{
               background: `linear-gradient(135deg, var(--tw-gradient-from, #333), var(--tw-gradient-to, #111))`,
               backgroundImage: `linear-gradient(135deg, ${app.gradient?.includes('from-') ? '' : ''})`,
@@ -115,12 +115,12 @@ function FolderThumbnail({ apps }) {
           >
             {/* Use a simple coloured square with the icon — lightweight vs full ExtremeLiquidIcon */}
             <div
-              className={`w-full h-full rounded-lg flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
+              className={`w-full h-full rounded-xl flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
             >
               {Icon ? (
-                <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={1.8} />
+                <Icon className="w-5 h-5 text-white/90" strokeWidth={1.8} />
               ) : (
-                <span className="text-[8px] text-white/30">?</span>
+                <span className="text-[10px] text-white/30">?</span>
               )}
             </div>
           </div>
@@ -184,14 +184,14 @@ function FolderTile({ folder, badges, onOpen }) {
   return (
     <button
       onClick={() => onOpen(folder.id)}
-      className="flex flex-col items-center gap-2 select-none focus:outline-none transition-transform active:scale-95 group"
+      className="flex flex-col items-center gap-3 select-none focus:outline-none transition-transform active:scale-95 group"
     >
       {/* Tile */}
       <div
-        className="relative rounded-2xl p-2 flex flex-col items-center justify-center gap-2 transition-all group-hover:border-amber-500/40"
+        className="relative rounded-2xl p-3 flex flex-col items-center justify-center gap-3 transition-all group-hover:border-amber-500/40"
         style={{
-          width: 96,
-          minHeight: 96,
+          width: 130,
+          minHeight: 130,
           background: 'rgba(255,255,255,0.06)',
           border: '1px solid rgba(255,255,255,0.1)',
           backdropFilter: 'blur(12px)',
