@@ -31,16 +31,23 @@ function relativeTime(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-/* Score pill colour: ≥67 green, 34-66 amber, ≤33 red. */
+/* Pipeline design tokens — keep the whole AI Intelligence cluster on one palette. */
+const GOLD = '#C9A24B';
+const GOLD_SOFT = '#C9A961';
+const FONT_TITLE = "'Cormorant Garamond', serif";
+const FONT_BODY = "'Montserrat', sans-serif";
+
+/* Score pill colour: ≥67 green, 34-66 amber, ≤33 red (pipeline accents). */
 function scorePillMeta(val) {
   if (val >= 67) return { color: '#34d399', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' };
-  if (val >= 34) return { color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.15)', border: 'hsl(38 92% 50% / 0.3)' };
+  if (val >= 34) return { color: GOLD_SOFT, bg: 'rgba(201,162,75,0.15)', border: 'rgba(201,162,75,0.32)' };
   return { color: '#f87171', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' };
 }
 
+// Priority scale (pipeline tokens): urgent = red, high = amber/orange, medium = blue, low = grey.
 const PRIORITY_META = {
   urgent: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)' },
-  high: { color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.1)', border: 'hsl(38 92% 50% / 0.3)' },
+  high: { color: GOLD_SOFT, bg: 'rgba(201,162,75,0.1)', border: 'rgba(201,162,75,0.32)' },
   medium: { color: '#93c5fd', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.3)' },
   low: { color: 'rgba(255,255,255,0.6)', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.12)' },
 };
@@ -69,7 +76,7 @@ function ScorePill({ label, value, suffix, rationale, displayOnly }) {
         onClick={() => rationale && setShowTip(s => !s)}
         onMouseEnter={() => rationale && setShowTip(true)}
         onMouseLeave={() => setShowTip(false)}
-        style={css("display:inline-flex; align-items:baseline; gap:3px; padding:3px 9px; borderRadius:99px; fontSize:11px; fontWeight:700; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; cursor:"+(rationale ? 'pointer' : 'default')+"; fontFamily:'Inter',sans-serif; whiteSpace:nowrap;")}
+        style={css("display:inline-flex; align-items:baseline; gap:3px; padding:3px 9px; borderRadius:99px; fontSize:11px; fontWeight:700; background:"+c.bg+"; border:1px solid "+c.border+"; color:"+c.color+"; cursor:"+(rationale ? 'pointer' : 'default')+"; fontFamily:'Montserrat',sans-serif; whiteSpace:nowrap;")}
       >
         <span style={css("fontSize:9px; textTransform:uppercase; letterSpacing:0.04em; opacity:0.7;")}>{label}</span>
         <span style={css("fontSize:13px;")}>{value}{suffix}</span>
@@ -145,12 +152,12 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
   const isCollapsed = collapsed === true;
 
   return (
-    <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
+    <div style={css("flex:none; margin:0 16px 6px; border-radius:16px; border:1px solid rgba(201,162,75,0.28); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04); overflow:hidden; font-family:"+FONT_BODY+"; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
 
       {/* Collapsed — thin toggle bar: label + pills + momentum + chevron */}
       {isCollapsed ? (
-        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
-          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
+        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:"+FONT_BODY+";")}>
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:"+GOLD_SOFT+";")}>AI Intelligence</span>
           <span style={css("display:flex; align-items:center; gap:4px; flex-wrap:wrap;")}>
             {hasScores && (
               <span style={css("display:flex; align-items:center; gap:3px;")}>
@@ -170,8 +177,8 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
       ) : (
         <React.Fragment>
           {analyzing && (
-            <div style={css("display:flex; align-items:center; gap:5px; padding:5px 12px; background:hsl(38 92% 50% / 0.08); border-bottom:1px solid hsl(38 92% 50% / 0.15); font-size:10px; color:hsl(38 92% 62%);")}>
-              <div style={css("display:inline-block; width:10px; height:10px; border:2px solid hsl(38 92% 50% / 0.25); border-top-color:hsl(38 92% 55%); border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
+            <div style={css("display:flex; align-items:center; gap:5px; padding:5px 12px; background:rgba(201,162,75,0.08); border-bottom:1px solid rgba(201,162,75,0.18); font-size:10px; color:"+GOLD_SOFT+"; font-family:"+FONT_BODY+";")}>
+              <div style={css("display:inline-block; width:10px; height:10px; border:2px solid rgba(201,162,75,0.25); border-top-color:"+GOLD+"; border-radius:50%; animation: ld-spin 0.8s linear infinite;")}></div>
               Re-analysing…
             </div>
           )}
@@ -179,8 +186,8 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
           <div style={css("padding:9px 12px;")}>
             {/* Header row — label is the toggle, with chevron */}
             <div style={css("display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; flex-wrap:wrap;")}>
-              <button onClick={onToggle} style={css("display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; padding:0;")}>
-                <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
+              <button onClick={onToggle} style={css("display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font-family:"+FONT_BODY+"; padding:0;")}>
+                <span style={css("font-size:11px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:"+GOLD_SOFT+"; font-family:"+FONT_TITLE+";")}>AI Intelligence</span>
                 <ChevronDown size={12} style={chevronStyle(false)} />
               </button>
               <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
@@ -197,7 +204,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                   </span>
                 )}
                 {ai.strikeNow && (
-                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, hsl(38 92% 55%), hsl(38 92% 48%)); border:1px solid hsl(38 92% 60%); color:#1a1205; box-shadow:0 0 8px hsl(38 92% 50% / 0.4); whiteSpace:nowrap;")}>
+                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, "+GOLD_SOFT+", "+GOLD+"); border:1px solid "+GOLD_SOFT+"; color:#0B1F3A; box-shadow:0 0 8px rgba(201,162,75,0.4); whiteSpace:nowrap;")}>
                     ⚡ STRIKE
                   </span>
                 )}
@@ -206,7 +213,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
 
             {/* Summary */}
             {hasSummary && (
-              <p style={css("margin:0 0 8px; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{ai.summary}</p>
+              <p style={css("margin:0 0 8px; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); font-family:"+FONT_BODY+";")}>{ai.summary}</p>
             )}
 
             {/* Deal thesis — the persistent strategy the brain carries across runs (V3 P2 REMEMBER) */}
@@ -219,15 +226,15 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
 
             {/* Next Best Action */}
             {hasNba && (
-              <div style={css("margin-bottom:8px; padding:7px 10px; border-radius:9px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-left:2px solid "+pMeta.color+";")}>
+              <div style={css("margin-bottom:8px; padding:7px 10px; border-radius:9px; background:rgba(201,162,75,0.05); border:1px solid rgba(201,162,75,0.18); border-left:2px solid "+GOLD+";")}>
                 <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
-                  <span style={css("font-size:12px; font-weight:700; color:rgba(255,255,255,0.92);")}>{nba.action || nba.reasoning}</span>
+                  <span style={css("font-size:12px; font-weight:700; color:rgba(255,255,255,0.92); font-family:"+FONT_BODY+";")}>{nba.action || nba.reasoning}</span>
                   {priority && (
-                    <span style={css("display:inline-flex; align-items:center; padding:1px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:700; text-transform:uppercase; letter-spacing:0.04em; background:"+pMeta.bg+"; border:1px solid "+pMeta.border+"; color:"+pMeta.color+";")}>{priority}</span>
+                    <span style={css("display:inline-flex; align-items:center; padding:1px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:700; text-transform:uppercase; letter-spacing:0.04em; background:"+pMeta.bg+"; border:1px solid "+pMeta.border+"; color:"+pMeta.color+"; fontFamily:"+FONT_BODY+";")}>{priority}</span>
                   )}
                 </div>
                 {nba.reasoning && nba.action && (
-                  <p style={css("margin:4px 0 0; font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55);")}>{nba.reasoning}</p>
+                  <p style={css("margin:4px 0 0; font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55); font-family:"+FONT_BODY+";")}>{nba.reasoning}</p>
                 )}
               </div>
             )}
@@ -262,11 +269,11 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
               </div>
             )}
 
-            {/* Coaching */}
+            {/* Coaching — gold left-border accent (pipeline) */}
             {hasCoaching && (
-              <div style={css("margin-bottom:8px;")}>
-                <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:3px;")}>Coaching</span>
-                <p style={css("margin:0; font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.72);")}>{ai.coaching}</p>
+              <div style={css("margin-bottom:8px; padding:7px 10px; border-radius:9px; background:rgba(201,162,75,0.05); border:1px solid rgba(201,162,75,0.18); border-left:2px solid "+GOLD+";")}>
+                <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:"+GOLD_SOFT+"; margin-bottom:3px; font-family:"+FONT_BODY+";")}>Coaching</span>
+                <p style={css("margin:0; font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.78); font-family:"+FONT_BODY+";")}>{ai.coaching}</p>
               </div>
             )}
 
@@ -276,7 +283,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Objections</span>
                 <div style={css("display:flex; flex-wrap:wrap; gap:4px;")}>
                   {ai.objections.map((ob, i) => (
-                    <span key={i} style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 7px; borderRadius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:9.5px; color:#fca5a5;")}>⚑ {ob}</span>
+                    <span key={i} style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 7px; borderRadius:99px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); font-size:9.5px; color:#fca5a5; fontFamily:"+FONT_BODY+";")}>⚑ {ob}</span>
                   ))}
                 </div>
               </div>
@@ -287,7 +294,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
               <span style={css("font-size:9px; color:rgba(255,255,255,0.38);")}>
                 {ai.analysedAt ? relativeTime(ai.analysedAt) : ''}
               </span>
-              <button onClick={onReanalyse} disabled={analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 9px; borderRadius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+(analyzing ? 0.6 : 1)+";")}>
+              <button onClick={onReanalyse} disabled={analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 9px; borderRadius:99px; border:1px solid rgba(201,162,75,0.45); background:rgba(201,162,75,0.12); color:"+GOLD_SOFT+"; font-size:9.5px; font-weight:600; cursor:pointer; font-family:"+FONT_BODY+"; opacity:"+(analyzing ? 0.6 : 1)+";")}>
                 <span style={css("display:inline-block; "+(analyzing ? "animation: ld-spin 0.8s linear infinite;" : "")+"")}>↻</span> {analyzing ? 'Re-analysing…' : 'Re-analyse'}
               </button>
             </div>

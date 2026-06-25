@@ -947,8 +947,8 @@ class LandlordDetail extends React.Component {
         badgeStyle:{ flex:'none', padding:'3px 9px', borderRadius:'99px', fontSize:'9.5px', fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color, background:'rgba(255,255,255,0.06)', border:'1px solid '+bd },
         accent:color };
     }
-    const flagChips=(L.redFlags||[]).map(f=>({ label:this.titleize(f), style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, color:'#fca5a5', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.28)' }, icon:'⚑' }));
-    const buyChips=(L.buyingSignals||[]).map(b=>({ label:this.titleize(b), style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, color:'#34d399', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.28)' }, icon:'✓' }));
+    const flagChips=(L.redFlags||[]).map(f=>({ label:this.titleize(f), style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, color:'#fca5a5', background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.3)', fontFamily:"'Montserrat',sans-serif" }, icon:'⚑' }));
+    const buyChips=(L.buyingSignals||[]).map(b=>({ label:this.titleize(b), style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'99px', fontSize:'10.5px', fontWeight:600, color:'#34d399', background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.3)', fontFamily:"'Montserrat',sans-serif" }, icon:'✓' }));
     const hasFlags = flagChips.length>0 || buyChips.length>0;
 
     const connDefs=[
