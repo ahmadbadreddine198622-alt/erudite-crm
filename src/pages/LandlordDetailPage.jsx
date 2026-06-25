@@ -1221,16 +1221,9 @@ class LandlordDetail extends React.Component {
                 </div>
               )}
 
-              {/* Conversation & Activity header — moved below AI panel with animated lion divider */}
+              {/* Conversation & Activity header — mirrored layout with filters on left, title on right */}
               <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:4px 16px 2px;")}>
-                <div>
-                  <div style={css("font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
-                  <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:1px;")}>{vm.streamCountLabel}</div>
-                </div>
-                {/* Animated lion decorative element */}
-                <div style={css("flex:1; margin:0 16px; position:relative;")}>
-                  <LionAnimatedDivider color="hsl(38 92% 50%)" />
-                </div>
+                {/* Filter buttons on the LEFT */}
                 <div style={css("display:flex; align-items:center; gap:5px;")}>
                   <button onClick={()=>this.setStreamFilter('business')} style={vm.businessPillStyle}>
                     <span style={vm.businessDotStyle}></span> Business
@@ -1250,6 +1243,15 @@ class LandlordDetail extends React.Component {
                   <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
                     <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
                   </button>
+                </div>
+                {/* Animated lion decorative element in the CENTER */}
+                <div style={css("flex:1; margin:0 16px; position:relative;")}>
+                  <LionAnimatedDivider color="hsl(38 92% 50%)" />
+                </div>
+                {/* Title on the RIGHT */}
+                <div style={css("text-align:right;")}>
+                  <div style={css("font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
+                  <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:1px;")}>{vm.streamCountLabel}</div>
                 </div>
               </div>
 
