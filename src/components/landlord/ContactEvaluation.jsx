@@ -17,7 +17,7 @@ function css(str) {
 export default function ContactEvaluation({ valuation, comps }) {
   if (!valuation && (!comps || comps.length === 0)) {
     return (
-      <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+      <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:16px 17px; font-family:'Montserrat','Inter',sans-serif;")}>
         <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:10px;")}>
           <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Contact Evaluation</span>
         </div>
@@ -27,7 +27,7 @@ export default function ContactEvaluation({ valuation, comps }) {
   }
 
   return (
-    <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+    <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:16px 17px; font-family:'Montserrat','Inter',sans-serif;")}>
       <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;")}>
         <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Contact Evaluation</span>
         {valuation && valuation.confLabel && (

@@ -21,7 +21,7 @@ export default function Scorecards({ scorecards }) {
   return (
     <div style={css("display:grid; grid-template-columns:repeat(4, 1fr); gap:11px; margin-top:14px; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
       {scorecards.map((sc,i)=>(
-        <div key={i} style={css("border-radius:13px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.03); padding:12px 13px;")}>
+        <div key={i} style={css("border-radius:13px; border:1px solid rgba(201,162,75,0.18); background:#0B1F3A; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); padding:12px 13px; font-family:'Montserrat','Inter',sans-serif;")}>
           <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.42);")}>{sc.label}</div>
           <div style={css("display:flex; align-items:baseline; gap:3px; margin-top:5px;")}>
             <span style={{...css("font-size:19px; font-weight:800;"), color:sc.color}}>{sc.value}</span>

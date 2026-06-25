@@ -77,6 +77,15 @@ function css(str) {
 
 import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
 
+/* Pipeline design tokens — one navy canvas, one card surface, gold accents. */
+const PIPE_CANVAS = '#0F1419';
+const PIPE_SURFACE = '#0B1F3A';
+const PIPE_BORDER = 'rgba(201,162,75,0.18)';
+const PIPE_SHADOW = '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
+const GOLD = '#C9A24B';
+const FONT_TITLE = "'Cormorant Garamond','Playfair Display',serif";
+const FONT_BODY = "'Montserrat','Inter',sans-serif";
+
 class LandlordDetail extends React.Component {
   constructor(props) {
     super(props);
@@ -989,7 +998,7 @@ class LandlordDetail extends React.Component {
     if(L.market){ market.comps=L.market.comps; market.trendLabel=L.market.trend; market.trendStyle={ display:'inline-flex', alignItems:'center', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:'rgba(16,185,129,0.14)', border:'1px solid rgba(16,185,129,0.32)', color:'#34d399' }; }
     else { market.comps=[]; market.trendLabel=''; market.trendStyle={ display:'none' }; }
 
-    const tabDefs=[ ['outreach','Outreach'],['qualify','Qualify'],['calls','Calls'],['overview','Overview'],['unit','Unit'],['negotiation','Negotiation'],['documents','Documents'] ];
+    const tabDefs=[ ['outreach','Outreach'],['qualify','Qualify'],['calls','Calls'],['unit','Unit'],['negotiation','Negotiation'],['documents','Documents'] ];
     const tabs=tabDefs.map(([id,label])=>{
       const on=S.activeTab===id;
       return { id, label, onClick:()=>this.setTab(id),
@@ -1008,11 +1017,6 @@ class LandlordDetail extends React.Component {
         iconStyle:{ flex:'none', width:'24px', height:'24px', borderRadius:'7px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:800, color: st.done?'#34d399':'rgba(255,255,255,0.35)', background: st.done?'rgba(16,185,129,0.16)':'rgba(255,255,255,0.05)', border:'1px solid '+(st.done?'rgba(16,185,129,0.35)':'rgba(255,255,255,0.1)') },
         icon: st.done?'✓':'○',
         labelStyle:{ fontSize:'13px', fontWeight:600, color: st.done?'rgba(255,255,255,0.88)':'rgba(255,255,255,0.5)' } }));
-    } else if(at==='overview'){
-      tab.isList=true; tab.rows=[
-        kv('Full name', L.name), kv('Phone', L.phone), kv('Source', L.source),
-        kv('Archetype', this.titleize(L.archetype), '#c4b5fd'), kv('Owner since', L.ownerSince), kv('Assigned agent', L.agent, 'hsl(38 92% 60%)'),
-      ];
     } else if(at==='qualify'){
       tab.isList=true;
       if(L.qualification){ const q=L.qualification; tab.rows=[
@@ -1122,10 +1126,10 @@ class LandlordDetail extends React.Component {
     return (
       <React.Fragment>
         <style>{GLOBAL_CSS}</style>
-        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
+        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:"+PIPE_CANVAS+"; color:rgba(255,255,255,0.9); font-family:"+FONT_BODY+";")}>
 
           {/* Top bar — centered banner with action buttons */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(201,162,75,0.18); background:"+PIPE_SURFACE+"; backdrop-filter:blur(16px);")}>
             <div style={css("display:flex; align-items:center; gap:6px; padding-left:50px;")}>
               <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
@@ -1293,7 +1297,7 @@ class LandlordDetail extends React.Component {
                 ) : (
                   <div key={s.key} style={css("display:flex; align-items:flex-start; gap:11px; padding:2px 4px;")}>
                     <span style={s.actIconStyle}>{s.actIcon}</span>
-                    <div style={css("flex:1; min-width:0; border-radius:11px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:10px 12px;")}>
+                    <div style={css("flex:1; min-width:0; border-radius:11px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); padding:10px 12px;")}>
                       <div style={css("display:flex; align-items:center; justify-content:space-between; gap:8px;")}>
                         <span style={s.actLabelStyle}>{s.actTitle}</span>
                         <span style={css("flex:none; font-size:10.5px; color:rgba(255,255,255,0.38);")}>{s.time}</span>
@@ -1307,7 +1311,7 @@ class LandlordDetail extends React.Component {
               {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
-              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
+              <div style={{ ...css("flex:none; border-top:1px solid rgba(201,162,75,0.18); padding:10px 16px 12px; background:"+PIPE_SURFACE+";"), position: 'relative', overflow: 'hidden' }}>
                 {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
                 {this.state.composerDraft && (
                   <ComposerConfirmChip
@@ -1526,17 +1530,18 @@ class LandlordDetail extends React.Component {
               />
 
               <ListingManagerStrip 
-                listingManagerEmail={L.listing_manager_email}
-                assignedAgentEmail={L.assigned_agent_email}
+                listingManagerEmail={L.listingManagerEmail || this.props.rawLandlord?.listing_manager_email}
+                assignedAgentEmail={L.agentEmail || this.props.rawLandlord?.assigned_agent_email}
+                ownerSince={this.props.rawLandlord?.mandate_start_date ? new Date(this.props.rawLandlord.mandate_start_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null}
                 phone={L.phone}
                 whatsapp={L.whatsapp}
               />
               <CallQualificationTab landlord={this.props.landlords?.[0] || L} />
               
               {/* Commission Pipeline Button */}
-              <div style={css("margin-top:16px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-radius:11px; background:rgba(62,53,37,0.6); border:1px solid rgba(230,157,67,0.3); animation: ld-rise 0.47s cubic-bezier(0.22,1,0.36,1) both; cursor:pointer;")}
+              <div style={css("margin-top:16px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-radius:11px; background:"+PIPE_SURFACE+"; border:1px solid rgba(201,162,75,0.3); box-shadow:"+PIPE_SHADOW+"; animation: ld-rise 0.47s cubic-bezier(0.22,1,0.36,1) both; cursor:pointer;")}
                 onClick={() => this.onNavigate('/commissions')}>
-                <div style={css("display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:9px; background:rgba(62,53,37,0.8); border:1px solid rgba(230,157,67,0.4);")}>
+                <div style={css("display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:9px; background:rgba(201,162,75,0.12); border:1px solid rgba(201,162,75,0.4);")}>
                   <DollarSign className="w-5 h-5" style={css("color:#E69D43;")} />
                 </div>
                 <div style={css("flex:1; min-width:0;")}>
@@ -1560,7 +1565,7 @@ class LandlordDetail extends React.Component {
               </div>
 
               {/* pipeline progress + stage selector */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
+              <div style={css("margin-top:16px; border-radius:13px; border:1px solid "+PIPE_BORDER+"; background:"+PIPE_SURFACE+"; box-shadow:"+PIPE_SHADOW+"; padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
                   <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline</span>
                   <span style={css("font-size:11px; color:hsl(38 92% 60%); font-weight:600;")}>Stage {stage.index} of {stage.total}</span>
@@ -1584,7 +1589,7 @@ class LandlordDetail extends React.Component {
 
               {/* Email — compact card */}
               {L.email && (
-                <div style={css("margin-top:8px; border-radius:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:11px 15px;")}>
+                <div style={css("margin-top:8px; border-radius:13px; border:1px solid "+PIPE_BORDER+"; background:"+PIPE_SURFACE+"; box-shadow:"+PIPE_SHADOW+"; padding:11px 15px;")}>
                   <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Email</div>
                   <a href={`mailto:${L.email}`} style={css("font-size:13.5px; font-weight:600; margin-top:5px; color:rgba(255,255,255,0.9); overflow:hidden; text-overflow:ellipsis; display:block; text-decoration:none;")}>{L.email}</a>
                 </div>
@@ -1615,7 +1620,7 @@ class LandlordDetail extends React.Component {
               <RiskSignals signals={signals} flagChips={vm.flagChips} buyChips={vm.buyChips} hasFlags={vm.hasFlags} />
 
               {/* AI summary */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid "+PIPE_BORDER+"; background:"+PIPE_SURFACE+"; box-shadow:"+PIPE_SHADOW+"; padding:16px 17px;")}>
                 <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:10px;")}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="hsl(38 92% 60%)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                   <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>AI Summary</span>
@@ -1627,7 +1632,7 @@ class LandlordDetail extends React.Component {
               <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
 
               {/* market intelligence */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid "+PIPE_BORDER+"; background:"+PIPE_SURFACE+"; box-shadow:"+PIPE_SHADOW+"; padding:16px 17px;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;")}>
                   <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Market Intelligence</span>
                   <span style={market.trendStyle}>{market.trendLabel}</span>
@@ -1665,7 +1670,7 @@ class LandlordDetail extends React.Component {
               </div>
 
               {/* agent notes */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
+              <div style={css("margin-top:16px; border-radius:15px; border:1px solid "+PIPE_BORDER+"; background:"+PIPE_SURFACE+"; box-shadow:"+PIPE_SHADOW+"; padding:16px 17px;")}>
                 <div style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:9px;")}>Agent Notes</div>
                 <textarea value={vm.agentNotes} onChange={this.onNotesInput} rows={3} style={css("width:100%; resize:vertical; min-height:64px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:13px; line-height:1.55; font-family:'Inter',sans-serif;")}></textarea>
               </div>

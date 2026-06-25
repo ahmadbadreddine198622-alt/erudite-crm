@@ -406,21 +406,6 @@ export default function CallQualificationTab({ landlord }) {
         </div>
       </div>
 
-      {/* ── History ── */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Call History ({history.length})
-        </p>
-        {histLoading ? (
-          <div className="flex justify-center py-6"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
-        ) : history.length === 0 ? (
-          <p className="text-xs text-center py-6" style={{ color: 'rgba(255,255,255,0.3)' }}>No calls logged yet</p>
-        ) : (
-          <div className="space-y-2">
-            {history.map(q => <QualHistoryItem key={q.id} q={q} />)}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
