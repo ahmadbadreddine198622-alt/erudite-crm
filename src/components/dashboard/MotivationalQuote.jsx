@@ -57,25 +57,25 @@ export default function MotivationalQuote() {
 
   return (
     <div
-      className="w-full max-w-md mx-auto mb-6 px-4"
+      className="w-full max-w-2xl mx-auto mb-8 px-6"
       style={{
         background: 'transparent',
-        borderRadius: 0,
-        padding: '8px 24px',
-        border: 'none',
+        padding: '16px 0',
       }}
     >
       {/* Quote text */}
       <p
-        className="text-center text-sm font-medium"
+        className="text-center font-medium"
         style={{
-          color: 'rgba(255,255,255,0.75)',
-          lineHeight: 1.6,
-          letterSpacing: '0.01em',
-          minHeight: 48,
+          color: 'rgba(255,255,255,0.85)',
+          lineHeight: 1.8,
+          letterSpacing: '0.02em',
+          fontSize: 18,
+          minHeight: 64,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          fontFamily: "'Inter', sans-serif",
           ...transitionStyle,
         }}
       >
