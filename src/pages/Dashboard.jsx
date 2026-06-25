@@ -18,7 +18,7 @@ import AudioWaveform from '@/components/shared/AudioWaveform';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
+
 import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
@@ -245,10 +245,7 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
-      {/* Animated Hero Banner */}
-      <div className="w-full max-w-5xl">
-        <EruditeHeroBanner />
-      </div>
+
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
