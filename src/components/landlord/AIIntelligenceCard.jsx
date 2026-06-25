@@ -37,19 +37,41 @@ const GOLD_SOFT = '#C9A961';
 const FONT_TITLE = "'Cormorant Garamond', serif";
 const FONT_BODY = "'Montserrat', sans-serif";
 
-/* Score pill colour: ≥67 green, 34-66 amber, ≤33 red (pipeline accents). */
-// TRUST / URGENCY / WIN pills — always the gold/amber accent (pipeline-card style),
-// independent of value. Fill ~12% opacity, border ~30%, text at full strength.
-function scorePillMeta() {
-  return { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' };
+/* Design-system accent palette (text @ full, fill @ 12%, border @ 30%). */
+const ACCENT = {
+  red: { color: 'hsl(0 72% 51%)', bg: 'hsl(0 72% 51% / 0.12)', border: 'hsl(0 72% 51% / 0.3)' },
+  amber: { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' },
+  green: { color: 'hsl(142 71% 45%)', bg: 'hsl(142 71% 45% / 0.12)', border: 'hsl(142 71% 45% / 0.3)' },
+  blue: { color: 'hsl(214 90% 60%)', bg: 'hsl(214 90% 60% / 0.12)', border: 'hsl(214 90% 60% / 0.3)' },
+  grey: { color: 'hsl(222 10% 60%)', bg: 'hsl(222 10% 60% / 0.12)', border: 'hsl(222 10% 60% / 0.3)' },
+};
+
+// Score pills (Trust/Urgency/Win) — value-based: <40 RED, 40-69 AMBER, ≥70 GREEN, null/NaN GREY.
+function scorePillMeta(val) {
+  const num = (typeof val === 'number' && !isNaN(val)) ? val : null;
+  if (num == null) return ACCENT.grey;
+  if (num < 40) return ACCENT.red;
+  if (num < 70) return ACCENT.amber;
+  return ACCENT.green;
 }
 
-// Status (momentum) pill — green when active, red when stalled, gold otherwise.
+// Momentum pill — free-text mapping: building/grow/accelerate/surge/strong/active/rising → GREEN;
+// slowing/cool/soft/fade → AMBER; stalled/stuck/stagnant/cold/dead/dormant/declining/drop → RED; else GREY.
 function momentumPillMeta(momentum) {
   const s = String(momentum || '').toLowerCase();
-  if (/active|hot|building|surge|accelerat|strong|warm/.test(s)) return { color: 'hsl(142 71% 45%)', bg: 'hsl(142 71% 45% / 0.12)', border: 'hsl(142 71% 45% / 0.3)' };
-  if (/stall|stuck|cold|dormant|dead|lost/.test(s)) return { color: 'hsl(0 72% 51%)', bg: 'hsl(0 72% 51% / 0.12)', border: 'hsl(0 72% 51% / 0.3)' };
-  return { color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.12)', border: 'hsl(38 92% 50% / 0.3)' };
+  if (/building|grow|accelerat|surge|strong|active|rising/.test(s)) return ACCENT.green;
+  if (/slowing|cool|soft|fade/.test(s)) return ACCENT.amber;
+  if (/stall|stuck|stagnant|cold|dead|dormant|declin|drop/.test(s)) return ACCENT.red;
+  return ACCENT.grey;
+}
+
+// Priority tag — urgent RED, high AMBER, medium BLUE, low GREY.
+function priorityMeta(priority) {
+  const p = String(priority || '').toLowerCase();
+  if (p === 'urgent') return ACCENT.red;
+  if (p === 'high') return ACCENT.amber;
+  if (p === 'medium') return ACCENT.blue;
+  return ACCENT.grey;
 }
 
 // Priority scale (pipeline tokens): urgent = red, high = amber/orange, medium = blue, low = grey.
@@ -68,7 +90,7 @@ const chevronStyle = (collapsed) => ({
 
 function ScorePill({ label, value, suffix, rationale, displayOnly }) {
   const [showTip, setShowTip] = useState(false);
-  const c = scorePillMeta();
+  const c = scorePillMeta(value);
   // Type-guard: render a dash instead of crashing when the value is null/undefined.
   const display = (value == null) ? '—' : (value + (suffix || ''));
   if (displayOnly) {
@@ -157,7 +179,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
   const hasQuestions = openQuestions.length > 0;
   const trend = ai.scoreTrend && (ai.scoreTrend.trust || ai.scoreTrend.win || ai.scoreTrend.urgency) ? ai.scoreTrend : null;
   const priority = nba && typeof nba.priority === 'string' ? nba.priority.toLowerCase() : '';
-  const pMeta = PRIORITY_META[priority] || PRIORITY_META.medium;
+  const pMeta = priorityMeta(priority);
   const isCollapsed = collapsed === true;
 
   return (
@@ -213,7 +235,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                   </span>
                 ); })()}
                 {ai.strikeNow && (
-                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:2px 8px; borderRadius:99px; fontSize:9.5px; fontWeight:800; letter-spacing:0.04em; background:linear-gradient(135deg, "+GOLD_SOFT+", "+GOLD+"); border:1px solid "+GOLD_SOFT+"; color:#0B1F3A; box-shadow:0 0 8px rgba(201,162,75,0.4); whiteSpace:nowrap;")}>
+                  <span title={ai.strikeText || undefined} style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 12px; borderRadius:99px; fontSize:12px; fontWeight:500; background:"+ACCENT.red.bg+"; border:1px solid "+ACCENT.red.border+"; color:"+ACCENT.red.color+"; whiteSpace:nowrap; fontFamily:'Montserrat',sans-serif;")}>
                     ⚡ STRIKE
                   </span>
                 )}
@@ -292,7 +314,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Objections</span>
                 <div style={css("display:flex; flex-wrap:wrap; gap:4px;")}>
                   {ai.objections.map((ob, i) => (
-                    <span key={i} style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 7px; borderRadius:99px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); font-size:9.5px; color:#fca5a5; fontFamily:"+FONT_BODY+";")}>⚑ {ob}</span>
+                    <span key={i} style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 12px; borderRadius:99px; fontSize:12px; fontWeight:500; background:"+ACCENT.red.bg+"; border:1px solid "+ACCENT.red.border+"; color:"+ACCENT.red.color+"; whiteSpace:nowrap; fontFamily:'Montserrat',sans-serif;")}>⚑ {ob}</span>
                   ))}
                 </div>
               </div>
