@@ -26,9 +26,6 @@ import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
-import LandlordTopBar from '@/components/landlord/LandlordTopBar';
-import MobileComposerBar from '@/components/landlord/MobileComposerBar';
-import NegotiationTab from '@/components/landlord/NegotiationTab';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import EmailComposer from '@/components/landlord/EmailComposer';
@@ -135,31 +132,12 @@ class LandlordDetail extends React.Component {
       composerParsing: false,
       composerDraft: null,
       composerCommitting: false,
-      // Mobile/tablet (≤1024px): conversation-first layout. showDetails toggles the
-      // right "details" panel into a full-screen overlay (hidden by default on mobile).
-      isMobile: typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 1024px)').matches : false,
-      showDetails: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
   }
 
-  componentDidMount(){
-    this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse();
-    if(typeof window !== 'undefined' && window.matchMedia){
-      this._mql = window.matchMedia('(max-width: 1024px)');
-      this._onMql = (e)=> this.setState({ isMobile: e.matches });
-      if(this._mql.addEventListener) this._mql.addEventListener('change', this._onMql);
-      else this._mql.addListener(this._onMql);
-    }
-  }
-
-  componentWillUnmount(){
-    if(this._mql){
-      if(this._mql.removeEventListener) this._mql.removeEventListener('change', this._onMql);
-      else this._mql.removeListener(this._onMql);
-    }
-  }
+  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); }
 
   // Auto-run AI analysis once when a V-card opens, only if never analysed (no ai_processed_at).
   // Already-analysed landlords are left to the manual "Analyse Now" — no reload, refetch in place.
@@ -1144,25 +1122,43 @@ class LandlordDetail extends React.Component {
     return (
       <React.Fragment>
         <style>{GLOBAL_CSS}</style>
-        <div className={"ld-root" + (this.state.isMobile && this.state.showDetails ? " ld-show-details" : "")} style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
+        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
-          {/* Top bar — Back/Close-all · centered banner · landlord switcher (+ Details toggle on mobile) */}
-          <LandlordTopBar
-            onBack={this.onBack}
-            onCollapseAll={this.collapseAll}
-            currentId={vm.currentId}
-            landlordOptions={vm.landlordOptions}
-            onSwitch={this.onSwitch}
-            isMobile={this.state.isMobile}
-            showDetails={this.state.showDetails}
-            onToggleDetails={()=> this.setState(s=>({ showDetails: !s.showDetails }))}
-          />
+          {/* Top bar — centered banner with action buttons */}
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
+            <div style={css("display:flex; align-items:center; gap:6px; padding-left:50px;")}>
+              <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+              </button>
+              <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
+              </button>
+            </div>
+            
+            {/* Centered banner text */}
+            <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
+              <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02)); border:1px solid hsl(38 92% 50% / 0.25); box-shadow:0 4px 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.05);")}>
+                <div style={css("width:6px; height:6px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 12px hsl(38 92% 55% / 0.8), 0 0 24px hsl(38 92% 50% / 0.5); animation: pulse 2s ease-in-out infinite;")}></div>
+                <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
+                <span style={css("font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; background:linear-gradient(135deg, hsl(38 92% 62%), hsl(38 92% 50%)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-shadow:0 2px 10px rgba(245,158,11,0.3);")}>Landlord Intelligence</span>
+              </div>
+            </div>
+            
+            <div style={css("display:flex; align-items:center; gap:10px;")}>
+              <span style={css("font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Viewing</span>
+              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:9px 13px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:rgba(255,255,255,0.88); font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; min-width:140px;")}>
+                {vm.landlordOptions.map(o=>(
+                  <option key={o.id} value={o.id} style={{background:'#13182a'}}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* Two panels */}
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
             {/* LEFT PANEL */}
-            <div className="ld-panel ld-panel-left" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
+            <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.012);")}>
 
               {/* AI Intelligence + Suggested Tasks row */}
               <div style={css("flex:none; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 6px;")}>
@@ -1230,7 +1226,7 @@ class LandlordDetail extends React.Component {
                   <div style={css("font-family:'Playfair Display',serif; font-size:15px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
                   <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:1px;")}>{vm.streamCountLabel}</div>
                 </div>
-                <div className="ld-filter-strip" style={css("display:flex; align-items:center; gap:5px;")}>
+                <div style={css("display:flex; align-items:center; gap:5px;")}>
                   <button onClick={()=>this.setStreamFilter('business')} style={vm.businessPillStyle}>
                     <span style={vm.businessDotStyle}></span> Business
                   </button>
@@ -1311,7 +1307,7 @@ class LandlordDetail extends React.Component {
               {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
-              <div className="ld-composer" style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
+              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(8,12,22,0.5);"), position: 'relative', overflow: 'hidden' }}>
                 {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
                 {this.state.composerDraft && (
                   <ComposerConfirmChip
@@ -1329,7 +1325,6 @@ class LandlordDetail extends React.Component {
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
                   </div>
                 )}
-                {!this.state.isMobile && (
                 <div style={css("display:flex; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
                   {vm.composerTypes.map((t)=>(
                     <button key={t.label} onClick={t.onClick} style={t.style}>{t.icon} {t.label}</button>
@@ -1343,11 +1338,10 @@ class LandlordDetail extends React.Component {
                     Smart Calendar
                   </button>
                 </div>
-                )}
 
                 {/* AI draft control — only for Notes. Pre-fills the editable body from one of
                     three AI sources. Empty sources are disabled (no empty notes). */}
-                {!this.state.isMobile && this.state.composerType === 'Note' && (()=>{
+                {this.state.composerType === 'Note' && (()=>{
                   const noteSources = this.noteDraftSources();
                   const noteAiSource = this.state.noteAiSource;
                   const noneAvailable = noteSources.every(s => !s.text);
@@ -1393,7 +1387,7 @@ class LandlordDetail extends React.Component {
 
                 {/* AI draft control + extra fields — only for Tasks. Drafts the title from
                     ai_next_best_action; due_date + assignee are editable below. */}
-                {!this.state.isMobile && this.state.composerType === 'Task' && (()=>{
+                {this.state.composerType === 'Task' && (()=>{
                   const src = this.taskDraftSource();
                   const taskAiSource = this.state.taskAiSource;
                   const active = taskAiSource === 'ai_next_best_action';
@@ -1447,7 +1441,7 @@ class LandlordDetail extends React.Component {
                 {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
                     Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
                     (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
-                {!this.state.isMobile && this.state.composerType === 'Follow-up' && (
+                {this.state.composerType === 'Follow-up' && (
                   <FollowupComposerFields
                     chips={this.suggestedFollowupChips()}
                     followupAiSource={this.state.followupAiSource}
@@ -1509,7 +1503,7 @@ class LandlordDetail extends React.Component {
                     </div>
                   </React.Fragment>
                 )}
-                {!this.state.isMobile && this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
+                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
@@ -1517,33 +1511,11 @@ class LandlordDetail extends React.Component {
                   ); })()}
                 </div>
                 )}
-
-                {/* Mobile/tablet: slim docked bar + "＋" action sheet (replaces the tall button grid + textarea) */}
-                {this.state.isMobile && (()=>{
-                  const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending;
-                  const panelMode = ['Email','iMessage','Appointment'].includes(this.state.composerType);
-                  return (
-                    <MobileComposerBar
-                      composerType={this.state.composerType}
-                      composerText={vm.composerText}
-                      placeholder={vm.composerPlaceholder}
-                      busy={busy}
-                      composerTypes={vm.composerTypes}
-                      textareaRef={this.composerRef}
-                      panelMode={panelMode}
-                      onInput={this.onComposerInput}
-                      onSend={this.onSend}
-                      onSetType={this.setComposerType}
-                      onSmartTask={()=>this.onNavigate('/task-center')}
-                      onSmartCalendar={()=>this.setComposerType('Appointment')}
-                    />
-                  );
-                })()}
               </div>
             </div>
 
             {/* RIGHT PANEL */}
-            <div className="ld-panel ld-panel-right ld-scroll" style={css("flex:1 1 38%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px;")}>
+            <div className="ld-panel ld-scroll" style={css("flex:1 1 38%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px;")}>
 
               {/* header */}
               <div style={css("display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
@@ -1767,7 +1739,70 @@ class LandlordDetail extends React.Component {
                   <CallsTabList calls={this.cur().calls || []} />
                 )}
 
-                {tab.isNegotiation && <NegotiationTab tab={tab} />}
+                {tab.isNegotiation && (
+                  <React.Fragment>
+                    <div style={css("border-radius:14px; border:1px solid hsl(38 92% 50% / 0.3); background:linear-gradient(180deg, hsl(38 92% 50% / 0.08), rgba(255,255,255,0.02)); overflow:hidden; margin-bottom:16px;")}>
+                      <div style={css("display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid hsl(38 92% 50% / 0.16);")}>
+                        <span style={css("font-size:14px;")}>⚔</span>
+                        <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%);")}>Battle Card</span>
+                        <span style={css("margin-left:auto; font-size:10.5px; color:rgba(255,255,255,0.4);")}>generateBattleCard</span>
+                      </div>
+                      <div style={css("padding:13px 14px;")}>
+                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Pain point</div>
+                        <div style={css("font-size:13px; line-height:1.5; color:rgba(255,255,255,0.85); margin-bottom:12px;")}>{tab.battle.painPoint}</div>
+
+                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;")}>Top motivators</div>
+                        <div style={css("display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;")}>
+                          {tab.battle.motivators.map((mo,i)=>(
+                            <span key={i} style={css("padding:5px 11px; border-radius:99px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); font-size:11.5px; color:rgba(255,255,255,0.8);")}>{mo}</span>
+                          ))}
+                        </div>
+
+                        <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-bottom:12px;")}>
+                          <div style={css("border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); padding:10px 12px;")}>
+                            <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Competitor intel</div>
+                            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.78);")}>{tab.battle.competitor}</div>
+                          </div>
+                          <div style={css("border-radius:10px; background:hsl(38 92% 50% / 0.07); border:1px solid hsl(38 92% 50% / 0.25); padding:10px 12px;")}>
+                            <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%); margin-bottom:4px;")}>Winning pitch</div>
+                            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{tab.battle.pitch}</div>
+                          </div>
+                        </div>
+
+                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;")}>Closing techniques</div>
+                        <div style={css("display:flex; flex-direction:column; gap:5px;")}>
+                          {tab.battle.closes.map((cz,i)=>(
+                            <div key={i} style={css("display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.74); line-height:1.45;")}><span style={css("flex:none; color:hsl(38 92% 58%); font-weight:700;")}>→</span>{cz}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={css("display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:15px;")}>
+                      {tab.ladder.map((l,i)=>(
+                        <div key={i} style={l.cardStyle}>
+                          <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.45);")}>{l.label}</div>
+                          <div style={{...css("font-size:18px; font-weight:800; margin-top:5px;"), color:l.color}}>{l.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:7px;")}>Offers received</div>
+                    <div style={css("display:flex; flex-direction:column; gap:6px;")}>
+                      {tab.offers.map((of)=>(
+                        <div key={of.key} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                          <div>
+                            <div style={css("font-size:12.5px; font-weight:600; color:rgba(255,255,255,0.85);")}>{of.who}</div>
+                            <div style={css("font-size:11px; color:rgba(255,255,255,0.45); margin-top:1px;")}>{of.time}</div>
+                          </div>
+                          <div style={css("display:flex; align-items:center; gap:10px;")}>
+                            <span style={css("font-size:14px; font-weight:700; color:rgba(255,255,255,0.92);")}>{of.amount}</span>
+                            <span style={of.statusStyle}>{of.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </React.Fragment>
+                )}
 
                 {tab.isDocuments && (
                   <DocumentsTab docs={tab.docs} landlordName={tab.docsLandlordName} />
