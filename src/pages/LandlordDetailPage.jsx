@@ -27,8 +27,7 @@ import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
-import IMessageBadge from '@/components/landlord/IMessageBadge';
-import LandlordHeaderTags from '@/components/landlord/LandlordHeaderTags';
+import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
@@ -1518,43 +1517,13 @@ class LandlordDetail extends React.Component {
             {/* RIGHT PANEL */}
             <div className="ld-panel ld-scroll" style={css("flex:1 1 38%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px;")}>
 
-              {/* header */}
-              <div style={css("display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
-                <div style={css("display:flex; align-items:center; gap:14px; min-width:0;")}>
-                  <div style={hdr.avatarStyle}>{hdr.initials}</div>
-                  <div style={css("min-width:0;")}>
-                    {/* Name line — keep the unit/property chip here as-is */}
-                    <div style={css("display:flex; align-items:center; gap:10px; flex-wrap:wrap;")}>
-                      <h1 style={css("font-family:'Playfair Display',serif; font-weight:600; font-size:27px; letter-spacing:-0.01em; margin:0; color:rgba(255,255,255,0.97);")}>{hdr.name}</h1>
-                      {L.phone && L.phone !== '—' && (
-                        <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
-                      )}
-                      <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
-                      <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
-                      <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.unitBuilding}</span>
-                      <span style={css("display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:8px; background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.4);")}>
-                        <span style={css("font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:hsl(38 92% 55%); opacity:0.8;")}>Unit</span>
-                        <span style={css("font-family:'SF Mono','Menlo',monospace; font-size:13.5px; font-weight:700; letter-spacing:0.02em; color:hsl(38 92% 64%);")}>{hdr.unitLabel}</span>
-                      </span>
-                      <span style={css("color:rgba(255,255,255,0.22);")}>·</span>
-                      <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.askingLabel}</span>
-                    </div>
-
-                    {/* Grouped tag rail — Profile · Pipeline · Channel */}
-                    <div style={css("margin-top:9px;")}>
-                      <LandlordHeaderTags
-                        archetypeKey={L.archetype}
-                        stageLabel={hdr.stageLabel}
-                        temperature={L.temperature}
-                        momentum={L.aiMomentum}
-                        channel={(L.phone && L.phone !== '—')
-                          ? <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
-                          : <span style={css("font-size:11px; color:rgba(255,255,255,0.4);")}>No phone</span>}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* header — four-tier identity card (reads the raw Landlord record) */}
+              <LandlordIdentityHeader
+                landlord={this.props.rawLandlord}
+                unit={this.props.rawProperty}
+                imessageChecking={this.state.imessageChecking}
+                onCheckIMessage={this.checkIMessage}
+              />
 
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
@@ -2449,6 +2418,8 @@ export default function LandlordDetailPage() {
     <React.Fragment>
       <LandlordDetail
         landlords={[mapped]}
+        rawLandlord={L}
+        rawProperty={prop}
         initialId={mapped.id}
         onBack={() => navigate('/landlords')}
         showCoaching
