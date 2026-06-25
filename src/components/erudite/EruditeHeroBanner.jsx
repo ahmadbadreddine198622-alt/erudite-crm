@@ -176,12 +176,12 @@ export default function EruditeHeroBanner() {
       ref={containerRef}
       className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 150,
-        maxHeight: 170,
-        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.18) 0%, rgba(8,12,22,0.22) 50%, rgba(3,5,10,0.28) 100%)',
-        backdropFilter: 'blur(16px) saturate(160%)',
-        boxShadow: '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-        border: '1px solid rgba(212,175,55,0.08)',
+        minHeight: 100,
+        maxHeight: 120,
+        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.12) 0%, rgba(8,12,22,0.15) 50%, rgba(3,5,10,0.18) 100%)',
+        backdropFilter: 'blur(12px) saturate(140%)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        border: '1px solid rgba(212,175,55,0.06)',
         transform: `perspective(1000px) rotateX(${mousePos.y * 0.25}deg) rotateY(${mousePos.x * 0.25}deg)`,
         transition: 'transform 0.12s ease-out',
         position: 'relative',
@@ -191,14 +191,14 @@ export default function EruditeHeroBanner() {
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ pointerEvents: 'none', opacity: 0.5 }}
+        style={{ pointerEvents: 'none', opacity: 0.4 }}
       />
 
       {/* Ultra-subtle atmospheric haze */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.02) 0%, transparent 55%)',
+          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.015) 0%, transparent 55%)',
           filter: 'blur(60px)',
         }}
       />
@@ -207,21 +207,21 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(255,255,255,0.01) 100%)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.015) 0%, transparent 50%, rgba(255,255,255,0.008) 100%)',
         }}
       />
 
       {/* Main content — refined logo */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-4"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-3"
         style={{
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark — clean refined design */}
-        <div className="relative mb-2">
+        {/* ERUDITE wordmark — larger and more prominent */}
+        <div className="relative mb-1.5">
           <h1
-            className="text-4xl md:text-5xl font-semibold tracking-wide"
+            className="text-5xl md:text-6xl lg:text-7xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
               background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
@@ -238,11 +238,11 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* REAL ESTATE — elegant larger subtitle */}
+        {/* REAL ESTATE — elegant subtitle */}
         <p
-          className="text-[11px] md:text-[13px] font-light tracking-[0.35em] uppercase"
+          className="text-[10px] md:text-[11px] font-light tracking-[0.35em] uppercase"
           style={{
-            color: 'rgba(255,255,255,0.65)',
+            color: 'rgba(255,255,255,0.6)',
             textShadow: '0 1px 6px rgba(0,0,0,0.5)',
           }}
         >
@@ -274,7 +274,7 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0.28) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.12) 75%, rgba(0,0,0,0.18) 100%)',
         }}
       />
 
