@@ -218,13 +218,12 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(16px)' }}
       onClick={onClose}
     >
       <div
         className="relative w-full max-w-lg rounded-3xl p-5 max-h-[85vh] overflow-y-auto"
         style={{
-          background: 'rgba(14,20,36,0.97)',
+          background: 'rgba(14,20,36,0.99)',
           border: '1px solid rgba(245,158,11,0.3)',
           boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
         }}
