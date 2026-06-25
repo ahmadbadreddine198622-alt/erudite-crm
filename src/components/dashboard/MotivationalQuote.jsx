@@ -59,19 +59,32 @@ export default function MotivationalQuote() {
     <div
       className="w-full max-w-2xl mx-auto mb-8 px-6"
       style={{
-        background: 'transparent',
-        padding: '16px 0',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderRadius: 16,
+        padding: '20px 28px',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
+      {/* Subtle gradient accent at top */}
+      <div
+        className="w-full h-0.5 rounded-full mb-4"
+        style={{
+          background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.4) 20%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0.4) 80%, transparent 100%)',
+          boxShadow: '0 1px 4px rgba(212,175,55,0.15)',
+        }}
+      />
+
       {/* Quote text */}
       <p
         className="text-center font-medium"
         style={{
-          color: 'rgba(255,255,255,0.85)',
+          color: 'rgba(255,255,255,0.9)',
           lineHeight: 1.8,
           letterSpacing: '0.02em',
-          fontSize: 18,
-          minHeight: 64,
+          fontSize: 17,
+          minHeight: 60,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
