@@ -274,12 +274,16 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         navigate(`/landlord/${landlord.id}`);
       }}
       className={cn(
-        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 bg-secondary border shadow-sm',
+        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 border shadow-sm',
         isDragging
-          ? 'scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.45)] border-accent/60'
+          ? 'scale-[1.03] shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-accent/60'
           : 'hover:shadow-md border-border',
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
+      style={{
+        background: 'linear-gradient(135deg, rgba(201,162,75,0.08), rgba(255,255,255,0.03))',
+        border: '1px solid rgba(201,162,75,0.2)',
+      }}
     >
       {/* Top row: grip handle + checkbox + avatar + name */}
       <div className="flex items-center gap-1.5">
@@ -313,10 +317,10 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
 
       {/* Badges row: archetype + stage + urgency + media status (only for photographer_scheduling stage) */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
-        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
+        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)} style={{ fontWeight: 700 }}>
           {archetypeLabel}
         </span>
-        <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+        <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(201,162,75,0.12)', border: '1px solid rgba(201,162,75,0.3)', color: 'hsl(38 92% 60%)' }}>
           <span
             className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')}
             title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
@@ -324,23 +328,23 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           {stageLabel}
         </span>
         {landlord.urgency_score >= 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', fontWeight: 700 }}>
             URGENT
           </span>
         )}
         {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.45)', color: '#fbbf24', fontWeight: 700 }}>
             ATTENTION
           </span>
         )}
         {showMediaBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
             {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
             {mediaStatus.label}
           </span>
         )}
         {docBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
             <FileCheck className="w-2 h-2" />
             {docBadge.label}
           </span>
@@ -349,9 +353,9 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
 
       {/* Next step — the one action that moves this landlord forward (from stage guide) */}
       {nextStep && (
-        <div className="flex items-start gap-1 mt-1">
-          <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: 'hsl(38 92% 55%)' }}>Next:</span>
-          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.7)' }}>{nextStep}</span>
+        <div className="flex items-start gap-1 mt-1" style={{ background: 'rgba(201,162,75,0.06)', padding: '0.25rem 0.375rem', borderRadius: '0.25rem', border: '1px solid rgba(201,162,75,0.15)' }}>
+          <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: '#fbbf24' }}>Next:</span>
+          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{nextStep}</span>
         </div>
       )}
 
@@ -451,27 +455,27 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
       )}
 
       {/* Commission + Trust + Agent - single row */}
-      <div className="flex items-center gap-2 mt-1 flex-wrap">
+      <div className="flex items-center gap-2 mt-1 flex-wrap" style={{ borderTop: '1px solid rgba(201,162,75,0.15)', paddingTop: '0.375rem' }}>
         {commission > 0 && (
-          <span className="text-[10px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+          <span className="text-[10px] font-bold" style={{ color: '#fbbf24', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
             {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
           </span>
         )}
         {askingPrice > 0 && (
-          <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.65)' }}>
             AED {(askingPrice / 1000000).toFixed(1)}M
           </span>
         )}
-        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))}>
+        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))} style={{ fontWeight: 700 }}>
           T{landlord.trust_score || 0}
         </span>
         {landlord.assigned_agent_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
+          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', fontWeight: 700 }}>
             👤 {landlord.assigned_agent_email.split('@')[0]}
           </span>
         )}
         {landlord.listing_manager_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 flex items-center gap-0.5">
+          <span className="text-[7px] px-1 py-0.5 rounded border text-amber-400 flex items-center gap-0.5" style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', fontWeight: 700 }}>
             📋 {landlord.listing_manager_email.split('@')[0]}
           </span>
         )}

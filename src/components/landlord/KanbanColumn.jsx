@@ -35,21 +35,26 @@ function KanbanColumn({
 
   return (
     <div
-      className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start border border-border bg-card overflow-hidden"
-      style={{ borderTop: `2px solid ${accent}` }}
+      className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start overflow-hidden"
+      style={{ 
+        background: 'linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02))',
+        border: '1px solid rgba(201,162,75,0.2)',
+        borderTop: `3px solid ${accent}`,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+      }}
     >
       {/* Column Header — pinned to the top of the column */}
-      <div className="p-3 shrink-0 sticky top-0 z-10 bg-secondary border-b-2" style={{ borderBottomColor: `${accent}33` }}>
+      <div className="p-3 shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid rgba(201,162,75,0.15)' }}>
         <div className="flex items-center justify-between mb-1.5 gap-1">
           <div className="flex items-center gap-1 min-w-0">
-            <h3 className="font-bold text-sm text-foreground truncate">{label}</h3>
+            <h3 className="font-bold text-sm truncate" style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Playfair Display',serif" }}>{label}</h3>
             <StageGuidePopover stage={stage} accent={accent} />
           </div>
-          <Badge variant="outline" className="text-xs bg-muted border-border text-foreground shrink-0">
+          <Badge variant="outline" className="text-xs shrink-0" style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.3)', color: 'hsl(38 92% 60%)', fontWeight: 700 }}>
             {landlords.length}
           </Badge>
         </div>
-        <p className="text-xs font-bold" style={{ color: accent }}>
+        <p className="text-xs font-bold" style={{ color: accent, textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
           AED {(totalCommission / 1000000).toFixed(1)}M
         </p>
         {showVCard && <ContactDataMiniPanel stage={stage} landlords={landlords} />}
@@ -60,9 +65,10 @@ function KanbanColumn({
         ref={setNodeRef}
         data-column-scroll="true"
         className={cn(
-          'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)] rounded-b-2xl',
+          'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)]',
           isOver ? 'bg-accent/5' : '',
         )}
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent' }}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {landlords.map((landlord) => (
