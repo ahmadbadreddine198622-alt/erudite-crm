@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
+import { nextStepFor, getCaptureStatus } from '@/lib/landlordStageGuide';
 import { useState, memo } from 'react';
 
 export const ARCHETYPE_COLORS = {
@@ -70,6 +71,9 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
+  // Stage guidance (static config) — next action line + capture-completeness dot.
+  const nextStep = nextStepFor(landlord.stage);
+  const capture = getCaptureStatus(landlord, landlord.stage);
 
   // Find the landlord's PhotographyTask (same logic as detail panel)
   const landlordTask = photographyTasks.find(task => task.landlord_id === landlord.id);
@@ -311,7 +315,11 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
           {archetypeLabel}
         </span>
-        <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+        <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+          <span
+            className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')}
+            title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
+          />
           {stageLabel}
         </span>
         {landlord.urgency_score >= 80 && (
@@ -337,6 +345,14 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           </span>
         )}
       </div>
+
+      {/* Next step — the one action that moves this landlord forward (from stage guide) */}
+      {nextStep && (
+        <div className="flex items-start gap-1 mt-1">
+          <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: 'hsl(38 92% 55%)' }}>Next:</span>
+          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.7)' }}>{nextStep}</span>
+        </div>
+      )}
 
       {/* Individual media badges - shown in ALL stages when links exist */}
       {landlordTask && (

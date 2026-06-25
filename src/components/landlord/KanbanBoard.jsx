@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import KanbanColumn from './KanbanColumn';
 import LandlordCard from './LandlordCard';
+import { PHASES } from '@/lib/landlordStageGuide';
 
 // Single board: one DndContext, each stage column is a droppable, each card sortable.
 // Cards carry many buttons, so PointerSensor + TouchSensor both use an 8px activation
@@ -84,24 +85,57 @@ export default function KanbanBoard({
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0.15, y: 0.2 } }}
     >
-      <div className="flex flex-row items-start gap-4 pb-4">
-        {stages.map((stage) => (
-          <KanbanColumn
-            key={stage}
-            stage={stage}
-            label={stageLabels[stage]}
-            landlords={stageGroups[stage] || []}
-            selectedLandlordId={selectedLandlordId}
-            selectedIds={selectedIds}
-            onSelectLandlord={onSelectLandlord}
-            onToggleSelect={onToggleSelect}
-            users={users}
-            onSingleAssign={onSingleAssign}
-            photographyTasks={photographyTasks}
-            getPhotoForPhone={getPhotoForPhone}
-            activeId={activeId}
-          />
-        ))}
+      <div className="flex flex-row items-start gap-5 pb-4">
+        {PHASES.map((phase) => {
+          // Only render stages that exist in this board's `stages` list, preserving order.
+          const phaseStages = phase.stages.filter((s) => stages.includes(s));
+          if (phaseStages.length === 0) return null;
+          const phaseCount = phaseStages.reduce((n, s) => n + (stageGroups[s]?.length || 0), 0);
+          return (
+            <div key={phase.key} className="flex flex-col gap-2 shrink-0">
+              {/* Phase band — colored strip spanning this phase's columns */}
+              <div
+                className="rounded-xl px-3 py-2 flex items-center gap-2.5"
+                style={{
+                  background: `linear-gradient(90deg, ${phase.color}26, ${phase.color}0d)`,
+                  border: `1px solid ${phase.color}55`,
+                  borderLeft: `3px solid ${phase.color}`,
+                }}
+              >
+                <span className="text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: phase.color, fontFamily: 'var(--font-display)' }}>
+                  {phase.name}
+                </span>
+                <span className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {phase.purpose}
+                </span>
+                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: `${phase.color}22`, color: phase.color }}>
+                  {phaseCount}
+                </span>
+              </div>
+
+              {/* This phase's stage columns */}
+              <div className="flex flex-row items-start gap-4">
+                {phaseStages.map((stage) => (
+                  <KanbanColumn
+                    key={stage}
+                    stage={stage}
+                    label={stageLabels[stage]}
+                    landlords={stageGroups[stage] || []}
+                    selectedLandlordId={selectedLandlordId}
+                    selectedIds={selectedIds}
+                    onSelectLandlord={onSelectLandlord}
+                    onToggleSelect={onToggleSelect}
+                    users={users}
+                    onSingleAssign={onSingleAssign}
+                    photographyTasks={photographyTasks}
+                    getPhotoForPhone={getPhotoForPhone}
+                    activeId={activeId}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <DragOverlay dropAnimation={{ duration: 180 }}>
