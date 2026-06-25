@@ -35,8 +35,9 @@ export default function EruditeHeroBanner() {
       hue: 45,
     }));
 
-    // Mouse parallax tracking
-    const handleMouseMove = (e) => {
+    // Mouse parallax tracking - disabled on mobile for performance
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const handleMouseMove = !isMobile ? (e) => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setMousePos({
@@ -44,25 +45,31 @@ export default function EruditeHeroBanner() {
           y: ((e.clientY - rect.top) / rect.height - 0.5) * 2,
         });
       }
-    };
+    } : null;
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    if (handleMouseMove) {
+      window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    }
 
-    // Canvas animation loop
+    // Canvas animation loop - reduced on mobile
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext('2d');
       let animationFrameId;
 
       const resizeCanvas = () => {
-        const dpr = window.devicePixelRatio || 1;
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          canvas.width = rect.width * dpr;
-          canvas.height = rect.height * dpr;
-          canvas.style.width = `${rect.width}px`;
-          canvas.style.height = `${rect.height}px`;
-          ctx.scale(dpr, dpr);
+        try {
+          const dpr = isMobile ? 1 : (window.devicePixelRatio || 1); // Use 1 DPR on mobile for performance
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (rect) {
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            ctx.scale(dpr, dpr);
+          }
+        } catch (err) {
+          console.warn('[EruditeHeroBanner] Resize error:', err);
         }
       };
 
@@ -70,76 +77,86 @@ export default function EruditeHeroBanner() {
       window.addEventListener('resize', resizeCanvas);
 
       const animate = () => {
-        timeRef.current += 0.016;
-        const rect = containerRef.current?.getBoundingClientRect();
-        const width = rect?.width || 800;
-        const height = rect?.height || 140;
+        try {
+          timeRef.current += 0.016;
+          const rect = containerRef.current?.getBoundingClientRect();
+          const width = rect?.width || 800;
+          const height = rect?.height || 140;
 
-        ctx.clearRect(0, 0, width, height);
+          ctx.clearRect(0, 0, width, height);
 
-        // Subtle radial bloom behind wordmark (breathing)
-        const bloomAlpha = 0.04 + 0.02 * Math.sin(timeRef.current * 0.5);
-        const bloomGradient = ctx.createRadialGradient(
-          width * 0.5,
-          height * 0.5,
-          0,
-          width * 0.5,
-          height * 0.5,
-          width * 0.6
-        );
-        bloomGradient.addColorStop(0, `rgba(212, 175, 55, ${bloomAlpha})`);
-        bloomGradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
-        ctx.fillStyle = bloomGradient;
-        ctx.fillRect(0, 0, width, height);
-
-        // Canvas decorative line removed - using HTML/CSS line instead for better rendering
-
-        // Gold dust motes drifting upward
-        particlesRef.current.forEach((p) => {
-          p.y += p.speedY;
-          p.x += Math.sin(timeRef.current * 0.5 + p.id) * 0.2;
-
-          if (p.y < -10) {
-            p.y = height + 10;
-            p.x = Math.random() * width;
+          // Subtle radial bloom behind wordmark (breathing) - skip on mobile
+          if (!isMobile) {
+            const bloomAlpha = 0.04 + 0.02 * Math.sin(timeRef.current * 0.5);
+            const bloomGradient = ctx.createRadialGradient(
+              width * 0.5,
+              height * 0.5,
+              0,
+              width * 0.5,
+              height * 0.5,
+              width * 0.6
+            );
+            bloomGradient.addColorStop(0, `rgba(212, 175, 55, ${bloomAlpha})`);
+            bloomGradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+            ctx.fillStyle = bloomGradient;
+            ctx.fillRect(0, 0, width, height);
           }
 
-          const screenX = (p.x / 100) * width;
-          const screenY = (p.y / 100) * height;
+          // Gold dust motes drifting upward - reduced count on mobile
+          const particleCount = isMobile ? 15 : particlesRef.current.length;
+          for (let i = 0; i < particleCount; i++) {
+            const p = particlesRef.current[i];
+            p.y += p.speedY;
+            p.x += Math.sin(timeRef.current * 0.5 + p.id) * 0.2;
 
-          const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, p.size * 3);
-          gradient.addColorStop(0, `rgba(212, 175, 55, ${p.opacity})`);
-          gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+            if (p.y < -10) {
+              p.y = height + 10;
+              p.x = Math.random() * width;
+            }
 
-          ctx.beginPath();
-          ctx.arc(screenX, screenY, p.size * 3, 0, Math.PI * 2);
-          ctx.fillStyle = gradient;
-          ctx.fill();
-        });
+            const screenX = (p.x / 100) * width;
+            const screenY = (p.y / 100) * height;
 
-        // Metallic light sweep across wordmark (every ~7s)
-        const sweepCycle = (timeRef.current * 0.14) % 1;
-        if (sweepCycle > 0.3 && sweepCycle < 0.7) {
-          const sweepX = width * ((sweepCycle - 0.3) / 0.4);
-          const sweepGradient = ctx.createLinearGradient(sweepX - 100, 0, sweepX + 100, 0);
-          sweepGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-          sweepGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
-          sweepGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          
-          ctx.save();
-          ctx.globalCompositeOperation = 'screen';
-          ctx.fillStyle = sweepGradient;
-          ctx.fillRect(sweepX - 100, 0, 200, height);
-          ctx.restore();
+            const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, p.size * 3);
+            gradient.addColorStop(0, `rgba(212, 175, 55, ${p.opacity})`);
+            gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, p.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+          }
+
+          // Metallic light sweep - skip on mobile for performance
+          if (!isMobile) {
+            const sweepCycle = (timeRef.current * 0.14) % 1;
+            if (sweepCycle > 0.3 && sweepCycle < 0.7) {
+              const sweepX = width * ((sweepCycle - 0.3) / 0.4);
+              const sweepGradient = ctx.createLinearGradient(sweepX - 100, 0, sweepX + 100, 0);
+              sweepGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+              sweepGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
+              sweepGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+              
+              ctx.save();
+              ctx.globalCompositeOperation = 'screen';
+              ctx.fillStyle = sweepGradient;
+              ctx.fillRect(sweepX - 100, 0, 200, height);
+              ctx.restore();
+            }
+          }
+
+          animationFrameId = requestAnimationFrame(animate);
+        } catch (err) {
+          console.warn('[EruditeHeroBanner] Animation error:', err);
         }
-
-        animationFrameId = requestAnimationFrame(animate);
       };
 
       animate();
 
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
+        if (handleMouseMove) {
+          window.removeEventListener('mousemove', handleMouseMove);
+        }
         window.removeEventListener('resize', resizeCanvas);
         clearTimeout(lineTimer);
         clearTimeout(wordmarkTimer);

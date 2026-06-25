@@ -92,9 +92,13 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserAuth = async () => {
     try {
-      // Now check if the user is authenticated
+      // Now check if the user is authenticated - with timeout for mobile
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth timeout')), 8000)
+      );
+      const authPromise = base44.auth.me();
+      const currentUser = await Promise.race([authPromise, timeoutPromise]);
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);

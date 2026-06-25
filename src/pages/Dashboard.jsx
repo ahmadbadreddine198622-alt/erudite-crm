@@ -89,20 +89,31 @@ export default function Dashboard() {
         setTilt({ x: nx, y: ny });
       });
     };
+    // Device orientation - iOS Safari requires permission and can cause issues
     const handleOrientation = (e) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setTilt({
-          x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
-          y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+      try {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          setTilt({
+            x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
+            y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+          });
         });
-      });
+      } catch (err) {
+        console.warn('[Dashboard] Orientation error:', err);
+      }
     };
     window.addEventListener('pointermove', handlePointer, { passive: true });
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    // Only add orientation listener if not on iOS (requires permission on iOS 13+)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (!isIOS) {
+      window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    }
     return () => {
       window.removeEventListener('pointermove', handlePointer);
-      window.removeEventListener('deviceorientation', handleOrientation);
+      if (!isIOS) {
+        window.removeEventListener('deviceorientation', handleOrientation);
+      }
       cancelAnimationFrame(rafId);
     };
   }, []);
@@ -173,45 +184,67 @@ export default function Dashboard() {
     saveOrder(next);
   };
 
-  const { data: leads = [] } = useQuery({
+  const { data: leads = [], error: leadsError } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: reminders = [] } = useQuery({
+  const { data: reminders = [], error: remindersError } = useQuery({
     queryKey: ['reminders-pending'],
     queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 50),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], error: conversationsError } = useQuery({
     queryKey: ['wa-conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+  const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
     refetchInterval: 30000,
+    retry: 2,
+    staleTime: 5000,
   });
   
-  const { data: formAData, isLoading: isLoadingFormA } = useQuery({
+  const { data: formAData, isLoading: isLoadingFormA, error: formAError } = useQuery({
     queryKey: ['form-a-contracts'],
     queryFn: () => base44.functions.invoke('getFormAContracts', {}),
     refetchInterval: 60000,
     staleTime: 0,
+    retry: 2,
   });
 
-  const { data: photoData } = useQuery({
+  const { data: photoData, error: photoError } = useQuery({
     queryKey: ['photography-dashboard'],
     queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
     refetchInterval: 60000,
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: docsData } = useQuery({
+  const { data: docsData, error: docsError } = useQuery({
     queryKey: ['documents-dashboard'],
     queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
     refetchInterval: 60000,
+    retry: 2,
+    staleTime: 5000,
   });
+
+  // Log errors for debugging
+  useEffect(() => {
+    const errors = { leads: leadsError, reminders: remindersError, conversations: conversationsError, dashboard: dashboardError, formA: formAError, photo: photoError, docs: docsError };
+    const hasError = Object.values(errors).some(e => e);
+    if (hasError) {
+      console.error('[Dashboard] Query errors:', errors);
+    }
+  }, [leadsError, remindersError, conversationsError, dashboardError, formAError, photoError, docsError]);
 
   const phaseCounts = dashboardData?.phaseCounts || {};
   const landlordsWithQuals = dashboardData?.landlordsWithQualifications || [];
