@@ -65,6 +65,8 @@ export default function WhatsAppInbox() {
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
   const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
+  // Sameie can see her own channel + business; admin sees everything
+  const isSameie = currentUser?.email === 'sameie@erudite-estate.com'; // ← update to Sameie's actual email
 
   // Conversations list polling — 15s interval
   // RLS scopes: admins see all (role bypass), agents see only their assigned rows
@@ -308,8 +310,14 @@ export default function WhatsAppInbox() {
     // Malik channel: only visible to admin or Malik himself
     if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
 
-    // Malik account: can only see 'malik' and 'business' channels — not 'personal'
-    if (currentUser?.email === 'malik@erudite-estate.com' && (c.channel === 'personal' || !c.channel)) return false;
+    // Malik account: can only see 'malik' and 'business' channels — not 'personal' or 'sameie'
+    if (currentUser?.email === 'malik@erudite-estate.com' && (c.channel === 'personal' || c.channel === 'sameie' || !c.channel)) return false;
+
+    // Sameie channel: only visible to admin or Sameie herself
+    if (c.channel === 'sameie' && !isAdminUser && !isSameie) return false;
+
+    // Sameie account: can only see 'sameie' and 'business' channels
+    if (isSameie && !isAdminUser && c.channel !== 'sameie' && c.channel !== 'business') return false;
 
     // Non-admin agents: RLS already restricts the API response, but enforce client-side too
     // Skip entirely for admins — they see everything
@@ -844,9 +852,9 @@ export default function WhatsAppInbox() {
 
           {/* Channel filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : [])].map(c => {
+            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : [])].map(c => {
               const isSelected = filterChannel === c;
-              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : 'hsl(38 92% 50%)';
+              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : c === 'sameie' ? 'hsl(340 75% 55%)' : 'hsl(38 92% 50%)';
               const bgColor = isSelected ? activeColor : 'rgba(255,255,255,0.05)';
               return (
                 <button
@@ -857,9 +865,9 @@ export default function WhatsAppInbox() {
                     background: bgColor,
                     color: isSelected ? 'white' : 'rgba(255,255,255,0.55)',
                     border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
-                  }}
-                >
-                  {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : '💜 Malik'}
+                    }}
+                    >
+                    {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : c === 'malik' ? '💜 Malik' : '🌸 Sameie'}
                 </button>
               );
             })}
