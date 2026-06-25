@@ -292,5 +292,12 @@ div[id*="Base44"] {
   body {
     @apply bg-background text-foreground font-sans;
     font-family: var(--font-sans);
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }

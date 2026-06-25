@@ -224,7 +224,7 @@ function FolderTile({ folder, badges, onOpen }) {
 function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
       onClick={onClose}
     >
       <div
@@ -298,7 +298,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   return (
     <>
       {/* Folder grid */}
-      <div className="w-full max-w-3xl grid grid-cols-3 sm:grid-cols-4 gap-x-5 gap-y-7 justify-items-center mx-auto">
+      <div className="w-full max-w-3xl grid grid-cols-3 sm:grid-cols-4 gap-x-5 gap-y-7 justify-items-center mx-auto overflow-hidden">
         {FOLDERS.map(folder => (
           <FolderTile
             key={folder.id}
