@@ -3,6 +3,7 @@ import { Phone, Plus } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import ValleyDivider from '@/components/landlord/ValleyDivider';
 
 function css(str) {
   const o = {};
@@ -37,7 +38,7 @@ function WaButton({ phone }) {
 function PhoneRow({ phone, label, landlord }) {
   if (!phone) return null;
   return (
-    <div style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+    <div style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(201,162,75,0.08); border:1px solid rgba(201,162,75,0.2);")}>
       <div style={css("display:flex; align-items:center; gap:6px; min-width:0;")}>
         <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.5);")} />
         {label && <span style={css("font-size:8.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>}
@@ -77,19 +78,22 @@ export default function PhoneNumbersPanel({ landlord }) {
   if (phones.length === 0) return null;
 
   return (
-    <div style={css("margin-top:12px; border-radius:11px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.025); padding:10px 12px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both;")}>
-      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
-        <Phone className="w-3 h-3" style={css("color:rgba(255,255,255,0.4);")} />
-        <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.38);")}>Phone Numbers</span>
-        <span style={css("display:inline-flex; align-items:center; gap:4px; margin-left:auto; font-size:9px; font-weight:600; color:rgba(255,255,255,0.35);")}>
-          <Plus className="w-2.5 h-2.5" /> {phones.length} number{phones.length > 1 ? 's' : ''}
-        </span>
+    <div>
+      <div style={css("margin-top:12px; border-radius:11px; border:1px solid rgba(201,162,75,0.2); background:linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02)); padding:10px 12px; animation: ld-rise 0.46s cubic-bezier(0.22,1,0.36,1) both; position: relative; overflow: hidden;")}>
+        <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
+          <Phone className="w-3 h-3" style={css("color:hsl(38 92% 60%);")} />
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:hsl(38 92% 55%);")}>Phone Numbers</span>
+          <span style={css("display:inline-flex; align-items:center; gap:4px; margin-left:auto; font-size:9px; font-weight:600; color:hsl(38 92% 50% / 0.6);")}>
+            <Plus className="w-2.5 h-2.5" /> {phones.length} number{phones.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        <div style={css("display:flex; flex-direction:column; gap:5px;")}>
+          {phones.map((entry, i) => (
+            <PhoneRow key={i} phone={entry.phone} label={entry.label} landlord={landlord} />
+          ))}
+        </div>
       </div>
-      <div style={css("display:flex; flex-direction:column; gap:5px;")}>
-        {phones.map((entry, i) => (
-          <PhoneRow key={i} phone={entry.phone} label={entry.label} landlord={landlord} />
-        ))}
-      </div>
+      <ValleyDivider />
     </div>
   );
 }

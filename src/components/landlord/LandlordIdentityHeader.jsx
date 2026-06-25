@@ -59,13 +59,13 @@ const SOURCE_LABEL = { dld_lookup: 'DLD', fsbo_portal: 'FSBO', linkedin_outreach
 const MANDATE_STATUS_LABEL = { none: 'None', verbal: 'Verbal', form_a_drafted: 'Drafted', form_a_signed: 'Signed', expired: 'Expired', cancelled: 'Cancelled' };
 const MANDATE_TYPE_LABEL = { exclusive: 'Exclusive', non_exclusive: 'Non-exclusive', off_market: 'Off-market', open_listing: 'Open', pocket: 'Pocket' };
 
-// Rapport → pill palette.
+// Rapport → pill palette (more vibrant).
 const RAPPORT_META = {
-  cold: { label: 'Cold', color: '#94a3b8', bg: 'rgba(148,163,184,0.14)', border: 'rgba(148,163,184,0.32)' },
-  warming: { label: 'Warming', color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)', border: 'hsl(38 92% 50% / 0.34)' },
-  rapport_built: { label: 'Rapport built', color: '#93c5fd', bg: 'rgba(59,130,246,0.14)', border: 'rgba(59,130,246,0.34)' },
-  trust_established: { label: 'Trust established', color: '#34d399', bg: 'rgba(16,185,129,0.14)', border: 'rgba(16,185,129,0.34)' },
-  champion: { label: 'Champion', color: GOLD, bg: 'rgba(201,162,75,0.16)', border: 'rgba(201,162,75,0.4)' },
+  cold: { label: 'Cold', color: '#60a5fa', bg: 'rgba(59,130,246,0.18)', border: 'rgba(59,130,246,0.4)' },
+  warming: { label: 'Warming', color: '#fbbf24', bg: 'rgba(245,158,11,0.18)', border: 'rgba(245,158,11,0.45)' },
+  rapport_built: { label: 'Rapport built', color: '#818cf8', bg: 'rgba(99,102,241,0.18)', border: 'rgba(99,102,241,0.4)' },
+  trust_established: { label: 'Trust established', color: '#4ade80', bg: 'rgba(34,197,94,0.18)', border: 'rgba(34,197,94,0.4)' },
+  champion: { label: 'Champion', color: '#fcd34d', bg: 'rgba(245,158,11,0.22)', border: 'rgba(245,158,11,0.5)', boxShadow: '0 0 12px rgba(245,158,11,0.3)' },
 };
 // Momentum → pill palette (matched on keywords so free-text ai_momentum still colors sensibly).
 const momentumMeta = (m) => {
@@ -76,18 +76,19 @@ const momentumMeta = (m) => {
 };
 
 // ── shared pill ──────────────────────────────────────────────────────────────
-function Pill({ children, color, bg, border, title, outline }) {
+function Pill({ children, color, bg, border, title, outline, boxShadow }) {
   return (
     <span
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         height: 24, padding: '0 11px', borderRadius: 999,
-        fontSize: 11, fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap',
+        fontSize: 11, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
         fontFamily: "'Montserrat','Inter',sans-serif",
-        color: color || 'rgba(255,255,255,0.85)',
-        background: outline ? 'transparent' : (bg || 'rgba(255,255,255,0.06)'),
-        border: '1px solid ' + (border || 'rgba(255,255,255,0.14)'),
+        color: color || '#ffffff',
+        background: outline ? 'transparent' : (bg || 'rgba(255,255,255,0.08)'),
+        border: '1px solid ' + (border || 'rgba(255,255,255,0.18)'),
+        boxShadow: boxShadow || (outline ? 'none' : '0 2px 8px rgba(0,0,0,0.2)'),
       }}
     >
       {children}
@@ -100,8 +101,8 @@ function Fact({ label, value, valueColor, title }) {
   if (!has(value)) return null;
   return (
     <span title={title} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontFamily: "'Montserrat',sans-serif" }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: valueColor || 'rgba(255,255,255,0.88)', fontFamily: "'Montserrat',sans-serif" }}>{value}</span>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: "'Montserrat',sans-serif" }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: valueColor || '#ffffff', fontFamily: "'Montserrat',sans-serif", textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>{value}</span>
     </span>
   );
 }
@@ -162,24 +163,24 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
     <div
       style={{
         borderRadius: 16,
-        background: '#0B1F3A',
-        border: '1px solid rgba(201,162,75,0.18)',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+        background: 'linear-gradient(135deg, rgba(201,162,75,0.08), rgba(11,31,58,0.95))',
+        border: '1px solid rgba(201,162,75,0.25)',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
         padding: '16px 18px',
         animation: 'ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both',
       }}
     >
       {/* TIER 1 — Identity */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <div style={{ flex: 'none', width: 52, height: 52, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: GOLD, background: 'rgba(201,162,75,0.12)', border: '1px solid rgba(201,162,75,0.32)' }}>
+        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: GOLD, background: 'linear-gradient(135deg, rgba(201,162,75,0.18), rgba(201,162,75,0.08))', border: '1px solid rgba(201,162,75,0.4)', boxShadow: '0 4px 12px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
           {initials}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, marginTop: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.97)', lineHeight: 1.05 }}>{name}</h1>
+              <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
               {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
-              {lang && <Pill color="rgba(255,255,255,0.7)">{lang}</Pill>}
+              {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
             </div>
             {has(L.phone) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
@@ -196,10 +197,22 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
 
-          <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(201,162,75,0.25), transparent)', margin: '10px 0' }} />
+          {/* Curved valley divider after identity */}
+          <div style={{ margin: '12px 0 10px', pointerEvents: 'none' }} aria-hidden="true">
+            <svg viewBox="0 0 600 16" preserveAspectRatio="none" className="w-full h-3 block">
+              <defs>
+                <linearGradient id="valley-gold" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#C9A24B" stopOpacity="0" />
+                  <stop offset="50%" stopColor="#C9A24B" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#C9A24B" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M0 3 Q 300 16 600 3" fill="none" stroke="url(#valley-gold)" strokeWidth="1.5" />
+            </svg>
+          </div>
 
-          {/* TIER 2 — Property + price */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.6)' }}>
+          {/* TIER 2 — Property + price (more vibrant) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
             {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
               .filter(has)
               .map((part, i, arr) => (
@@ -217,34 +230,48 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
           </div>
 
-          {/* TIER 3 — Status chips */}
+          {/* TIER 3 — Status chips (more vibrant) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 11 }}>
             {has(L.landlord_archetype) && (
-              <Pill color="#93c5fd" bg="rgba(59,130,246,0.12)" border="rgba(59,130,246,0.3)">
+              <Pill color="#818cf8" bg="rgba(99,102,241,0.2)" border="rgba(99,102,241,0.45)">
                 {ARCHETYPE_LABEL[L.landlord_archetype] || titleize(L.landlord_archetype)}
               </Pill>
             )}
             {has(L.lead_type) && (
-              <Pill color="#5eead4" bg="rgba(20,184,166,0.12)" border="rgba(20,184,166,0.3)">
+              <Pill color="#2dd4bf" bg="rgba(20,184,166,0.2)" border="rgba(20,184,166,0.45)">
                 {LEAD_TYPE_LABEL[L.lead_type] || titleize(L.lead_type)}
               </Pill>
             )}
             {has(L.stage) && (
-              <Pill outline color={GOLD} border="rgba(201,162,75,0.45)" title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined}>
+              <Pill outline color="#fbbf24" border="rgba(245,158,11,0.5)" title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined} boxShadow="0 0 10px rgba(245,158,11,0.2)">
                 ◷ {STAGE_LABEL[L.stage] || titleize(L.stage)}
               </Pill>
             )}
             {rapport && (
-              <Pill color={rapport.color} bg={rapport.bg} border={rapport.border}>{rapport.label}</Pill>
+              <Pill color={rapport.color} bg={rapport.bg} border={rapport.border} boxShadow={rapport.boxShadow}>{rapport.label}</Pill>
             )}
             {mom && (
               <Pill color={mom.color} bg={mom.bg} border={mom.border}>⚡ {titleize(L.ai_momentum)}</Pill>
             )}
           </div>
 
+          {/* Curved valley divider after Tier 3 */}
+          <div style={{ margin: '12px 0 10px', pointerEvents: 'none' }} aria-hidden="true">
+            <svg viewBox="0 0 600 16" preserveAspectRatio="none" className="w-full h-3 block">
+              <defs>
+                <linearGradient id="valley-header-2" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={GOLD} stopOpacity="0" />
+                  <stop offset="50%" stopColor={GOLD} stopOpacity="0.5" />
+                  <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M0 3 Q 300 16 600 3" fill="none" stroke="url(#valley-header-2)" strokeWidth="1.5" />
+            </svg>
+          </div>
+
           {/* TIER 4 — Deal facts strip */}
           {(mandateLine || commissionPct || winPct != null || has(L.form_a_contract_number) || expiry || daysInStage || source || residency || has(L.phone)) && (
-            <div style={{ marginTop: 12, paddingTop: 11, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Row A — mandate / money / win */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
                 <Fact label="Mandate" value={mandateLine || null} />
