@@ -393,149 +393,61 @@ export default function Landlords() {
       className="h-[100dvh] w-full flex flex-col overflow-hidden"
       style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
     >
-      {/* Header — flush at the top, sticky, no gap above */}
-      <div className="shrink-0 sticky top-0 z-20 pt-4 pb-3" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+      {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
+          so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
+      <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Title + icon */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Building2 className="w-6 h-6" style={{ color: 'hsl(38 92% 50%)' }} />
+              <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold page-title">Landlord Pipeline</h1>
-              <p className="page-subtitle mt-0.5">Agent's A-to-Z Mandate Acquisition Engine</p>
-            </div>
+            <h1 className="text-lg font-bold page-title whitespace-nowrap">Landlord Pipeline</h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
-              <Upload className="w-4 h-4" />
-              <span className="hidden lg:inline">Import Owners</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
-              <Video className="w-4 h-4" />
-              <span className="hidden lg:inline">Virtual Viewing</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
-              <FileSignature className="w-4 h-4 text-amber-400" />
-              <span className="hidden lg:inline">Upload Form A</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span className="hidden lg:inline">Market Report</span>
-            </Button>
-            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
-              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
-              <Plus className="w-4 h-4" />
-              <span className="hidden lg:inline">New Landlord</span>
-            </Button>
-            {selectedProject?.image_url && (
-              <img
-                src={selectedProject.image_url}
-                alt={selectedProject.name}
-                className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20 ml-auto"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
-            </div>
-            <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
+          {/* Inline commission stat — icon + value, no card */}
+          <div className="flex items-center gap-1.5 shrink-0 px-2.5 h-9 rounded-md"
+            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)' }}>
+            <DollarSign className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+            <span className="text-sm font-bold tabular-nums" style={{ color: 'hsl(38 92% 50%)' }}>
               {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
-            </p>
+            </span>
           </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                <FileCheck className="w-4 h-4 text-emerald-500" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Form A Signed</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandateCount}</p>
-          </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                <Clock className="w-4 h-4 text-purple-400" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Days to Form A</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{avgDaysToFormA}d</p>
-          </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <TrendingUp className="w-4 h-4 text-amber-500" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;21d</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
-          </div>
-        </div>
 
-        {/* Lead Queue */}
-        <div className="mb-4">
+          {/* My Lead Queue */}
           <button
             onClick={() => setShowQueuePanel(p => !p)}
-            className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors"
-            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.55)' }}
+            className="flex items-center gap-1.5 text-xs px-2.5 h-9 rounded-md transition-colors shrink-0 whitespace-nowrap"
+            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.65)' }}
           >
             <ListOrdered className="w-3.5 h-3.5" />
             My Lead Queue
           </button>
-          {showQueuePanel && (
-            <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
-            </div>
-          )}
-        </div>
 
-        {/* Project Intelligence */}
-        {filterProject && filterProject !== 'unassigned' && (
-          <ProjectIntelStrip
-            landlords={allFilteredLandlords}
-            landlordPropertyMap={landlordPropertyMap}
-            properties={properties}
-            landlordProperties={landlordProperties}
-          />
-        )}
+          {/* Search — flexible width, fills the middle */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search name, unit, phone, email, project…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-8 h-9 text-xs rounded-md"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
-        {/* Search */}
-        <div className="relative mb-3 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by name, unit number, phone, email, project…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-8 py-2 text-xs rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Filters + Bulk Actions — full-width, one organized line:
-            Select-all hard left · filters in a centered scroll track · count pill hard right */}
-        <div className="flex items-center gap-3 w-full">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0">
+          {/* Select all + agent filter */}
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0 whitespace-nowrap">
             <input
               type="checkbox"
               checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
@@ -544,7 +456,67 @@ export default function Landlords() {
             />
             Select all ({allFilteredLandlords.length})
           </label>
+          {safePermissions.view_all_landlords && users.length > 0 && (
+            <select
+              value={filterAgent}
+              onChange={(e) => setFilterAgent(e.target.value)}
+              className="h-9 px-3 text-xs rounded-md shrink-0"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 130 }}
+            >
+              <option value="">All Agents</option>
+              {users.map(u => (
+                <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+              ))}
+            </select>
+          )}
 
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
+              <Upload className="w-4 h-4" />
+              <span className="hidden xl:inline">Import</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
+              <Video className="w-4 h-4" />
+              <span className="hidden xl:inline">Virtual</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
+              <FileSignature className="w-4 h-4 text-amber-400" />
+              <span className="hidden xl:inline">Form A</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
+              <FileText className="w-4 h-4 text-purple-400" />
+              <span className="hidden xl:inline">Report</span>
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
+              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
+              <Plus className="w-4 h-4" />
+              <span className="hidden xl:inline">New</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Lead Queue panel (expands below the toolbar when toggled) */}
+        {showQueuePanel && (
+          <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
+          </div>
+        )}
+
+        {/* Project Intelligence */}
+        {filterProject && filterProject !== 'unassigned' && (
+          <div className="mt-2">
+            <ProjectIntelStrip
+              landlords={allFilteredLandlords}
+              landlordPropertyMap={landlordPropertyMap}
+              properties={properties}
+              landlordProperties={landlordProperties}
+            />
+          </div>
+        )}
+
+        {/* Filters + Bulk Actions — second compact row: filters in a centered scroll track · count pill hard right */}
+        <div className="flex items-center gap-3 w-full mt-2">
           {selectedIds.size > 0 ? (
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
