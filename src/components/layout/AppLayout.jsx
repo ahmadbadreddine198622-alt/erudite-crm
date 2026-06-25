@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileDock from './MobileDock';
 import CommandCenter from '@/components/shared/CommandCenter';
+import ClockWidget from '@/components/ui/ClockWidget';
 
 import { Menu, UserPlus, Home, Command, LayoutGrid } from 'lucide-react';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
@@ -201,6 +202,9 @@ export default function AppLayout() {
             strokeWidth: 2,
           }} />
         </button>
+
+        {/* Clock Widget */}
+        <ClockWidget />
 
         </div> {/* end top-left cluster */}
         <div className="page-enter">
