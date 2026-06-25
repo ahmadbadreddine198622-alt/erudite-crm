@@ -57,13 +57,13 @@ export default function MotivationalQuote() {
 
   return (
     <div
-      className="w-full max-w-2xl mx-auto mb-4 px-4"
+      className="w-full max-w-2xl mx-auto mb-0 px-4"
       style={{
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderRadius: 12,
-        padding: '12px 16px',
+        borderRadius: 8,
+        padding: '6px 12px',
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
@@ -72,10 +72,10 @@ export default function MotivationalQuote() {
         className="text-center font-medium"
         style={{
           color: 'rgba(255,255,255,0.9)',
-          lineHeight: 1.5,
+          lineHeight: 1.3,
           letterSpacing: '0.02em',
-          fontSize: 14,
-          minHeight: 42,
+          fontSize: 12,
+          minHeight: 28,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
