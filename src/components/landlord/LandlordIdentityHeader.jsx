@@ -5,6 +5,7 @@
 
 import React from 'react';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
+import StraightDivider from '@/components/landlord/StraightDivider';
 
 const GOLD = '#C9A24B';
 
@@ -197,19 +198,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
 
-          {/* Curved valley divider after identity */}
-          <div style={{ margin: '12px 0 10px', pointerEvents: 'none' }} aria-hidden="true">
-            <svg viewBox="0 0 600 16" preserveAspectRatio="none" className="w-full h-3 block">
-              <defs>
-                <linearGradient id="valley-gold" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#C9A24B" stopOpacity="0" />
-                  <stop offset="50%" stopColor="#C9A24B" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#C9A24B" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d="M0 3 Q 300 16 600 3" fill="none" stroke="url(#valley-gold)" strokeWidth="1.5" />
-            </svg>
-          </div>
+          {/* Refined straight divider after identity */}
+          <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
 
           {/* TIER 2 — Property + price (more vibrant) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
@@ -255,19 +245,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             )}
           </div>
 
-          {/* Curved valley divider after Tier 3 */}
-          <div style={{ margin: '12px 0 10px', pointerEvents: 'none' }} aria-hidden="true">
-            <svg viewBox="0 0 600 16" preserveAspectRatio="none" className="w-full h-3 block">
-              <defs>
-                <linearGradient id="valley-header-2" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={GOLD} stopOpacity="0" />
-                  <stop offset="50%" stopColor={GOLD} stopOpacity="0.5" />
-                  <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d="M0 3 Q 300 16 600 3" fill="none" stroke="url(#valley-header-2)" strokeWidth="1.5" />
-            </svg>
-          </div>
+          {/* Refined straight divider after Tier 3 */}
+          <StraightDivider color={GOLD} opacity={0.45} className="my-4" />
 
           {/* TIER 4 — Deal facts strip */}
           {(mandateLine || commissionPct || winPct != null || has(L.form_a_contract_number) || expiry || daysInStage || source || residency || has(L.phone)) && (

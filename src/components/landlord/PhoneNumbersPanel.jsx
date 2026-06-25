@@ -3,7 +3,7 @@ import { Phone, Plus } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
-import ValleyDivider from '@/components/landlord/ValleyDivider';
+import StraightDivider from '@/components/landlord/StraightDivider';
 
 function css(str) {
   const o = {};
@@ -93,7 +93,7 @@ export default function PhoneNumbersPanel({ landlord }) {
           ))}
         </div>
       </div>
-      <ValleyDivider />
+      <StraightDivider color="hsl(38 92% 50%)" opacity={0.35} />
     </div>
   );
 }
