@@ -23,7 +23,6 @@ import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
-import EruditeSplash from '@/components/EruditeSplash';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -48,16 +47,9 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
-
-  // Check if splash already shown this session
-  useEffect(() => {
-    const shown = sessionStorage.getItem('erudite_splash_shown');
-    if (shown) setShowSplash(false);
-  }, []);
 
   // Load user
   useEffect(() => {
@@ -128,11 +120,6 @@ export default function Dashboard() {
     if (cueTimer.current) clearTimeout(cueTimer.current);
     setHoldingPath(null);
     setHoldCueActive(false);
-  }, []);
-
-  const handleSplashComplete = useCallback(() => {
-    sessionStorage.setItem('erudite_splash_shown', 'true');
-    setShowSplash(false);
   }, []);
 
   const [apps, setApps] = useState(() => {
@@ -256,9 +243,6 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
-      {/* Erudite Splash Screen */}
-      {showSplash && <EruditeSplash onComplete={handleSplashComplete} />}
-
       {/* Logo */}
       {logoUrl && (
         <div className="mb-6">
