@@ -285,7 +285,7 @@ export default function Dashboard() {
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: -4, marginTop: -8 }}>
+      <div style={{ marginBottom: 4, marginTop: -4 }}>
         <MotivationalQuote />
       </div>
 
@@ -401,7 +401,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 8, marginBottom: 12, marginTop: 4 }}
+        style={{ gap: 6, marginBottom: 6, marginTop: 0 }}
       >
         {/* Active Leads */}
         <button
@@ -457,7 +457,7 @@ export default function Dashboard() {
       </div>
 
       {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-3">
+      <div className="w-full max-w-4xl mx-auto mb-2">
         <div
           className="relative w-full h-1 rounded-full overflow-hidden"
           style={{
@@ -478,7 +478,7 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-4">
+      <div className="text-center mb-2">
         {/* Date - smaller, lighter */}
         <p style={{ 
           fontSize: 13, 
@@ -514,7 +514,7 @@ export default function Dashboard() {
       )}
 
       {/* Search */}
-      <div className="relative mb-4 w-full max-w-xs">
+      <div className="relative mb-3 w-full max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
@@ -578,7 +578,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-2 justify-center w-full max-w-3xl mt-1 mb-3 mx-auto">
+      <div className="flex flex-wrap gap-2 justify-center w-full max-w-3xl mt-0 mb-2 mx-auto">
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
