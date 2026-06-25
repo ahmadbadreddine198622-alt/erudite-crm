@@ -5,12 +5,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, FileSignature, ListChecks, MessageCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ALL_APPS } from '@/lib/navApps';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AppPickerModal from '@/components/mobile/AppPickerModal';
+import FormsSheet from '@/components/mobile/FormsSheet';
 
 const SZ      = 50;
 const R       = `${Math.round(SZ * 0.28)}px`;
@@ -18,13 +18,13 @@ const GLYPH   = Math.round(SZ * 0.50);
 const HOME_SZ = 62;
 const HOME_R  = `${Math.round(HOME_SZ * 0.28)}px`;
 
-function loadDockSelection() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('dock_selection') || 'null');
-    if (saved) return saved.map(p => p.startsWith('/') ? p : `/${p}`);
-    return ['/pipeline', '/leads', '/contacts', '/whatsapp'];
-  } catch { return ['/pipeline', '/leads', '/contacts', '/whatsapp']; }
-}
+// Home = the landlord pipeline (primary surface).
+const HOME_PATH = '/landlords';
+
+// Fixed dock lineup: Forms (launcher) · Today (left of center) · Home (center) · WhatsApp (right).
+const FORMS_APP = { label: 'Forms',    icon: FileSignature, isLauncher: true,        gradient: 'from-amber-500 to-orange-700', glowColor: 'rgba(245,158,11,0.40)' };
+const TODAY_APP = { label: 'Today',    icon: ListChecks,    path: '/my-leads-today', gradient: 'from-emerald-500 to-emerald-800', glowColor: 'rgba(16,185,129,0.40)' };
+const WA_APP    = { label: 'WhatsApp', icon: MessageCircle, path: '/whatsapp',       gradient: 'from-green-500 to-green-800', glowColor: 'rgba(34,197,94,0.40)' };
 
 function DockIcon({ app, active, onPress }) {
   const { icon: Icon, label, gradient, glowColor } = app;
@@ -70,10 +70,10 @@ function DockIcon({ app, active, onPress }) {
 export default function MobileDock() {
   const location  = useLocation();
   const navigate  = useNavigate();
-  const isHome    = location.pathname === '/';
+  const isHome    = location.pathname === HOME_PATH;
 
-  const [dockSelection, setDockSelection] = useState(() => loadDockSelection());
   const [showPicker, setShowPicker] = useState(false);
+  const [showForms, setShowForms] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
 
   useEffect(() => {
@@ -82,15 +82,6 @@ export default function MobileDock() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
-
-  const dockApps = useMemo(() => {
-    return dockSelection.slice(0, 4)
-      .map(path => ALL_APPS.find(a => a.path === path))
-      .filter(Boolean);
-  }, [dockSelection]);
-
-  const leftItems  = dockApps.slice(0, 2);
-  const rightItems = dockApps.slice(2, 4);
 
   const handleNav = (path) => { navigate(path); };
 
@@ -114,7 +105,7 @@ export default function MobileDock() {
   if (isLandscape) {
     return (
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
-        <button type="button" onClick={() => navigate('/')} aria-label="Home"
+        <button type="button" onClick={() => navigate(HOME_PATH)} aria-label="Home"
           style={{
             width: 44, height: 44, borderRadius: 12,
             background: 'rgba(245,158,11,0.14)',
@@ -161,15 +152,17 @@ export default function MobileDock() {
             pointerEvents: 'none',
           }} />
 
-          {/* Left 2 */}
-          {leftItems.map(item => (
-            <DockIcon
-              key={item.path}
-              app={item}
-              active={location.pathname === item.path}
-              onPress={() => handleNav(item.path)}
-            />
-          ))}
+          {/* Left: Forms launcher + Today */}
+          <DockIcon
+            app={FORMS_APP}
+            active={showForms}
+            onPress={() => setShowForms(true)}
+          />
+          <DockIcon
+            app={TODAY_APP}
+            active={location.pathname === TODAY_APP.path}
+            onPress={() => handleNav(TODAY_APP.path)}
+          />
 
           {/* Center Home — elevated */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
@@ -188,7 +181,7 @@ export default function MobileDock() {
 
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onClick={() => navigate(HOME_PATH)}
               aria-label="Home"
               style={{
                 width: HOME_SZ, height: HOME_SZ,
@@ -240,17 +233,17 @@ export default function MobileDock() {
             }}>Home</span>
           </div>
 
-          {/* Right 2 */}
-          {rightItems.map(item => (
-            <DockIcon
-              key={item.path}
-              app={item}
-              active={location.pathname === item.path}
-              onPress={() => handleNav(item.path)}
-            />
-          ))}
+          {/* Right: WhatsApp */}
+          <DockIcon
+            app={WA_APP}
+            active={location.pathname === WA_APP.path}
+            onPress={() => handleNav(WA_APP.path)}
+          />
         </div>
       </nav>
+
+      {/* Forms bottom sheet */}
+      {showForms && <FormsSheet onClose={() => setShowForms(false)} />}
 
       {/* App Picker Modal */}
       {showPicker && <AppPickerModal onClose={() => setShowPicker(false)} />}
