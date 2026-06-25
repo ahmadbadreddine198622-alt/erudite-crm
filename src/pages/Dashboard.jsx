@@ -274,7 +274,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 pb-4 pt-2"
+      className="relative min-h-screen flex flex-col items-center px-4 pb-2 pt-1"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
@@ -285,7 +285,7 @@ export default function Dashboard() {
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: 2, marginTop: -2 }}>
+      <div style={{ marginBottom: 0, marginTop: -6 }}>
         <MotivationalQuote />
       </div>
 
@@ -401,7 +401,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 4, marginBottom: 3, marginTop: 0 }}
+        style={{ gap: 3, marginBottom: 2, marginTop: 0 }}
       >
         {/* Active Leads */}
         <button
@@ -457,7 +457,7 @@ export default function Dashboard() {
       </div>
 
       {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-1">
+      <div className="w-full max-w-4xl mx-auto mb-0">
         <div
           className="relative w-full h-1 rounded-full overflow-hidden"
           style={{
@@ -478,10 +478,10 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-1">
+      <div className="text-center mb-0">
         {/* Date - smaller, lighter */}
         <p style={{ 
-          fontSize: 13, 
+          fontSize: 12, 
           fontWeight: 400, 
           color: '#D1D5DB', 
           letterSpacing: '0.02em',
@@ -492,7 +492,7 @@ export default function Dashboard() {
         
         {/* Time - large, bold, geometric */}
         <p style={{
-          fontSize: 52,
+          fontSize: 46,
           fontWeight: 700,
           color: '#D1D5DB',
           letterSpacing: '-0.02em',
@@ -521,7 +521,7 @@ export default function Dashboard() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search apps"
-          className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none transition-all"
+          className="w-full pl-9 pr-4 py-1.5 rounded-xl text-sm border focus:outline-none transition-all"
           style={{
             background: 'rgba(255,255,255,0.07)',
             backdropFilter: 'blur(16px)',
@@ -540,7 +540,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-4 mx-auto">
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-2 mx-auto">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -578,16 +578,16 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-2 justify-center w-full max-w-3xl mt-0 mb-1 mx-auto">
+      <div className="flex flex-wrap gap-1.5 justify-center w-full max-w-3xl mt-0 mb-1 mx-auto">
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
             navigate('/landlords');
           }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Building2 className="w-3.5 h-3.5" />
+          <Building2 className="w-3 h-3" />
           Landlord Pipeline
         </button>
         <button
@@ -595,34 +595,34 @@ export default function Dashboard() {
             console.log('Navigating to Assign Leads');
             navigate('/landlords');
           }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCheck className="w-3.5 h-3.5" />
+          <UserCheck className="w-3 h-3" />
           Assign Leads
         </button>
         <button
           onClick={() => {
             window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
           }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCircle className="w-3.5 h-3.5" />
+          <UserCircle className="w-3 h-3" />
           PF Agent Profile
         </button>
         <button
           onClick={() => navigate('/policies')}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Shield className="w-3.5 h-3.5" />
+          <Shield className="w-3 h-3" />
           Policies & HR
         </button>
       </div>
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-2 mx-auto">
+      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-1 mx-auto">
         <PFListingsGrid />
       </EruditeSection>
 
@@ -633,7 +633,7 @@ export default function Dashboard() {
       />
 
       {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full max-w-5xl mt-2 mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 w-full max-w-5xl mt-1 mx-auto">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
         </EruditeSection>
