@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const QUOTES = [
+export const QUOTES = [
   "Discipline is the bridge between goals and accomplishment.",
   "Success is not final, failure is not fatal: it is the courage to continue that counts.",
   "The only way to do great work is to love what you do.",

@@ -21,8 +21,8 @@ import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
 import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
-import MotivationalQuote from '@/components/dashboard/MotivationalQuote';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
+import { QUOTES } from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
@@ -50,9 +50,18 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState(0);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
+
+  // Rotate quotes every 2 minutes (same as original MotivationalQuote component)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
+    }, 120000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load user
   useEffect(() => {
@@ -284,10 +293,7 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
-      {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: -6, marginTop: -10 }}>
-        <MotivationalQuote />
-      </div>
+
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
@@ -513,14 +519,14 @@ export default function Dashboard() {
         </button>
       )}
 
-      {/* Search */}
+      {/* Search with integrated motivational quote placeholder */}
       <div className="relative mb-0 w-full max-w-xs" style={{ marginTop: -3 }}>
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search apps"
+          placeholder={QUOTES[quoteIndex]}
           className="w-full pl-8 pr-3 py-1 rounded-lg text-xs border focus:outline-none transition-all"
           style={{
             background: 'rgba(255,255,255,0.07)',
