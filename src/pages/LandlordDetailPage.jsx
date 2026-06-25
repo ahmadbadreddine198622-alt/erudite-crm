@@ -28,6 +28,7 @@ import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
+import HeaderTagRail from '@/components/landlord/HeaderTagRail';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
@@ -1524,14 +1525,10 @@ class LandlordDetail extends React.Component {
                   <div style={css("min-width:0;")}>
                     <div style={css("display:flex; align-items:center; gap:9px; flex-wrap:wrap;")}>
                       <h1 style={css("font-family:'Playfair Display',serif; font-weight:600; font-size:27px; letter-spacing:-0.01em; margin:0; color:rgba(255,255,255,0.97);")}>{hdr.name}</h1>
-                      <span style={hdr.archetypeStyle}>{hdr.archetype}</span>
                     </div>
                     <div style={css("display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:7px;")}>
                       {L.phone && L.phone !== '—' && (
                         <span style={css("font-size:12.5px; color:hsl(38 92% 60%); font-weight:600;")}>📞 {L.phone}</span>
-                      )}
-                      {L.phone && L.phone !== '—' && (
-                        <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
                       )}
                       {(L.phone && L.phone !== '—') && <span style={css("color:rgba(255,255,255,0.22);")}>·</span>}
                       <span style={css("font-size:12.5px; color:rgba(255,255,255,0.55);")}>{hdr.bedsSqft}</span>
@@ -1546,10 +1543,16 @@ class LandlordDetail extends React.Component {
                     </div>
                   </div>
                 </div>
-                <div style={css("display:flex; align-items:center; gap:9px;")}>
-                  <span style={hdr.stageStyle}>{hdr.stageLabel}</span>
-                  <span style={hdr.tempChipStyle}>{hdr.tempLabel}</span>
-                </div>
+                <HeaderTagRail
+                  archetypeKey={L.archetype}
+                  stageLabel={hdr.stageLabel}
+                  temperature={L.temperature}
+                  strikeNow={L.hasStrikeNow === true}
+                  strikeText={L.strikeText}
+                  channelSlot={L.phone && L.phone !== '—' ? (
+                    <IMessageBadge status={L.imessageStatus || 'unknown'} checkedAt={L.imessageCheckedAt} checking={this.state.imessageChecking} onCheck={this.checkIMessage} handle={L.imessageHandle} handles={L.imessageHandles} />
+                  ) : null}
+                />
               </div>
 
               <ListingManagerStrip 
