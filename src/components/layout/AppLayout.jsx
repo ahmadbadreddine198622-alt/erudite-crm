@@ -41,6 +41,22 @@ export default function AppLayout() {
       )}
 
       <main className="flex-1 overflow-x-hidden pb-36 md:pb-0 relative bg-background">
+        {/* Erudite Real Estate Logo Watermark */}
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            right: 0,
+            width: '320px',
+            height: '320px',
+            opacity: 0.06,
+            pointerEvents: 'none',
+            zIndex: 0,
+            background: 'url(https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/8802b0c47_generated_image.png) no-repeat center bottom',
+            backgroundSize: 'contain',
+            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
+          }}
+        />
         {/* Top-left button cluster — stacked vertically */}
         <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
