@@ -274,7 +274,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 pb-2 pt-1"
+      className="relative min-h-screen flex flex-col items-center px-4 pb-1 pt-0"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
@@ -285,7 +285,7 @@ export default function Dashboard() {
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: 0, marginTop: -6 }}>
+      <div style={{ marginBottom: -4, marginTop: -8 }}>
         <MotivationalQuote />
       </div>
 
@@ -401,7 +401,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 3, marginBottom: 2, marginTop: 0 }}
+        style={{ gap: 2, marginBottom: 1, marginTop: 0 }}
       >
         {/* Active Leads */}
         <button
@@ -457,7 +457,7 @@ export default function Dashboard() {
       </div>
 
       {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-0">
+      <div className="w-full max-w-4xl mx-auto mb-0" style={{ marginTop: -2 }}>
         <div
           className="relative w-full h-1 rounded-full overflow-hidden"
           style={{
@@ -478,10 +478,10 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-0">
+      <div className="text-center mb-0" style={{ marginTop: -4 }}>
         {/* Date - smaller, lighter */}
         <p style={{ 
-          fontSize: 12, 
+          fontSize: 11, 
           fontWeight: 400, 
           color: '#D1D5DB', 
           letterSpacing: '0.02em',
@@ -492,7 +492,7 @@ export default function Dashboard() {
         
         {/* Time - large, bold, geometric */}
         <p style={{
-          fontSize: 46,
+          fontSize: 42,
           fontWeight: 700,
           color: '#D1D5DB',
           letterSpacing: '-0.02em',
@@ -514,7 +514,7 @@ export default function Dashboard() {
       )}
 
       {/* Search */}
-      <div className="relative mb-2 w-full max-w-xs">
+      <div className="relative mb-1 w-full max-w-xs" style={{ marginTop: -4 }}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
@@ -540,7 +540,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-2 mx-auto">
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-1 mx-auto">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -578,7 +578,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-1.5 justify-center w-full max-w-3xl mt-0 mb-1 mx-auto">
+      <div className="flex flex-wrap gap-1.5 justify-center w-full max-w-3xl mt-0 mb-0 mx-auto" style={{ marginTop: -2 }}>
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
@@ -622,7 +622,7 @@ export default function Dashboard() {
       </div>
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-1 mx-auto">
+      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-0 mx-auto">
         <PFListingsGrid />
       </EruditeSection>
 
@@ -633,7 +633,7 @@ export default function Dashboard() {
       />
 
       {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 w-full max-w-5xl mt-1 mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full max-w-5xl mt-0 mx-auto">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
         </EruditeSection>
