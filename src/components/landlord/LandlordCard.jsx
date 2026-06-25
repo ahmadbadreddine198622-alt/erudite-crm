@@ -10,7 +10,16 @@ import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { nextStepFor, getCaptureStatus } from '@/lib/landlordStageGuide';
 import StageArrows from './StageArrows';
 import { useState, memo } from 'react';
+import {
+  Pill, pillStyle, accentHsl, LANGUAGE_FLAG, ARCHETYPE_PILL, LEAD_TYPE_PILL,
+  RAPPORT_ACCENT, momentumAccent, PRIORITY_ACCENT, humanize, scoreAccent,
+} from './cardPills.jsx';
 
+// Back-compat exports — kept so external importers (e.g. LandlordCommandCenter) keep working.
+// Labels mirror the single pill system in cardPills.jsx.
+export const ARCHETYPE_LABELS = Object.fromEntries(
+  Object.entries(ARCHETYPE_PILL).map(([k, v]) => [k, v.label])
+);
 export const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
   individual_end_user_relocating: 'bg-accent/10 text-accent border-accent/20',
@@ -23,33 +32,6 @@ export const ARCHETYPE_COLORS = {
   accidental_landlord: 'bg-sky-500/10 text-sky-600 border-sky-500/20',
   speculator_flipping: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
 };
-
-export const ARCHETYPE_LABELS = {
-  professional_investor: 'Pro Investor',
-  individual_end_user_relocating: 'Relocating',
-  distressed_seller: 'Distressed',
-  inherited_owner: 'Inherited',
-  developer_resale: 'Developer',
-  overseas_owner: 'Overseas',
-  first_time_seller: 'First Time',
-  portfolio_optimizer: 'Portfolio',
-  accidental_landlord: 'Accidental',
-  speculator_flipping: 'Speculator',
-};
-
-function getTrustColor(score) {
-  if (!score) return 'text-muted-foreground';
-  if (score >= 80) return 'text-emerald-600';
-  if (score >= 60) return 'text-amber-600';
-  return 'text-red-600';
-}
-
-function getUrgencyDot(score) {
-  if (!score) return 'bg-slate-300';
-  if (score >= 80) return 'bg-red-500 animate-pulse';
-  if (score >= 60) return 'bg-amber-500';
-  return 'bg-emerald-500';
-}
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -69,9 +51,23 @@ const STAGE_LABELS = {
 function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps, onStageChange }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const navigate = useNavigate();
-  const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
-  const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
-  const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
+  const archetypeMeta = ARCHETYPE_PILL[landlord.landlord_archetype] || null;
+  const stageLabel = STAGE_LABELS[landlord.stage] || humanize(landlord.stage);
+  // Per-field pill derivations (type-guarded; null → render nothing).
+  const langFlag = LANGUAGE_FLAG[landlord.preferred_language] || null;
+  const leadTypeLabel = LEAD_TYPE_PILL[landlord.lead_type] || null;
+  const rapportAccent = landlord.rapport_level ? (RAPPORT_ACCENT[landlord.rapport_level] || 'grey') : null;
+  const hasMomentum = typeof landlord.ai_momentum === 'string' && landlord.ai_momentum.trim().length > 0;
+  // Attention/urgent pill — derived from real booleans, not a stored field.
+  const attentionPill = landlord.ai_strike_now === true
+    ? { label: 'URGENT', accent: 'red' }
+    : (landlord.needs_human_review === true ? { label: 'ATTENTION', accent: 'amber' } : null);
+  // Score pills — value-based color; mandate_win_probability is 0–1 (×100 first).
+  const winPct = landlord.mandate_win_probability != null && !isNaN(landlord.mandate_win_probability)
+    ? Math.round(landlord.mandate_win_probability * 100) : null;
+  const nba = landlord.ai_next_best_action && typeof landlord.ai_next_best_action === 'object' ? landlord.ai_next_best_action : null;
+  const redFlags = Array.isArray(landlord.red_flags) ? landlord.red_flags.filter(Boolean) : [];
+  const buyingSignals = Array.isArray(landlord.buying_signals) ? landlord.buying_signals.filter(Boolean) : [];
   // Stage guidance (static config) — next action line + capture-completeness dot.
   const nextStep = nextStepFor(landlord.stage);
   const capture = getCaptureStatus(landlord, landlord.stage);
@@ -311,28 +307,32 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
       </div>
 
-      {/* Badges row: archetype + stage + urgency + media status (only for photographer_scheduling stage) */}
+      {/* Strike banner — the SINGLE loud red element, only when ai_strike_now is true */}
+      {landlord.ai_strike_now === true && (
+        <div
+          className="mt-1 w-full rounded-lg px-2 py-1 text-[8px] font-bold uppercase tracking-wide flex items-center gap-1"
+          style={{ background: 'hsl(0 72% 51% / 0.18)', border: '1px solid hsl(0 72% 51% / 0.30)', color: 'hsl(0 72% 51%)' }}
+        >
+          ⚡ Strike now
+        </div>
+      )}
+
+      {/* Badges row: language + archetype + stage + lead type + momentum + attention + media status */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
-        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
-          {archetypeLabel}
-        </span>
-        <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
-          <span
-            className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')}
-            title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
-          />
+        {langFlag && <span className="text-[11px] leading-none shrink-0" title={landlord.preferred_language}>{langFlag}</span>}
+        {archetypeMeta && <Pill accent={archetypeMeta.accent} label>{archetypeMeta.label}</Pill>}
+        <Pill
+          accent="blue"
+          label
+          title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
+        >
+          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')} />
           {stageLabel}
-        </span>
-        {landlord.urgency_score >= 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
-            URGENT
-          </span>
-        )}
-        {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
-            ATTENTION
-          </span>
-        )}
+        </Pill>
+        {leadTypeLabel && <Pill accent="teal">{leadTypeLabel}</Pill>}
+        {rapportAccent && <Pill accent={rapportAccent}>{humanize(landlord.rapport_level)}</Pill>}
+        {hasMomentum && <Pill accent={momentumAccent(landlord.ai_momentum)}>{landlord.ai_momentum}</Pill>}
+        {attentionPill && <Pill accent={attentionPill.accent}>{attentionPill.label}</Pill>}
         {showMediaBadge && (
           <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
             {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
@@ -352,6 +352,19 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         <div className="flex items-start gap-1 mt-1">
           <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: 'hsl(38 92% 55%)' }}>Next:</span>
           <span className="text-[8px] leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.7)' }}>{nextStep}</span>
+        </div>
+      )}
+
+      {/* AI next best action — "NEXT:" label accented by priority, then the action text */}
+      {nba && nba.action && (
+        <div className="flex items-start gap-1 mt-1">
+          <span
+            className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px"
+            style={{ color: accentHsl(PRIORITY_ACCENT[String(nba.priority)] || 'grey') }}
+          >
+            Next:
+          </span>
+          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: 'rgba(255,255,255,0.7)' }}>{nba.action}</span>
         </div>
       )}
 
@@ -382,11 +395,9 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
       {/* Project/ref tags */}
       {(landlord.project_name || landlord.unit_reference) && (
         <div className="flex items-center gap-1 mt-1 flex-wrap">
-          {landlord.project_name && <ProjectBadge name={landlord.project_name} />}
+          {landlord.project_name && <Pill accent="teal">{landlord.project_name}</Pill>}
           {landlord.unit_reference && (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
-              📍 {landlord.unit_reference}
-            </span>
+            <Pill accent="blue">📍 {landlord.unit_reference}</Pill>
           )}
         </div>
       )}
@@ -419,9 +430,7 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
       {/* Form A expiry warning */}
       {showMandateWarning && (
         <div className="mt-0.5">
-          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
-            ⚠️ {daysUntilMandateExpiry}d
-          </span>
+          <Pill accent="red">⚠️ {daysUntilMandateExpiry}d</Pill>
         </div>
       )}
 
@@ -450,7 +459,17 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         </div>
       )}
 
-      {/* Commission + Trust + Agent - single row */}
+      {/* Score pills — value-based color (TRUST / URGENCY / WIN / RESP) */}
+      {(landlord.trust_score != null || landlord.urgency_score != null || winPct != null || landlord.responsiveness_score != null) && (
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
+          {landlord.trust_score != null && <Pill accent={scoreAccent(landlord.trust_score)}>TRUST {Math.round(landlord.trust_score)}</Pill>}
+          {landlord.urgency_score != null && <Pill accent={scoreAccent(landlord.urgency_score)}>URGENCY {Math.round(landlord.urgency_score)}</Pill>}
+          {winPct != null && <Pill accent={scoreAccent(winPct)}>WIN {winPct}%</Pill>}
+          {landlord.responsiveness_score != null && <Pill accent={scoreAccent(landlord.responsiveness_score)}>RESP {Math.round(landlord.responsiveness_score)}</Pill>}
+        </div>
+      )}
+
+      {/* Money + Agents - single GOLD/GREY row */}
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         {commission > 0 && (
           <span className="text-[10px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
@@ -458,24 +477,46 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           </span>
         )}
         {askingPrice > 0 && (
-          <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <span className="text-[8px] font-medium" style={{ color: 'hsl(38 92% 50%)' }}>
             AED {(askingPrice / 1000000).toFixed(1)}M
           </span>
         )}
-        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))}>
-          T{landlord.trust_score || 0}
-        </span>
         {landlord.assigned_agent_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
-            👤 {landlord.assigned_agent_email.split('@')[0]}
-          </span>
+          <Pill accent="grey">👤 {landlord.assigned_agent_email.split('@')[0]}</Pill>
+        )}
+        {landlord.co_agent_email && (
+          <Pill accent="grey">👤 {landlord.co_agent_email.split('@')[0]}</Pill>
         )}
         {landlord.listing_manager_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 flex items-center gap-0.5">
-            📋 {landlord.listing_manager_email.split('@')[0]}
-          </span>
+          <Pill accent="grey">📋 {landlord.listing_manager_email.split('@')[0]}</Pill>
         )}
       </div>
+
+      {/* Red flags (RED) + buying signals (GREEN) — full-sentence chips, soft tint, wrap gracefully */}
+      {(redFlags.length > 0 || buyingSignals.length > 0) && (
+        <div className="flex items-start gap-1 mt-1 flex-wrap">
+          {redFlags.map((flag, i) => (
+            <span
+              key={'rf-' + i}
+              className="rounded-full px-3 py-1 text-xs font-medium max-w-full truncate"
+              style={pillStyle('red')}
+              title={String(flag)}
+            >
+              ⚑ {String(flag)}
+            </span>
+          ))}
+          {buyingSignals.map((sig, i) => (
+            <span
+              key={'bs-' + i}
+              className="rounded-full px-3 py-1 text-xs font-medium max-w-full truncate"
+              style={pillStyle('green')}
+              title={String(sig)}
+            >
+              ✓ {String(sig)}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Send to Closing — only shown when at deal_closed stage */}
       {landlord.stage === 'deal_closed' && (
@@ -486,9 +527,11 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
 
       {/* Bottom row: time + assign + actions */}
       <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          {landlord.days_in_stage ? `${landlord.days_in_stage}d` : 'New'}
-        </span>
+        {landlord.days_in_stage != null ? (
+          <span className="rounded-full px-3 py-1 text-xs font-medium" style={pillStyle('grey')}>{landlord.days_in_stage}d</span>
+        ) : (
+          <span className="rounded-full px-3 py-1 text-xs font-medium" style={pillStyle('grey')}>New</span>
+        )}
         <div className="flex items-center gap-0.5">
           {onStageChange && (
             <>
