@@ -3,6 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Users } from 'lucide-react';
 import KanbanCardRow from './KanbanCardRow';
 import StageGuidePopover from './StageGuidePopover';
 import ContactDataMiniPanel from './ContactDataMiniPanel';
@@ -50,9 +51,13 @@ function KanbanColumn({
             <h3 className="font-bold text-sm truncate" style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Playfair Display',serif" }}>{label}</h3>
             <StageGuidePopover stage={stage} accent={accent} />
           </div>
-          <Badge variant="outline" className="text-xs shrink-0" style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.3)', color: 'hsl(38 92% 60%)', fontWeight: 700 }}>
+          <div
+            className="flex items-center gap-1.5 px-2.5 h-6 rounded-md text-xs font-semibold shrink-0"
+            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+          >
+            <Users className="w-2.5 h-2.5" />
             {landlords.length}
-          </Badge>
+          </div>
         </div>
         <p className="text-xs font-bold" style={{ color: accent, textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
           AED {(totalCommission / 1000000).toFixed(1)}M
