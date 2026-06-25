@@ -194,21 +194,20 @@ export default function EruditeHeroBanner() {
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark — transparent gold only */}
+        {/* ERUDITE wordmark — larger and more prominent */}
         <div className="relative mb-2">
           <h1
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #D4AF37 0%, #C9A961 50%, #E5C875 100%)',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
               backgroundSize: '100% 200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.15))',
+              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
               animation: 'metallicBreath 10s ease-in-out infinite',
               letterSpacing: '0.05em',
-              opacity: 0.5,
             }}
           >
             ERUDITE
