@@ -240,9 +240,10 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20 overflow-x-hidden"
+      className="relative min-h-screen flex flex-col items-center px-4 pb-8 pt-16 overflow-hidden"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
+        maxWidth: '100vw',
       }}
     >
       {/* Animated Hero Banner */}
@@ -505,7 +506,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full flex flex-col items-center justify-center pb-44">
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-32 mx-auto">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -543,7 +544,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
+      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-4 mb-2 mx-auto">
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
@@ -587,7 +588,7 @@ export default function Dashboard() {
       </div>
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
+      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-6 mx-auto">
         <PFListingsGrid />
       </EruditeSection>
 
@@ -598,7 +599,7 @@ export default function Dashboard() {
       />
 
       {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-6 mx-auto">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
         </EruditeSection>
