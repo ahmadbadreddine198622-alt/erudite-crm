@@ -407,7 +407,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 1, marginBottom: 0, marginTop: -2 }}
+        style={{ gap: 1, marginBottom: 0, marginTop: -4 }}
       >
         {/* Active Leads */}
         <button
@@ -463,7 +463,7 @@ export default function Dashboard() {
       </div>
 
       {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-0" style={{ marginTop: -2 }}>
+      <div className="w-full max-w-4xl mx-auto mb-0" style={{ marginTop: -3 }}>
         <div
           className="relative w-full h-1 rounded-full overflow-hidden"
           style={{
