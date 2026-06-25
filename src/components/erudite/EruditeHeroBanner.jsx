@@ -174,10 +174,10 @@ export default function EruditeHeroBanner() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-2xl mb-2"
+      className="relative w-full overflow-hidden rounded-2xl"
       style={{
-        minHeight: 50,
-        maxHeight: 70,
+        minHeight: 80,
+        maxHeight: 120,
         background: 'transparent',
         backdropFilter: 'none',
         boxShadow: 'none',
@@ -195,9 +195,9 @@ export default function EruditeHeroBanner() {
         }}
       >
         {/* ERUDITE wordmark — elegant living metal */}
-        <div className="relative mb-1">
+        <div className="relative mb-3">
           <h1
-            className="text-5xl md:text-6xl lg:text-7xl font-medium tracking-wide"
+            className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
               background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
@@ -216,9 +216,9 @@ export default function EruditeHeroBanner() {
 
         {/* Decorative line — refined energy pulse */}
         <div
-          className="mb-2 relative"
+          className="mb-3 relative"
           style={{
-            width: 140,
+            width: 160,
             height: 1,
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
           }}
@@ -236,7 +236,7 @@ export default function EruditeHeroBanner() {
 
         {/* REAL ESTATE — elegant subtitle */}
         <p
-          className="text-xs md:text-sm font-light tracking-[0.35em] uppercase mb-1"
+          className="text-sm md:text-base font-light tracking-[0.35em] uppercase mb-2"
           style={{
             color: 'rgba(255,255,255,0.7)',
             textShadow: '0 1px 6px rgba(0,0,0,0.5)',
