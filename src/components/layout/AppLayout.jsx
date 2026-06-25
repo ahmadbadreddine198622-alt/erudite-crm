@@ -44,6 +44,60 @@ export default function AppLayout() {
         {/* Top-left button cluster — stacked vertically */}
         <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
+        {/* Home button — top of cluster */}
+        <button
+          onClick={() => navigate('/')}
+          aria-label="Go to Dashboard"
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 14,
+            background: 'rgba(245,158,11,0.10)',
+            backdropFilter: 'blur(40px) saturate(220%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(220%)',
+            border: '1px solid rgba(245,158,11,0.28)',
+            borderTopColor: 'rgba(255,255,255,0.22)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.10)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
+            padding: 0,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(245,158,11,0.18)';
+            e.currentTarget.style.boxShadow = '0 10px 36px rgba(0,0,0,0.60), 0 0 28px rgba(245,158,11,0.22), inset 0 1px 0 rgba(255,255,255,0.14)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(245,158,11,0.10)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.10)';
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+            borderRadius: '18px 18px 0 0',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)',
+            width: 36, height: 20, borderRadius: '50%',
+            background: 'rgba(245,158,11,0.35)',
+            filter: 'blur(10px)',
+            pointerEvents: 'none',
+          }} />
+          <Home style={{
+            width: 18, height: 18,
+            color: 'hsl(38 92% 58%)',
+            filter: 'drop-shadow(0 2px 6px rgba(245,158,11,0.5))',
+            position: 'relative', zIndex: 1,
+            strokeWidth: 2,
+          }} />
+        </button>
+
         {/* Hamburger button */}
         <button
           onClick={() => setSidebarOpen(true)}
@@ -98,62 +152,6 @@ export default function AppLayout() {
               position: 'relative', zIndex: 1,
             }} />
           ))}
-        </button>
-
-        {/* Home button */}
-        <button
-          onClick={() => navigate('/')}
-          aria-label="Go to Dashboard"
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 14,
-            background: 'rgba(245,158,11,0.10)',
-            backdropFilter: 'blur(40px) saturate(220%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(220%)',
-            border: '1px solid rgba(245,158,11,0.28)',
-            borderTopColor: 'rgba(255,255,255,0.22)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.10)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.22s cubic-bezier(0.34,1.26,0.64,1)',
-            padding: 0,
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(245,158,11,0.18)';
-            e.currentTarget.style.boxShadow = '0 10px 36px rgba(0,0,0,0.60), 0 0 28px rgba(245,158,11,0.22), inset 0 1px 0 rgba(255,255,255,0.14)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(245,158,11,0.10)';
-            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.50), 0 0 20px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.10)';
-          }}
-        >
-          {/* Gloss */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
-            borderRadius: '18px 18px 0 0',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-          {/* Gold bloom */}
-          <div style={{
-            position: 'absolute', bottom: -8, left: '50%', transform: 'translateX(-50%)',
-            width: 36, height: 20, borderRadius: '50%',
-            background: 'rgba(245,158,11,0.35)',
-            filter: 'blur(10px)',
-            pointerEvents: 'none',
-          }} />
-          <Home style={{
-            width: 18, height: 18,
-            color: 'hsl(38 92% 58%)',
-            filter: 'drop-shadow(0 2px 6px rgba(245,158,11,0.5))',
-            position: 'relative', zIndex: 1,
-            strokeWidth: 2,
-          }} />
         </button>
 
         {/* Cmd+K palette trigger */}
