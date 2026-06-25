@@ -21,6 +21,7 @@ import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
 import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
+import MotivationalQuote from '@/components/dashboard/MotivationalQuote';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
@@ -481,7 +482,7 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-2">
         {/* Date - smaller, lighter */}
         <p style={{ 
           fontSize: 15, 
@@ -505,6 +506,9 @@ export default function Dashboard() {
           {format(new Date(), 'h:mm')}
         </p>
       </div>
+
+      {/* Motivational Quote - rotates every 2 minutes */}
+      <MotivationalQuote />
 
       {/* Done button — only visible in edit mode */}
       {editMode && (
