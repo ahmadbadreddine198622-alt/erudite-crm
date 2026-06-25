@@ -205,7 +205,7 @@ export default function EruditeHeroBanner() {
           className={`relative transition-all duration-1000 ease-out ${showWordmark ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
         >
           <h1
-            className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
+            className="text-5xl md:text-6xl lg:text-7xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
               background: 'linear-gradient(180deg, #F1E09C 0%, #D4B86E 25%, #B88D3C 50%, #D4B86E 75%, #F1E09C 100%)',
