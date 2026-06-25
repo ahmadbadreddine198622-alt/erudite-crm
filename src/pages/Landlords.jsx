@@ -698,8 +698,8 @@ export default function Landlords() {
         }}
       >
         <style>{`
-          :root { --board-pad-l: 1rem; --board-pad-r: 1rem; }
-          @media (min-width: 768px) { :root { --board-pad-l: 4.5rem; --board-pad-r: 2rem; } }
+          :root { --board-pad-l: 0.5rem; --board-pad-r: 0.5rem; }
+          @media (min-width: 768px) { :root { --board-pad-l: 0.75rem; --board-pad-r: 0.75rem; } }
           /* Always-visible, slim horizontal scrollbar so the pan affordance is obvious */
           .board-scroll { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.5) transparent; scroll-behavior: smooth; }
           .board-scroll::-webkit-scrollbar { height: 10px; }
