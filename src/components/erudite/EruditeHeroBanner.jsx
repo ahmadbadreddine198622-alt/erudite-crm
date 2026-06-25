@@ -176,8 +176,8 @@ export default function EruditeHeroBanner() {
       ref={containerRef}
       className="relative w-full overflow-hidden rounded-2xl mb-6"
       style={{
-        minHeight: 100,
-        maxHeight: 120,
+        minHeight: 80,
+        maxHeight: 100,
         background: 'transparent',
         backdropFilter: 'none',
         boxShadow: 'none',
@@ -189,7 +189,7 @@ export default function EruditeHeroBanner() {
     >
       {/* Main content — pure logo, no background */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-4 pt-8"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4 pt-2"
         style={{
           transformStyle: 'preserve-3d',
         }}
