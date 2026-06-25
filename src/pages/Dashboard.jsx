@@ -20,7 +20,7 @@ import EruditeBadge from '@/components/erudite/EruditeBadge';
 import { Brain } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
-import SmartPipelineVisualizer from '@/components/dashboard/SmartPipelineVisualizer';
+import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 
@@ -243,6 +243,13 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
+      {/* Logo */}
+      {logoUrl && (
+        <div className="mb-6">
+          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
+        </div>
+      )}
+
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
         <div className="absolute top-4 right-4 z-50" ref={menuRef}>
@@ -410,13 +417,13 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Smart Pipeline Visualizer */}
+      {/* Pipeline Summary Strip */}
       {isLoadingDashboard ? (
-        <div className="w-full max-w-6xl mb-12 flex justify-center">
+        <div className="w-full max-w-4xl mb-8 flex justify-center">
           <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <SmartPipelineVisualizer phaseCounts={phaseCounts} />
+        <PipelineStrip phaseCounts={phaseCounts} />
       )}
 
       {/* Clock */}
