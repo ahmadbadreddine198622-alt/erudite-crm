@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { format } from 'date-fns';
+
 import { cn } from '@/lib/utils';
 import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
@@ -407,7 +407,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 1, marginBottom: 0, marginTop: -3 }}
+        style={{ gap: 1, marginBottom: 0, marginTop: -2 }}
       >
         {/* Active Leads */}
         <button
@@ -481,32 +481,6 @@ export default function Dashboard() {
             }}
           />
         </div>
-      </div>
-
-      {/* iOS-style Clock Widget */}
-      <div className="text-center mb-0" style={{ marginTop: -3 }}>
-        {/* Date - smaller, lighter */}
-        <p style={{ 
-          fontSize: 9, 
-          fontWeight: 400, 
-          color: '#D1D5DB', 
-          letterSpacing: '0.02em',
-          marginBottom: 0,
-        }}>
-          {format(new Date(), 'EEE MMM d')}
-        </p>
-        
-        {/* Time - large, bold, geometric */}
-        <p style={{
-          fontSize: 26,
-          fontWeight: 700,
-          color: '#D1D5DB',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
-        }}>
-          {format(new Date(), 'h:mm')}
-        </p>
       </div>
 
       {/* Done button — only visible in edit mode */}
