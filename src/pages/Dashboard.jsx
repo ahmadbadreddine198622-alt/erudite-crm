@@ -428,102 +428,41 @@ export default function Dashboard() {
         <PipelineStrip phaseCounts={phaseCounts} />
       )}
 
-      {/* Clock — Metallic 3D style with motivational text */}
-      <div className="text-center mb-10">
-        {/* Date above clock */}
-        <p style={{ fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,0.9)', marginBottom: 8, letterSpacing: '0.05em' }}>
+      {/* Clock — Compact metallic design */}
+      <div className="text-center mb-6">
+        {/* Date */}
+        <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginBottom: 4, letterSpacing: '0.05em' }}>
           {format(new Date(), 'EEE MMM d')}
         </p>
         
-        {/* Metallic 3D clock numbers */}
+        {/* Metallic clock with subtle background text */}
         <div style={{ position: 'relative', display: 'inline-block' }}>
-          {/* Motivational background text */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          >
-            <p style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.12)',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              lineHeight: 1.4,
-              textAlign: 'center',
-            }}>
-              YOU ARE CAPABLE<br />OF MORE THAN<br />YOU KNOW
-            </p>
-          </div>
-          
-          {/* Clock time with metallic effect */}
           <p style={{
-            fontSize: 72,
+            fontSize: 56,
             fontWeight: 700,
             background: 'linear-gradient(180deg, #E8F0F8 0%, #B0B9C3 35%, #7D8898 65%, #5A6675 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))',
-            letterSpacing: '-0.04em',
-            position: 'relative',
-            zIndex: 1,
+            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))',
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
           }}>
             {format(new Date(), 'h:mm')}
           </p>
         </div>
         
-        {/* Gold divider */}
-        <div style={{
-          width: 80,
-          height: 2,
-          background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.6), transparent)',
-          margin: '16px auto',
-        }} />
-        
-        {/* Motivational quotes */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-          <p style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.7)',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
+        {/* Compact quotes with gold dividers */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', marginTop: 6 }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Discipline Today
           </p>
-          <div style={{
-            width: 60,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)',
-          }} />
-          <p style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.7)',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
+          <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.35), transparent)' }} />
+          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Freedom Tomorrow
           </p>
-          <div style={{
-            width: 60,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)',
-          }} />
-          <p style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.7)',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
+          <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.35), transparent)' }} />
+          <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Focus On Your Goals
           </p>
         </div>
