@@ -448,10 +448,9 @@ export default function Dashboard() {
           <div className="flex-1" style={{ minWidth: 0 }}>
             <AudioWaveform
               isActive={true}
-              barCount={48}
-              height={40}
-              primaryColor="#FFB81C"
-              secondaryColor="#F5E0A1"
+              height={32}
+              primaryColor="#E0A74D"
+              waveformColor="#F5B041"
             />
           </div>
 

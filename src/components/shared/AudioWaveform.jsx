@@ -1,91 +1,106 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /**
- * Animated Gradient Line — V-card style with motion
- * Matches the StraightDivider aesthetic from LandlordIdentityHeader with added animation
+ * Animated Waveform Line — Exact match to reference design
+ * Dotted line with central waveform bars, flowing motion left→right
  */
 export default function AudioWaveform({ 
   isActive = true,
-  height = 24,
+  height = 32,
   width = '100%',
-  primaryColor = '#C9A24B',  // V-card gold
-  secondaryColor = '#F5E0A1', // Soft amber
+  primaryColor = '#E0A74D',  // Muted amber/gold
+  waveformColor = '#F5B041', // Vibrant warm gold for bars
   className = ''
 }) {
+  const animationRef = useRef(null);
+  const [barHeights, setBarHeights] = React.useState([0.3, 0.5, 0.8, 1, 0.8, 0.5, 0.3]);
+  const [offset, setOffset] = React.useState(0);
+
+  useEffect(() => {
+    if (!isActive) return;
+    
+    let frame = 0;
+    const animate = () => {
+      frame += 1;
+      // Animate bar heights with wave pattern
+      setBarHeights(prev => prev.map((_, i) => {
+        const base = [0.3, 0.5, 0.8, 1, 0.8, 0.5, 0.3][i];
+        const wave = Math.sin(frame * 0.1 + i * 0.5) * 0.2;
+        return Math.max(0.2, base + wave);
+      }));
+      // Animate dotted line flow
+      setOffset(prev => (prev + 1) % 8);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isActive]);
+
+  const centerX = 50; // Center of waveform (percentage)
+  const barSpacing = 4;
+  const maxBarHeight = 14;
+
   return (
-    <div className={className} style={{ width, height }} aria-hidden="true">
-      <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-full block">
-        <defs>
-          {/* Animated gradient following V-card gradient style */}
-          <linearGradient id="wave-gradient" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor={primaryColor} stopOpacity="0">
-              <animate attributeName="stop-opacity" values="0;0.3;0" dur="2.5s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="30%" stopColor={primaryColor} stopOpacity="0.3">
-              <animate attributeName="stop-opacity" values="0.3;0.6;0.3" dur="2.5s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="50%" stopColor={primaryColor} stopOpacity="0.8">
-              <animate attributeName="stop-opacity" values="0.8;1;0.8" dur="2.5s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="70%" stopColor={primaryColor} stopOpacity="0.3">
-              <animate attributeName="stop-opacity" values="0.3;0.6;0.3" dur="2.5s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="100%" stopColor={primaryColor} stopOpacity="0">
-              <animate attributeName="stop-opacity" values="0;0.3;0" dur="2.5s" repeatCount="indefinite" />
-            </stop>
-          </linearGradient>
-          
-          {/* Glow filter for premium feel */}
-          <filter id="wave-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        
-        {/* Main animated gradient line */}
+    <div className={className} style={{ width, height: `${height}px` }} aria-hidden="true">
+      <svg viewBox="0 0 400 32" preserveAspectRatio="none" className="w-full h-full block">
+        {/* Left dotted line */}
         <line
           x1="0"
-          y1="12"
-          x2="1200"
-          y2="12"
-          stroke="url(#wave-gradient)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          filter={isActive ? "url(#wave-glow)" : ""}
-        >
-          {isActive && (
-            <animate
-              attributeName="stroke-dasharray"
-              values="0,1200;1200,0;0,1200"
-              dur="3s"
-              repeatCount="indefinite"
-            />
-          )}
-        </line>
-        
-        {/* Subtle secondary line for depth */}
-        <line
-          x1="0"
-          y1="18"
-          x2="1200"
-          y2="18"
-          stroke={secondaryColor}
+          y1="16"
+          x2={centerX - 20}
+          y2="16"
+          stroke={primaryColor}
           strokeWidth="1"
-          strokeOpacity={isActive ? "0.2" : "0.15"}
-          strokeDasharray="4,4"
-        >
-          {isActive && (
-            <animate
-              attributeName="stroke-dashoffset"
-              values="0;-8"
-              dur="1.5s"
-              repeatCount="indefinite"
+          strokeOpacity="0.5"
+          strokeDasharray="2,3"
+          strokeDashoffset={isActive ? -offset : 0}
+        />
+        
+        {/* Right dotted line */}
+        <line
+          x1={centerX + 20}
+          y1="16"
+          x2="400"
+          y2="16"
+          stroke={primaryColor}
+          strokeWidth="1"
+          strokeOpacity="0.5"
+          strokeDasharray="2,3"
+          strokeDashoffset={isActive ? -offset : 0}
+        />
+        
+        {/* Waveform bars in center */}
+        {barHeights.map((h, i) => {
+          const x = centerX - 12 + i * barSpacing;
+          const barHeight = h * maxBarHeight;
+          return (
+            <rect
+              key={i}
+              x={x}
+              y={16 - barHeight / 2}
+              width="2.5"
+              height={barHeight}
+              fill={waveformColor}
+              fillOpacity="0.85"
+              rx="1"
             />
-          )}
-        </line>
+          );
+        })}
+        
+        {/* Subtle glow behind waveform */}
+        {isActive && (
+          <ellipse
+            cx={centerX}
+            cy="16"
+            rx="18"
+            ry="10"
+            fill={waveformColor}
+            fillOpacity="0.15"
+            filter="blur(4px)"
+          />
+        )}
       </svg>
     </div>
   );
