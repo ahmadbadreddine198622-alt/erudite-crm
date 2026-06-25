@@ -168,20 +168,23 @@ export default function Sidebar({ open = false, onClose }) {
                       ? 'text-white'
                       : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/5'
                   )}
-                  style={isActive ? {
-                    background: 'rgba(245,158,11,0.12)',
-                    borderLeft: '3px solid hsl(38 92% 50%)',
-                    paddingLeft: 'calc(0.5rem - 3px)',
-                    boxShadow: '0 2px 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
-                  } : {}}
                 >
-                  <LiquidGlassIcon
-                    icon={item.icon}
-                    gradient={item.gradient}
-                    size={32}
-                    active={isActive}
-                    className="flex-shrink-0"
-                  />
+                  <div
+                    className="flex-shrink-0 rounded-xl flex items-center justify-center transition-all"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      background: isActive ? `linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))` : `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))`,
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderTopColor: 'rgba(255,255,255,0.2)',
+                      boxShadow: isActive ? '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' : '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    {(() => {
+                      const Icon = item.icon;
+                      return <Icon className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.92)', strokeWidth: 2 }} />;
+                    })()}
+                  </div>
                   <span>{item.label}</span>
                 </Link>
               );
