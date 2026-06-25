@@ -130,6 +130,7 @@ export default function KanbanBoard({
                     photographyTasks={photographyTasks}
                     getPhotoForPhone={getPhotoForPhone}
                     activeId={activeId}
+                    onStageChange={onStageChange}
                   />
                 ))}
               </div>

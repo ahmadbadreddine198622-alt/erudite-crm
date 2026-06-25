@@ -27,6 +27,25 @@ export const PHASES = [
   },
 ];
 
+// Full ordered stage enum (17 keys) — single source of truth for adjacent-stage moves.
+// Matches the Landlord.stage enum exactly; never reorder or rename without an entity migration.
+export const STAGE_ORDER = [
+  'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
+  'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification',
+  'listing_publication', 'final_confirmation', 'marketing_agents', 'marketing_network', 'open_house',
+  'client_blast', 'deal_closed',
+];
+
+// Adjacent stage helpers — return the prev/next enum key, or null at the ends.
+export function prevStage(stage) {
+  const i = STAGE_ORDER.indexOf(stage);
+  return i > 0 ? STAGE_ORDER[i - 1] : null;
+}
+export function nextStage(stage) {
+  const i = STAGE_ORDER.indexOf(stage);
+  return i >= 0 && i < STAGE_ORDER.length - 1 ? STAGE_ORDER[i + 1] : null;
+}
+
 // Phase lookup by stage key.
 export const PHASE_BY_STAGE = (() => {
   const map = {};

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { nextStepFor, getCaptureStatus } from '@/lib/landlordStageGuide';
+import StageArrows from './StageArrows';
 import { useState, memo } from 'react';
 
 export const ARCHETYPE_COLORS = {
@@ -65,7 +66,7 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps }) {
+function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps, onStageChange }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const navigate = useNavigate();
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
@@ -489,6 +490,12 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           {landlord.days_in_stage ? `${landlord.days_in_stage}d` : 'New'}
         </span>
         <div className="flex items-center gap-0.5">
+          {onStageChange && (
+            <>
+              <StageArrows landlord={landlord} onStageChange={onStageChange} />
+              <span className="w-px h-4 mx-0.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            </>
+          )}
           {users.length > 0 && (
             <select
               title="Assign"
@@ -569,6 +576,7 @@ export default memo(LandlordCard, (prev, next) => {
     prev.photographyTasks === next.photographyTasks &&
     prev.getPhotoForPhone === next.getPhotoForPhone &&
     prev.onToggleCheck === next.onToggleCheck &&
-    prev.onSingleAssign === next.onSingleAssign
+    prev.onSingleAssign === next.onSingleAssign &&
+    prev.onStageChange === next.onStageChange
   );
 });

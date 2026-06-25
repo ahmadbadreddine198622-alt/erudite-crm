@@ -24,6 +24,7 @@ function KanbanColumn({
   photographyTasks,
   getPhotoForPhone,
   activeId,
+  onStageChange,
 }) {
   const totalCommission = landlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
   const { setNodeRef, isOver } = useDroppable({ id: stage });
@@ -77,6 +78,7 @@ function KanbanColumn({
               photographyTasks={photographyTasks}
               getPhotoForPhone={getPhotoForPhone}
               isActive={activeId === landlord.id}
+              onStageChange={onStageChange}
             />
           ))}
         </SortableContext>

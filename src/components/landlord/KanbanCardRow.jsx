@@ -17,6 +17,7 @@ function KanbanCardRow({
   photographyTasks,
   getPhotoForPhone,
   isActive,
+  onStageChange,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: landlord.id });
 
@@ -43,6 +44,7 @@ function KanbanCardRow({
         photographyTasks={photographyTasks}
         getPhotoForPhone={getPhotoForPhone}
         dragHandleProps={{ ...attributes, ...listeners }}
+        onStageChange={onStageChange}
       />
     </div>
   );
@@ -58,5 +60,6 @@ export default memo(KanbanCardRow, (prev, next) => (
   prev.getPhotoForPhone === next.getPhotoForPhone &&
   prev.onSelectLandlord === next.onSelectLandlord &&
   prev.onToggleSelect === next.onToggleSelect &&
-  prev.onSingleAssign === next.onSingleAssign
+  prev.onSingleAssign === next.onSingleAssign &&
+  prev.onStageChange === next.onStageChange
 ));
