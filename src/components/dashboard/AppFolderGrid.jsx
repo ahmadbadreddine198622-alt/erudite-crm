@@ -91,23 +91,23 @@ function FolderThumbnail({ apps }) {
   const preview = apps.slice(0, 4);
   return (
     <div
-      className="grid grid-cols-2 gap-3 p-3 rounded-2xl"
+      className="grid grid-cols-2 gap-4 p-4 rounded-3xl"
       style={{
-        width: 110, height: 110,
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        width: 160, height: 160,
+        background: 'rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.12)',
       }}
     >
       {Array.from({ length: 4 }).map((_, i) => {
         const app = preview[i];
         if (!app) return (
-          <div key={i} className="rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          <div key={i} className="rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)' }} />
         );
         const Icon = app.icon;
         return (
           <div
             key={app.label}
-            className="rounded-xl flex items-center justify-center"
+            className="rounded-2xl flex items-center justify-center shadow-lg"
             style={{
               background: `linear-gradient(135deg, var(--tw-gradient-from, #333), var(--tw-gradient-to, #111))`,
               backgroundImage: `linear-gradient(135deg, ${app.gradient?.includes('from-') ? '' : ''})`,
@@ -115,12 +115,12 @@ function FolderThumbnail({ apps }) {
           >
             {/* Use a simple coloured square with the icon — lightweight vs full ExtremeLiquidIcon */}
             <div
-              className={`w-full h-full rounded-xl flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
+              className={`w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br ${app.gradient || 'from-slate-600 to-slate-800'}`}
             >
               {Icon ? (
-                <Icon className="w-5 h-5 text-white/90" strokeWidth={1.8} />
+                <Icon className="w-7 h-7 text-white/95" strokeWidth={1.8} />
               ) : (
-                <span className="text-[10px] text-white/30">?</span>
+                <span className="text-[11px] text-white/30">?</span>
               )}
             </div>
           </div>
@@ -184,24 +184,24 @@ function FolderTile({ folder, badges, onOpen }) {
   return (
     <button
       onClick={() => onOpen(folder.id)}
-      className="flex flex-col items-center gap-3 select-none focus:outline-none transition-transform active:scale-95 group"
+      className="flex flex-col items-center gap-4 select-none focus:outline-none transition-transform active:scale-95 group"
     >
       {/* Tile */}
       <div
-        className="relative rounded-2xl p-3 flex flex-col items-center justify-center gap-3 transition-all group-hover:border-amber-500/40"
+        className="relative rounded-3xl p-4 flex flex-col items-center justify-center gap-4 transition-all group-hover:border-amber-500/40"
         style={{
-          width: 130,
-          minHeight: 130,
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          width: 180,
+          minHeight: 180,
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
         }}
       >
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
-            className="absolute -top-1.5 -right-1.5 z-10 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+            className="absolute -top-2 -right-2 z-10 min-w-[24px] h-6 rounded-full flex items-center justify-center text-[11px] font-bold px-1.5 shadow-lg"
             style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -211,7 +211,7 @@ function FolderTile({ folder, badges, onOpen }) {
       </div>
       {/* Label */}
       <span
-        className="text-[11px] text-center leading-tight max-w-[96px] font-medium text-white/75"
+        className="text-[13px] text-center leading-tight max-w-[140px] font-semibold text-white/80"
         style={{ fontFamily: 'var(--font-sans)' }}
       >
         {folder.name}
@@ -298,7 +298,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   return (
     <>
       {/* Folder grid */}
-      <div className="w-full max-w-3xl grid grid-cols-3 sm:grid-cols-4 gap-x-5 gap-y-7 justify-items-center mx-auto overflow-hidden">
+      <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-4 gap-x-8 gap-y-10 justify-items-center mx-auto overflow-hidden">
         {FOLDERS.map(folder => (
           <FolderTile
             key={folder.id}
