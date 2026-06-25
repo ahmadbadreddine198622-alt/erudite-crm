@@ -66,7 +66,7 @@ export default function WhatsAppInbox() {
 
   const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
   // Sameie can see her own channel + business; admin sees everything
-  const isSameie = currentUser?.email === 'sameie@erudite-estate.com'; // ← update to Sameie's actual email
+  const isSameie = currentUser?.email === 'sameie@erudite-estate.com'; // update if her email differs
 
   // Conversations list polling — 15s interval
   // RLS scopes: admins see all (role bypass), agents see only their assigned rows

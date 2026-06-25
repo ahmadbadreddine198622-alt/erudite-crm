@@ -16,7 +16,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const BUSINESS_NUMBER = '+971582806000';
 const PERSONAL_NUMBER = '+971581806000';
 const MALIK_NUMBER = '+971529871277';
-const SAMEIE_NUMBER = '+971000000000'; // ← replace with Sameie's actual WhatsApp number
+const SAMEIE_NUMBER = '+971522869064';
 
 function stripPlus(raw) {
   if (!raw) return '';
@@ -340,10 +340,10 @@ Deno.serve(async (req) => {
 
   const event = body?.event || '';
   const instanceName = (body?.instance || '').toLowerCase();
-  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "malik_whatsapp" (Malik), "sameie_whatsapp" (Sameie)
+  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "malik_whatsapp" (Malik), "samy" (Sameie)
   const channel = instanceName === 'erudite' ? 'business'
     : instanceName === 'malik_whatsapp' ? 'malik'
-    : instanceName === 'sameie_whatsapp' ? 'sameie'
+    : instanceName === 'samy' ? 'sameie'
     : 'personal';
   const myNumber = channel === 'business' ? BUSINESS_NUMBER
     : channel === 'malik' ? MALIK_NUMBER
