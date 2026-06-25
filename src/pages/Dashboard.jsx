@@ -579,6 +579,19 @@ export default function Dashboard() {
           )}
         </EruditeSection>
         <EruditeSection title="Photography" subtitle="Production Pipeline" icon={Camera}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+              <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>Photography Pipeline</span>
+            </div>
+            <div
+              className="flex items-center gap-1.5 px-2.5 h-7 rounded-md text-xs font-semibold"
+              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+            >
+              <Users className="w-3 h-3" />
+              {photoData?.totalTasks || 0} tasks
+            </div>
+          </div>
           <PhotographyDashboardWidget stageCounts={photoStageCounts} totalTasks={photoData?.totalTasks || 0} />
         </EruditeSection>
         <EruditeSection title="Documents" subtitle="Checklist Status" icon={FileText}>
