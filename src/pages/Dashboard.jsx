@@ -294,17 +294,18 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
-      {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design */}
+      {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design with Continuous Motion */}
       <div className="relative mb-5 w-full max-w-6xl mx-auto">
-        {/* Outer glow ring */}
+        {/* Outer glow ring - animated breathing */}
         <div
-          className="absolute inset-0 rounded-full opacity-30 blur-xl"
+          className="absolute inset-0 rounded-full blur-xl"
           style={{
             background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.15) 0%, transparent 70%)',
             transform: 'scale(1.02)',
+            animation: 'searchBarBreathe 6s ease-in-out infinite',
           }}
         />
-        {/* Main search container */}
+        {/* Main search container - continuous elegant motion */}
         <div
           className="relative rounded-full overflow-hidden"
           style={{
@@ -313,10 +314,11 @@ export default function Dashboard() {
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(212,175,55,0.35)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px rgba(212,175,55,0.08)',
+            animation: 'searchBarFloat 10s ease-in-out infinite',
           }}
         >
           <div className="flex items-center">
-            {/* Left search icon with luxury container */}
+            {/* Left search icon with luxury container - animated glow */}
             <div className="pl-5 pr-3">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -324,12 +326,13 @@ export default function Dashboard() {
                   background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)',
                   border: '1px solid rgba(212,175,55,0.4)',
                   boxShadow: '0 2px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                  animation: 'iconGlow 5s ease-in-out infinite',
                 }}
               >
                 <Search className="w-4 h-4" style={{ color: '#D4AF37' }} />
               </div>
             </div>
-            {/* Input field with animated white text */}
+            {/* Input field with animated white text - continuous motivational flow */}
             <input
               type="text"
               value={search}
@@ -342,10 +345,10 @@ export default function Dashboard() {
                 fontStyle: search ? 'normal' : 'italic',
                 letterSpacing: search ? '0.01em' : '0.02em',
                 textShadow: '0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)',
-                animation: search ? 'none' : 'whiteGlow 3s ease-in-out infinite',
+                animation: search ? 'none' : 'motivationalFlow 12s ease-in-out infinite',
               }}
             />
-            {/* Right decorative icon */}
+            {/* Right decorative icon - animated pulse */}
             {!search && (
               <div className="pr-5 pl-3">
                 <div
@@ -354,6 +357,7 @@ export default function Dashboard() {
                     background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(184,141,60,0.1) 100%)',
                     border: '1px solid rgba(212,175,55,0.3)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                    animation: 'iconGlow 5s ease-in-out infinite 0.5s',
                   }}
                 >
                   <Search className="w-3.5 h-3.5" style={{ color: '#C5A059' }} />
@@ -736,7 +740,7 @@ export default function Dashboard() {
         />
       )}
 
-      {/* White Text Motion Animations */}
+      {/* White Text Motion Animations - Continuous Motivational System */}
       <style>{`
         @keyframes whiteGlow {
           0%, 100% { opacity: 0.85; text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1); }
@@ -754,6 +758,75 @@ export default function Dashboard() {
           0% { background-position: -200% center; opacity: 0.6; }
           50% { opacity: 0.95; }
           100% { background-position: 200% center; opacity: 0.6; }
+        }
+        @keyframes searchBarBreathe {
+          0%, 100% { 
+            opacity: 0.25; 
+            transform: scale(1.02);
+          }
+          50% { 
+            opacity: 0.4; 
+            transform: scale(1.04);
+          }
+        }
+        @keyframes searchBarFloat {
+          0%, 100% { 
+            transform: translateY(0) scale(1);
+            border-color: rgba(212,175,55,0.35);
+            boxShadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px rgba(212,175,55,0.08);
+          }
+          25% { 
+            transform: translateY(-2px) scale(1.005);
+            border-color: rgba(212,175,55,0.45);
+            boxShadow: 0 10px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 50px rgba(212,175,55,0.12);
+          }
+          50% { 
+            transform: translateY(0) scale(1);
+            border-color: rgba(212,175,55,0.5);
+            boxShadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12), 0 0 60px rgba(212,175,55,0.15);
+          }
+          75% { 
+            transform: translateY(2px) scale(0.998);
+            border-color: rgba(212,175,55,0.4);
+            boxShadow: 0 10px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 50px rgba(212,175,55,0.12);
+          }
+        }
+        @keyframes motivationalFlow {
+          0%, 100% { 
+            opacity: 0.85;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1);
+            transform: translateX(0);
+          }
+          20% { 
+            opacity: 0.92;
+            text-shadow: 0 0 28px rgba(255,255,255,0.4), 0 0 55px rgba(255,255,255,0.18);
+            transform: translateX(2px);
+          }
+          40% { 
+            opacity: 1;
+            text-shadow: 0 0 35px rgba(255,255,255,0.5), 0 0 70px rgba(255,255,255,0.25);
+            transform: translateX(0);
+          }
+          60% { 
+            opacity: 0.95;
+            text-shadow: 0 0 30px rgba(255,255,255,0.45), 0 0 60px rgba(255,255,255,0.2);
+            transform: translateX(-2px);
+          }
+          80% { 
+            opacity: 0.9;
+            text-shadow: 0 0 25px rgba(255,255,255,0.35), 0 0 50px rgba(255,255,255,0.15);
+            transform: translateX(1px);
+          }
+        }
+        @keyframes iconGlow {
+          0%, 100% { 
+            box-shadow: 0 2px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+            transform: scale(1);
+          }
+          50% { 
+            box-shadow: 0 4px 18px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+            transform: scale(1.05);
+          }
         }
       `}</style>
     </div>
