@@ -42,7 +42,7 @@ export default function AppLayout() {
 
       <main className="flex-1 overflow-x-hidden pb-36 md:pb-0 relative bg-background">
         {/* Top-left button cluster — stacked vertically */}
-        <div style={{ position: 'fixed', top: 8, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
         {/* Hamburger button */}
         <button
