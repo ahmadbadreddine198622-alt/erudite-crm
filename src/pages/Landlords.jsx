@@ -389,9 +389,9 @@ export default function Landlords() {
   }
 
   return (
-    <div className="page-root" style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
+    <div className="page-root" style={{ paddingLeft: 0, paddingRight: 0 }}>
       {/* Header */}
-      <div className="mb-6" style={{ paddingLeft: '4rem' }}>
+      <div className="mb-6" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center"
