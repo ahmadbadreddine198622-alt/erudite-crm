@@ -617,7 +617,7 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          /* Folder grid - responsive command center layout */}
+          /* Folder grid - responsive command center layout */
           <AppFolderGrid badges={badges} tilt={tilt} />
         )}
       </div>
