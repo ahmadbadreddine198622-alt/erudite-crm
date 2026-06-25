@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera, Clock } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
@@ -61,6 +62,14 @@ export default function Dashboard() {
       setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
     }, 120000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   // Load user
@@ -293,8 +302,53 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
+      {/* Modern Apple-style Clock */}
+      <div className="w-full max-w-4xl mx-auto mb-0" style={{ marginTop: -2 }}>
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+          }}
+        >
+          <Clock className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-baseline gap-0.5">
+            <span
+              className="font-bold tabular-nums"
+              style={{
+                fontSize: 18,
+                color: 'rgba(255,255,255,0.95)',
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+            </span>
+            <span
+              className="tabular-nums"
+              style={{
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.5)',
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              }}
+            >
+              :{String(currentTime.getSeconds()).padStart(2, '0')}
+            </span>
+          </div>
+          <div className="h-3 w-px" style={{ background: 'rgba(255,255,255,0.2)' }} />
+          <span
+            className="text-[10px] font-medium uppercase tracking-wider"
+            style={{ color: 'rgba(255,255,255,0.5)' }}
+          >
+            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+      </div>
+
       {/* Search with integrated motivational quote placeholder - moved above stats */}
-      <div className="relative mb-1 w-full max-w-md" style={{ marginTop: -2 }}>
+      <div className="relative mb-0 w-full max-w-md" style={{ marginTop: -4 }}>
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
@@ -431,7 +485,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 1, marginBottom: 0, marginTop: -6 }}
+        style={{ gap: 1, marginBottom: 0, marginTop: -3 }}
       >
         {/* Active Leads */}
         <button
