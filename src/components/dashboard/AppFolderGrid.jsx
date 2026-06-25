@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -215,7 +216,7 @@ function FolderTile({ folder, badges, onOpen }) {
 
 // ── Folder overlay ────────────────────────────────────────────────────────────
 function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
@@ -265,7 +266,8 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
