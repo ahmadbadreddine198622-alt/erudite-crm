@@ -189,33 +189,13 @@ export default function EruditeHeroBanner() {
     >
       {/* Main content — pure logo, no background */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-3"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4 pt-8"
         style={{
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* Decorative line above ERUDITE with subtle animation */}
-        <div
-          className="mb-2 relative"
-          style={{
-            width: 160,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
-          }}
-        >
-          {/* Animated energy pulse traveling across the line */}
-          <div
-            className="absolute top-0 left-0 h-full"
-            style={{
-              width: 40,
-              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.8), transparent)',
-              animation: 'linePulse 2.5s ease-in-out infinite',
-            }}
-          />
-        </div>
-
         {/* ERUDITE wordmark — larger and more prominent */}
-        <div className="relative mb-1.5">
+        <div className="relative mb-2">
           <h1
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
@@ -234,19 +214,29 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* Horizontal line above Real Estate */}
+        {/* Decorative line below ERUDITE with subtle animation */}
         <div
-          className="mb-2"
+          className="mb-3 relative"
           style={{
-            width: 120,
+            width: 160,
             height: 1,
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
           }}
-        />
+        >
+          {/* Animated energy pulse traveling across the line */}
+          <div
+            className="absolute top-0 left-0 h-full"
+            style={{
+              width: 40,
+              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.8), transparent)',
+              animation: 'linePulse 2.5s ease-in-out infinite',
+            }}
+          />
+        </div>
 
         {/* REAL ESTATE — elegant subtitle */}
         <p
-          className="text-sm md:text-base font-light tracking-[0.35em] uppercase"
+          className="text-sm md:text-base font-light tracking-[0.35em] uppercase mb-2"
           style={{
             color: 'rgba(255,255,255,0.7)',
             textShadow: '0 1px 6px rgba(0,0,0,0.5)',
