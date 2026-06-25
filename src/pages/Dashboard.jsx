@@ -474,7 +474,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
+      <div className="ios-grid-enter w-full flex flex-col items-center justify-center pb-44">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">

@@ -290,7 +290,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   return (
     <>
       {/* Folder grid */}
-      <div className="w-full max-w-2xl grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-6 justify-items-center">
+      <div className="w-full max-w-2xl grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-6 justify-items-center mx-auto">
         {FOLDERS.map(folder => (
           <FolderTile
             key={folder.id}
