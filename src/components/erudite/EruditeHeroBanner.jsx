@@ -92,80 +92,7 @@ export default function EruditeHeroBanner() {
         ctx.fillStyle = bloomGradient;
         ctx.fillRect(0, 0, width, height);
 
-        // Draw decorative line with animated pulse
-        const lineY = height * 0.72;
-        const lineStartX = width * 0.35;
-        const lineEndX = width * 0.65;
-        const notchX = lineStartX + (lineEndX - lineStartX) * 0.6;
-
-        // Base line (silver to gold gradient)
-        const lineGradient = ctx.createLinearGradient(lineStartX, lineY, lineEndX, lineY);
-        lineGradient.addColorStop(0, 'rgba(180, 180, 190, 0)');
-        lineGradient.addColorStop(0.1, 'rgba(180, 180, 190, 0.6)');
-        lineGradient.addColorStop(0.55, 'rgba(212, 175, 55, 0.8)');
-        lineGradient.addColorStop(0.6, 'rgba(212, 175, 55, 0.4)');
-        lineGradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
-
-        ctx.beginPath();
-        ctx.moveTo(lineStartX, lineY);
-        ctx.lineTo(notchX, lineY);
-        ctx.lineTo(notchX + 8, lineY - 4);
-        ctx.lineTo(notchX + 8, lineY + 4);
-        ctx.lineTo(lineEndX, lineY);
-        ctx.strokeStyle = lineGradient;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Animated pulse traveling along line
-        const pulseProgress = (timeRef.current * 0.3) % 1;
-        const pulseX = lineStartX + (lineEndX - lineStartX) * pulseProgress;
-        const pulseAlpha = 1 - Math.abs(pulseProgress - 0.5) * 2;
-
-        if (pulseAlpha > 0) {
-          const pulseGradient = ctx.createRadialGradient(pulseX, lineY, 0, pulseX, lineY, 20);
-          pulseGradient.addColorStop(0, `rgba(212, 175, 55, ${pulseAlpha * 0.6})`);
-          pulseGradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
-          ctx.fillStyle = pulseGradient;
-          ctx.fillRect(pulseX - 20, lineY - 10, 40, 20);
-        }
-
-        // Walker - luminous gold point with comet trail
-        const walkerProgress = (timeRef.current * 0.08) % 1;
-        const walkerX = lineStartX + (lineEndX - lineStartX) * walkerProgress;
-        
-        // Comet trail
-        for (let i = 0; i < 8; i++) {
-          const trailX = walkerX - i * 6;
-          const trailAlpha = (1 - i / 8) * 0.4;
-          ctx.beginPath();
-          ctx.arc(trailX, lineY, 2 - i * 0.2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(212, 175, 55, ${trailAlpha})`;
-          ctx.fill();
-        }
-
-        // Walker head
-        ctx.beginPath();
-        ctx.arc(walkerX, lineY, 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 220, 120, 0.9)';
-        ctx.fill();
-        ctx.shadowColor = 'rgba(212, 175, 55, 0.8)';
-        ctx.shadowBlur = 12;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Particle burst at end
-        if (walkerProgress > 0.95) {
-          for (let i = 0; i < 5; i++) {
-            const angle = (i / 5) * Math.PI * 2;
-            const dist = (walkerProgress - 0.95) * 100;
-            const px = lineEndX + Math.cos(angle) * dist;
-            const py = lineY + Math.sin(angle) * dist;
-            ctx.beginPath();
-            ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(212, 175, 55, ${1 - (walkerProgress - 0.95) * 20})`;
-            ctx.fill();
-          }
-        }
+        // Canvas decorative line removed - using HTML/CSS line instead for better rendering
 
         // Gold dust motes drifting upward
         particlesRef.current.forEach((p) => {
@@ -277,43 +204,6 @@ export default function EruditeHeroBanner() {
           </h1>
         </div>
 
-        {/* Vibrant emotional decorative line with gradient glow */}
-        <div
-          className={`relative transition-opacity duration-1000 delay-300 ${lineProgress > 0 ? 'opacity-100' : 'opacity-0'}`}
-          style={{
-            width: 200,
-            marginTop: 16,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            className="relative w-full h-1 rounded-full overflow-hidden"
-            style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.3) 20%, rgba(245,158,11,0.8) 50%, rgba(245,158,11,0.3) 80%, transparent 100%)',
-              boxShadow: '0 0 20px rgba(245,158,11,0.5), 0 0 40px rgba(245,158,11,0.3), inset 0 0 10px rgba(255,255,255,0.2)',
-            }}
-          >
-            {/* Animated shimmer effect */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmerSlide 3s ease-in-out infinite',
-              }}
-            />
-            {/* Colorful particle glow underneath */}
-            <div
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-2 rounded-full blur-md"
-              style={{
-                background: 'radial-gradient(ellipse, rgba(245,158,11,0.6) 0%, rgba(16,185,129,0.4) 50%, rgba(59,130,246,0.2) 100%)',
-                filter: 'blur(8px)',
-                opacity: 0.7,
-              }}
-            />
-          </div>
-        </div>
-
         {/* REAL ESTATE — elegant subtitle */}
         <p
           className={`text-sm md:text-base font-light tracking-[0.35em] uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
@@ -324,6 +214,42 @@ export default function EruditeHeroBanner() {
         >
           Real Estate
         </p>
+
+        {/* Vibrant emotional decorative line with gradient glow - positioned BELOW Real Estate */}
+        <div
+          className={`relative transition-opacity duration-1000 delay-700 ${lineProgress > 0 ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            width: 280,
+            marginTop: 14,
+          }}
+        >
+          <div
+            className="relative w-full h-1.5 rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 15%, rgba(245,158,11,1) 30%, rgba(16,185,129,0.85) 50%, rgba(245,158,11,1) 70%, rgba(245,158,11,0.5) 85%, transparent 100%)',
+              boxShadow: '0 0 24px rgba(245,158,11,0.6), 0 0 48px rgba(16,185,129,0.4), inset 0 0 12px rgba(255,255,255,0.2)',
+            }}
+          >
+            {/* Animated shimmer effect */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 50%, transparent 100%)',
+                backgroundSize: '220% 100%',
+                animation: 'shimmerSlide 3.5s ease-in-out infinite',
+              }}
+            />
+            {/* Colorful particle glow underneath */}
+            <div
+              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-md"
+              style={{
+                background: 'radial-gradient(ellipse, rgba(245,158,11,0.8) 0%, rgba(16,185,129,0.6) 45%, rgba(59,130,246,0.4) 100%)',
+                filter: 'blur(10px)',
+                opacity: 0.85,
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* CSS Animations */}

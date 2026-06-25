@@ -104,6 +104,12 @@ div[id*="Base44"] {
   animation: shimmer 3s ease-in-out infinite;
 }
 
+@keyframes shimmerSlide {
+  0% { background-position: 220% 0%; }
+  50% { background-position: -220% 0%; }
+  100% { background-position: 220% 0%; }
+}
+
 /* Liquid Glass material — iOS 26 / macOS Tahoe frosted glass */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.08);
