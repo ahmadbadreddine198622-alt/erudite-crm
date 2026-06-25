@@ -363,7 +363,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 12, marginBottom: 20 }}
+        style={{ gap: 12, marginBottom: 20, marginTop: 40 }}
       >
         {/* Active Leads */}
         <button
