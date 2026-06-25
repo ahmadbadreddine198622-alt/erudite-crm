@@ -418,39 +418,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Animated Waveform — Conversation & Activity */}
-      <div
-        className="w-full max-w-3xl mb-8"
-        style={{
-          background: 'linear-gradient(180deg, rgba(245,158,11,0.03) 0%, rgba(245,158,11,0.08) 50%, rgba(245,158,11,0.03) 100%)',
-          borderRadius: 24,
-          padding: '16px 24px',
-          border: '1px solid rgba(245,158,11,0.15)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div className="flex items-center gap-4">
-          {/* Animated Waveform Visualizer */}
-          <div className="flex-1" style={{ minWidth: 0 }}>
-            <AudioWaveform
-              isActive={true}
-              height={32}
-              primaryColor="#E0A74D"
-              waveformColor="#F5B041"
-            />
-          </div>
 
-          {/* Conversation & Activity Stats */}
-          <div className="flex flex-col items-start gap-0.5 min-w-[140px]">
-            <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Playfair Display',serif" }}>
-              Conversation & Activity
-            </span>
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {conversations.length} conversations • {activityStats.totalActivities || 0} activities
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Pipeline Summary Strip */}
       {isLoadingDashboard ? (
