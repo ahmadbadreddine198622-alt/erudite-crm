@@ -161,7 +161,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
     <div
       style={{
         borderRadius: 16,
-        background: '#0B1F3A',
+        background: '#1e283b',
         border: '1px solid rgba(201,162,75,0.18)',
         boxShadow: '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
         padding: '16px 18px',

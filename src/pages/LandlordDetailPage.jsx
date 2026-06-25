@@ -79,8 +79,8 @@ function css(str) {
 import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
 
 /* Pipeline design tokens — one navy canvas, one card surface, gold accents. */
-const PIPE_CANVAS = '#0F1419';
-const PIPE_SURFACE = '#0B1F3A';
+const PIPE_CANVAS = '#1e283b';
+const PIPE_SURFACE = '#1e283b';
 const PIPE_BORDER = 'rgba(201,162,75,0.18)';
 const PIPE_SHADOW = '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)';
 const GOLD = '#C9A24B';
