@@ -293,7 +293,31 @@ export default function Dashboard() {
         <EruditeHeroBanner />
       </div>
 
-
+      {/* Search with integrated motivational quote placeholder - moved above stats */}
+      <div className="relative mb-0 w-full max-w-md" style={{ marginTop: -4 }}>
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={QUOTES[quoteIndex]}
+          className="w-full pl-8 pr-3 py-1 rounded-lg text-xs border focus:outline-none transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.95)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = 'hsl(38 92% 50%)';
+            e.target.style.background = 'rgba(255,255,255,0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.target.style.background = 'rgba(255,255,255,0.07)';
+          }}
+        />
+      </div>
 
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
@@ -492,32 +516,6 @@ export default function Dashboard() {
           Done
         </button>
       )}
-
-      {/* Search with integrated motivational quote placeholder */}
-      <div className="relative mb-0 w-full max-w-md" style={{ marginTop: -3 }}>
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={QUOTES[quoteIndex]}
-          className="w-full pl-8 pr-3 py-1 rounded-lg text-xs border focus:outline-none transition-all"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: 'rgba(255,255,255,0.95)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50%)';
-            e.target.style.background = 'rgba(255,255,255,0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.target.style.background = 'rgba(255,255,255,0.07)';
-          }}
-        />
-      </div>
 
       {/* App Grid — folder mode or flat search results */}
       <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-0 mx-auto" style={{ marginTop: 0 }}>
