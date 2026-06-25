@@ -297,8 +297,16 @@ div[id*="Base44"] {
   user-select: none;
 }
 
-button, a, .cursor-pointer {
+button, a, .cursor-pointer, nav, [role="button"] {
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Global: prevent text selection on interactive elements */
+button *, a *, nav *, [role="button"] * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Safe area insets for iOS devices */
