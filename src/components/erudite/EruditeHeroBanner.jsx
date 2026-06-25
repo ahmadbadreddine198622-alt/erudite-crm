@@ -194,71 +194,42 @@ export default function EruditeHeroBanner() {
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark — living, breathing luxury */}
+        {/* ERUDITE wordmark — elegant living metal */}
         <div className="relative mb-2">
           <h1
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #FFFFFF 0%, #F8F8F8 20%, #D4AF37 45%, #C9A961 65%, #E5C875 85%, #FFFFFF 100%)',
-              backgroundSize: '100% 300%',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
+              backgroundSize: '100% 200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 6px 24px rgba(212,175,55,0.35))',
-              animation: 'metallicFlow 8s ease-in-out infinite, shimmerGlow 4s ease-in-out infinite',
+              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.3))',
+              animation: 'metallicBreath 6s ease-in-out infinite',
               letterSpacing: '0.05em',
-              position: 'relative',
             }}
           >
             ERUDITE
-            {/* Subtle shimmer overlay */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                backgroundSize: '200% 100%',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                animation: 'shimmerSlide 5s ease-in-out infinite',
-                opacity: 0.6,
-              }}
-            />
           </h1>
         </div>
 
-        {/* Decorative line — intelligent energy pulse */}
+        {/* Decorative line — refined energy pulse */}
         <div
           className="mb-3 relative"
           style={{
             width: 160,
-            height: 2,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), rgba(212,175,55,0.6), rgba(255,255,255,0.3), transparent)',
-            borderRadius: 1,
-            boxShadow: '0 0 12px rgba(212,175,55,0.4), inset 0 0 8px rgba(212,175,55,0.2)',
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
           }}
         >
-          {/* Fast elegant pulse */}
+          {/* Single elegant pulse */}
           <div
-            className="absolute top-0 left-0 h-full rounded-full"
+            className="absolute top-0 left-0 h-full"
             style={{
-              width: 60,
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), rgba(212,175,55,0.8), transparent)',
-              animation: 'linePulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-              filter: 'blur(1px)',
-              boxShadow: '0 0 16px rgba(212,175,55,0.6)',
-            }}
-          />
-          {/* Secondary subtle glow traveling opposite direction */}
-          <div
-            className="absolute top-0 left-0 h-full rounded-full"
-            style={{
-              width: 40,
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
-              animation: 'linePulseReverse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-              filter: 'blur(2px)',
-              opacity: 0.5,
+              width: 50,
+              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.9), transparent)',
+              animation: 'linePulse 2.5s ease-in-out infinite',
             }}
           />
         </div>
