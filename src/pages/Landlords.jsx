@@ -682,8 +682,21 @@ export default function Landlords() {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto pb-4" style={{ minHeight: '420px' }}>
+      {/* Kanban Board — breaks out of page-root padding to use the full screen width */}
+      <div
+        className="flex-1 overflow-x-auto pb-4"
+        style={{
+          minHeight: '420px',
+          marginLeft: 'calc(-1 * var(--board-pad-l))',
+          marginRight: 'calc(-1 * var(--board-pad-r))',
+          paddingLeft: 'var(--board-pad-l)',
+          paddingRight: 'var(--board-pad-r)',
+        }}
+      >
+        <style>{`
+          :root { --board-pad-l: 1rem; --board-pad-r: 1rem; }
+          @media (min-width: 768px) { :root { --board-pad-l: 4.5rem; --board-pad-r: 2rem; } }
+        `}</style>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
