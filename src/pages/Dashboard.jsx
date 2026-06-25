@@ -363,7 +363,7 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 10, marginBottom: 26 }}
+        style={{ gap: 12, marginBottom: 20 }}
       >
         {/* Active Leads */}
         <button
@@ -422,15 +422,15 @@ export default function Dashboard() {
 
       {/* Pipeline Summary Strip */}
       {isLoadingDashboard ? (
-        <div className="w-full max-w-4xl mb-8 flex justify-center">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+        <div className="w-full max-w-4xl mb-6 flex justify-center">
+          <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
         </div>
       ) : (
         <PipelineStrip phaseCounts={phaseCounts} />
       )}
 
       {/* Clock — Compact metallic design */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-8">
         {/* Date */}
         <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginBottom: 4, letterSpacing: '0.05em' }}>
           {format(new Date(), 'EEE MMM d')}
@@ -480,7 +480,7 @@ export default function Dashboard() {
       )}
 
       {/* Search */}
-      <div className="relative mb-10 w-full max-w-xs">
+      <div className="relative mb-8 w-full max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
@@ -506,7 +506,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-32 mx-auto">
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-16 mx-auto">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -544,7 +544,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-4 mb-2 mx-auto">
+      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-2 mb-4 mx-auto">
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
@@ -588,7 +588,7 @@ export default function Dashboard() {
       </div>
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-6 mx-auto">
+      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-4 mx-auto">
         <PFListingsGrid />
       </EruditeSection>
 
@@ -599,7 +599,7 @@ export default function Dashboard() {
       />
 
       {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-6 mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-4 mx-auto">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
         </EruditeSection>
