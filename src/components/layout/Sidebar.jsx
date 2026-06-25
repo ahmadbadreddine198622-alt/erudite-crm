@@ -134,9 +134,9 @@ export default function Sidebar({ open = false, onClose }) {
 
   return (
     <aside className={cn(
-      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
+      "fixed top-0 left-0 h-screen text-sidebar-foreground flex flex-col border-r border-white/10 z-50 w-[260px] transition-transform duration-300",
       open ? "translate-x-0" : "-translate-x-full"
-    )}>
+    )} style={{ background: 'rgba(14,20,36,0.65)', backdropFilter: 'blur(20px)' }}>
       {/* Logo + close */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
         <img
