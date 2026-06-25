@@ -178,10 +178,10 @@ export default function EruditeHeroBanner() {
       style={{
         minHeight: 100,
         maxHeight: 120,
-        background: 'radial-gradient(ellipse at 50% -40%, rgba(18,28,48,0.12) 0%, rgba(8,12,22,0.15) 50%, rgba(3,5,10,0.18) 100%)',
-        backdropFilter: 'blur(12px) saturate(140%)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
-        border: '1px solid rgba(212,175,55,0.06)',
+        background: 'transparent',
+        backdropFilter: 'none',
+        boxShadow: 'none',
+        border: 'none',
         transform: `perspective(1000px) rotateX(${mousePos.y * 0.25}deg) rotateY(${mousePos.x * 0.25}deg)`,
         transition: 'transform 0.12s ease-out',
         position: 'relative',
@@ -191,14 +191,14 @@ export default function EruditeHeroBanner() {
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ pointerEvents: 'none', opacity: 0.4 }}
+        style={{ pointerEvents: 'none', opacity: 0.3 }}
       />
 
       {/* Ultra-subtle atmospheric haze */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.015) 0%, transparent 55%)',
+          background: 'radial-gradient(ellipse at 35% 50%, rgba(100,140,200,0.008) 0%, transparent 55%)',
           filter: 'blur(60px)',
         }}
       />
@@ -207,7 +207,7 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.015) 0%, transparent 50%, rgba(255,255,255,0.008) 100%)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.008) 0%, transparent 50%, rgba(255,255,255,0.004) 100%)',
         }}
       />
 
