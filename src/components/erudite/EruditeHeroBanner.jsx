@@ -205,10 +205,10 @@ export default function EruditeHeroBanner() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
+              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.15))',
               animation: 'metallicBreath 10s ease-in-out infinite',
               letterSpacing: '0.05em',
-              opacity: 0.85,
+              opacity: 0.5,
             }}
           >
             ERUDITE
