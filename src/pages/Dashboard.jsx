@@ -490,26 +490,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-0" style={{ marginTop: -4 }}>
-        <div
-          className="relative w-full h-1 rounded-full overflow-hidden"
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.2) 8%, rgba(212,175,55,0.35) 20%, rgba(180,200,220,0.28) 50%, rgba(212,175,55,0.35) 80%, rgba(212,175,55,0.2) 92%, transparent 100%)',
-            boxShadow: '0 0 20px rgba(212,175,55,0.18), 0 0 40px rgba(180,200,220,0.12), inset 0 0 10px rgba(255,255,255,0.08)',
-          }}
-        >
-          {/* Animated shimmer flow - slow, elegant */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
-              backgroundSize: '220% 100%',
-              animation: 'shimmerSlide 7s ease-in-out infinite',
-            }}
-          />
-        </div>
-      </div>
+
 
       {/* Done button — only visible in edit mode */}
       {editMode && (
