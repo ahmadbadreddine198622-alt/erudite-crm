@@ -240,7 +240,7 @@ export default function Dashboard() {
     <div
       className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
       style={{
-        background: 'radial-gradient(ellipse at 30% 40%, #0e1526 0%, #0a0e1a 100%)',
+        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
       {/* Logo */}
