@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
@@ -319,21 +320,22 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Logged-in account badge with dropdown menu */}
+      {/* Logged-in account badge with foldable profile */}
       {userEmail && (
         <div className="absolute top-0 right-0 z-50" ref={menuRef}>
+          {/* Collapsed/Expanded Profile Toggle */}
           <div
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
+            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
             style={{
-              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
+              background: isProfileExpanded ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
+              border: isProfileExpanded ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
               backdropFilter: 'blur(12px)',
               color: 'rgba(255,255,255,0.75)',
             }}
           >
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
               style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
             >
               {userProfileImage ? (
@@ -342,15 +344,17 @@ export default function Dashboard() {
                 (userName || userEmail)[0].toUpperCase()
               )}
             </div>
-            <div className="flex flex-col items-start gap-0">
-              <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
-              {userPosition && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
-            </div>
-            <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
+            {isProfileExpanded && (
+              <div className="flex flex-col items-start gap-0 overflow-hidden">
+                <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold text-xs">{userName || userEmail}</span>
+                {userPosition && <span className="text-[8px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
+              </div>
+            )}
+            <ChevronDown className={`w-3 h-3 transition-transform ${isProfileExpanded ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
           </div>
 
-          {/* Dropdown Menu */}
-          {showUserMenu && (
+          {/* Expanded Profile Details */}
+          {isProfileExpanded && (
             <div
               className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
               style={{
@@ -372,42 +376,42 @@ export default function Dashboard() {
               </div>
               <div className="py-2">
                 <button
-                  onClick={() => { navigate('/team'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/team'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
                 </button>
                 <button
-                  onClick={() => { navigate('/landlords'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/landlords'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
                 </button>
                 <button
-                  onClick={() => { navigate('/leads'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/leads'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
                 </button>
                 <button
-                  onClick={() => { navigate('/analytics'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/analytics'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
                 </button>
                 <button
-                  onClick={() => { navigate('/finance'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/finance'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
                 </button>
                 <button
-                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/profile'); setIsProfileExpanded(false); }}
                   className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
                 >
                   <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
