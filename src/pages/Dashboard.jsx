@@ -280,12 +280,12 @@ export default function Dashboard() {
       }}
     >
       {/* Animated Hero Banner - dedicated container, no clipping */}
-      <div className="w-full max-w-5xl mb-2 mt-8">
+      <div className="w-full max-w-5xl mb-1 mt-4">
         <EruditeHeroBanner />
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: -8 }}>
+      <div style={{ marginBottom: -4, marginTop: -8 }}>
         <MotivationalQuote />
       </div>
 
@@ -401,65 +401,65 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 12, marginBottom: 24, marginTop: 8 }}
+        style={{ gap: 8, marginBottom: 12, marginTop: 4 }}
       >
         {/* Active Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 14, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Users className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
+          <p className="text-xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
         </button>
 
         {/* Reminders */}
         <button
           onClick={() => navigate('/reminders')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 14, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <Bell className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Bell className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
+          <p className="text-xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
         </button>
 
         {/* Unread */}
         <button
           onClick={() => navigate('/whatsapp')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 14, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <MessageCircle className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
+          <p className="text-xl font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
         </button>
 
         {/* Hot Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 14, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <TrendingUp className="w-4 h-4" style={{ color: '#34d399' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
           </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
+          <p className="text-xl font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
         </button>
       </div>
 
       {/* Elegant decorative line under stats — refined & sophisticated */}
-      <div className="w-full max-w-4xl mx-auto mb-6">
+      <div className="w-full max-w-4xl mx-auto mb-3">
         <div
-          className="relative w-full h-1.5 rounded-full overflow-hidden"
+          className="relative w-full h-1 rounded-full overflow-hidden"
           style={{
             background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.2) 8%, rgba(212,175,55,0.35) 20%, rgba(180,200,220,0.28) 50%, rgba(212,175,55,0.35) 80%, rgba(212,175,55,0.2) 92%, transparent 100%)',
             boxShadow: '0 0 20px rgba(212,175,55,0.18), 0 0 40px rgba(180,200,220,0.12), inset 0 0 10px rgba(255,255,255,0.08)',
@@ -474,34 +474,25 @@ export default function Dashboard() {
               animation: 'shimmerSlide 7s ease-in-out infinite',
             }}
           />
-          {/* Subtle particle glow underneath */}
-          <div
-            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3/5 h-3 rounded-full blur-lg"
-            style={{
-              background: 'radial-gradient(ellipse, rgba(212,175,55,0.25) 0%, rgba(180,200,220,0.2) 50%, rgba(212,175,55,0.25) 100%)',
-              filter: 'blur(10px)',
-              opacity: 0.45,
-            }}
-          />
         </div>
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         {/* Date - smaller, lighter */}
         <p style={{ 
-          fontSize: 15, 
+          fontSize: 13, 
           fontWeight: 400, 
           color: '#D1D5DB', 
           letterSpacing: '0.02em',
-          marginBottom: 2,
+          marginBottom: 1,
         }}>
           {format(new Date(), 'EEE MMM d')}
         </p>
         
         {/* Time - large, bold, geometric */}
         <p style={{
-          fontSize: 64,
+          fontSize: 52,
           fontWeight: 700,
           color: '#D1D5DB',
           letterSpacing: '-0.02em',
@@ -523,14 +514,14 @@ export default function Dashboard() {
       )}
 
       {/* Search */}
-      <div className="relative mb-8 w-full max-w-xs">
+      <div className="relative mb-4 w-full max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search apps"
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
+          className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none transition-all"
           style={{
             background: 'rgba(255,255,255,0.07)',
             backdropFilter: 'blur(16px)',
@@ -549,7 +540,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-16 mx-auto">
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-8 mx-auto">
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -587,16 +578,16 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-2 mb-4 mx-auto">
+      <div className="flex flex-wrap gap-2 justify-center w-full max-w-3xl mt-1 mb-3 mx-auto">
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
             navigate('/landlords');
           }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Building2 className="w-4 h-4" />
+          <Building2 className="w-3.5 h-3.5" />
           Landlord Pipeline
         </button>
         <button
@@ -604,28 +595,28 @@ export default function Dashboard() {
             console.log('Navigating to Assign Leads');
             navigate('/landlords');
           }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCheck className="w-4 h-4" />
+          <UserCheck className="w-3.5 h-3.5" />
           Assign Leads
         </button>
         <button
           onClick={() => {
             window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
           }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCircle className="w-4 h-4" />
+          <UserCircle className="w-3.5 h-3.5" />
           PF Agent Profile
         </button>
         <button
           onClick={() => navigate('/policies')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Shield className="w-4 h-4" />
+          <Shield className="w-3.5 h-3.5" />
           Policies & HR
         </button>
       </div>
