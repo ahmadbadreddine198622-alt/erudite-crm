@@ -23,18 +23,17 @@ function KanbanColumn({
 
   return (
     <div
-      className="flex-shrink-0 w-[320px] rounded-2xl flex flex-col h-full"
+      className="flex-shrink-0 w-[320px] rounded-2xl flex flex-col self-start"
       style={{
         scrollSnapAlign: 'start',
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(16px)',
+        background: 'rgba(20,28,48,0.85)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderTopColor: 'rgba(255,255,255,0.15)',
         boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
       }}
     >
-      {/* Column Header */}
-      <div className="p-3 shrink-0" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)', background: 'rgba(255,255,255,0.06)' }}>
+      {/* Column Header — pinned to the top of the column */}
+      <div className="p-3 shrink-0 sticky top-0 z-10 rounded-t-2xl" style={{ borderBottom: '2px solid rgba(245,159,10,0.2)', background: 'rgba(28,38,62,0.97)' }}>
         <div className="flex items-center justify-between mb-1.5">
           <h3 className="font-bold text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>{label}</h3>
           <Badge variant="outline" className="text-xs" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)' }}>
@@ -53,7 +52,7 @@ function KanbanColumn({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              'flex-1 overflow-y-auto p-2.5 space-y-2 transition-colors',
+              'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)]',
               snapshot.isDraggingOver ? 'bg-white/5' : '',
             )}
           >

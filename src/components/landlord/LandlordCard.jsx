@@ -276,12 +276,10 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.07)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        background: isDragging ? 'rgba(40,52,80,0.95)' : 'rgba(32,42,66,0.92)',
         border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
         borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
       }}
     >
       {/* Top row: checkbox + avatar + name */}

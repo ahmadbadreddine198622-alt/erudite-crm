@@ -25,7 +25,7 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 h-full pb-4" style={{ scrollSnapType: 'x proximity' }}>
+      <div className="flex flex-row items-start gap-4 pb-4" style={{ scrollSnapType: 'x proximity' }}>
         {stages.map((stage) => (
           <KanbanColumn
             key={stage}

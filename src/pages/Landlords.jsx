@@ -688,9 +688,11 @@ export default function Landlords() {
           Grab-to-pan + wheel-to-horizontal scroll via useHorizontalPan (card DnD stays intact). */}
       <div
         ref={boardScrollRef}
-        className="board-scroll flex-1 overflow-x-auto pb-4"
+        className="board-scroll overflow-x-auto overflow-y-hidden pb-4"
         style={{
           minHeight: '420px',
+          willChange: 'transform',
+          WebkitOverflowScrolling: 'touch',
           marginLeft: 'calc(-1 * var(--board-pad-l))',
           marginRight: 'calc(-1 * var(--board-pad-r))',
           paddingLeft: 'var(--board-pad-l)',
