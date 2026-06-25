@@ -1,122 +1,172 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 /**
- * Erudite Hero Banner V2 — Redefined Luxury
- * Enhanced animations, deeper visual hierarchy, premium motion design
+ * Erudite Hero Banner V3 — Transcendent Luxury
+ * Revolutionary design with layered parallax, kinetic typography, and living light effects
  */
 export default function EruditeHeroBanner() {
   const [mounted, setMounted] = useState(false);
   const [particles, setParticles] = useState([]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const prefersReducedMotion = useRef(
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
+  const bannerRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
-    // Generate layered floating particles
+    // Generate multi-layered particle systems
     setParticles(
-      Array.from({ length: 18 }).map((_, i) => ({
+      Array.from({ length: 24 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
-        size: Math.random() * 2.5 + 0.8,
-        duration: Math.random() * 12 + 18,
-        delay: Math.random() * 8,
-        opacity: Math.random() * 0.4 + 0.2,
+        size: Math.random() * 3 + 1,
+        duration: Math.random() * 15 + 20,
+        delay: Math.random() * 10,
+        opacity: Math.random() * 0.5 + 0.3,
+        layer: Math.floor(Math.random() * 3),
       }))
     );
+
+    // Mouse parallax tracking
+    if (!prefersReducedMotion.current) {
+      const handleMouseMove = (e) => {
+        if (bannerRef.current) {
+          const rect = bannerRef.current.getBoundingClientRect();
+          setMousePos({
+            x: ((e.clientX - rect.left) / rect.width - 0.5) * 2,
+            y: ((e.clientY - rect.top) / rect.height - 0.5) * 2,
+          });
+        }
+      };
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => window.removeEventListener('mousemove', handleMouseMove);
+    }
   }, []);
 
   if (!mounted) return null;
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl mb-6"
+      ref={bannerRef}
+      className="relative w-full overflow-hidden rounded-3xl mb-6"
       style={{
-        minHeight: 140,
-        maxHeight: 160,
-        background: 'linear-gradient(135deg, rgba(14,42,71,0.45) 0%, rgba(11,31,58,0.50) 50%, rgba(7,21,40,0.55) 100%)',
-        backdropFilter: 'blur(20px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
-        border: '1px solid rgba(201,162,75,0.15)',
+        minHeight: 200,
+        maxHeight: 240,
+        background: 'radial-gradient(ellipse at 50% -20%, rgba(20,35,60,0.75) 0%, rgba(10,20,40,0.82) 40%, rgba(5,12,25,0.9) 100%)',
+        backdropFilter: 'blur(30px) saturate(180%)',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.4)',
+        border: '1px solid rgba(201,162,75,0.25)',
+        transform: !prefersReducedMotion.current ? `perspective(1000px) rotateX(${mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg)` : 'none',
+        transition: 'transform 0.1s ease-out',
       }}
     >
-      {/* Animated gradient overlay */}
+      {/* Animated aurora borealis background */}
       <div
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(circle at 30% 50%, rgba(201,162,75,0.06) 0%, transparent 45%), radial-gradient(circle at 70% 40%, rgba(212,175,55,0.05) 0%, transparent 40%)',
-          animation: !prefersReducedMotion.current ? 'gradientPulse 10s ease-in-out infinite' : 'none',
+          background: `
+            radial-gradient(ellipse at 20% 30%, rgba(212,175,55,0.12) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(100,150,255,0.1) 0%, transparent 45%),
+            radial-gradient(ellipse at 50% 80%, rgba(180,100,255,0.08) 0%, transparent 50%)
+          `,
+          animation: !prefersReducedMotion.current ? 'auroraShift 15s ease-in-out infinite' : 'none',
+          filter: 'blur(40px)',
         }}
       />
 
-      {/* Subtle noise texture */}
+      {/* Dynamic mesh gradient overlay */}
       <div
-        className="absolute inset-0 opacity-[0.025]"
+        className="absolute inset-0 opacity-50"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundImage: `
+            repeating-linear-gradient(45deg, rgba(212,175,55,0.02) 0px, rgba(212,175,55,0.02) 2px, transparent 2px, transparent 40px),
+            repeating-linear-gradient(-45deg, rgba(100,150,255,0.02) 0px, rgba(100,150,255,0.02) 2px, transparent 2px, transparent 40px)
+          `,
+          animation: !prefersReducedMotion.current ? 'meshFlow 20s linear infinite' : 'none',
         }}
       />
 
-      {/* Floating luminescent particles */}
-      {!prefersReducedMotion.current && particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
-            background: `radial-gradient(circle, rgba(212,175,55,${p.opacity}) 0%, transparent 70%)`,
-            boxShadow: `0 0 ${p.size * 3}px rgba(212,175,55,${p.opacity * 0.6})`,
-            animation: `particleFloat ${p.duration}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
-            animationDelay: `${p.delay}s`,
-          }}
-        />
-      ))}
+      {/* Floating energy orbs - multi-layered */}
+      {!prefersReducedMotion.current && particles.map((p) => {
+        const colors = ['rgba(212,175,55,', 'rgba(100,180,255,', 'rgba(180,100,255,'];
+        const color = colors[p.layer % 3];
+        return (
+          <div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: p.size * 2,
+              height: p.size * 2,
+              background: `radial-gradient(circle, ${color}${p.opacity}) 0%, transparent 70%)`,
+              boxShadow: `0 0 ${p.size * 8}px ${color}${p.opacity * 0.8})`,
+              animation: `orbFloat ${p.duration}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+              animationDelay: `${p.delay}s`,
+            }}
+          />
+        );
+      })}
 
-      {/* Ornamental corner accents */}
+      {/* Animated concentric rings */}
       {!prefersReducedMotion.current && (
         <>
           <div
-            className="absolute top-2.5 left-2.5 w-10 h-10"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              border: '1px solid rgba(201,162,75,0.15)',
+              width: 400,
+              height: 400,
+              border: '1px solid rgba(212,175,55,0.06)',
+              animation: 'ringPulse 8s ease-out infinite',
+            }}
+          />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              width: 300,
+              height: 300,
+              border: '1px solid rgba(100,180,255,0.06)',
+              animation: 'ringPulse 8s ease-out infinite 2s',
+            }}
+          />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              width: 200,
+              height: 200,
+              border: '1px solid rgba(180,100,255,0.06)',
+              animation: 'ringPulse 8s ease-out infinite 4s',
+            }}
+          />
+        </>
+      )}
+
+      {/* Luxury corner accents with glow */}
+      {!prefersReducedMotion.current && (
+        <>
+          <div
+            className="absolute top-3 left-3 w-14 h-14"
+            style={{
+              border: '1px solid rgba(201,162,75,0.2)',
               borderRight: 'none',
               borderBottom: 'none',
-              borderRadius: '6px 0 0 0',
-              animation: 'cornerFade 3s ease-out',
+              borderRadius: '8px 0 0 0',
+              boxShadow: '0 0 20px rgba(201,162,75,0.15)',
+              animation: 'luxuryFadeIn 2s ease-out',
             }}
           />
           <div
-            className="absolute top-2.5 right-2.5 w-10 h-10"
+            className="absolute top-3 right-3 w-16 h-16"
             style={{
-              border: '1px solid rgba(201,162,75,0.15)',
+              background: 'linear-gradient(-135deg, rgba(100,180,255,0.12) 0%, transparent 60%)',
+              borderRadius: '0 10px 0 0',
+              border: '1px solid rgba(100,180,255,0.25)',
               borderLeft: 'none',
               borderBottom: 'none',
-              borderRadius: '0 6px 0 0',
-              animation: 'cornerFade 3s ease-out 0.15s both',
-            }}
-          />
-          <div
-            className="absolute bottom-2.5 left-2.5 w-10 h-10"
-            style={{
-              border: '1px solid rgba(201,162,75,0.15)',
-              borderRight: 'none',
-              borderTop: 'none',
-              borderRadius: '0 0 0 6px',
-              animation: 'cornerFade 3s ease-out 0.3s both',
-            }}
-          />
-          <div
-            className="absolute bottom-2.5 right-2.5 w-10 h-10"
-            style={{
-              border: '1px solid rgba(201,162,75,0.15)',
-              borderLeft: 'none',
-              borderTop: 'none',
-              borderRadius: '0 0 6px 0',
-              animation: 'cornerFade 3s ease-out 0.45s both',
+              boxShadow: '0 0 30px rgba(100,180,255,0.2)',
+              animation: 'luxuryFadeIn 2s ease-out 0.15s both',
             }}
           />
         </>
@@ -241,7 +291,7 @@ export default function EruditeHeroBanner() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.4) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 80%, rgba(0,0,0,0.5) 100%)',
         }}
       />
 
@@ -255,9 +305,28 @@ export default function EruditeHeroBanner() {
           0%, 100% { background-position: 0% 0%; }
           50% { background-position: 0% 100%; }
         }
-        @keyframes gradientPulse {
-          0%, 100% { opacity: 0.6; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
+        @keyframes auroraShift {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        @keyframes meshFlow {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(40px, 40px); }
+        }
+        @keyframes orbFloat {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+          25% { transform: translateY(-30px) translateX(15px); opacity: 0.5; }
+          50% { transform: translateY(-20px) translateX(-10px); opacity: 0.4; }
+          75% { transform: translateY(-35px) translateX(8px); opacity: 0.55; }
+        }
+        @keyframes ringPulse {
+          0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+          50% { opacity: 0.5; }
+          100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+        }
+        @keyframes luxuryFadeIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
         }
         @keyframes particleFloat {
           0%, 100% { transform: translateY(0) translateX(0); opacity: 0.2; }
@@ -265,14 +334,6 @@ export default function EruditeHeroBanner() {
           40% { transform: translateY(-12px) translateX(-6px); opacity: 0.25; }
           60% { transform: translateY(-25px) translateX(4px); opacity: 0.4; }
           80% { transform: translateY(-15px) translateX(-4px); opacity: 0.3; }
-        }
-        @keyframes jewelPulse {
-          0%, 100% { transform: rotate(45deg) scale(1); opacity: 0.9; }
-          50% { transform: rotate(45deg) scale(1.15); opacity: 1; }
-        }
-        @keyframes cornerFade {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
