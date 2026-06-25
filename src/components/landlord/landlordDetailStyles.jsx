@@ -11,7 +11,7 @@ export const GLOBAL_CSS = `
 @keyframes ld-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ld-spin { to { transform: rotate(360deg); } }
 @keyframes ld-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-.ld-panels { display: flex; }
+.ld-panels { display: flex; width: 100%; }
 @media (max-width: 820px) {
   .ld-root { height: auto !important; }
   .ld-panels { flex-direction: column !important; }

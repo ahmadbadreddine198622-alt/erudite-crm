@@ -1122,7 +1122,7 @@ class LandlordDetail extends React.Component {
     return (
       <React.Fragment>
         <style>{GLOBAL_CSS}</style>
-        <div className="ld-root" style={css("height:100vh; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
+        <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:hsl(222 47% 6%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
           {/* Top bar — centered banner with action buttons */}
           <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
