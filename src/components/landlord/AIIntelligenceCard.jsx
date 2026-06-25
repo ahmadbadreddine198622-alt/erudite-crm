@@ -149,7 +149,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
 
       {/* Collapsed — thin toggle bar: label + pills + momentum + chevron */}
       {isCollapsed ? (
-        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
+        <button onClick={onToggle} style={css("width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:6px 12px; background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif;")}>
           <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>AI Intelligence</span>
           <span style={css("display:flex; align-items:center; gap:4px; flex-wrap:wrap;")}>
             {hasScores && (
