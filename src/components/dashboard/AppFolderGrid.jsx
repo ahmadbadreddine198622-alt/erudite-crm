@@ -374,14 +374,15 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
           width: '100%',
           maxWidth: '896px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '20px',
           justifyItems: 'center',
           margin: '0 auto',
           boxSizing: 'border-box',
           WebkitBoxSizing: 'border-box',
+          paddingTop: '24px',
         }}
-        className="sm:grid-cols-4"
+        className="sm:grid-cols-3 lg:grid-cols-4"
       >
         {FOLDERS.map(folder => (
           <FolderTile
