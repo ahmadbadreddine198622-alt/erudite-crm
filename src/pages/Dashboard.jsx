@@ -418,32 +418,18 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Advanced Motion Waveform — Living Intelligence Line */}
+      {/* Animated Waveform — Conversation & Activity */}
       <div
         className="w-full max-w-3xl mb-8"
         style={{
           background: 'linear-gradient(180deg, rgba(245,158,11,0.03) 0%, rgba(245,158,11,0.08) 50%, rgba(245,158,11,0.03) 100%)',
           borderRadius: 24,
-          padding: '20px 28px',
+          padding: '16px 24px',
           border: '1px solid rgba(245,158,11,0.15)',
           backdropFilter: 'blur(12px)',
         }}
       >
         <div className="flex items-center gap-4">
-          {/* Analyse Now Button */}
-          <button
-            onClick={() => navigate('/analytics')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
-            style={{
-              background: 'linear-gradient(135deg, #FFB81C 0%, #FFA500 100%)',
-              color: '#0F1419',
-              boxShadow: '0 4px 16px rgba(255,184,28,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
-            }}
-          >
-            <Zap className="w-4 h-4" />
-            Analyse Now
-          </button>
-
           {/* Animated Waveform Visualizer */}
           <div className="flex-1" style={{ minWidth: 0 }}>
             <AudioWaveform
