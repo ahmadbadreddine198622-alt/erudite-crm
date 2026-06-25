@@ -271,8 +271,8 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
       className={cn(
         'rounded-xl p-1.5 cursor-pointer transition-all duration-200',
         isDragging
-          ? 'shadow-2xl rotate-1'
-          : 'hover:shadow-lg',
+          ? 'scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.45)]'
+          : 'hover:shadow-md',
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
       style={{
