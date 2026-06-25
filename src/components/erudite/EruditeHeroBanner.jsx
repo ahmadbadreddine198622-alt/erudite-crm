@@ -194,6 +194,26 @@ export default function EruditeHeroBanner() {
           transformStyle: 'preserve-3d',
         }}
       >
+        {/* Decorative line above ERUDITE with subtle animation */}
+        <div
+          className="mb-2 relative"
+          style={{
+            width: 160,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+          }}
+        >
+          {/* Animated energy pulse traveling across the line */}
+          <div
+            className="absolute top-0 left-0 h-full"
+            style={{
+              width: 40,
+              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.8), transparent)',
+              animation: 'linePulse 2.5s ease-in-out infinite',
+            }}
+          />
+        </div>
+
         {/* ERUDITE wordmark — larger and more prominent */}
         <div className="relative mb-1.5">
           <h1
@@ -271,6 +291,12 @@ export default function EruditeHeroBanner() {
           25% { transform: translateY(-30px) translateX(15px); opacity: 0.5; }
           50% { transform: translateY(-20px) translateX(-10px); opacity: 0.4; }
           75% { transform: translateY(-35px) translateX(8px); opacity: 0.55; }
+        }
+        @keyframes linePulse {
+          0% { left: -40px; opacity: 0; }
+          30% { opacity: 1; }
+          70% { opacity: 1; }
+          100% { left: 160px; opacity: 0; }
         }
       `}</style>
     </div>
