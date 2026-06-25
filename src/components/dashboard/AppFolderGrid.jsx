@@ -94,11 +94,11 @@ function FolderThumbnail({ apps }) {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '16px',
-        padding: '16px',
-        width: '160px',
-        height: '160px',
-        borderRadius: '24px',
+        gap: '10px',
+        padding: '10px',
+        width: '130px',
+        height: '130px',
+        borderRadius: '20px',
         background: 'rgba(255,255,255,0.08)',
         border: '1px solid rgba(255,255,255,0.12)',
         boxSizing: 'border-box',
@@ -108,7 +108,7 @@ function FolderThumbnail({ apps }) {
       {Array.from({ length: 4 }).map((_, i) => {
         const app = preview[i];
         if (!app) return (
-          <div key={i} style={{ borderRadius: '16px', background: 'rgba(255,255,255,0.05)' }} />
+          <div key={i} style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.05)' }} />
         );
         const Icon = app.icon;
         // Parse gradient colors for Safari-compatible inline styles
@@ -141,7 +141,7 @@ function FolderThumbnail({ apps }) {
           <div
             key={app.label}
             style={{
-              borderRadius: '16px',
+              borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -155,16 +155,16 @@ function FolderThumbnail({ apps }) {
               style={{
                 width: '100%',
                 height: '100%',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
               {Icon ? (
-                <Icon style={{ width: '28px', height: '28px', color: 'rgba(255,255,255,0.95)', strokeWidth: 1.8 }} />
+                <Icon style={{ width: '22px', height: '22px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2 }} />
               ) : (
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>?</span>
+                <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>?</span>
               )}
             </div>
           </div>
@@ -183,14 +183,14 @@ function FolderAppIcon({ app, badges, tilt, onNavigate }) {
     return (
       <button
         onClick={() => onNavigate(app)}
-        className="flex flex-col items-center gap-1.5 select-none focus:outline-none transition-transform active:scale-95"
+        className="flex flex-col items-center gap-1 select-none focus:outline-none transition-transform active:scale-95"
       >
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-800 border border-white/10"
+          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-800 border border-white/10"
         >
           <span className="text-xs text-white/40">?</span>
         </div>
-        <span className="text-[11px] text-center leading-tight max-w-[64px] font-medium text-white/75 min-h-[2rem] flex items-start justify-center">
+        <span className="text-[10px] text-center leading-tight max-w-[56px] font-medium text-white/75 min-h-[1.8rem] flex items-start justify-center">
           {app.label}
         </span>
       </button>
@@ -199,7 +199,7 @@ function FolderAppIcon({ app, badges, tilt, onNavigate }) {
   return (
     <button
       onClick={() => onNavigate(app)}
-      className="flex flex-col items-center gap-1.5 select-none focus:outline-none transition-transform active:scale-95"
+      className="flex flex-col items-center gap-1 select-none focus:outline-none transition-transform active:scale-95"
     >
       <ExtremeLiquidIcon
         icon={Icon}
@@ -211,8 +211,10 @@ function FolderAppIcon({ app, badges, tilt, onNavigate }) {
         isDragging={false}
         active={false}
         badge={badgeCount > 0 ? badgeCount : 0}
+        size={48}
+        iconSize={24}
       />
-      <span className="text-[11px] text-center leading-tight max-w-[64px] font-medium text-white/75 min-h-[2rem] flex items-start justify-center">
+      <span className="text-[10px] text-center leading-tight max-w-[56px] font-medium text-white/75 min-h-[1.8rem] flex items-start justify-center">
         {app.label}
       </span>
     </button>
@@ -232,7 +234,7 @@ function FolderTile({ folder, badges, onOpen }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '16px',
+        gap: '10px',
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTapHighlightColor: 'transparent',
@@ -249,15 +251,15 @@ function FolderTile({ folder, badges, onOpen }) {
       <div
         style={{
           position: 'relative',
-          borderRadius: '24px',
-          padding: '16px',
+          borderRadius: '20px',
+          padding: '12px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '16px',
-          width: '180px',
-          minHeight: '180px',
+          gap: '12px',
+          width: '150px',
+          minHeight: '150px',
           background: 'rgba(255,255,255,0.08)',
           border: '1px solid rgba(255,255,255,0.14)',
           backdropFilter: 'blur(16px)',
@@ -270,7 +272,7 @@ function FolderTile({ folder, badges, onOpen }) {
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
-            className="absolute -top-2 -right-2 z-10 min-w-[24px] h-6 rounded-full flex items-center justify-center text-[11px] font-bold px-1.5 shadow-lg"
+            className="absolute -top-1.5 -right-1.5 z-10 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1 shadow-lg"
             style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -280,7 +282,7 @@ function FolderTile({ folder, badges, onOpen }) {
       </div>
       {/* Label */}
       <span
-        className="text-[13px] text-center leading-tight max-w-[140px] font-semibold text-white/80"
+        className="text-[11px] text-center leading-tight max-w-[120px] font-semibold text-white/80"
         style={{ fontFamily: 'var(--font-sans)' }}
       >
         {folder.name}
@@ -373,7 +375,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
           maxWidth: '896px',
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '32px',
+          gap: '20px',
           justifyItems: 'center',
           margin: '0 auto',
           boxSizing: 'border-box',
