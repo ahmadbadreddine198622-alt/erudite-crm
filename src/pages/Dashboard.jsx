@@ -243,13 +243,6 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
-      {/* Logo */}
-      {logoUrl && (
-        <div className="mb-6">
-          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
-        </div>
-      )}
-
       {/* Logged-in account badge with dropdown menu */}
       {userEmail && (
         <div className="absolute top-4 right-4 z-50" ref={menuRef}>
