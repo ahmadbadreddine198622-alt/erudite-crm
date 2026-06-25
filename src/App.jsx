@@ -107,15 +107,9 @@ const AuthenticatedApp = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Show splash only once per session after auth loads
+    // Show splash on every page load after auth completes
     if (!isLoadingAuth && !isLoadingPublicSettings && !authError) {
-      const hasSeenSplash = sessionStorage.getItem('erudite_splash_seen');
-      if (!hasSeenSplash) {
-        setShowSplash(true);
-        sessionStorage.setItem('erudite_splash_seen', 'true');
-      } else {
-        setShowSplash(false);
-      }
+      setShowSplash(true);
     }
   }, [isLoadingAuth, isLoadingPublicSettings, authError]);
 
