@@ -35,7 +35,7 @@ const QUOTES = [
 
 export default function MotivationalQuote() {
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [fadeState, setFadeState] = useState<'visible' | 'fading' | 'hidden'>('visible');
+  const [fadeState, setFadeState] = useState('visible');
 
   useEffect(() => {
     const interval = setInterval(() => {
