@@ -274,18 +274,18 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center px-4 pb-1 pt-0"
+      className="relative min-h-screen flex flex-col items-center px-3 pb-1 pt-1"
       style={{
         background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
       }}
     >
       {/* Animated Hero Banner - dedicated container, no clipping */}
-      <div className="w-full max-w-5xl mb-0 mt-0">
+      <div className="w-full max-w-4xl mb-0 mt-0 scale-90" style={{ transformOrigin: 'top center' }}>
         <EruditeHeroBanner />
       </div>
 
       {/* Motivational Quote - rotates every 2 minutes */}
-      <div style={{ marginBottom: -4, marginTop: -8 }}>
+      <div style={{ marginBottom: -6, marginTop: -10 }}>
         <MotivationalQuote />
       </div>
 
@@ -401,58 +401,58 @@ export default function Dashboard() {
       {/* Stats Row — compact single row of 4 */}
       <div
         className="grid grid-cols-4 max-w-4xl w-full mx-auto"
-        style={{ gap: 1, marginBottom: 0, marginTop: -2 }}
+        style={{ gap: 1, marginBottom: 0, marginTop: -3 }}
       >
         {/* Active Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-1.5 px-1 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 10, background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          <div className="flex items-center justify-center mb-0.5" style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <Users className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-0" style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Users className="w-2.5 h-2.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-lg font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 7, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
+          <p className="text-base font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 6, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>ACTIVE</p>
         </button>
 
         {/* Reminders */}
         <button
           onClick={() => navigate('/reminders')}
-          className="flex flex-col items-center justify-center py-1.5 px-1 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 10, background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          <div className="flex items-center justify-center mb-0.5" style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <Bell className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-0" style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Bell className="w-2.5 h-2.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-lg font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 7, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
+          <p className="text-base font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 6, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>REMINDERS</p>
         </button>
 
         {/* Unread */}
         <button
           onClick={() => navigate('/whatsapp')}
-          className="flex flex-col items-center justify-center py-1.5 px-1 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 10, background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          <div className="flex items-center justify-center mb-0.5" style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <MessageCircle className="w-3 h-3" style={{ color: 'hsl(38 92% 50%)' }} />
+          <div className="flex items-center justify-center mb-0" style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <MessageCircle className="w-2.5 h-2.5" style={{ color: 'hsl(38 92% 50%)' }} />
           </div>
-          <p className="text-lg font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 7, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
+          <p className="text-base font-extrabold tabular-nums" style={{ color: 'hsl(38 92% 50%)', lineHeight: 1 }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 6, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>UNREAD</p>
         </button>
 
         {/* Hot Leads */}
         <button
           onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-1.5 px-1 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 12, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)' }}
+          className="flex flex-col items-center justify-center py-1 px-0.5 transition-all active:scale-[0.96]"
+          style={{ borderRadius: 10, background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          <div className="flex items-center justify-center mb-0.5" style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <TrendingUp className="w-3 h-3" style={{ color: '#34d399' }} />
+          <div className="flex items-center justify-center mb-0" style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <TrendingUp className="w-2.5 h-2.5" style={{ color: '#34d399' }} />
           </div>
-          <p className="text-lg font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 7, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
+          <p className="text-base font-extrabold tabular-nums" style={{ color: '#34d399', lineHeight: 1 }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 6, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.55)' }}>HOT</p>
         </button>
       </div>
 
@@ -478,10 +478,10 @@ export default function Dashboard() {
       </div>
 
       {/* iOS-style Clock Widget */}
-      <div className="text-center mb-0" style={{ marginTop: -2 }}>
+      <div className="text-center mb-0" style={{ marginTop: -3 }}>
         {/* Date - smaller, lighter */}
         <p style={{ 
-          fontSize: 10, 
+          fontSize: 9, 
           fontWeight: 400, 
           color: '#D1D5DB', 
           letterSpacing: '0.02em',
@@ -492,7 +492,7 @@ export default function Dashboard() {
         
         {/* Time - large, bold, geometric */}
         <p style={{
-          fontSize: 36,
+          fontSize: 26,
           fontWeight: 700,
           color: '#D1D5DB',
           letterSpacing: '-0.02em',
@@ -514,14 +514,14 @@ export default function Dashboard() {
       )}
 
       {/* Search */}
-      <div className="relative mb-1 w-full max-w-xs" style={{ marginTop: -4 }}>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+      <div className="relative mb-0 w-full max-w-xs" style={{ marginTop: -3 }}>
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search apps"
-          className="w-full pl-9 pr-4 py-1.5 rounded-xl text-sm border focus:outline-none transition-all"
+          className="w-full pl-8 pr-3 py-1 rounded-lg text-xs border focus:outline-none transition-all"
           style={{
             background: 'rgba(255,255,255,0.07)',
             backdropFilter: 'blur(16px)',
@@ -540,7 +540,7 @@ export default function Dashboard() {
       </div>
 
       {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-0 mx-auto" style={{ marginTop: -2 }}>
+      <div className="ios-grid-enter w-full max-w-5xl flex flex-col items-center justify-center pb-0 mx-auto" style={{ marginTop: 0 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
@@ -578,16 +578,16 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-1 justify-center w-full max-w-3xl mt-0 mb-0 mx-auto" style={{ marginTop: -1 }}>
+      <div className="flex flex-wrap gap-0.5 justify-center w-full max-w-3xl mt-0 mb-0 mx-auto" style={{ marginTop: -1 }}>
         <button
           onClick={() => {
             console.log('Navigating to Landlord Pipeline');
             navigate('/landlords');
           }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Building2 className="w-2.5 h-2.5" />
+          <Building2 className="w-2 h-2" />
           Landlord Pipeline
         </button>
         <button
@@ -595,28 +595,28 @@ export default function Dashboard() {
             console.log('Navigating to Assign Leads');
             navigate('/landlords');
           }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCheck className="w-2.5 h-2.5" />
+          <UserCheck className="w-2 h-2" />
           Assign Leads
         </button>
         <button
           onClick={() => {
             window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
           }}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <UserCircle className="w-2.5 h-2.5" />
+          <UserCircle className="w-2 h-2" />
           PF Agent Profile
         </button>
         <button
           onClick={() => navigate('/policies')}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+          className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all hover:scale-105"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 50%)' }}
         >
-          <Shield className="w-2.5 h-2.5" />
+          <Shield className="w-2 h-2" />
           Policies & HR
         </button>
       </div>
