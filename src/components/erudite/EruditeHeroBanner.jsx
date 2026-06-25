@@ -215,37 +215,37 @@ export default function EruditeHeroBanner() {
           Real Estate
         </p>
 
-        {/* Vibrant emotional decorative line with gradient glow - positioned BELOW Real Estate */}
+        {/* Elegant decorative line with subtle gradient - positioned BELOW Real Estate */}
         <div
           className={`relative transition-opacity duration-1000 delay-700 ${lineProgress > 0 ? 'opacity-100' : 'opacity-0'}`}
           style={{
-            width: 280,
+            width: 420,
             marginTop: 14,
           }}
         >
           <div
-            className="relative w-full h-1.5 rounded-full overflow-hidden"
+            className="relative w-full h-1 rounded-full overflow-hidden"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 15%, rgba(245,158,11,1) 30%, rgba(16,185,129,0.85) 50%, rgba(245,158,11,1) 70%, rgba(245,158,11,0.5) 85%, transparent 100%)',
-              boxShadow: '0 0 24px rgba(245,158,11,0.6), 0 0 48px rgba(16,185,129,0.4), inset 0 0 12px rgba(255,255,255,0.2)',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.25) 10%, rgba(212,175,55,0.45) 25%, rgba(180,200,220,0.35) 50%, rgba(212,175,55,0.45) 75%, rgba(212,175,55,0.25) 90%, transparent 100%)',
+              boxShadow: '0 0 16px rgba(212,175,55,0.2), 0 0 32px rgba(180,200,220,0.15), inset 0 0 8px rgba(255,255,255,0.1)',
             }}
           >
-            {/* Animated shimmer effect */}
+            {/* Animated shimmer effect - slow, elegant */}
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 50%, transparent 100%)',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
                 backgroundSize: '220% 100%',
-                animation: 'shimmerSlide 3.5s ease-in-out infinite',
+                animation: 'shimmerSlide 6s ease-in-out infinite',
               }}
             />
-            {/* Colorful particle glow underneath */}
+            {/* Subtle particle glow underneath */}
             <div
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-md"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2/3 h-2 rounded-full blur-md"
               style={{
-                background: 'radial-gradient(ellipse, rgba(245,158,11,0.8) 0%, rgba(16,185,129,0.6) 45%, rgba(59,130,246,0.4) 100%)',
-                filter: 'blur(10px)',
-                opacity: 0.85,
+                background: 'radial-gradient(ellipse, rgba(212,175,55,0.3) 0%, rgba(180,200,220,0.25) 50%, rgba(212,175,55,0.3) 100%)',
+                filter: 'blur(8px)',
+                opacity: 0.5,
               }}
             />
           </div>

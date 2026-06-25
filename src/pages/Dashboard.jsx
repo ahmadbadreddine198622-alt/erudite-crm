@@ -417,31 +417,31 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Vibrant emotional decorative line under stats — colorful & smart */}
+      {/* Elegant decorative line under stats — refined & sophisticated */}
       <div className="w-full max-w-4xl mx-auto mb-6">
         <div
-          className="relative w-full h-2 rounded-full overflow-hidden"
+          className="relative w-full h-1.5 rounded-full overflow-hidden"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 10%, rgba(245,158,11,1) 25%, rgba(16,185,129,0.8) 40%, rgba(59,130,246,0.7) 50%, rgba(16,185,129,0.8) 60%, rgba(245,158,11,1) 75%, rgba(245,158,11,0.5) 90%, transparent 100%)',
-            boxShadow: '0 0 28px rgba(245,158,11,0.6), 0 0 56px rgba(16,185,129,0.4), 0 0 84px rgba(59,130,246,0.25), inset 0 0 16px rgba(255,255,255,0.2)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.2) 8%, rgba(212,175,55,0.35) 20%, rgba(180,200,220,0.28) 50%, rgba(212,175,55,0.35) 80%, rgba(212,175,55,0.2) 92%, transparent 100%)',
+            boxShadow: '0 0 20px rgba(212,175,55,0.18), 0 0 40px rgba(180,200,220,0.12), inset 0 0 10px rgba(255,255,255,0.08)',
           }}
         >
-          {/* Animated shimmer flow */}
+          {/* Animated shimmer flow - slow, elegant */}
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,1) 50%, transparent 100%)',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
               backgroundSize: '220% 100%',
-              animation: 'shimmerSlide 3.5s ease-in-out infinite',
+              animation: 'shimmerSlide 7s ease-in-out infinite',
             }}
           />
-          {/* Multi-color particle glow underneath */}
+          {/* Subtle particle glow underneath */}
           <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-4 rounded-full blur-lg"
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3/5 h-3 rounded-full blur-lg"
             style={{
-              background: 'radial-gradient(ellipse, rgba(245,158,11,0.8) 0%, rgba(16,185,129,0.6) 35%, rgba(59,130,246,0.4) 65%, rgba(139,92,246,0.3) 100%)',
-              filter: 'blur(12px)',
-              opacity: 0.85,
+              background: 'radial-gradient(ellipse, rgba(212,175,55,0.25) 0%, rgba(180,200,220,0.2) 50%, rgba(212,175,55,0.25) 100%)',
+              filter: 'blur(10px)',
+              opacity: 0.45,
             }}
           />
         </div>
