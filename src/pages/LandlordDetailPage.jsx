@@ -927,9 +927,9 @@ class LandlordDetail extends React.Component {
       const isTelegram = t==='Telegram';
       return { label:t, icon:ic, onClick: ()=>this.setComposerType(t),
         style:{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'6px 11px', borderRadius:'9px', fontSize:'11.5px', fontWeight:600, cursor:'pointer', fontFamily:"'Inter',sans-serif",
-         background: on?'hsl(38 92% 50% / 0.14)':'rgba(255,255,255,0.04)',
-         color: on?'hsl(38 92% 62%)':'rgba(255,255,255,0.6)',
-         border:'1px solid '+(on?'hsl(38 92% 50% / 0.4)':'rgba(255,255,255,0.1)') } };
+         background: on?'rgba(201,162,75,0.12)':'rgba(255,255,255,0.03)',
+         color: on?'#f2a340':'rgba(255,255,255,0.55)',
+         border:'1px solid '+(on?'rgba(201,162,75,0.35)':'rgba(255,255,255,0.08)') } };
     });
     const placeholders={ 'Note':'Add a note to the timeline…', 'Task':'Task title…', 'Follow-up':'What’s the follow-up?', 'Appointment':'Appointment details…', 'Chat':'Type a WhatsApp message… (Enter to send)', 'iMessage':'Type an iMessage… (Enter to send)', 'Telegram':'Type a Telegram message… (Enter to send)', 'Email':'Use the AI Email Draft panel above to compose…' };
 
@@ -1383,9 +1383,9 @@ class LandlordDetail extends React.Component {
                             style={css(
                               "display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:7px; font-size:10px; font-weight:600; font-family:'Inter',sans-serif; "+
                               (available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
-                              "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
-                              "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
-                              "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
+                              "background:"+(active ? "rgba(201,162,75,0.18)" : "rgba(201,162,75,0.06)")+"; "+
+                              "color:"+(active ? "#f2a340" : "rgba(201,162,75,0.7)")+"; "+
+                              "border:1px solid "+(active ? "rgba(201,162,75,0.45)" : "rgba(201,162,75,0.2)")+";"
                             )}
                           >
                             {src.label}{!available && <span style={css("font-size:8.5px; font-weight:600; opacity:0.85;")}>· Analyse</span>}
@@ -1416,8 +1416,8 @@ class LandlordDetail extends React.Component {
                     <div style={css("margin-bottom:7px;")}>
                       {/* AI Suggested Tasks moved to standalone collapsible below the conversation stream */}
                       <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;")}>
-                        <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                        <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(201,162,75,0.8);")}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                           AI draft
                         </span>
                         <button
@@ -1427,9 +1427,9 @@ class LandlordDetail extends React.Component {
                           style={css(
                             "display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:600; font-family:'Inter',sans-serif; "+
                             (src.available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
-                            "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
-                            "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
-                            "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
+                            "background:"+(active ? "rgba(201,162,75,0.18)" : "rgba(201,162,75,0.06)")+"; "+
+                            "color:"+(active ? "#f2a340" : "rgba(201,162,75,0.7)")+"; "+
+                            "border:1px solid "+(active ? "rgba(201,162,75,0.45)" : "rgba(201,162,75,0.2)")+";"
                           )}
                         >
                           Next Action{!src.available && <span style={css("font-size:9px; font-weight:600; opacity:0.85;")}>· run Analyse</span>}
