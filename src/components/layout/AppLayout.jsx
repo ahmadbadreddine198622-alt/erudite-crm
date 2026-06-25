@@ -41,18 +41,14 @@ export default function AppLayout() {
       )}
 
       <main className="flex-1 overflow-x-hidden pb-36 md:pb-0 relative bg-background">
-        {/* Top-left button cluster */}
-        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 30, display: 'flex', gap: 10 }}>
+        {/* Top-left button cluster — stacked vertically */}
+        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
         {/* Hamburger button */}
         <button
           onClick={() => setSidebarOpen(true)}
           aria-label="Open menu"
           style={{
-            position: 'fixed',
-            top: 16,
-            left: 16,
-            zIndex: 30,
             width: 52,
             height: 52,
             borderRadius: 18,
