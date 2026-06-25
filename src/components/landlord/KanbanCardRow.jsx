@@ -30,7 +30,7 @@ function KanbanCardRow({
   // Only the grip handle drags (listeners passed down to the card's handle), so the card body
   // click reliably navigates and the inline buttons reliably fire — no drag-vs-tap ambiguity.
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} data-landlord-card="true">
       <LandlordCard
         landlord={landlord}
         isSelected={landlord.id === selectedLandlordId}

@@ -29,6 +29,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
+import useBoardNavigation from '@/hooks/useBoardNavigation';
 
 const STAGES = [
   'initial_contact',
@@ -95,6 +96,7 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
+  const boardScrollRef = useBoardNavigation();
 
 
 
@@ -530,9 +532,10 @@ export default function Landlords() {
           )}
         </div>
 
-        {/* Filters + Bulk Actions */}
-        <div className="flex gap-2 flex-wrap items-center">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+        {/* Filters + Bulk Actions — full-width, one organized line:
+            Select-all hard left · filters in a centered scroll track · count pill hard right */}
+        <div className="flex items-center gap-3 w-full">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0">
             <input
               type="checkbox"
               checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
@@ -587,108 +590,131 @@ export default function Landlords() {
             </div>
           ) : (
             <>
-              {safePermissions.view_all_landlords && users.length > 0 && (
+              {/* Centered filter track — scrolls horizontally on narrow viewports, stays one line */}
+              <div className="filter-track flex-1 min-w-0 flex items-center gap-2 overflow-x-auto">
+                {safePermissions.view_all_landlords && users.length > 0 && (
+                  <select
+                    value={filterAgent}
+                    onChange={(e) => setFilterAgent(e.target.value)}
+                    className="h-9 px-3 text-xs rounded-md shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                  >
+                    <option value="">All Agents</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                    ))}
+                  </select>
+                )}
                 <select
-                  value={filterAgent}
-                  onChange={(e) => setFilterAgent(e.target.value)}
-                  className="px-3 py-2 text-xs rounded-md"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                  value={filterArchetype}
+                  onChange={(e) => setFilterArchetype(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
                 >
-                  <option value="">All Agents</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
-                  ))}
+                  <option value="">All Archetypes</option>
+                  <option value="professional_investor">Professional Investor</option>
+                  <option value="individual_end_user_relocating">Individual Relocating</option>
+                  <option value="first_time_seller">First Time Seller</option>
+                  <option value="portfolio_optimizer">Portfolio Optimizer</option>
                 </select>
-              )}
-              <select
-                value={filterArchetype}
-                onChange={(e) => setFilterArchetype(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Archetypes</option>
-                <option value="professional_investor">Professional Investor</option>
-                <option value="individual_end_user_relocating">Individual Relocating</option>
-                <option value="first_time_seller">First Time Seller</option>
-                <option value="portfolio_optimizer">Portfolio Optimizer</option>
-              </select>
-              <ProjectSelectorWithUpload
-                value={filterProject}
-                onChange={(val) => setFilterProject(val || '')}
-                projects={projects}
-              />
-              <select
-                value={filterFloor}
-                onChange={(e) => setFilterFloor(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Floors</option>
-                <option value="1-10">Floors 1–10</option>
-                <option value="11-20">Floors 11–20</option>
-                <option value="21+">Floors 21+</option>
-              </select>
-              <select
-                value={filterLayout}
-                onChange={(e) => setFilterLayout(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Layouts</option>
-                <option value="Studio">Studio</option>
-                <option value="1BR">1BR</option>
-                <option value="2BR">2BR</option>
-                <option value="3BR">3BR</option>
-                <option value="4BR+">4BR+</option>
-              </select>
-              <select
-                value={filterLanguage}
-                onChange={(e) => setFilterLanguage(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Languages</option>
-                <option value="en">English</option>
-                <option value="ar">Arabic</option>
-                <option value="ru">Russian</option>
-                <option value="zh">Chinese</option>
-                <option value="hi">Hindi</option>
-              </select>
-              <select
-                value={filterAssignment}
-                onChange={(e) => setFilterAssignment(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Assignments</option>
-                <option value="unassigned">Unassigned</option>
-                <option value="assigned">Assigned</option>
-              </select>
+                <div className="shrink-0">
+                  <ProjectSelectorWithUpload
+                    value={filterProject}
+                    onChange={(val) => setFilterProject(val || '')}
+                    projects={projects}
+                  />
+                </div>
+                <select
+                  value={filterFloor}
+                  onChange={(e) => setFilterFloor(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Floors</option>
+                  <option value="1-10">Floors 1–10</option>
+                  <option value="11-20">Floors 11–20</option>
+                  <option value="21+">Floors 21+</option>
+                </select>
+                <select
+                  value={filterLayout}
+                  onChange={(e) => setFilterLayout(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Layouts</option>
+                  <option value="Studio">Studio</option>
+                  <option value="1BR">1BR</option>
+                  <option value="2BR">2BR</option>
+                  <option value="3BR">3BR</option>
+                  <option value="4BR+">4BR+</option>
+                </select>
+                <select
+                  value={filterLanguage}
+                  onChange={(e) => setFilterLanguage(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Languages</option>
+                  <option value="en">English</option>
+                  <option value="ar">Arabic</option>
+                  <option value="ru">Russian</option>
+                  <option value="zh">Chinese</option>
+                  <option value="hi">Hindi</option>
+                </select>
+                <select
+                  value={filterAssignment}
+                  onChange={(e) => setFilterAssignment(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Assignments</option>
+                  <option value="unassigned">Unassigned</option>
+                  <option value="assigned">Assigned</option>
+                </select>
+                {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
+                  <button
+                    onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
+                    className="h-9 text-xs px-2.5 rounded-md transition-opacity opacity-70 hover:opacity-100 shrink-0 whitespace-nowrap"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Count pill — pinned hard right */}
               <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                className="flex items-center gap-1.5 px-3 h-9 rounded-md text-xs font-semibold shrink-0 ml-auto"
                 style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
               >
                 <Users className="w-3.5 h-3.5" />
                 {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
               </div>
-              {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
-                <button
-                  onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
-                  className="text-xs px-2.5 py-1.5 rounded-lg transition-opacity opacity-70 hover:opacity-100"
-                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
-                >
-                  Clear filters
-                </button>
-              )}
             </>
           )}
+        </div>
+
+        {/* Curved "valley" divider — full width, dip centered, fades to transparent at both ends */}
+        <div className="w-full mt-3 -mb-1 pointer-events-none" aria-hidden="true">
+          <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-3 block">
+            <defs>
+              <linearGradient id="valley-fade" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
+                <stop offset="50%" stopColor="hsl(38 92% 50%)" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M0 4 Q 600 28 1200 4" fill="none" stroke="url(#valley-fade)" strokeWidth="1.5" />
+          </svg>
         </div>
       </div>
 
       {/* Kanban Board — fills remaining height, scrolls horizontally on its own.
           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <div
-        className="board-scroll flex-1 min-h-0 overflow-x-auto overflow-y-hidden pb-4"
+        ref={boardScrollRef}
+        tabIndex={0}
+        className="board-scroll flex-1 min-h-0 overflow-x-auto overflow-y-hidden pb-4 cursor-grab focus:outline-none"
         style={{
           WebkitOverflowScrolling: 'touch',
           marginLeft: 'calc(-1 * var(--board-pad-l))',
@@ -706,6 +732,12 @@ export default function Landlords() {
           .board-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
           .board-scroll::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.45); border-radius: 99px; }
           .board-scroll::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.7); }
+          /* Filter track — slim, on-brand horizontal scrollbar when it overflows */
+          .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
+          .filter-track::-webkit-scrollbar { height: 6px; }
+          .filter-track::-webkit-scrollbar-track { background: transparent; }
+          .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
+          .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
         `}</style>
         <KanbanBoard
           stages={STAGES}
@@ -720,6 +752,9 @@ export default function Landlords() {
           onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
           photographyTasks={photographyTasks}
           getPhotoForPhone={getPhotoForPhone}
+          onDragActiveChange={(active) => {
+            if (boardScrollRef.current) boardScrollRef.current.dataset.dragging = active ? 'true' : 'false';
+          }}
         />
       </div>
 

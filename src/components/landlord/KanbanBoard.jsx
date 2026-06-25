@@ -28,6 +28,7 @@ export default function KanbanBoard({
   onSingleAssign,
   photographyTasks = [],
   getPhotoForPhone,
+  onDragActiveChange,
 }) {
   const [activeId, setActiveId] = useState(null);
 
@@ -65,6 +66,7 @@ export default function KanbanBoard({
   const handleDragEnd = (event) => {
     const { active, over } = event;
     setActiveId(null);
+    onDragActiveChange?.(false);
     if (!over) return;
     const sourceStage = idToStage.get(active.id);
     const destStage = resolveDestStage(over.id);
@@ -77,8 +79,8 @@ export default function KanbanBoard({
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
-      onDragStart={(e) => setActiveId(e.active.id)}
-      onDragCancel={() => setActiveId(null)}
+      onDragStart={(e) => { setActiveId(e.active.id); onDragActiveChange?.(true); }}
+      onDragCancel={() => { setActiveId(null); onDragActiveChange?.(false); }}
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0.15, y: 0.2 } }}
     >

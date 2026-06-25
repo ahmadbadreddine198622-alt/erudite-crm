@@ -46,6 +46,7 @@ function KanbanColumn({
       {/* Cards Container — droppable, independent vertical scroll */}
       <div
         ref={setNodeRef}
+        data-column-scroll="true"
         className={cn(
           'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)] rounded-b-2xl',
           isOver ? 'bg-accent/5' : '',
