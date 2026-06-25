@@ -35,10 +35,10 @@ export default function EruditeHeroBanner() {
       style={{
         minHeight: 140,
         maxHeight: 160,
-        background: 'linear-gradient(135deg, rgba(14,42,71,0.75) 0%, rgba(11,31,58,0.80) 50%, rgba(7,21,40,0.85) 100%)',
+        background: 'linear-gradient(135deg, rgba(14,42,71,0.45) 0%, rgba(11,31,58,0.50) 50%, rgba(7,21,40,0.55) 100%)',
         backdropFilter: 'blur(20px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
-        border: '1px solid rgba(201,162,75,0.2)',
+        border: '1px solid rgba(201,162,75,0.15)',
       }}
     >
       {/* Animated gradient overlay */}
@@ -124,17 +124,17 @@ export default function EruditeHeroBanner() {
 
       {/* Main content container */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-8"
+        className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-6"
         style={{
           animation: !prefersReducedMotion.current ? 'elegantFloat 6s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
         }}
       >
-        {/* Elegant curved signature line */}
-        <div className="mb-3 relative">
+        {/* Signature line at top */}
+        <div className="mb-2 relative">
           <svg
-            width="280"
-            height="32"
-            viewBox="0 0 280 32"
+            width="320"
+            height="28"
+            viewBox="0 0 320 28"
             style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
           >
             <defs>
@@ -167,19 +167,19 @@ export default function EruditeHeroBanner() {
               </filter>
             </defs>
 
-            {/* Elegant curved path with decorative loops */}
+            {/* Elegant curved path */}
             <path
-              d="M 10 16 C 60 16, 80 10, 100 12 C 120 14, 140 18, 160 16 C 180 14, 200 10, 270 16"
+              d="M 8 14 C 70 14, 100 8, 130 10 C 160 12, 190 16, 220 14 C 250 12, 280 8, 312 14"
               fill="none"
               stroke="url(#signatureGradient)"
-              strokeWidth="2"
+              strokeWidth="1.8"
               strokeLinecap="round"
               filter="url(#signatureGlow)"
               style={{ opacity: 0.9 }}
             />
 
             {/* Center ornamental flourish */}
-            <circle cx="140" cy="14" r="2.5" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 8px rgba(245,230,163,0.8))' }}>
+            <circle cx="160" cy="12" r="2.5" fill="#F5E6A3" style={{ filter: 'drop-shadow(0 0 8px rgba(245,230,163,0.8))' }}>
               {!prefersReducedMotion.current && (
                 <animate attributeName="r" values="2.5;3.2;2.5" dur="2s" repeatCount="indefinite" />
               )}
@@ -187,27 +187,27 @@ export default function EruditeHeroBanner() {
 
             {/* Traveling light effect */}
             {!prefersReducedMotion.current && (
-              <ellipse cx="0" cy="16" rx="20" ry="6" fill="rgba(245,230,163,0.15)">
-                <animate attributeName="cx" from="-20" to="300" dur="8s" repeatCount="indefinite" />
+              <ellipse cx="0" cy="14" rx="25" ry="5" fill="rgba(245,230,163,0.12)">
+                <animate attributeName="cx" from="-25" to="345" dur="8s" repeatCount="indefinite" />
               </ellipse>
             )}
           </svg>
         </div>
 
-        {/* ERUDITE TEAM */}
+        {/* HOLD THE LINE */}
         <p
-          className="text-[8px] font-extralight tracking-[0.25em] uppercase mb-2"
+          className="text-[7px] font-extralight tracking-[0.3em] uppercase mb-1"
           style={{
-            color: 'rgba(235,240,245,0.7)',
-            textShadow: '0 1px 8px rgba(0,0,0,0.4)',
+            color: 'rgba(210,220,230,0.7)',
+            textShadow: '0 1px 6px rgba(0,0,0,0.4)',
           }}
         >
-          Erudite Team
+          Hold The Line
         </p>
 
         {/* ERUDITE wordmark */}
         <h1
-          className="text-5xl md:text-6xl font-semibold tracking-tight mb-2"
+          className="text-5xl md:text-6xl font-semibold tracking-tight mb-1"
           style={{
             fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
             background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 12%, #D8D8D8 25%, #D4AF37 55%, #C9A961 75%, #E5C875 100%)',
@@ -224,51 +224,16 @@ export default function EruditeHeroBanner() {
 
         {/* REAL ESTATE */}
         <p
-          className="text-[9px] font-light tracking-[0.25em] uppercase mb-3"
+          className="text-[8px] font-light tracking-[0.28em] uppercase"
           style={{
             background: 'linear-gradient(135deg, #D4AF37 0%, #C9A961 50%, #E5C875 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            textShadow: '0 1px 8px rgba(212,175,55,0.35)',
+            textShadow: '0 1px 6px rgba(212,175,55,0.35)',
           }}
         >
           Real Estate
-        </p>
-
-        {/* Ornate divider with center jewel */}
-        <div className="flex items-center gap-2 mb-3">
-          <div
-            className="h-px flex-1 max-w-[60px]"
-            style={{
-              background: 'linear-gradient(90deg, transparent, rgba(201,162,75,0.5), rgba(201,162,75,0.25))',
-            }}
-          />
-          <div
-            className="w-1.5 h-1.5 rotate-45"
-            style={{
-              background: 'linear-gradient(135deg, #F5E6A3 0%, #D4AF37 100%)',
-              boxShadow: '0 0 8px rgba(212,175,55,0.5), inset 0 1px 1px rgba(255,255,255,0.3)',
-              animation: !prefersReducedMotion.current ? 'jewelPulse 4s ease-in-out infinite' : 'none',
-            }}
-          />
-          <div
-            className="h-px flex-1 max-w-[60px]"
-            style={{
-              background: 'linear-gradient(90deg, rgba(201,162,75,0.25), rgba(201,162,75,0.5), transparent)',
-            }}
-          />
-        </div>
-
-        {/* HOLD THE LINE */}
-        <p
-          className="text-[8px] font-extralight tracking-[0.25em] uppercase"
-          style={{
-            color: 'rgba(210,220,230,0.75)',
-            textShadow: '0 1px 8px rgba(0,0,0,0.4)',
-          }}
-        >
-          Hold The Line
         </p>
       </div>
 
