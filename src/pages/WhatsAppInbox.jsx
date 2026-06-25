@@ -341,6 +341,7 @@ export default function WhatsAppInbox() {
         : filterChannel === 'business' ? c.channel === 'business'
         : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
         : filterChannel === 'malik' ? c.channel === 'malik'
+        : filterChannel === 'sameie' ? c.channel === 'sameie'
         : true;
       return matchesSearch && matchesChannel;
     }
@@ -352,6 +353,7 @@ export default function WhatsAppInbox() {
       : filterChannel === 'business' ? c.channel === 'business'
       : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
       : filterChannel === 'malik' ? c.channel === 'malik'
+      : filterChannel === 'sameie' ? c.channel === 'sameie'
       : true;
 
     const lead = leads.find(l => l.id === c.lead_id);
