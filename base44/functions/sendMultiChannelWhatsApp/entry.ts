@@ -19,12 +19,14 @@ const INSTANCE_MAP = {
   business: 'erudite',
   personal: 'erudite_whatsapp',
   malik: 'malik_whatsapp',
+  sameie: 'Samy',
 };
 
 const FROM_NUMBER_MAP = {
   business: '+971582806000',
   personal: '+971581806000',
   malik: '+971529871277',
+  sameie: '+971522869064',
 };
 
 function toDigits(raw) {
@@ -50,8 +52,8 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
   }
 
-  if (!['business', 'personal', 'malik'].includes(channel)) {
-    return Response.json({ error: 'Invalid channel. Must be "business", "personal", or "malik"' }, { status: 400 });
+  if (!['business', 'personal', 'malik', 'sameie'].includes(channel)) {
+    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", or "sameie"' }, { status: 400 });
   }
 
   const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
@@ -101,7 +103,7 @@ Deno.serve(async (req) => {
   let evoStatus = 0;
   let evoBody = null;
 
-  if (channel === 'business') {
+  if (channel === 'business') { // Meta Cloud API
     // Business: send via Meta Cloud API
     const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');

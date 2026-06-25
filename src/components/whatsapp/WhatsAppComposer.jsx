@@ -164,6 +164,15 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
                 <span className="text-xs font-semibold" style={{ color: 'hsl(280 65% 70%)' }}>👤 Malik</span>
                 <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971529871277</span>
               </button>
+              <button
+                onClick={() => handleChannelSelect('sameie')}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border transition hover:scale-105"
+                style={{ background: 'hsl(330 70% 55% / 0.1)', borderColor: 'hsl(330 70% 55% / 0.4)' }}
+              >
+                <User className="w-5 h-5" style={{ color: 'hsl(330 70% 70%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(330 70% 70%)' }}>🌸 Sameie</span>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971522869064</span>
+              </button>
             </div>
             <button onClick={() => setShowChannelPicker(false)} className="w-full text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancel</button>
           </div>
@@ -176,13 +185,13 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         {selectedChannel && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
             style={{
-              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : selectedChannel === 'malik' ? 'hsl(280 65% 55% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
-              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : selectedChannel === 'malik' ? '1px solid hsl(280 65% 55% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
-              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : selectedChannel === 'malik' ? 'hsl(280 65% 70%)' : 'hsl(217 91% 70%)',
+              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : selectedChannel === 'malik' ? 'hsl(280 65% 55% / 0.12)' : selectedChannel === 'sameie' ? 'hsl(330 70% 55% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
+              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : selectedChannel === 'malik' ? '1px solid hsl(280 65% 55% / 0.3)' : selectedChannel === 'sameie' ? '1px solid hsl(330 70% 55% / 0.4)' : '1px solid hsl(217 91% 60% / 0.3)',
+              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : selectedChannel === 'malik' ? 'hsl(280 65% 70%)' : selectedChannel === 'sameie' ? 'hsl(330 70% 70%)' : 'hsl(217 91% 70%)',
             }}
           >
             {selectedChannel === 'business' ? <Building2 className="w-3 h-3 mr-0.5" /> : <User className="w-3 h-3 mr-0.5" />}
-            {selectedChannel === 'business' ? '🏢 Business' : selectedChannel === 'malik' ? '👤 Malik' : '👤 Ahmad'}
+            {selectedChannel === 'business' ? '🏢 Business' : selectedChannel === 'malik' ? '👤 Malik' : selectedChannel === 'sameie' ? '🌸 Sameie' : '👤 Ahmad'}
           </div>
         )}
 
