@@ -1128,9 +1128,7 @@ class LandlordDetail extends React.Component {
           <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(15,18,28,0.95), rgba(10,12,20,0.98)); backdrop-filter:blur(16px);")}>
             <div style={css("display:flex; align-items:center; gap:8px; padding-left:48px;")}>
               <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
-                <span style={css("display:block; width:14px; height:2px; background:#ccaa66; margin-bottom:2px; border-radius:1px;")}></span>
-                <span style={css("display:block; width:14px; height:2px; background:#808080; margin-bottom:2px; border-radius:1px;")}></span>
-                <span style={css("display:block; width:14px; height:2px; background:#808080; border-radius:1px;")}></span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
               </button>
               <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                 <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
