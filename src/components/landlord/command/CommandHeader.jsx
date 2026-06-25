@@ -3,7 +3,7 @@
 // Reuses the existing StageArrows handler (onStageChange) — does not fork it.
 import { Phone, MessageCircle, MessageSquare, Mail, Send, PhoneCall } from 'lucide-react';
 import StageArrows from '../StageArrows';
-import { PALETTE, initialsOf, fmtAED, titleize, RAPPORT_COLORS, LANG_LABEL } from './cmdHelpers.js';
+import { PALETTE, initialsOf, fmtAED, titleize, RAPPORT_COLORS, LANG_LABEL } from './cmdHelpers';
 
 function Chip({ label, color }) {
   return (

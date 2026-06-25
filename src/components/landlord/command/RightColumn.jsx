@@ -2,8 +2,8 @@
 // Channels → Documents → People → AI Meta. Read-only consume of existing Landlord fields.
 import { useState } from 'react';
 import { Loader2, ExternalLink } from 'lucide-react';
-import CommandCard from './CommandCard.jsx';
-import { PALETTE, fmtAED, fmtDate, daysUntil, titleize, relativeTime, STAGE_LABELS } from './cmdHelpers.js';
+import CommandCard from './CommandCard';
+import { PALETTE, fmtAED, fmtDate, daysUntil, titleize, relativeTime, STAGE_LABELS } from './cmdHelpers';
 
 function StatusDot({ state }) {
   const c = state === 'available' ? PALETTE.green : state === 'unknown' ? PALETTE.amber : 'rgba(148,163,184,0.6)';

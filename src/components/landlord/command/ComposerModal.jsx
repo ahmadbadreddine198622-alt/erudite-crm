@@ -5,8 +5,8 @@ import { X } from 'lucide-react';
 import EmailComposer from '../EmailComposer';
 import IMessageComposer from '../IMessageComposer';
 import AppointmentComposer from '../AppointmentComposer';
-import QuickChatComposer from './QuickChatComposer.jsx';
-import { PALETTE } from './cmdHelpers.js';
+import QuickChatComposer from './QuickChatComposer';
+import { PALETTE } from './cmdHelpers';
 
 const TITLES = {
   email: 'Email',

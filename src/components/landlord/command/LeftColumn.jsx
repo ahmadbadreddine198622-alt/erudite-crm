@@ -4,8 +4,8 @@
 import { useState } from 'react';
 import { Copy, Send as SendIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import CommandCard from './CommandCard.jsx';
-import { PALETTE, PRIORITY_COLOR, titleize, dirForLang, relativeTime } from './cmdHelpers.js';
+import CommandCard from './CommandCard';
+import { PALETTE, PRIORITY_COLOR, titleize, dirForLang, relativeTime } from './cmdHelpers';
 
 function SuggestedMessage({ msg, onSend }) {
   const [sending, setSending] = useState(false);

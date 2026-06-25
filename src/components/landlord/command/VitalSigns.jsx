@@ -1,7 +1,7 @@
 // Vital Signs strip — 4 score gauges (with rationale tooltips), momentum, strike-now,
 // est. commission, days in stage. Read-only from existing Landlord score fields.
 import { Zap } from 'lucide-react';
-import { PALETTE, scoreColor, fmtAED, MOMENTUM_COLOR } from './cmdHelpers.js';
+import { PALETTE, scoreColor, fmtAED, MOMENTUM_COLOR } from './cmdHelpers';
 
 function Gauge({ label, value, suffix = '', rationale }) {
   const has = value != null && !isNaN(value);

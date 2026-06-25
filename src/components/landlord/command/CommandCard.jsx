@@ -1,5 +1,5 @@
 // Reusable Erudite dark-glass card shell with an icon + title and optional accent + count.
-import { PALETTE } from './cmdHelpers.js';
+import { PALETTE } from './cmdHelpers';
 
 export default function CommandCard({ icon, title, accent = PALETTE.gold, count, action, children, dense }) {
   return (

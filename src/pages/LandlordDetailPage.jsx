@@ -8,12 +8,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
-import CommandHeader from '@/components/landlord/command/CommandHeader.jsx';
-import VitalSigns from '@/components/landlord/command/VitalSigns.jsx';
-import LeftColumn from '@/components/landlord/command/LeftColumn.jsx';
-import RightColumn from '@/components/landlord/command/RightColumn.jsx';
-import ComposerModal from '@/components/landlord/command/ComposerModal.jsx';
-import { PALETTE, initialsOf, STAGE_LABELS, titleize } from '@/components/landlord/command/cmdHelpers.js';
+import CommandHeader from '@/components/landlord/command/CommandHeader';
+import VitalSigns from '@/components/landlord/command/VitalSigns';
+import LeftColumn from '@/components/landlord/command/LeftColumn';
+import RightColumn from '@/components/landlord/command/RightColumn';
+import ComposerModal from '@/components/landlord/command/ComposerModal';
+import { PALETTE, initialsOf, STAGE_LABELS, titleize } from '@/components/landlord/command/cmdHelpers';
 
 const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
 const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };

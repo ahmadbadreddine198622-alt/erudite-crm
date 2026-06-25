@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { PALETTE } from './cmdHelpers.js';
+import { PALETTE } from './cmdHelpers';
 
 export default function QuickChatComposer({ landlordId, channel, prefill = '', onSent }) {
   const [text, setText] = useState(prefill);
