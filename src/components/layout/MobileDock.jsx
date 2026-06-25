@@ -125,13 +125,26 @@ export default function MobileDock() {
   const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
   const homeGlow = urgentCount > 0 ? 'rgba(239,68,68,0.45)' : 'rgba(212,175,55,0.45)';
 
-  // Landscape - simple original dock
+  // Landscape - simple original dock with matching transparent background
   if (!isMobilePortrait) {
     return (
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
-        <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245,158,11,0.14)', border: '1.5px solid rgba(245,158,11,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Home style={{ width: 22, height: 22, color: 'hsl(38 92% 55%)' }} />
-        </button>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15,28,48,0.65) 0%, rgba(10,22,40,0.6) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderRadius: 12,
+          border: '1px solid rgba(212,175,55,0.25)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+          padding: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(212,175,55,0.15)', border: '1.5px solid rgba(212,175,55,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Home style={{ width: 22, height: 22, color: 'hsl(38 92% 55%)' }} />
+          </button>
+        </div>
       </nav>
     );
   }
@@ -146,11 +159,20 @@ export default function MobileDock() {
     <>
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 0, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
         <div style={{
-          background: 'rgba(11,31,58,0.85)', backdropFilter: 'blur(60px) saturate(280%)',
-          borderRadius: 24, border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 16px 56px rgba(0,0,0,0.65)',
-          padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 6,
-          width: '100%', maxWidth: 420, position: 'relative', margin: '0 auto 12px',
+          background: 'linear-gradient(135deg, rgba(15,28,48,0.65) 0%, rgba(10,22,40,0.6) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderRadius: 24,
+          border: '1px solid rgba(212,175,55,0.25)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: '100%',
+          maxWidth: 420,
+          position: 'relative',
+          margin: '0 auto 12px',
         }}>
           <PortraitDockIcon app={dockApps[0]} active={location.pathname.startsWith('/landlords')} onLongPress={(e) => handleLongPress('landlords', e)} onPress={() => navigate('/landlords')} />
           <PortraitDockIcon app={dockApps[1]} active={location.pathname.startsWith('/pipeline')} onLongPress={(e) => handleLongPress('pipeline', e)} onPress={() => navigate('/pipeline')} />
