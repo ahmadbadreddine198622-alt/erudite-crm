@@ -65,7 +65,7 @@ function PortraitDockIcon({ app, active, onPress, onLongPress }) {
       <div className="flex flex-col items-center" style={{ gap: 4 }}>
         <ExtremeLiquidIcon icon={Icon} gradient={gradient} glowColor={glowColor || 'rgba(255,255,255,0.25)'}
           size={SZ} iconSize={Math.round(SZ * 0.50)} active={active} badge={0} tiltX={0} tiltY={0} index={0} isDragging={false} />
-        {active && <div style={{ width: 4, height: 4, borderRadius: 2, background: 'hsl(38 92% 55%)', boxShadow: '0 0 8px hsl(38 92% 55%)' }} />}
+        {active && <div style={{ width: 4, height: 4, borderRadius: 2, background: '#D4AF37', boxShadow: '0 0 8px rgba(212,175,55,0.5)' }} />}
       </div>
     </button>
   );
@@ -88,7 +88,7 @@ function QuickActionsPopover({ actions, position, onClose, navigate }) {
             <button key={idx} onClick={() => { navigate(action.path); onClose(); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-white/5"
             >
-              <ActionIcon className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
+              <ActionIcon className="w-4 h-4" style={{ color: '#D4AF37' }} />
               <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{action.label}</span>
             </button>
           );
@@ -125,24 +125,24 @@ export default function MobileDock() {
   const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
   const homeGlow = urgentCount > 0 ? 'rgba(239,68,68,0.45)' : 'rgba(212,175,55,0.45)';
 
-  // Landscape - simple original dock with matching transparent background
+  // Landscape - simple original dock with exact dashboard colors
   if (!isMobilePortrait) {
     return (
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(15,28,48,0.65) 0%, rgba(10,22,40,0.6) 100%)',
+          background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           borderRadius: 12,
-          border: '1px solid rgba(212,175,55,0.25)',
+          border: '1px solid rgba(212,175,55,0.35)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
           padding: '8px 12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(212,175,55,0.15)', border: '1.5px solid rgba(212,175,55,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Home style={{ width: 22, height: 22, color: 'hsl(38 92% 55%)' }} />
+          <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Home style={{ width: 22, height: 22, color: '#D4AF37' }} />
           </button>
         </div>
       </nav>
@@ -159,11 +159,11 @@ export default function MobileDock() {
     <>
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 0, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(15,28,48,0.65) 0%, rgba(10,22,40,0.6) 100%)',
+          background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           borderRadius: 24,
-          border: '1px solid rgba(212,175,55,0.25)',
+          border: '1px solid rgba(212,175,55,0.35)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
           padding: '12px 16px',
           display: 'flex',
@@ -180,12 +180,14 @@ export default function MobileDock() {
             <div style={{ position: 'absolute', width: HOME_SZ+12, height: HOME_SZ+12, borderRadius: Math.round(HOME_SZ*0.28), background: homeGlow, filter: 'blur(14px)', top: '50%', left: '50%', transform: 'translate(-50%, -55%)', pointerEvents: 'none' }} />
             <button onClick={() => navigate('/')} style={{
               width: HOME_SZ, height: HOME_SZ, borderRadius: Math.round(HOME_SZ*0.28), position: 'relative', top: -8,
-              border: '1.5px solid rgba(212,175,55,0.32)', background: 'rgba(212,175,55,0.12)', backdropFilter: 'blur(32px)',
-              boxShadow: `0 8px 24px ${homeGlow.replace('0.45','0.20')}, 0 3px 10px rgba(0,0,0,0.45)`,
+              border: '1px solid rgba(212,175,55,0.4)',
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)',
+              backdropFilter: 'blur(32px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+              boxShadow: '0 4px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <div style={{ position: 'absolute', inset: 0, borderRadius: Math.round(HOME_SZ*0.28), background: 'linear-gradient(145deg, rgba(212,175,55,0.55) 0%, rgba(160,120,40,0.35) 100%)' }} />
-              <Home style={{ width: Math.round(HOME_SZ*0.52), height: Math.round(HOME_SZ*0.52), color: 'hsl(38 92% 55%)', strokeWidth: 2.2 }} />
+              <Home style={{ width: Math.round(HOME_SZ*0.52), height: Math.round(HOME_SZ*0.52), color: '#D4AF37', strokeWidth: 2.2 }} />
             </button>
           </div>
           <PortraitDockIcon app={dockApps[2]} active={location.pathname.startsWith('/whatsapp')} onLongPress={(e) => handleLongPress('whatsapp', e)} onPress={() => navigate('/whatsapp')} />
