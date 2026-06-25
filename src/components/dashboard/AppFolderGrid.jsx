@@ -239,15 +239,15 @@ function FolderTile({ folder, badges, onOpen }) {
     >
       {/* Tile - refined glass card */}
       <div
-        className="relative rounded-[14px] p-2 flex flex-col items-center justify-center gap-1.5"
+        className="relative rounded-[16px] p-2.5 flex flex-col items-center justify-center gap-2"
         style={{
           width: '100%',
-          minHeight: '102px',
+          minHeight: '118px',
           background: 'rgba(255,255,255,0.04)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 6px 18px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
@@ -264,7 +264,7 @@ function FolderTile({ folder, badges, onOpen }) {
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
-            className="absolute -top-0.5 -right-0.5 z-10 min-w-[16px] h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold px-0.5 shadow-lg"
+            className="absolute -top-1 -right-1 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
             style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -274,12 +274,12 @@ function FolderTile({ folder, badges, onOpen }) {
       </div>
       {/* Label */}
       <span
-        className="text-[9px] text-center font-semibold mt-1"
+        className="text-[10px] text-center font-semibold mt-1.5"
         style={{
           fontFamily: 'var(--font-sans)',
           color: 'rgba(255,255,255,0.75)',
           letterSpacing: '0.02em',
-          lineHeight: '1.2',
+          lineHeight: '1.3',
         }}
       >
         {folder.name}
@@ -367,10 +367,10 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
     <>
       {/* Folder grid - responsive command center layout */}
       <div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4"
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5"
         style={{
-          paddingTop: '8px',
-          paddingBottom: '80px',
+          paddingTop: '12px',
+          paddingBottom: '6px',
         }}
       >
         {FOLDERS.map(folder => (
