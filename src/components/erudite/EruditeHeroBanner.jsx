@@ -197,7 +197,7 @@ export default function EruditeHeroBanner() {
         {/* ERUDITE wordmark — larger and more prominent */}
         <div className="relative mb-1.5">
           <h1
-            className="text-5xl md:text-6xl lg:text-7xl font-medium tracking-wide"
+            className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
               background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
