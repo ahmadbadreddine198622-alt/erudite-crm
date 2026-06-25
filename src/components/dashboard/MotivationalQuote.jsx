@@ -67,15 +67,6 @@ export default function MotivationalQuote() {
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      {/* Subtle gradient accent at top */}
-      <div
-        className="w-full h-0.5 rounded-full mb-4"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.4) 20%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0.4) 80%, transparent 100%)',
-          boxShadow: '0 1px 4px rgba(212,175,55,0.15)',
-        }}
-      />
-
       {/* Quote text */}
       <p
         className="text-center font-medium"
