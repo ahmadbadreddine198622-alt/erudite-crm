@@ -194,42 +194,71 @@ export default function EruditeHeroBanner() {
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* ERUDITE wordmark — larger and more prominent */}
+        {/* ERUDITE wordmark — living, breathing luxury */}
         <div className="relative mb-2">
           <h1
             className="text-6xl md:text-7xl lg:text-8xl font-medium tracking-wide"
             style={{
               fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-              background: 'linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 15%, #D4AF37 48%, #C9A961 72%, #E5C875 100%)',
-              backgroundSize: '100% 200%',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #F8F8F8 20%, #D4AF37 45%, #C9A961 65%, #E5C875 85%, #FFFFFF 100%)',
+              backgroundSize: '100% 300%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 4px 16px rgba(212,175,55,0.25))',
-              animation: 'metallicBreath 10s ease-in-out infinite',
+              filter: 'drop-shadow(0 6px 24px rgba(212,175,55,0.35))',
+              animation: 'metallicFlow 8s ease-in-out infinite, shimmerGlow 4s ease-in-out infinite',
               letterSpacing: '0.05em',
+              position: 'relative',
             }}
           >
             ERUDITE
+            {/* Subtle shimmer overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                backgroundSize: '200% 100%',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                animation: 'shimmerSlide 5s ease-in-out infinite',
+                opacity: 0.6,
+              }}
+            />
           </h1>
         </div>
 
-        {/* Decorative line below ERUDITE with subtle animation */}
+        {/* Decorative line — intelligent energy pulse */}
         <div
           className="mb-3 relative"
           style={{
             width: 160,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+            height: 2,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), rgba(212,175,55,0.6), rgba(255,255,255,0.3), transparent)',
+            borderRadius: 1,
+            boxShadow: '0 0 12px rgba(212,175,55,0.4), inset 0 0 8px rgba(212,175,55,0.2)',
           }}
         >
-          {/* Animated energy pulse traveling across the line */}
+          {/* Fast elegant pulse */}
           <div
-            className="absolute top-0 left-0 h-full"
+            className="absolute top-0 left-0 h-full rounded-full"
+            style={{
+              width: 60,
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), rgba(212,175,55,0.8), transparent)',
+              animation: 'linePulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+              filter: 'blur(1px)',
+              boxShadow: '0 0 16px rgba(212,175,55,0.6)',
+            }}
+          />
+          {/* Secondary subtle glow traveling opposite direction */}
+          <div
+            className="absolute top-0 left-0 h-full rounded-full"
             style={{
               width: 40,
-              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.8), transparent)',
-              animation: 'linePulse 2.5s ease-in-out infinite',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+              animation: 'linePulseReverse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+              filter: 'blur(2px)',
+              opacity: 0.5,
             }}
           />
         </div>
@@ -268,9 +297,19 @@ export default function EruditeHeroBanner() {
 
       {/* CSS Animations */}
       <style>{`
-        @keyframes metallicBreath {
-          0%, 100% { background-position: 0% 0%; filter: drop-shadow(0 8px 32px rgba(212,175,55,0.35)); }
-          50% { background-position: 0% 100%; filter: drop-shadow(0 12px 48px rgba(212,175,55,0.5)); }
+        @keyframes metallicFlow {
+          0%, 100% { background-position: 0% 0%; }
+          50% { background-position: 0% 100%; }
+          100% { background-position: 0% 0%; }
+        }
+        @keyframes shimmerGlow {
+          0%, 100% { filter: drop-shadow(0 6px 24px rgba(212,175,55,0.35)) drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+          50% { filter: drop-shadow(0 8px 32px rgba(212,175,55,0.5)) drop-shadow(0 0 16px rgba(255,255,255,0.4)); }
+        }
+        @keyframes shimmerSlide {
+          0% { background-position: 200% 0%; }
+          50% { background-position: -200% 0%; }
+          100% { background-position: 200% 0%; }
         }
         @keyframes energyRingRotate {
           from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -283,10 +322,16 @@ export default function EruditeHeroBanner() {
           75% { transform: translateY(-35px) translateX(8px); opacity: 0.55; }
         }
         @keyframes linePulse {
-          0% { left: -40px; opacity: 0; }
-          30% { opacity: 1; }
-          70% { opacity: 1; }
+          0% { left: -60px; opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
           100% { left: 160px; opacity: 0; }
+        }
+        @keyframes linePulseReverse {
+          0% { left: 160px; opacity: 0; }
+          30% { opacity: 0.5; }
+          70% { opacity: 0.5; }
+          100% { left: -40px; opacity: 0; }
         }
       `}</style>
     </div>
