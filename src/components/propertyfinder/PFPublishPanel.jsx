@@ -270,31 +270,18 @@ export default function PFPublishPanel({ landlordPropertyId, landlordProperty })
           </div>
         )}
 
-        {/* Publish button */}
+        {/* Publish button — disabled, listing from CRM not yet enabled */}
         <button
-          onClick={handlePublish}
-          disabled={!allPass || publishing || publishMutation.isPending}
-          className="w-full h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition disabled:opacity-30"
-          style={{
-            background: allPass ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.05)',
-            color: allPass ? '#0A1628' : 'rgba(255,255,255,0.3)',
-            border: allPass ? 'none' : '1px solid rgba(255,255,255,0.1)',
-          }}
+          disabled
+          className="w-full h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium opacity-40 cursor-not-allowed"
+          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          {(publishing || publishMutation.isPending) ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Publishing…</>
-          ) : isPublishing ? (
-            <><RefreshCw className="w-4 h-4" /> Re-publish</>
-          ) : (
-            <><Upload className="w-4 h-4" /> {isUpdate ? 'Update on Property Finder' : 'Publish to Property Finder'}</>
-          )}
+          <Upload className="w-4 h-4" /> {isUpdate ? 'Update on Property Finder' : 'Publish to Property Finder'}
         </button>
 
-        {!allPass && (
-          <p className="text-[10px] text-muted-foreground text-center">
-            Resolve all ❌ items above to enable publishing
-          </p>
-        )}
+        <p className="text-[10px] text-muted-foreground text-center">
+          Publishing from CRM is coming soon — listing is being prepared
+        </p>
       </div>
     </div>
   );
