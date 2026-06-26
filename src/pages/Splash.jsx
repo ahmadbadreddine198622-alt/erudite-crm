@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * ERUDITE Splash Screen — Premium Luxury Loading Experience
- * Dark charcoal-navy backdrop with glassmorphism card, ornate gold calligraphy, and elegant typography
+ * ERUDITE Splash Screen — 2026 Premium Luxury Design
+ * Cream paper texture background with matte metallic gold branding
+ * Clean, refined, expensive — matching reference brand identity
  */
 export default function Splash() {
   const navigate = useNavigate();
@@ -20,10 +21,10 @@ export default function Splash() {
     const date = now.getDate();
     setCurrentTime(`${dayName} · ${month} ${date}`);
 
-    // Auto-redirect after animation (for demo purposes)
+    // Auto-redirect after animation
     const timer = setTimeout(() => {
       navigate('/');
-    }, 4000);
+    }, 3500);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -31,87 +32,62 @@ export default function Splash() {
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden"
       style={{
-        background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.06) 0%, transparent 60%), linear-gradient(180deg, #1a1f2e 0%, #15191f 100%)',
+        background: '#F8F4ED',
       }}
     >
-      {/* Ambient glow orbs */}
+      {/* Subtle paper texture overlay */}
       <div
-        className="absolute rounded-full blur-3xl"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          width: 600,
-          height: 600,
-          background: 'radial-gradient(circle, rgba(201,165,74,0.08) 0%, transparent 70%)',
-          top: '20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          opacity: loaded ? 1 : 0,
-          transition: 'opacity 2s ease-out',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.85\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\' opacity=\'0.4\'/%3E%3C/svg%3E")',
+          opacity: 0.5,
         }}
       />
       
       {/* Main card */}
       <div
-        className="relative flex flex-col items-center px-16 py-14"
+        className="relative flex flex-col items-center px-20 py-16"
         style={{
-          width: 420,
           borderRadius: 36,
-          background: 'rgba(26,31,46,0.65)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 40px 120px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 80px rgba(201,165,74,0.06)',
-          transform: loaded ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.98)',
+          background: 'rgba(255,255,255,0.55)',
+          backdropFilter: 'blur(20px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+          border: '1px solid rgba(188,157,92,0.15)',
+          boxShadow: '0 40px 120px rgba(188,157,92,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+          transform: loaded ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.98)',
           opacity: loaded ? 1 : 0,
-          transition: 'all 1.2s cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'all 1.4s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-        {/* Inner glow */}
-        <div
-          className="absolute inset-0 rounded-3xl pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at 50% 0%, rgba(245,230,184,0.06) 0%, transparent 50%)',
-          }}
-        />
-
         {/* Ornate Calligraphic Logo Mark */}
         <div
-          className="relative mb-8"
+          className="relative mb-10"
           style={{
-            filter: 'drop-shadow(0 8px 24px rgba(201,165,74,0.4))',
-            transform: loaded ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.95)',
+            transform: loaded ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.96)',
             opacity: loaded ? 1 : 0,
-            transition: 'all 1s ease-out 0.2s',
+            transition: 'all 1.2s ease-out 0.15s',
           }}
         >
-          {/* Radial halo */}
-          <div
-            className="absolute inset-0 rounded-full blur-2xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(201,165,74,0.25) 0%, transparent 60%)',
-              transform: 'scale(1.4)',
-            }}
-          />
-          
-          <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="140" height="140" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              {/* Metallic gold gradient */}
-              <linearGradient id="splashGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#F5E6B8" />
-                <stop offset="35%" stopColor="#C9A14A" />
-                <stop offset="70%" stopColor="#8A6D2F" />
-                <stop offset="100%" stopColor="#C9A14A" />
+              {/* Matte metallic gold gradient — matching reference */}
+              <linearGradient id="brandGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#C9B578" />
+                <stop offset="35%" stopColor="#BC9D5C" />
+                <stop offset="70%" stopColor="#A88848" />
+                <stop offset="100%" stopColor="#BC9D5C" />
               </linearGradient>
               
               {/* Vertical gradient for depth */}
-              <linearGradient id="splashGoldVert" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#F5E6B8" />
-                <stop offset="40%" stopColor="#C9A14A" />
-                <stop offset="100%" stopColor="#8A6D2F" />
+              <linearGradient id="brandGoldVert" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#C9B578" />
+                <stop offset="40%" stopColor="#BC9D5C" />
+                <stop offset="100%" stopColor="#A88848" />
               </linearGradient>
               
-              {/* Glow filter */}
-              <filter id="splashGlow">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+              {/* Subtle glow filter */}
+              <filter id="brandGlow">
+                <feGaussianBlur stdDeviation="1.2" result="coloredBlur" />
                 <feMerge>
                   <feMergeNode in="coloredBlur" />
                   <feMergeNode in="SourceGraphic" />
@@ -119,72 +95,79 @@ export default function Splash() {
               </filter>
             </defs>
             
-            {/* Main flowing stroke — abstract organic ribbon */}
+            {/* Main flowing stroke — abstract organic ribbon, angular + curved */}
             <path
-              d="M50 8 C58 12, 62 20, 58 30 C54 40, 46 46, 40 52 C34 58, 30 66, 34 74 C38 82, 46 86, 52 90 C58 94, 64 96, 66 98"
-              stroke="url(#splashGoldVert)"
-              strokeWidth="4.5"
+              d="M50 5 C57 10, 61 18, 57 28 C53 38, 45 44, 39 50 C33 56, 29 64, 33 72 C37 80, 45 85, 51 89 C57 93, 63 95, 65 97"
+              stroke="url(#brandGoldVert)"
+              strokeWidth="4.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              filter="url(#splashGlow)"
+              filter="url(#brandGlow)"
               opacity="0.95"
             />
             
             {/* Secondary interlocking stroke */}
             <path
-              d="M46 14 C52 18, 56 24, 52 32 C48 40, 40 44, 36 50 C32 56, 34 64, 42 68 C50 72, 58 70, 62 64"
-              stroke="url(#splashGold)"
-              strokeWidth="3.5"
+              d="M46 12 C51 17, 55 23, 51 31 C47 39, 39 43, 35 49 C31 55, 33 63, 41 67 C49 71, 57 69, 61 63"
+              stroke="url(#brandGold)"
+              strokeWidth="3.2"
               strokeLinecap="round"
-              opacity="0.85"
-              filter="url(#splashGlow)"
+              opacity="0.88"
+              filter="url(#brandGlow)"
             />
             
-            {/* Upper flourish */}
+            {/* Upper flourish — elegant sweep */}
             <path
-              d="M44 20 C50 22, 56 26, 58 32 C60 38, 56 44, 50 46"
-              stroke="url(#splashGold)"
-              strokeWidth="2.8"
+              d="M44 19 C49 22, 55 26, 57 32 C59 38, 55 43, 49 45"
+              stroke="url(#brandGold)"
+              strokeWidth="2.6"
               strokeLinecap="round"
-              opacity="0.75"
+              opacity="0.78"
             />
             
-            {/* Lower accent */}
+            {/* Lower accent — balancing curve */}
             <path
-              d="M54 72 C60 76, 64 82, 60 90 C56 96, 48 96, 46 92"
-              stroke="url(#splashGold)"
-              strokeWidth="2.5"
+              d="M53 71 C59 75, 63 81, 59 88 C55 94, 47 94, 45 90"
+              stroke="url(#brandGold)"
+              strokeWidth="2.3"
               strokeLinecap="round"
-              opacity="0.7"
+              opacity="0.72"
             />
             
-            {/* Decorative dots with varying sizes */}
-            <circle cx="40" cy="54" r="3" fill="url(#splashGold)">
-              <animate attributeName="opacity" values="0.7;1;0.7" dur="4s" repeatCount="indefinite" />
+            {/* Inner detail stroke */}
+            <path
+              d="M48 33 C51 37, 53 42, 49 48 C45 52, 41 54, 39 52"
+              stroke="url(#brandGoldVert)"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              opacity="0.68"
+            />
+            
+            {/* Decorative dots — traditional Arabic calligraphy style */}
+            <circle cx="39" cy="53" r="2.8" fill="url(#brandGold)">
+              <animate attributeName="opacity" values="0.75;1;0.75" dur="5s" repeatCount="indefinite" />
             </circle>
-            <circle cx="60" cy="60" r="2.5" fill="url(#splashGold)" opacity="0.85" />
-            <circle cx="50" cy="48" r="1.8" fill="url(#splashGold)" opacity="0.7" />
-            <circle cx="46" cy="66" r="1.4" fill="url(#splashGold)" opacity="0.6" />
+            <circle cx="59" cy="59" r="2.3" fill="url(#brandGold)" opacity="0.88" />
+            <circle cx="49" cy="47" r="1.6" fill="url(#brandGold)" opacity="0.72" />
+            <circle cx="45" cy="63" r="1.3" fill="url(#brandGold)" opacity="0.62" />
+            <circle cx="55" cy="51" r="1.1" fill="url(#brandGold)" opacity="0.55" />
           </svg>
         </div>
 
-        {/* ERUDITE Wordmark */}
+        {/* ERUDITE Wordmark — High-contrast serif (Trajan/Cormorant style) */}
         <h1
-          className="mb-4 tracking-wide"
+          className="mb-5 tracking-wide"
           style={{
-            fontSize: 52,
+            fontSize: 56,
             fontWeight: 600,
-            fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
-            background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 35%, #8A6D2F 65%, #C9A14A 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            letterSpacing: '0.12em',
+            fontFamily: "'Cormorant Garamond', 'Trajan Pro', 'Playfair Display', Georgia, serif",
+            color: '#BC9D5C',
+            letterSpacing: '0.18em',
             lineHeight: 1.1,
-            transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+            transform: loaded ? 'translateY(0)' : 'translateY(12px)',
             opacity: loaded ? 1 : 0,
-            transition: 'all 1s ease-out 0.4s',
-            filter: 'drop-shadow(0 2px 12px rgba(201,165,74,0.3))',
+            transition: 'all 1.2s ease-out 0.3s',
+            textShadow: '0 1px 3px rgba(188,157,92,0.15)',
           }}
         >
           ERUDITE
@@ -192,30 +175,32 @@ export default function Splash() {
 
         {/* Subtitle with hairline rules */}
         <div
-          className="flex items-center gap-6 mb-8"
+          className="flex items-center gap-8 mb-9"
           style={{
-            transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+            transform: loaded ? 'translateY(0)' : 'translateY(12px)',
             opacity: loaded ? 1 : 0,
-            transition: 'all 1s ease-out 0.6s',
+            transition: 'all 1.2s ease-out 0.45s',
           }}
         >
           <div
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,165,74,0.4))',
-              maxWidth: 80,
+              background: 'linear-gradient(90deg, transparent, #BC9D5C)',
+              maxWidth: 90,
+              opacity: 0.5,
             }}
           />
           <span
             style={{
-              fontSize: 10,
-              fontWeight: 300,
+              fontSize: 10.5,
+              fontWeight: 500,
               textTransform: 'uppercase',
-              letterSpacing: '0.4em',
-              color: 'rgba(201,165,74,0.65)',
+              letterSpacing: '0.38em',
+              color: '#BC9D5C',
               whiteSpace: 'nowrap',
               fontFamily: "'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              opacity: 0.75,
             }}
           >
             REAL ESTATE CRM
@@ -224,41 +209,42 @@ export default function Splash() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,165,74,0.4), transparent)',
-              maxWidth: 80,
+              background: 'linear-gradient(90deg, #BC9D5C, transparent)',
+              maxWidth: 90,
+              opacity: 0.5,
             }}
           />
         </div>
 
-        {/* Ornamental divider — diamond star with lines */}
+        {/* Ornamental divider — diamond star with tapering lines */}
         <div
-          className="flex items-center justify-center gap-4 mb-6"
+          className="flex items-center justify-center gap-5"
           style={{
-            transform: loaded ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.95)',
+            transform: loaded ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.96)',
             opacity: loaded ? 1 : 0,
-            transition: 'all 1s ease-out 0.8s',
+            transition: 'all 1.2s ease-out 0.6s',
           }}
         >
           <div
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,165,74,0.3))',
-              maxWidth: 60,
+              background: 'linear-gradient(90deg, transparent, rgba(188,157,92,0.4))',
+              maxWidth: 70,
             }}
           />
           {/* Four-point diamond sparkle */}
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
             <defs>
-              <linearGradient id="splashStar" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#F5E6B8" />
-                <stop offset="50%" stopColor="#C9A14A" />
-                <stop offset="100%" stopColor="#8A6D2F" />
+              <linearGradient id="brandStar" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#C9B578" />
+                <stop offset="50%" stopColor="#BC9D5C" />
+                <stop offset="100%" stopColor="#A88848" />
               </linearGradient>
             </defs>
             <path
-              d="M5 0 L6.5 4.5 L10 5 L6.5 5.5 L5 10 L3.5 5.5 L0 5 L3.5 4.5 Z"
-              fill="url(#splashStar)"
+              d="M5.5 0 L6.8 4.2 L11 5.5 L6.8 6.8 L5.5 11 L4.2 6.8 L0 5.5 L4.2 4.2 Z"
+              fill="url(#brandStar)"
               opacity="0.85"
             />
           </svg>
@@ -266,44 +252,36 @@ export default function Splash() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,165,74,0.3), transparent)',
-              maxWidth: 60,
+              background: 'linear-gradient(90deg, rgba(188,157,92,0.4), transparent)',
+              maxWidth: 70,
             }}
           />
         </div>
 
         {/* Footer date */}
         <div
+          className="mt-10"
           style={{
-            transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+            transform: loaded ? 'translateY(0)' : 'translateY(12px)',
             opacity: loaded ? 1 : 0,
-            transition: 'all 1s ease-out 1s',
+            transition: 'all 1.2s ease-out 0.75s',
           }}
         >
           <span
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              color: 'rgba(201,165,74,0.55)',
-              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              letterSpacing: '0.18em',
+              color: '#BC9D5C',
+              fontFamily: "'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              opacity: 0.65,
             }}
           >
             {currentTime}
           </span>
         </div>
       </div>
-
-      {/* Subtle grain texture overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-          opacity: 0.03,
-          mixBlendMode: 'overlay',
-        }}
-      />
     </div>
   );
 }
