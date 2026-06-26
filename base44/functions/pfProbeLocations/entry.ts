@@ -48,12 +48,37 @@ Deno.serve(async (req) => {
     // Probe 4: hardcoded literal string — bypasses any builder
     const probe4Url = 'https://atlas.propertyfinder.com/v1/locations?search=ma';
 
-    const probes = [
-      { probe: '1-builder search=ma',     url: probe1Url },
-      { probe: '2-builder search=Dubai',   url: probe2Url },
-      { probe: '3-builder ids=50',         url: probe3Url },
-      { probe: '4-hardcoded literal',      url: probe4Url },
-    ];
+    // Workaround probe: fetch ONE raw listing and dump its full location object
+    // to check if location.id is returned (workaround for broken /v1/locations search)
+    let workaroundResult = null;
+    try {
+      const listingsRes = await fetch(`${PF_BASE}/listings?page=1&perPage=1`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (listingsRes.ok) {
+        const listingsData = await listingsRes.json();
+        const items = listingsData.results || listingsData.data || listingsData.listings || listingsData.items || [];
+        const firstListing = items[0];
+        if (firstListing) {
+          workaroundResult = {
+            status: listingsRes.status,
+            listing_id: firstListing.id || firstListing.reference || null,
+            location_object: firstListing.location || null,
+            location_keys: firstListing.location ? Object.keys(firstListing.location) : [],
+            has_location_id: !!(firstListing.location?.id || firstListing.location?.locationId),
+            raw_location_json: JSON.stringify(firstListing.location || {}).substring(0, 1000),
+          };
+        } else {
+          workaroundResult = { status: listingsRes.status, error: 'No listings returned', items_count: 0 };
+        }
+      } else {
+        workaroundResult = { status: listingsRes.status, error: 'Listings fetch failed' };
+      }
+    } catch (e) {
+      workaroundResult = { error: e.message };
+    }
+
+    return Response.json({ workaround_probe: workaroundResult });
 
     const results = [];
     for (const p of probes) {

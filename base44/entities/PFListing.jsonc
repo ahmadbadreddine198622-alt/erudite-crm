@@ -226,6 +226,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "pf_location_id": {
+      "type": "number",
+      "description": "Location ID extracted from the raw PF listing API response (location.id). Used as a fallback for the location picker when /v1/locations search is unavailable."
     }
   },
   "required": [

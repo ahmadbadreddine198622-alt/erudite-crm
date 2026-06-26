@@ -277,6 +277,10 @@ function mapPFListingToCRM(pfListing, urlStats) {
   // Get location details (community/area name)
   const communityName = pfListing.location?.name || location || '';
 
+  // Extract numeric location ID from raw PF listing response (workaround for broken /v1/locations search)
+  const pfLocationId = (typeof pfListing.location?.id === 'number') ? pfListing.location.id
+    : (typeof pfListing.location?.id === 'string' && /^\d+$/.test(pfListing.location.id) ? Number(pfListing.location.id) : null);
+
   // Get furnishing type
   const furnishingType = pfListing.furnishingType ? 
     (pfListing.furnishingType === 'furnished' ? 'furnished' : 
@@ -314,6 +318,7 @@ function mapPFListingToCRM(pfListing, urlStats) {
     featured: pfListing.featured || false,
     verified: pfListing.verified || false,
     last_synced_at: new Date().toISOString(),
+    pf_location_id: pfLocationId || undefined,
   };
 }
 
