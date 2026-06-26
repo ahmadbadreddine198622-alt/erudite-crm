@@ -14,6 +14,10 @@
       "type": "string",
       "description": "FK to Project entity"
     },
+    "landlord_property_id": {
+      "type": "string",
+      "description": "FK to LandlordProperty entity \u2014 links this PF mirror back to the CRM listing build"
+    },
     "title": {
       "type": "string",
       "description": "Listing title"
@@ -123,6 +127,7 @@
     "status": {
       "type": "string",
       "enum": [
+        "publishing",
         "active",
         "inactive",
         "under_offer",
@@ -131,7 +136,8 @@
         "draft",
         "expired"
       ],
-      "default": "active"
+      "default": "active",
+      "description": "'publishing' = async publish request accepted but not yet confirmed live by PF. Flips to 'active' only via webhook (Phase 5) or manual GET verify."
     },
     "permit_number": {
       "type": "string",

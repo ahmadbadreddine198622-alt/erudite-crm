@@ -246,6 +246,14 @@
       "type": "string",
       "format": "date",
       "description": "When the AI valuation was last updated"
+    },
+    "pf_location_id": {
+      "type": "string",
+      "description": "Cached Property Finder locationId from the location tree \u2014 picked by user via autocomplete, stored so re-publishing doesn't re-prompt"
+    },
+    "pf_location_name": {
+      "type": "string",
+      "description": "Human-readable PF location name matching pf_location_id, for display"
     }
   },
   "required": [

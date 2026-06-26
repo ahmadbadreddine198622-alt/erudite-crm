@@ -35,6 +35,14 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this member is the team leader"
+    },
+    "brn": {
+      "type": "string",
+      "description": "Agent's RERA BRN (Broker Registration Number) \u2014 required by Property Finder per listing"
+    },
+    "pf_public_profile_id": {
+      "type": "string",
+      "description": "Cached Property Finder publicProfile.id for this agent \u2014 looked up once, then cached on the User record"
     }
   },
   "required": []

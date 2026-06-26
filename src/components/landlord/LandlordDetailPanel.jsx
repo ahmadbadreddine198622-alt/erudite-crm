@@ -48,6 +48,7 @@ import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
+import PFPublishPanel from '@/components/propertyfinder/PFPublishPanel';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import FormAContractsList from './FormAContractsList';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
@@ -1235,6 +1236,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               >
                 <GroupBlurbGenerator landlordId={landlord.id} />
               </div>
+              <PFPublishPanel
+                landlordPropertyId={landlordPropertyId}
+                landlordProperty={landlordProperty}
+              />
             </TabsContent>
 
             <TabsContent value="negotiation" className="space-y-4">
