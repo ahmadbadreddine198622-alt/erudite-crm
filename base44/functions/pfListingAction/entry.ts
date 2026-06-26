@@ -238,9 +238,18 @@ Deno.serve(async (req) => {
 
     let result = null;
 
+    // Helper: make a SigV4-signed write request
+    const signedFetch = async (method, url, body) => {
+      const bodyStr = body ? JSON.stringify(body) : '';
+      const h = await signRequest({ method, url, body: bodyStr, token, apiKey: pfCred.api_key, apiSecret: pfCred.api_secret });
+      return fetch(url, { method, headers: h, ...(bodyStr ? { body: bodyStr } : {}) });
+    };
+
     if (action === 'publish') {
       const res = await fetch(`${PF_BASE}/listings/${pfInternalId}/publish`, {
-        method: 'POST', headers,
+        method: 'POST',
+        headers: readHeaders,
+        body: '{}',
       });
       const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
@@ -249,39 +258,22 @@ Deno.serve(async (req) => {
       result = { pfResponse: data };
 
     } else if (action === 'unpublish') {
-      // POST to /takedown endpoint (mirrors how publish uses POST /publish)
-      const takedownRes = await fetch(`${PF_BASE}/listings/${pfInternalId}/takedown`, {
-        method: 'POST', headers, body: '{}',
+      // POST /unpublish with Bearer JWT — takes listing off portal without deleting it
+      const res = await fetch(`${PF_BASE}/listings/${pfInternalId}/unpublish`, {
+        method: 'POST',
+        headers: readHeaders,
+        body: '{}',
       });
-      const takedownRaw = await takedownRes.text();
-      let takedownData; try { takedownData = JSON.parse(takedownRaw); } catch { takedownData = { raw: takedownRaw }; }
-
-      if (!takedownRes.ok) {
-        // Fallback: PATCH with just state stage (no type field)
-        const patchRes = await fetch(`${PF_BASE}/listings/${pfInternalId}`, {
-          method: 'PATCH', headers,
-          body: JSON.stringify({ state: { stage: 'takendown' } }),
-        });
-        const patchRaw = await patchRes.text();
-        let patchData; try { patchData = JSON.parse(patchRaw); } catch { patchData = { raw: patchRaw }; }
-        if (!patchRes.ok) {
-          return Response.json({
-            error: `PF unpublish failed — POST /takedown (${takedownRes.status}): ${takedownRaw.substring(0,300)} — PATCH fallback (${patchRes.status}): ${patchRaw.substring(0,300)}`,
-            detail: patchData,
-          }, { status: 502 });
-        }
-        if (crmId) await base44.asServiceRole.entities.PFListing.update(crmId, { status: 'inactive', last_synced_at: new Date().toISOString() });
-        result = { method: 'PATCH_fallback', pfResponse: patchData };
-      } else {
-        if (crmId) await base44.asServiceRole.entities.PFListing.update(crmId, { status: 'inactive', last_synced_at: new Date().toISOString() });
-        result = { method: 'POST_takedown', pfResponse: takedownData };
-      }
+      const raw = await res.text();
+      let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
+      // 422 "catalog is not live" means it's already unpublished — treat as success
+      const alreadyUnpublished = res.status === 422 && raw.includes('not live');
+      if (!res.ok && !alreadyUnpublished) return Response.json({ error: `PF unpublish failed (${res.status})`, detail: data, hint: raw.substring(0, 400) }, { status: 502 });
+      if (crmId) await base44.asServiceRole.entities.PFListing.update(crmId, { status: 'inactive', last_synced_at: new Date().toISOString() });
+      result = { method: 'POST_unpublish', alreadyUnpublished, pfResponse: data };
 
     } else if (action === 'feature') {
-      const res = await fetch(`${PF_BASE}/listings/${pfInternalId}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ featured: true }),
-      });
+      const res = await signedFetch('PATCH', `${PF_BASE}/listings/${pfInternalId}`, { featured: true });
       const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) return Response.json({ error: `PF feature failed (${res.status})`, detail: data }, { status: 502 });
@@ -289,10 +281,7 @@ Deno.serve(async (req) => {
       result = { pfResponse: data };
 
     } else if (action === 'unfeature') {
-      const res = await fetch(`${PF_BASE}/listings/${pfInternalId}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ featured: false }),
-      });
+      const res = await signedFetch('PATCH', `${PF_BASE}/listings/${pfInternalId}`, { featured: false });
       const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) return Response.json({ error: `PF unfeature failed (${res.status})`, detail: data }, { status: 502 });
@@ -300,10 +289,7 @@ Deno.serve(async (req) => {
       result = { pfResponse: data };
 
     } else if (action === 'verify') {
-      const res = await fetch(`${PF_BASE}/listings/${pfInternalId}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ verified: true }),
-      });
+      const res = await signedFetch('PATCH', `${PF_BASE}/listings/${pfInternalId}`, { verified: true });
       const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) return Response.json({ error: `PF verify failed (${res.status})`, detail: data }, { status: 502 });
@@ -312,10 +298,7 @@ Deno.serve(async (req) => {
 
     } else if (action === 'patch_fields') {
       if (!fieldUpdates || typeof fieldUpdates !== 'object') return Response.json({ error: 'fieldUpdates object required for patch_fields' }, { status: 400 });
-      const res = await fetch(`${PF_BASE}/listings/${pfInternalId}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify(fieldUpdates),
-      });
+      const res = await signedFetch('PATCH', `${PF_BASE}/listings/${pfInternalId}`, fieldUpdates);
       const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { data = { raw }; }
       if (!res.ok) return Response.json({ error: `PF patch failed (${res.status})`, detail: data }, { status: 502 });
