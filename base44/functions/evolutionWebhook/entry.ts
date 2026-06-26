@@ -540,6 +540,14 @@ Deno.serve(async (req) => {
         if (!fromMe) {
           waMessage = await serviceRole.entities.WhatsAppMessage.create(waRecord);
           console.log(`[evolutionWebhook] ✅ WhatsAppMessage created: ${waMessage.id} conv=${conv.id} channel=${channel}`);
+          // Download media (images/video/audio) for inline rendering in the inbox/landlord thread.
+          // Fire-and-forget — processWhatsAppMedia fetches from Evolution, uploads, stamps media_url.
+          if (parsed.media?.kind && parsed.media.kind !== 'none') {
+            serviceRole.functions.invoke('processWhatsAppMedia', {
+              message_id: waMessage.id,
+              instance: instanceName,
+            }).catch(() => {});
+          }
         }
       } catch (err) {
         console.error('[evolutionWebhook] WhatsAppMessage create failed:', err?.message);

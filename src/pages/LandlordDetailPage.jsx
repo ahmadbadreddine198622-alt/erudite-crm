@@ -1287,10 +1287,12 @@ class LandlordDetail extends React.Component {
 
                       {s.isMedia && (
                         <React.Fragment>
-                          <div style={css("border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); height:128px; display:flex; align-items:center; justify-content:center; margin-bottom:6px;")}>
-                            <span style={css("font-size:11px; color:rgba(255,255,255,0.45);")}>📎 {s.mediaLabel}</span>
-                          </div>
-                          <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{s.text}</div>
+                          {s.mediaUrl ? (
+                            <a href={s.mediaUrl} target="_blank" rel="noopener noreferrer" style={css("display:block; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); margin-bottom:6px;")}>
+                              <img src={s.mediaUrl} alt={s.mediaLabel||'media'} loading="lazy" style={css("display:block; max-width:100%; max-height:240px; object-fit:cover;")} />
+                            </a>
+                          ) : null}
+                          {s.text ? <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{s.text}</div> : null}
                         </React.Fragment>
                       )}
 
@@ -1818,9 +1820,6 @@ class LandlordDetail extends React.Component {
   }
 }
 
-
-
-
 /* Stage keys in pipeline order — mirrors Landlords.jsx STAGES (17 stages). */
 const STAGE_KEYS = [
   'initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
@@ -2121,11 +2120,18 @@ export default function LandlordDetailPage() {
     });
   });
   waStreamMessages.forEach(msg => {
+    const hasImage = msg.media_type === 'image' && msg.media_url;
+    const hasVoice = msg.media_type === 'audio' || msg.is_voice_note === true;
     stream.push({
       t: 'msg',
       dir: msg.direction === 'outbound' ? 'out' : 'in',
-      mtype: 'text',
-      text: msg.body || '',
+      mtype: hasImage ? 'media' : hasVoice ? 'voice' : 'text',
+      text: msg.caption || msg.body || '',
+      mediaUrl: hasImage ? msg.media_url : null,
+      mediaLabel: msg.media_type || '',
+      transcript: msg.transcription || '',
+      transcriptLang: msg.detected_language || '',
+      translation: msg.translations && typeof msg.translations === 'object' ? (msg.translations.en || '') : '',
       time: fmtMsgTime(msg.timestamp),
       order: tsOf(msg.timestamp) || 0,
       wa: deriveWaChannel(msg),
