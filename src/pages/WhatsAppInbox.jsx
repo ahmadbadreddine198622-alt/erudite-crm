@@ -61,12 +61,13 @@ export default function WhatsAppInbox() {
   const prevScrollPosition = useRef(0);
 
   // Internal numbers - our own lines that should never appear as leads
-  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277'];
+  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277', '+971559508545', '971559508545'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
   const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
   // Sameie can see her own channel + business; admin sees everything
-  const isSameie = currentUser?.email === 'sameie@erudite-estate.com'; // update if her email differs
+  const isSameie = currentUser?.email === 'sameie@erudite-estate.com';
+  const isDari = currentUser?.email === 'dari@erudite-estate.com';
 
   // Conversations list polling — 15s interval
   // RLS scopes: admins see all (role bypass), agents see only their assigned rows
@@ -319,6 +320,12 @@ export default function WhatsAppInbox() {
     // Sameie account: can only see 'sameie' and 'business' channels
     if (isSameie && !isAdminUser && c.channel !== 'sameie' && c.channel !== 'business') return false;
 
+    // Dari channel: only visible to admin or Dari herself
+    if (c.channel === 'dari' && !isAdminUser && !isDari) return false;
+
+    // Dari account: can only see 'dari' and 'business' channels
+    if (isDari && !isAdminUser && c.channel !== 'dari' && c.channel !== 'business') return false;
+
     // Non-admin agents: RLS already restricts the API response, but enforce client-side too
     // Skip entirely for admins — they see everything
     if (!isAdminUser && currentUser?.email) {
@@ -342,6 +349,7 @@ export default function WhatsAppInbox() {
         : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
         : filterChannel === 'malik' ? c.channel === 'malik'
         : filterChannel === 'sameie' ? c.channel === 'sameie'
+        : filterChannel === 'dari' ? c.channel === 'dari'
         : true;
       return matchesSearch && matchesChannel;
     }
@@ -354,6 +362,7 @@ export default function WhatsAppInbox() {
       : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
       : filterChannel === 'malik' ? c.channel === 'malik'
       : filterChannel === 'sameie' ? c.channel === 'sameie'
+      : filterChannel === 'dari' ? c.channel === 'dari'
       : true;
 
     const lead = leads.find(l => l.id === c.lead_id);
@@ -854,9 +863,9 @@ export default function WhatsAppInbox() {
 
           {/* Channel filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : [])].map(c => {
+            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : []), ...(isAdminUser || isDari ? ['dari'] : [])].map(c => {
               const isSelected = filterChannel === c;
-              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : c === 'sameie' ? 'hsl(340 75% 55%)' : 'hsl(38 92% 50%)';
+              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : c === 'sameie' ? 'hsl(340 75% 55%)' : c === 'dari' ? 'hsl(25 95% 55%)' : 'hsl(38 92% 50%)';
               const bgColor = isSelected ? activeColor : 'rgba(255,255,255,0.05)';
               return (
                 <button
@@ -869,7 +878,7 @@ export default function WhatsAppInbox() {
                     border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
                     }}
                     >
-                    {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : c === 'malik' ? '💜 Malik' : '🌸 Sameie'}
+                    {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : c === 'malik' ? '💜 Malik' : c === 'sameie' ? '🌸 Sameie' : '📸 Dari'}
                 </button>
               );
             })}

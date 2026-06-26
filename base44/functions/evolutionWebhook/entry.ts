@@ -17,6 +17,7 @@ const BUSINESS_NUMBER = '+971582806000';
 const PERSONAL_NUMBER = '+971581806000';
 const MALIK_NUMBER = '+971529871277';
 const SAMEIE_NUMBER = '+971522869064';
+const DARI_NUMBER = '+971559508545';
 
 function stripPlus(raw) {
   if (!raw) return '';
@@ -344,10 +345,12 @@ Deno.serve(async (req) => {
   const channel = instanceName === 'erudite' ? 'business'
     : instanceName === 'malik' || instanceName === 'malik_whatsapp' ? 'malik'
     : instanceName === 'samy' ? 'sameie'
+    : instanceName === 'dari' ? 'dari'
     : 'personal';
   const myNumber = channel === 'business' ? BUSINESS_NUMBER
     : channel === 'malik' ? MALIK_NUMBER
     : channel === 'sameie' ? SAMEIE_NUMBER
+    : channel === 'dari' ? DARI_NUMBER
     : PERSONAL_NUMBER;
 
   try {

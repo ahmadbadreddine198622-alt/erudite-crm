@@ -20,6 +20,7 @@ const INSTANCE_MAP = {
   personal: 'erudite_whatsapp',
   malik: 'Malik',
   sameie: 'Samy',
+  dari: 'Dari',
 };
 
 const FROM_NUMBER_MAP = {
@@ -27,6 +28,7 @@ const FROM_NUMBER_MAP = {
   personal: '+971581806000',
   malik: '+971529871277',
   sameie: '+971522869064',
+  dari: '+971559508545',
 };
 
 function toDigits(raw) {
@@ -52,8 +54,8 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
   }
 
-  if (!['business', 'personal', 'malik', 'sameie'].includes(channel)) {
-    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", or "sameie"' }, { status: 400 });
+  if (!['business', 'personal', 'malik', 'sameie', 'dari'].includes(channel)) {
+    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", "sameie", or "dari"' }, { status: 400 });
   }
 
   const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
