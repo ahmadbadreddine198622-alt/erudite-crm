@@ -484,9 +484,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Luxe KPI Strip - Premium Gold & Dark Navy */}
+      {/* Luxe KPI Strip - Premium Gold & Dark Navy - COMPACT MOBILE */}
       <div
-        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-3 mb-6"
+        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-2 mb-4"
         style={{}}
       >
         {/* Active Leads */}
@@ -513,11 +513,11 @@ export default function Dashboard() {
             e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
-            <Users className="w-4 h-4" style={{ color: '#D4AF37' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
+            <Users className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Active</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.leads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Active</p>
         </button>
 
         {/* Reminders */}
@@ -544,11 +544,11 @@ export default function Dashboard() {
             e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
-            <Bell className="w-4 h-4" style={{ color: '#D4AF37' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
+            <Bell className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.3s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Reminders</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.reminders}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.3s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Reminders</p>
         </button>
 
         {/* Unread */}
@@ -575,11 +575,11 @@ export default function Dashboard() {
             e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 4px 12px rgba(212,175,55,0.2)' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: '#D4AF37' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
+            <MessageCircle className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 2px 12px rgba(212,175,55,0.4)' }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.6s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Unread</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.whatsapp}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.6s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Unread</p>
         </button>
 
         {/* Hot Leads */}
@@ -606,20 +606,20 @@ export default function Dashboard() {
             e.currentTarget.style.transform = 'translateY(0) scale(1)';
           }}
         >
-          <div className="flex items-center justify-center mb-2" style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(16,185,129,0.15) 100%)', border: '1px solid rgba(52,211,153,0.35)', boxShadow: '0 4px 12px rgba(52,211,153,0.2)' }}>
-            <TrendingUp className="w-4 h-4" style={{ color: '#34D399' }} />
+          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(16,185,129,0.15) 100%)', border: '1px solid rgba(52,211,153,0.35)', boxShadow: '0 2px 8px rgba(52,211,153,0.2)' }}>
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#34D399' }} />
           </div>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: '#34D399', lineHeight: 1, textShadow: '0 2px 12px rgba(52,211,153,0.4)' }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-1.5" style={{ fontSize: 9, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.9s', textShadow: '0 0 12px rgba(255,255,255,0.2)' }}>Hot</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: '#34D399', lineHeight: 1, textShadow: '0 1px 8px rgba(52,211,153,0.4)' }}>{hotLeads}</p>
+          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.9s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Hot</p>
         </button>
       </div>
 
-      {/* WORKSPACES section header - Premium Gold Divider */}
-      <div className="w-full max-w-6xl mx-auto mb-4">
-        <div className="flex items-center gap-4">
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.4), rgba(212,175,55,0.6))' }} />
-          <span className="text-[11px] uppercase font-bold tracking-[0.2em]" style={{ color: '#FFFFFF', textShadow: '0 0 25px rgba(255,255,255,0.6), 0 0 50px rgba(255,255,255,0.3)', animation: 'whitePulse 5s ease-in-out infinite', letterSpacing: '0.25em' }}>Workspaces</span>
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.6), rgba(212,175,55,0.4), transparent)' }} />
+      {/* WORKSPACES section header - Premium Gold Divider - COMPACT */}
+      <div className="w-full max-w-6xl mx-auto mb-2">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), rgba(212,175,55,0.5))' }} />
+          <span className="text-[9px] uppercase font-bold tracking-[0.2em]" style={{ color: '#FFFFFF', textShadow: '0 0 15px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)', animation: 'whitePulse 5s ease-in-out infinite', letterSpacing: '0.2em' }}>Workspaces</span>
+          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.5), rgba(212,175,55,0.3), transparent)' }} />
         </div>
       </div>
 
@@ -635,8 +635,8 @@ export default function Dashboard() {
         </button>
       )}
 
-      {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-2" style={{ marginTop: -8 }}>
+      {/* App Grid — folder mode or flat search results - COMPACT */}
+      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -4 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">

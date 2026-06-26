@@ -94,11 +94,11 @@ function FolderThumbnail({ apps }) {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '5px',
-        padding: '6px',
-        width: '88px',
-        height: '88px',
-        borderRadius: '14px',
+        gap: '4px',
+        padding: '5px',
+        width: '72px',
+        height: '72px',
+        borderRadius: '12px',
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.08)',
         boxSizing: 'border-box',
@@ -141,11 +141,11 @@ function FolderThumbnail({ apps }) {
           <div
             key={app.label}
             style={{
-              borderRadius: '10px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
               overflow: 'hidden',
               background: getGradient(app.gradient),
             }}
@@ -155,16 +155,16 @@ function FolderThumbnail({ apps }) {
               style={{
                 width: '100%',
                 height: '100%',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
               {Icon ? (
-                <Icon style={{ width: '16px', height: '16px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2 }} />
+                <Icon style={{ width: '13px', height: '13px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2.5 }} />
               ) : (
-                <span style={{ fontSize: '6px', color: 'rgba(255,255,255,0.3)' }}>?</span>
+                <span style={{ fontSize: '5px', color: 'rgba(255,255,255,0.3)' }}>?</span>
               )}
             </div>
           </div>
@@ -237,23 +237,23 @@ function FolderTile({ folder, badges, onOpen }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Tile - refined glass card */}
+      {/* Tile - refined glass card - COMPACT */}
       <div
-        className="relative rounded-[16px] p-2.5 flex flex-col items-center justify-center gap-2"
+        className="relative rounded-[14px] p-2 flex flex-col items-center justify-center gap-1.5"
         style={{
           width: '100%',
-          minHeight: '118px',
+          minHeight: '96px',
           background: 'rgba(255,255,255,0.04)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 6px 18px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
           e.currentTarget.style.borderColor = 'rgba(201,162,75,0.25)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.transform = 'translateY(-1px)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
@@ -264,7 +264,7 @@ function FolderTile({ folder, badges, onOpen }) {
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
-            className="absolute -top-1 -right-1 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
+            className="absolute -top-0.5 -right-0.5 z-10 min-w-[16px] h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold px-0.5 shadow-lg"
             style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -272,14 +272,14 @@ function FolderTile({ folder, badges, onOpen }) {
         )}
         <FolderThumbnail apps={folder.apps} />
       </div>
-      {/* Label */}
+      {/* Label - COMPACT */}
       <span
-        className="text-[10px] text-center font-semibold mt-1.5"
+        className="text-[9px] text-center font-semibold mt-1"
         style={{
           fontFamily: 'var(--font-sans)',
           color: 'rgba(255,255,255,0.75)',
           letterSpacing: '0.02em',
-          lineHeight: '1.3',
+          lineHeight: '1.2',
         }}
       >
         {folder.name}
@@ -365,12 +365,12 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
 
   return (
     <>
-      {/* Folder grid - responsive command center layout */}
+      {/* Folder grid - responsive command center layout - COMPACT */}
       <div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5"
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4"
         style={{
-          paddingTop: '12px',
-          paddingBottom: '6px',
+          paddingTop: '8px',
+          paddingBottom: '4px',
         }}
       >
         {FOLDERS.map(folder => (
