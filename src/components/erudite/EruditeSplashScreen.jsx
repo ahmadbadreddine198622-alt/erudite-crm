@@ -114,35 +114,37 @@ export default function EruditeSplashScreen() {
               </filter>
             </defs>
             
-            {/* Fluid ribbon-like brushstrokes — abstract organic shape */}
+            {/* Primary vertical emblem — regal Arabic calligraphic form, balanced & iconic */}
             <path
-              d="M50 12 C54 16, 52 24, 49 29 C46 34, 42 37, 40 41 C38 45, 37 51, 40 55 C43 59, 48 61, 52 64 C56 67, 60 71, 62 77 C64 83, 60 89, 54 91"
+              d="M50 6 C55 10, 56 18, 52 26 C48 34, 42 40, 38 47 C34 54, 33 63, 37 70 C41 77, 48 81, 55 84 C62 87, 69 91, 72 97 C75 103, 72 109, 65 111"
               stroke="url(#splashGoldGradient)"
-              strokeWidth="3"
+              strokeWidth="4"
               strokeLinecap="round"
               strokeLinejoin="round"
               filter="url(#splashGlow)"
               opacity="0.95"
             />
+            {/* Secondary flowing stroke — elegant counterbalance with geometric precision */}
             <path
-              d="M50 14 C46 18, 43 23, 45 28 C47 33, 51 37, 55 39 C59 41, 63 44, 65 49 C67 54, 65 60, 60 64 C55 68, 49 66, 45 62"
+              d="M50 8 C44 14, 42 22, 45 29 C48 36, 53 41, 59 45 C65 49, 71 54, 73 61 C75 68, 72 76, 65 80 C58 84, 51 82, 46 76"
+              stroke="url(#splashGoldGradient)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.9"
+            />
+            {/* Inner decorative flourish — refined architectural detail */}
+            <path
+              d="M49 16 C54 19, 59 22, 62 28 C65 34, 62 41, 56 45"
               stroke="url(#splashGoldGradient)"
               strokeWidth="2.5"
               strokeLinecap="round"
-              strokeLinejoin="round"
               opacity="0.85"
             />
-            <path
-              d="M48 21 C51 23, 55 25, 57 29 C59 33, 57 38, 54 40"
-              stroke="url(#splashGoldGradient)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              opacity="0.75"
-            />
-            {/* Decorative dots */}
-            <circle cx="44" cy="49" r="1.8" fill="url(#splashGoldGradient)" />
-            <circle cx="56" cy="54" r="1.4" fill="url(#splashGoldGradient)" opacity="0.8" />
-            <circle cx="50" cy="58" r="1.2" fill="url(#splashGoldGradient)" opacity="0.7" />
+            {/* Traditional diacritical marks — elevated, symmetrical positioning */}
+            <circle cx="44" cy="51" r="2.2" fill="url(#splashGoldGradient)" filter="url(#splashGlow)" />
+            <circle cx="56" cy="56" r="1.8" fill="url(#splashGoldGradient)" opacity="0.9" />
+            <circle cx="50" cy="62" r="1.4" fill="url(#splashGoldGradient)" opacity="0.8" />
           </svg>
         </div>
 
