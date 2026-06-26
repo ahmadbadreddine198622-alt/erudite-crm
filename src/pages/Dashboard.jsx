@@ -312,7 +312,7 @@ export default function Dashboard() {
           }}
         >
           <div className="flex items-center px-5 py-3.5">
-            <Search className="w-4 h-4 mr-3" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <Search className="w-4 h-4 mr-3" style={{ color: 'hsl(38 92% 55% / 0.6)' }} />
             <input
               type="text"
               value={search}
@@ -327,7 +327,7 @@ export default function Dashboard() {
               }}
             />
             {!search && (
-              <Search className="w-4 h-4 ml-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Search className="w-4 h-4 ml-3" style={{ color: 'hsl(38 92% 55% / 0.4)' }} />
             )}
           </div>
         </div>
@@ -448,10 +448,10 @@ export default function Dashboard() {
       {/* Minimalist Metric Cards — clean dark cards with gold accents */}
       <div className="grid grid-cols-4 w-full max-w-4xl mx-auto gap-3 mb-10">
         {[
-          { label: 'ACTIVE', value: badges.leads, icon: Users, color: '#C5A059', onClick: () => navigate('/leads') },
-          { label: 'REMINDERS', value: badges.reminders, icon: Bell, color: '#C5A059', onClick: () => navigate('/reminders') },
-          { label: 'UNREAD', value: badges.whatsapp, icon: MessageCircle, color: '#C5A059', onClick: () => navigate('/whatsapp') },
-          { label: 'HOT', value: hotLeads, icon: TrendingUp, color: '#10B981', onClick: () => navigate('/leads') },
+          { label: 'ACTIVE', value: badges.leads, icon: Users, color: '#C9A14A', onClick: () => navigate('/leads') },
+          { label: 'REMINDERS', value: badges.reminders, icon: Bell, color: '#C9A14A', onClick: () => navigate('/reminders') },
+          { label: 'UNREAD', value: badges.whatsapp, icon: MessageCircle, color: '#C9A14A', onClick: () => navigate('/whatsapp') },
+          { label: 'HOT', value: hotLeads, icon: TrendingUp, color: '#C9A14A', onClick: () => navigate('/leads') },
         ].map((metric, i) => (
           <button
             key={i}
@@ -465,14 +465,14 @@ export default function Dashboard() {
           >
             <metric.icon className="mb-2" style={{ width: 20, height: 20, color: metric.color }} />
             <p className="text-2xl font-light mb-1" style={{ color: metric.color, fontFamily: "'SF Mono', monospace" }}>{metric.value}</p>
-            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>{metric.label}</p>
+            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'hsl(38 92% 55% / 0.7)', fontWeight: 500 }}>{metric.label}</p>
           </button>
         ))}
       </div>
 
       {/* WORKSPACES section header — minimalist */}
       <div className="w-full max-w-5xl mx-auto mb-4">
-        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'hsl(38 92% 55% / 0.6)', fontWeight: 500 }}>
           Workspaces
         </p>
       </div>
