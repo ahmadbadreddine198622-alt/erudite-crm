@@ -19,6 +19,7 @@ import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
 import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
+import EruditeSplashScreen from '@/components/erudite/EruditeSplashScreen';
 import IOSLockScreenClock from '@/components/dashboard/IOSLockScreenClock';
 import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
@@ -290,12 +291,12 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
-      {/* Compact Hero Banner */}
-      <div className="w-full max-w-6xl mx-auto mb-2" style={{ transformOrigin: 'top center' }}>
-        <EruditeHeroBanner />
+      {/* Luxury Splash Screen — centered premium card */}
+      <div className="w-full max-w-2xl mx-auto mb-6" style={{ transformOrigin: 'top center' }}>
+        <EruditeSplashScreen />
       </div>
 
-      {/* iOS Lock-Screen Style Clock — centered under logo */}
+      {/* iOS Lock-Screen Style Clock — centered under splash */}
       <IOSLockScreenClock />
 
       {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design with Continuous Motion */}
