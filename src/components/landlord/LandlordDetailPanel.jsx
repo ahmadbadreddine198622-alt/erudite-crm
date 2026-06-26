@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic, Globe, FileText } from 'lucide-react';
+import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
@@ -743,9 +744,11 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
+            {/* ── CONTACT SECTION ── full phone + email set with tappable actions */}
+            {/* Primary phone */}
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.phone || 'No phone'}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.phone || 'No phone'}</span>
               {landlord.phone && (
                 <div className="flex items-center gap-1.5">
                   <TwilioCallDialog
@@ -758,38 +761,78 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 </div>
               )}
             </div>
-            {landlord.additional_phones && landlord.additional_phones.length > 0 && (
-              <div className="space-y-2 pl-6">
+            {/* Additional phones — type-guarded: render nothing if missing/empty */}
+            {Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0 && (
+              <div className="space-y-1.5 pl-6">
                 {landlord.additional_phones.map((altPhone, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <a
-                      href={`tel:${altPhone}`}
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Phone className="w-3 h-3" />
-                      {altPhone}
-                    </a>
-                    <a
-                      href={`https://wa.me/${altPhone.startsWith('+') ? altPhone.slice(1) : altPhone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-green-600 hover:underline"
-                      title="Open WhatsApp"
-                    >
-                      <MessageCircle className="w-3 h-3" />
-                    </a>
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Phone className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{altPhone}</span>
+                    <div className="flex items-center gap-1.5">
+                      <TwilioCallDialog
+                        lead={{ id: landlord.id, phone: altPhone, full_name: landlord.full_name_en || landlord.full_name }}
+                        size="sm"
+                        iconOnly
+                      />
+                      <AircallButton phone={altPhone} name={landlord.full_name_en || landlord.full_name} iconOnly />
+                      <a
+                        href={waMeUrl(normalizePhone(altPhone))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-500 hover:text-green-400 transition-colors"
+                        title="Open WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+            {/* Primary email */}
             <div className="flex items-center gap-2 text-sm">
               <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.email || 'No email'}</span>
+              {landlord.email ? (
+                <a href={`mailto:${landlord.email}`} className="text-xs text-accent hover:underline">{landlord.email}</a>
+              ) : (
+                <span>No email</span>
+              )}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.residence_country || 'Unknown'}</span>
-            </div>
+            {/* Additional emails — type-guarded: render nothing if missing/empty */}
+            {Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0 && (
+              <div className="space-y-1.5 pl-6">
+                {landlord.additional_emails.map((altEmail, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Mail className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
+                    <a href={`mailto:${altEmail}`} className="text-xs text-accent hover:underline">{altEmail}</a>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Nationality + Residence country */}
+            {(landlord.nationality || landlord.residence_country) && (
+              <div className="flex items-center gap-2 text-sm">
+                <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  {[landlord.nationality, landlord.residence_country].filter(Boolean).join(' · ') || 'Unknown'}
+                </span>
+              </div>
+            )}
+            {/* Passport number */}
+            {landlord.passport_no && (
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>Passport: {landlord.passport_no}</span>
+              </div>
+            )}
+            {/* Unit reference */}
+            {landlord.unit_reference && (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{landlord.unit_reference}</span>
+              </div>
+            )}
+            {/* Project name */}
             {landlord.project_name && (
               <div className="flex items-center gap-2">
                 <ProjectBadge name={landlord.project_name} />

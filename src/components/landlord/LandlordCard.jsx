@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2, GripVertical } from 'lucide-react';
+import { Phone, MessageCircle, Mail, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2, GripVertical } from 'lucide-react';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -378,6 +378,25 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
             <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
               <Image className="w-2 h-2" />
               Photos
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Additional contact indicators — compact badge for extra phones/emails */}
+      {((Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0) ||
+        (Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0)) && (
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
+          {Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" title={`${landlord.additional_phones.length} additional phone(s)`}>
+              <Phone className="w-2 h-2" />
+              +{landlord.additional_phones.length}
+            </span>
+          )}
+          {Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-cyan-500/15 text-cyan-400 border-cyan-500/30" title={`${landlord.additional_emails.length} additional email(s)`}>
+              <Mail className="w-2 h-2" />
+              +{landlord.additional_emails.length}
             </span>
           )}
         </div>
