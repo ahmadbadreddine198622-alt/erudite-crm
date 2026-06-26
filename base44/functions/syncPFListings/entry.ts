@@ -291,34 +291,71 @@ function mapPFListingToCRM(pfListing, urlStats) {
   const completionStatus = pfListing.projectStatus === 'ready' ? 'ready' : 
     (pfListing.projectStatus === 'offplan' ? 'off_plan' : undefined);
 
+  // Prefer portals.propertyfinder.url for the deep link (exact listing page)
+  const portalUrl = pfListing.portals?.propertyfinder?.url || null;
+  const resolvedPfUrl = portalUrl || pfUrl || undefined;
+
+  // New fields from full PF API shape
+  const parkingSlots = pfListing.parkingSlots != null ? Number(pfListing.parkingSlots) : undefined;
+  const numberOfFloors = pfListing.numberOfFloors != null ? Number(pfListing.numberOfFloors) : undefined;
+  const plotSize = pfListing.plotSize != null ? Number(pfListing.plotSize) : undefined;
+  const category = pfListing.category || undefined;
+  const projectStatus = pfListing.projectStatus || undefined;
+  const pfAgentId = pfListing.assignedTo?.id ? Number(pfListing.assignedTo.id) : undefined;
+  const titleAr = (typeof pfListing.title === 'object' && pfListing.title?.ar) ? pfListing.title.ar : undefined;
+  const descriptionAr = (typeof pfListing.description === 'object' && pfListing.description?.ar) ? pfListing.description.ar : undefined;
+  const rentFrequency = pfListing.price?.rentFrequency || undefined;
+  const priceOnRequest = pfListing.price?.onRequest || false;
+  const downpayment = pfListing.price?.downpayment != null ? Number(pfListing.price.downpayment) : undefined;
+  const numberOfCheques = pfListing.price?.numberOfCheques != null ? Number(pfListing.price.numberOfCheques) : undefined;
+  const issuingLicenseNumber = pfListing.issuingClientLicenseNumber || undefined;
+  const permitNumber = pfListing.listingAdvertisementNumber || undefined;
+
   return {
     pf_listing_id: listingId,
+    pf_internal_id: listingId !== listingRef ? listingId : undefined, // store internal ULID separately when different from reference
     reference_number: listingRef || undefined,
     title: title || undefined,
+    title_ar: titleAr,
     description: description || undefined,
+    description_ar: descriptionAr,
     images: imageUrl ? [imageUrl] : undefined,
     listing_type,
+    category,
     price: (typeof price === 'number') ? price : undefined,
+    price_on_request: priceOnRequest,
+    downpayment,
+    number_of_cheques: numberOfCheques,
+    rent_frequency: rentFrequency,
     location: communityName || undefined,
+    community: communityName || undefined,
     building_name: buildingName || undefined,
     address: unitNumber ? `${unitNumber}, ${communityName}` : undefined,
     unit_number: unitNumber || undefined,
     floor_number: floorNumber || undefined,
+    number_of_floors: numberOfFloors,
+    parking_slots: parkingSlots,
+    plot_size_sqft: plotSize || undefined,
     bedrooms,
     bathrooms,
     area_sqft: sizeSqft,
     property_type: propertyType || undefined,
     furnishing: furnishingType,
     completion_status: completionStatus,
+    project_status: projectStatus,
     developer: developer || undefined,
     agent_name: agentName || undefined,
     agent_email: agentEmail || undefined,
+    pf_agent_id: pfAgentId,
     status,
-    pf_url: pfUrl || undefined,
+    pf_url: resolvedPfUrl,
     featured: pfListing.featured || false,
     verified: pfListing.verified || false,
     last_synced_at: new Date().toISOString(),
     pf_location_id: pfLocationId || undefined,
+    permit_number: permitNumber,
+    issuing_license_number: issuingLicenseNumber,
+    quality_score: pfListing.qualityScore != null ? Number(pfListing.qualityScore) : undefined,
   };
 }
 

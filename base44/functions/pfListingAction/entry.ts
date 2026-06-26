@@ -58,21 +58,43 @@ Deno.serve(async (req) => {
       const isTakenDown = l?.state?.stage === 'takendown';
       const newStatus = isLive ? 'active' : isTakenDown ? 'inactive' : l?.state?.stage || 'inactive';
       const images = (l?.media?.images || []).map(img => img?.original?.url || img?.url || img).filter(Boolean);
-      const pfUrl = l?.portals?.propertyfinder?.url || l?.portals?.propertyfinder?.webUrl || null;
+      const pfUrl = l?.portals?.propertyfinder?.url || l?.portals?.propertyfinder?.webUrl || l?.portals?.propertyfinder?.permalink || null;
 
       await base44.asServiceRole.entities.PFListing.update(crmId, {
+        pf_internal_id: resolved.id,
         status: newStatus,
-        title: l?.title?.en || l?.title || undefined,
-        description: l?.description?.en || l?.description || undefined,
+        title: l?.title?.en || (typeof l?.title === 'string' ? l.title : undefined),
+        title_ar: l?.title?.ar || undefined,
+        description: l?.description?.en || (typeof l?.description === 'string' ? l.description : undefined),
+        description_ar: l?.description?.ar || undefined,
+        category: l?.category || undefined,
         price: l?.price?.amounts?.sale || l?.price?.amounts?.rent || undefined,
+        price_on_request: l?.price?.onRequest || false,
+        downpayment: l?.price?.downpayment || undefined,
+        number_of_cheques: l?.price?.numberOfCheques || undefined,
+        rent_frequency: l?.price?.rentFrequency || undefined,
         area_sqft: l?.size || undefined,
+        plot_size_sqft: l?.plotSize || undefined,
+        floor_number: l?.floorNumber || undefined,
+        number_of_floors: l?.numberOfFloors || undefined,
+        parking_slots: l?.parkingSlots != null ? Number(l.parkingSlots) : undefined,
         bedrooms: l?.bedrooms != null ? Number(l.bedrooms) : undefined,
         bathrooms: l?.bathrooms != null ? Number(l.bathrooms) : undefined,
         images: images.length ? images : undefined,
         amenities: l?.amenities || undefined,
         furnishing: l?.furnishingType || undefined,
+        project_status: l?.projectStatus || undefined,
+        developer: l?.developer || undefined,
+        community: l?.community || l?.location?.name || undefined,
+        building_name: l?.buildingName || undefined,
+        unit_number: l?.unitNumber || undefined,
+        pf_location_id: l?.location?.id || undefined,
+        permit_number: l?.listingAdvertisementNumber || undefined,
+        issuing_license_number: l?.issuingClientLicenseNumber || undefined,
+        agent_name: l?.assignedTo?.name || undefined,
+        pf_agent_id: l?.assignedTo?.id ? Number(l.assignedTo.id) : undefined,
         quality_score: l?.qualityScore || undefined,
-        pf_url: pfUrl || undefined,
+        pf_url: pfUrl || l?.portals?.propertyfinder?.url || undefined,
         last_synced_at: new Date().toISOString(),
         sync_status: 'synced',
       });
