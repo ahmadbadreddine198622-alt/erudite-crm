@@ -285,7 +285,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col px-4 pb-6 pt-4"
+      className="relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
       style={{
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
