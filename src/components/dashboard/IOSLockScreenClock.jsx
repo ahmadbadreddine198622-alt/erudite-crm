@@ -65,9 +65,14 @@ export default function IOSLockScreenClock() {
           style={{
             fontFamily: "'Montserrat', 'Inter', sans-serif",
             fontSize: '13px',
-            color: 'rgba(255,255,255,0.75)',
-            textShadow: '0 2px 8px rgba(0,0,0,0.4), 0 0 12px rgba(255,255,255,0.15)',
+            background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 50%, #8A6D2F 100%)',
+            backgroundSize: '100% 200%',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textShadow: '0 2px 8px rgba(201,161,74,0.3)',
             letterSpacing: '0.15em',
+            animation: 'goldFlow 8s ease-in-out infinite',
           }}
         >
           {formattedDate.replace(',', ' ·')}
@@ -88,15 +93,16 @@ export default function IOSLockScreenClock() {
             fontFamily: "'Montserrat', 'Inter', sans-serif",
             fontSize: 'clamp(48px, 12vw, 86px)',
             fontWeight: 700,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(192,192,192,0.85) 25%, rgba(140,140,140,0.75) 50%, rgba(180,180,180,0.85) 75%, rgba(255,255,255,0.95) 100%)',
+            background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 25%, #8A6D2F 50%, #C9A14A 75%, #F5E6B8 100%)',
             backgroundSize: '100% 200%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             letterSpacing: '-0.02em',
-            animation: 'chromeFlow 8s ease-in-out infinite',
+            animation: 'goldFlow 8s ease-in-out infinite',
             position: 'relative',
             zIndex: 2,
+            filter: 'drop-shadow(0 4px 16px rgba(201,161,74,0.4))',
           }}
         >
           {hours}:{minutes}
@@ -109,13 +115,14 @@ export default function IOSLockScreenClock() {
             fontFamily: "'Montserrat', 'Inter', sans-serif",
             fontSize: 'clamp(18px, 5vw, 32px)',
             fontWeight: 500,
-            background: 'linear-gradient(180deg, rgba(200,200,200,0.7) 0%, rgba(150,150,150,0.5) 50%, rgba(180,180,180,0.6) 100%)',
+            background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 50%, #8A6D2F 100%)',
             backgroundSize: '100% 200%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            opacity: 0.65,
-            animation: 'chromeFlow 8s ease-in-out infinite 0.3s',
+            opacity: 0.75,
+            animation: 'goldFlow 8s ease-in-out infinite 0.3s',
+            filter: 'drop-shadow(0 2px 8px rgba(201,161,74,0.3))',
           }}
         >
           {seconds}
@@ -128,7 +135,7 @@ export default function IOSLockScreenClock() {
         style={{
           width: 'clamp(200px, 50vw, 400px)',
           height: 'clamp(60px, 20vw, 120px)',
-          background: 'radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(201,161,74,0.15) 0%, rgba(201,161,74,0.05) 50%, transparent 70%)',
           filter: 'blur(20px)',
           pointerEvents: 'none',
           animation: 'clockGlowPulse 6s ease-in-out infinite',
@@ -137,7 +144,7 @@ export default function IOSLockScreenClock() {
 
       {/* CSS Animations */}
       <style>{`
-        @keyframes chromeFlow {
+        @keyframes goldFlow {
           0%, 100% { background-position: 0% 0%; }
           50% { background-position: 0% 100%; }
         }
