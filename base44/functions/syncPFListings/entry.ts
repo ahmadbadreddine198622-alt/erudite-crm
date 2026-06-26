@@ -583,9 +583,7 @@ Deno.serve(async (req) => {
         }
         diagnostics.time_ms_write_total += (Date.now() - pageWriteStart);
 
-        if (midPageTimeout) break;
-
-        // Page fully attempted — advance & persist
+        // Always persist progress for this page (even on mid-page timeout, so we don't re-process it)
         totalListingsThisRun += items.length;
         diagnostics.pages_processed_this_run += 1;
         diagnostics.last_successful_page = page;
@@ -599,6 +597,8 @@ Deno.serve(async (req) => {
             console.error('PF_LISTINGS_PROGRESS: failed to update listings_sync_last_completed_page:', String((err && err.message) || err));
           }
         }
+
+        if (midPageTimeout) break;
 
         // Partial page = end of dataset
         if (items.length < PER_PAGE) {
