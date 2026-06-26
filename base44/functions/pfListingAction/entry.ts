@@ -9,22 +9,47 @@ async function getToken(base44) {
   return token;
 }
 
-// Resolve PF internal listing ID from a reference/id (our pf_listing_id may be a reference)
-async function resolvePFInternalId(pfListingId, headers) {
-  // Try direct GET first (fast path — works if pf_listing_id IS the real id)
-  const directRes = await fetch(`${PF_BASE}/listings/${pfListingId}`, { headers });
-  if (directRes.ok) {
-    const data = await directRes.json();
-    if (data?.id) return { id: data.id, listing: data };
+// Resolve PF internal listing ID.
+// Strategy: the ULID internal ID (e.g. 1WCYDKDWQ5K380M8JKTTWQ8CJW) must be used for PATCH/state changes.
+// The CRM stores it in pf_internal_id. The pf_listing_id is the human reference (e.g. erudite-3366406).
+// We try: 1) stored pf_internal_id from CRM, 2) search by reference, 3) direct GET (works if already internal id).
+async function resolvePFInternalId(pfListingId, headers, base44, crmId) {
+  // Step 1: check CRM record for stored pf_internal_id (fastest, most reliable)
+  if (crmId) {
+    try {
+      const record = await base44.asServiceRole.entities.PFListing.get(crmId);
+      if (record?.pf_internal_id) {
+        // Use the stored internal ULID — no API lookup needed
+        return { id: record.pf_internal_id, listing: null };
+      }
+    } catch (_) { /* fallthrough */ }
   }
 
-  // Fallback: search by reference
+  // Step 2: search by reference (pf_listing_id is typically the reference)
   const searchRes = await fetch(`${PF_BASE}/listings?reference=${encodeURIComponent(pfListingId)}&perPage=5`, { headers });
   if (searchRes.ok) {
     const searchData = await searchRes.json();
     const items = searchData.results || searchData.data || searchData.listings || searchData.items || [];
     const match = items.find(i => i.reference === pfListingId || i.id === pfListingId);
-    if (match) return { id: match.id, listing: match };
+    if (match) {
+      // Persist the resolved internal ID to avoid future lookups
+      if (crmId && match.id) {
+        await base44.asServiceRole.entities.PFListing.update(crmId, { pf_internal_id: match.id }).catch(() => {});
+      }
+      return { id: match.id, listing: match };
+    }
+  }
+
+  // Step 3: try direct GET — works if pfListingId happens to be the real internal ULID
+  const directRes = await fetch(`${PF_BASE}/listings/${pfListingId}`, { headers });
+  if (directRes.ok) {
+    const data = await directRes.json();
+    if (data?.id) {
+      if (crmId) {
+        await base44.asServiceRole.entities.PFListing.update(crmId, { pf_internal_id: data.id }).catch(() => {});
+      }
+      return { id: data.id, listing: data };
+    }
   }
 
   return null;
@@ -50,7 +75,7 @@ Deno.serve(async (req) => {
       if (!crmId || !pfListingId) return Response.json({ error: 'crmId and pfListingId required' }, { status: 400 });
       const token = await getToken(base44);
       const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
-      const resolved = await resolvePFInternalId(pfListingId, headers);
+      const resolved = await resolvePFInternalId(pfListingId, headers, base44, crmId);
       if (!resolved) return Response.json({ error: 'Listing not found on Property Finder', pfListingId }, { status: 404 });
 
       const l = resolved.listing;
@@ -107,7 +132,7 @@ Deno.serve(async (req) => {
 
     const token = await getToken(base44);
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' };
-    const resolved = await resolvePFInternalId(pfListingId, headers);
+    const resolved = await resolvePFInternalId(pfListingId, headers, base44, crmId);
     if (!resolved) return Response.json({ error: 'Listing not found on Property Finder', pfListingId }, { status: 404 });
     const pfInternalId = resolved.id;
 
