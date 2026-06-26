@@ -64,7 +64,7 @@
     },
     "signature_banner_url": {
       "type": "string",
-      "description": "Public URL of the full-width branded email signature banner. Used by sendIMessage to fetch and attach the banner on first contact (fetched on-the-fly, not stored as base64 due to entity field size limits)."
+      "description": "Public URL of the full-width branded email signature banner. Fetched on-the-fly by sendIMessage and attached as base64 on first contact (not stored in entity due to size limits)."
     },
     "imessage_signature_text": {
       "type": "string",
