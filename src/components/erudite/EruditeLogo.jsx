@@ -19,27 +19,33 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
       className={`flex flex-col items-center justify-center ${className}`}
       style={{
         width: s.container,
-        minHeight: size === 'small' ? 70 : size === 'large' ? 140 : 100,
-        padding: '8px 4px',
+        padding: size === 'small' ? '8px 4px' : size === 'large' ? '16px 8px' : '12px 6px',
       }}
     >
-      {/* Arabic Calligraphy Icon */}
+      {/* Arabic Calligraphy Icon — Complex fluid interlocking strokes */}
       <div
         style={{
           width: s.icon,
           height: s.icon,
-          marginBottom: size === 'small' ? 6 : 10,
+          marginBottom: size === 'small' ? 8 : size === 'large' ? 14 : 11,
         }}
       >
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#C5A059" />
-              <stop offset="50%" stopColor="#A88137" />
-              <stop offset="100%" stopColor="#C5A059" />
+              <stop offset="0%" stopColor="#E6C57A" />
+              <stop offset="25%" stopColor="#C5A059" />
+              <stop offset="50%" stopColor="#A88532" />
+              <stop offset="75%" stopColor="#C5A059" />
+              <stop offset="100%" stopColor="#E6C57A" />
+            </linearGradient>
+            <linearGradient id="goldGradientVertical" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#E6C57A" />
+              <stop offset="50%" stopColor="#C5A059" />
+              <stop offset="100%" stopColor="#A88532" />
             </linearGradient>
             <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+              <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
@@ -47,61 +53,70 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
             </filter>
           </defs>
           
-          {/* Abstract calligraphic form — fluid vertical design */}
+          {/* Main calligraphic stroke — complex fluid form */}
           <path
-            d="M50 10 C55 15, 52 25, 48 30 C44 35, 40 38, 38 42 C36 46, 35 52, 38 56 C41 60, 46 62, 50 65 C54 68, 58 72, 60 78 C62 84, 58 90, 52 92"
-            stroke="url(#goldGradient)"
-            strokeWidth="3.5"
+            d="M50 8 C56 12, 58 20, 54 28 C50 36, 44 40, 40 45 C36 50, 34 56, 36 62 C38 68, 43 72, 49 75 C55 78, 60 82, 63 88 C66 94, 62 98, 55 96"
+            stroke="url(#goldGradientVertical)"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
             filter="url(#glow)"
           />
+          {/* Secondary flowing stroke */}
           <path
-            d="M50 12 C45 16, 42 22, 44 28 C46 34, 50 38, 54 40 C58 42, 62 45, 64 50 C66 55, 64 62, 58 66 C52 70, 46 68, 42 64"
+            d="M48 14 C52 18, 54 24, 50 30 C46 36, 40 38, 38 44 C36 50, 38 56, 44 60 C50 64, 56 64, 60 60"
+            stroke="url(#goldGradient)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.85"
+          />
+          {/* Upper decorative flourish */}
+          <path
+            d="M46 22 C50 24, 54 26, 56 30 C58 34, 56 40, 52 42"
             stroke="url(#goldGradient)"
             strokeWidth="2.5"
             strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.8"
+            opacity="0.75"
           />
+          {/* Lower accent stroke */}
           <path
-            d="M48 20 C52 22, 56 24, 58 28 C60 32, 58 38, 54 40"
+            d="M52 68 C56 72, 58 78, 56 84 C54 88, 50 90, 48 88"
             stroke="url(#goldGradient)"
             strokeWidth="2"
             strokeLinecap="round"
             opacity="0.7"
           />
-          {/* Decorative dots */}
-          <circle cx="45" cy="50" r="2" fill="url(#goldGradient)" />
-          <circle cx="55" cy="55" r="1.5" fill="url(#goldGradient)" opacity="0.8" />
+          {/* Decorative dots — traditional Arabic calligraphy style */}
+          <circle cx="42" cy="52" r="2.5" fill="url(#goldGradient)" />
+          <circle cx="58" cy="58" r="2" fill="url(#goldGradient)" opacity="0.85" />
+          <circle cx="50" cy="48" r="1.5" fill="url(#goldGradient)" opacity="0.7" />
         </svg>
       </div>
 
-      {/* ERUDITE Wordmark */}
+      {/* ERUDITE Wordmark — Bold serif with vertical gold gradient */}
       <h1
         style={{
           fontSize: s.wordmark,
           fontWeight: 700,
           fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-          background: 'linear-gradient(180deg, #F1E09C 0%, #D4B86E 30%, #B88D3C 50%, #D4B86E 70%, #F1E09C 100%)',
+          background: 'linear-gradient(180deg, #E6C57A 0%, #C5A059 35%, #A88532 65%, #C5A059 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          letterSpacing: '0.15em',
-          lineHeight: 1.2,
-          marginBottom: size === 'small' ? 5 : 8,
-          color: '#B88D3C',
+          letterSpacing: '0.12em',
+          lineHeight: 1.1,
+          marginBottom: size === 'small' ? 6 : size === 'large' ? 12 : 9,
         }}
       >
         ERUDITE
       </h1>
 
-      {/* REAL ESTATE CRM with flanking lines */}
+      {/* REAL ESTATE CRM — Monospaced style with wide tracking, dark brown/gold */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: size === 'small' ? 6 : 10,
+          gap: size === 'small' ? 8 : size === 'large' ? 14 : 11,
           width: '100%',
         }}
       >
@@ -110,65 +125,71 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
             flex: 1,
             height: 1,
             background: 'linear-gradient(90deg, transparent, #C5A059)',
-            opacity: 0.6,
+            opacity: 0.5,
           }}
         />
         <span
           style={{
             fontSize: s.tagline,
-            fontWeight: 600,
+            fontWeight: 500,
             textTransform: 'uppercase',
-            letterSpacing: '0.3em',
-            color: '#D4B86E',
+            letterSpacing: '0.45em',
+            color: '#8B7355',
             whiteSpace: 'nowrap',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           }}
         >
-          Real Estate
+          REAL ESTATE CRM
         </span>
         <div
           style={{
             flex: 1,
             height: 1,
             background: 'linear-gradient(90deg, #C5A059, transparent)',
-            opacity: 0.6,
+            opacity: 0.5,
           }}
         />
       </div>
 
-      {/* Diamond ornament */}
+      {/* Footer Ornament — Diamond star with horizontal lines */}
       {size !== 'small' && (
         <div
           style={{
-            marginTop: size === 'large' ? 10 : 6,
+            marginTop: size === 'large' ? 12 : 8,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            justifyContent: 'center',
+            gap: size === 'large' ? 12 : 8,
+            width: '100%',
           }}
         >
           <div
             style={{
-              width: size === 'large' ? 32 : 20,
+              flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(197,160,89,0.4), transparent)',
+              background: 'linear-gradient(90deg, transparent, rgba(197,160,89,0.35), rgba(139,115,85,0.5))',
+              maxWidth: size === 'large' ? 60 : 40,
             }}
           />
+          {/* Four-pointed diamond star ornament */}
           <svg
-            width={size === 'large' ? 10 : 7}
-            height={size === 'large' ? 10 : 7}
-            viewBox="0 0 10 10"
+            width={size === 'large' ? 12 : 8}
+            height={size === 'large' ? 12 : 8}
+            viewBox="0 0 12 12"
             fill="none"
           >
             <path
-              d="M5 0 L10 5 L5 10 L0 5 Z"
+              d="M6 0 L7.5 4.5 L12 6 L7.5 7.5 L6 12 L4.5 7.5 L0 6 L4.5 4.5 Z"
               fill="url(#goldGradient)"
-              opacity="0.8"
+              opacity="0.9"
             />
           </svg>
           <div
             style={{
-              width: size === 'large' ? 32 : 20,
+              flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(197,160,89,0.4), transparent)',
+              background: 'linear-gradient(90deg, rgba(139,115,85,0.5), rgba(197,160,89,0.35), transparent)',
+              maxWidth: size === 'large' ? 60 : 40,
             }}
           />
         </div>
