@@ -40,26 +40,33 @@ Deno.serve(async (req) => {
 
     const token = await getToken(base44);
 
+    // Probe 1 & 2: via the URL builder (base + path join, as pfSearchLocations does)
+    const probe1Url = `${PF_BASE}/locations?search=${encodeURIComponent('ma')}`;
+    const probe2Url = `${PF_BASE}/locations?search=${encodeURIComponent('Dubai')}`;
+    const probe3Url = `${PF_BASE}/locations?ids=${encodeURIComponent('50')}`;
+
+    // Probe 4: hardcoded literal string — bypasses any builder
+    const probe4Url = 'https://atlas.propertyfinder.com/v1/locations?search=ma';
+
     const probes = [
-      { probe: 'no-params',        path: '/locations' },
-      { probe: 'filter[name]',     path: '/locations?filter[name]=Marina' },
-      { probe: 'filter[parent]',   path: '/locations?filter[parent]=Dubai' },
-      { probe: 'search (current)', path: '/locations?search=Marina' },
+      { probe: '1-builder search=ma',     url: probe1Url },
+      { probe: '2-builder search=Dubai',   url: probe2Url },
+      { probe: '3-builder ids=50',         url: probe3Url },
+      { probe: '4-hardcoded literal',      url: probe4Url },
     ];
 
     const results = [];
     for (const p of probes) {
-      const url = `${PF_BASE}${p.path}`;
       try {
-        const res = await fetch(url, {
+        const res = await fetch(p.url, {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         });
         const text = await res.text();
         let body;
         try { body = JSON.parse(text); } catch (_) { body = text.substring(0, 500); }
-        results.push({ probe: p.probe, url, status: res.status, body });
+        results.push({ probe: p.probe, finalUrl: p.url, status: res.status, body });
       } catch (e) {
-        results.push({ probe: p.probe, url, status: 0, body: e.message });
+        results.push({ probe: p.probe, finalUrl: p.url, status: 0, body: e.message });
       }
     }
 
