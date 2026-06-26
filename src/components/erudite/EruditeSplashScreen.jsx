@@ -39,11 +39,11 @@ export default function EruditeSplashScreen() {
 
       {/* Main card — glassmorphism panel */}
       <div
-        className="relative flex flex-col items-center justify-center px-8 py-6"
+        className="relative flex flex-col items-center justify-center px-6 py-5"
         style={{
           width: '100%',
-          maxWidth: 340,
-          borderRadius: 36,
+          maxWidth: 280,
+          borderRadius: 28,
           background: 'linear-gradient(135deg, rgba(26,31,46,0.75) 0%, rgba(21,25,31,0.7) 100%)',
           backdropFilter: 'blur(32px) saturate(180%)',
           WebkitBackdropFilter: 'blur(32px) saturate(180%)',
@@ -68,7 +68,7 @@ export default function EruditeSplashScreen() {
 
         {/* Calligraphic glyph container with radial halo */}
         <div
-          className="relative mb-4"
+          className="relative mb-3"
           style={{
             animation: 'glyphBreathe 6s ease-in-out infinite',
           }}
@@ -77,25 +77,25 @@ export default function EruditeSplashScreen() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              width: 60,
-              height: 60,
+              width: 48,
+              height: 48,
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              background: 'radial-gradient(circle, rgba(245,230,184,0.1) 0%, rgba(201,161,74,0.05) 40%, transparent 70%)',
-              filter: 'blur(12px)',
+              background: 'radial-gradient(circle, rgba(245,230,184,0.08) 0%, rgba(201,161,74,0.04) 40%, transparent 70%)',
+              filter: 'blur(10px)',
             }}
           />
           
           {/* Ornate Arabic calligraphic glyph */}
           <svg
-            width="48"
-            height="48"
+            width="38"
+            height="38"
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             style={{
-              filter: 'drop-shadow(0 2px 8px rgba(201,161,74,0.3))',
+              filter: 'drop-shadow(0 2px 6px rgba(201,161,74,0.25))',
             }}
           >
             <defs>
@@ -148,9 +148,9 @@ export default function EruditeSplashScreen() {
 
         {/* ERUDITE wordmark — high-contrast serif display */}
         <h1
-          className="mb-2.5"
+          className="mb-2"
           style={{
-            fontSize: 34,
+            fontSize: 26,
             fontWeight: 600,
             fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
             background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 35%, #8A6D2F 65%, #C9A14A 100%)',
@@ -158,9 +158,9 @@ export default function EruditeSplashScreen() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            letterSpacing: '0.18em',
+            letterSpacing: '0.15em',
             lineHeight: 1,
-            textShadow: '0 2px 8px rgba(201,161,74,0.2)',
+            textShadow: '0 2px 6px rgba(201,161,74,0.18)',
             animation: 'wordmarkShimmer 10s ease-in-out infinite',
           }}
         >
@@ -169,7 +169,7 @@ export default function EruditeSplashScreen() {
 
         {/* Subtitle with flanking hairline rules */}
         <div
-          className="flex items-center gap-3 mb-4"
+          className="flex items-center gap-2 mb-3"
           style={{
             width: '100%',
           }}
@@ -178,17 +178,17 @@ export default function EruditeSplashScreen() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.4))',
+              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.35))',
             }}
           />
           <span
             style={{
-              fontSize: 7.5,
+              fontSize: 6.5,
               fontWeight: 300,
               fontFamily: "'Montserrat', 'Inter', -apple-system, sans-serif",
               textTransform: 'uppercase',
-              letterSpacing: '0.4em',
-              color: 'rgba(201,161,74,0.65)',
+              letterSpacing: '0.35em',
+              color: 'rgba(201,161,74,0.6)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -198,47 +198,47 @@ export default function EruditeSplashScreen() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,161,74,0.4), transparent)',
+              background: 'linear-gradient(90deg, rgba(201,161,74,0.35), transparent)',
             }}
           />
         </div>
 
         {/* Ornamental divider — two lines meeting diamond/star */}
         <div
-          className="flex items-center gap-2 mb-4"
+          className="flex items-center gap-2 mb-3"
           style={{
-            opacity: 0.75,
+            opacity: 0.7,
             animation: 'dividerPulse 8s ease-in-out infinite',
           }}
         >
           <div
             style={{
-              width: 36,
+              width: 28,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.35))',
+              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.3))',
             }}
           />
           {/* 4-point diamond/sparkle star */}
           <svg
-            width="6"
-            height="6"
+            width="5"
+            height="5"
             viewBox="0 0 8 8"
             fill="none"
             style={{
-              filter: 'drop-shadow(0 0 3px rgba(201,161,74,0.4))',
+              filter: 'drop-shadow(0 0 2px rgba(201,161,74,0.35))',
             }}
           >
             <path
               d="M4 0 L5 3 L8 4 L5 5 L4 8 L3 5 L0 4 L3 3 Z"
               fill="url(#splashGoldGradient)"
-              opacity="0.75"
+              opacity="0.7"
             />
           </svg>
           <div
             style={{
-              width: 36,
+              width: 28,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,161,74,0.35), transparent)',
+              background: 'linear-gradient(90deg, rgba(201,161,74,0.3), transparent)',
             }}
           />
         </div>
