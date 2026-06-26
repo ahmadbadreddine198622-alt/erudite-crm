@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { landlord_id, text } = body;
     let address = body.address;
+    const appOrigin = body.origin || '';
 
     if (!text || !String(text).trim()) {
       return Response.json({ error: 'Message text is required' }, { status: 400 });
@@ -108,10 +109,11 @@ Deno.serve(async (req) => {
       const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug)
         ? body.link_slug
         : 'ahmad';
-      const appOrigin =
+      const fallbackOrigin =
         req.headers.get('origin') ||
         (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : new URL(req.url).origin);
-      shortUrl = `${appOrigin.replace(/\/+$/, '')}/u/${slug}`;
+      const origin = appOrigin || fallbackOrigin;
+      shortUrl = `${origin.replace(/\/+$/, '')}/u/${slug}`;
       messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
     }
 

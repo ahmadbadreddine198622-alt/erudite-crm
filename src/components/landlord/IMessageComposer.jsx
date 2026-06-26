@@ -153,7 +153,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
     if (!text.trim()) { toast.error('Nothing to send'); return; }
     setBusy(true);
     try {
-      const res = await base44.functions.invoke('sendIMessage', { landlord_id: landlordId, text });
+      const res = await base44.functions.invoke('sendIMessage', { landlord_id: landlordId, text, origin: window.location.origin });
       const data = res?.data ?? res;
       if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
         toast.error('No iMessage handle for this landlord.');
