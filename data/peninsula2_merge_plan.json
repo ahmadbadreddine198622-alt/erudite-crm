@@ -1,0 +1,563 @@
+{
+  "generatedAt": "2026-06-26T08:15:46.949Z",
+  "totalRecords": 560,
+  "duplicateGroups": 12,
+  "typeCounts": {
+    "1": 7,
+    "2": 1,
+    "3": 4,
+    "4": 0
+  },
+  "proposedDeletions": 12,
+  "unitBackfillsCount": 1,
+  "aiFlags": 0,
+  "groups": [
+    {
+      "classification": "REVIEW_UNIT_DIFF",
+      "type": 3,
+      "survivor": {
+        "id": "6a1f09bba397ada2f2c07f2e",
+        "name": "MOSKALEVA TATIANA",
+        "unit": "2012",
+        "phone": "+79107499387",
+        "passport": "66 4315953",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f09c6b82f40955af4b91d",
+          "name": "TATIANA MOSKALEVA",
+          "unit": "",
+          "phone": "+79107499387",
+          "passport": "66 4315953",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+79107499387",
+          "+79266665515"
+        ],
+        "emails": [
+          "mpochta203@gmail.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "TATIANA MOSKALEVA",
+        "MOSKALEVA TATIANA"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f09bb3dd48e7e5c375cbb",
+        "name": "MOHAMMED F.A. ATIYA",
+        "unit": "",
+        "phone": "+971509972442",
+        "passport": "5045877",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f09baec25bb6ab74f02d8",
+          "name": "MOHAMMED F A ATIYA",
+          "unit": "",
+          "phone": "+971507992442",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971509972442",
+          "+971507992442"
+        ],
+        "emails": [
+          "mohamed.atiya@maguire.ae",
+          "atiya@raptorx.co"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": "Palestine, State of",
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "MOHAMMED F.A. ATIYA",
+        "MOHAMMED F A ATIYA"
+      ]
+    },
+    {
+      "classification": "REVIEW_UNIT_DIFF",
+      "type": 3,
+      "survivor": {
+        "id": "6a1f096a7a9522b14c346186",
+        "name": "DMYTRENKO ANDRII",
+        "unit": "2307",
+        "phone": "+380505548672",
+        "passport": "FV253173",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f066c495b9036c9b37800",
+          "name": "ANDRII DMYTRENKO",
+          "unit": "",
+          "phone": "+971505923367",
+          "passport": "FV253173",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+380505548672",
+          "+971505923367"
+        ],
+        "emails": [
+          "andrii.dmytrenko@gmail.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "DMYTRENKO ANDRII",
+        "ANDRII DMYTRENKO"
+      ]
+    },
+    {
+      "classification": "REVIEW_UNIT_DIFF",
+      "type": 3,
+      "survivor": {
+        "id": "6a1f06b0e986be588fb7ee85",
+        "name": "KOVTUNOVA VALERIIA",
+        "unit": "2314",
+        "phone": "+380990905055",
+        "passport": "FU962539",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f0700d2812ed690128bd4",
+          "name": "VALERIIA KOVTUNOVA",
+          "unit": "",
+          "phone": "+971503630208",
+          "passport": "FU962539",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971503630208",
+          "+380990905055"
+        ],
+        "emails": [
+          "kovtunova19@gmail.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "VALERIIA KOVTUNOVA",
+        "KOVTUNOVA VALERIIA"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f06de707fb1d4798a4104",
+        "name": "PARD MIDDLE EAST HOLDING FZ LLC",
+        "unit": "",
+        "phone": "+971502872531",
+        "passport": "",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06df9fa671062a955935",
+          "name": "PARD MIDDLE EAST HOLDING FZ-LLC",
+          "unit": "",
+          "phone": "+971502210814",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971502210814",
+          "+971505014019",
+          "+971502872531"
+        ],
+        "emails": [
+          "info@pardhc.com",
+          "fsantoni78@outlook.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "PARD MIDDLE EAST HOLDING FZ-LLC",
+        "PARD MIDDLE EAST HOLDING FZ LLC"
+      ]
+    },
+    {
+      "classification": "REVIEW_UNIT_DIFF",
+      "type": 3,
+      "survivor": {
+        "id": "6a1f06c31617de4a7e37a80a",
+        "name": "MARIE-CHRISTINE FRENETTE",
+        "unit": "1702, 1702",
+        "phone": "+15149836920",
+        "passport": "AN856665",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06c3abe496dfd5e08172",
+          "name": "MARIE CHRISTINE FRENETTE",
+          "unit": "",
+          "phone": "",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+15149836920",
+          "+34628858991"
+        ],
+        "emails": [
+          "marie-christine.frenette@outlook.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "MARIE-CHRISTINE FRENETTE",
+        "MARIE CHRISTINE FRENETTE"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f06adfd4288f7519f0ecd",
+        "name": "KATHARINA KRAKOWITZER-BORTHAYRE",
+        "unit": "",
+        "phone": "+971585612201",
+        "passport": "U 4401079",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06ad75ffbb256feaeb59",
+          "name": "KATHARINA KRAKOWITZER BORTHAYRE",
+          "unit": "",
+          "phone": "+971505691870",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971585612201",
+          "+971566838941",
+          "+971505691870"
+        ],
+        "emails": [
+          "k.krakowitzer@shima.at"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": "Austria",
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "KATHARINA KRAKOWITZER-BORTHAYRE",
+        "KATHARINA KRAKOWITZER BORTHAYRE"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f06ac25d0821a4e54fba7",
+        "name": "JUI-LIEN HUNG",
+        "unit": "2009",
+        "phone": "+886916659359",
+        "passport": "360895397",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06acd415647b626f15f8",
+          "name": "JUI LIEN HUNG",
+          "unit": "2009",
+          "phone": "",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+886916659359",
+          "+886965723452"
+        ],
+        "emails": [
+          "bearbig0710@gmail.com",
+          "holaviaka@gmail.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "JUI-LIEN HUNG",
+        "JUI LIEN HUNG"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f06a9ebd0b10085fefce8",
+        "name": "JAMES THOMAS O'DOCHERTY",
+        "unit": "",
+        "phone": "+971508495928",
+        "passport": "801857576",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06a856c1de5c046d80c4",
+          "name": "JAMES THOMAS O DOCHERTY",
+          "unit": "",
+          "phone": "",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971508495928",
+          "+34637768806"
+        ],
+        "emails": [
+          "r1jod@hotmail.com",
+          "golfexpressonline@gmail.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": "United Kingdom",
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "JAMES THOMAS O'DOCHERTY",
+        "JAMES THOMAS O DOCHERTY"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f067df98f4d705d2c0701",
+        "name": "DAN-ALEXANDRU MOROSAN",
+        "unit": "808",
+        "phone": "+971565920008",
+        "passport": "58528116",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f067d4667411615e683af",
+          "name": "DAN ALEXANDRU MOROSAN",
+          "unit": "808",
+          "phone": "",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971565920008",
+          "+40751025244"
+        ],
+        "emails": [
+          "dan.morosan@law.ubbcluj.ro",
+          "omar.najeeb@live.com"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "DAN-ALEXANDRU MOROSAN",
+        "DAN ALEXANDRU MOROSAN"
+      ]
+    },
+    {
+      "classification": "SAFE_PUNCTUATION",
+      "type": 1,
+      "survivor": {
+        "id": "6a1f067bdf1c9e42cae3a03d",
+        "name": "CFI MIDDLE EAST FZ LLC",
+        "unit": "",
+        "phone": "+971585418613",
+        "passport": "",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f067bdb72882a19d5be17",
+          "name": "CFI MIDDLE EAST FZ-LLC",
+          "unit": "",
+          "phone": "+971547016431",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971547016431",
+          "+971585418613"
+        ],
+        "emails": [
+          "roman@cfi.cloud"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "CFI MIDDLE EAST FZ-LLC",
+        "CFI MIDDLE EAST FZ LLC"
+      ]
+    },
+    {
+      "classification": "SAFE_REORDER_TRANSLIT",
+      "type": 2,
+      "survivor": {
+        "id": "6a1f06630fb3d929ca9aa11d",
+        "name": "ALFIYA RESHETOVA",
+        "unit": "",
+        "phone": "+971556197409",
+        "passport": "53 0291509",
+        "ai_status": "completed",
+        "stage": "initial_contact"
+      },
+      "losers": [
+        {
+          "id": "6a1f06631a7eac3030f6c474",
+          "name": "ALFIIA RESHETOVA",
+          "unit": "",
+          "phone": "+971556197409",
+          "passport": "",
+          "ai_status": "completed",
+          "stage": "initial_contact",
+          "has_ai": true
+        }
+      ],
+      "proposedUnion": {
+        "phones": [
+          "+971556197409",
+          "+971559747247"
+        ],
+        "emails": [
+          "reshetovy@yandex.ru"
+        ],
+        "fillIfEmpty": {
+          "passport_no": null,
+          "nationality": null,
+          "residence_country": null,
+          "unit_reference": null
+        }
+      },
+      "aiFlag": false,
+      "groupNames": [
+        "ALFIYA RESHETOVA",
+        "ALFIIA RESHETOVA"
+      ]
+    }
+  ]
+}
