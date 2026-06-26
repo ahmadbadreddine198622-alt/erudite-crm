@@ -1,31 +1,53 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
 
-async function getPFToken(apiKey, apiSecret) {
-  const key = apiKey || Deno.env.get('PROPERTY_FINDER_API_KEY');
-  const secret = apiSecret || Deno.env.get('PROPERTY_FINDER_API_SECRET');
+/**
+ * getPFToken — Enterprise API 2.0 cached JWT.
+ * Reads from PFCredential entity. Returns cached token if still valid,
+ * otherwise requests a fresh JWT and caches it.
+ */
+async function getPFToken(base44) {
+  const creds = await base44.asServiceRole.entities.PFCredential.list();
+  if (!creds || creds.length === 0) {
+    throw new Error('No Property Finder credentials configured. Set them in Property Finder Sync → Settings.');
+  }
+  const cred = creds[0];
+  const now = Date.now();
+
+  // Check cached token
+  if (cred.access_token && cred.token_expires_at) {
+    const expiresAtMs = new Date(cred.token_expires_at).getTime();
+    if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
+      return cred.access_token;
+    }
+  }
+
+  // Request fresh token
+  if (!cred.api_key || !cred.api_secret) {
+    throw new Error('PF API key or secret missing in PFCredential record');
+  }
   const res = await fetch(`${PF_BASE}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey: key, apiSecret: secret }),
+    body: JSON.stringify({ apiKey: cred.api_key, apiSecret: cred.api_secret }),
   });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error('PF auth failed: ' + res.status + ' ' + txt);
-  }
+  if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
   const data = await res.json();
-  return data.accessToken;
-}
+  const accessToken = data.accessToken;
+  if (!accessToken) throw new Error('PF auth returned no accessToken');
 
-async function getStoredCredentials(base44) {
-  try {
-    const creds = await base44.asServiceRole.entities.PFCredential.list();
-    if (creds && creds.length > 0 && creds[0].is_connected) {
-      return { apiKey: creds[0].api_key, apiSecret: creds[0].api_secret };
-    }
-  } catch (e) { /* fallback to env vars */ }
-  return { apiKey: null, apiSecret: null };
+  // Cache the token
+  const expiresInSec = data.expiresIn || 1800;
+  const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
+  const updateData = { access_token: accessToken, token_expires_at: expiresAt, api_environment: 'production' };
+  if (data.scopes) {
+    updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
+  }
+  await base44.asServiceRole.entities.PFCredential.update(cred.id, updateData);
+
+  return accessToken;
 }
 
 async function fetchPFListingsPage(token, page, perPage) {
@@ -326,16 +348,14 @@ Deno.serve(async (req) => {
 
     try { await base44.auth.me(); } catch (_) { /* gate degraded — proceed via service role */ }
 
-    const { apiKey, apiSecret } = await getStoredCredentials(base44);
-
     let token;
     let tokenAcquiredAt = Date.now();
     try {
       const tokenStart = Date.now();
-      token = await getPFToken(apiKey, apiSecret);
+      token = await getPFToken(base44);
       tokenAcquiredAt = Date.now();
       diagnostics.time_ms_fetch_total += (tokenAcquiredAt - tokenStart);
-      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart));
+      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart) + ' (Enterprise API 2.0 cached JWT)');
     } catch (err) {
       diagnostics.terminated_reason = 'token_expired';
       diagnostics.first_error_message = 'token: ' + String((err && err.message) || err);
