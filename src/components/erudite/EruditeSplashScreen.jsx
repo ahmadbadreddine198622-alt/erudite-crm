@@ -39,10 +39,10 @@ export default function EruditeSplashScreen() {
 
       {/* Main card — glassmorphism panel */}
       <div
-        className="relative flex flex-col items-center justify-center px-12 py-10"
+        className="relative flex flex-col items-center justify-center px-10 py-8"
         style={{
           width: '100%',
-          maxWidth: 520,
+          maxWidth: 420,
           borderRadius: 36,
           background: 'linear-gradient(135deg, rgba(26,31,46,0.75) 0%, rgba(21,25,31,0.7) 100%)',
           backdropFilter: 'blur(32px) saturate(180%)',
@@ -68,7 +68,7 @@ export default function EruditeSplashScreen() {
 
         {/* Calligraphic glyph container with radial halo */}
         <div
-          className="relative mb-6"
+          className="relative mb-5"
           style={{
             animation: 'glyphBreathe 6s ease-in-out infinite',
           }}
@@ -77,25 +77,25 @@ export default function EruditeSplashScreen() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              width: 140,
-              height: 140,
+              width: 90,
+              height: 90,
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              background: 'radial-gradient(circle, rgba(245,230,184,0.15) 0%, rgba(201,161,74,0.08) 40%, transparent 70%)',
-              filter: 'blur(20px)',
+              background: 'radial-gradient(circle, rgba(245,230,184,0.12) 0%, rgba(201,161,74,0.06) 40%, transparent 70%)',
+              filter: 'blur(16px)',
             }}
           />
           
           {/* Ornate Arabic calligraphic glyph */}
           <svg
-            width="100"
-            height="100"
+            width="64"
+            height="64"
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             style={{
-              filter: 'drop-shadow(0 4px 16px rgba(201,161,74,0.4))',
+              filter: 'drop-shadow(0 3px 12px rgba(201,161,74,0.35))',
             }}
           >
             <defs>
@@ -148,9 +148,9 @@ export default function EruditeSplashScreen() {
 
         {/* ERUDITE wordmark — high-contrast serif display */}
         <h1
-          className="mb-4"
+          className="mb-3"
           style={{
-            fontSize: 52,
+            fontSize: 42,
             fontWeight: 600,
             fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
             background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 35%, #8A6D2F 65%, #C9A14A 100%)',
@@ -160,7 +160,7 @@ export default function EruditeSplashScreen() {
             backgroundClip: 'text',
             letterSpacing: '0.18em',
             lineHeight: 1,
-            textShadow: '0 2px 12px rgba(201,161,74,0.3)',
+            textShadow: '0 2px 10px rgba(201,161,74,0.25)',
             animation: 'wordmarkShimmer 10s ease-in-out infinite',
           }}
         >
