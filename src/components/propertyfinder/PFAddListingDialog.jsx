@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Plus, Upload, Loader2, Check, MapPin, Building2, AlertCircle, Pencil } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Plus, Upload, Loader2, Check, MapPin, Building2, AlertCircle, Pencil, Star, Shield } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -9,54 +10,105 @@ const PROPERTY_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio'
 const FURNISHING_OPTIONS = ['furnished', 'semi_furnished', 'unfurnished'];
 const COMPLETION_OPTIONS = ['ready', 'off_plan'];
 
+const ALL_AMENITIES = [
+  'balcony', 'shared_pool', 'private_pool', 'built_in_wardrobes', 'central_ac',
+  'covered_parking', 'gym', 'jacuzzi', 'maid_room', 'private_garden', 'security',
+  'concierge', 'view_of_water', 'view_of_landmark', 'pets_allowed', 'study',
+  'walk_in_closet', 'storage_room', 'laundry_room', 'basement_parking',
+  'shared_gym', 'shared_spa', 'kitchen_appliances', 'lobby_in_building',
+  'children_play_area', 'barbecue_area', 'tennis_court', 'squash_court',
+];
+
+const INPUT_STYLE = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', caretColor: GOLD };
+
 const FIELD = ({ label, children }) => (
   <div>
-    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</label>
+    <label style={{ display: 'block', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{label}</label>
     {children}
   </div>
 );
 
-const INPUT_STYLE = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', caretColor: GOLD };
-
-const GlassInput = ({ value, onChange, placeholder, type = 'text', className = '' }) => (
+const GlassInput = ({ value, onChange, placeholder, type = 'text' }) => (
   <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-    className={`w-full h-9 px-3 rounded-xl text-sm outline-none ${className}`}
-    style={INPUT_STYLE} />
+    style={{ ...INPUT_STYLE, width: '100%', height: 36, padding: '0 12px', borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
 );
 
 const GlassSelect = ({ value, onChange, children }) => (
   <select value={value} onChange={onChange}
-    className="w-full h-9 px-3 rounded-xl text-sm outline-none"
-    style={{ ...INPUT_STYLE, appearance: 'none' }}>
+    style={{ ...INPUT_STYLE, width: '100%', height: 36, padding: '0 12px', borderRadius: 10, fontSize: 13, outline: 'none', appearance: 'none', boxSizing: 'border-box' }}>
     {children}
   </select>
 );
 
+const SectionTitle = ({ children }) => (
+  <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(201,168,92,0.7)', marginBottom: 12, marginTop: 4 }}>{children}</p>
+);
+
+const Toggle = ({ label, checked, onChange }) => (
+  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 12px', background: checked ? 'rgba(201,168,92,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'rgba(201,168,92,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, userSelect: 'none' }}>
+    <div style={{ width: 36, height: 20, borderRadius: 10, background: checked ? GOLD : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', top: 2, left: checked ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+    </div>
+    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
+    <span style={{ fontSize: 12, color: checked ? GOLD : 'rgba(255,255,255,0.6)' }}>{label}</span>
+  </label>
+);
+
 export default function PFAddListingDialog({ onClose, onCreated, editListing = null }) {
   const isEdit = !!editListing;
+
   const [form, setForm] = useState({
+    // Core
     title: editListing?.title || '',
     listing_type: editListing?.listing_type || 'sale',
     property_type: editListing?.property_type || 'apartment',
     price: editListing?.price != null ? String(editListing.price) : '',
+    price_per_sqft: editListing?.price_per_sqft != null ? String(editListing.price_per_sqft) : '',
+    // Size & specs
     bedrooms: editListing?.bedrooms != null ? String(editListing.bedrooms) : '',
     bathrooms: editListing?.bathrooms != null ? String(editListing.bathrooms) : '',
     area_sqft: editListing?.area_sqft != null ? String(editListing.area_sqft) : '',
+    furnishing: editListing?.furnishing || 'unfurnished',
+    completion_status: editListing?.completion_status || 'ready',
+    completion_date: editListing?.completion_date || '',
+    // Location
     location: editListing?.location || '',
     building_name: editListing?.building_name || '',
     unit_number: editListing?.unit_number || '',
+    address: editListing?.address || '',
+    latitude: editListing?.latitude != null ? String(editListing.latitude) : '',
+    longitude: editListing?.longitude != null ? String(editListing.longitude) : '',
+    // Developer & project
+    developer: editListing?.developer || '',
+    // Compliance & agent
     permit_number: editListing?.permit_number || '',
-    furnishing: editListing?.furnishing || 'unfurnished',
-    completion_status: editListing?.completion_status || 'ready',
-    description: editListing?.description || '',
     agent_email: editListing?.agent_email || '',
+    agent_name: editListing?.agent_name || '',
+    agency_name: editListing?.agency_name || '',
+    // Portals
+    featured: editListing?.featured || false,
+    verified: editListing?.verified || false,
+    // Description
+    description: editListing?.description || '',
+    // Amenities
+    amenities: editListing?.amenities || [],
+    // Tags
+    tags: editListing?.tags ? editListing.tags.join(', ') : '',
+    // Media
     images: editListing?.images || [],
   });
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+  const setBool = (field) => (val) => setForm(f => ({ ...f, [field]: val }));
+
+  const toggleAmenity = (a) => setForm(f => ({
+    ...f,
+    amenities: f.amenities.includes(a) ? f.amenities.filter(x => x !== a) : [...f.amenities, a],
+  }));
 
   const addImageUrl = () => {
     const url = imageUrl.trim();
@@ -100,17 +152,29 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
         listing_type: form.listing_type,
         property_type: form.property_type,
         price: Number(form.price),
+        price_per_sqft: form.price_per_sqft ? Number(form.price_per_sqft) : undefined,
         bedrooms: form.bedrooms !== '' ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms !== '' ? Number(form.bathrooms) : undefined,
         area_sqft: Number(form.area_sqft),
+        furnishing: form.furnishing,
+        completion_status: form.completion_status,
+        completion_date: form.completion_date || undefined,
         location: form.location.trim(),
         building_name: form.building_name.trim() || undefined,
         unit_number: form.unit_number.trim() || undefined,
+        address: form.address.trim() || undefined,
+        latitude: form.latitude ? Number(form.latitude) : undefined,
+        longitude: form.longitude ? Number(form.longitude) : undefined,
+        developer: form.developer.trim() || undefined,
         permit_number: form.permit_number.trim() || undefined,
-        furnishing: form.furnishing,
-        completion_status: form.completion_status,
-        description: form.description.trim() || undefined,
         agent_email: form.agent_email.trim() || undefined,
+        agent_name: form.agent_name.trim() || undefined,
+        agency_name: form.agency_name.trim() || undefined,
+        featured: form.featured,
+        verified: form.verified,
+        description: form.description.trim() || undefined,
+        amenities: form.amenities,
+        tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         images: form.images,
       };
       if (isEdit) {
@@ -135,43 +199,48 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-      <div className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col" style={{ background: '#0b1525', border: `1px solid rgba(201,168,92,0.25)`, maxHeight: '92vh' }}>
-
+  return createPortal(
+    <div
+      onMouseDown={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)' }}
+    >
+      <div
+        onMouseDown={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 680, background: '#0b1525', border: `1px solid rgba(201,168,92,0.25)`, borderRadius: 18, display: 'flex', flexDirection: 'column', maxHeight: '94vh' }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(201,168,92,0.05)' }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(201,168,92,0.15)', border: `1px solid rgba(201,168,92,0.3)` }}>
-              {isEdit ? <Pencil className="w-4 h-4" style={{ color: GOLD }} /> : <Plus className="w-4 h-4" style={{ color: GOLD }} />}
+        <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(201,168,92,0.04)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(201,168,92,0.15)', border: `1px solid rgba(201,168,92,0.3)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {isEdit ? <Pencil style={{ width: 15, height: 15, color: GOLD }} /> : <Plus style={{ width: 15, height: 15, color: GOLD }} />}
             </div>
             <div>
-              <p className="font-semibold text-sm text-white">{isEdit ? 'Edit Listing' : 'Add New Listing'}</p>
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{isEdit ? 'Update CRM record · changes saved locally' : 'Property Finder–ready format · saves as draft'}</p>
+              <p style={{ fontWeight: 600, fontSize: 14, color: '#fff', margin: 0 }}>{isEdit ? 'Edit Listing' : 'Add New Listing'}</p>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>{isEdit ? 'All Property Finder fields · changes saved to CRM' : 'Full Property Finder format · saves as draft'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition">
-            <X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} />
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)' }}>
+            <X style={{ width: 15, height: 15 }} />
           </button>
         </div>
 
-        {/* Required fields notice */}
-        <div className="mx-6 mt-4 shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px]" style={{ background: 'rgba(201,168,92,0.07)', border: '1px solid rgba(201,168,92,0.18)', color: 'rgba(255,255,255,0.55)' }}>
-          <AlertCircle className="w-3 h-3 shrink-0" style={{ color: GOLD }} />
-          Fields marked <span className="text-rose-400 ml-1 mr-1">*</span> are required to publish on Property Finder.
+        {/* Required notice */}
+        <div style={{ margin: '12px 20px 0', padding: '8px 12px', borderRadius: 10, background: 'rgba(201,168,92,0.07)', border: '1px solid rgba(201,168,92,0.18)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <AlertCircle style={{ width: 13, height: 13, color: GOLD, flexShrink: 0 }} />
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>Fields marked <span style={{ color: '#f87171' }}>*</span> are required to publish on Property Finder.</span>
         </div>
 
         {/* Scrollable form */}
-        <div className="px-6 py-4 space-y-5 overflow-y-auto flex-1">
+        <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Section: Core */}
+          {/* ── CORE ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Core Details</p>
-            <div className="space-y-3">
+            <SectionTitle>Core Details</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <FIELD label="Title *">
                 <GlassInput value={form.title} onChange={set('title')} placeholder="e.g. Spacious 2BR | Marina View | Ready to Move" />
               </FIELD>
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <FIELD label="Listing Type *">
                   <GlassSelect value={form.listing_type} onChange={set('listing_type')}>
                     <option value="sale">Sale</option>
@@ -180,22 +249,27 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
                 </FIELD>
                 <FIELD label="Property Type *">
                   <GlassSelect value={form.property_type} onChange={set('property_type')}>
-                    {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ')}</option>)}
+                    {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
                   </GlassSelect>
                 </FIELD>
               </div>
-              <FIELD label="Price (AED) *">
-                <GlassInput value={form.price} onChange={set('price')} placeholder="1250000" type="number" />
-              </FIELD>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <FIELD label="Price (AED) *">
+                  <GlassInput value={form.price} onChange={set('price')} placeholder="1250000" type="number" />
+                </FIELD>
+                <FIELD label="Price per sqft">
+                  <GlassInput value={form.price_per_sqft} onChange={set('price_per_sqft')} placeholder="Auto or enter" type="number" />
+                </FIELD>
+              </div>
             </div>
           </div>
 
-          {/* Section: Size & Specs */}
+          {/* ── SIZE & SPECS ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Size & Specs</p>
-            <div className="grid grid-cols-3 gap-3">
-              <FIELD label="Bedrooms">
-                <GlassInput value={form.bedrooms} onChange={set('bedrooms')} placeholder="0 = Studio" type="number" />
+            <SectionTitle>Size & Specifications</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <FIELD label="Bedrooms (0=Studio)">
+                <GlassInput value={form.bedrooms} onChange={set('bedrooms')} placeholder="0" type="number" />
               </FIELD>
               <FIELD label="Bathrooms">
                 <GlassInput value={form.bathrooms} onChange={set('bathrooms')} placeholder="2" type="number" />
@@ -205,122 +279,169 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
               </FIELD>
               <FIELD label="Furnishing">
                 <GlassSelect value={form.furnishing} onChange={set('furnishing')}>
-                  {FURNISHING_OPTIONS.map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1).replace('_', ' ')}</option>)}
+                  {FURNISHING_OPTIONS.map(f => <option key={f} value={f}>{f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
                 </GlassSelect>
               </FIELD>
-              <FIELD label="Completion">
+              <FIELD label="Completion Status">
                 <GlassSelect value={form.completion_status} onChange={set('completion_status')}>
-                  {COMPLETION_OPTIONS.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1).replace('_', ' ')}</option>)}
+                  {COMPLETION_OPTIONS.map(c => <option key={c} value={c}>{c.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())}</option>)}
                 </GlassSelect>
+              </FIELD>
+              <FIELD label="Completion Date">
+                <GlassInput value={form.completion_date} onChange={set('completion_date')} placeholder="YYYY-MM-DD" type="date" />
               </FIELD>
             </div>
           </div>
 
-          {/* Section: Location */}
+          {/* ── PORTAL FLAGS ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Location</p>
-            <div className="grid grid-cols-2 gap-3">
+            <SectionTitle>Portal Flags</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Toggle label="⭐ Featured Listing" checked={form.featured} onChange={setBool('featured')} />
+              <Toggle label="✓ Verified Listing" checked={form.verified} onChange={setBool('verified')} />
+            </div>
+          </div>
+
+          {/* ── LOCATION ── */}
+          <div>
+            <SectionTitle>Location</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <FIELD label="Area / Community *">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                <div style={{ position: 'relative' }}>
+                  <MapPin style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'rgba(255,255,255,0.3)' }} />
                   <input value={form.location} onChange={set('location')} placeholder="e.g. Dubai Marina"
-                    className="w-full h-9 pl-9 pr-3 rounded-xl text-sm outline-none"
-                    style={INPUT_STYLE} />
+                    style={{ ...INPUT_STYLE, width: '100%', height: 36, paddingLeft: 30, paddingRight: 12, borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </FIELD>
               <FIELD label="Building / Tower">
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                <div style={{ position: 'relative' }}>
+                  <Building2 style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'rgba(255,255,255,0.3)' }} />
                   <input value={form.building_name} onChange={set('building_name')} placeholder="e.g. Marina Gate 1"
-                    className="w-full h-9 pl-9 pr-3 rounded-xl text-sm outline-none"
-                    style={INPUT_STYLE} />
+                    style={{ ...INPUT_STYLE, width: '100%', height: 36, paddingLeft: 30, paddingRight: 12, borderRadius: 10, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </FIELD>
               <FIELD label="Unit Number">
                 <GlassInput value={form.unit_number} onChange={set('unit_number')} placeholder="e.g. 2401" />
               </FIELD>
+              <FIELD label="Full Address">
+                <GlassInput value={form.address} onChange={set('address')} placeholder="Street, area, Dubai" />
+              </FIELD>
+              <FIELD label="Latitude">
+                <GlassInput value={form.latitude} onChange={set('latitude')} placeholder="25.0760" type="number" />
+              </FIELD>
+              <FIELD label="Longitude">
+                <GlassInput value={form.longitude} onChange={set('longitude')} placeholder="55.1404" type="number" />
+              </FIELD>
             </div>
           </div>
 
-          {/* Section: Compliance */}
+          {/* ── DEVELOPER & PROJECT ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Compliance & Agent</p>
-            <div className="grid grid-cols-2 gap-3">
-              <FIELD label="Trakheesi Permit No. *">
-                <GlassInput value={form.permit_number} onChange={set('permit_number')} placeholder="RERA/DLD permit number" />
+            <SectionTitle>Developer & Project</SectionTitle>
+            <FIELD label="Developer Name">
+              <GlassInput value={form.developer} onChange={set('developer')} placeholder="e.g. Emaar, Damac, Nakheel" />
+            </FIELD>
+          </div>
+
+          {/* ── COMPLIANCE & AGENT ── */}
+          <div>
+            <SectionTitle>Compliance & Agent</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <FIELD label="Trakheesi / RERA Permit *">
+                <GlassInput value={form.permit_number} onChange={set('permit_number')} placeholder="Permit number" />
               </FIELD>
               <FIELD label="Agent Email">
                 <GlassInput value={form.agent_email} onChange={set('agent_email')} placeholder="agent@erudite-estate.com" />
               </FIELD>
+              <FIELD label="Agent Name">
+                <GlassInput value={form.agent_name} onChange={set('agent_name')} placeholder="Ahmad Badreddine" />
+              </FIELD>
+              <FIELD label="Agency Name">
+                <GlassInput value={form.agency_name} onChange={set('agency_name')} placeholder="Erudite Real Estate" />
+              </FIELD>
             </div>
           </div>
 
-          {/* Section: Description */}
+          {/* ── DESCRIPTION ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Description</p>
+            <SectionTitle>Description</SectionTitle>
             <textarea value={form.description} onChange={set('description')} rows={5}
               placeholder="Full property description for the portal listing…"
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none leading-relaxed"
-              style={INPUT_STYLE} />
+              style={{ ...INPUT_STYLE, width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
           </div>
 
-          {/* Section: Photos */}
+          {/* ── AMENITIES ── */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'rgba(201,168,92,0.7)' }}>Photos</p>
-            <div className="space-y-2">
-              {/* Existing images */}
+            <SectionTitle>Amenities</SectionTitle>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {ALL_AMENITIES.map(a => {
+                const active = form.amenities.includes(a);
+                return (
+                  <button key={a} onClick={() => toggleAmenity(a)}
+                    style={{ padding: '5px 12px', borderRadius: 999, fontSize: 11, fontWeight: 500, border: `1px solid ${active ? GOLD : 'rgba(255,255,255,0.12)'}`, background: active ? 'rgba(201,168,92,0.15)' : 'rgba(255,255,255,0.04)', color: active ? GOLD : 'rgba(255,255,255,0.55)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {a.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── TAGS ── */}
+          <div>
+            <SectionTitle>Tags (comma-separated)</SectionTitle>
+            <GlassInput value={form.tags} onChange={set('tags')} placeholder="e.g. sea view, high floor, corner unit" />
+          </div>
+
+          {/* ── PHOTOS ── */}
+          <div>
+            <SectionTitle>Photos</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {form.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {form.images.map((url, idx) => (
-                    <div key={idx} className="relative w-20 h-16 rounded-lg overflow-hidden group">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    <div key={idx} style={{ position: 'relative', width: 80, height: 64, borderRadius: 8, overflow: 'hidden' }}>
+                      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <button onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                        style={{ background: 'rgba(0,0,0,0.7)' }}>
-                        <X className="w-3 h-3 text-white" />
+                        style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                        <X style={{ width: 10, height: 10 }} />
                       </button>
                     </div>
                   ))}
                 </div>
               )}
-              {/* Add by URL */}
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 8 }}>
                 <input value={imageUrl} onChange={e => setImageUrl(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addImageUrl()}
-                  placeholder="Paste image URL and press Enter or Add"
-                  className="flex-1 h-9 px-3 rounded-xl text-sm outline-none"
-                  style={INPUT_STYLE} />
+                  placeholder="Paste image URL then press Enter or Add"
+                  style={{ ...INPUT_STYLE, flex: 1, height: 36, padding: '0 12px', borderRadius: 10, fontSize: 13, outline: 'none' }} />
                 <button onClick={addImageUrl}
-                  className="px-3 h-9 rounded-xl text-xs font-medium transition"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }}>
+                  style={{ padding: '0 14px', height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)', fontSize: 12, cursor: 'pointer' }}>
                   Add
                 </button>
               </div>
-              {/* File upload */}
-              <label className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition hover:bg-white/5"
-                style={{ border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.45)' }}>
-                <Upload className="w-3.5 h-3.5" />
-                <span className="text-xs">Upload from device</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: 12 }}>
+                <Upload style={{ width: 13, height: 13 }} />
+                Upload from device
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
               </label>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 flex gap-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <button onClick={onClose} className="flex-1 h-9 rounded-xl text-xs font-medium transition"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
+        <div style={{ padding: '12px 20px', display: 'flex', gap: 8, borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          <button onClick={onClose}
+            style={{ flex: 1, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving || saved}
-            className="flex-[2] h-9 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-60"
-            style={{ background: saved ? 'rgba(63,207,142,0.15)' : 'rgba(201,168,92,0.15)', border: `1px solid ${saved ? 'rgba(63,207,142,0.4)' : 'rgba(201,168,92,0.4)'}`, color: saved ? '#3fcf8e' : GOLD }}>
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : isEdit ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            style={{ flex: 2, height: 36, borderRadius: 10, border: `1px solid ${saved ? 'rgba(63,207,142,0.4)' : 'rgba(201,168,92,0.4)'}`, background: saved ? 'rgba(63,207,142,0.15)' : 'rgba(201,168,92,0.15)', color: saved ? '#3fcf8e' : GOLD, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saving || saved ? 0.8 : 1 }}>
+            {saving ? <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" /> : saved ? <Check style={{ width: 13, height: 13 }} /> : isEdit ? <Pencil style={{ width: 13, height: 13 }} /> : <Plus style={{ width: 13, height: 13 }} />}
             {saving ? 'Saving…' : saved ? 'Saved!' : isEdit ? 'Save Changes' : 'Save as Draft in CRM'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
