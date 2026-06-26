@@ -1,0 +1,44 @@
+User-agent: *
+Allow: /
+Allow: /u/*
+
+# Social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: Pinterest
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: bingbot
+Allow: /
+
+# Disallow admin/private paths
+Disallow: /admin/
+Disallow: /api/
+Disallow: /functions/
+
+Sitemap: https://app.erudite-estate.com/sitemap.xml
