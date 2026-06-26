@@ -268,7 +268,7 @@ function ListingCard({ listing, onRefresh, onEdit }) {
 
   return (
     <div
-      className="flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl cursor-pointer"
+      className={`flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${listing.pf_url ? 'cursor-pointer' : 'cursor-default'}`}
       style={{ background: '#0e1a2b', border: '1px solid #1a2942', minHeight: 132 }}
       onClick={() => listing.pf_url && window.open(listing.pf_url, '_blank')}
     >
@@ -316,13 +316,19 @@ function ListingCard({ listing, onRefresh, onEdit }) {
               style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}>
               <FileDown className="w-3.5 h-3.5" />
             </button>
-            {listing.pf_url && (
-              <a href={listing.pf_url} target="_blank" rel="noopener noreferrer" title="Open in Property Finder"
+            {listing.pf_url ? (
+              <a href={listing.pf_url} target="_blank" rel="noopener noreferrer" title="View on Property Finder"
                 onClick={(e) => e.stopPropagation()}
                 className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
                 style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
+            ) : (
+              <div title="Not yet on Property Finder"
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.2)', background: 'transparent', cursor: 'not-allowed' }}>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </div>
             )}
             <PFListingActions listing={listing} onRefresh={onRefresh} onEdit={onEdit} />
           </div>
