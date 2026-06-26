@@ -89,8 +89,10 @@ Deno.serve(async (req) => {
       signatureText = settings?.[0]?.imessage_signature_text || '';
     } catch (_) { /* best-effort */ }
 
-    // Build message body
+    // Build message body: text + signature + ONE short URL
     let messageBody = String(text).trim();
+    
+    // Strip any URLs from the original text (we'll add our own short link)
     const urlsStripped = findUrls(messageBody);
     if (urlsStripped.length > 0) {
       messageBody = messageBody
@@ -100,10 +102,12 @@ Deno.serve(async (req) => {
         .trim();
     }
 
+    // Add plain-text signature (no HTML, just text)
     if (signatureText && !body.skip_signature) {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
+    // Append exactly ONE branded short link for OG preview
     let shortUrl = null;
     if (!body.skip_signature) {
       const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug) ? body.link_slug : 'ahmad';
@@ -111,16 +115,6 @@ Deno.serve(async (req) => {
       const origin = appOrigin || fallbackOrigin;
       shortUrl = `${origin.replace(/\/+$/, '')}/u/${slug}`;
       messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
-    }
-
-    let finalUrls = findUrls(messageBody);
-    if (finalUrls.length > 1) {
-      messageBody = messageBody
-        .replace(URL_RE, (match) => (match === shortUrl ? match : ''))
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-      if (shortUrl) messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
     }
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
