@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  RefreshCw, Bed, Bath, Ruler, Filter, ExternalLink,
-  FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Plus
+  RefreshCw, Bed, Bath, Ruler, Filter,
+  FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -263,8 +263,14 @@ async function loadImageAsDataURL(url) {
 function ListingCard({ listing, onRefresh, onEdit }) {
   const img = listing.images?.[0];
   const isLive = listing.status === 'active';
+  const isPublishing = listing.status === 'publishing';
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
   const title = listing.title || `${listing.property_type} in ${listing.location}`;
+
+  const statusColor = isLive ? '#3fcf8e' : isPublishing ? '#c9a85c' : 'rgba(255,255,255,0.4)';
+  const statusBg = isLive ? 'rgba(63,207,142,0.15)' : isPublishing ? 'rgba(201,168,92,0.15)' : 'rgba(255,255,255,0.08)';
+  const statusBorder = isLive ? 'rgba(63,207,142,0.35)' : isPublishing ? 'rgba(201,168,92,0.35)' : 'rgba(255,255,255,0.12)';
+  const statusLabel = isLive ? 'Live' : isPublishing ? 'Publishing…' : 'Inactive';
 
   return (
     <div
@@ -283,16 +289,24 @@ function ListingCard({ listing, onRefresh, onEdit }) {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
         <div className="absolute top-2 left-2">
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-            style={{ background: isLive ? 'rgba(63,207,142,0.15)' : 'rgba(255,255,255,0.1)', color: isLive ? GREEN : 'rgba(255,255,255,0.5)', border: `1px solid ${isLive ? 'rgba(63,207,142,0.35)' : 'rgba(255,255,255,0.15)'}` }}>
+            style={{ background: statusBg, color: statusColor, border: `1px solid ${statusBorder}` }}>
             {isLive && <span className="w-1.5 h-1.5 rounded-full" style={{ background: GREEN }} />}
-            {isLive ? 'Live' : 'Archived'}
+            {statusLabel}
           </span>
         </div>
-        <div className="absolute bottom-2 left-2">
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest"
             style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.7)' }}>
             {listing.listing_type || '—'}
           </span>
+          {listing.featured && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+              style={{ background: 'rgba(201,168,92,0.35)', color: GOLD }}>★</span>
+          )}
+          {listing.verified && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+              style={{ background: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>✓</span>
+          )}
         </div>
       </div>
 
@@ -315,20 +329,6 @@ function ListingCard({ listing, onRefresh, onEdit }) {
               style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}>
               <FileDown className="w-3.5 h-3.5" />
             </button>
-            {listing.pf_url ? (
-              <a href={listing.pf_url} target="_blank" rel="noopener noreferrer" title="View on Property Finder"
-                onClick={(e) => e.stopPropagation()}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
-                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)', background: 'transparent' }}>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : (
-              <div title="Not yet on Property Finder"
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.2)', background: 'transparent', cursor: 'not-allowed' }}>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </div>
-            )}
             <PFListingActions listing={listing} onRefresh={onRefresh} onEdit={onEdit} />
           </div>
         </div>
