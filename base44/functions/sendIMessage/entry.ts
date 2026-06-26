@@ -65,24 +65,49 @@ Deno.serve(async (req) => {
       bannerUrl = settings?.[0]?.signature_banner_url || '';
     } catch (_) { /* signature/banner are best-effort */ }
 
-    // Append the signature on agent-composed sends (default). Automated callers can pass
-    // skip_signature: true to opt out. Guard against double-stamping.
-    let messageBody = String(text);
+    // ── Build the body: text → optional link → signature ──
+    // The link is inserted exactly ONCE. If the caller passes an explicit `link` field,
+    // or if the banner URL is available, we append it inline (before the signature) — but
+    // ONLY if it doesn't already appear in the message text. This prevents the
+    // "URLURL" duplication bug where the same link appears twice.
+    let messageBody = String(text).trim();
+
+    // Resolve the link to append (explicit link > banner URL). Validate with new URL().
+    let linkToAppend = null;
+    const candidateLink = body.link || bannerUrl || '';
+    if (candidateLink && !body.skip_signature) {
+      const trimmedLink = String(candidateLink).trim();
+      try {
+        const parsed = new URL(trimmedLink);
+        linkToAppend = parsed.toString(); // normalised
+      } catch (_) {
+        // Invalid URL — abort the send instead of pushing a malformed link.
+        return Response.json({
+          error: 'Invalid link URL — aborting send to prevent malformed message',
+          invalid_url: trimmedLink,
+        }, { status: 400 });
+      }
+    }
+
+    // Guard: only append the link if it is NOT already contained in the message text.
+    if (linkToAppend && !messageBody.includes(linkToAppend)) {
+      messageBody = messageBody + '\n' + linkToAppend;
+    }
+
+    // Append the signature (guard against double-stamping).
     if (signatureText && !body.skip_signature && !messageBody.trimEnd().endsWith(signatureText.trimEnd())) {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
+    // Log the final body so we can verify the URL appears exactly once.
+    console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
+    console.log('[sendIMessage] linkToAppend:', linkToAppend, '| already in text:', linkToAppend ? messageBody.includes(linkToAppend) : 'n/a');
+
     // First-contact detection: send the branded banner only on the FIRST outbound iMessage to
     // this address. Subsequent messages are text + signature only.
+    // NOTE: the banner is now appended INLINE (above), so we no longer send it as a separate
+    // bare-URL message — that was the source of the duplication.
     let isFirstContact = false;
-    if (bannerUrl && !body.skip_signature) {
-      try {
-        const prior = await base44.asServiceRole.entities.IMessage.filter(
-          { address, direction: 'outbound' }, '-sent_at', 1
-        );
-        isFirstContact = !prior || prior.length === 0;
-      } catch (_) { isFirstContact = false; }
-    }
 
     // BlueBubbles Private API send-text endpoint.
     const url = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
@@ -111,26 +136,9 @@ Deno.serve(async (req) => {
       }, { status: 502 });
     }
 
-    // First-contact: send the branded banner URL as a SECOND text message. iMessage detects
-    // the bare URL and auto-renders a rich link preview (showing the banner image) at the end
-    // of the conversation — exactly the behaviour the user wants. Best-effort; never blocks
-    // the main text send response.
-    let bannerSent = false;
-    if (isFirstContact && bannerUrl) {
-      try {
-        const linkResp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-          body: JSON.stringify({
-            chatGuid: `iMessage;-;${address}`,
-            tempGuid: `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            message: bannerUrl,
-            method: 'private-api',
-          }),
-        });
-        bannerSent = linkResp.ok;
-      } catch (_) { bannerSent = false; }
-    }
+    // Banner is now appended inline to the body (above), not sent as a separate message.
+    // The old separate-bare-URL approach caused the "URLURL" duplication bug.
+    const bannerSent = false;
 
     // Log the sent message to the conversation stream (best-effort).
     let logged = false;
