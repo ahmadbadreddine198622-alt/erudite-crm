@@ -291,10 +291,13 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
-      {/* Luxury Splash Screen — centered premium card with integrated clock */}
-      <div className="w-full max-w-2xl mx-auto mb-10" style={{ transformOrigin: 'top center' }}>
+      {/* Luxury Splash Screen — centered premium card */}
+      <div className="w-full max-w-2xl mx-auto mb-6" style={{ transformOrigin: 'top center' }}>
         <EruditeSplashScreen />
       </div>
+
+      {/* iOS Lock-Screen Style Clock — centered under splash */}
+      <IOSLockScreenClock />
 
       {/* Minimalist Search Bar — pill-shaped with quote placeholder */}
       <div className="relative mb-8 w-full max-w-3xl mx-auto">

@@ -7,27 +7,9 @@ import React, { useEffect, useState } from 'react';
  */
 export default function EruditeSplashScreen() {
   const [mounted, setMounted] = useState(false);
-  const [dateTime, setDateTime] = useState({ time: '', seconds: '', date: '' });
 
   useEffect(() => {
     setMounted(true);
-    const updateTime = () => {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-      const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-      const dayNum = now.getDate();
-      setDateTime({
-        time: `${hours}:${minutes}`,
-        seconds,
-        date: `${dayName} - ${month} ${dayNum}`,
-      });
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
   }, []);
 
   if (!mounted) return null;
@@ -216,52 +198,7 @@ export default function EruditeSplashScreen() {
           />
         </div>
 
-        {/* Digital Clock Display — Large modern time */}
-        <div
-          className="flex items-end gap-1 mb-2"
-          style={{
-            animation: 'clockFadeIn 1s ease-out',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 42,
-              fontWeight: 200,
-              fontFamily: "'SF Mono', 'Monaco', 'Courier New', monospace",
-              color: 'rgba(255,255,255,0.95)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1,
-            }}
-          >
-            {dateTime.time}
-          </span>
-          <span
-            style={{
-              fontSize: 20,
-              fontWeight: 300,
-              fontFamily: "'SF Mono', 'Monaco', 'Courier New', monospace",
-              color: 'rgba(201,161,74,0.8)',
-              lineHeight: 1,
-              marginBottom: 4,
-            }}
-          >
-            {dateTime.seconds}
-          </span>
-        </div>
 
-        {/* Date display */}
-        <p
-          style={{
-            fontSize: 11,
-            fontWeight: 400,
-            fontFamily: "'Inter', -apple-system, sans-serif",
-            color: 'rgba(255,255,255,0.5)',
-            letterSpacing: '0.08em',
-            marginTop: 2,
-          }}
-        >
-          {dateTime.date}
-        </p>
 
 
       </div>
@@ -302,16 +239,7 @@ export default function EruditeSplashScreen() {
             filter: drop-shadow(0 3px 12px rgba(201,161,74,0.4));
           }
         }
-        @keyframes clockFadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+
       `}</style>
     </div>
   );
