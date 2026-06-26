@@ -18,7 +18,7 @@ import AudioWaveform from '@/components/shared/AudioWaveform';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import EruditeLogo from '@/components/erudite/EruditeLogo';
+import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
 import IOSLockScreenClock from '@/components/dashboard/IOSLockScreenClock';
 import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
@@ -290,9 +290,9 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
-      {/* ERUDITE Logo - Premium Brand Identity */}
-      <div className="w-full flex justify-center mb-4" style={{ transformOrigin: 'top center', animation: 'logoEntrance 1.2s ease-out both' }}>
-        <EruditeLogo size="medium" />
+      {/* Compact Hero Banner */}
+      <div className="w-full max-w-6xl mx-auto mb-2" style={{ transformOrigin: 'top center' }}>
+        <EruditeHeroBanner />
       </div>
 
       {/* iOS Lock-Screen Style Clock — centered under logo */}
@@ -746,10 +746,6 @@ export default function Dashboard() {
 
       {/* White Text Motion Animations - Continuous Motivational System */}
       <style>{`
-        @keyframes logoEntrance {
-          0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
         @keyframes whiteGlow {
           0%, 100% { opacity: 0.85; text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1); }
           50% { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,255,255,0.2); }
