@@ -39,10 +39,10 @@ export default function EruditeSplashScreen() {
 
       {/* Main card — glassmorphism panel */}
       <div
-        className="relative flex flex-col items-center justify-center px-10 py-8"
+        className="relative flex flex-col items-center justify-center px-8 py-6"
         style={{
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 340,
           borderRadius: 36,
           background: 'linear-gradient(135deg, rgba(26,31,46,0.75) 0%, rgba(21,25,31,0.7) 100%)',
           backdropFilter: 'blur(32px) saturate(180%)',
@@ -68,7 +68,7 @@ export default function EruditeSplashScreen() {
 
         {/* Calligraphic glyph container with radial halo */}
         <div
-          className="relative mb-5"
+          className="relative mb-4"
           style={{
             animation: 'glyphBreathe 6s ease-in-out infinite',
           }}
@@ -77,25 +77,25 @@ export default function EruditeSplashScreen() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              width: 90,
-              height: 90,
+              width: 60,
+              height: 60,
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              background: 'radial-gradient(circle, rgba(245,230,184,0.12) 0%, rgba(201,161,74,0.06) 40%, transparent 70%)',
-              filter: 'blur(16px)',
+              background: 'radial-gradient(circle, rgba(245,230,184,0.1) 0%, rgba(201,161,74,0.05) 40%, transparent 70%)',
+              filter: 'blur(12px)',
             }}
           />
           
           {/* Ornate Arabic calligraphic glyph */}
           <svg
-            width="64"
-            height="64"
+            width="48"
+            height="48"
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             style={{
-              filter: 'drop-shadow(0 3px 12px rgba(201,161,74,0.35))',
+              filter: 'drop-shadow(0 2px 8px rgba(201,161,74,0.3))',
             }}
           >
             <defs>
@@ -148,9 +148,9 @@ export default function EruditeSplashScreen() {
 
         {/* ERUDITE wordmark — high-contrast serif display */}
         <h1
-          className="mb-3"
+          className="mb-2.5"
           style={{
-            fontSize: 42,
+            fontSize: 34,
             fontWeight: 600,
             fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
             background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 35%, #8A6D2F 65%, #C9A14A 100%)',
@@ -160,7 +160,7 @@ export default function EruditeSplashScreen() {
             backgroundClip: 'text',
             letterSpacing: '0.18em',
             lineHeight: 1,
-            textShadow: '0 2px 10px rgba(201,161,74,0.25)',
+            textShadow: '0 2px 8px rgba(201,161,74,0.2)',
             animation: 'wordmarkShimmer 10s ease-in-out infinite',
           }}
         >
@@ -169,7 +169,7 @@ export default function EruditeSplashScreen() {
 
         {/* Subtitle with flanking hairline rules */}
         <div
-          className="flex items-center gap-4 mb-5"
+          className="flex items-center gap-3 mb-4"
           style={{
             width: '100%',
           }}
@@ -178,17 +178,17 @@ export default function EruditeSplashScreen() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.5))',
+              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.4))',
             }}
           />
           <span
             style={{
-              fontSize: 9,
+              fontSize: 7.5,
               fontWeight: 300,
               fontFamily: "'Montserrat', 'Inter', -apple-system, sans-serif",
               textTransform: 'uppercase',
-              letterSpacing: '0.45em',
-              color: 'rgba(201,161,74,0.7)',
+              letterSpacing: '0.4em',
+              color: 'rgba(201,161,74,0.65)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -198,47 +198,47 @@ export default function EruditeSplashScreen() {
             style={{
               flex: 1,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,161,74,0.5), transparent)',
+              background: 'linear-gradient(90deg, rgba(201,161,74,0.4), transparent)',
             }}
           />
         </div>
 
         {/* Ornamental divider — two lines meeting diamond/star */}
         <div
-          className="flex items-center gap-2 mb-6"
+          className="flex items-center gap-2 mb-4"
           style={{
-            opacity: 0.8,
+            opacity: 0.75,
             animation: 'dividerPulse 8s ease-in-out infinite',
           }}
         >
           <div
             style={{
-              width: 48,
+              width: 36,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.4))',
+              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.35))',
             }}
           />
           {/* 4-point diamond/sparkle star */}
           <svg
-            width="8"
-            height="8"
+            width="6"
+            height="6"
             viewBox="0 0 8 8"
             fill="none"
             style={{
-              filter: 'drop-shadow(0 0 4px rgba(201,161,74,0.5))',
+              filter: 'drop-shadow(0 0 3px rgba(201,161,74,0.4))',
             }}
           >
             <path
               d="M4 0 L5 3 L8 4 L5 5 L4 8 L3 5 L0 4 L3 3 Z"
               fill="url(#splashGoldGradient)"
-              opacity="0.8"
+              opacity="0.75"
             />
           </svg>
           <div
             style={{
-              width: 48,
+              width: 36,
               height: 1,
-              background: 'linear-gradient(90deg, rgba(201,161,74,0.4), transparent)',
+              background: 'linear-gradient(90deg, rgba(201,161,74,0.35), transparent)',
             }}
           />
         </div>
@@ -246,12 +246,12 @@ export default function EruditeSplashScreen() {
         {/* Footer — date display */}
         <div
           style={{
-            fontSize: 11,
+            fontSize: 9.5,
             fontWeight: 600,
             fontFamily: "'Montserrat', 'Inter', -apple-system, sans-serif",
             textTransform: 'uppercase',
-            letterSpacing: '0.15em',
-            color: 'rgba(201,161,74,0.6)',
+            letterSpacing: '0.12em',
+            color: 'rgba(201,161,74,0.55)',
           }}
         >
           {dateStr}
