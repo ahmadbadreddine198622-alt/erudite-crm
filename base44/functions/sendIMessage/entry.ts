@@ -141,47 +141,82 @@ Deno.serve(async (req) => {
     );
 
     // ── BlueBubbles Private API send-text ──
-    // The BlueBubbles REST API /api/v1/message/text endpoint does NOT support an
-    // explicit rich-link / preview-metadata field. With method: 'private-api',
-    // iMessage auto-scrapes the single URL in the body and renders a preview
-    // using the OG tags from the target page.
+    // The REST API doesn't expose the ddScannerStrategy flag needed for inline link previews.
+    // Solution: send TWO messages — (1) text + signature, (2) URL alone.
+    // iMessage auto-generates rich previews for URL-only messages.
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
-    const payload = {
+
+    // Split the body: text+signature vs the final URL
+    const urlMatch = messageBody.match(/\n\n(https?:\/\/[^\s]+)$/);
+    let textWithSignature = messageBody;
+    let standaloneUrl = null;
+    if (urlMatch) {
+      standaloneUrl = urlMatch[1];
+      textWithSignature = messageBody.slice(0, urlMatch.index).trimEnd();
+    }
+
+    // 1. Send text + signature (no URL)
+    const payload1 = {
       chatGuid: `iMessage;-;${address}`,
-      tempGuid: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      message: messageBody,
+      tempGuid: `crm-${Date.now()}-text`,
+      message: textWithSignature,
       method: 'private-api',
     };
 
-    const resp = await fetch(sendUrl, {
+    const resp1 = await fetch(sendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload1),
     });
 
-    const raw = await resp.text();
-    let data;
-    try { data = JSON.parse(raw); } catch { data = { raw }; }
+    const raw1 = await resp1.text();
+    let data1;
+    try { data1 = JSON.parse(raw1); } catch { data1 = { raw: raw1 }; }
 
-    if (!resp.ok) {
+    if (!resp1.ok) {
       return Response.json({
-        error: 'BlueBubbles send failed',
-        status: resp.status,
-        detail: data?.message || data?.error?.message || raw?.slice(0, 500),
+        error: 'BlueBubbles send failed (text)',
+        status: resp1.status,
+        detail: data1?.message || data1?.error?.message || raw1?.slice(0, 500),
       }, { status: 502 });
     }
 
+    // 2. Send URL alone (triggers rich preview)
+    let data2 = null;
+    if (standaloneUrl) {
+      console.log('[sendIMessage] Sending URL as separate message for rich preview:', standaloneUrl);
+      const payload2 = {
+        chatGuid: `iMessage;-;${address}`,
+        tempGuid: `crm-${Date.now()}-url`,
+        message: standaloneUrl,
+        method: 'private-api',
+      };
+      const resp2 = await fetch(sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+        body: JSON.stringify(payload2),
+      });
+      const raw2 = await resp2.text();
+      try { data2 = JSON.parse(raw2); } catch { data2 = { raw: raw2 }; }
+      if (!resp2.ok) {
+        console.warn('[sendIMessage] URL message send failed:', resp2.status, raw2?.slice(0, 200));
+      } else {
+        console.log('[sendIMessage] URL message sent successfully, GUID:', data2?.data?.guid);
+      }
+    }
+
     // Log the sent message to the conversation stream (best-effort).
+    // Combine both parts (text + URL) into one logical record.
     let logged = false;
     if (landlord_id) {
       const nowIso = new Date().toISOString();
-      const guid = data?.data?.guid || null;
+      const guid = data1?.data?.guid || null;
       try {
         await base44.entities.IMessage.create({
           landlord_id,
           direction: 'outbound',
           address,
-          body: messageBody,
+          body: messageBody, // Full combined body for the record
           status: 'sent',
           sent_at: nowIso,
           agent_email: user.email || null,
@@ -210,10 +245,10 @@ Deno.serve(async (req) => {
       success: true,
       address,
       logged,
-      guid: data?.data?.guid || null,
-      urlCount: finalUrls.length,
+      guid: data1?.data?.guid || null,
+      urlMessageGuid: data2?.data?.guid || null,
+      splitSend: !!standaloneUrl,
       shortUrl,
-      previewAttached: false, // BlueBubbles REST API has no rich-link field; relies on Private API auto-scraping
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
