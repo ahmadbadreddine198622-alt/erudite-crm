@@ -2,6 +2,7 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
+import EruditeLogo from '@/components/erudite/EruditeLogo';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
@@ -138,11 +139,10 @@ export default function Sidebar({ open = false, onClose }) {
       open ? "translate-x-0" : "-translate-x-full"
     )} style={{ background: 'rgba(14,20,36,0.65)', backdropFilter: 'blur(20px)' }}>
       {/* Company identity header */}
-      <div className="px-4 h-16 border-b border-white/10 shrink-0 flex flex-col justify-center gap-1">
+      <div className="px-4 h-20 border-b border-white/10 shrink-0 flex flex-col justify-center gap-2">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold tracking-[0.2em] uppercase text-white/40">Erudite</p>
-            <p className="text-[10px] tracking-[0.15em] uppercase text-amber-500/80 font-semibold mt-0.5">Real Estate</p>
+          <div className="flex-1">
+            <EruditeLogo size="small" />
           </div>
           <button
             onClick={onClose}
@@ -150,11 +150,6 @@ export default function Sidebar({ open = false, onClose }) {
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
-          <p className="text-[9px] uppercase tracking-[0.25em] text-white/30 font-medium">Hold The Line</p>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
         </div>
       </div>
 
