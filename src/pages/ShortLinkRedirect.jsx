@@ -1,13 +1,10 @@
-// ShortLinkRedirect — serves `/u/:slug` for iMessage rich link previews.
+// ShortLinkRedirect — React fallback for `/u/:slug` routes.
 //
-// When iMessage scrapes this URL, it reads the OG meta tags from index.html
-// (static, served for all routes) and renders a rich preview card with the
-// branded image, title, and description. Human visitors are redirected to
-// the real destination (Property Finder profile, property URL, etc.).
+// PRIMARY: Static HTML files at /public/u/*.html are served directly for
+// iMessage/OG scrapers (they don't execute JS). These have full OG tags.
 //
-// OG tags live in index.html because social/preview scrapers do NOT execute
-// JavaScript — they read the raw HTML <head>. Adding more slugs: extend
-// the DESTINATIONS map below.
+// FALLBACK: This React component handles human visitors when the static
+// file doesn't exist or for client-side navigation testing.
 
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';

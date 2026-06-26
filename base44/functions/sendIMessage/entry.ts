@@ -133,90 +133,52 @@ Deno.serve(async (req) => {
     // ── Logging ──
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
     console.log('[sendIMessage] URL count:', finalUrls.length);
-    console.log('[sendIMessage] URLs:', finalUrls);
     console.log('[sendIMessage] short URL:', shortUrl);
-    console.log(
-      '[sendIMessage] preview metadata: not attached via payload — BlueBubbles REST API has no rich-link field; ' +
-        'relying on Private API auto-scraping of the single URL. OG tags served by index.html at /u/:slug'
-    );
+    console.log('[sendIMessage] OG tags: served by static /public/u/*.html files (Apple scrapes these directly)');
 
     // ── BlueBubbles Private API send-text ──
-    // The REST API doesn't expose the ddScannerStrategy flag needed for inline link previews.
-    // Solution: send TWO messages — (1) text + signature, (2) URL alone.
-    // iMessage auto-generates rich previews for URL-only messages.
+    // Single message: text + signature + short URL (exactly one URL for iMessage to scrape).
+    // Note: ddScannerStrategy is NOT exposed through the BlueBubbles REST API.
+    // The Private API helper bundle can access it internally, but the REST endpoint
+    // doesn't accept it as a parameter. To enable it, you'd need to fork/modify the
+    // BlueBubbles server source and rebuild.
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
-
-    // Split the body: text+signature vs the final URL
-    const urlMatch = messageBody.match(/\n\n(https?:\/\/[^\s]+)$/);
-    let textWithSignature = messageBody;
-    let standaloneUrl = null;
-    if (urlMatch) {
-      standaloneUrl = urlMatch[1];
-      textWithSignature = messageBody.slice(0, urlMatch.index).trimEnd();
-    }
-
-    // 1. Send text + signature (no URL)
-    const payload1 = {
+    const payload = {
       chatGuid: `iMessage;-;${address}`,
-      tempGuid: `crm-${Date.now()}-text`,
-      message: textWithSignature,
+      tempGuid: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      message: messageBody,
       method: 'private-api',
     };
 
-    const resp1 = await fetch(sendUrl, {
+    const resp = await fetch(sendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-      body: JSON.stringify(payload1),
+      body: JSON.stringify(payload),
     });
 
-    const raw1 = await resp1.text();
-    let data1;
-    try { data1 = JSON.parse(raw1); } catch { data1 = { raw: raw1 }; }
+    const raw = await resp.text();
+    let data;
+    try { data = JSON.parse(raw); } catch { data = { raw }; }
 
-    if (!resp1.ok) {
+    if (!resp.ok) {
       return Response.json({
-        error: 'BlueBubbles send failed (text)',
-        status: resp1.status,
-        detail: data1?.message || data1?.error?.message || raw1?.slice(0, 500),
+        error: 'BlueBubbles send failed',
+        status: resp.status,
+        detail: data?.message || data?.error?.message || raw?.slice(0, 500),
       }, { status: 502 });
     }
 
-    // 2. Send URL alone (triggers rich preview)
-    let data2 = null;
-    if (standaloneUrl) {
-      console.log('[sendIMessage] Sending URL as separate message for rich preview:', standaloneUrl);
-      const payload2 = {
-        chatGuid: `iMessage;-;${address}`,
-        tempGuid: `crm-${Date.now()}-url`,
-        message: standaloneUrl,
-        method: 'private-api',
-      };
-      const resp2 = await fetch(sendUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-        body: JSON.stringify(payload2),
-      });
-      const raw2 = await resp2.text();
-      try { data2 = JSON.parse(raw2); } catch { data2 = { raw: raw2 }; }
-      if (!resp2.ok) {
-        console.warn('[sendIMessage] URL message send failed:', resp2.status, raw2?.slice(0, 200));
-      } else {
-        console.log('[sendIMessage] URL message sent successfully, GUID:', data2?.data?.guid);
-      }
-    }
-
     // Log the sent message to the conversation stream (best-effort).
-    // Combine both parts (text + URL) into one logical record.
     let logged = false;
     if (landlord_id) {
       const nowIso = new Date().toISOString();
-      const guid = data1?.data?.guid || null;
+      const guid = data?.data?.guid || null;
       try {
         await base44.entities.IMessage.create({
           landlord_id,
           direction: 'outbound',
           address,
-          body: messageBody, // Full combined body for the record
+          body: messageBody,
           status: 'sent',
           sent_at: nowIso,
           agent_email: user.email || null,
@@ -245,10 +207,9 @@ Deno.serve(async (req) => {
       success: true,
       address,
       logged,
-      guid: data1?.data?.guid || null,
-      urlMessageGuid: data2?.data?.guid || null,
-      splitSend: !!standaloneUrl,
+      guid: data?.data?.guid || null,
       shortUrl,
+      previewNote: 'OG tags served by static /public/u/*.html files — Apple scrapes these instantly',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
