@@ -11,14 +11,33 @@ function normalizeAddress(raw) {
 }
 
 // URL detection: matches http(s):// URLs and www. URLs.
-// Schemeless bare domains like "eruditeproperty.com" are intentionally NOT matched —
-// they stay as plain text in the signature block.
 const URL_RE = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/g;
 function findUrls(str) {
   return String(str).match(URL_RE) || [];
 }
 
-// Slug → destination map (mirrors pages/ShortLinkRedirect.jsx).
+// Fetch image and convert to base64 in chunks (avoids stack overflow)
+async function fetchImageAsBase64(url) {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const contentType = resp.headers.get('content-type') || 'image/png';
+    const arrayBuffer = await resp.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const CHUNK_SIZE = 0x8000;
+    let base64 = '';
+    for (let i = 0; i < uint8Array.length; i += CHUNK_SIZE) {
+      const chunk = uint8Array.subarray(i, i + CHUNK_SIZE);
+      base64 += btoa(String.fromCharCode(...chunk));
+    }
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('[fetchImageAsBase64] error:', error);
+    return null;
+  }
+}
+
+// Slug → destination map
 const SHORT_LINK_SLUGS = ['ahmad', 'linkedin'];
 
 Deno.serve(async (req) => {
@@ -36,10 +55,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Message text is required' }, { status: 400 });
     }
 
-    // Resolve the destination address. Priority:
-    //   1. explicit address from the caller
-    //   2. the resolved primary iMessage handle (resolveLandlordIMessage)
-    //   3. the landlord's phone / whatsapp (legacy fallback)
+    // Resolve destination address
     let landlord = null;
     if (landlord_id) {
       landlord = await base44.entities.Landlord.get(landlord_id).catch(() => null);
@@ -49,8 +65,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No destination address (phone or Apple ID) found' }, { status: 400 });
     }
 
-    // Graceful fallback signal: when the landlord has been resolved and NO handle is
-    // iMessage-available, tell the caller so the UI can route to WhatsApp/SMS instead.
+    // Fallback signal for no iMessage handle
     if (landlord && landlord.imessage_resolved_at && !landlord.imessage_handle && !body.address) {
       return Response.json({
         error: 'No iMessage-available handle for this landlord',
@@ -67,27 +82,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
-    // Pull the plain-text signature from CompanySettings (single source of truth).
+    // Get plain-text signature
     let signatureText = '';
     try {
       const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
       signatureText = settings?.[0]?.imessage_signature_text || '';
-    } catch (_) { /* signature is best-effort */ }
+    } catch (_) { /* best-effort */ }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // BODY ASSEMBLY: text → signature → single short URL (last element)
-    //
-    // iMessage renders a rich link preview ONLY when the body contains exactly
-    // ONE URL. We strip every URL from the agent's text, append the signature
-    // (plain text — no clickable URLs), then place the short URL on its own
-    // line as the LAST element so iMessage's Private API auto-scraper picks
-    // it up and renders the OG card served at /u/:slug.
-    // ──────────────────────────────────────────────────────────────────────
-
-    // 1. Start with the agent's message text.
+    // Build message body
     let messageBody = String(text).trim();
-
-    // 2. Strip ALL URLs from the message text.
     const urlsStripped = findUrls(messageBody);
     if (urlsStripped.length > 0) {
       messageBody = messageBody
@@ -95,32 +98,23 @@ Deno.serve(async (req) => {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
-      console.log('[sendIMessage] stripped URLs from text:', urlsStripped);
     }
 
-    // 3. Append the signature (plain text — no URLs in the signature block).
     if (signatureText && !body.skip_signature) {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
-    // 4. Construct the short URL and append it as the LAST element on its own line.
     let shortUrl = null;
     if (!body.skip_signature) {
-      const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug)
-        ? body.link_slug
-        : 'ahmad';
-      const fallbackOrigin =
-        req.headers.get('origin') ||
-        (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : new URL(req.url).origin);
+      const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug) ? body.link_slug : 'ahmad';
+      const fallbackOrigin = req.headers.get('origin') || (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : new URL(req.url).origin);
       const origin = appOrigin || fallbackOrigin;
       shortUrl = `${origin.replace(/\/+$/, '')}/u/${slug}`;
       messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
     }
 
-    // 5. Final URL count check — enforce exactly one URL.
     let finalUrls = findUrls(messageBody);
     if (finalUrls.length > 1) {
-      console.warn('[sendIMessage] WARNING: multiple URLs detected in final body! Stripping all but the short URL.');
       messageBody = messageBody
         .replace(URL_RE, (match) => (match === shortUrl ? match : ''))
         .replace(/[ \t]+\n/g, '\n')
@@ -128,20 +122,11 @@ Deno.serve(async (req) => {
         .trim();
       if (shortUrl) messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
     }
-    finalUrls = findUrls(messageBody);
 
-    // ── Logging ──
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
-    console.log('[sendIMessage] URL count:', finalUrls.length);
-    console.log('[sendIMessage] short URL:', shortUrl);
-    console.log('[sendIMessage] OG tags: served by static /public/u/*.html files (Apple scrapes these directly)');
+    console.log('[sendIMessage] URL count:', findUrls(messageBody).length);
 
-    // ── BlueBubbles Private API send-text ──
-    // Single message: text + signature + short URL (exactly one URL for iMessage to scrape).
-    // Note: ddScannerStrategy is NOT exposed through the BlueBubbles REST API.
-    // The Private API helper bundle can access it internally, but the REST endpoint
-    // doesn't accept it as a parameter. To enable it, you'd need to fork/modify the
-    // BlueBubbles server source and rebuild.
+    // Send text message via BlueBubbles
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
     const payload = {
       chatGuid: `iMessage;-;${address}`,
@@ -168,7 +153,46 @@ Deno.serve(async (req) => {
       }, { status: 502 });
     }
 
-    // Log the sent message to the conversation stream (best-effort).
+    // ── BANNER ATTACHMENT (first contact only) ──
+    let bannerSent = false;
+    if (landlord_id && !body.skip_banner && !landlord?.imessage_banner_sent) {
+      try {
+        const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
+        const bannerUrl = settings?.[0]?.signature_banner_url;
+        if (bannerUrl) {
+          console.log('[sendIMessage] fetching banner for attachment:', bannerUrl);
+          const bannerBase64 = await fetchImageAsBase64(bannerUrl);
+          if (bannerBase64) {
+            const attachUrl = `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`;
+            const attachPayload = {
+              chatGuid: `iMessage;-;${address}`,
+              tempGuid: `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              attachment: bannerBase64,
+              method: 'private-api',
+            };
+            const attachResp = await fetch(attachUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+              body: JSON.stringify(attachPayload),
+            });
+            if (attachResp.ok) {
+              bannerSent = true;
+              console.log('[sendIMessage] banner attached successfully');
+              await base44.entities.Landlord.update(landlord_id, { imessage_banner_sent: true });
+            } else {
+              const attachRaw = await attachResp.text();
+              console.warn('[sendIMessage] banner attach failed:', attachRaw.slice(0, 300));
+            }
+          }
+        } else {
+          console.warn('[sendIMessage] no signature_banner_url in CompanySettings');
+        }
+      } catch (bannerErr) {
+        console.error('[sendIMessage] banner attach error:', bannerErr);
+      }
+    }
+
+    // Log the message
     let logged = false;
     if (landlord_id) {
       const nowIso = new Date().toISOString();
@@ -185,10 +209,7 @@ Deno.serve(async (req) => {
           bb_guid: guid,
         });
         logged = true;
-      } catch (logErr) {
-        logged = false;
-      }
-      // Mirror into the unified Message entity so landlordOrchestrator sees outbound iMessages.
+      } catch (_) { logged = false; }
       try {
         await base44.asServiceRole.entities.Message.create({
           landlord_id,
@@ -200,7 +221,7 @@ Deno.serve(async (req) => {
           channel: 'imessage',
           wa_message_id: guid || undefined,
         });
-      } catch (_) { /* best-effort mirror */ }
+      } catch (_) { /* best-effort */ }
     }
 
     return Response.json({
@@ -209,6 +230,7 @@ Deno.serve(async (req) => {
       logged,
       guid: data?.data?.guid || null,
       shortUrl,
+      bannerSent,
       previewNote: 'OG tags served by static /public/u/*.html files — Apple scrapes these instantly',
     });
   } catch (error) {

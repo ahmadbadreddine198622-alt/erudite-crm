@@ -629,6 +629,11 @@
       "format": "date-time",
       "description": "When resolveLandlordIMessage last derived and checked all handles"
     },
+    "imessage_banner_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the branded signature banner has been sent to this landlord via iMessage. Prevents duplicate banner attachments on subsequent messages."
+    },
     "telegram_chat_id": {
       "type": "string",
       "description": "Telegram numeric chat_id \u2014 set after the landlord starts a chat with the bot. Default send target for Telegram. Empty when not connected."
