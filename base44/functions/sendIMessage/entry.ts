@@ -4,12 +4,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 function normalizeAddress(raw) {
   if (!raw) return '';
   const trimmed = String(raw).trim();
-  // Email address (iMessage to Apple ID) — pass through as-is.
   if (trimmed.includes('@')) return trimmed;
   let digits = trimmed.replace(/[^\d+]/g, '');
   if (!digits.startsWith('+')) digits = '+' + digits;
   return digits;
 }
+
+// URL detection: matches http(s):// URLs and www. URLs.
+// Schemeless bare domains like "eruditeproperty.com" are intentionally NOT matched —
+// they stay as plain text in the signature block.
+const URL_RE = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/g;
+function findUrls(str) {
+  return String(str).match(URL_RE) || [];
+}
+
+// Slug → destination map (mirrors pages/ShortLinkRedirect.jsx).
+const SHORT_LINK_SLUGS = ['ahmad', 'linkedin'];
 
 Deno.serve(async (req) => {
   try {
@@ -56,61 +66,84 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
-    // Pull the plain-text signature + banner URL from CompanySettings (single source of truth).
+    // Pull the plain-text signature from CompanySettings (single source of truth).
     let signatureText = '';
-    let bannerUrl = '';
     try {
       const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
       signatureText = settings?.[0]?.imessage_signature_text || '';
-      bannerUrl = settings?.[0]?.signature_banner_url || '';
-    } catch (_) { /* signature/banner are best-effort */ }
+    } catch (_) { /* signature is best-effort */ }
 
-    // ── Build the body: text → optional link → signature ──
-    // The link is inserted exactly ONCE. If the caller passes an explicit `link` field,
-    // or if the banner URL is available, we append it inline (before the signature) — but
-    // ONLY if it doesn't already appear in the message text. This prevents the
-    // "URLURL" duplication bug where the same link appears twice.
+    // ──────────────────────────────────────────────────────────────────────
+    // BODY ASSEMBLY: text → signature → single short URL (last element)
+    //
+    // iMessage renders a rich link preview ONLY when the body contains exactly
+    // ONE URL. We strip every URL from the agent's text, append the signature
+    // (plain text — no clickable URLs), then place the short URL on its own
+    // line as the LAST element so iMessage's Private API auto-scraper picks
+    // it up and renders the OG card served at /u/:slug.
+    // ──────────────────────────────────────────────────────────────────────
+
+    // 1. Start with the agent's message text.
     let messageBody = String(text).trim();
 
-    // Resolve the link to append (explicit link > banner URL). Validate with new URL().
-    let linkToAppend = null;
-    const candidateLink = body.link || bannerUrl || '';
-    if (candidateLink && !body.skip_signature) {
-      const trimmedLink = String(candidateLink).trim();
-      try {
-        const parsed = new URL(trimmedLink);
-        linkToAppend = parsed.toString(); // normalised
-      } catch (_) {
-        // Invalid URL — abort the send instead of pushing a malformed link.
-        return Response.json({
-          error: 'Invalid link URL — aborting send to prevent malformed message',
-          invalid_url: trimmedLink,
-        }, { status: 400 });
-      }
+    // 2. Strip ALL URLs from the message text.
+    const urlsStripped = findUrls(messageBody);
+    if (urlsStripped.length > 0) {
+      messageBody = messageBody
+        .replace(URL_RE, '')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      console.log('[sendIMessage] stripped URLs from text:', urlsStripped);
     }
 
-    // Guard: only append the link if it is NOT already contained in the message text.
-    if (linkToAppend && !messageBody.includes(linkToAppend)) {
-      messageBody = messageBody + '\n' + linkToAppend;
-    }
-
-    // Append the signature (guard against double-stamping).
-    if (signatureText && !body.skip_signature && !messageBody.trimEnd().endsWith(signatureText.trimEnd())) {
+    // 3. Append the signature (plain text — no URLs in the signature block).
+    if (signatureText && !body.skip_signature) {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
-    // Log the final body so we can verify the URL appears exactly once.
+    // 4. Construct the short URL and append it as the LAST element on its own line.
+    let shortUrl = null;
+    if (!body.skip_signature) {
+      const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug)
+        ? body.link_slug
+        : 'ahmad';
+      const appOrigin =
+        req.headers.get('origin') ||
+        (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : new URL(req.url).origin);
+      shortUrl = `${appOrigin.replace(/\/+$/, '')}/u/${slug}`;
+      messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
+    }
+
+    // 5. Final URL count check — enforce exactly one URL.
+    let finalUrls = findUrls(messageBody);
+    if (finalUrls.length > 1) {
+      console.warn('[sendIMessage] WARNING: multiple URLs detected in final body! Stripping all but the short URL.');
+      messageBody = messageBody
+        .replace(URL_RE, (match) => (match === shortUrl ? match : ''))
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      if (shortUrl) messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
+    }
+    finalUrls = findUrls(messageBody);
+
+    // ── Logging ──
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
-    console.log('[sendIMessage] linkToAppend:', linkToAppend, '| already in text:', linkToAppend ? messageBody.includes(linkToAppend) : 'n/a');
+    console.log('[sendIMessage] URL count:', finalUrls.length);
+    console.log('[sendIMessage] URLs:', finalUrls);
+    console.log('[sendIMessage] short URL:', shortUrl);
+    console.log(
+      '[sendIMessage] preview metadata: not attached via payload — BlueBubbles REST API has no rich-link field; ' +
+        'relying on Private API auto-scraping of the single URL. OG tags served by index.html at /u/:slug'
+    );
 
-    // First-contact detection: send the branded banner only on the FIRST outbound iMessage to
-    // this address. Subsequent messages are text + signature only.
-    // NOTE: the banner is now appended INLINE (above), so we no longer send it as a separate
-    // bare-URL message — that was the source of the duplication.
-    let isFirstContact = false;
-
-    // BlueBubbles Private API send-text endpoint.
-    const url = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
+    // ── BlueBubbles Private API send-text ──
+    // The BlueBubbles REST API /api/v1/message/text endpoint does NOT support an
+    // explicit rich-link / preview-metadata field. With method: 'private-api',
+    // iMessage auto-scrapes the single URL in the body and renders a preview
+    // using the OG tags from the target page.
+    const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
     const payload = {
       chatGuid: `iMessage;-;${address}`,
       tempGuid: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -118,7 +151,7 @@ Deno.serve(async (req) => {
       method: 'private-api',
     };
 
-    const resp = await fetch(url, {
+    const resp = await fetch(sendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
       body: JSON.stringify(payload),
@@ -135,10 +168,6 @@ Deno.serve(async (req) => {
         detail: data?.message || data?.error?.message || raw?.slice(0, 500),
       }, { status: 502 });
     }
-
-    // Banner is now appended inline to the body (above), not sent as a separate message.
-    // The old separate-bare-URL approach caused the "URLURL" duplication bug.
-    const bannerSent = false;
 
     // Log the sent message to the conversation stream (best-effort).
     let logged = false;
@@ -160,9 +189,7 @@ Deno.serve(async (req) => {
       } catch (logErr) {
         logged = false;
       }
-      // Mirror into the unified Message entity (direction 'outgoing') so landlordOrchestrator — which
-      // reads conversation history ONLY from Message — sees outbound iMessages, exactly as
-      // sendMultiChannelWhatsApp does for WhatsApp. Best-effort; never blocks the send response.
+      // Mirror into the unified Message entity so landlordOrchestrator sees outbound iMessages.
       try {
         await base44.asServiceRole.entities.Message.create({
           landlord_id,
@@ -177,7 +204,15 @@ Deno.serve(async (req) => {
       } catch (_) { /* best-effort mirror */ }
     }
 
-    return Response.json({ success: true, address, logged, bannerSent, firstContact: isFirstContact, guid: data?.data?.guid || null });
+    return Response.json({
+      success: true,
+      address,
+      logged,
+      guid: data?.data?.guid || null,
+      urlCount: finalUrls.length,
+      shortUrl,
+      previewAttached: false, // BlueBubbles REST API has no rich-link field; relies on Private API auto-scraping
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
