@@ -243,19 +243,7 @@ export default function EruditeSplashScreen() {
           />
         </div>
 
-        {/* Footer — date display */}
-        <div
-          style={{
-            fontSize: 9.5,
-            fontWeight: 600,
-            fontFamily: "'Montserrat', 'Inter', -apple-system, sans-serif",
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'rgba(201,161,74,0.55)',
-          }}
-        >
-          {dateStr}
-        </div>
+
       </div>
 
       {/* CSS Animations */}
