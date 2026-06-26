@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   RefreshCw, Bed, Bath, Ruler, Filter, ExternalLink,
-  FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, CheckCircle2
+  FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import jsPDF from 'npm:jspdf@4.0.0';
+import PFListingActions from '@/components/propertyfinder/PFListingActions';
+import PFAddListingDialog from '@/components/propertyfinder/PFAddListingDialog';
 
 const GOLD = '#c9a85c';
 const GREEN = '#3fcf8e';
@@ -258,7 +260,7 @@ async function loadImageAsDataURL(url) {
   });
 }
 
-function ListingCard({ listing }) {
+function ListingCard({ listing, onRefresh }) {
   const img = listing.images?.[0];
   const isLive = listing.status === 'active';
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
@@ -322,6 +324,7 @@ function ListingCard({ listing }) {
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
+            <PFListingActions listing={listing} onRefresh={onRefresh} />
           </div>
         </div>
       </div>
@@ -332,6 +335,7 @@ function ListingCard({ listing }) {
 export default function PFListingsGrid() {
   const queryClient = useQueryClient();
   const [statusTab, setStatusTab] = useState('live');
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [fPurpose, setFPurpose] = useState(null);
@@ -490,6 +494,14 @@ export default function PFListingsGrid() {
             </span>
           )}
           <button
+            onClick={() => setShowAddDialog(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+            style={{ background: 'rgba(201,168,92,0.15)', color: GOLD, border: '1px solid rgba(201,168,92,0.35)' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add New
+          </button>
+          <button
             onClick={runSync}
             disabled={syncState === 'syncing'}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50"
@@ -576,7 +588,7 @@ export default function PFListingsGrid() {
             </div>
           ) : (
             <div className="space-y-3">
-              {paginated.map(l => <ListingCard key={l.id} listing={l} />)}
+              {paginated.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} />)}
 
               {/* Fallback section */}
               {latestFallback.length > 0 && (
@@ -586,7 +598,7 @@ export default function PFListingsGrid() {
                     <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>Latest listings</span>
                     <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
                   </div>
-                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} />)}
+                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} />)}
                 </>
               )}
 
@@ -628,6 +640,13 @@ export default function PFListingsGrid() {
             </div>
           )}
         </>
+      )}
+
+      {showAddDialog && (
+        <PFAddListingDialog
+          onClose={() => setShowAddDialog(false)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })}
+        />
       )}
     </div>
   );
