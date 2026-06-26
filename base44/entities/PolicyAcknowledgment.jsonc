@@ -31,6 +31,11 @@
     "agent_brn": {
       "type": "string",
       "description": "Agent BRN (RERA Broker Registration Number)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this policy acknowledgment (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

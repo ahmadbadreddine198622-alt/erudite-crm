@@ -31,6 +31,11 @@
       "type": "string",
       "format": "date-time",
       "description": "When the comment was created"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this photography comment (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

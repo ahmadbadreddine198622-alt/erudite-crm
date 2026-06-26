@@ -9,7 +9,7 @@
     "captured_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When this snapshot row was written (= the closingDealOrchestrator run time)"
+      "description": "When this snapshot row was written"
     },
     "stage": {
       "type": "string"
@@ -21,6 +21,11 @@
     "ai_predicted_close_date": {
       "type": "string",
       "description": "ISO date the deal is predicted to reach complete at this run (null if too uncertain)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this closing deal score snapshot (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

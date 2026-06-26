@@ -29,6 +29,11 @@
     "raw_payload": {
       "type": "object",
       "description": "Full raw webhook payload for debugging/replay"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this webhook dead letter entry (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

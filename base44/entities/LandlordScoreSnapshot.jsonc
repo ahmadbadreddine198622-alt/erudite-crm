@@ -54,7 +54,15 @@
     },
     "review_reason": {
       "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this landlord score snapshot (max 1000 chars)",
+      "maxLength": 1000
     }
   },
-  "required": ["landlord_id", "captured_at"]
+  "required": [
+    "landlord_id",
+    "captured_at"
+  ]
 }

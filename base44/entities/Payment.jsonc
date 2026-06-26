@@ -25,6 +25,11 @@
     "reference": {
       "type": "string",
       "description": "Optional payment reference / transaction ID"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this payment (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

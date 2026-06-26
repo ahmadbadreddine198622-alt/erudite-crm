@@ -13,7 +13,7 @@
     "captured_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When this snapshot row was written (= the calculateLeadScore run time)"
+      "description": "When this snapshot row was written"
     },
     "overall_score": {
       "type": "number"
@@ -41,6 +41,11 @@
       "items": {
         "type": "string"
       }
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this lead score snapshot (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

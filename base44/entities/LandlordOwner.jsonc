@@ -49,6 +49,11 @@
         "passport"
       ],
       "description": "Which document type filled this record"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this landlord owner (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [
