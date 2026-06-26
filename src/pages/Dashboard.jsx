@@ -18,7 +18,6 @@ import AudioWaveform from '@/components/shared/AudioWaveform';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
 import EruditeLogo from '@/components/erudite/EruditeLogo';
 import IOSLockScreenClock from '@/components/dashboard/IOSLockScreenClock';
 import { Brain, Zap } from 'lucide-react';
@@ -292,13 +291,8 @@ export default function Dashboard() {
       }}
     >
       {/* ERUDITE Logo - Premium Brand Identity */}
-      <div className="w-full flex justify-center mb-3" style={{ transformOrigin: 'top center', animation: 'logoEntrance 1.2s ease-out both' }}>
+      <div className="w-full flex justify-center mb-4" style={{ transformOrigin: 'top center', animation: 'logoEntrance 1.2s ease-out both' }}>
         <EruditeLogo size="medium" />
-      </div>
-
-      {/* Compact Hero Banner */}
-      <div className="w-full max-w-6xl mx-auto mb-2" style={{ transformOrigin: 'top center' }}>
-        <EruditeHeroBanner />
       </div>
 
       {/* iOS Lock-Screen Style Clock — centered under logo */}
