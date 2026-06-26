@@ -7,16 +7,27 @@ import React, { useEffect, useState } from 'react';
  */
 export default function EruditeSplashScreen() {
   const [mounted, setMounted] = useState(false);
-  const [dateStr, setDateStr] = useState('');
+  const [dateTime, setDateTime] = useState({ time: '', seconds: '', date: '' });
 
   useEffect(() => {
     setMounted(true);
-    // Format: "FRI · JUN 26"
-    const now = new Date();
-    const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-    const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-    const dayNum = now.getDate();
-    setDateStr(`${dayName} · ${month} ${dayNum}`);
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const dayName = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+      const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+      const dayNum = now.getDate();
+      setDateTime({
+        time: `${hours}:${minutes}`,
+        seconds,
+        date: `${dayName} - ${month} ${dayNum}`,
+      });
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!mounted) return null;
@@ -150,9 +161,9 @@ export default function EruditeSplashScreen() {
 
         {/* ERUDITE wordmark — high-contrast serif display */}
         <h1
-          className="mb-2"
+          className="mb-1"
           style={{
-            fontSize: 26,
+            fontSize: 28,
             fontWeight: 600,
             fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
             background: 'linear-gradient(180deg, #F5E6B8 0%, #C9A14A 35%, #8A6D2F 65%, #C9A14A 100%)',
@@ -160,7 +171,7 @@ export default function EruditeSplashScreen() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            letterSpacing: '0.15em',
+            letterSpacing: '0.18em',
             lineHeight: 1,
             textShadow: '0 2px 6px rgba(201,161,74,0.18)',
             animation: 'wordmarkShimmer 10s ease-in-out infinite',
@@ -171,7 +182,7 @@ export default function EruditeSplashScreen() {
 
         {/* Subtitle with flanking hairline rules */}
         <div
-          className="flex items-center gap-2 mb-3"
+          className="flex items-center gap-2 mb-4"
           style={{
             width: '100%',
           }}
@@ -185,16 +196,16 @@ export default function EruditeSplashScreen() {
           />
           <span
             style={{
-              fontSize: 6.5,
-              fontWeight: 300,
-              fontFamily: "'Montserrat', 'Inter', -apple-system, sans-serif",
+              fontSize: 7,
+              fontWeight: 400,
+              fontFamily: "'Inter', -apple-system, sans-serif",
               textTransform: 'uppercase',
-              letterSpacing: '0.35em',
-              color: 'rgba(201,161,74,0.6)',
+              letterSpacing: '0.4em',
+              color: 'rgba(201,161,74,0.7)',
               whiteSpace: 'nowrap',
             }}
           >
-            Real Estate CRM
+            REAL ESTATE CRM
           </span>
           <div
             style={{
@@ -205,45 +216,52 @@ export default function EruditeSplashScreen() {
           />
         </div>
 
-        {/* Ornamental divider — two lines meeting diamond/star */}
+        {/* Digital Clock Display — Large modern time */}
         <div
-          className="flex items-center gap-2 mb-3"
+          className="flex items-end gap-1 mb-2"
           style={{
-            opacity: 0.7,
-            animation: 'dividerPulse 8s ease-in-out infinite',
+            animation: 'clockFadeIn 1s ease-out',
           }}
         >
-          <div
+          <span
             style={{
-              width: 28,
-              height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(201,161,74,0.3))',
-            }}
-          />
-          {/* 4-point diamond/sparkle star */}
-          <svg
-            width="5"
-            height="5"
-            viewBox="0 0 8 8"
-            fill="none"
-            style={{
-              filter: 'drop-shadow(0 0 2px rgba(201,161,74,0.35))',
+              fontSize: 42,
+              fontWeight: 200,
+              fontFamily: "'SF Mono', 'Monaco', 'Courier New', monospace",
+              color: 'rgba(255,255,255,0.95)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
             }}
           >
-            <path
-              d="M4 0 L5 3 L8 4 L5 5 L4 8 L3 5 L0 4 L3 3 Z"
-              fill="url(#splashGoldGradient)"
-              opacity="0.7"
-            />
-          </svg>
-          <div
+            {dateTime.time}
+          </span>
+          <span
             style={{
-              width: 28,
-              height: 1,
-              background: 'linear-gradient(90deg, rgba(201,161,74,0.3), transparent)',
+              fontSize: 20,
+              fontWeight: 300,
+              fontFamily: "'SF Mono', 'Monaco', 'Courier New', monospace",
+              color: 'rgba(201,161,74,0.8)',
+              lineHeight: 1,
+              marginBottom: 4,
             }}
-          />
+          >
+            {dateTime.seconds}
+          </span>
         </div>
+
+        {/* Date display */}
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 400,
+            fontFamily: "'Inter', -apple-system, sans-serif",
+            color: 'rgba(255,255,255,0.5)',
+            letterSpacing: '0.08em',
+            marginTop: 2,
+          }}
+        >
+          {dateTime.date}
+        </p>
 
 
       </div>
@@ -255,13 +273,13 @@ export default function EruditeSplashScreen() {
             transform: translateY(0) rotateX(0deg) rotateY(0deg);
           }
           25% {
-            transform: translateY(-4px) rotateX(1deg) rotateY(-1deg);
+            transform: translateY(-3px) rotateX(0.5deg) rotateY(-0.5deg);
           }
           50% {
             transform: translateY(0) rotateX(0deg) rotateY(0deg);
           }
           75% {
-            transform: translateY(-4px) rotateX(-1deg) rotateY(1deg);
+            transform: translateY(-3px) rotateX(-0.5deg) rotateY(0.5deg);
           }
         }
         @keyframes glyphBreathe {
@@ -270,7 +288,7 @@ export default function EruditeSplashScreen() {
             opacity: 0.95;
           }
           50% {
-            transform: scale(1.03);
+            transform: scale(1.02);
             opacity: 1;
           }
         }
@@ -284,12 +302,14 @@ export default function EruditeSplashScreen() {
             filter: drop-shadow(0 3px 12px rgba(201,161,74,0.4));
           }
         }
-        @keyframes dividerPulse {
-          0%, 100% {
-            opacity: 0.7;
+        @keyframes clockFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(4px);
           }
-          50% {
-            opacity: 0.9;
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
       `}</style>

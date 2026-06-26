@@ -94,13 +94,13 @@ function FolderThumbnail({ apps }) {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '4px',
-        padding: '5px',
-        width: '72px',
-        height: '72px',
-        borderRadius: '12px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        gap: '3px',
+        padding: '4px',
+        width: '68px',
+        height: '68px',
+        borderRadius: '10px',
+        background: 'rgba(15,20,30,0.5)',
+        border: '1px solid rgba(255,255,255,0.05)',
         boxSizing: 'border-box',
         WebkitBoxSizing: 'border-box',
       }}
@@ -237,26 +237,26 @@ function FolderTile({ folder, badges, onOpen }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Tile - refined glass card - COMPACT */}
+      {/* Tile - minimalist dark card */}
       <div
-        className="relative rounded-[14px] p-2 flex flex-col items-center justify-center gap-1.5"
+        className="relative rounded-2xl p-3 flex flex-col items-center justify-center gap-2"
         style={{
           width: '100%',
-          minHeight: '96px',
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          minHeight: '104px',
+          background: 'rgba(22,29,43,0.9)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-          e.currentTarget.style.borderColor = 'rgba(201,162,75,0.25)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.background = 'rgba(22,29,43,1)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+          e.currentTarget.style.background = 'rgba(22,29,43,0.9)';
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
           e.currentTarget.style.transform = 'translateY(0)';
         }}
@@ -264,7 +264,7 @@ function FolderTile({ folder, badges, onOpen }) {
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
-            className="absolute -top-0.5 -right-0.5 z-10 min-w-[16px] h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold px-0.5 shadow-lg"
+            className="absolute top-2 right-2 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
             style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
@@ -272,13 +272,13 @@ function FolderTile({ folder, badges, onOpen }) {
         )}
         <FolderThumbnail apps={folder.apps} />
       </div>
-      {/* Label - COMPACT */}
+      {/* Label */}
       <span
-        className="text-[9px] text-center font-semibold mt-1"
+        className="text-[10px] text-center font-medium mt-1.5"
         style={{
           fontFamily: 'var(--font-sans)',
-          color: 'rgba(255,255,255,0.75)',
-          letterSpacing: '0.02em',
+          color: 'rgba(255,255,255,0.7)',
+          letterSpacing: '0.03em',
           lineHeight: '1.2',
         }}
       >

@@ -291,83 +291,40 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
-      {/* Luxury Splash Screen — centered premium card */}
-      <div className="w-full max-w-2xl mx-auto mb-6" style={{ transformOrigin: 'top center' }}>
+      {/* Luxury Splash Screen — centered premium card with integrated clock */}
+      <div className="w-full max-w-2xl mx-auto mb-10" style={{ transformOrigin: 'top center' }}>
         <EruditeSplashScreen />
       </div>
 
-      {/* iOS Lock-Screen Style Clock — centered under splash */}
-      <IOSLockScreenClock />
-
-      {/* Luxe Search Bar with Motivational Quote - Full Width Premium Design with Continuous Motion */}
-      <div className="relative mb-5 w-full max-w-6xl mx-auto">
-        {/* Outer glow ring - animated breathing */}
-        <div
-          className="absolute inset-0 rounded-full blur-xl"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.15) 0%, transparent 70%)',
-            transform: 'scale(1.02)',
-            animation: 'searchBarBreathe 6s ease-in-out infinite',
-          }}
-        />
-        {/* Main search container - continuous elegant motion */}
+      {/* Minimalist Search Bar — pill-shaped with quote placeholder */}
+      <div className="relative mb-8 w-full max-w-3xl mx-auto">
         <div
           className="relative rounded-full overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(15,28,48,0.95) 0%, rgba(10,22,40,0.9) 100%)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(212,175,55,0.35)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px rgba(212,175,55,0.08)',
-            animation: 'searchBarFloat 10s ease-in-out infinite',
+            background: 'rgba(22,29,43,0.6)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
           }}
         >
-          <div className="flex items-center">
-            {/* Left search icon with luxury container - animated glow */}
-            <div className="pl-5 pr-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)',
-                  border: '1px solid rgba(212,175,55,0.4)',
-                  boxShadow: '0 2px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-                  animation: 'iconGlow 5s ease-in-out infinite',
-                }}
-              >
-                <Search className="w-4 h-4" style={{ color: '#D4AF37' }} />
-              </div>
-            </div>
-            {/* Input field with animated white text - continuous motivational flow */}
+          <div className="flex items-center px-5 py-3.5">
+            <Search className="w-4 h-4 mr-3" style={{ color: 'rgba(255,255,255,0.4)' }} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={search ? '' : QUOTES[quoteIndex]}
-              className="flex-1 py-4 text-sm focus:outline-none bg-transparent"
+              className="flex-1 text-sm focus:outline-none bg-transparent"
               style={{
-                color: 'rgba(255,255,255,0.95)',
-                fontSize: '14px',
+                color: 'rgba(255,255,255,0.9)',
+                fontSize: '13px',
                 fontStyle: search ? 'normal' : 'italic',
-                letterSpacing: search ? '0.01em' : '0.02em',
-                textShadow: '0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1)',
-                animation: search ? 'none' : 'motivationalFlow 12s ease-in-out infinite',
+                letterSpacing: '0.01em',
               }}
             />
-            {/* Right decorative icon - animated pulse */}
             {!search && (
-              <div className="pr-5 pl-3">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(184,141,60,0.1) 100%)',
-                    border: '1px solid rgba(212,175,55,0.3)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
-                    animation: 'iconGlow 5s ease-in-out infinite 0.5s',
-                  }}
-                >
-                  <Search className="w-3.5 h-3.5" style={{ color: '#C5A059' }} />
-                </div>
-              </div>
+              <Search className="w-4 h-4 ml-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
             )}
           </div>
         </div>
@@ -485,143 +442,36 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Luxe KPI Strip - Premium Gold & Dark Navy - COMPACT MOBILE */}
-      <div
-        className="grid grid-cols-4 w-full max-w-6xl mx-auto gap-2 mb-4"
-        style={{}}
-      >
-        {/* Active Leads */}
-        <button
-          onClick={() => navigate('/leads')}
-          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(212,175,55,0.25)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          }}
-        >
-          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
-            <Users className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
-          </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Active</p>
-        </button>
-
-        {/* Reminders */}
-        <button
-          onClick={() => navigate('/reminders')}
-          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(212,175,55,0.25)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          }}
-        >
-          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
-            <Bell className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
-          </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.3s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Reminders</p>
-        </button>
-
-        {/* Unread */}
-        <button
-          onClick={() => navigate('/whatsapp')}
-          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(212,175,55,0.25)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(212,175,55,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          }}
-        >
-          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.35)', boxShadow: '0 2px 8px rgba(212,175,55,0.2)' }}>
-            <MessageCircle className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
-          </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#D4AF37', lineHeight: 1, textShadow: '0 1px 8px rgba(212,175,55,0.4)' }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.6s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Unread</p>
-        </button>
-
-        {/* Hot Leads */}
-        <button
-          onClick={() => navigate('/leads')}
-          className="group relative flex flex-col items-center justify-center py-4 px-3 transition-all duration-300 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(52,211,153,0.25)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(20,35,58,0.9) 0%, rgba(15,28,48,0.85) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(52,211,153,0.5)';
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), 0 0 24px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.1)';
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(15,28,48,0.8) 0%, rgba(10,22,40,0.7) 100%)';
-            e.currentTarget.style.borderColor = 'rgba(52,211,153,0.25)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          }}
-        >
-          <div className="flex items-center justify-center mb-1" style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(16,185,129,0.15) 100%)', border: '1px solid rgba(52,211,153,0.35)', boxShadow: '0 2px 8px rgba(52,211,153,0.2)' }}>
-            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#34D399' }} />
-          </div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: '#34D399', lineHeight: 1, textShadow: '0 1px 8px rgba(52,211,153,0.4)' }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-0.5" style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.5)', animation: 'whiteFloat 4s ease-in-out infinite 0.9s', textShadow: '0 0 8px rgba(255,255,255,0.15)' }}>Hot</p>
-        </button>
+      {/* Minimalist Metric Cards — clean dark cards with gold accents */}
+      <div className="grid grid-cols-4 w-full max-w-4xl mx-auto gap-3 mb-10">
+        {[
+          { label: 'ACTIVE', value: badges.leads, icon: Users, color: '#C5A059', onClick: () => navigate('/leads') },
+          { label: 'REMINDERS', value: badges.reminders, icon: Bell, color: '#C5A059', onClick: () => navigate('/reminders') },
+          { label: 'UNREAD', value: badges.whatsapp, icon: MessageCircle, color: '#C5A059', onClick: () => navigate('/whatsapp') },
+          { label: 'HOT', value: hotLeads, icon: TrendingUp, color: '#10B981', onClick: () => navigate('/leads') },
+        ].map((metric, i) => (
+          <button
+            key={i}
+            onClick={metric.onClick}
+            className="flex flex-col items-center p-4 rounded-2xl transition-all hover:scale-105"
+            style={{
+              background: 'rgba(22,29,43,0.8)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}
+          >
+            <metric.icon className="mb-2" style={{ width: 20, height: 20, color: metric.color }} />
+            <p className="text-2xl font-light mb-1" style={{ color: metric.color, fontFamily: "'SF Mono', monospace" }}>{metric.value}</p>
+            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>{metric.label}</p>
+          </button>
+        ))}
       </div>
 
-      {/* WORKSPACES section header - Premium Gold Divider - COMPACT */}
-      <div className="w-full max-w-6xl mx-auto mb-2">
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.3), rgba(212,175,55,0.5))' }} />
-          <span className="text-[9px] uppercase font-bold tracking-[0.2em]" style={{ color: '#FFFFFF', textShadow: '0 0 15px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)', animation: 'whitePulse 5s ease-in-out infinite', letterSpacing: '0.2em' }}>Workspaces</span>
-          <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.5), rgba(212,175,55,0.3), transparent)' }} />
-        </div>
+      {/* WORKSPACES section header — minimalist */}
+      <div className="w-full max-w-5xl mx-auto mb-4">
+        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+          Workspaces
+        </p>
       </div>
 
 
@@ -745,95 +595,7 @@ export default function Dashboard() {
         />
       )}
 
-      {/* White Text Motion Animations - Continuous Motivational System */}
-      <style>{`
-        @keyframes whiteGlow {
-          0%, 100% { opacity: 0.85; text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1); }
-          50% { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,255,255,0.2); }
-        }
-        @keyframes whiteFloat {
-          0%, 100% { transform: translateY(0); opacity: 0.5; }
-          50% { transform: translateY(-1.5px); opacity: 0.75; }
-        }
-        @keyframes whitePulse {
-          0%, 100% { opacity: 0.85; text-shadow: 0 0 25px rgba(255,255,255,0.5), 0 0 50px rgba(255,255,255,0.25); }
-          50% { opacity: 1; text-shadow: 0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4); }
-        }
-        @keyframes whiteShimmer {
-          0% { background-position: -200% center; opacity: 0.6; }
-          50% { opacity: 0.95; }
-          100% { background-position: 200% center; opacity: 0.6; }
-        }
-        @keyframes searchBarBreathe {
-          0%, 100% { 
-            opacity: 0.25; 
-            transform: scale(1.02);
-          }
-          50% { 
-            opacity: 0.4; 
-            transform: scale(1.04);
-          }
-        }
-        @keyframes searchBarFloat {
-          0%, 100% { 
-            transform: translateY(0) scale(1);
-            border-color: rgba(212,175,55,0.35);
-            boxShadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px rgba(212,175,55,0.08);
-          }
-          25% { 
-            transform: translateY(-2px) scale(1.005);
-            border-color: rgba(212,175,55,0.45);
-            boxShadow: 0 10px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 50px rgba(212,175,55,0.12);
-          }
-          50% { 
-            transform: translateY(0) scale(1);
-            border-color: rgba(212,175,55,0.5);
-            boxShadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12), 0 0 60px rgba(212,175,55,0.15);
-          }
-          75% { 
-            transform: translateY(2px) scale(0.998);
-            border-color: rgba(212,175,55,0.4);
-            boxShadow: 0 10px 36px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 50px rgba(212,175,55,0.12);
-          }
-        }
-        @keyframes motivationalFlow {
-          0%, 100% { 
-            opacity: 0.85;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.1);
-            transform: translateX(0);
-          }
-          20% { 
-            opacity: 0.92;
-            text-shadow: 0 0 28px rgba(255,255,255,0.4), 0 0 55px rgba(255,255,255,0.18);
-            transform: translateX(2px);
-          }
-          40% { 
-            opacity: 1;
-            text-shadow: 0 0 35px rgba(255,255,255,0.5), 0 0 70px rgba(255,255,255,0.25);
-            transform: translateX(0);
-          }
-          60% { 
-            opacity: 0.95;
-            text-shadow: 0 0 30px rgba(255,255,255,0.45), 0 0 60px rgba(255,255,255,0.2);
-            transform: translateX(-2px);
-          }
-          80% { 
-            opacity: 0.9;
-            text-shadow: 0 0 25px rgba(255,255,255,0.35), 0 0 50px rgba(255,255,255,0.15);
-            transform: translateX(1px);
-          }
-        }
-        @keyframes iconGlow {
-          0%, 100% { 
-            box-shadow: 0 2px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
-            transform: scale(1);
-          }
-          50% { 
-            box-shadow: 0 4px 18px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
-            transform: scale(1.05);
-          }
-        }
-      `}</style>
+
     </div>
   );
 }
