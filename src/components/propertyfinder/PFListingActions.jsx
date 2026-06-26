@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, EyeOff, Loader2, X, AlertTriangle, Send, Check } from 'lucide-react';
+import { Mail, EyeOff, Loader2, X, AlertTriangle, Send, Check, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -18,15 +18,15 @@ function UnpublishDialog({ listing, onClose, onSuccess }) {
       });
       if (res.data?.ok) {
         toast.success('Listing unpublished from Property Finder');
+        onClose();
         onSuccess();
       } else {
         toast.error(res.data?.error || 'Unpublish failed');
+        setLoading(false);
       }
     } catch (err) {
       toast.error(err.message || 'Unpublish failed');
-    } finally {
       setLoading(false);
-      onClose();
     }
   };
 
@@ -185,7 +185,7 @@ function EmailDialog({ listing, onClose }) {
 }
 
 // ── Exported action buttons component ──────────────────────────────────────
-export default function PFListingActions({ listing, onRefresh }) {
+export default function PFListingActions({ listing, onRefresh, onEdit }) {
   const [showEmail, setShowEmail] = useState(false);
   const [showUnpublish, setShowUnpublish] = useState(false);
   const isLive = listing.status === 'active';
@@ -193,6 +193,16 @@ export default function PFListingActions({ listing, onRefresh }) {
   return (
     <>
       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+        {/* Edit */}
+        <button
+          onClick={() => onEdit?.(listing)}
+          title="Edit listing"
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+          style={{ border: `1px solid rgba(201,168,92,0.35)`, color: GOLD, background: 'transparent' }}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+
         {/* Email */}
         <button
           onClick={() => setShowEmail(true)}

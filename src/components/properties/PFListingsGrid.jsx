@@ -260,7 +260,7 @@ async function loadImageAsDataURL(url) {
   });
 }
 
-function ListingCard({ listing, onRefresh }) {
+function ListingCard({ listing, onRefresh, onEdit }) {
   const img = listing.images?.[0];
   const isLive = listing.status === 'active';
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
@@ -324,7 +324,7 @@ function ListingCard({ listing, onRefresh }) {
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
-            <PFListingActions listing={listing} onRefresh={onRefresh} />
+            <PFListingActions listing={listing} onRefresh={onRefresh} onEdit={onEdit} />
           </div>
         </div>
       </div>
@@ -336,6 +336,7 @@ export default function PFListingsGrid() {
   const queryClient = useQueryClient();
   const [statusTab, setStatusTab] = useState('live');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editListing, setEditListing] = useState(null);
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [fPurpose, setFPurpose] = useState(null);
@@ -588,7 +589,7 @@ export default function PFListingsGrid() {
             </div>
           ) : (
             <div className="space-y-3">
-              {paginated.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} />)}
+              {paginated.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
 
               {/* Fallback section */}
               {latestFallback.length > 0 && (
@@ -598,7 +599,7 @@ export default function PFListingsGrid() {
                     <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>Latest listings</span>
                     <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
                   </div>
-                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} />)}
+                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
                 </>
               )}
 
@@ -645,6 +646,13 @@ export default function PFListingsGrid() {
       {showAddDialog && (
         <PFAddListingDialog
           onClose={() => setShowAddDialog(false)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })}
+        />
+      )}
+      {editListing && (
+        <PFAddListingDialog
+          editListing={editListing}
+          onClose={() => setEditListing(null)}
           onCreated={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })}
         />
       )}

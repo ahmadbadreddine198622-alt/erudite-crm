@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Upload, Loader2, Check, MapPin, Building2, AlertCircle } from 'lucide-react';
+import { X, Plus, Upload, Loader2, Check, MapPin, Building2, AlertCircle, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -32,24 +32,25 @@ const GlassSelect = ({ value, onChange, children }) => (
   </select>
 );
 
-export default function PFAddListingDialog({ onClose, onCreated }) {
+export default function PFAddListingDialog({ onClose, onCreated, editListing = null }) {
+  const isEdit = !!editListing;
   const [form, setForm] = useState({
-    title: '',
-    listing_type: 'sale',
-    property_type: 'apartment',
-    price: '',
-    bedrooms: '',
-    bathrooms: '',
-    area_sqft: '',
-    location: '',
-    building_name: '',
-    unit_number: '',
-    permit_number: '',
-    furnishing: 'unfurnished',
-    completion_status: 'ready',
-    description: '',
-    agent_email: '',
-    images: [],
+    title: editListing?.title || '',
+    listing_type: editListing?.listing_type || 'sale',
+    property_type: editListing?.property_type || 'apartment',
+    price: editListing?.price != null ? String(editListing.price) : '',
+    bedrooms: editListing?.bedrooms != null ? String(editListing.bedrooms) : '',
+    bathrooms: editListing?.bathrooms != null ? String(editListing.bathrooms) : '',
+    area_sqft: editListing?.area_sqft != null ? String(editListing.area_sqft) : '',
+    location: editListing?.location || '',
+    building_name: editListing?.building_name || '',
+    unit_number: editListing?.unit_number || '',
+    permit_number: editListing?.permit_number || '',
+    furnishing: editListing?.furnishing || 'unfurnished',
+    completion_status: editListing?.completion_status || 'ready',
+    description: editListing?.description || '',
+    agent_email: editListing?.agent_email || '',
+    images: editListing?.images || [],
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -94,8 +95,7 @@ export default function PFAddListingDialog({ onClose, onCreated }) {
     if (err) { toast.error(err); return; }
     setSaving(true);
     try {
-      await base44.entities.PFListing.create({
-        pf_listing_id: `draft-${Date.now()}`,
+      const payload = {
         title: form.title.trim(),
         listing_type: form.listing_type,
         property_type: form.property_type,
@@ -106,19 +106,28 @@ export default function PFAddListingDialog({ onClose, onCreated }) {
         location: form.location.trim(),
         building_name: form.building_name.trim() || undefined,
         unit_number: form.unit_number.trim() || undefined,
-        permit_number: form.permit_number.trim(),
+        permit_number: form.permit_number.trim() || undefined,
         furnishing: form.furnishing,
         completion_status: form.completion_status,
         description: form.description.trim() || undefined,
         agent_email: form.agent_email.trim() || undefined,
         images: form.images,
-        status: 'draft',
-        sync_status: 'pending',
-        city: 'Dubai',
-      });
+      };
+      if (isEdit) {
+        await base44.entities.PFListing.update(editListing.id, payload);
+        toast.success('Listing updated in CRM');
+      } else {
+        await base44.entities.PFListing.create({
+          ...payload,
+          pf_listing_id: `draft-${Date.now()}`,
+          status: 'draft',
+          sync_status: 'pending',
+          city: 'Dubai',
+        });
+        toast.success('Listing saved as draft in CRM');
+      }
       setSaved(true);
-      toast.success('Listing saved as draft in CRM');
-      setTimeout(() => { onCreated?.(); onClose(); }, 1000);
+      setTimeout(() => { onCreated?.(); onClose(); }, 900);
     } catch (err) {
       toast.error(err.message || 'Failed to save listing');
     } finally {
@@ -134,11 +143,11 @@ export default function PFAddListingDialog({ onClose, onCreated }) {
         <div className="px-6 py-4 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(201,168,92,0.05)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(201,168,92,0.15)', border: `1px solid rgba(201,168,92,0.3)` }}>
-              <Plus className="w-4 h-4" style={{ color: GOLD }} />
+              {isEdit ? <Pencil className="w-4 h-4" style={{ color: GOLD }} /> : <Plus className="w-4 h-4" style={{ color: GOLD }} />}
             </div>
             <div>
-              <p className="font-semibold text-sm text-white">Add New Listing</p>
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Property Finder–ready format · saves as draft</p>
+              <p className="font-semibold text-sm text-white">{isEdit ? 'Edit Listing' : 'Add New Listing'}</p>
+              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{isEdit ? 'Update CRM record · changes saved locally' : 'Property Finder–ready format · saves as draft'}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition">
@@ -307,8 +316,8 @@ export default function PFAddListingDialog({ onClose, onCreated }) {
           <button onClick={handleSave} disabled={saving || saved}
             className="flex-[2] h-9 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-60"
             style={{ background: saved ? 'rgba(63,207,142,0.15)' : 'rgba(201,168,92,0.15)', border: `1px solid ${saved ? 'rgba(63,207,142,0.4)' : 'rgba(201,168,92,0.4)'}`, color: saved ? '#3fcf8e' : GOLD }}>
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save as Draft in CRM'}
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : isEdit ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {saving ? 'Saving…' : saved ? 'Saved!' : isEdit ? 'Save Changes' : 'Save as Draft in CRM'}
           </button>
         </div>
       </div>
