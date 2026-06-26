@@ -19,7 +19,8 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
       className={`flex flex-col items-center justify-center ${className}`}
       style={{
         width: s.container,
-        padding: '12px 8px',
+        minHeight: size === 'small' ? 70 : size === 'large' ? 140 : 100,
+        padding: '8px 4px',
       }}
     >
       {/* Arabic Calligraphy Icon */}
@@ -80,15 +81,16 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
       <h1
         style={{
           fontSize: s.wordmark,
-          fontWeight: 600,
+          fontWeight: 700,
           fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
-          background: 'linear-gradient(180deg, #C5A059 0%, #A88137 50%, #C5A059 100%)',
+          background: 'linear-gradient(180deg, #F1E09C 0%, #D4B86E 30%, #B88D3C 50%, #D4B86E 70%, #F1E09C 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          letterSpacing: '0.12em',
-          lineHeight: 1,
-          marginBottom: size === 'small' ? 6 : 8,
+          letterSpacing: '0.15em',
+          lineHeight: 1.2,
+          marginBottom: size === 'small' ? 5 : 8,
+          color: '#B88D3C',
         }}
       >
         ERUDITE
@@ -114,12 +116,11 @@ export default function EruditeLogo({ size = 'medium', className = '' }) {
         <span
           style={{
             fontSize: s.tagline,
-            fontWeight: 500,
+            fontWeight: 600,
             textTransform: 'uppercase',
-            letterSpacing: '0.35em',
-            color: '#C5A059',
+            letterSpacing: '0.3em',
+            color: '#D4B86E',
             whiteSpace: 'nowrap',
-            textShadow: '0 0 8px rgba(197,160,89,0.3)',
           }}
         >
           Real Estate
