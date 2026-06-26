@@ -17,6 +17,9 @@ Deno.serve(async (req) => {
         is_connected: c.is_connected || false,
         test_message: c.test_message || '',
         last_tested_at: c.last_tested_at || '',
+        api_environment: c.api_environment || 'production',
+        scopes_granted: c.scopes_granted || [],
+        token_expires_at: c.token_expires_at || null,
       });
     }
 

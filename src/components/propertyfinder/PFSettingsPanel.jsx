@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Settings, Wifi } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Settings, Wifi, Zap } from 'lucide-react';
 
 export default function PFSettingsPanel() {
   const [apiKey, setApiKey] = useState('');
@@ -12,6 +12,7 @@ export default function PFSettingsPanel() {
   const [secretChanged, setSecretChanged] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [existingHasSecret, setExistingHasSecret] = useState(false);
@@ -29,6 +30,27 @@ export default function PFSettingsPanel() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  async function handleTestConnection() {
+    setTesting(true);
+    setStatus(null);
+    try {
+      const res = await base44.functions.invoke('pfTestConnection', {});
+      const d = res.data || res;
+      setStatus({
+        connected: d.connected || false,
+        message: d.message || (d.error || 'Unknown response'),
+        tested_at: d.tested_at || new Date().toISOString(),
+      });
+    } catch (err) {
+      setStatus({
+        connected: false,
+        message: err.message || 'Failed to test connection',
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function handleSave() {
     if (!apiKey.trim()) return;
@@ -130,14 +152,25 @@ export default function PFSettingsPanel() {
             )}
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving || !apiKey.trim() || (!existingHasSecret && !apiSecret.trim())}
-            className="w-full gap-2"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
-            {saving ? 'Testing & Saving...' : 'Save & Connect'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={saving || !apiKey.trim() || (!existingHasSecret && !apiSecret.trim())}
+              className="flex-1 gap-2"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
+              {saving ? 'Saving...' : 'Save & Connect'}
+            </Button>
+            <Button
+              onClick={handleTestConnection}
+              disabled={testing || !existingHasSecret}
+              variant="outline"
+              className="flex-1 gap-2"
+            >
+              {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {testing ? 'Testing...' : 'Test Connection'}
+            </Button>
+          </div>
 
           {status && status.message && (
             <p className={`text-xs text-center ${status.connected ? 'text-green-600' : 'text-red-600'}`}>
