@@ -45,7 +45,7 @@ function KanbanColumn({
       }}
     >
       {/* Column Header — pinned to the top of the column */}
-      <div className="p-3 shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid rgba(201,162,75,0.15)' }}>
+      <div className="p-3 shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid rgba(201,162,75,0.15)', background: 'linear-gradient(135deg, rgba(14,22,40,0.98), rgba(10,18,32,0.98))', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <div className="flex items-center justify-between mb-1.5 gap-1">
           <div className="flex items-center gap-1 min-w-0">
             <h3 className="font-bold text-sm truncate" style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Playfair Display',serif" }}>{label}</h3>
