@@ -29,7 +29,6 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
-import useBoardNavigation from '@/hooks/useBoardNavigation';
 
 const STAGES = [
   'initial_contact',
@@ -96,7 +95,6 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
-  const boardScrollRef = useBoardNavigation();
 
 
 
@@ -684,27 +682,14 @@ export default function Landlords() {
       {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <style>{`
-        .board-scroll { 
-          scrollbar-width: thin; 
-          scrollbar-color: hsl(38 92% 50% / 0.5) transparent; 
-        }
-        .board-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-        .board-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
-        .board-scroll::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.45); border-radius: 99px; }
-        .board-scroll::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.7); }
         .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
         .filter-track::-webkit-scrollbar { height: 6px; }
         .filter-track::-webkit-scrollbar-track { background: transparent; }
         .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
         .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
       `}</style>
-      <div
-        ref={boardScrollRef}
-        tabIndex={0}
-        className="board-scroll flex-1 min-h-0 overflow-auto pb-4 cursor-grab focus:outline-none"
-        style={{ WebkitOverflowScrolling: 'touch', padding: '0 0.75rem' }}
-      >
-        <div style={{ display: 'inline-block', minWidth: 'max-content' }}>
+      <div style={{ flex: 1, minHeight: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0 }}>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
@@ -718,9 +703,8 @@ export default function Landlords() {
           onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
           photographyTasks={photographyTasks}
           getPhotoForPhone={getPhotoForPhone}
-          onDragActiveChange={(active) => {
-            if (boardScrollRef.current) boardScrollRef.current.dataset.dragging = active ? 'true' : 'false';
-          }}
+          onDragActiveChange={() => {}}
+          style={{ height: '100%' }}
         />
         </div>
       </div>
