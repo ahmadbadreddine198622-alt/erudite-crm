@@ -60,8 +60,14 @@ export default function KanbanBoard({
   const columnRefs = useRef({});            // stage key → column DOM node
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+      // Only activate drag on primary mouse button (left click), never on right/middle
+      onActivation: ({ event }) => {
+        if (event.button !== undefined && event.button !== 0) return false;
+      },
+    }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
 
   // Map landlord id -> its current stage
@@ -272,13 +278,34 @@ export default function KanbanBoard({
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-            touchAction: 'pan-x pan-y',
+            touchAction: 'pan-x',
+            cursor: 'grab',
           }}
           onWheel={(e) => {
-            // Route vertical wheel events as horizontal scroll (trackpad/mouse wheel)
-            if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-              e.currentTarget.scrollLeft += e.deltaY;
-            }
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY !== 0 ? e.deltaY : e.deltaX;
+          }}
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            const el = e.currentTarget;
+            const startX = e.pageX;
+            const startLeft = el.scrollLeft;
+            let moved = false;
+            el.style.cursor = 'grabbing';
+            el.style.userSelect = 'none';
+            const onMove = (me) => {
+              const dx = me.pageX - startX;
+              if (Math.abs(dx) > 4) moved = true;
+              if (moved) el.scrollLeft = startLeft - dx;
+            };
+            const onUp = () => {
+              el.style.cursor = 'grab';
+              el.style.userSelect = '';
+              window.removeEventListener('mousemove', onMove);
+              window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
           }}
         >
           <style>{`
