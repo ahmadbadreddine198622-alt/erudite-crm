@@ -36,7 +36,7 @@ function KanbanColumn({
 
   return (
     <div
-      className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start overflow-hidden"
+      className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start"
       style={{ 
         background: 'linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02))',
         border: '1px solid rgba(201,162,75,0.2)',

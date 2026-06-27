@@ -7,7 +7,6 @@ import {
   useSensor,
   useSensors,
   closestCorners,
-  pointerWithin,
 } from '@dnd-kit/core';
 import KanbanColumn from './KanbanColumn';
 import LandlordCard from './LandlordCard';
@@ -79,7 +78,7 @@ export default function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={closestCorners}
       onDragStart={(e) => { setActiveId(e.active.id); onDragActiveChange?.(true); }}
       onDragCancel={() => { setActiveId(null); onDragActiveChange?.(false); }}
       onDragEnd={handleDragEnd}
