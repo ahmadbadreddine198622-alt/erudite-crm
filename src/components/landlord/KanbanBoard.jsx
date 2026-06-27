@@ -269,11 +269,10 @@ export default function KanbanBoard({
           style={{
             height: '100%',
             position: 'relative',
-            scrollSnapType: 'x mandatory',
-            scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
+            touchAction: 'pan-x',
           }}
         >
           <style>{`
@@ -324,7 +323,6 @@ export default function KanbanBoard({
                         <div
                           key={stage}
                           ref={(el) => { if (el) columnRefs.current[stage] = el; }}
-                          style={{ scrollSnapAlign: 'start' }}
                         >
                           <KanbanColumn
                             stage={stage}
