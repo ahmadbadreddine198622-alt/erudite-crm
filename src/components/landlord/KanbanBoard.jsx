@@ -172,7 +172,7 @@ export default function KanbanBoard({
   }, [stages]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
 
       {/* ── Stage Rail (minimap) ─────────────────────────────────────────── */}
       <div
@@ -266,8 +266,9 @@ export default function KanbanBoard({
         <div
           ref={scrollRef}
           className="overflow-x-auto overflow-y-hidden pb-2"
-          style={{ height: '100%', position: 'relative' }}
           style={{
+            height: '100%',
+            position: 'relative',
             scrollSnapType: 'x mandatory',
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
