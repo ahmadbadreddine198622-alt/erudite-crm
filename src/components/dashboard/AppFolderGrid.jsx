@@ -99,8 +99,8 @@ function FolderThumbnail({ apps }) {
         width: '68px',
         height: '68px',
         borderRadius: '10px',
-        background: 'rgba(22,29,43,0.6)',
-        border: '1px solid rgba(201,161,74,0.15)',
+        background: 'rgba(15,20,30,0.5)',
+        border: '1px solid rgba(255,255,255,0.05)',
         boxSizing: 'border-box',
         WebkitBoxSizing: 'border-box',
       }}
@@ -113,8 +113,29 @@ function FolderThumbnail({ apps }) {
         const Icon = app.icon;
         // Parse gradient colors for Safari-compatible inline styles
         const getGradient = (gradient) => {
-          // All icons use the ERUDITE gold gradient
-          return 'linear-gradient(135deg, #F5E6B8 0%, #C9A14A 50%, #8A6D2F 100%)';
+          if (!gradient) return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+          // Handle Tailwind-like gradients: from-purple-500 to-pink-500
+          const colorMap = {
+            'purple-500': '#a855f7', 'purple-600': '#9333ea',
+            'pink-500': '#ec4899', 'pink-600': '#db2777',
+            'blue-500': '#3b82f6', 'blue-600': '#2563eb',
+            'green-500': '#22c55e', 'green-600': '#16a34a',
+            'orange-500': '#f97316', 'orange-600': '#ea580c',
+            'red-500': '#ef4444', 'red-600': '#dc2626',
+            'slate-600': '#475569', 'slate-800': '#1e293b',
+            'indigo-500': '#6366f1', 'indigo-600': '#4f46e5',
+            'cyan-500': '#06b6d4', 'cyan-600': '#0891b2',
+            'rose-500': '#f43f5e', 'rose-600': '#e11d48',
+            'amber-500': '#f59e0b', 'amber-600': '#d97706',
+            'emerald-500': '#10b981', 'emerald-600': '#059669',
+          };
+          const match = gradient.match(/from-(\w+-\d+)\s+to-(\w+-\d+)/);
+          if (match) {
+            const from = colorMap[match[1]] || '#667eea';
+            const to = colorMap[match[2]] || '#764ba2';
+            return `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
+          }
+          return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         };
         return (
           <div
@@ -222,21 +243,21 @@ function FolderTile({ folder, badges, onOpen }) {
         style={{
           width: '100%',
           minHeight: '104px',
-          background: 'rgba(22,29,43,0.95)',
+          background: 'rgba(22,29,43,0.9)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid hsl(38 92% 55% / 0.15)',
+          border: '1px solid rgba(255,255,255,0.06)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'rgba(22,29,43,1)';
-          e.currentTarget.style.borderColor = 'hsl(38 92% 55% / 0.3)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
           e.currentTarget.style.transform = 'translateY(-2px)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(22,29,43,0.95)';
-          e.currentTarget.style.borderColor = 'hsl(38 92% 55% / 0.15)';
+          e.currentTarget.style.background = 'rgba(22,29,43,0.9)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
           e.currentTarget.style.transform = 'translateY(0)';
         }}
       >
@@ -256,7 +277,7 @@ function FolderTile({ folder, badges, onOpen }) {
         className="text-[10px] text-center font-medium mt-1.5"
         style={{
           fontFamily: 'var(--font-sans)',
-          color: 'hsl(38 92% 55% / 0.7)',
+          color: 'rgba(255,255,255,0.7)',
           letterSpacing: '0.03em',
           lineHeight: '1.2',
         }}
@@ -294,7 +315,7 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
             >
               {folder.emoji} {folder.name}
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'hsl(38 92% 55% / 0.5)' }}>{folder.apps.length} apps</p>
+            <p className="text-xs text-white/40 mt-0.5">{folder.apps.length} apps</p>
           </div>
           <button
             onClick={onClose}
