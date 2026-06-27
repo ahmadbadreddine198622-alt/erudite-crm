@@ -272,7 +272,13 @@ export default function KanbanBoard({
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-            touchAction: 'pan-x',
+            touchAction: 'pan-x pan-y',
+          }}
+          onWheel={(e) => {
+            // Route vertical wheel events as horizontal scroll (trackpad/mouse wheel)
+            if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
           }}
         >
           <style>{`
