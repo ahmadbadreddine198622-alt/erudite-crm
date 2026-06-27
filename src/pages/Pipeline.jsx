@@ -454,7 +454,7 @@ export default function Pipeline() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden px-8 mt-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-8 mt-0">
         <TabsList
           className="self-start"
           style={{

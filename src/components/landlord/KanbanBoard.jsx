@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  pointerWithin,
 } from '@dnd-kit/core';
 import KanbanColumn from './KanbanColumn';
 import LandlordCard from './LandlordCard';
@@ -78,13 +79,13 @@ export default function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={pointerWithin}
       onDragStart={(e) => { setActiveId(e.active.id); onDragActiveChange?.(true); }}
       onDragCancel={() => { setActiveId(null); onDragActiveChange?.(false); }}
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0.15, y: 0.2 } }}
     >
-      <div className="flex flex-row items-start gap-5 pb-4" style={{ minWidth: 'max-content' }}>
+      <div className="flex flex-row items-start gap-5 pb-4">
         {PHASES.map((phase) => {
           // Only render stages that exist in this board's `stages` list, preserving order.
           const phaseStages = phase.stages.filter((s) => stages.includes(s));
