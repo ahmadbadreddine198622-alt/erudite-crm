@@ -84,7 +84,7 @@ export default function KanbanBoard({
       onDragEnd={handleDragEnd}
       autoScroll={{ threshold: { x: 0.15, y: 0.2 } }}
     >
-      <div className="flex flex-row items-start gap-5 pb-4">
+      <div className="flex flex-row items-start gap-5 pb-4" style={{ width: 'max-content', minWidth: '100%' }}>
         {PHASES.map((phase) => {
           // Only render stages that exist in this board's `stages` list, preserving order.
           const phaseStages = phase.stages.filter((s) => stages.includes(s));

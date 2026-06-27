@@ -395,7 +395,7 @@ export default function Landlords() {
     >
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
-      <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+      <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem', background: '#0F1419' }}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
@@ -686,13 +686,13 @@ export default function Landlords() {
       <div
         ref={boardScrollRef}
         tabIndex={0}
-        className="board-scroll flex-1 min-h-0 overflow-auto pb-4 cursor-grab focus:outline-none"
+        className="board-scroll flex-1 min-h-0 pb-4 cursor-grab focus:outline-none"
         style={{
+          overflowX: 'scroll',
+          overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          marginLeft: 'calc(-1 * var(--board-pad-l))',
-          marginRight: 'calc(-1 * var(--board-pad-r))',
-          paddingLeft: 'var(--board-pad-l)',
-          paddingRight: 'var(--board-pad-r)',
+          paddingLeft: '0.75rem',
+          paddingRight: '0.75rem',
         }}
       >
         <style>{`
