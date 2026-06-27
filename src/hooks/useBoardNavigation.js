@@ -28,27 +28,43 @@ export default function useBoardNavigation() {
         '[data-landlord-card], button, a, select, input, textarea, [role="button"], [data-no-pan]',
       );
 
-    // --- Find the scrollable column under a point, if any ---
+    // --- Find the scrollable column under a point, if any (for wheel hand-off) ---
     const scrollableColumnAt = (x, y) => {
       const stack = document.elementsFromPoint(x, y);
       for (const node of stack) {
         if (node === el) break;
-        if (node instanceof HTMLElement && node.dataset.columnScroll === 'true') return node;
+        if (
+          node instanceof HTMLElement &&
+          node.dataset.columnScroll === 'true' &&
+          node.scrollHeight > node.clientHeight + 1
+        ) {
+          return node;
+        }
       }
       return null;
     };
 
-    // ---------- WHEEL → horizontal scroll ----------
-    // Always translate vertical trackpad/wheel scroll into horizontal board scroll.
-    // Columns handle their own vertical scroll natively when the pointer is inside them.
+    // ---------- WHEEL → horizontal (with column vertical hand-off) ----------
     const onWheel = (e) => {
-      if (el.dataset.dragging === 'true') return;
-      // Only act on vertical intent (not shift+wheel which is already horizontal)
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      if (e.shiftKey) return;
-      // Translate vertical scroll → horizontal board scroll
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
+      if (el.dataset.dragging === 'true') return; // a card drag is in progress — leave it alone
+      // Mostly-vertical wheel intent?
+      const verticalIntent = Math.abs(e.deltaY) > Math.abs(e.deltaX);
+      if (verticalIntent && !e.shiftKey) {
+        const col = scrollableColumnAt(e.clientX, e.clientY);
+        if (col) {
+          const atTop = col.scrollTop <= 0 && e.deltaY < 0;
+          const atBottom =
+            col.scrollTop + col.clientHeight >= col.scrollHeight - 1 && e.deltaY > 0;
+          // Let the column consume it unless we're at its edge — then fall through to horizontal.
+          if (!atTop && !atBottom) return;
+        }
+        // No column (or at its edge): translate vertical wheel into horizontal board scroll.
+        if (el.scrollWidth > el.clientWidth) {
+          el.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }
+      // Horizontal wheel / shift+wheel: browser already scrolls horizontally — leave it.
     };
 
     // ---------- DRAG-TO-PAN on empty space (both axes) ----------
