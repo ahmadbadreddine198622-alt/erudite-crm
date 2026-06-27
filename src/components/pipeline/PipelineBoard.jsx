@@ -29,8 +29,8 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
 
   return (
     <div
-      className="overflow-x-auto overflow-y-hidden pb-4"
-      style={{ height: 'calc(100dvh - 200px)', minHeight: '420px' }}
+      className="overflow-x-auto overflow-y-hidden pb-4 flex-1"
+      style={{ height: 'calc(100dvh - 280px)', minHeight: '420px' }}
     >
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-3 min-w-max h-full">
