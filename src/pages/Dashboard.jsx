@@ -231,31 +231,27 @@ export default function Dashboard() {
   });
 
   // UNREAD across all 4 message channels
-  // WhatsApp: proper unread_count from WhatsAppConversation (the only channel with a real unread flag)
-  const { data: unreadWaConvos = [] } = useQuery({
-    queryKey: ['unread-wa-convos'],
-    queryFn: () => base44.entities.WhatsAppConversation.filter({ unread_count: { $gte: 1 } }, '-last_message_at', 100),
+  const { data: unreadWhatsApp = [] } = useQuery({
+    queryKey: ['unread-wa-messages'],
+    queryFn: () => base44.entities.WhatsAppMessage.filter({ direction: 'inbound', status: 'received' }, '-created_date', 50),
     retry: 1,
     staleTime: 15000,
   });
-  // The other 3 entities have no is_read field — count today's inbound as "new replies"
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayStartISO = todayStart.toISOString();
   const { data: unreadIMessages = [] } = useQuery({
     queryKey: ['unread-imessages'],
-    queryFn: () => base44.entities.IMessage.filter({ direction: 'inbound', created_date: { $gte: todayStartISO } }, '-created_date', 50),
+    queryFn: () => base44.entities.IMessage.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
     retry: 1,
     staleTime: 15000,
   });
   const { data: unreadTelegram = [] } = useQuery({
     queryKey: ['unread-telegram'],
-    queryFn: () => base44.entities.TelegramMessage.filter({ direction: 'inbound', created_date: { $gte: todayStartISO } }, '-created_date', 50),
+    queryFn: () => base44.entities.TelegramMessage.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
     retry: 1,
     staleTime: 15000,
   });
   const { data: unreadMessages = [] } = useQuery({
     queryKey: ['unread-messages'],
-    queryFn: () => base44.entities.Message.filter({ direction: 'incoming', created_date: { $gte: todayStartISO } }, '-created_date', 50),
+    queryFn: () => base44.entities.Message.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
     retry: 1,
     staleTime: 15000,
   });
@@ -336,9 +332,8 @@ export default function Dashboard() {
   });
   const remindersCount = dueTodayFollowups.length || remindersDueNow.length;
 
-  // UNREAD: WhatsApp proper unread_count sum + today's inbound across the other 3 channels
-  const waUnreadCount = unreadWaConvos.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-  const totalUnread = waUnreadCount + unreadIMessages.length + unreadTelegram.length + unreadMessages.length;
+  // UNREAD across all 4 message channels
+  const totalUnread = unreadWhatsApp.length + unreadIMessages.length + unreadTelegram.length + unreadMessages.length;
 
   // HOT deals: aurora_temperature hot/blazing OR aurora_score >= 70
   const hotDeals = allDeals.filter(d => {
@@ -380,7 +375,7 @@ export default function Dashboard() {
         {[
           { label: 'Active', value: activeLeadCount, icon: Users, sub: `+${leadsToday} today`, subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
           { label: 'Reminders', value: remindersCount, icon: Bell, sub: remindersDueNow.length > 0 ? `${remindersDueNow.length} due now` : 'none due', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
-          { label: 'Unread', value: totalUnread, icon: MessageCircle, sub: `${waUnreadCount + unreadMessages.length} new replies`, subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
+          { label: 'Unread', value: totalUnread, icon: MessageCircle, sub: `${unreadWhatsApp.length + unreadMessages.length} new replies`, subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
           { label: 'Hot', value: hotDeals.length, icon: TrendingUp, sub: hotDeals.length === 0 ? 'none flagged' : (blazingCount > 0 ? `${blazingCount} blazing` : `${hotDeals.length} hot`), subColor: hotDeals.length === 0 ? 'var(--ds-muted-dim, #5d6680)' : 'var(--ds-gold, #d4af37)', subBg: hotDeals.length === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(212,175,55,.16)', onClick: () => navigate('/closing') },
         ].map((kpi, i) => (
           <button
