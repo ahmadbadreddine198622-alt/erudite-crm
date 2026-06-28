@@ -1,5 +1,5 @@
 /**
- * MobileDock — Redesigned for mobile portrait ONLY.
+ * MobileDock — Lit display case dock for mobile portrait ONLY.
  * Desktop and landscape keep original dock unchanged.
  */
 
@@ -9,19 +9,25 @@ import { Home, Building2, KanbanSquare, MessageCircle, FileSignature, Plus, Cloc
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ALL_APPS } from '@/lib/navApps';
-import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import AppPickerModal from '@/components/mobile/AppPickerModal';
 
-const SZ = 48;
-const HOME_SZ = 64;
+const SZ = 50;
+const HOME_SZ = 60;
+
+// Per-item hue data — dark jewel gradient stops + rgb for glow
+const HUES = {
+  landlords: { lit:'#4a3413', deep:'#2a1d0a', darkest:'#170f05', rgb:'240,169,59', icon:'#f5c878' },
+  pipeline:  { lit:'#2e2154', deep:'#1a1338', darkest:'#0e081c', rgb:'139,92,246', icon:'#c4b5fd' },
+  whatsapp:  { lit:'#103a2c', deep:'#0a2419', darkest:'#05130e', rgb:'45,212,167', icon:'#7ce8c4' },
+  forma:     { lit:'#4a3413', deep:'#2a1d0a', darkest:'#170f05', rgb:'240,169,59', icon:'#f5c878' },
+};
 
 // Fixed dock order: Landlord · Pipeline · [HOME] · WhatsApp · Forms
-// Colors pulled directly from ALL_APPS gradients for perfect harmony
 const DOCK_APPS = [
-  { path: '/landlords', appKey: 'landlords', gradient: 'from-amber-500 to-orange-700', glowColor: 'rgba(245,158,11,0.40)' },
-  { path: '/pipeline', appKey: 'pipeline', gradient: 'from-indigo-500 to-purple-700', glowColor: 'rgba(106,90,205,0.40)' },
-  { path: '/whatsapp', appKey: 'whatsapp', gradient: 'from-green-500 to-green-700', glowColor: 'rgba(34,197,94,0.40)' },
-  { path: '/form-a-referral', appKey: 'forma', gradient: 'from-amber-500 to-orange-700', glowColor: 'rgba(245,158,11,0.40)' },
+  { path: '/landlords', appKey: 'landlords' },
+  { path: '/pipeline', appKey: 'pipeline' },
+  { path: '/whatsapp', appKey: 'whatsapp' },
+  { path: '/form-a-referral', appKey: 'forma' },
 ];
 
 // Quick actions per dock app
@@ -48,8 +54,49 @@ const QUICK_ACTIONS = {
   ],
 };
 
-function PortraitDockIcon({ app, active, onPress, onLongPress }) {
-  const { icon: Icon, label, gradient, glowColor } = app || {};
+// ── Lit display case icon ──────────────────────────────────────────────────────
+function LitCaseIcon({ icon: Icon, hue, size, active }) {
+  const radius = Math.round(size * 0.30);
+  const iconSize = Math.round(size * 0.46);
+  return (
+    <div
+      style={{
+        width: size, height: size, borderRadius: radius,
+        position: 'relative', overflow: 'hidden',
+        background: `radial-gradient(130% 130% at 30% 18%, ${hue.lit}, ${hue.deep} 70%, ${hue.darkest})`,
+        border: '1px solid rgba(212,175,55,0.30)',
+        boxShadow: `0 0 24px -8px rgba(${hue.rgb},0.6), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(212,175,55,0.06)`,
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+    >
+      {/* Top glint */}
+      <div style={{
+        position: 'absolute', top: 0, left: '11px', right: '11px', height: '1px',
+        background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.85),transparent)',
+        pointerEvents: 'none',
+      }} />
+      {/* Inner top-glow */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: radius, pointerEvents: 'none',
+        background: 'radial-gradient(80% 50% at 50% -10%, rgba(255,255,255,0.22), transparent 70%)',
+      }} />
+      {/* Icon */}
+      <Icon
+        style={{
+          width: iconSize, height: iconSize,
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: hue.icon,
+          strokeWidth: 1.7,
+          filter: `drop-shadow(0 1px 3px rgba(${hue.rgb},0.5)) drop-shadow(0 2px 6px rgba(0,0,0,0.5))`,
+        }}
+      />
+    </div>
+  );
+}
+
+function PortraitDockIcon({ app, appKey, active, onPress, onLongPress }) {
+  const { icon: Icon } = app || {};
   const pressTimer = useRef(null);
   if (!Icon) return null;
 
@@ -63,9 +110,13 @@ function PortraitDockIcon({ app, active, onPress, onLongPress }) {
       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
     >
       <div className="flex flex-col items-center" style={{ gap: 4 }}>
-        <ExtremeLiquidIcon icon={Icon} gradient={gradient} glowColor={glowColor || 'rgba(255,255,255,0.25)'}
-          size={SZ} iconSize={Math.round(SZ * 0.50)} active={active} badge={0} tiltX={0} tiltY={0} index={0} isDragging={false} />
-        {active && <div style={{ width: 4, height: 4, borderRadius: 2, background: '#D4AF37', boxShadow: '0 0 8px rgba(212,175,55,0.5)' }} />}
+        <LitCaseIcon icon={Icon} hue={HUES[appKey]} size={SZ} active={active} />
+        <div style={{
+          width: active ? 5 : 0, height: active ? 5 : 0, borderRadius: '50%',
+          background: `rgb(${HUES[appKey].rgb})`,
+          boxShadow: active ? `0 0 8px rgba(${HUES[appKey].rgb},0.6)` : 'none',
+          transition: 'all 0.2s ease',
+        }} />
       </div>
     </button>
   );
@@ -113,7 +164,6 @@ export default function MobileDock() {
   }, []);
 
   const dockApps = useMemo(() => {
-    // Merge DOCK_APPS config with ALL_APPS for complete app data
     return DOCK_APPS.map((dock, i) => {
       const app = ALL_APPS.find(a => a.path === dock.path);
       return app ? { ...app, appKey: dock.appKey } : null;
@@ -123,26 +173,28 @@ export default function MobileDock() {
   const { data: reminders = [] } = useQuery({ queryKey: ['dock-reminders'], queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 20), staleTime: 60_000 });
   const { data: conversations = [] } = useQuery({ queryKey: ['dock-wa'], queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20), staleTime: 60_000 });
   const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
-  const homeGlow = urgentCount > 0 ? 'rgba(239,68,68,0.45)' : 'rgba(212,175,55,0.45)';
 
-  // Landscape - simple original dock with exact dashboard colors
+  // Landscape — simple gold home button
   if (!isMobilePortrait) {
     return (
       <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
         <div style={{
-          background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRadius: 12,
-          border: '1px solid rgba(212,175,55,0.35)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-          padding: '8px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          background: 'rgba(16,20,32,0.72)',
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          borderRadius: 14,
+          border: '1px solid rgba(212,175,55,0.20)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+          padding: '6px',
         }}>
-          <button onClick={() => navigate('/')} style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)', border: '1px solid rgba(212,175,55,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Home style={{ width: 22, height: 22, color: '#D4AF37' }} />
+          <button onClick={() => navigate('/')} style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'radial-gradient(130% 130% at 30% 18%, #5a4618, #2e2208 70%, #171005)',
+            border: '1px solid rgba(212,175,55,0.35)',
+            boxShadow: '0 0 20px -6px rgba(212,175,55,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Home style={{ width: 22, height: 22, color: '#eccd72', strokeWidth: 1.8 }} />
           </button>
         </div>
       </nav>
@@ -151,47 +203,93 @@ export default function MobileDock() {
 
   const handleLongPress = (appKey, event) => {
     const positions = { landlords: '20%', pipeline: '38%', whatsapp: '62%', forma: '80%' };
-    setPopoverPosition({ left: positions[appKey], bottom: 85 });
+    setPopoverPosition({ left: positions[appKey], bottom: 90 });
     setActivePopover(appKey);
   };
 
+  const homeRadius = Math.round(HOME_SZ * 0.30);
+
   return (
     <>
-      <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 0, padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
+      <nav
+        className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center"
+        style={{
+          bottom: 0,
+          paddingLeft: 12,
+          paddingRight: 12,
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+          paddingTop: 0,
+        }}
+      >
+        {/* Floating glass dock — lit display case tray */}
         <div style={{
-          background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRadius: 24,
-          border: '1px solid rgba(212,175,55,0.35)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-          padding: '12px 16px',
+          background: 'rgba(16,20,32,0.72)',
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          borderRadius: 26,
+          border: '1px solid rgba(212,175,55,0.16)',
+          boxShadow: '0 36px 80px -36px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)',
+          padding: '14px 18px',
           display: 'flex',
-          alignItems: 'center',
-          gap: 6,
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          gap: 14,
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 400,
           position: 'relative',
-          margin: '0 auto 12px',
         }}>
-          <PortraitDockIcon app={dockApps[0]} active={location.pathname.startsWith('/landlords')} onLongPress={(e) => handleLongPress('landlords', e)} onPress={() => navigate('/landlords')} />
-          <PortraitDockIcon app={dockApps[1]} active={location.pathname.startsWith('/pipeline')} onLongPress={(e) => handleLongPress('pipeline', e)} onPress={() => navigate('/pipeline')} />
-          <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', width: HOME_SZ+12, height: HOME_SZ+12, borderRadius: Math.round(HOME_SZ*0.28), background: homeGlow, filter: 'blur(14px)', top: '50%', left: '50%', transform: 'translate(-50%, -55%)', pointerEvents: 'none' }} />
-            <button onClick={() => navigate('/')} style={{
-              width: HOME_SZ, height: HOME_SZ, borderRadius: Math.round(HOME_SZ*0.28), position: 'relative', top: -8,
-              border: '1px solid rgba(212,175,55,0.4)',
-              background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,141,60,0.15) 100%)',
-              backdropFilter: 'blur(32px) saturate(200%)',
-              WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-              boxShadow: '0 4px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Home style={{ width: Math.round(HOME_SZ*0.52), height: Math.round(HOME_SZ*0.52), color: '#D4AF37', strokeWidth: 2.2 }} />
+          {/* Gold hairline across top edge */}
+          <div style={{
+            position: 'absolute', top: 0, left: '24px', right: '24px', height: '1px',
+            background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent)',
+            pointerEvents: 'none',
+          }} />
+
+          <PortraitDockIcon app={dockApps[0]} appKey="landlords" active={location.pathname.startsWith('/landlords')} onLongPress={(e) => handleLongPress('landlords', e)} onPress={() => navigate('/landlords')} />
+          <PortraitDockIcon app={dockApps[1]} appKey="pipeline" active={location.pathname.startsWith('/pipeline')} onLongPress={(e) => handleLongPress('pipeline', e)} onPress={() => navigate('/pipeline')} />
+
+          {/* Center elevated gold home button */}
+          <div style={{ position: 'relative', marginTop: '-10px', zIndex: 10 }}>
+            <button
+              onClick={() => navigate('/')}
+              aria-label="Go to Home"
+              style={{
+                width: HOME_SZ, height: HOME_SZ, borderRadius: homeRadius,
+                position: 'relative', overflow: 'hidden', cursor: 'pointer',
+                background: 'radial-gradient(130% 130% at 30% 18%, #5a4618, #2e2208 70%, #171005)',
+                border: '1px solid rgba(212,175,55,0.40)',
+                boxShadow: urgentCount > 0
+                  ? '0 0 36px -4px rgba(239,68,68,0.7), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 0 0 1px rgba(212,175,55,0.08)'
+                  : '0 0 36px -4px rgba(212,175,55,0.7), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 0 0 1px rgba(212,175,55,0.08)',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              }}
+            >
+              {/* Top glint — brightest cream */}
+              <div style={{
+                position: 'absolute', top: 0, left: '11px', right: '11px', height: '1px',
+                background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)',
+                pointerEvents: 'none',
+              }} />
+              {/* Inner top-glow */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: homeRadius, pointerEvents: 'none',
+                background: 'radial-gradient(80% 50% at 50% -10%, rgba(255,255,255,0.28), transparent 70%)',
+              }} />
+              <Home
+                style={{
+                  width: Math.round(HOME_SZ * 0.46), height: Math.round(HOME_SZ * 0.46),
+                  position: 'absolute', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#eccd72',
+                  strokeWidth: 1.7,
+                  filter: 'drop-shadow(0 1px 4px rgba(212,175,55,0.6)) drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+                }}
+              />
             </button>
           </div>
-          <PortraitDockIcon app={dockApps[2]} active={location.pathname.startsWith('/whatsapp')} onLongPress={(e) => handleLongPress('whatsapp', e)} onPress={() => navigate('/whatsapp')} />
-          <PortraitDockIcon app={dockApps[3]} active={location.pathname.startsWith('/form-a')} onLongPress={(e) => handleLongPress('forma', e)} onPress={() => navigate('/form-a-referral')} />
+
+          <PortraitDockIcon app={dockApps[2]} appKey="whatsapp" active={location.pathname.startsWith('/whatsapp')} onLongPress={(e) => handleLongPress('whatsapp', e)} onPress={() => navigate('/whatsapp')} />
+          <PortraitDockIcon app={dockApps[3]} appKey="forma" active={location.pathname.startsWith('/form-a')} onLongPress={(e) => handleLongPress('forma', e)} onPress={() => navigate('/form-a-referral')} />
         </div>
       </nav>
       {activePopover && <QuickActionsPopover actions={QUICK_ACTIONS[activePopover]} position={popoverPosition} onClose={() => { setActivePopover(null); setPopoverPosition(null); }} navigate={navigate} />}
