@@ -266,6 +266,7 @@ function ListingCard({ listing, onRefresh, onEdit }) {
   const isPublishing = listing.status === 'publishing';
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
   const title = listing.title || `${listing.property_type} in ${listing.location}`;
+  const locationLabel = listing.community || listing.building_name || listing.location || 'Dubai';
 
   const statusColor = isLive ? '#7ce8c4' : isPublishing ? 'var(--ds-gold-lite, #eccd72)' : 'rgba(255,255,255,0.4)';
   const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : 'rgba(255,255,255,0.08)';
@@ -282,8 +283,8 @@ function ListingCard({ listing, onRefresh, onEdit }) {
         {img ? (
           <img src={img} alt={title} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: '#111e30' }}>
-            <Home className="w-8 h-8 opacity-20 text-white" />
+          <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(109,77,246,0.06))' }}>
+            <Home className="w-8 h-8 opacity-15" style={{ color: 'var(--ds-gold, #d4af37)' }} />
           </div>
         )}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
@@ -315,7 +316,7 @@ function ListingCard({ listing, onRefresh, onEdit }) {
         <div className="min-w-0">
           <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'var(--ds-ink, #e8ecf6)' }}>{title}</p>
           <p className="text-[10px] mb-1 flex items-center gap-1" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>
-            <MapPin className="w-2.5 h-2.5" />{listing.location || 'Dubai'}
+            <MapPin className="w-2.5 h-2.5" />{locationLabel}
           </p>
           <p className="text-[10px] font-mono mb-1.5" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
           <div className="flex items-center gap-1.5">

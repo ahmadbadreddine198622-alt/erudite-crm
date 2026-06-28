@@ -28,6 +28,9 @@ import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 import DashboardBackground from '@/components/dashboard/DashboardBackground';
+import DashboardTopBar from '@/components/dashboard/DashboardTopBar';
+import { usePFSyncHealth } from '@/components/propertyfinder/usePFSyncHealth';
+import { formatDistanceToNow } from 'date-fns';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -219,6 +222,43 @@ export default function Dashboard() {
     staleTime: 5000,
   });
 
+  // Deals for HOT KPI (aurora_temperature hot/blazing OR aurora_score >= 70)
+  const { data: allDeals = [] } = useQuery({
+    queryKey: ['deals-dashboard'],
+    queryFn: () => base44.entities.Deal.list('-created_date', 200),
+    retry: 2,
+    staleTime: 15000,
+  });
+
+  // UNREAD across all 4 message channels
+  const { data: unreadWhatsApp = [] } = useQuery({
+    queryKey: ['unread-wa-messages'],
+    queryFn: () => base44.entities.WhatsAppMessage.filter({ direction: 'inbound', status: 'received' }, '-created_date', 50),
+    retry: 1,
+    staleTime: 15000,
+  });
+  const { data: unreadIMessages = [] } = useQuery({
+    queryKey: ['unread-imessages'],
+    queryFn: () => base44.entities.IMessage.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
+    retry: 1,
+    staleTime: 15000,
+  });
+  const { data: unreadTelegram = [] } = useQuery({
+    queryKey: ['unread-telegram'],
+    queryFn: () => base44.entities.TelegramMessage.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
+    retry: 1,
+    staleTime: 15000,
+  });
+  const { data: unreadMessages = [] } = useQuery({
+    queryKey: ['unread-messages'],
+    queryFn: () => base44.entities.Message.filter({ direction: 'inbound', is_read: false }, '-created_date', 50),
+    retry: 1,
+    staleTime: 15000,
+  });
+
+  // PF sync health
+  const { data: pfSyncHealth } = usePFSyncHealth();
+
   const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
@@ -271,14 +311,43 @@ export default function Dashboard() {
   const photoStageCounts = photoData?.stageCounts || {};
   const docsStatusCounts = docsData?.statusCounts || {};
 
+  const activeLeads = leads.filter(l => l.status === 'active');
+  const activeLeadCount = activeLeads.length;
+
+  // +N today: leads created today (first_touch_at or created_date)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const leadsToday = leads.filter(l => {
+    const d = l.first_touch_at || l.created_date;
+    return d && String(d).slice(0, 10) === todayStr;
+  }).length;
+
+  // Reminders due today (Followup where due_date <= today and not completed)
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const dueTodayFollowups = (dashboardData?.followups || []).filter(f =>
+    f.due_date && new Date(f.due_date) <= todayEnd && f.status !== 'completed'
+  );
+  const remindersDueNow = reminders.filter(r => {
+    const d = r.due_date || r.scheduled_at;
+    return d && new Date(d) <= new Date();
+  });
+  const remindersCount = dueTodayFollowups.length || remindersDueNow.length;
+
+  // UNREAD across all 4 message channels
+  const totalUnread = unreadWhatsApp.length + unreadIMessages.length + unreadTelegram.length + unreadMessages.length;
+
+  // HOT deals: aurora_temperature hot/blazing OR aurora_score >= 70
+  const hotDeals = allDeals.filter(d => {
+    const temp = (d.aurora_temperature || '').toLowerCase();
+    return temp === 'hot' || temp === 'blazing' || (d.aurora_score || 0) >= 70;
+  });
+  const blazingCount = allDeals.filter(d => (d.aurora_temperature || '').toLowerCase() === 'blazing').length;
+
   const badges = {
-    leads: quickStats.activeLeads || leads.filter(l => l.status === 'active').length,
-    reminders: quickStats.pendingReminders || reminders.length,
-    whatsapp: quickStats.unreadWhatsApp || conversations.reduce((s, c) => s + (c.unread_count || 0), 0),
+    leads: activeLeadCount,
+    reminders: remindersCount,
+    whatsapp: totalUnread,
+    deals: hotDeals.length,
   };
-  
-  // Management intelligence
-  const hotLeads = quickStats.hotLeads || leads.filter(l => (l.ai_lead_score || 0) >= 75).length;
 
   // Search across ALL apps (folder mode — the custom `apps` state is no longer the display grid)
   const filtered = search.trim()
@@ -291,163 +360,23 @@ export default function Dashboard() {
       className="dashboard-skin relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
     >
       <DashboardBackground />
-      <div className="relative" style={{ zIndex: 1 }}>
-      {/* iOS Lock-Screen Style Clock — centered under splash */}
-      <IOSLockScreenClock />
-
-      {/* Minimalist Search Bar — pill-shaped with quote placeholder */}
-      <div className="relative mb-8 w-full max-w-3xl mx-auto">
-        <div
-          className="relative rounded-full overflow-hidden"
-          style={{
-            background: 'rgba(22,29,43,0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          }}
-        >
-          <div className="flex items-center px-5 py-3.5">
-            <Search className="w-4 h-4 mr-3" style={{ color: 'hsl(38 92% 55% / 0.6)' }} />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={search ? '' : QUOTES[quoteIndex]}
-              className="flex-1 text-sm focus:outline-none bg-transparent"
-              style={{
-                color: 'rgba(255,255,255,0.9)',
-                fontSize: '13px',
-                fontStyle: search ? 'normal' : 'italic',
-                letterSpacing: '0.01em',
-              }}
-            />
-            {!search && (
-              <Search className="w-4 h-4 ml-3" style={{ color: 'hsl(38 92% 55% / 0.4)' }} />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Logged-in account badge with foldable profile */}
-      {userEmail && (
-        <div className="absolute top-0 right-0 z-50" ref={menuRef}>
-          {/* Collapsed/Expanded Profile Toggle */}
-          <div
-            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
-            style={{
-              background: isProfileExpanded ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              border: isProfileExpanded ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(12px)',
-              color: 'rgba(255,255,255,0.75)',
-            }}
-          >
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
-              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
-            >
-              {userProfileImage ? (
-                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (userName || userEmail)[0].toUpperCase()
-              )}
-            </div>
-            {isProfileExpanded && (
-              <div className="flex flex-col items-start gap-0 overflow-hidden">
-                <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold text-xs">{userName || userEmail}</span>
-                {userPosition && <span className="text-[8px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
-              </div>
-            )}
-            <ChevronDown className={`w-3 h-3 transition-transform ${isProfileExpanded ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
-          </div>
-
-          {/* Expanded Profile Details */}
-          {isProfileExpanded && (
-            <div
-              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                background: 'rgba(15,20,30,0.95)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(245,158,11,0.35)',
-              }}
-            >
-              <div className="p-3 border-b border-white/10">
-                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
-                <p className="text-xs text-white/50">{userEmail}</p>
-                {userRole && (
-                  <div className="mt-1.5">
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-                      {userRole}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="py-2">
-                <button
-                  onClick={() => { navigate('/team'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/landlords'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/leads'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/analytics'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/finance'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/profile'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
-                </button>
-              </div>
-              <div className="py-2 border-t border-white/10">
-                <button
-                  onClick={() => base44.auth.logout()}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
-                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="relative w-full max-w-[1320px] mx-auto" style={{ zIndex: 1 }}>
+      {/* Top bar — gold ERUDITE wordmark, search, clock, avatar */}
+      <DashboardTopBar
+        search={search}
+        setSearch={setSearch}
+        userName={userName}
+        userEmail={userEmail}
+        userProfileImage={userProfileImage}
+      />
 
       {/* KPI Strip — live counts with gold hairline */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-3 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-[1320px] mx-auto gap-3 mb-10">
         {[
-          { label: 'Active', value: badges.leads, icon: Users, sub: 'leads', subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
-          { label: 'Reminders', value: badges.reminders, icon: Bell, sub: 'pending', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
-          { label: 'Unread', value: badges.whatsapp, icon: MessageCircle, sub: 'messages', subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
-          { label: 'Hot', value: hotLeads, icon: TrendingUp, sub: 'score≥75', subColor: '#f7a9d0', subBg: 'rgba(244,114,182,.16)', onClick: () => navigate('/leads') },
+          { label: 'Active', value: activeLeadCount, icon: Users, sub: `+${leadsToday} today`, subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
+          { label: 'Reminders', value: remindersCount, icon: Bell, sub: remindersDueNow.length > 0 ? `${remindersDueNow.length} due now` : 'none due', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
+          { label: 'Unread', value: totalUnread, icon: MessageCircle, sub: `${unreadWhatsApp.length + unreadMessages.length} new replies`, subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
+          { label: 'Hot', value: hotDeals.length, icon: TrendingUp, sub: hotDeals.length === 0 ? 'none flagged' : (blazingCount > 0 ? `${blazingCount} blazing` : `${hotDeals.length} hot`), subColor: hotDeals.length === 0 ? 'var(--ds-muted-dim, #5d6680)' : 'var(--ds-gold, #d4af37)', subBg: hotDeals.length === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(212,175,55,.16)', onClick: () => navigate('/closing') },
         ].map((kpi, i) => (
           <button
             key={i}
@@ -491,11 +420,12 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* WORKSPACES section header */}
-      <div className="w-full max-w-5xl mx-auto mb-4">
-        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.6, fontWeight: 500, fontFamily: "'Space Grotesk', sans-serif" }}>
+      {/* WORKSPACES section eyebrow with hairline rule */}
+      <div className="w-full max-w-[1320px] mx-auto mb-4 flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.3em] shrink-0" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.7, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
           Workspaces
         </p>
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.3), transparent)' }} />
       </div>
 
 
@@ -510,8 +440,8 @@ export default function Dashboard() {
         </button>
       )}
 
-      {/* App Grid — folder mode or flat search results - COMPACT */}
-      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -4 }}>
+      {/* App Grid — folder mode or flat search results */}
+      <div className="ios-grid-enter w-full max-w-[1320px] mx-auto pb-1" style={{ marginTop: -4 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">
@@ -550,10 +480,35 @@ export default function Dashboard() {
 
 
 
-      {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-0 mx-auto">
+      {/* Property Finder — eyebrow + sync health note */}
+      <div className="w-full max-w-[1320px] mx-auto mb-4 flex items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.3em] shrink-0" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.7, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
+          Property Finder
+        </p>
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.3), transparent)' }} />
+        {/* PF sync health note */}
+        {pfSyncHealth && (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--ds-muted, #8a93ab)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: pfSyncHealth.connectionState === 'connected' ? '#7ce8c4' : 'var(--ds-muted-dim, #5d6680)' }} />
+              {pfSyncHealth.connectionState === 'connected' ? 'Connected' : 'Not connected'}
+              {pfSyncHealth.lastSync && (
+                <span style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>
+                  · synced {formatDistanceToNow(new Date(pfSyncHealth.lastSync), { addSuffix: true })}
+                </span>
+              )}
+            </span>
+            {pfSyncHealth.failedCount > 0 && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold" style={{ background: 'rgba(244,63,94,.16)', color: '#f7a9b8', border: '1px solid rgba(244,63,94,.3)' }}>
+                {pfSyncHealth.failedCount} failed to sync
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="w-full max-w-[1320px] mx-auto">
         <PFListingsGrid />
-      </EruditeSection>
+      </div>
 
       {/* Evaluation Panel */}
       <EvaluationPanel 
@@ -562,7 +517,7 @@ export default function Dashboard() {
       />
 
       {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full max-w-5xl mt-0 mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full max-w-[1320px] mt-0 mx-auto">
         <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
           <AIInsightsDashboard />
         </EruditeSection>
