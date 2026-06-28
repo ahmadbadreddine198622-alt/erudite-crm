@@ -6,9 +6,10 @@ import MobileDock from './MobileDock';
 import ControlRail from '@/components/ui/ControlRail';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
 import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AppLayout() {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addLeadOpen, setAddLeadOpen] = useState(false);
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function AppLayout() {
 
       <main className="flex-1 min-w-0 pb-36 md:pb-0 relative bg-background">
         {/* Persistent Control Rail — Home / Menu / Command */}
-        <ControlRail onAddLead={() => setAddLeadOpen(true)} onNewListing={() => {}} />
+        <ControlRail onAddLead={() => setAddLeadOpen(true)} onNewListing={() => {}} hideOnMobile={location.pathname === '/'} />
         
         <div className="page-enter w-full min-w-0">
           <Outlet />

@@ -525,7 +525,7 @@ function CommandFlyout({ isOpen, onClose, onAddLead, onNewListing }) {
 }
 
 // ── Main Control Rail Component ──────────────────────────────────────────────
-export default function ControlRail({ onAddLead, onNewListing }) {
+export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -581,9 +581,9 @@ export default function ControlRail({ onAddLead, onNewListing }) {
         }
       `}</style>
       
-      {/* Rail container */}
+      {/* Rail container — hidden on mobile when viewing Dashboard */}
       <div
-        className="fixed z-[70] p-2"
+        className={`z-[70] p-2 ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
         style={{
           top: 12,
           left: 12,
