@@ -1,27 +1,35 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, memo } from 'react';
 
 /**
  * Mouse-reactive ambient gradient background.
  *
  * Drives two CSS custom properties (--mouse-x / --mouse-y) via a rAF-throttled
- * mousemove listener on the dashboard container. The gradient layers use CSS
- * transitions for smooth trailing — zero React re-renders on cursor move.
+ * mousemove listener. The gradient layers read those properties directly.
+ *
+ * Key design decisions to avoid bugs:
+ * - Custom properties are set ONLY via direct DOM manipulation in useEffect,
+ *   never in the React style prop — otherwise parent re-renders reset them.
+ * - Coordinates are viewport-relative (clientX / innerWidth) because the glow
+ *   div is position: fixed, so the gradient always aligns with the cursor.
+ * - getBoundingClientRect is avoided entirely; window dimensions are read
+ *   inside the rAF callback (after throttle) to prevent layout thrashing.
+ * - Wrapped in memo so parent re-renders never re-render this component.
  *
  * Falls back to a static gradient on touch devices and prefers-reduced-motion.
  */
-export default function MouseGlowBackground({ containerRef }) {
+function MouseGlowBackground({ containerRef }) {
   const glowRef = useRef(null);
 
   useEffect(() => {
+    const glow = glowRef.current;
+    if (!glow) return;
+
     const isTouch =
       window.matchMedia('(pointer: coarse)').matches ||
       'ontouchstart' in window;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (isTouch || reduced) return; // static fallback via CSS
-
-    const container = containerRef?.current || glowRef.current?.parentElement;
-    if (!container) return;
+    if (isTouch || reduced) return; // static gradient via initial CSS
 
     let rafId = null;
     let pendingX = 50;
@@ -29,43 +37,43 @@ export default function MouseGlowBackground({ containerRef }) {
 
     const update = () => {
       rafId = null;
+      if (!glowRef.current) return;
       glowRef.current.style.setProperty('--mouse-x', `${pendingX}%`);
       glowRef.current.style.setProperty('--mouse-y', `${pendingY}%`);
     };
 
     const onMouseMove = (e) => {
-      const rect = container.getBoundingClientRect();
-      pendingX = ((e.clientX - rect.left) / rect.width) * 100;
-      pendingY = ((e.clientY - rect.top) / rect.height) * 100;
+      pendingX = (e.clientX / window.innerWidth) * 100;
+      pendingY = (e.clientY / window.innerHeight) * 100;
       if (rafId === null) rafId = requestAnimationFrame(update);
     };
 
-    container.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
     return () => {
-      container.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mousemove', onMouseMove);
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [containerRef]);
+  }, []);
 
   return (
     <div
       ref={glowRef}
       aria-hidden="true"
-      className="mouse-glow-bg"
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        '--mouse-x': '50%',
-        '--mouse-y': '50%',
+        // --mouse-x / --mouse-y are set via JS only (see useEffect), NOT here.
+        // Putting them here would cause React to reset them on every parent re-render.
         background: `
-          radial-gradient(circle 600px at var(--mouse-x) var(--mouse-y), rgba(201,162,75,0.07) 0%, transparent 50%),
-          radial-gradient(circle 500px at var(--mouse-x) var(--mouse-y), rgba(100,80,160,0.05) 0%, transparent 45%),
-          radial-gradient(circle 400px at var(--mouse-x) var(--mouse-y), rgba(30,60,110,0.06) 0%, transparent 40%)
+          radial-gradient(circle 600px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(201,162,75,0.07) 0%, transparent 50%),
+          radial-gradient(circle 500px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(100,80,160,0.05) 0%, transparent 45%),
+          radial-gradient(circle 400px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(30,60,110,0.06) 0%, transparent 40%)
         `,
-        transition: 'background 0.18s ease-out',
       }}
     />
   );
 }
+
+export default memo(MouseGlowBackground);
