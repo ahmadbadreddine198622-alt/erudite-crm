@@ -14,7 +14,6 @@ const FOLDER_DEFS = [
     icon: Crown,
     jewelColor: '#f0d98a',
     jewelAura: 'rgba(212,175,55,.55)',
-    subtitle: 'Command & oversight',
     appLabels: ['Company Settings', 'Brand Settings', 'Team Management', 'Analytics', 'Finance', 'Policies & HR', 'Design System', 'Team AI OS', 'Team Performance', 'Agent Intelligence', 'Team Dashboard', 'Dubai Intelligence', 'Cheque Register', 'Command Center'],
   },
   {
@@ -23,8 +22,6 @@ const FOLDER_DEFS = [
     icon: Target,
     jewelColor: '#c4b1ff',
     jewelAura: 'rgba(139,92,246,.62)',
-    liveBadgeKey: 'leads',
-    subtitle: 'Track & convert',
     appLabels: ['Pipeline', 'Leads', 'PF Leads', 'Instagram Leads', 'Meta & Google', 'Duplicate Detector', 'Contacts'],
   },
   {
@@ -33,7 +30,6 @@ const FOLDER_DEFS = [
     icon: Building2,
     jewelColor: '#f5c878',
     jewelAura: 'rgba(240,169,59,.58)',
-    subtitle: 'Inventory & owners',
     appLabels: ['Landlords', 'Listing Production', 'Photography', 'Matterport Sync', 'Property Finder', 'Find Property', 'Property Intel', 'Form A Referral', 'Form I Generator'],
   },
   {
@@ -42,8 +38,6 @@ const FOLDER_DEFS = [
     icon: DollarSign,
     jewelColor: '#7ce8c4',
     jewelAura: 'rgba(45,212,167,.58)',
-    liveBadgeKey: 'deals',
-    subtitle: 'Close & collect',
     appLabels: ['Closing', 'Closing AI', 'Finance', 'Commissions', 'Cheques', 'Offers', 'Negotiations', 'Deal Risk', 'Transfer Calculator', 'Transfer Numbers', 'Key Handover'],
   },
   {
@@ -52,8 +46,6 @@ const FOLDER_DEFS = [
     icon: MessageCircle,
     jewelColor: '#9bb9ff',
     jewelAura: 'rgba(61,109,246,.58)',
-    liveBadgeKey: 'whatsapp',
-    subtitle: 'Inbox & outreach',
     appLabels: ['WhatsApp', 'WhatsApp Hub', 'WhatsApp Setup', 'Messages', 'Broadcasts', 'Email Templates', 'Email Automations', 'Inbox', 'Twilio Hub'],
   },
   {
@@ -62,7 +54,6 @@ const FOLDER_DEFS = [
     icon: Brain,
     jewelColor: '#7fe6f5',
     jewelAura: 'rgba(34,211,238,.58)',
-    subtitle: 'Insights & models',
     appLabels: ['Analytics', 'Sales Analytics', 'Team Performance', 'Market Intelligence', 'Buyer Match AI', 'Claude AI', 'Team AI OS', 'Dubai Intelligence', 'Command Center'],
   },
   {
@@ -71,7 +62,6 @@ const FOLDER_DEFS = [
     icon: Users,
     jewelColor: '#f7a9d0',
     jewelAura: 'rgba(244,114,182,.55)',
-    subtitle: 'People & roles',
     appLabels: ['Team', 'Team Management', 'Policies & HR', 'PF Agent Profile', 'Acknowledgements'],
   },
   {
@@ -80,7 +70,6 @@ const FOLDER_DEFS = [
     icon: Wrench,
     jewelColor: '#c3ccdd',
     jewelAura: 'rgba(154,166,192,.45)',
-    subtitle: 'Utilities & docs',
     appLabels: ['Map View', 'DLD Lookup', 'Lease Agreement', 'Tenancy Contracts', 'Notes', 'Viewings', 'Follow Ups', 'Reminders', 'Calendar', 'Projects', 'Google Drive', 'Brand Settings', 'Company Settings'],
   },
 ];
@@ -185,9 +174,6 @@ function FolderTile({ folder, badges, onOpen }) {
     return sum + (app.badgeKey ? (badges[app.badgeKey] || 0) : 0);
   }, 0);
 
-  // Live count badge per tile (leads, deals, reminders, unread)
-  const liveCount = folder.liveBadgeKey ? (badges[folder.liveBadgeKey] || 0) : 0;
-
   return (
     <button
       onClick={() => onOpen(folder.id)}
@@ -219,42 +205,29 @@ function FolderTile({ folder, badges, onOpen }) {
           e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        {/* Live count badge */}
-        {liveCount > 0 && (
+        {/* Aggregate badge */}
+        {totalBadge > 0 && (
           <div
-            className="absolute top-2 right-2 z-10 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1 shadow-lg"
-            style={{ background: folder.jewelColor, color: '#0a0e1a' }}
+            className="absolute top-2 right-2 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
+            style={{ background: 'var(--ds-gold, #d4af37)', color: '#0a0e1a' }}
           >
-            {liveCount > 99 ? '99+' : liveCount}
+            {totalBadge > 99 ? '99+' : totalBadge}
           </div>
         )}
         <IconCase folder={folder} />
       </div>
-      {/* Title */}
+      {/* Label */}
       <span
-        className="text-[11px] text-center font-semibold mt-2 block"
+        className="text-[10px] text-center font-medium mt-1.5 block"
         style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          color: 'var(--ds-ink, #e8ecf6)',
-          letterSpacing: '0.02em',
+          fontFamily: 'var(--font-sans)',
+          color: 'rgba(255,255,255,0.7)',
+          letterSpacing: '0.03em',
           lineHeight: '1.2',
         }}
       >
         {folder.name}
       </span>
-      {/* Subtitle */}
-      {folder.subtitle && (
-        <span
-          className="text-[9px] text-center block mt-0.5"
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            color: 'var(--ds-muted, #8a93ab)',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {folder.subtitle}
-        </span>
-      )}
     </button>
   );
 }
@@ -334,18 +307,6 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
     }
   };
 
-  // Direct route for each workspace tile (first app in the folder, or a custom route)
-  const TILE_ROUTES = {
-    ceo: '/company-settings',
-    leads: '/leads',
-    landlords: '/landlords',
-    deals: '/closing',
-    comms: '/messages',
-    analytics: '/analytics',
-    team: '/team',
-    tools: '/reminders',
-  };
-
   return (
     <>
       {/* Folder grid — 4 columns, 18px gutters */}
@@ -362,11 +323,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
             key={folder.id}
             folder={folder}
             badges={badges}
-            onOpen={(fid) => {
-              const route = TILE_ROUTES[fid];
-              if (route) navigate(route);
-              else setOpenFolder(fid);
-            }}
+            onOpen={setOpenFolder}
           />
         ))}
       </div>
