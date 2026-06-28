@@ -37,23 +37,35 @@ function KanbanColumn({
   return (
     <div
       className="flex-[0_0_auto] w-80 rounded-2xl flex flex-col self-start overflow-hidden"
-      style={{ 
-        background: 'linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02))',
-        border: '1px solid rgba(201,162,75,0.2)',
-        borderTop: `3px solid ${accent}`,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+      style={{
+        background: 'linear-gradient(180deg,rgba(255,255,255,.032) 0%,rgba(255,255,255,.007) 100%)',
+        border: '1px solid rgba(255,255,255,.08)',
+        borderRadius: '18px',
+        boxShadow: '0 16px 34px -22px rgba(0,0,0,.85)',
+        position: 'relative',
+        overflow: 'hidden',
       }}
-    >
+      >
+      {/* 2px top accent rail — gold for Win the Mandate, blue for Build the Listing, emerald for Sell the Unit */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[3px] pointer-events-none z-0 rounded-t-[18px]"
+        style={{
+          background: `linear-gradient(90deg,transparent,${accent},transparent)`,
+          opacity: 0.72,
+        }}
+      />
+
       {/* Column Header — pinned to the top of the column */}
-      <div className="p-3 shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid rgba(201,162,75,0.15)' }}>
+      <div className="p-3 shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
         <div className="flex items-center justify-between mb-1.5 gap-1">
           <div className="flex items-center gap-1 min-w-0">
-            <h3 className="font-bold text-sm truncate" style={{ color: 'rgba(255,255,255,0.95)', fontFamily: "'Playfair Display',serif" }}>{label}</h3>
+            <h3 className="text-sm truncate" style={{ fontFamily: "'Cormorant',serif", fontWeight: 600, color: 'rgb(232,236,246)' }}>{label}</h3>
             <StageGuidePopover stage={stage} accent={accent} />
           </div>
           <div
             className="flex items-center gap-1.5 px-2.5 h-6 rounded-md text-xs font-semibold shrink-0"
-            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+            style={{ background: accent === '#c9a24b' ? 'rgba(201,162,75,.12)' : accent === '#5a93e0' ? 'rgba(90,147,224,.12)' : 'rgba(63,185,138,.12)', border: `1px solid ${accent}4a`, color: accent }}
+
           >
             <Users className="w-2.5 h-2.5" />
             {landlords.length}
@@ -75,7 +87,7 @@ function KanbanColumn({
         )}
         style={{
           scrollbarWidth: 'thin',
-          scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
+          scrollbarColor: 'rgba(201,162,75,.25) transparent',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
         }}
@@ -100,7 +112,7 @@ function KanbanColumn({
         </SortableContext>
 
         {landlords.length === 0 && (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-xs text-center p-2">
+          <div className="flex items-center justify-center h-32 text-xs text-center p-2" style={{ color: '#5f6a85' }}>
             No landlords in this stage
           </div>
         )}

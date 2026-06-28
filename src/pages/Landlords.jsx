@@ -30,6 +30,29 @@ import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDi
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
 
+// Lit-display-case palette tokens (presentation only — leave data / logic / enum keys untouched)
+const LDC = {
+  bodyBg: 'linear-gradient(165deg,#0a1020 0%,#080c16 46%,#06080f 100%)',
+  gold:   '#c9a24b',
+  glite:  '#e3c06a',
+  gdeep:  '#a07d2e',
+  blue:   '#5a93e0',
+  blite:  '#87b2f0',
+  green:  '#3fb98a',
+  grlite: '#7fdcb4',
+  ink:    '#e8ecf6',
+  slate:  '#8b96b0',
+  dim:    '#5f6a85',
+  periwinkle: '#9cc0f0',
+  accent:     '#c4b1ff',   // violet — media/video
+  cardBg: 'linear-gradient(180deg,rgba(255,255,255,.032) 0%,rgba(255,255,255,.007) 100%)',
+  cardBr: '1px solid rgba(255,255,255,.08)',
+  cardSh: '0 16px 34px -22px rgba(0,0,0,.85)',
+  cardGl: 'inset 0 1px 0 rgba(255,255,255,.11), inset 0 -18px 32px -28px rgba(0,0,0,.55)',
+  rr13:   '13px',
+  rr18:   '18px',
+};
+
 const STAGES = [
   'initial_contact',
   'price_discovery',
@@ -391,7 +414,8 @@ export default function Landlords() {
     <div
       ref={rootRef}
       className="h-[100dvh] w-full flex flex-col overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
+      style={{ background: LDC.bodyBg }}
+      id="ldc-landlords"
     >
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
@@ -399,18 +423,19 @@ export default function Landlords() {
         <div className="flex items-center gap-3 flex-wrap">
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ border: '1px solid rgba(201,162,75,.45)', boxShadow: '0 0 20px rgba(201,162,75,.22), inset 0 0 14px rgba(255,255,255,.06)',
+                background: 'radial-gradient(130% 130% at 30% 18%, rgba(201,162,75,.18), transparent 64%)' }}>
+              <Building2 className="w-4 h-4" style={{ color: LDC.gold }} />
             </div>
-            <h1 className="text-lg font-bold page-title whitespace-nowrap">Landlord Pipeline</h1>
+            <h1 className="text-lg whitespace-nowrap" style={{ fontFamily: "'Cormorant',serif", fontWeight: 700, color: LDC.ink }}>Landlord Pipeline</h1>
           </div>
 
           {/* Inline commission stat — icon + value, no card */}
           <div className="flex items-center gap-1.5 shrink-0 px-2.5 h-9 rounded-md"
-            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)' }}>
-            <DollarSign className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
-            <span className="text-sm font-bold tabular-nums" style={{ color: 'hsl(38 92% 50%)' }}>
+            style={{ background: 'rgba(201,162,75,.1)', border: '1px solid rgba(201,162,75,.25)', boxShadow: '0 0 12px rgba(201,162,75,.08)' }}>
+            <DollarSign className="w-3.5 h-3.5" style={{ color: LDC.gold }} />
+            <span className="text-sm font-bold tabular-nums gold-text" style={{ color: LDC.gold }}>
               {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
             </span>
           </div>
@@ -419,7 +444,7 @@ export default function Landlords() {
           <button
             onClick={() => setShowQueuePanel(p => !p)}
             className="flex items-center gap-1.5 text-xs px-2.5 h-9 rounded-md transition-colors shrink-0 whitespace-nowrap"
-            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.65)' }}
+            style={{ background: showQueuePanel ? 'rgba(201,162,75,.12)' : 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', color: showQueuePanel ? LDC.gold : 'rgba(255,255,255,.7)' }}
           >
             <ListOrdered className="w-3.5 h-3.5" />
             My Lead Queue
@@ -434,7 +459,7 @@ export default function Landlords() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-8 h-9 text-xs rounded-md"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
+              style={{ background: 'rgba(255,255,255,.033)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', outline: 'none' }}
             />
             {searchQuery && (
               <button
@@ -461,7 +486,7 @@ export default function Landlords() {
               value={filterAgent}
               onChange={(e) => setFilterAgent(e.target.value)}
               className="h-9 px-3 text-xs rounded-md shrink-0"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 130 }}
+              style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
             >
               <option value="">All Agents</option>
               {users.map(u => (
@@ -489,7 +514,7 @@ export default function Landlords() {
               <span className="hidden xl:inline">Report</span>
             </Button>
             <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
-              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
+              style={{ background: 'linear-gradient(135deg, #c9a24b, #b08c2e)', color: '#0a0e1a', border: '1px solid rgba(201,162,75,.5)', boxShadow: '0 0 16px rgba(201,162,75,.4)' }}>
               <Plus className="w-4 h-4" />
               <span className="hidden xl:inline">New</span>
             </Button>
@@ -498,7 +523,7 @@ export default function Landlords() {
 
         {/* Lead Queue panel (expands below the toolbar when toggled) */}
         {showQueuePanel && (
-          <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="mt-2 p-4 rounded-xl"               style={{ background: LDC.cardBg, border: LDC.cardBr, boxShadow: LDC.cardSh }}>
             <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
           </div>
         )}
@@ -520,7 +545,7 @@ export default function Landlords() {
           {selectedIds.size > 0 ? (
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}
+              style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.35)' }}
             >
               <UserCheck className="w-3.5 h-3.5 text-accent shrink-0" />
               <span className="text-xs font-semibold text-accent whitespace-nowrap">{selectedIds.size} selected</span>
@@ -528,7 +553,7 @@ export default function Landlords() {
                 value={bulkAgentEmail}
                 onChange={e => setBulkAgentEmail(e.target.value)}
                 className="px-2 py-1 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)', minWidth: 130 }}
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
               >
                 <option value="">Select agent…</option>
                 {users.map(u => (
@@ -569,7 +594,7 @@ export default function Landlords() {
                     value={filterAgent}
                     onChange={(e) => setFilterAgent(e.target.value)}
                     className="h-9 px-3 text-xs rounded-md shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                    style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 140 }}
                   >
                     <option value="">All Agents</option>
                     {users.map(u => (
@@ -581,7 +606,7 @@ export default function Landlords() {
                   value={filterArchetype}
                   onChange={(e) => setFilterArchetype(e.target.value)}
                   className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
                 >
                   <option value="">All Archetypes</option>
                   <option value="professional_investor">Professional Investor</option>
@@ -611,7 +636,7 @@ export default function Landlords() {
                   value={filterLayout}
                   onChange={(e) => setFilterLayout(e.target.value)}
                   className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
                 >
                   <option value="">All Layouts</option>
                   <option value="Studio">Studio</option>
@@ -624,7 +649,7 @@ export default function Landlords() {
                   value={filterLanguage}
                   onChange={(e) => setFilterLanguage(e.target.value)}
                   className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
                 >
                   <option value="">All Languages</option>
                   <option value="en">English</option>
@@ -637,7 +662,7 @@ export default function Landlords() {
                   value={filterAssignment}
                   onChange={(e) => setFilterAssignment(e.target.value)}
                   className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
                 >
                   <option value="">All Assignments</option>
                   <option value="unassigned">Unassigned</option>
@@ -657,7 +682,7 @@ export default function Landlords() {
               {/* Count pill — pinned hard right */}
               <div
                 className="flex items-center gap-1.5 px-3 h-9 rounded-md text-xs font-semibold shrink-0 ml-auto"
-                style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+                style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.25)', color: LDC.gold }}
               >
                 <Users className="w-3.5 h-3.5" />
                 {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
@@ -671,9 +696,9 @@ export default function Landlords() {
           <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-3 block">
             <defs>
               <linearGradient id="valley-fade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
-                <stop offset="50%" stopColor="hsl(38 92% 50%)" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="hsl(38 92% 50%)" stopOpacity="0" />
+                <stop offset="0%" stopColor="#c9a24b" stopOpacity="0" />
+                <stop offset="50%" stopColor="#c9a24b" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#c9a24b" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path d="M0 4 Q 600 28 1200 4" fill="none" stroke="url(#valley-fade)" strokeWidth="1.5" />

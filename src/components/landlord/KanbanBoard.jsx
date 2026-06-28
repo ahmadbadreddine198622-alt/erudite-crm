@@ -244,8 +244,8 @@ export default function KanbanBoard({
             <div key={phase.key} className="flex items-center gap-1 shrink-0">
               {/* Phase separator label */}
               <span
-                className="text-[9px] font-bold uppercase tracking-widest px-1 shrink-0 whitespace-nowrap"
-                style={{ color: phase.color, opacity: 0.7 }}
+                          className="shrink-0 whitespace-nowrap"
+                          style={{ fontFamily: "'Cormorant',serif", fontSize: '14px', fontWeight: 600, padding: '0 4px', color: phase.color, opacity: 0.7, letterSpacing: '0.04em' }}
               >
                 {phase.name.split(' ')[0]}
               </span>
@@ -258,14 +258,15 @@ export default function KanbanBoard({
                     onClick={() => scrollToStage(s)}
                     className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all duration-200"
                     style={{
+                      fontFamily: "'Montserrat',sans-serif",
                       background: isActive
-                        ? `${phase.color}22`
-                        : 'rgba(255,255,255,0.04)',
+                        ? `${phase.color}25`
+                        : 'rgba(255,255,255,.035)',
                       border: isActive
-                        ? `1px solid ${phase.color}`
-                        : '1px solid rgba(255,255,255,0.1)',
-                      color: isActive ? phase.color : 'rgba(255,255,255,0.55)',
-                      boxShadow: isActive ? `0 0 8px ${phase.color}44` : 'none',
+                        ? `1.5px solid ${phase.color}`
+                        : '1px solid rgba(255,255,255,.08)',
+                      color: isActive ? phase.color : 'rgba(255,255,255,.7)',
+                      boxShadow: isActive ? `0 0 12px ${phase.color}55` : 'none',
                     }}
                   >
                     {STAGE_SHORT[s] || stageLabels[s] || s}
@@ -289,10 +290,10 @@ export default function KanbanBoard({
           disabled={!showLeft}
           className="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-8 h-12 rounded-r-xl transition-all duration-200"
           style={{
-            background: 'linear-gradient(90deg, rgba(15,20,25,0.85), transparent)',
+            background: 'linear-gradient(90deg, rgba(7,10,18,0.9), transparent)',
             opacity: showLeft ? 1 : 0,
             pointerEvents: showLeft ? 'auto' : 'none',
-            color: '#C9A24B',
+            color: '#c9a24b',
             border: 'none',
           }}
         >
@@ -305,14 +306,16 @@ export default function KanbanBoard({
           disabled={!showRight}
           className="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-8 h-12 rounded-l-xl transition-all duration-200"
           style={{
-            background: 'linear-gradient(270deg, rgba(15,20,25,0.85), transparent)',
+            background: 'linear-gradient(270deg, rgba(7,10,18,0.9), transparent)',
             opacity: showRight ? 1 : 0,
             pointerEvents: showRight ? 'auto' : 'none',
-            color: '#C9A24B',
+            color: '#c9a24b',
             border: 'none',
           }}
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5"
+            style={{ color: true ? '#c9a24b' : undefined }}
+          />
         </button>
 
         {/* Scrollable board — native overflow for both axes.
@@ -326,16 +329,19 @@ export default function KanbanBoard({
           position: 'relative',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
+          scrollbarColor: 'rgba(201,162,75,.35) transparent',
+          borderRight: '1px solid rgba(255,255,255,.06)',
+          borderLeft: '1px solid rgba(255,255,255,.06)',
+
           overscrollBehavior: 'contain',
           touchAction: 'pan-x',
         }}
         >
           <style>{`
             .board-inner::-webkit-scrollbar { height: 8px; }
-            .board-inner::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 99px; }
-            .board-inner::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.4); border-radius: 99px; }
-            .board-inner::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.65); }
+            .board-inner::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 99px; }
+            .board-inner::-webkit-scrollbar-thumb { background: rgba(201,162,75,.3); border-radius: 99px; }
+            .board-inner::-webkit-scrollbar-thumb:hover { background: rgba(201,162,75,.55); }
           `}</style>
 
           <DndContext
@@ -355,20 +361,21 @@ export default function KanbanBoard({
                   <div key={phase.key} className="flex flex-col gap-2 shrink-0">
                     {/* Phase band */}
                     <div
-                      className="rounded-xl px-3 py-2 flex items-center gap-2.5"
+                      className="rounded-xl px-4 py-2 flex items-center gap-2.5"
                       style={{
                         background: `linear-gradient(90deg, ${phase.color}26, ${phase.color}0d)`,
                         border: `1px solid ${phase.color}55`,
                         borderLeft: `3px solid ${phase.color}`,
+                        marginBottom: '4px',
                       }}
                     >
-                      <span className="text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: phase.color, fontFamily: 'var(--font-display)' }}>
+                      <span className="whitespace-nowrap tracking-tight" style={{ fontFamily: "'Cormorant',serif", fontWeight: 600, color: phase.color }}>
                         {phase.name}
                       </span>
                       <span className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         {phase.purpose}
                       </span>
-                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: `${phase.color}22`, color: phase.color }}>
+                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: `linear-gradient(135deg,${phase.color}2a,${phase.color}0c)`, border: `1px solid ${phase.color}55`, color: phase.color }}>
                         {phaseCount}
                       </span>
                     </div>

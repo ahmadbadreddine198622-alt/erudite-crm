@@ -15,14 +15,14 @@ export const PHASES = [
     key: 'build_listing',
     name: 'Build the Listing',
     purpose: 'Operations — documents, media and a live, compliant listing.',
-    color: '#3B5C8A', // navy
+    color: '#5a93e0', // blue
     stages: ['owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification', 'listing_publication', 'final_confirmation'],
   },
   {
     key: 'sell_unit',
     name: 'Sell the Unit',
     purpose: 'Marketing & close — drive offers and transfer the deal.',
-    color: '#2FA56A', // green
+    color: '#3fb98a', // emerald
     stages: ['marketing_agents', 'marketing_network', 'open_house', 'client_blast', 'deal_closed'],
   },
 ];
