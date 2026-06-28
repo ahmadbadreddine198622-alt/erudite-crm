@@ -55,6 +55,7 @@ const QUICK_ACTIONS = {
 };
 
 // ── Lit display case icon ──────────────────────────────────────────────────────
+// Flat icon (no gloss/gradient/glints — clean stroke to match dashboard)
 function LitCaseIcon({ icon: Icon, hue, size, active }) {
   const radius = Math.round(size * 0.30);
   const iconSize = Math.round(size * 0.46);
@@ -283,28 +284,17 @@ export default function MobileDock() {
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
               }}
             >
-              {/* Top glint — brightest cream */}
-              <div style={{
-                position: 'absolute', top: 0, left: '11px', right: '11px', height: '1px',
-                background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.9),transparent)',
-                pointerEvents: 'none',
-              }} />
-              {/* Inner top-glow */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: homeRadius, pointerEvents: 'none',
-                background: 'radial-gradient(80% 50% at 50% -10%, rgba(255,255,255,0.28), transparent 70%)',
-              }} />
+              {/* (gloss ux netizens — stripped to keep flat) */}
               <Home
                 style={{
                   width: Math.round(HOME_SZ * 0.46), height: Math.round(HOME_SZ * 0.46),
                   position: 'absolute', top: '50%', left: '50%',
                   transform: 'translate(-50%, -50%)',
                   color: '#eccd72',
-                  strokeWidth: 1.7,
-                  filter: 'drop-shadow(0 1px 4px rgba(212,175,55,0.6)) drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
-                }}
-              />
-            </button>
+                  strokeWidth: 1.4,
+                  }}
+                  />
+                  </button>
           </div>
 
           <PortraitDockIcon app={dockApps[2]} appKey="whatsapp" active={location.pathname.startsWith('/whatsapp')} onLongPress={(e) => handleLongPress('whatsapp', e)} onPress={() => navigate('/whatsapp')} />
