@@ -419,6 +419,13 @@ export default function Dashboard() {
         <PFListingsGrid />
       </div>
 
+      {/* Activity */}
+      <div className="w-full max-w-5xl mx-auto mt-4">
+        <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
+          <ActivityFeed />
+        </EruditeSection>
+      </div>
+
 
 
       {/* No results */}
