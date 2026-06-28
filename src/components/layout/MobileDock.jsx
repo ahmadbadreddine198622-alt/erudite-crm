@@ -152,7 +152,10 @@ function QuickActionsPopover({ actions, position, onClose, navigate }) {
 export default function MobileDock() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768 && window.innerWidth < window.innerHeight;
+  });
   const [activePopover, setActivePopover] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
 
@@ -160,7 +163,11 @@ export default function MobileDock() {
     const check = () => setIsMobilePortrait(window.innerWidth <= 768 && window.innerWidth < window.innerHeight);
     check();
     window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
   }, []);
 
   const dockApps = useMemo(() => {
