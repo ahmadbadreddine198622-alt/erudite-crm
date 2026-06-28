@@ -355,20 +355,21 @@ export default function KanbanBoard({
                   <div key={phase.key} className="flex flex-col gap-2 shrink-0">
                     {/* Phase band */}
                     <div
-                      className="rounded-xl px-3 py-2 flex items-center gap-2.5"
+                      className="lit-phase-band"
                       style={{
-                        background: `linear-gradient(90deg, ${phase.color}26, ${phase.color}0d)`,
-                        border: `1px solid ${phase.color}55`,
+                        background: `linear-gradient(90deg, ${phase.color}0d, ${phase.color}04)`,
+                        border: `1px solid ${phase.color}40`,
                         borderLeft: `3px solid ${phase.color}`,
+                        color: phase.color,
                       }}
                     >
-                      <span className="text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: phase.color, fontFamily: 'var(--font-display)' }}>
+                      <span className="lit-serif" style={{ fontSize: '0.925rem' }}>
                         {phase.name}
                       </span>
-                      <span className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                      <span className="lit-sans text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         {phase.purpose}
                       </span>
-                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: `${phase.color}22`, color: phase.color }}>
+                      <span className="lit-band-count" style={{ background: `${phase.color}22`, color: phase.color }}>
                         {phaseCount}
                       </span>
                     </div>

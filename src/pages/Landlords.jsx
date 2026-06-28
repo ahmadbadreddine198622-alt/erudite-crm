@@ -29,6 +29,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
+import '@/components/layout/LitPipelineRestyle.css';
 
 const STAGES = [
   'initial_contact',
@@ -397,29 +398,31 @@ export default function Landlords() {
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
       <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Title + icon */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+          {/* Home button (gold lit case) + title */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="lit-home-btn" onClick={() => navigate('/')} title="Dashboard">
+              <Building2 />
             </div>
-            <h1 className="text-lg font-bold page-title whitespace-nowrap">Landlord Pipeline</h1>
+            <h1 className="text-lg font-bold lit-serif whitespace-nowrap" style={{ letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.93)' }}>Landlord Pipeline</h1>
           </div>
 
-          {/* Inline commission stat — icon + value, no card */}
-          <div className="flex items-center gap-1.5 shrink-0 px-2.5 h-9 rounded-md"
-            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)' }}>
-            <DollarSign className="w-3.5 h-3.5" style={{ color: 'hsl(38 92% 50%)' }} />
-            <span className="text-sm font-bold tabular-nums" style={{ color: 'hsl(38 92% 50%)' }}>
-              {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
-            </span>
-          </div>
+          {/* Gold-glass commission pill */}
+          <span className="lit-pill-gold">
+            <DollarSign className="w-3.5 h-3.5" />
+            {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
+          </span>
+
+          {/* Count pill */}
+          <span className="lit-pill-count">
+            <Users className="w-3.5 h-3.5" />
+            {allFilteredLandlords.length} {allFilteredLandlords.length === 1 ? 'landlord' : 'landlords'}
+          </span>
 
           {/* My Lead Queue */}
           <button
             onClick={() => setShowQueuePanel(p => !p)}
-            className="flex items-center gap-1.5 text-xs px-2.5 h-9 rounded-md transition-colors shrink-0 whitespace-nowrap"
-            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.65)' }}
+            className="lit-glass flex items-center gap-1.5 px-2.5 h-9 shrink-0 whitespace-nowrap"
+            style={{ color: showQueuePanel ? '#e3c06a' : 'rgba(255,255,255,0.65)' }}
           >
             <ListOrdered className="w-3.5 h-3.5" />
             My Lead Queue
@@ -427,19 +430,19 @@ export default function Landlords() {
 
           {/* Search — flexible width, fills the middle */}
           <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: '#5f6a85' }} />
             <input
               type="text"
               placeholder="Search name, unit, phone, email, project…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-8 h-9 text-xs rounded-md"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
+              className="w-full pl-8 pr-8 h-9 lit-input"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
+                style={{ color: '#5f6a85' }}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -447,7 +450,7 @@ export default function Landlords() {
           </div>
 
           {/* Select all + agent filter */}
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0 whitespace-nowrap">
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none shrink-0 whitespace-nowrap lit-sans" style={{ color: '#5f6a85' }}>
             <input
               type="checkbox"
               checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
@@ -460,8 +463,8 @@ export default function Landlords() {
             <select
               value={filterAgent}
               onChange={(e) => setFilterAgent(e.target.value)}
-              className="h-9 px-3 text-xs rounded-md shrink-0"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 130 }}
+              className="lit-select shrink-0"
+              style={{ minWidth: 130 }}
             >
               <option value="">All Agents</option>
               {users.map(u => (
@@ -470,29 +473,23 @@ export default function Landlords() {
             </select>
           )}
 
-          {/* Action buttons */}
+          {/* Action buttons (already handled below — placeholder to keep layout) */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
-              <Upload className="w-4 h-4" />
-              <span className="hidden xl:inline">Import</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
-              <Video className="w-4 h-4" />
-              <span className="hidden xl:inline">Virtual</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
-              <FileSignature className="w-4 h-4 text-amber-400" />
-              <span className="hidden xl:inline">Form A</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span className="hidden xl:inline">Report</span>
-            </Button>
-            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
-              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
-              <Plus className="w-4 h-4" />
-              <span className="hidden xl:inline">New</span>
-            </Button>
+            <button onClick={() => setShowImportDialog(true)} className="lit-glass h-9 px-2.5 gap-2 flex items-center">
+              <Upload className="w-4 h-4" /><span className="hidden xl:inline">Import</span>
+            </button>
+            <button onClick={() => setShowVirtualViewing(true)} className="lit-glass h-9 px-2.5 gap-2 flex items-center">
+              <Video className="w-4 h-4" /><span className="hidden xl:inline">Virtual</span>
+            </button>
+            <button onClick={() => setShowFormADialog(true)} className="lit-glass h-9 px-2.5 gap-2 flex items-center">
+              <FileSignature className="w-4 h-4" style={{ color: '#9cc0f0' }} /><span className="hidden xl:inline">Form A</span>
+            </button>
+            <button onClick={() => setShowMarketReportDialog(true)} className="lit-glass h-9 px-2.5 gap-2 flex items-center">
+              <FileText className="w-4 h-4" /><span className="hidden xl:inline">Report</span>
+            </button>
+            <button onClick={() => setShowNewDialog(true)} className="lit-btn-brand">
+              <Plus className="w-4 h-4" /><span className="hidden xl:inline">New</span>
+            </button>
           </div>
         </div>
 
@@ -563,13 +560,13 @@ export default function Landlords() {
           ) : (
             <>
               {/* Centered filter track — scrolls horizontally on narrow viewports, stays one line */}
-              <div className="filter-track flex-1 min-w-0 flex items-center gap-2 overflow-x-auto">
+              <div className="filter-track flex-1 min-w-0 flex items-center gap-2 overflow-x-auto lit-scroll-gold">
                 {safePermissions.view_all_landlords && users.length > 0 && (
                   <select
                     value={filterAgent}
                     onChange={(e) => setFilterAgent(e.target.value)}
-                    className="h-9 px-3 text-xs rounded-md shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                    className="lit-select shrink-0"
+                    style={{ minWidth: 140 }}
                   >
                     <option value="">All Agents</option>
                     {users.map(u => (
@@ -580,8 +577,7 @@ export default function Landlords() {
                 <select
                   value={filterArchetype}
                   onChange={(e) => setFilterArchetype(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  className="lit-select shrink-0"
                 >
                   <option value="">All Archetypes</option>
                   <option value="professional_investor">Professional Investor</option>
@@ -599,8 +595,7 @@ export default function Landlords() {
                 <select
                   value={filterFloor}
                   onChange={(e) => setFilterFloor(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  className="lit-select shrink-0"
                 >
                   <option value="">All Floors</option>
                   <option value="1-10">Floors 1–10</option>
@@ -610,8 +605,7 @@ export default function Landlords() {
                 <select
                   value={filterLayout}
                   onChange={(e) => setFilterLayout(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  className="lit-select shrink-0"
                 >
                   <option value="">All Layouts</option>
                   <option value="Studio">Studio</option>
@@ -623,8 +617,7 @@ export default function Landlords() {
                 <select
                   value={filterLanguage}
                   onChange={(e) => setFilterLanguage(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  className="lit-select shrink-0"
                 >
                   <option value="">All Languages</option>
                   <option value="en">English</option>
@@ -636,8 +629,7 @@ export default function Landlords() {
                 <select
                   value={filterAssignment}
                   onChange={(e) => setFilterAssignment(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                  className="lit-select shrink-0"
                 >
                   <option value="">All Assignments</option>
                   <option value="unassigned">Unassigned</option>
@@ -684,12 +676,19 @@ export default function Landlords() {
       {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <style>{`
-        .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
+        .filter-track { scrollbar-width: thin; scrollbar-color: rgba(201,162,75,0.22) transparent; }
         .filter-track::-webkit-scrollbar { height: 6px; }
         .filter-track::-webkit-scrollbar-track { background: transparent; }
-        .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
-        .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
+        .filter-track::-webkit-scrollbar-thumb { background: rgba(201,162,75,0.22); border-radius: 99px; }
+        .filter-track::-webkit-scrollbar-thumb:hover { background: rgba(201,162,75,0.42); }
       `}</style>
+      {/* Gold-gradient defs for lit home button */}
+      <svg width="0" height="0" aria-hidden="true"><defs>
+        <linearGradient id="homeGold" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#e3c06a" />
+          <stop offset="100%" stopColor="#a07d2e" />
+        </linearGradient>
+      </defs></svg>
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <KanbanBoard
