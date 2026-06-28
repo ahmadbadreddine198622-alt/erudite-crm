@@ -43,7 +43,7 @@ export default function AppLayout() {
         />
       )}
 
-      <main className="flex-1 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip' }}>
+      <main className="flex-1 min-w-0 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip' }}>
         {/* Top-left button cluster — stacked vertically */}
         <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
@@ -206,7 +206,7 @@ export default function AppLayout() {
         </button>
 
         </div> {/* end top-left cluster */}
-        <div className="page-enter">
+        <div className="page-enter w-full min-w-0">
           <Outlet />
         </div>
       </main>

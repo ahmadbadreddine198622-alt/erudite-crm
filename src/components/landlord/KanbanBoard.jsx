@@ -178,7 +178,7 @@ export default function KanbanBoard({
   }, [stages]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
 
       {/* ── Stage Rail (minimap) ─────────────────────────────────────────── */}
       <div
@@ -232,7 +232,7 @@ export default function KanbanBoard({
 
       {/* ── Board scroll container with edge arrows ─────────────────────── */}
       <div
-        style={{ position: 'relative', flex: 1, minHeight: 0 }}
+        style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}
         onMouseEnter={() => setBoardHovered(true)}
         onMouseLeave={() => setBoardHovered(false)}
       >

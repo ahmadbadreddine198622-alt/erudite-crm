@@ -690,8 +690,8 @@ export default function Landlords() {
         .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
         .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
       `}</style>
-      <div style={{ flex: 1, minHeight: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
-        <div style={{ flex: 1, minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
