@@ -102,29 +102,8 @@ export const MISSING_APP_LABELS = FOLDER_DEFS
   .flatMap(f => f.appLabels)
   .filter(l => !APP_BY_LABEL[l]);
 
-// ── Icon case (92px rounded case with colored aura) ───────────────────────────
-function IconCase({ folder }) {
-  const Icon = folder.icon;
-  return (
-    <div
-      className="flex items-center justify-center transition-all duration-200"
-      style={{
-        width: '92px',
-        height: '92px',
-        borderRadius: '22px',
-        background: `radial-gradient(circle at 50% 35%, ${folder.jewelAura} 0%, transparent 70%)`,
-        boxShadow: `0 0 28px ${folder.jewelAura}, inset 0 0 18px ${folder.jewelAura}`,
-      }}
-    >
-      {Icon && <Icon style={{ width: 44, height: 44, color: folder.jewelColor, strokeWidth: 1.75 }} />}
-    </div>
-  );
-}
-
-// ── App icon inside overlay (mini lit case) ───────────────────────────────────
-
-// Extract RGB triplet + a light tint from an rgba glowColor string
-function hueParts(glowColor) {
+// ── Icon case (small flat lit-case, matching the app‑icon style) ───────────────
+const hueParts = glowColor => {
   const m = (glowColor || '').match(/rgba?\(([^)]+)\)/);
   if (!m) return { rgb: '154,166,192', light: 'rgb(195,204,221)' };
   const parts = m[1].split(',').map(s => parseInt(s.trim(), 10));
@@ -133,7 +112,27 @@ function hueParts(glowColor) {
   const lg = Math.min(255, Math.round(g + (255 - g) * 0.65));
   const lb = Math.min(255, Math.round(b + (255 - b) * 0.65));
   return { rgb: `${r},${g},${b}`, light: `rgb(${lr},${lg},${lb})` };
+};
+function IconCase({ folder }) {
+  const hue = hueParts(folder.jewelAura);
+  return (
+    <div
+      className="flex items-center justify-center transition-all duration-200"
+      style={{
+        width: '80px',
+        height: '80px',
+        borderRadius: '19px',
+        background: `radial-gradient(130% 130% at 30% 18%, rgba(${hue.rgb},0.20), rgba(${hue.rgb},0.04))`,
+        border: '1px solid rgba(212,175,55,0.20)',
+        boxShadow: `0 0 28px -6px rgba(${hue.rgb},0.35), inset 0 1px 0 rgba(255,255,255,0.14)`,
+      }}
+    >
+      {folder.icon && <folder.icon style={{ width: 38, height: 38, color: folder.jewelColor, strokeWidth: 1.7 }} />}
+    </div>
+  );
 }
+
+// ── App icon inside overlay (mini lit case) ───────────────────────────────────
 
 function FolderAppIcon({ app, badges, onNavigate }) {
   const Icon = app.icon;
@@ -226,7 +225,7 @@ function FolderTile({ folder, badges, onOpen }) {
         className="relative overflow-hidden flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200"
         style={{
           width: '100%',
-          minHeight: '140px',
+          minHeight: '116px',
           background: 'var(--ds-card, rgba(255,255,255,0.022))',
           border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
           borderRadius: '18px',
