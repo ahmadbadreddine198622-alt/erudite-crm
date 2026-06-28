@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 import { cn } from '@/lib/utils';
-import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera, Flame } from 'lucide-react';
+import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
 import AppPickerSheet from '@/components/ui/AppPickerSheet';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
@@ -375,43 +375,49 @@ export default function Dashboard() {
         userProfileImage={userProfileImage}
       />
 
-      {/* KPI Strip — dark flat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-[1320px] mx-auto gap-4 mb-10">
-       {[
-         { label: 'Active', value: activeLeadCount, icon: Users, sub: `+${leadsToday} today`, subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.12)', onClick: () => navigate('/leads') },
-         { label: 'Reminders', value: remindersCount, icon: Bell, sub: remindersDueNow.length > 0 ? `${remindersDueNow.length} due now` : 'none due', subColor: '#f5c878', subBg: 'rgba(240,169,59,.12)', onClick: () => navigate('/reminders') },
-         { label: 'Unread', value: totalUnread, icon: Mail, sub: `${waUnreadCount + unreadMessages.length} new replies`, subColor: '#c4b5fd', subBg: 'rgba(139,92,246,.12)', onClick: () => navigate('/whatsapp') },
-         { label: 'Hot', value: hotDeals.length, icon: Flame, sub: hotDeals.length === 0 ? 'none flagged' : (blazingCount > 0 ? `${blazingCount} blazing` : `${hotDeals.length} hot`), subColor: hotDeals.length === 0 ? '#666677' : 'var(--ds-gold, #d4af37)', subBg: hotDeals.length === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(212,175,55,.12)', onClick: () => navigate('/closing') },
-       ].map((kpi, i) => (
+      {/* KPI Strip — live counts with gold hairline */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-[1320px] mx-auto gap-3 mb-10">
+        {[
+          { label: 'Active', value: activeLeadCount, icon: Users, sub: `+${leadsToday} today`, subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
+          { label: 'Reminders', value: remindersCount, icon: Bell, sub: remindersDueNow.length > 0 ? `${remindersDueNow.length} due now` : 'none due', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
+          { label: 'Unread', value: totalUnread, icon: MessageCircle, sub: `${waUnreadCount + unreadMessages.length} new replies`, subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
+          { label: 'Hot', value: hotDeals.length, icon: TrendingUp, sub: hotDeals.length === 0 ? 'none flagged' : (blazingCount > 0 ? `${blazingCount} blazing` : `${hotDeals.length} hot`), subColor: hotDeals.length === 0 ? 'var(--ds-muted-dim, #5d6680)' : 'var(--ds-gold, #d4af37)', subBg: hotDeals.length === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(212,175,55,.16)', onClick: () => navigate('/closing') },
+        ].map((kpi, i) => (
           <button
             key={i}
             onClick={kpi.onClick}
-            className="relative overflow-hidden flex flex-col items-start justify-between gap-2 p-4 transition-all duration-200 hover:-translate-y-[3px] text-left"
+            className="relative overflow-hidden flex flex-col items-center gap-1.5 p-3 transition-all hover:-translate-y-[3px]"
             style={{
-              background: '#16161c',
-              border: '1px solid #2a2a35',
-              borderRadius: '14px',
+              background: 'var(--ds-card, rgba(255,255,255,0.022))',
+              border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+              borderRadius: '18px',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3a3a48'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a35'; }}
           >
-            {/* Header: icon + label */}
-            <div className="flex items-center gap-2 w-full">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                <kpi.icon style={{ width: 14, height: 14, color: '#888899' }} />
-              </div>
-              <p className="text-[10px] uppercase tracking-[0.15em] font-medium" style={{ color: '#888899' }}>{kpi.label}</p>
+            {/* Gold hairline top */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{
+              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,.5), transparent)',
+              marginLeft: '22px',
+              marginRight: '22px',
+            }} />
+            {/* Icon chip */}
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{
+              background: 'rgba(212,175,55,.1)',
+              border: '1px solid rgba(212,175,55,.2)',
+            }}>
+              <kpi.icon style={{ width: 14, height: 14, color: 'var(--ds-gold-lite, #eccd72)' }} />
             </div>
-            {/* Value */}
+            {/* Number */}
             <p style={{
               fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 'clamp(28px, 4vw, 40px)',
-              fontWeight: 700,
+              fontSize: 'clamp(28px, 4vw, 44px)',
+              fontWeight: 600,
               lineHeight: 1,
-              color: '#ffffff',
+              color: 'var(--ds-ink, #e8ecf6)',
             }}>{kpi.value}</p>
-            {/* Badge pill */}
-            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{
+            {/* Label */}
+            <p className="text-[8px] uppercase tracking-widest font-medium" style={{ color: 'var(--ds-muted, #8a93ab)' }}>{kpi.label}</p>
+            {/* Sub-chip */}
+            <span className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full" style={{
               background: kpi.subBg,
               color: kpi.subColor,
             }}>{kpi.sub}</span>
@@ -419,12 +425,12 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* WORKSPACES section header with divider */}
+      {/* WORKSPACES section eyebrow with hairline rule */}
       <div className="w-full max-w-[1320px] mx-auto mb-4 flex items-center gap-3">
-        <p className="text-[11px] uppercase tracking-[0.35em] shrink-0 font-semibold" style={{ color: '#666677' }}>
+        <p className="text-xs uppercase tracking-[0.3em] shrink-0" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.7, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
           Workspaces
         </p>
-        <div className="flex-1 h-px" style={{ background: '#2a2a35' }} />
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.3), transparent)' }} />
       </div>
 
 
@@ -479,12 +485,12 @@ export default function Dashboard() {
 
 
 
-      {/* Property Finder — header + sync health note */}
+      {/* Property Finder — eyebrow + sync health note */}
       <div className="w-full max-w-[1320px] mx-auto mb-4 flex items-center gap-3">
-        <p className="text-[11px] uppercase tracking-[0.35em] shrink-0 font-semibold" style={{ color: '#666677' }}>
+        <p className="text-xs uppercase tracking-[0.3em] shrink-0" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.7, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
           Property Finder
         </p>
-        <div className="flex-1 h-px" style={{ background: '#2a2a35' }} />
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.3), transparent)' }} />
         {/* PF sync health note */}
         {pfSyncHealth && (
           <div className="flex items-center gap-2">
