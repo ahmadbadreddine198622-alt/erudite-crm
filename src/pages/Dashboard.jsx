@@ -24,6 +24,7 @@ import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
 import { QUOTES } from '@/components/dashboard/MotivationalQuote';
+import MotivationalQuote from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
@@ -343,6 +344,9 @@ export default function Dashboard() {
       </div>
 
 
+
+      {/* Motivation quote row */}
+      <MotivationalQuote />
 
       {/* Done button — only visible in edit mode */}
       {editMode && (
