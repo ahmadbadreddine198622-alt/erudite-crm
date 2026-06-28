@@ -243,8 +243,8 @@ export default function KanbanBoard({
           className="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-8 h-12 rounded-r-xl transition-all duration-200"
           style={{
             background: 'linear-gradient(90deg, rgba(15,20,25,0.85), transparent)',
-            opacity: boardHovered && showLeft ? 1 : 0,
-            pointerEvents: boardHovered && showLeft ? 'auto' : 'none',
+            opacity: showLeft ? 1 : 0,
+            pointerEvents: showLeft ? 'auto' : 'none',
             color: '#C9A24B',
             border: 'none',
           }}
@@ -259,8 +259,8 @@ export default function KanbanBoard({
           className="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-8 h-12 rounded-l-xl transition-all duration-200"
           style={{
             background: 'linear-gradient(270deg, rgba(15,20,25,0.85), transparent)',
-            opacity: boardHovered && showRight ? 1 : 0,
-            pointerEvents: boardHovered && showRight ? 'auto' : 'none',
+            opacity: showRight ? 1 : 0,
+            pointerEvents: showRight ? 'auto' : 'none',
             color: '#C9A24B',
             border: 'none',
           }}
@@ -283,12 +283,24 @@ export default function KanbanBoard({
             overscrollBehavior: 'contain',
           }}
           onWheel={(e) => {
-            // If the cursor is over a column body, let it scroll vertically natively
-            if (e.target.closest('[data-column-scroll]')) return;
-            // Over the board background: route vertical wheel → horizontal scroll
-            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-              e.currentTarget.scrollLeft += e.deltaY;
+            const board = e.currentTarget;
+            // Horizontal trackpad swipe → always horizontal board scroll
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+              board.scrollLeft += e.deltaX;
+              return;
             }
+            // Vertical wheel — check if cursor is over a scrollable column
+            const colEl = e.target.closest('[data-column-scroll]');
+            if (colEl) {
+              const atTop = colEl.scrollTop <= 0;
+              const atBottom = colEl.scrollTop + colEl.clientHeight >= colEl.scrollHeight - 1;
+              const scrollingUp = e.deltaY < 0;
+              const scrollingDown = e.deltaY > 0;
+              // If the column can still scroll in this direction, let it scroll vertically
+              if ((scrollingUp && !atTop) || (scrollingDown && !atBottom)) return;
+            }
+            // Column is at its boundary, or cursor is over board background → horizontal scroll
+            board.scrollLeft += e.deltaY;
           }}
         >
           <style>{`
