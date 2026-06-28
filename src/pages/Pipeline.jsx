@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -75,6 +75,15 @@ export default function Pipeline() {
 
   const { user: currentUser, permissions } = useCurrentUser();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
+
+  // Clear any leftover body/html scroll locks left by Radix Dialog/Sheet components
+  // that didn't clean up on unmount — these prevent the board from scrolling.
+  useEffect(() => {
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.style.removeProperty('overflow');
+    document.body.removeAttribute('data-scroll-locked');
+  }, []);
 
   // staleTime stops these heavy loads (two are 5000-row lists) from refetching on every
   // remount/focus, matching the `users` query just below and the rest of the app. The drag-stage and
