@@ -29,18 +29,19 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-      <div
-        className="overflow-x-auto overflow-y-hidden pb-4"
-        style={{
-          height: '100%',
-          minWidth: 0,
-          position: 'relative',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-          overscrollBehavior: 'contain',
-        }}
-      >
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+        <div
+          className="overflow-x-auto overflow-y-hidden pb-4"
+          style={{
+            height: '100%',
+            minWidth: 0,
+            position: 'relative',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
+            overscrollBehavior: 'contain',
+          }}
+        >
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex gap-3 min-w-max h-full">
             {stages.map((stage) => (
@@ -58,6 +59,7 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
             ))}
           </div>
         </DragDropContext>
+        </div>
       </div>
     </div>
   );
