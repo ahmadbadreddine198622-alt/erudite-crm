@@ -44,31 +44,8 @@ export default function AppLayout() {
       )}
 
       <main className="flex-1 min-w-0 pb-36 md:pb-0 relative bg-background">
-        {/* Mobile top header — centered ERUDITE logo (no Home pill) */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-center pt-4 pb-3" style={{
-          background: 'linear-gradient(180deg, rgba(10,14,30,0.95) 0%, rgba(10,14,30,0.7) 100%)',
-          backdropFilter: 'blur(24px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-          borderBottom: '1px solid rgba(212,175,55,0.15)',
-        }}>
-          <span
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 600,
-              fontSize: '20px',
-              letterSpacing: '0.30em',
-              background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            ERUDITE
-          </span>
-        </div>
-
-        {/* Top-left button cluster — stacked vertically (desktop + mobile, below logo on mobile) */}
-        <div className="md:top-4 top-20" style={{ position: 'fixed', left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Top-left button cluster — stacked vertically (desktop + mobile) */}
+        <div className="md:top-4 top-4" style={{ position: 'fixed', left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
         {/* Home button — top of cluster */}
         <button
