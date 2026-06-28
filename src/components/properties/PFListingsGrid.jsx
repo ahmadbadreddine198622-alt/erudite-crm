@@ -75,9 +75,9 @@ function ChipGroup({ options, value, onChange, multi = false }) {
             onClick={() => handleClick(opt.value)}
             className="px-3 py-1 rounded-full text-xs font-medium transition-all"
             style={{
-              background: isActive ? GOLD : 'rgba(255,255,255,0.05)',
-              color: isActive ? '#0a1320' : 'rgba(255,255,255,0.65)',
-              border: `1px solid ${isActive ? GOLD : 'rgba(255,255,255,0.12)'}`,
+              background: isActive ? 'linear-gradient(135deg, #eccd72, #b8862b)' : 'rgba(255,255,255,0.04)',
+              color: isActive ? '#0a0e1a' : '#8a93ab',
+              border: `1px solid ${isActive ? 'transparent' : 'rgba(255,255,255,0.07)'}`,
             }}
           >
             {opt.label}
@@ -267,73 +267,97 @@ function ListingCard({ listing, onRefresh, onEdit }) {
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
   const title = listing.title || `${listing.property_type} in ${listing.location}`;
 
-  const statusColor = isLive ? '#7ce8c4' : isPublishing ? 'var(--ds-gold-lite, #eccd72)' : 'rgba(255,255,255,0.4)';
-  const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : 'rgba(255,255,255,0.08)';
-  const statusBorder = isLive ? 'rgba(45,212,167,.35)' : isPublishing ? 'rgba(212,175,55,.35)' : 'rgba(255,255,255,0.12)';
-  const statusLabel = isLive ? 'Live' : isPublishing ? 'Publishing…' : 'Archived';
+  const isLivePill = isLive;
+  const statusLabel = isLive ? 'LIVE' : isPublishing ? 'PUBLISHING' : 'ARCHIVED';
+  const statusColor = isLive ? '#54e0b5' : isPublishing ? '#eccd72' : '#8a93ab';
+  const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : 'rgba(13,16,26,.6)';
+  const statusBorder = isLive ? 'rgba(45,212,167,.40)' : isPublishing ? 'rgba(212,175,55,.40)' : 'rgba(255,255,255,.14)';
 
   return (
     <div
-      className="flex overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
-      style={{ background: 'var(--ds-card, rgba(255,255,255,0.022))', border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))', borderRadius: '18px', minHeight: 132 }}
+      className="relative overflow-hidden transition-all duration-200"
+      style={{
+        background: 'rgba(255,255,255,0.022)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: '18px',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 40px -28px rgba(0,0,0,0.8)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.borderColor = 'rgba(212,175,55,0.24)';
+        e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.03) inset, 0 28px 50px -28px rgba(0,0,0,0.9)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+        e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 40px -28px rgba(0,0,0,0.8)';
+      }}
     >
-      {/* Image */}
-      <div className="relative flex-shrink-0 overflow-hidden" style={{ width: 150 }}>
+      {/* Gold hairline top */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{
+        background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
+        marginLeft: '22px',
+        marginRight: '22px',
+      }} />
+
+      {/* Media */}
+      <div className="relative overflow-hidden" style={{ height: '160px', borderTopLeftRadius: '18px', borderTopRightRadius: '18px' }}>
         {img ? (
           <img src={img} alt={title} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: '#111e30' }}>
-            <Home className="w-8 h-8 opacity-20 text-white" />
+          <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(150deg, #1b2b4a, #0e1830)' }}>
+            <Home className="w-10 h-10" style={{ opacity: 0.18, color: '#ffffff' }} />
           </div>
         )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)' }} />
+        {/* Status pill */}
         <div className="absolute top-2 left-2">
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
             style={{ background: statusBg, color: statusColor, border: `1px solid ${statusBorder}` }}>
-            {isLive && <span className="w-1.5 h-1.5 rounded-full" style={{ background: GREEN }} />}
+            {isLivePill && <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#54e0b5' }} />}
             {statusLabel}
           </span>
         </div>
+        {/* Badges */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1">
-          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest"
+          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest"
             style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.7)' }}>
             {listing.listing_type || '—'}
           </span>
           {listing.featured && (
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold"
-              style={{ background: 'rgba(201,168,92,0.35)', color: GOLD }}>★</span>
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ background: 'rgba(212,175,55,0.35)', color: '#eccd72' }}>★</span>
           )}
           {listing.verified && (
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold"
-              style={{ background: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>✓</span>
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ background: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>✓</span>
           )}
         </div>
       </div>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 p-3 min-w-0 justify-between">
-        <div className="min-w-0">
-          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'var(--ds-ink, #e8ecf6)' }}>{title}</p>
-          <p className="text-[10px] mb-1 flex items-center gap-1" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>
-            <MapPin className="w-2.5 h-2.5" />{listing.location || 'Dubai'}
-          </p>
-          <p className="text-[10px] font-mono mb-1.5" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
-          <div className="flex items-center gap-1.5">
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Bed className="w-2.5 h-2.5" />{beds}</span>
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Bath className="w-2.5 h-2.5" />{listing.bathrooms || '-'}</span>
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Ruler className="w-2.5 h-2.5" />{listing.area_sqft ? listing.area_sqft.toLocaleString() : '-'} ft²</span>
-          </div>
+      <div className="flex flex-col p-4" style={{ gap: '4px' }}>
+        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, fontSize: '22px', color: '#ffffff', lineHeight: 1.2 }}>{formatPrice(listing.price)}</p>
+        <p className="truncate" style={{ fontSize: '13.5px', color: '#e8ecf6', fontWeight: 500 }}>{title}</p>
+        <div className="flex items-center gap-1" style={{ color: '#8a93ab' }}>
+          <MapPin className="w-3 h-3 shrink-0" />
+          <span className="truncate" style={{ fontSize: '12px' }}>{listing.community || listing.location || listing.building_name || 'Dubai'}</span>
         </div>
-        <div className="flex items-center justify-between mt-2">
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '15px', color: 'var(--ds-gold, #d4af37)' }}>{formatPrice(listing.price)}</span>
-          <div className="flex items-center gap-1.5">
-            <button onClick={(e) => { e.stopPropagation(); generatePDF(listing); }} title="Download brochure"
-              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
-              style={{ border: `1px solid ${GOLD}`, color: GOLD, background: 'transparent' }}>
-              <FileDown className="w-3.5 h-3.5" />
-            </button>
-            <PFListingActions listing={listing} onRefresh={onRefresh} onEdit={onEdit} />
-          </div>
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#8a93ab' }}><Bed className="w-2.5 h-2.5" />{beds}</span>
+          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#8a93ab' }}><Bath className="w-2.5 h-2.5" />{listing.bathrooms || '-'}</span>
+          <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#8a93ab' }}><Ruler className="w-2.5 h-2.5" />{listing.area_sqft ? `${listing.area_sqft.toLocaleString()} ft²` : '-'}</span>
+        </div>
+        <p className="text-[9px] mt-1" style={{ color: '#5d6680', fontFamily: "'Inter', sans-serif" }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between px-4 pb-3">
+        <div className="flex items-center gap-1.5">
+          <button onClick={(e) => { e.stopPropagation(); generatePDF(listing); }} title="Download brochure"
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
+            style={{ border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', background: 'transparent' }}>
+            <FileDown className="w-3.5 h-3.5" />
+          </button>
+          <PFListingActions listing={listing} onRefresh={onRefresh} onEdit={onEdit} />
         </div>
       </div>
     </div>
@@ -478,16 +502,11 @@ export default function PFListingsGrid() {
 
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Top bar */}
+      {/* Header — eyebrow + segmented control */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex rounded-xl p-1 gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {[['live', 'Live'], ['archived', 'Archived'], ['all', 'All']].map(([v, label]) => (
-            <button key={v} onClick={() => setStatusTab(v)}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={{ background: statusTab === v ? GOLD : 'transparent', color: statusTab === v ? '#0a1320' : 'rgba(255,255,255,0.55)' }}>
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.42em', color: '#8a93ab' }}>PROPERTY FINDER</span>
+          <div className="flex-1 h-px min-w-[40px]" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.15), transparent)' }} />
         </div>
 
         <div className="flex items-center gap-2">
@@ -505,7 +524,7 @@ export default function PFListingsGrid() {
           <button
             onClick={() => setShowAddDialog(true)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-            style={{ background: 'rgba(201,168,92,0.15)', color: GOLD, border: '1px solid rgba(201,168,92,0.35)' }}
+            style={{ background: 'rgba(212,175,55,0.12)', color: '#d4af37', border: '1px solid rgba(212,175,55,0.3)' }}
           >
             <Plus className="w-3.5 h-3.5" />
             Add New
@@ -514,7 +533,7 @@ export default function PFListingsGrid() {
             onClick={runSync}
             disabled={syncState === 'syncing'}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50"
-            style={{ background: syncState === 'done' ? 'rgba(63,207,142,0.12)' : syncState === 'error' ? 'rgba(248,113,113,0.12)' : 'rgba(201,168,92,0.12)', color: syncState === 'done' ? GREEN : syncState === 'error' ? '#f87171' : GOLD, border: `1px solid ${syncState === 'done' ? 'rgba(63,207,142,0.25)' : syncState === 'error' ? 'rgba(248,113,113,0.25)' : 'rgba(201,168,92,0.25)'}` }}
+            style={{ background: syncState === 'done' ? 'rgba(45,212,167,0.1)' : syncState === 'error' ? 'rgba(248,113,113,0.1)' : 'rgba(212,175,55,0.1)', color: syncState === 'done' ? '#54e0b5' : syncState === 'error' ? '#f87171' : '#d4af37', border: `1px solid ${syncState === 'done' ? 'rgba(45,212,167,0.25)' : syncState === 'error' ? 'rgba(248,113,113,0.25)' : 'rgba(212,175,55,0.25)'}` }}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncState === 'syncing' ? 'animate-spin' : ''}`} />
             {syncLabel}
@@ -522,51 +541,67 @@ export default function PFListingsGrid() {
         </div>
       </div>
 
-      {/* Search + Filter toggle */}
-      <div className="flex gap-2">
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search title, area, ref..."
-          className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
-          style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.85)', caretColor: GOLD }} />
-        <button onClick={() => setFilterOpen(o => !o)}
-          className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
-          style={{ background: filterOpen ? 'rgba(201,168,92,0.15)' : '#0e1a2b', border: `1px solid ${filterOpen ? GOLD : '#1a2942'}`, color: filterOpen ? GOLD : 'rgba(255,255,255,0.65)' }}>
-          <Filter className="w-4 h-4" />
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ background: GOLD, color: '#0a1320' }}>{activeFilterCount}</span>
-          )}
-          {filterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
+      {/* Toggle + search + filters */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Segmented control */}
+        <div className="flex p-1 gap-1" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '24px' }}>
+          {[['live', 'Live'], ['archived', 'Archived'], ['all', 'All']].map(([v, label]) => (
+            <button key={v} onClick={() => setStatusTab(v)}
+              className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: statusTab === v ? 'linear-gradient(135deg, #eccd72, #b8862b)' : 'transparent',
+                color: statusTab === v ? '#0a0e1a' : '#8a93ab',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search title, area, ref..."
+            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#e8ecf6', caretColor: '#d4af37' }} />
+          <button onClick={() => setFilterOpen(o => !o)}
+            className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
+            style={{ background: filterOpen ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.03)', border: `1px solid ${filterOpen ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.07)'}`, color: filterOpen ? '#d4af37' : '#8a93ab' }}>
+            <Filter className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ background: '#d4af37', color: '#0a0e1a' }}>{activeFilterCount}</span>
+            )}
+            {filterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
 
       {/* Filter panel */}
       {filterOpen && (
-        <div className="rounded-2xl p-4 space-y-4" style={{ background: '#0e1a2b', border: '1px solid #1a2942' }}>
+        <div className="rounded-2xl p-4 space-y-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>PURPOSE</p>
+              <p className="text-xs font-medium mb-2" style={{ color: '#5d6680' }}>PURPOSE</p>
               <ChipGroup options={[{ label: 'All', value: null }, { label: 'Sale', value: 'sale' }, { label: 'Rent', value: 'rent' }]} value={fPurpose} onChange={setFPurpose} />
             </div>
             <div>
-              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>BEDROOMS (MIN)</p>
+              <p className="text-xs font-medium mb-2" style={{ color: '#5d6680' }}>BEDROOMS (MIN)</p>
               <ChipGroup options={BED_OPTIONS} value={fBeds} onChange={setFBeds} />
             </div>
             <div>
-              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>TYPE</p>
+              <p className="text-xs font-medium mb-2" style={{ color: '#5d6680' }}>TYPE</p>
               <ChipGroup options={typeOptions} value={fTypes} onChange={setFTypes} multi />
             </div>
             <div>
-              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>MAX PRICE</p>
+              <p className="text-xs font-medium mb-2" style={{ color: '#5d6680' }}>MAX PRICE</p>
               <ChipGroup options={MAX_PRICE_OPTIONS} value={fMaxPrice} onChange={setFMaxPrice} />
             </div>
             <div className="md:col-span-2">
-              <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>AREA</p>
+              <p className="text-xs font-medium mb-2" style={{ color: '#5d6680' }}>AREA</p>
               <ChipGroup options={areaOptions} value={fArea} onChange={setFArea} />
             </div>
           </div>
           {activeFilterCount > 0 && (
-            <button onClick={resetFilters} className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <button onClick={resetFilters} className="flex items-center gap-1.5 text-xs" style={{ color: '#5d6680' }}>
               <RotateCcw className="w-3 h-3" /> Reset filters
             </button>
           )}
@@ -574,51 +609,70 @@ export default function PFListingsGrid() {
       )}
 
       {/* Results count */}
-      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <p className="text-xs" style={{ color: '#5d6680' }}>
         {filtered.length} {statusTab === 'live' ? 'live' : statusTab === 'archived' ? 'archived' : 'total'} {filtered.length === 1 ? 'listing' : 'listings'}{totalPages > 1 ? ` — page ${page} of ${totalPages}` : ''}
       </p>
 
       {/* Cards */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1,2,3,4].map(i => <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: '#0e1a2b' }} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[18px]">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="overflow-hidden" style={{ background: 'rgba(255,255,255,0.022)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '18px' }}>
+              <div className="animate-pulse" style={{ height: '160px', background: 'rgba(255,255,255,0.04)' }} />
+              <div className="p-4 space-y-2">
+                <div className="animate-pulse h-6 rounded" style={{ background: 'rgba(255,255,255,0.04)', width: '50%' }} />
+                <div className="animate-pulse h-4 rounded" style={{ background: 'rgba(255,255,255,0.04)', width: '80%' }} />
+                <div className="animate-pulse h-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', width: '40%' }} />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <>
           {filtered.length === 0 && latestFallback.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: '#1a2942', background: 'rgba(14,26,43,0.5)' }}>
-              <Home className="w-10 h-10 mb-3 opacity-20 text-white" />
-              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>No listings match.</p>
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed" style={{ borderColor: 'rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.022)' }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
+                <Home className="w-7 h-7" style={{ color: '#d4af37' }} />
+              </div>
+              <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, color: '#e8ecf6', marginBottom: '4px' }}>
+                No {statusTab === 'live' ? 'Live' : statusTab === 'archived' ? 'Archived' : ''} listings yet
+              </p>
+              <p className="text-xs mb-4" style={{ color: '#5d6680' }}>Try a different filter or sync from Property Finder.</p>
               <button onClick={() => { setStatusTab('live'); resetFilters(); setSearch(''); }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold"
-                style={{ background: 'rgba(201,168,92,0.12)', color: GOLD, border: `1px solid rgba(201,168,92,0.3)` }}>
+                style={{ background: 'linear-gradient(135deg, #eccd72, #b8862b)', color: '#0a0e1a', border: 'none' }}>
                 Back to Live
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {paginated.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
+            <div>
+              {/* Results grid — 4 cols desktop → 3 → 2 → 1 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" style={{ gap: '18px' }}>
+                {paginated.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
+              </div>
 
               {/* Fallback section */}
               {latestFallback.length > 0 && (
                 <>
-                  <div className="flex items-center gap-3 my-2">
+                  <div className="flex items-center gap-3 my-4">
                     <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
-                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>Latest listings</span>
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: '#5d6680' }}>Latest listings</span>
                     <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
                   </div>
-                  {latestFallback.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" style={{ gap: '18px' }}>
+                    {latestFallback.map(l => <ListingCard key={l.id} listing={l} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['pfListings'] })} onEdit={setEditListing} />)}
+                  </div>
                 </>
               )}
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1.5 pt-2">
+                <div className="flex items-center justify-center gap-1.5 pt-4">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30"
-                    style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.55)' }}
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#8a93ab' }}
                   >← Prev</button>
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -629,11 +683,11 @@ export default function PFListingsGrid() {
                       return acc;
                     }, [])
                     .map((n, i) => n === '...' ? (
-                      <span key={`ellipsis-${i}`} className="px-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>…</span>
+                      <span key={`ellipsis-${i}`} className="px-1 text-xs" style={{ color: '#5d6680' }}>…</span>
                     ) : (
                       <button key={n} onClick={() => setPage(n)}
                         className="w-8 h-8 rounded-lg text-xs font-semibold transition-all"
-                        style={{ background: page === n ? GOLD : '#0e1a2b', color: page === n ? '#0a1320' : 'rgba(255,255,255,0.55)', border: `1px solid ${page === n ? GOLD : '#1a2942'}` }}
+                        style={{ background: page === n ? 'linear-gradient(135deg, #eccd72, #b8862b)' : 'rgba(255,255,255,0.03)', color: page === n ? '#0a0e1a' : '#8a93ab', border: `1px solid ${page === n ? 'transparent' : 'rgba(255,255,255,0.07)'}` }}
                       >{n}</button>
                     ))
                   }
@@ -642,7 +696,7 @@ export default function PFListingsGrid() {
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-30"
-                    style={{ background: '#0e1a2b', border: '1px solid #1a2942', color: 'rgba(255,255,255,0.55)' }}
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#8a93ab' }}
                   >Next →</button>
                 </div>
               )}

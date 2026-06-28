@@ -28,6 +28,7 @@ import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 import DashboardBackground from '@/components/dashboard/DashboardBackground';
+import DashboardTopBar from '@/components/dashboard/DashboardTopBar';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -292,154 +293,17 @@ export default function Dashboard() {
     >
       <DashboardBackground />
       <div className="relative" style={{ zIndex: 1 }}>
-      {/* iOS Lock-Screen Style Clock — centered under splash */}
-      <IOSLockScreenClock />
-
-      {/* Minimalist Search Bar — pill-shaped with quote placeholder */}
-      <div className="relative mb-8 w-full max-w-3xl mx-auto">
-        <div
-          className="relative rounded-full overflow-hidden"
-          style={{
-            background: 'rgba(22,29,43,0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          }}
-        >
-          <div className="flex items-center px-5 py-3.5">
-            <Search className="w-4 h-4 mr-3" style={{ color: 'hsl(38 92% 55% / 0.6)' }} />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={search ? '' : QUOTES[quoteIndex]}
-              className="flex-1 text-sm focus:outline-none bg-transparent"
-              style={{
-                color: 'rgba(255,255,255,0.9)',
-                fontSize: '13px',
-                fontStyle: search ? 'normal' : 'italic',
-                letterSpacing: '0.01em',
-              }}
-            />
-            {!search && (
-              <Search className="w-4 h-4 ml-3" style={{ color: 'hsl(38 92% 55% / 0.4)' }} />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Logged-in account badge with foldable profile */}
-      {userEmail && (
-        <div className="absolute top-0 right-0 z-50" ref={menuRef}>
-          {/* Collapsed/Expanded Profile Toggle */}
-          <div
-            onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
-            style={{
-              background: isProfileExpanded ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              border: isProfileExpanded ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(12px)',
-              color: 'rgba(255,255,255,0.75)',
-            }}
-          >
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
-              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
-            >
-              {userProfileImage ? (
-                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (userName || userEmail)[0].toUpperCase()
-              )}
-            </div>
-            {isProfileExpanded && (
-              <div className="flex flex-col items-start gap-0 overflow-hidden">
-                <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold text-xs">{userName || userEmail}</span>
-                {userPosition && <span className="text-[8px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
-              </div>
-            )}
-            <ChevronDown className={`w-3 h-3 transition-transform ${isProfileExpanded ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
-          </div>
-
-          {/* Expanded Profile Details */}
-          {isProfileExpanded && (
-            <div
-              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                background: 'rgba(15,20,30,0.95)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(245,158,11,0.35)',
-              }}
-            >
-              <div className="p-3 border-b border-white/10">
-                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
-                <p className="text-xs text-white/50">{userEmail}</p>
-                {userRole && (
-                  <div className="mt-1.5">
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-                      {userRole}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="py-2">
-                <button
-                  onClick={() => { navigate('/team'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/landlords'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/leads'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/analytics'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/finance'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/profile'); setIsProfileExpanded(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
-                </button>
-              </div>
-              <div className="py-2 border-t border-white/10">
-                <button
-                  onClick={() => base44.auth.logout()}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
-                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* ERUDITE Top Bar — wordmark, search, clock, avatar */}
+      <DashboardTopBar
+        search={search}
+        setSearch={setSearch}
+        userName={userName}
+        userEmail={userEmail}
+        userRole={userRole}
+        userPosition={userPosition}
+        userProfileImage={userProfileImage}
+        navigate={navigate}
+      />
 
       {/* KPI Strip — live counts with gold hairline */}
       <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-3 mb-10">
@@ -551,9 +415,9 @@ export default function Dashboard() {
 
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-0 mx-auto">
+      <div className="w-full mx-auto" style={{ maxWidth: '1320px' }}>
         <PFListingsGrid />
-      </EruditeSection>
+      </div>
 
       {/* Evaluation Panel */}
       <EvaluationPanel 
