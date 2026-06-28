@@ -43,7 +43,7 @@ export default function AppLayout() {
         />
       )}
 
-      <main className="flex-1 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip', zIndex: 1 }}>
+      <main className="flex-1 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip' }}>
         {/* Top-left button cluster — stacked vertically */}
         <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 

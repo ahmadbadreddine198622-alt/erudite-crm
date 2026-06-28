@@ -62,14 +62,15 @@ function MouseGlowBackground({ containerRef }) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 0,
+        zIndex: 2147483646,
         pointerEvents: 'none',
+        mixBlendMode: 'screen',
         // --mouse-x / --mouse-y are set via JS only (see useEffect), NOT here.
         // Putting them here would cause React to reset them on every parent re-render.
         background: `
-          radial-gradient(circle 600px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(201,162,75,0.07) 0%, transparent 50%),
-          radial-gradient(circle 500px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(100,80,160,0.05) 0%, transparent 45%),
-          radial-gradient(circle 400px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(30,60,110,0.06) 0%, transparent 40%)
+          radial-gradient(circle 600px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(201,162,75,0.12) 0%, transparent 50%),
+          radial-gradient(circle 500px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(100,80,160,0.08) 0%, transparent 45%),
+          radial-gradient(circle 400px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(30,60,110,0.10) 0%, transparent 40%)
         `,
       }}
     />
