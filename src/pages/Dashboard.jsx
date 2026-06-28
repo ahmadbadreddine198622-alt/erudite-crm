@@ -419,54 +419,7 @@ export default function Dashboard() {
         <PFListingsGrid />
       </div>
 
-      {/* Evaluation Panel */}
-      <EvaluationPanel 
-        landlords={landlordsWithQuals} 
-        onUploadFormA={() => navigate('/form-a-inbox')} 
-      />
 
-      {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 w-full max-w-5xl mt-0 mx-auto">
-        <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
-          <AIInsightsDashboard />
-        </EruditeSection>
-        <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
-          {isLoadingFormA ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
-            </div>
-          ) : (
-            <FormADashboardWidget forms={formAWithLandlords} />
-          )}
-        </EruditeSection>
-        <EruditeSection title="Photography" subtitle="Production Pipeline" icon={Camera}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Camera className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-              <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>Photography Pipeline</span>
-            </div>
-            <div
-              className="flex items-center gap-1.5 px-2.5 h-7 rounded-md text-xs font-semibold"
-              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
-            >
-              <Users className="w-3 h-3" />
-              {photoData?.totalTasks || 0} tasks
-            </div>
-          </div>
-          <PhotographyDashboardWidget stageCounts={photoStageCounts} totalTasks={photoData?.totalTasks || 0} />
-        </EruditeSection>
-        <EruditeSection title="Documents" subtitle="Checklist Status" icon={FileText}>
-          <DocumentsDashboardWidget 
-            statusCounts={docsStatusCounts} 
-            typeCounts={docsData?.typeCounts || {}} 
-            totalDocs={docsData?.totalDocs || 0}
-            completionRate={docsData?.completionRate || 0}
-          />
-        </EruditeSection>
-        <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
-          <ActivityFeed />
-        </EruditeSection>
-      </div>
 
       {/* No results */}
       {search.trim() && filtered.length === 0 && (
