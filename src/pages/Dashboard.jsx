@@ -289,7 +289,7 @@ export default function Dashboard() {
   return (
     <div
       ref={dashboardRef}
-      className="dashboard-skin relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
+      className="dashboard-skin relative min-h-screen flex flex-col px-3 sm:px-4 pb-[120px] sm:pb-[140px] pt-2 sm:pt-4"
     >
       <DashboardBackground />
       <div className="relative" style={{ zIndex: 1 }}>
@@ -305,8 +305,8 @@ export default function Dashboard() {
         navigate={navigate}
       />
 
-      {/* KPI Strip — live counts with gold hairline */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-3 mb-10">
+      {/* KPI Strip — live counts with gold hairline (compact mobile) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-2 sm:gap-3 mb-4 sm:mb-6">
         {[
           { label: 'Active', value: badges.leads, icon: Users, sub: 'leads', subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
           { label: 'Reminders', value: badges.reminders, icon: Bell, sub: 'pending', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
@@ -316,38 +316,38 @@ export default function Dashboard() {
           <button
             key={i}
             onClick={kpi.onClick}
-            className="relative overflow-hidden flex flex-col items-center gap-1.5 p-3 transition-all hover:-translate-y-[3px]"
+            className="relative overflow-hidden flex flex-col items-center gap-1 sm:gap-1.5 p-2 sm:p-3 transition-all hover:-translate-y-[2px]"
             style={{
               background: 'var(--ds-card, rgba(255,255,255,0.022))',
               border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
-              borderRadius: '18px',
+              borderRadius: '14px',
             }}
           >
             {/* Gold hairline top */}
             <div className="absolute top-0 left-0 right-0 h-px" style={{
               background: 'linear-gradient(90deg, transparent, rgba(212,175,55,.5), transparent)',
-              marginLeft: '22px',
-              marginRight: '22px',
+              marginLeft: '16px',
+              marginRight: '16px',
             }} />
             {/* Icon chip */}
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{
+            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center" style={{
               background: 'rgba(212,175,55,.1)',
               border: '1px solid rgba(212,175,55,.2)',
             }}>
-              <kpi.icon style={{ width: 14, height: 14, color: 'var(--ds-gold-lite, #eccd72)' }} />
+              <kpi.icon style={{ width: 10, height: 10, color: 'var(--ds-gold-lite, #eccd72)' }} />
             </div>
             {/* Number */}
             <p style={{
               fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 'clamp(28px, 4vw, 44px)',
+              fontSize: 'clamp(20px, 3.5vw, 36px)',
               fontWeight: 600,
               lineHeight: 1,
               color: 'var(--ds-ink, #e8ecf6)',
             }}>{kpi.value}</p>
             {/* Label */}
-            <p className="text-[8px] uppercase tracking-widest font-medium" style={{ color: 'var(--ds-muted, #8a93ab)' }}>{kpi.label}</p>
+            <p className="text-[7px] sm:text-[8px] uppercase tracking-widest font-medium" style={{ color: 'var(--ds-muted, #8a93ab)' }}>{kpi.label}</p>
             {/* Sub-chip */}
-            <span className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full" style={{
+            <span className="text-[6px] sm:text-[7px] font-semibold px-1 sm:px-1.5 py-0.5 rounded-full" style={{
               background: kpi.subBg,
               color: kpi.subColor,
             }}>{kpi.sub}</span>
@@ -356,8 +356,8 @@ export default function Dashboard() {
       </div>
 
       {/* WORKSPACES section header */}
-      <div className="w-full max-w-5xl mx-auto mb-4">
-        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.6, fontWeight: 500, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="w-full max-w-5xl mx-auto mb-2 sm:mb-3">
+        <p className="text-[9px] sm:text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.6, fontWeight: 500, fontFamily: "'Space Grotesk', sans-serif" }}>
           Workspaces
         </p>
       </div>
@@ -375,7 +375,7 @@ export default function Dashboard() {
       )}
 
       {/* App Grid — folder mode or flat search results - COMPACT */}
-      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -4 }}>
+      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -2 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
           <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">

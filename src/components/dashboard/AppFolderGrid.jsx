@@ -435,13 +435,13 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
 
   return (
     <>
-      {/* Folder grid — 4 columns, 18px gutters */}
+      {/* Folder grid — 4 columns, tighter gutters for mobile */}
       <div
         className="w-full grid grid-cols-2 sm:grid-cols-4"
         style={{
-          gap: '18px',
-          paddingTop: '8px',
-          paddingBottom: '4px',
+          gap: '12px',
+          paddingTop: '4px',
+          paddingBottom: '2px',
         }}
       >
         {FOLDERS.map(folder => (
