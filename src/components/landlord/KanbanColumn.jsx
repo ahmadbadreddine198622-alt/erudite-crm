@@ -77,7 +77,7 @@ function KanbanColumn({
           scrollbarWidth: 'thin',
           scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-x pan-y',
+          touchAction: 'pan-y',
         }}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>

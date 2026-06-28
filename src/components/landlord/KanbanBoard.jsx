@@ -153,6 +153,37 @@ export default function KanbanBoard({
     return () => board.removeEventListener('scroll', onBoardScroll);
   }, [onBoardScroll]);
 
+  // Native wheel listener with passive:false so preventDefault() actually works.
+  // React's onWheel is passive by default → preventDefault() is a no-op, and the
+  // browser's native scroll fights with the manual scrollLeft assignment.
+  useEffect(() => {
+    const board = scrollRef.current;
+    if (!board) return;
+
+    const handleWheel = (e) => {
+      // Horizontal trackpad swipe → let the browser handle natively
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      // Vertical wheel — check if cursor is over a scrollable column
+      const colEl = e.target.closest('[data-column-scroll]');
+      if (colEl) {
+        const atTop = colEl.scrollTop <= 0;
+        const atBottom = colEl.scrollTop + colEl.clientHeight >= colEl.scrollHeight - 1;
+        const scrollingUp = e.deltaY < 0;
+        const scrollingDown = e.deltaY > 0;
+        // If the column can still scroll in this direction, let it scroll vertically
+        if ((scrollingUp && !atTop) || (scrollingDown && !atBottom)) return;
+      }
+
+      // Column is at its boundary, or cursor is over board background → horizontal scroll
+      e.preventDefault();
+      board.scrollLeft += e.deltaY;
+    };
+
+    board.addEventListener('wheel', handleWheel, { passive: false });
+    return () => board.removeEventListener('wheel', handleWheel);
+  }, []);
+
   // Edge-arrow: advance one column in given direction
   const stepColumn = useCallback((dir) => {
     const board = scrollRef.current;
@@ -272,36 +303,17 @@ export default function KanbanBoard({
             onWheel only routes vertical→horizontal when NOT over a column,
             so columns keep their own vertical scroll. */}
         <div
-          ref={scrollRef}
-          className="overflow-x-auto overflow-y-hidden pb-2"
-          style={{
-            height: '100%',
-            position: 'relative',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-            overscrollBehavior: 'contain',
-          }}
-          onWheel={(e) => {
-            const board = e.currentTarget;
-            // Horizontal trackpad swipe → always horizontal board scroll
-            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-              board.scrollLeft += e.deltaX;
-              return;
-            }
-            // Vertical wheel — check if cursor is over a scrollable column
-            const colEl = e.target.closest('[data-column-scroll]');
-            if (colEl) {
-              const atTop = colEl.scrollTop <= 0;
-              const atBottom = colEl.scrollTop + colEl.clientHeight >= colEl.scrollHeight - 1;
-              const scrollingUp = e.deltaY < 0;
-              const scrollingDown = e.deltaY > 0;
-              // If the column can still scroll in this direction, let it scroll vertically
-              if ((scrollingUp && !atTop) || (scrollingDown && !atBottom)) return;
-            }
-            // Column is at its boundary, or cursor is over board background → horizontal scroll
-            board.scrollLeft += e.deltaY;
-          }}
+        ref={scrollRef}
+        className="overflow-x-auto overflow-y-hidden pb-2"
+        style={{
+          height: '100%',
+          position: 'relative',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
+          overscrollBehavior: 'contain',
+          touchAction: 'pan-x',
+        }}
         >
           <style>{`
             .board-inner::-webkit-scrollbar { height: 8px; }
