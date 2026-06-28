@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -65,6 +65,21 @@ div[id*="Base44"] {
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
+  }
+
+  /* Dashboard skin tokens — internal dashboard design system.
+     Prefixed --ds- to avoid collision with existing Tailwind-mapped tokens
+     (--muted, --card, etc. are HSL triples consumed by hsl(var(...))). */
+  .dashboard-skin {
+    --ds-gold: #d4af37;
+    --ds-gold-lite: #eccd72;
+    --ds-gold-deep: #b8862b;
+    --ds-ink: #e8ecf6;
+    --ds-muted: #8a93ab;
+    --ds-muted-dim: #5d6680;
+    --ds-card: rgba(255,255,255,0.022);
+    --ds-card-line: rgba(255,255,255,0.07);
+    --font-display: 'Space Grotesk', sans-serif;
   }
 
   html, body {

@@ -27,6 +27,7 @@ import { QUOTES } from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
+import DashboardBackground from '@/components/dashboard/DashboardBackground';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -287,11 +288,9 @@ export default function Dashboard() {
   return (
     <div
       ref={dashboardRef}
-      className="relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
-      style={{
-        background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
-      }}
+      className="dashboard-skin relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
     >
+      <DashboardBackground />
       <div className="relative" style={{ zIndex: 1 }}>
       {/* iOS Lock-Screen Style Clock — centered under splash */}
       <IOSLockScreenClock />
@@ -442,34 +441,59 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Minimalist Metric Cards — clean dark cards with gold accents */}
-      <div className="grid grid-cols-4 w-full max-w-4xl mx-auto gap-3 mb-10">
+      {/* KPI Strip — live counts with gold hairline */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-3 mb-10">
         {[
-          { label: 'ACTIVE', value: badges.leads, icon: Users, color: '#C9A14A', onClick: () => navigate('/leads') },
-          { label: 'REMINDERS', value: badges.reminders, icon: Bell, color: '#C9A14A', onClick: () => navigate('/reminders') },
-          { label: 'UNREAD', value: badges.whatsapp, icon: MessageCircle, color: '#C9A14A', onClick: () => navigate('/whatsapp') },
-          { label: 'HOT', value: hotLeads, icon: TrendingUp, color: '#C9A14A', onClick: () => navigate('/leads') },
-        ].map((metric, i) => (
+          { label: 'Active', value: badges.leads, icon: Users, sub: 'leads', subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
+          { label: 'Reminders', value: badges.reminders, icon: Bell, sub: 'pending', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
+          { label: 'Unread', value: badges.whatsapp, icon: MessageCircle, sub: 'messages', subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
+          { label: 'Hot', value: hotLeads, icon: TrendingUp, sub: 'score≥75', subColor: '#f7a9d0', subBg: 'rgba(244,114,182,.16)', onClick: () => navigate('/leads') },
+        ].map((kpi, i) => (
           <button
             key={i}
-            onClick={metric.onClick}
-            className="flex flex-col items-center p-4 rounded-2xl transition-all hover:scale-105"
+            onClick={kpi.onClick}
+            className="relative overflow-hidden flex flex-col items-center gap-1.5 p-3 transition-all hover:-translate-y-[3px]"
             style={{
-              background: 'rgba(22,29,43,0.8)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+              background: 'var(--ds-card, rgba(255,255,255,0.022))',
+              border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+              borderRadius: '18px',
             }}
           >
-            <metric.icon className="mb-2" style={{ width: 20, height: 20, color: metric.color }} />
-            <p className="text-2xl font-light mb-1" style={{ color: metric.color, fontFamily: "'SF Mono', monospace" }}>{metric.value}</p>
-            <p className="text-[9px] uppercase tracking-widest" style={{ color: 'hsl(38 92% 55% / 0.7)', fontWeight: 500 }}>{metric.label}</p>
+            {/* Gold hairline top */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{
+              background: 'linear-gradient(90deg, transparent, rgba(212,175,55,.5), transparent)',
+              marginLeft: '22px',
+              marginRight: '22px',
+            }} />
+            {/* Icon chip */}
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{
+              background: 'rgba(212,175,55,.1)',
+              border: '1px solid rgba(212,175,55,.2)',
+            }}>
+              <kpi.icon style={{ width: 14, height: 14, color: 'var(--ds-gold-lite, #eccd72)' }} />
+            </div>
+            {/* Number */}
+            <p style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 'clamp(28px, 4vw, 44px)',
+              fontWeight: 600,
+              lineHeight: 1,
+              color: 'var(--ds-ink, #e8ecf6)',
+            }}>{kpi.value}</p>
+            {/* Label */}
+            <p className="text-[8px] uppercase tracking-widest font-medium" style={{ color: 'var(--ds-muted, #8a93ab)' }}>{kpi.label}</p>
+            {/* Sub-chip */}
+            <span className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full" style={{
+              background: kpi.subBg,
+              color: kpi.subColor,
+            }}>{kpi.sub}</span>
           </button>
         ))}
       </div>
 
-      {/* WORKSPACES section header — minimalist */}
+      {/* WORKSPACES section header */}
       <div className="w-full max-w-5xl mx-auto mb-4">
-        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'hsl(38 92% 55% / 0.6)', fontWeight: 500 }}>
+        <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.6, fontWeight: 500, fontFamily: "'Space Grotesk', sans-serif" }}>
           Workspaces
         </p>
       </div>

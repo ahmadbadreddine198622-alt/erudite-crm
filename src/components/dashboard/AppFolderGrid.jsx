@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Crown, Target, Building2, DollarSign, MessageCircle, Brain, Users, Wrench } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import { ALL_APPS } from '@/lib/navApps';
 
@@ -11,49 +11,65 @@ const FOLDER_DEFS = [
   {
     id: 'ceo',
     name: 'CEO & Admin',
-    emoji: '👑',
+    icon: Crown,
+    jewelColor: '#f0d98a',
+    jewelAura: 'rgba(212,175,55,.55)',
     appLabels: ['Company Settings', 'Brand Settings', 'Team Management', 'Analytics', 'Finance', 'Policies & HR', 'Design System', 'Team AI OS', 'Team Performance', 'Agent Intelligence', 'Team Dashboard', 'Dubai Intelligence', 'Cheque Register', 'Command Center'],
   },
   {
     id: 'leads',
     name: 'Leads & Pipeline',
-    emoji: '🎯',
+    icon: Target,
+    jewelColor: '#c4b1ff',
+    jewelAura: 'rgba(139,92,246,.62)',
     appLabels: ['Pipeline', 'Leads', 'PF Leads', 'Instagram Leads', 'Meta & Google', 'Duplicate Detector', 'Contacts'],
   },
   {
     id: 'landlords',
     name: 'Landlords & Listings',
-    emoji: '🏢',
+    icon: Building2,
+    jewelColor: '#f5c878',
+    jewelAura: 'rgba(240,169,59,.58)',
     appLabels: ['Landlords', 'Listing Production', 'Photography', 'Matterport Sync', 'Property Finder', 'Find Property', 'Property Intel', 'Form A Referral', 'Form I Generator'],
   },
   {
     id: 'deals',
     name: 'Deals & Money',
-    emoji: '💰',
+    icon: DollarSign,
+    jewelColor: '#7ce8c4',
+    jewelAura: 'rgba(45,212,167,.58)',
     appLabels: ['Closing', 'Closing AI', 'Finance', 'Commissions', 'Cheques', 'Offers', 'Negotiations', 'Deal Risk', 'Transfer Calculator', 'Transfer Numbers', 'Key Handover'],
   },
   {
     id: 'comms',
     name: 'Comms',
-    emoji: '💬',
+    icon: MessageCircle,
+    jewelColor: '#9bb9ff',
+    jewelAura: 'rgba(61,109,246,.58)',
     appLabels: ['WhatsApp', 'WhatsApp Hub', 'WhatsApp Setup', 'Messages', 'Broadcasts', 'Email Templates', 'Email Automations', 'Inbox', 'Twilio Hub'],
   },
   {
     id: 'analytics',
     name: 'Analytics & AI',
-    emoji: '🧠',
+    icon: Brain,
+    jewelColor: '#7fe6f5',
+    jewelAura: 'rgba(34,211,238,.58)',
     appLabels: ['Analytics', 'Sales Analytics', 'Team Performance', 'Market Intelligence', 'Buyer Match AI', 'Claude AI', 'Team AI OS', 'Dubai Intelligence', 'Command Center'],
   },
   {
     id: 'team',
     name: 'Team & HR',
-    emoji: '👥',
+    icon: Users,
+    jewelColor: '#f7a9d0',
+    jewelAura: 'rgba(244,114,182,.55)',
     appLabels: ['Team', 'Team Management', 'Policies & HR', 'PF Agent Profile', 'Acknowledgements'],
   },
   {
     id: 'tools',
     name: 'Tools & Reference',
-    emoji: '🛠️',
+    icon: Wrench,
+    jewelColor: '#c3ccdd',
+    jewelAura: 'rgba(154,166,192,.45)',
     appLabels: ['Map View', 'DLD Lookup', 'Lease Agreement', 'Tenancy Contracts', 'Notes', 'Viewings', 'Follow Ups', 'Reminders', 'Calendar', 'Projects', 'Google Drive', 'Brand Settings', 'Company Settings'],
   },
 ];
@@ -86,90 +102,21 @@ export const MISSING_APP_LABELS = FOLDER_DEFS
   .flatMap(f => f.appLabels)
   .filter(l => !APP_BY_LABEL[l]);
 
-// ── Folder thumbnail (2×2 mini icons) ────────────────────────────────────────
-function FolderThumbnail({ apps }) {
-  const preview = apps.slice(0, 4);
+// ── Icon case (92px rounded case with colored aura) ───────────────────────────
+function IconCase({ folder }) {
+  const Icon = folder.icon;
   return (
     <div
+      className="flex items-center justify-center transition-all duration-200"
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '3px',
-        padding: '4px',
-        width: '68px',
-        height: '68px',
-        borderRadius: '10px',
-        background: 'rgba(15,20,30,0.5)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        boxSizing: 'border-box',
-        WebkitBoxSizing: 'border-box',
+        width: '92px',
+        height: '92px',
+        borderRadius: '22px',
+        background: `radial-gradient(circle at 50% 35%, ${folder.jewelAura} 0%, transparent 70%)`,
+        boxShadow: `0 0 28px ${folder.jewelAura}, inset 0 0 18px ${folder.jewelAura}`,
       }}
     >
-      {Array.from({ length: 4 }).map((_, i) => {
-        const app = preview[i];
-        if (!app) return (
-          <div key={i} style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.03)' }} />
-        );
-        const Icon = app.icon;
-        // Parse gradient colors for Safari-compatible inline styles
-        const getGradient = (gradient) => {
-          if (!gradient) return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-          // Handle Tailwind-like gradients: from-purple-500 to-pink-500
-          const colorMap = {
-            'purple-500': '#a855f7', 'purple-600': '#9333ea',
-            'pink-500': '#ec4899', 'pink-600': '#db2777',
-            'blue-500': '#3b82f6', 'blue-600': '#2563eb',
-            'green-500': '#22c55e', 'green-600': '#16a34a',
-            'orange-500': '#f97316', 'orange-600': '#ea580c',
-            'red-500': '#ef4444', 'red-600': '#dc2626',
-            'slate-600': '#475569', 'slate-800': '#1e293b',
-            'indigo-500': '#6366f1', 'indigo-600': '#4f46e5',
-            'cyan-500': '#06b6d4', 'cyan-600': '#0891b2',
-            'rose-500': '#f43f5e', 'rose-600': '#e11d48',
-            'amber-500': '#f59e0b', 'amber-600': '#d97706',
-            'emerald-500': '#10b981', 'emerald-600': '#059669',
-          };
-          const match = gradient.match(/from-(\w+-\d+)\s+to-(\w+-\d+)/);
-          if (match) {
-            const from = colorMap[match[1]] || '#667eea';
-            const to = colorMap[match[2]] || '#764ba2';
-            return `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
-          }
-          return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        };
-        return (
-          <div
-            key={app.label}
-            style={{
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-              overflow: 'hidden',
-              background: getGradient(app.gradient),
-            }}
-          >
-            {/* Use a simple coloured square with the icon — lightweight vs full ExtremeLiquidIcon */}
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {Icon ? (
-                <Icon style={{ width: '13px', height: '13px', color: 'rgba(255,255,255,0.95)', strokeWidth: 2.5 }} />
-              ) : (
-                <span style={{ fontSize: '5px', color: 'rgba(255,255,255,0.3)' }}>?</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {Icon && <Icon style={{ width: 44, height: 44, color: folder.jewelColor, strokeWidth: 1.75 }} />}
     </div>
   );
 }
@@ -237,44 +184,41 @@ function FolderTile({ folder, badges, onOpen }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Tile - minimalist dark card */}
+      {/* Tile — glass card with jewel aura */}
       <div
-        className="relative rounded-2xl p-3 flex flex-col items-center justify-center gap-2"
+        className="relative overflow-hidden flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200"
         style={{
           width: '100%',
-          minHeight: '104px',
-          background: 'rgba(22,29,43,0.9)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-          transition: 'all 0.2s ease',
+          minHeight: '140px',
+          background: 'var(--ds-card, rgba(255,255,255,0.022))',
+          border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+          borderRadius: '18px',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(22,29,43,1)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.transform = 'translateY(-6px)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+          e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.4), 0 0 24px ${folder.jewelAura}`;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(22,29,43,0.9)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
           e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.borderColor = 'var(--ds-card-line, rgba(255,255,255,0.07))';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
         {/* Aggregate badge */}
         {totalBadge > 0 && (
           <div
             className="absolute top-2 right-2 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
-            style={{ background: 'hsl(38 92% 50%)', color: 'hsl(222 47% 7%)' }}
+            style={{ background: 'var(--ds-gold, #d4af37)', color: '#0a0e1a' }}
           >
             {totalBadge > 99 ? '99+' : totalBadge}
           </div>
         )}
-        <FolderThumbnail apps={folder.apps} />
+        <IconCase folder={folder} />
       </div>
       {/* Label */}
       <span
-        className="text-[10px] text-center font-medium mt-1.5"
+        className="text-[10px] text-center font-medium mt-1.5 block"
         style={{
           fontFamily: 'var(--font-sans)',
           color: 'rgba(255,255,255,0.7)',
@@ -313,7 +257,7 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-display)', color: 'hsl(38 92% 55%)' }}
             >
-              {folder.emoji} {folder.name}
+              {folder.name}
             </h2>
             <p className="text-xs text-white/40 mt-0.5">{folder.apps.length} apps</p>
           </div>
@@ -365,10 +309,11 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
 
   return (
     <>
-      {/* Folder grid - responsive command center layout - COMPACT */}
+      {/* Folder grid — 4 columns, 18px gutters */}
       <div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4"
+        className="w-full grid grid-cols-2 sm:grid-cols-4"
         style={{
+          gap: '18px',
           paddingTop: '8px',
           paddingBottom: '4px',
         }}

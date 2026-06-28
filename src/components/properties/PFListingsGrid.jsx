@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  RefreshCw, Bed, Bath, Ruler, Filter,
+  RefreshCw, Bed, Bath, Ruler, Filter, MapPin,
   FileDown, RotateCcw, Home, ChevronDown, ChevronUp, AlertCircle, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -267,15 +267,15 @@ function ListingCard({ listing, onRefresh, onEdit }) {
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
   const title = listing.title || `${listing.property_type} in ${listing.location}`;
 
-  const statusColor = isLive ? '#3fcf8e' : isPublishing ? '#c9a85c' : 'rgba(255,255,255,0.4)';
-  const statusBg = isLive ? 'rgba(63,207,142,0.15)' : isPublishing ? 'rgba(201,168,92,0.15)' : 'rgba(255,255,255,0.08)';
-  const statusBorder = isLive ? 'rgba(63,207,142,0.35)' : isPublishing ? 'rgba(201,168,92,0.35)' : 'rgba(255,255,255,0.12)';
-  const statusLabel = isLive ? 'Live' : isPublishing ? 'Publishing…' : 'Inactive';
+  const statusColor = isLive ? '#7ce8c4' : isPublishing ? 'var(--ds-gold-lite, #eccd72)' : 'rgba(255,255,255,0.4)';
+  const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : 'rgba(255,255,255,0.08)';
+  const statusBorder = isLive ? 'rgba(45,212,167,.35)' : isPublishing ? 'rgba(212,175,55,.35)' : 'rgba(255,255,255,0.12)';
+  const statusLabel = isLive ? 'Live' : isPublishing ? 'Publishing…' : 'Archived';
 
   return (
     <div
-      className="flex rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
-      style={{ background: '#0e1a2b', border: '1px solid #1a2942', minHeight: 132 }}
+      className="flex overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
+      style={{ background: 'var(--ds-card, rgba(255,255,255,0.022))', border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))', borderRadius: '18px', minHeight: 132 }}
     >
       {/* Image */}
       <div className="relative flex-shrink-0 overflow-hidden" style={{ width: 150 }}>
@@ -313,16 +313,19 @@ function ListingCard({ listing, onRefresh, onEdit }) {
       {/* Body */}
       <div className="flex flex-col flex-1 p-3 min-w-0 justify-between">
         <div className="min-w-0">
-          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'rgba(255,255,255,0.95)' }}>{title}</p>
-          <p className="text-xs font-mono mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
-          <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{beds}</span>
-            <span className="flex items-center gap-1"><Bath className="w-3 h-3" />{listing.bathrooms || '-'}</span>
-            <span className="flex items-center gap-1"><Ruler className="w-3 h-3" />{listing.area_sqft ? listing.area_sqft.toLocaleString() : '-'} ft²</span>
+          <p className="font-semibold text-sm truncate mb-0.5" style={{ color: 'var(--ds-ink, #e8ecf6)' }}>{title}</p>
+          <p className="text-[10px] mb-1 flex items-center gap-1" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>
+            <MapPin className="w-2.5 h-2.5" />{listing.location || 'Dubai'}
+          </p>
+          <p className="text-[10px] font-mono mb-1.5" style={{ color: 'var(--ds-muted-dim, #5d6680)' }}>Ref: {listing.reference_number || listing.pf_listing_id}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Bed className="w-2.5 h-2.5" />{beds}</span>
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Bath className="w-2.5 h-2.5" />{listing.bathrooms || '-'}</span>
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--ds-muted, #8a93ab)' }}><Ruler className="w-2.5 h-2.5" />{listing.area_sqft ? listing.area_sqft.toLocaleString() : '-'} ft²</span>
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm font-bold" style={{ color: GOLD }}>{formatPrice(listing.price)}</span>
+          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '15px', color: 'var(--ds-gold, #d4af37)' }}>{formatPrice(listing.price)}</span>
           <div className="flex items-center gap-1.5">
             <button onClick={(e) => { e.stopPropagation(); generatePDF(listing); }} title="Download brochure"
               className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-105"
