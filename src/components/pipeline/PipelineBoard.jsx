@@ -28,35 +28,37 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
   };
 
   return (
-    <div
-      className="overflow-x-auto overflow-y-hidden pb-4"
-      style={{
-        height: '100%',
-        minWidth: 0,
-        position: 'relative',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 min-w-max h-full">
-          {stages.map((stage) => (
-            <PipelineColumn
-              key={stage.key}
-              stage={stage}
-              leads={leadsByStage[stage.key] || []}
-              getListing={getListing}
-              getPhotoForPhone={getPhotoForPhone}
-              onLeadClick={onLeadClick}
-              users={users}
-              onAssign={onAssign}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      </DragDropContext>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+      <div
+        className="overflow-x-auto overflow-y-hidden pb-4"
+        style={{
+          height: '100%',
+          minWidth: 0,
+          position: 'relative',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
+          overscrollBehavior: 'contain',
+        }}
+      >
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex gap-3 min-w-max h-full">
+            {stages.map((stage) => (
+              <PipelineColumn
+                key={stage.key}
+                stage={stage}
+                leads={leadsByStage[stage.key] || []}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={onLeadClick}
+                users={users}
+                onAssign={onAssign}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </DragDropContext>
+      </div>
     </div>
   );
 }
