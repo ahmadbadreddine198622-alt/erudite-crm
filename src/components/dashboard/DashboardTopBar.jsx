@@ -48,19 +48,16 @@ export default function DashboardTopBar({
 
   return (
     <div
-      className="w-full flex items-center justify-between gap-4 flex-wrap"
-      style={{ maxWidth: '1320px', margin: '0 auto', paddingTop: '34px', paddingBottom: '34px' }}
+      className="w-full flex flex-col sm:flex-row items-center sm:justify-center gap-4 sm:gap-4"
+      style={{ maxWidth: '1320px', margin: '0 auto', paddingTop: '18px', paddingBottom: '14px' }}
     >
-      {/* LEFT (empty spacer — the logo+clock is centered) */}
-      <div className="flex-1" />
-
-      {/* CENTER — Branding + clock */}
+      {/* CENTER — Branding + clock (always centered, wraps to top lone on mobile) */}
       <div className="flex flex-col items-center">
         <span
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 600,
-            fontSize: '24px',
+            fontSize: 'clamp(20px, 5.5vw, 24px)',
             letterSpacing: '0.30em',
             background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
             WebkitBackgroundClip: 'text',
@@ -102,19 +99,17 @@ export default function DashboardTopBar({
         </span>
       </div>
 
-      {/* RIGHT — search pill + avatar */}
-      <div className="flex items-center flex-1 justify-end" style={{ gap: '18px' }}>
+      {/* RIGHT — search pill + avatar (stacked below logo on mobile, beside on desktop) */}
+      <div className="flex items-center sm:flex-none sm:justify-end w-full sm:w-auto" style={{ gap: '12px' }}>
         {/* Search pill */}
         <div
-          className="flex items-center"
+          className="flex items-center flex-1 sm:flex-initial"
           style={{
-            width: '330px',
-            maxWidth: '100%',
-            height: '42px',
+            height: '38px',
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: '24px',
-            padding: '0 16px',
+            padding: '0 14px',
           }}
         >
           <Search className="w-4 h-4 shrink-0" style={{ color: '#5d6680' }} />
