@@ -101,8 +101,34 @@ export default function DashboardTopBar({
 
       {/* RIGHT — search pill + avatar (stacked below logo on mobile, beside on desktop) */}
       <div className="flex items-center sm:flex-none sm:justify-end w-full sm:w-auto" style={{ gap: '12px' }}>
+        {/* Search pill */}
+        <div
+          className="flex items-center flex-1 sm:flex-initial"
+          style={{
+            height: '38px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: '24px',
+            padding: '0 14px',
+          }}
+        >
+          <Search className="w-4 h-4 shrink-0" style={{ color: '#5d6680' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search leads, listings, deals…"
+            className="flex-1 bg-transparent outline-none border-none ml-2 min-w-0"
+            style={{
+              color: '#e8ecf6',
+              fontSize: '13px',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          />
+        </div>
+
         {/* Avatar + account menu */}
-        <div ref={menuRef} className="relative">{/* Edit with community authentication children rendering inside expand region */}
+        <div ref={menuRef} className="relative">
           <button
             onClick={() => setIsProfileExpanded(!isProfileExpanded)}
             className="rounded-full flex items-center justify-center font-bold transition-transform hover:scale-105"
