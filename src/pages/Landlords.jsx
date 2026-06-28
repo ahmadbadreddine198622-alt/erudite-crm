@@ -29,7 +29,6 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
-import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 
 const STAGES = [
   'initial_contact',
@@ -394,7 +393,6 @@ export default function Landlords() {
       className="h-[100dvh] w-full flex flex-col overflow-hidden"
       style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
     >
-      <MouseGlowBackground containerRef={rootRef} />
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
       <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>

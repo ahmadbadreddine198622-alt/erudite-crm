@@ -27,7 +27,6 @@ import { QUOTES } from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
-import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -293,9 +292,6 @@ export default function Dashboard() {
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
-      {/* Mouse-reactive ambient glow — behind all content */}
-      <MouseGlowBackground containerRef={dashboardRef} />
-
       <div className="relative" style={{ zIndex: 1 }}>
       {/* iOS Lock-Screen Style Clock — centered under splash */}
       <IOSLockScreenClock />

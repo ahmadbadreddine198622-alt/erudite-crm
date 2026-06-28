@@ -7,6 +7,7 @@ import CommandCenter from '@/components/shared/CommandCenter';
 
 import { Menu, UserPlus, Home, Command, LayoutGrid } from 'lucide-react';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
+import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 import { useNavigate } from 'react-router-dom';
 
 export default function AppLayout() {
@@ -28,7 +29,9 @@ export default function AppLayout() {
   }, []);
 
   return (
-    <div className="flex bg-background" style={{ minHeight: '100dvh' }}>
+    <div className="flex bg-background relative" style={{ minHeight: '100dvh' }}>
+      {/* Mouse-reactive ambient glow — global, behind all pages */}
+      <MouseGlowBackground />
       {/* Slide-over Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -40,7 +43,7 @@ export default function AppLayout() {
         />
       )}
 
-      <main className="flex-1 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip' }}>
+      <main className="flex-1 pb-36 md:pb-0 relative bg-background" style={{ overflowX: 'clip', zIndex: 1 }}>
         {/* Top-left button cluster — stacked vertically */}
         <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
