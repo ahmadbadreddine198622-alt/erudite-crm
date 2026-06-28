@@ -585,8 +585,9 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
       <div
         className={`z-[70] p-2 ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
         style={{
-          top: 12,
-          left: 12,
+          top: 0,
+          left: 0,
+          borderRadius: 0,
           background: 'rgba(16,20,32,0.7)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
