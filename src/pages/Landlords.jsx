@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -29,6 +29,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
+import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 
 const STAGES = [
   'initial_contact',
@@ -95,6 +96,7 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
+  const rootRef = useRef(null);
 
 
 
@@ -388,9 +390,11 @@ export default function Landlords() {
 
   return (
     <div
+      ref={rootRef}
       className="h-[100dvh] w-full flex flex-col overflow-hidden"
       style={{ background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)' }}
     >
+      <MouseGlowBackground containerRef={rootRef} />
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
       <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
@@ -688,7 +692,7 @@ export default function Landlords() {
         .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
         .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
       `}</style>
-      <div style={{ flex: 1, minHeight: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         <div style={{ flex: 1, minHeight: 0 }}>
         <KanbanBoard
           stages={STAGES}
