@@ -27,6 +27,7 @@ import { QUOTES } from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
+import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
+  const dashboardRef = useRef(null);
 
   // Rotate quotes every 30 seconds for continuous motivation
   useEffect(() => {
@@ -285,11 +287,16 @@ export default function Dashboard() {
 
   return (
     <div
+      ref={dashboardRef}
       className="relative min-h-screen flex flex-col px-4 pb-[140px] pt-4"
       style={{
         background: 'radial-gradient(ellipse at 50% -20%, rgba(212,175,55,0.08) 0%, transparent 60%), linear-gradient(180deg, #0A1628 0%, #0D1F3A 40%, #081020 100%)',
       }}
     >
+      {/* Mouse-reactive ambient glow — behind all content */}
+      <MouseGlowBackground containerRef={dashboardRef} />
+
+      <div className="relative" style={{ zIndex: 1 }}>
       {/* iOS Lock-Screen Style Clock — centered under splash */}
       <IOSLockScreenClock />
 
@@ -592,7 +599,7 @@ export default function Dashboard() {
         />
       )}
 
-
+      </div>
     </div>
   );
 }
