@@ -120,14 +120,14 @@ function IconCase({ folder }) {
     <div
       className="flex items-center justify-center transition-all duration-200"
       style={{
-        width: '92px',
-        height: '92px',
-        borderRadius: '22px',
-        background: `radial-gradient(circle at 50% 35%, ${folder.jewelAura} 0%, transparent 70%)`,
-        boxShadow: `0 0 28px ${folder.jewelAura}, inset 0 0 18px ${folder.jewelAura}`,
+        width: '72px',
+        height: '72px',
+        borderRadius: '18px',
+        background: `radial-gradient(circle at 50% 40%, ${folder.jewelAura} 0%, transparent 75%)`,
+        boxShadow: `inset 0 0 20px ${folder.jewelAura}`,
       }}
     >
-      {Icon && <Icon style={{ width: 44, height: 44, color: folder.jewelColor, strokeWidth: 1.75 }} />}
+      {Icon && <Icon style={{ width: 36, height: 36, color: folder.jewelColor, strokeWidth: 1.75 }} />}
     </div>
   );
 }
@@ -198,32 +198,32 @@ function FolderTile({ folder, badges, onOpen }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Tile — glass card with jewel aura */}
+      {/* Tile — flat dark card with colored icon glow */}
       <div
-        className="relative overflow-hidden flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200"
+        className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 transition-all duration-200"
         style={{
           width: '100%',
-          minHeight: '140px',
-          background: 'var(--ds-card, rgba(255,255,255,0.022))',
-          border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
-          borderRadius: '18px',
+          minHeight: '148px',
+          background: '#16161c',
+          border: '1px solid #2a2a35',
+          borderRadius: '14px',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-6px)';
-          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
-          e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.4), 0 0 24px ${folder.jewelAura}`;
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.borderColor = '#3a3a48';
+          e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.4), 0 0 16px ${folder.jewelAura}`;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.borderColor = 'var(--ds-card-line, rgba(255,255,255,0.07))';
+          e.currentTarget.style.borderColor = '#2a2a35';
           e.currentTarget.style.boxShadow = 'none';
         }}
       >
         {/* Live count badge */}
         {liveCount > 0 && (
           <div
-            className="absolute top-2 right-2 z-10 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1 shadow-lg"
-            style={{ background: folder.jewelColor, color: '#0a0e1a' }}
+            className="absolute top-2 right-2 z-10 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold px-1.5"
+            style={{ background: `${folder.jewelColor}22`, color: folder.jewelColor, border: `1px solid ${folder.jewelColor}55` }}
           >
             {liveCount > 99 ? '99+' : liveCount}
           </div>
@@ -232,11 +232,9 @@ function FolderTile({ folder, badges, onOpen }) {
       </div>
       {/* Title */}
       <span
-        className="text-[11px] text-center font-semibold mt-2 block"
+        className="text-xs text-center font-semibold mt-1.5 block"
         style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          color: 'var(--ds-ink, #e8ecf6)',
-          letterSpacing: '0.02em',
+          color: '#ffffff',
           lineHeight: '1.2',
         }}
       >
@@ -245,11 +243,10 @@ function FolderTile({ folder, badges, onOpen }) {
       {/* Subtitle */}
       {folder.subtitle && (
         <span
-          className="text-[9px] text-center block mt-0.5"
+          className="text-[10px] text-center block mt-0.5"
           style={{
-            fontFamily: "'Inter', sans-serif",
-            color: 'var(--ds-muted, #8a93ab)',
-            letterSpacing: '0.02em',
+            color: '#666677',
+            lineHeight: '1.3',
           }}
         >
           {folder.subtitle}
