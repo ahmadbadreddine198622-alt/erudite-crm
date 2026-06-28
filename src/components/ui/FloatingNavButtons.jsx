@@ -69,71 +69,76 @@ export default function FloatingNavButtons() {
         userSelect: 'none',
         touchAction: 'none',
         display: 'flex',
-        alignItems: 'center',
-        borderRadius: 999,
-        overflow: 'hidden',
-        background: 'rgba(20, 28, 48, 0.75)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255,255,255,0.18)',
-        borderTopColor: 'rgba(255,255,255,0.28)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12)',
+        flexDirection: 'column',
+        gap: '10px',
       }}
     >
-      {/* Back button */}
+      {/* Back button — lit case (slate glow) */}
       <button
         onClick={() => navigate(-1)}
         title="Go Back"
         style={{
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
+          borderRadius: '14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'transparent',
-          border: 'none',
           cursor: 'pointer',
-          borderRight: '1px solid rgba(255,255,255,0.1)',
-          transition: 'background 0.15s ease',
-          color: 'rgba(255,255,255,0.75)',
+          border: '1px solid rgba(212,175,55,0.24)',
+          background: 'radial-gradient(130% 130% at 30% 18%, rgba(154,166,192,0.18), rgba(154,166,192,0.04))',
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          boxShadow: '0 0 28px -8px rgba(154,166,192,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
+          color: 'rgb(195,204,221)',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 0 36px -6px rgba(154,166,192,0.65), inset 0 1px 0 rgba(255,255,255,0.18)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 0 28px -8px rgba(154,166,192,0.5), inset 0 1px 0 rgba(255,255,255,0.14)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.24)';
+        }}
       >
-        <ChevronLeft size={20} />
+        <ChevronLeft size={20} strokeWidth={1.6} />
       </button>
 
-      {/* Divider dot */}
-      <div style={{
-        width: 4,
-        height: 4,
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.2)',
-        margin: '0 2px',
-        flexShrink: 0,
-      }} />
-
-      {/* Home button */}
+      {/* Home button — lit case (gold glow) */}
       <button
         onClick={() => navigate('/')}
         title="Go to Home"
         style={{
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
+          borderRadius: '14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'transparent',
-          border: 'none',
           cursor: 'pointer',
-          borderLeft: '1px solid rgba(255,255,255,0.1)',
-          transition: 'background 0.15s ease',
-          color: 'hsl(38 92% 55%)',
+          border: '1px solid rgba(212,175,55,0.28)',
+          background: 'radial-gradient(130% 130% at 30% 18%, rgba(212,175,55,0.20), rgba(212,175,55,0.04))',
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          boxShadow: '0 0 28px -8px rgba(212,175,55,0.55), inset 0 1px 0 rgba(255,255,255,0.16)',
+          color: '#eccd72',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.12)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 0 36px -6px rgba(212,175,55,0.7), inset 0 1px 0 rgba(255,255,255,0.2)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.45)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 0 28px -8px rgba(212,175,55,0.55), inset 0 1px 0 rgba(255,255,255,0.16)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.28)';
+        }}
       >
-        <Home size={20} />
+        <Home size={20} strokeWidth={1.6} />
       </button>
     </div>
   );
