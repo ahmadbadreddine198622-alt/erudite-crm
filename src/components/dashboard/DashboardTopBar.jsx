@@ -51,41 +51,59 @@ export default function DashboardTopBar({
       className="w-full flex items-center justify-between gap-4 flex-wrap"
       style={{ maxWidth: '1320px', margin: '0 auto', paddingTop: '34px', paddingBottom: '34px' }}
     >
-      {/* LEFT — ERUDITE wordmark */}
-      <div className="flex items-center" style={{ gap: '12px' }}>
-        <div className="flex flex-col">
-          <span
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 600,
-              fontSize: '24px',
-              letterSpacing: '0.30em',
-              background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-              lineHeight: 1,
-            }}
-          >
-            ERUDITE
-          </span>
-          <span
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '9px',
-              letterSpacing: '0.42em',
-              fontWeight: 600,
-              color: '#5d6680',
-              marginTop: '4px',
-            }}
-          >
-            REAL ESTATE · DUBAI
-          </span>
-        </div>
+      {/* LEFT (empty spacer — the logo+clock is centered) */}
+      <div className="flex-1" />
+
+      {/* CENTER — Branding + clock */}
+      <div className="flex flex-col items-center">
+        <span
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            fontSize: '24px',
+            letterSpacing: '0.30em',
+            background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            lineHeight: 1,
+            textAlign: 'center',
+          }}
+        >
+          ERUDITE
+        </span>
+        <span
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '9px',
+            letterSpacing: '0.42em',
+            fontWeight: 600,
+            color: '#5d6680',
+            marginTop: '4px',
+            textAlign: 'center',
+          }}
+        >
+          REAL ESTATE · DUBAI
+        </span>
+        {/* Modern live clock — Space Grotesk tabular, gold text */}
+        <span
+          className="hidden sm:block whitespace-nowrap"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: '12px',
+            letterSpacing: '0.18em',
+            fontWeight: 400,
+            color: '#c9a24b',
+            fontVariantNumeric: 'tabular-nums',
+            marginTop: '6px',
+          }}
+        >
+          {clockLabel}
+        </span>
       </div>
 
-      {/* RIGHT — utilities */}
-      <div className="flex items-center" style={{ gap: '18px' }}>
+      {/* RIGHT — search pill + avatar */}
+      <div className="flex items-center flex-1 justify-end" style={{ gap: '18px' }}>
         {/* Search pill */}
         <div
           className="flex items-center"
@@ -113,18 +131,6 @@ export default function DashboardTopBar({
             }}
           />
         </div>
-
-        {/* Live clock */}
-        <span
-          className="hidden sm:block whitespace-nowrap"
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: '14px',
-            color: '#8a93ab',
-          }}
-        >
-          {clockLabel}
-        </span>
 
         {/* Avatar + account menu */}
         <div ref={menuRef} className="relative">
