@@ -152,15 +152,22 @@ function QuickActionsPopover({ actions, position, onClose, navigate }) {
 export default function MobileDock() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobilePortrait, setIsMobilePortrait] = useState(() => {
+  const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth <= 768 && window.innerWidth < window.innerHeight;
+    return window.innerWidth <= 1024;
+  });
+  const [isPortrait, setIsPortrait] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth < window.innerHeight;
   });
   const [activePopover, setActivePopover] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
 
   useEffect(() => {
-    const check = () => setIsMobilePortrait(window.innerWidth <= 768 && window.innerWidth < window.innerHeight);
+    const check = () => {
+      setIsMobile(window.innerWidth <= 1024);
+      setIsPortrait(window.innerWidth < window.innerHeight);
+    };
     check();
     window.addEventListener('resize', check);
     window.addEventListener('orientationchange', check);
@@ -169,6 +176,8 @@ export default function MobileDock() {
       window.removeEventListener('orientationchange', check);
     };
   }, []);
+
+  const isMobilePortrait = isMobile && isPortrait;
 
   const dockApps = useMemo(() => {
     return DOCK_APPS.map((dock, i) => {
@@ -181,10 +190,13 @@ export default function MobileDock() {
   const { data: conversations = [] } = useQuery({ queryKey: ['dock-wa'], queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20), staleTime: 60_000 });
   const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
 
-  // Landscape — simple gold home button
+  // Desktop — no dock (sidebar handles navigation)
+  if (!isMobile) return null;
+
+  // Landscape mobile — simple gold home button
   if (!isMobilePortrait) {
     return (
-      <nav className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center" style={{ bottom: 8 }}>
+      <nav className="fixed left-0 right-0 z-[9999] flex justify-center" style={{ bottom: 8 }}>
         <div style={{
           background: 'rgba(16,20,32,0.72)',
           backdropFilter: 'blur(22px)',
@@ -219,7 +231,7 @@ export default function MobileDock() {
   return (
     <>
       <nav
-        className="fixed left-0 right-0 z-[9999] md:hidden flex justify-center"
+        className="fixed left-0 right-0 z-[9999] flex justify-center"
         style={{
           bottom: 0,
           paddingLeft: 12,
