@@ -57,7 +57,7 @@ export default function PipelineColumn({ stage, leads, getListing, getPhotoForPh
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="flex-1 overflow-y-auto space-y-2 p-2 transition-all duration-200"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 p-2 transition-all duration-200"
             style={{
               outline: snapshot.isDraggingOver ? '2px solid rgba(245,159,10,0.4)' : '2px solid transparent',
               outlineOffset: '-4px',
