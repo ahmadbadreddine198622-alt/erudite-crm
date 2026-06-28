@@ -44,8 +44,31 @@ export default function AppLayout() {
       )}
 
       <main className="flex-1 min-w-0 pb-36 md:pb-0 relative bg-background">
-        {/* Top-left button cluster — stacked vertically */}
-        <div style={{ position: 'fixed', top: 4, left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Mobile top header — centered ERUDITE logo */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-center pt-3 pb-2" style={{
+          background: 'linear-gradient(180deg, rgba(10,14,30,0.95) 0%, rgba(10,14,30,0.7) 100%)',
+          backdropFilter: 'blur(24px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+          borderBottom: '1px solid rgba(212,175,55,0.15)',
+        }}>
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 600,
+              fontSize: '18px',
+              letterSpacing: '0.25em',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #D4AF37 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            ERUDITE
+          </span>
+        </div>
+
+        {/* Top-left button cluster — stacked vertically (desktop + mobile, below logo on mobile) */}
+        <div className="md:top-4 top-16" style={{ position: 'fixed', left: 4, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
         {/* Home button — top of cluster */}
         <button
