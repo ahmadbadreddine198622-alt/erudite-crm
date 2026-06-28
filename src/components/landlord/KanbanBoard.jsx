@@ -55,6 +55,12 @@ export default function KanbanBoard({
   const [showRight, setShowRight] = useState(true);
   const [boardHovered, setBoardHovered] = useState(false);
 
+  // Ref mirror of activeStage so the scroll handler can compare without needing it
+  // in the useCallback dependency (which would recreate the handler on every stage change).
+  // Without this, scrollIntoView + setActiveStage fire on EVERY scroll pixel, piling up
+  // smooth-scroll animations and forcing 17× layout reflows per frame → board hangs.
+  const activeStageRef = useRef(stages[0]);
+
   const scrollRef = useRef(null);           // board scroll container
   const railRef = useRef(null);             // stage rail scroll container
   const columnRefs = useRef({});            // stage key → column DOM node
@@ -115,6 +121,9 @@ export default function KanbanBoard({
     if (!board || !col) return;
     const colLeft = col.offsetLeft - board.offsetLeft;
     board.scrollTo({ left: colLeft, behavior: 'smooth' });
+    // Keep ref in sync so the scroll handler doesn't re-fire scrollIntoView for the same stage
+    activeStageRef.current = stageKey;
+    setActiveStage(stageKey);
   }, []);
 
   // Update active-stage pill and arrow visibility on scroll
@@ -135,13 +144,20 @@ export default function KanbanBoard({
       const dist = Math.abs(col.offsetLeft - board.offsetLeft - sl);
       if (dist < bestDist) { bestDist = dist; best = s; }
     }
-    setActiveStage(best);
 
-    // Sync rail pill into view
-    const rail = railRef.current;
-    if (rail) {
-      const pill = rail.querySelector(`[data-stage="${best}"]`);
-      if (pill) pill.scrollIntoView({ inline: 'nearest', behavior: 'smooth', block: 'nearest' });
+    // Only update state + sync the rail when the active stage ACTUALLY changes.
+    // Without this guard, setActiveStage + scrollIntoView({behavior:'smooth'}) fire
+    // on every scroll pixel (~60fps) — the smooth-scroll animations pile up and
+    // the 17× offsetLeft reads above force a layout reflow each frame, freezing the
+    // board during drag (when dnd-kit autoScroll is scrolling).
+    if (best !== activeStageRef.current) {
+      activeStageRef.current = best;
+      setActiveStage(best);
+      const rail = railRef.current;
+      if (rail) {
+        const pill = rail.querySelector(`[data-stage="${best}"]`);
+        if (pill) pill.scrollIntoView({ inline: 'nearest', behavior: 'smooth', block: 'nearest' });
+      }
     }
   }, [stages]);
 
