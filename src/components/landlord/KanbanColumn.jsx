@@ -70,10 +70,15 @@ function KanbanColumn({
         ref={setNodeRef}
         data-column-scroll="true"
         className={cn(
-          'overflow-y-auto p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)]',
+          'overflow-y-auto overscroll-contain p-2.5 space-y-2 transition-colors max-h-[calc(100vh-220px)] min-h-0',
           isOver ? 'bg-accent/5' : '',
         )}
-        style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent' }}
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+        }}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {landlords.map((landlord) => (

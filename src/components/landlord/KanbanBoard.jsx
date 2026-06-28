@@ -268,7 +268,9 @@ export default function KanbanBoard({
           <ChevronRight className="w-5 h-5" />
         </button>
 
-        {/* Scrollable board */}
+        {/* Scrollable board — native overflow for both axes.
+            onWheel only routes vertical→horizontal when NOT over a column,
+            so columns keep their own vertical scroll. */}
         <div
           ref={scrollRef}
           className="overflow-x-auto overflow-y-hidden pb-2"
@@ -278,34 +280,15 @@ export default function KanbanBoard({
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(38 92% 50% / 0.45) transparent',
-            touchAction: 'pan-x',
-            cursor: 'grab',
+            overscrollBehavior: 'contain',
           }}
           onWheel={(e) => {
-            e.preventDefault();
-            e.currentTarget.scrollLeft += e.deltaY !== 0 ? e.deltaY : e.deltaX;
-          }}
-          onMouseDown={(e) => {
-            if (e.button !== 0) return;
-            const el = e.currentTarget;
-            const startX = e.pageX;
-            const startLeft = el.scrollLeft;
-            let moved = false;
-            el.style.cursor = 'grabbing';
-            el.style.userSelect = 'none';
-            const onMove = (me) => {
-              const dx = me.pageX - startX;
-              if (Math.abs(dx) > 4) moved = true;
-              if (moved) el.scrollLeft = startLeft - dx;
-            };
-            const onUp = () => {
-              el.style.cursor = 'grab';
-              el.style.userSelect = '';
-              window.removeEventListener('mousemove', onMove);
-              window.removeEventListener('mouseup', onUp);
-            };
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onUp);
+            // If the cursor is over a column body, let it scroll vertically natively
+            if (e.target.closest('[data-column-scroll]')) return;
+            // Over the board background: route vertical wheel → horizontal scroll
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
           }}
         >
           <style>{`
