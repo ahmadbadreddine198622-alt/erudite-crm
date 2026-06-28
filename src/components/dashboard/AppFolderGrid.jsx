@@ -121,47 +121,84 @@ function IconCase({ folder }) {
   );
 }
 
-// ── App icon inside overlay ───────────────────────────────────────────────────
-function FolderAppIcon({ app, badges, tilt, onNavigate }) {
+// ── App icon inside overlay (mini lit case) ───────────────────────────────────
+
+// Extract RGB triplet + a light tint from an rgba glowColor string
+function hueParts(glowColor) {
+  const m = (glowColor || '').match(/rgba?\(([^)]+)\)/);
+  if (!m) return { rgb: '154,166,192', light: 'rgb(195,204,221)' };
+  const parts = m[1].split(',').map(s => parseInt(s.trim(), 10));
+  const [r, g, b] = parts.length >= 3 ? parts : [154, 166, 192];
+  const lr = Math.min(255, Math.round(r + (255 - r) * 0.65));
+  const lg = Math.min(255, Math.round(g + (255 - g) * 0.65));
+  const lb = Math.min(255, Math.round(b + (255 - b) * 0.65));
+  return { rgb: `${r},${g},${b}`, light: `rgb(${lr},${lg},${lb})` };
+}
+
+function FolderAppIcon({ app, badges, onNavigate }) {
   const Icon = app.icon;
   const badgeCount = app.badgeKey ? (badges[app.badgeKey] || 0) : 0;
-  // Guard: if icon is undefined, render a simple fallback square instead of crashing
-  if (!Icon) {
-    return (
-      <button
-        onClick={() => onNavigate(app)}
-        className="flex flex-col items-center gap-1 select-none focus:outline-none transition-transform active:scale-95"
-      >
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-600 to-slate-800 border border-white/10"
-        >
-          <span className="text-xs text-white/40">?</span>
-        </div>
-        <span className="text-[10px] text-center leading-tight max-w-[56px] font-medium text-white/75 min-h-[1.8rem] flex items-start justify-center">
-          {app.label}
-        </span>
-      </button>
-    );
-  }
+  const hue = hueParts(app.glowColor);
+
   return (
     <button
       onClick={() => onNavigate(app)}
-      className="flex flex-col items-center gap-1 select-none focus:outline-none transition-transform active:scale-95"
+      className="flex flex-col items-center gap-2 select-none focus:outline-none"
+      style={{ cursor: 'pointer' }}
     >
-      <ExtremeLiquidIcon
-        icon={Icon}
-        gradient={app.gradient}
-        glowColor={app.glowColor}
-        tiltX={tilt.x}
-        tiltY={tilt.y}
-        index={0}
-        isDragging={false}
-        active={false}
-        badge={badgeCount > 0 ? badgeCount : 0}
-        size={48}
-        iconSize={24}
-      />
-      <span className="text-[10px] text-center leading-tight max-w-[56px] font-medium text-white/75 min-h-[1.8rem] flex items-start justify-center">
+      {/* Mini lit case */}
+      <div
+        className="relative flex items-center justify-center transition-all duration-200"
+        style={{
+          width: '66px',
+          height: '66px',
+          borderRadius: '19px',
+          background: `radial-gradient(130% 130% at 30% 18%, rgba(${hue.rgb},0.22), rgba(${hue.rgb},0.05))`,
+          border: '1px solid rgba(212,175,55,0.24)',
+          boxShadow: `0 0 32px -8px rgba(${hue.rgb},0.55), inset 0 1px 0 rgba(255,255,255,0.16)`,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = `0 0 40px -6px rgba(${hue.rgb},0.7), inset 0 1px 0 rgba(255,255,255,0.2)`;
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = `0 0 32px -8px rgba(${hue.rgb},0.55), inset 0 1px 0 rgba(255,255,255,0.16)`;
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.24)';
+        }}
+      >
+        {Icon ? (
+          <Icon style={{ width: '30px', height: '30px', strokeWidth: 1.5, color: hue.light }} />
+        ) : (
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>?</span>
+        )}
+        {/* Badge */}
+        {badgeCount > 0 && (
+          <div
+            className="absolute -top-1 -right-1 z-10 min-w-[18px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-0.5 shadow-lg"
+            style={{ background: '#d4af37', color: '#0a0e1a' }}
+          >
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </div>
+        )}
+      </div>
+      {/* Label */}
+      <span
+        style={{
+          fontFamily: 'Inter, sans-serif',
+          fontSize: '11.5px',
+          fontWeight: 500,
+          color: '#e8ecf6',
+          textAlign: 'center',
+          lineHeight: 1.25,
+          maxWidth: '72px',
+          minHeight: '2.5rem',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+        }}
+      >
         {app.label}
       </span>
     </button>
@@ -232,58 +269,147 @@ function FolderTile({ folder, badges, onOpen }) {
   );
 }
 
-// ── Folder overlay ────────────────────────────────────────────────────────────
+// ── Folder overlay (lit display case) ─────────────────────────────────────────
 function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden"
+      style={{
+        background: 'rgba(6,8,15,0.62)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-3xl p-5 max-h-[85vh] overflow-y-auto"
+        className="relative w-full max-h-[85vh] overflow-y-auto"
         style={{
-          background: 'rgba(14,20,36,0.65)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(245,158,11,0.35)',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
+          maxWidth: '560px',
+          background: 'rgba(16,20,32,0.72)',
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          border: '1px solid rgba(212,175,55,0.16)',
+          borderRadius: '24px',
+          boxShadow: '0 40px 90px -40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)',
+          padding: '30px',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Gold hairline top accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
+            marginLeft: '26px',
+            marginRight: '26px',
+          }}
+        />
+
+        {/* ERUDITE logo eyebrow */}
+        <div className="flex items-center gap-2 mb-4">
+          <span
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+              fontSize: '12px',
+              letterSpacing: '0.30em',
+              background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            ERUDITE
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '11px' }}>·</span>
+          <span
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '8px',
+              letterSpacing: '0.36em',
+              fontWeight: 700,
+              color: '#5d6680',
+            }}
+          >
+            REAL ESTATE · DUBAI
+          </span>
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-6">
           <div>
             <h2
-              className="text-xl font-semibold"
-              style={{ fontFamily: 'var(--font-display)', color: 'hsl(38 92% 55%)' }}
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 600,
+                fontSize: '24px',
+                color: folder.jewelColor,
+                lineHeight: 1.1,
+              }}
             >
               {folder.name}
             </h2>
-            <p className="text-xs text-white/40 mt-0.5">{folder.apps.length} apps</p>
+            <p
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '12px',
+                color: '#8a93ab',
+                marginTop: '4px',
+              }}
+            >
+              {folder.apps.length} apps
+            </p>
           </div>
+          {/* Close button — 36px glass circle */}
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            className="flex items-center justify-center transition-all shrink-0"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              color: '#8a93ab',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+              e.currentTarget.style.color = '#e8ecf6';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+              e.currentTarget.style.color = '#8a93ab';
+            }}
           >
-            <X className="w-4 h-4 text-white/60" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Gold divider */}
-        <div className="h-px mb-5" style={{ background: 'linear-gradient(90deg, transparent, hsl(38 92% 50% / 0.4), transparent)' }} />
-
-        {/* App grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-x-3 gap-y-5">
-          {folder.apps.map(app => (
+        {/* App grid — 5 columns, 22px gaps */}
+        <div className="grid grid-cols-5" style={{ gap: '22px' }}>
+          {folder.apps.map((app) => (
             <FolderAppIcon
               key={app.label}
               app={app}
               badges={badges}
-              tilt={tilt}
               onNavigate={onNavigate}
             />
           ))}
+        </div>
+
+        {/* Faint ERUDITE watermark */}
+        <div
+          className="absolute bottom-3 right-5 pointer-events-none select-none"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            fontSize: '52px',
+            letterSpacing: '0.20em',
+            color: 'rgba(255,255,255,0.03)',
+            lineHeight: 1,
+          }}
+        >
+          E
         </div>
       </div>
     </div>,
