@@ -1504,15 +1504,12 @@ class LandlordDetail extends React.Component {
                     onFallback={(text)=>{ this.setState({ composerType:'Chat', composerText:text }); }}
                   />
                 )}
-                {this.state.composerType === 'Chat' && (
-                  <React.Fragment>
+                {this.state.composerType === 'Chat' && (<React.Fragment>
                     <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })} />
-                    <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
-                      <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
-                      WhatsApp
+                    <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:9.5px; flex-wrap:wrap;")}>
+                      <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'} WhatsApp</span>
                     </div>
-                  </React.Fragment>
-                )}
+                  </React.Fragment>)}
                 {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>

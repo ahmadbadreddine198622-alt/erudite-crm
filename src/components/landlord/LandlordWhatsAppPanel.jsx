@@ -166,8 +166,8 @@ export default function LandlordWhatsAppPanel({ landlord }) {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${channel === id ? colors.active : inactive}`}
               title={phone}
             >
-              <span>{icon}</span> {label}
-              <span className="text-[9px] opacity-60">{phone}</span>
+              <span className="shrink-0">{icon}</span><span>{label}</span>
+              <span className="text-[9px] opacity-60 shrink-0">{phone}</span>
             </button>
           );
         })}
@@ -283,7 +283,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
           const pillColor = CHANNEL_COLORS[ch?.color]?.pill || 'text-muted-foreground';
           return (
             <p className="text-[10px] text-muted-foreground mt-1">
-              Sending via <span className={pillColor}>{ch?.icon} {ch?.label} ({ch?.phone})</span>
+              Sending via <span className={`inline-flex items-center gap-1 ${pillColor}`}><span>{ch?.icon}</span><span>{ch?.label} ({ch?.phone})</span></span>
               {ch?.isEvo && <span className="ml-1 opacity-60">· Evolution (no Meta needed)</span>}
               {channel === 'business' && <span className="ml-1 opacity-60">· Meta Business API · use Templates to re-open 24h window</span>}
             </p>
