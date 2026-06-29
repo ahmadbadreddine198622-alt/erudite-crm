@@ -46,12 +46,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid phone number' }, { status: 400 });
     }
 
-    // Find existing lead by phone
-    const leads = await base44.asServiceRole.entities.Lead.filter({ phone: normalizedPhone });
+    // Find existing lead OR landlord by phone
+    const [leads, landlords] = await Promise.all([
+      base44.asServiceRole.entities.Lead.filter({ phone: normalizedPhone }),
+      base44.asServiceRole.entities.Landlord.filter({ phone: normalizedPhone }),
+    ]);
     let lead = leads[0];
+    const landlord = landlords[0];
 
-    // Create lead if not exists
-    if (!lead && aircall_contact) {
+    // Resolve display name from CRM
+    const crmName = lead?.full_name || landlord?.full_name_en || landlord?.full_name || null;
+
+    // Create lead if not exists and Aircall provided contact info
+    if (!lead && !landlord && aircall_contact) {
       const firstName = aircall_contact.first_name || '';
       const lastName = aircall_contact.last_name || '';
       const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || 'Unknown Caller';
@@ -70,7 +77,6 @@ Deno.serve(async (req) => {
         assigned_agent_name: caller?.name || '',
         notes: `Lead created from Aircall call (${direction})`,
       });
-
       console.log('Created new lead from Aircall call:', lead.id);
     }
 
@@ -110,8 +116,9 @@ Deno.serve(async (req) => {
         agent_email: caller?.email || '',
         recording_url: recording_url || '',
         voicemail_url: voicemail_url || '',
-        lead_id: lead.id,
-        lead_name: lead.full_name,
+        lead_id: lead?.id || '',
+        landlord_id: landlord?.id || '',
+        lead_name: crmName || lead?.full_name || '',
         tags,
         notes: status === 'missed' ? 'Missed call' : ''
       });
