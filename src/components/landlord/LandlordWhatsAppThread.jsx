@@ -120,9 +120,8 @@ export default function LandlordWhatsAppThread({ landlord }) {
     try {
       const convList = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel: 'business' });
       const conv = convList[0];
-      if (!conv?.id) { toast.error('No business conversation found — send a message first'); return; }
       const res = await base44.functions.invoke('sendWhatsAppMessage', {
-        conversation_id: conv.id,
+        ...(conv?.id ? { conversation_id: conv.id } : { to_phone: phoneE164, landlord_id: landlord.id }),
         template_name: template.name,
         template_language: template.language || 'en',
         template_components: template_components || [],
@@ -131,6 +130,7 @@ export default function LandlordWhatsAppThread({ landlord }) {
       if (res.data?.error) throw new Error(res.data.error);
       toast.success(`Template "${template.name}" sent!`);
       qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
+      qc.invalidateQueries({ queryKey: ['wa-thread-conv', landlord?.id, 'business'] });
     } catch (e) {
       toast.error(e.message || 'Failed to send template');
     } finally {
