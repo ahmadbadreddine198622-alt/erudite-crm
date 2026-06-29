@@ -1960,10 +1960,10 @@ export default function LandlordDetailPage() {
   }, { enabled: !!landlordEmail, refetchInterval: 60000, refetchOnWindowFocus: false });
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
-  const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 60000, refetchOnWindowFocus: false });
+  const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
 
   // Telegram messages for the stream — sent/received via the Telegram Bot API, matched by landlord_id
-  const { data: telegramMessages = [] } = useQ(['telegram_messages', id], () => safe(() => base44.entities.TelegramMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 60000, refetchOnWindowFocus: false });
+  const { data: telegramMessages = [] } = useQ(['telegram_messages', id], () => safe(() => base44.entities.TelegramMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
