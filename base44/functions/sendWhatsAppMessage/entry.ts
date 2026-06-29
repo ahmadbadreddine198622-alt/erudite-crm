@@ -7,7 +7,8 @@ Deno.serve(async (req) => {
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { conversation_id, template_name, template_components, template_body } = body;
+  const { template_name, template_components, template_body } = body;
+  const conversation_id = body.conversation_id || null;
   const message = body.message || body.message_text;
   // Normalize language: Meta requires locale codes like en_US, ar, en — map bare "en" to "en_US"
   const rawLang = body.template_language || 'en';
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
 
   // Save outbound message
   const msgRecord = {
-    conversation_id,
+    conversation_id: conv.id,
     wa_message_id: waMessageId || '',
     direction: 'outbound',
     body: bodyText,
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
     status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
   };
   if (!conv.wa_phone_e164 && phoneE164) updatePayload.wa_phone_e164 = phoneE164;
-  await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, updatePayload);
+  await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, updatePayload);
 
   // Log activity only if there's a lead
   if (conv.lead_id) {
