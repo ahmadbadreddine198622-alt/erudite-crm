@@ -13,7 +13,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
-import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Mail } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Mail, Download } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -1132,9 +1132,8 @@ class LandlordDetail extends React.Component {
               <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                 <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
               </button>
+              <button onClick={()=>{const L=this.cur();if(!L)return;const r=[['Name','Phone','Email'],[L.name||'',L.phone||'',L.email||'']];const c=r.map(x=>x.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');const b=new Blob([c],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`${(L.name||'landlord').replace(/\s+/g,'_')}_contact.csv`;a.click();URL.revokeObjectURL(u);}} title="Download contact CSV" style={css("flex:none; display:inline-flex; align-items:center; gap:5px; height:34px; padding:0 11px; border-radius:9px; border:1px solid rgba(52,211,153,0.35); background:rgba(52,211,153,0.1); color:#34d399; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}><Download size={13} /> CSV</button>
             </div>
-            
-            {/* Centered banner text */}
             <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
               <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35);")}>
                 <div style={css("width:6px; height:6px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 12px hsl(38 92% 55% / 0.8), 0 0 24px hsl(38 92% 50% / 0.5); animation: pulse 2s ease-in-out infinite;")}></div>
