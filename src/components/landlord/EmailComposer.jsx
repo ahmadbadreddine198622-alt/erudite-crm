@@ -11,6 +11,7 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 /* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
 function playSentSound() {
@@ -93,8 +94,10 @@ const PSYCHOLOGY_OPTIONS = [
 const fieldStyle = css("padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; width:100%;");
 
 export default function EmailComposer({ landlordId, toEmail, onLogged }) {
+  const { user } = useCurrentUser();
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
+  const [from, setFrom] = useState(user?.email || '');
   const [to, setTo] = useState(toEmail || '');
   const [buyerDetail, setBuyerDetail] = useState('');
   const [marketFigure, setMarketFigure] = useState('');
@@ -169,12 +172,13 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const sendEmail = async () => {
     if (sending) return;
     if (!to.trim()) { toast.error('Add a recipient email'); return; }
+    if (!from.trim()) { toast.error('From email is required'); return; }
     if (!subject.trim() || !bodyNative.trim()) { toast.error('Subject and body are required'); return; }
     setSending(true);
     setDelivery(null);
     try {
       const res = await base44.functions.invoke('sendLandlordEmail', {
-        to: to.trim(), subject: subject.trim(), body_native: bodyNative, landlord_id: landlordId,
+        to: to.trim(), from: from.trim(), subject: subject.trim(), body_native: bodyNative, landlord_id: landlordId,
       });
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Email send failed');
@@ -282,6 +286,10 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       {/* editable draft */}
       {hasDraft && (
         <div style={css("display:flex; flex-direction:column; gap:8px;")}>
+          <div>
+            <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>From</div>
+            <input type="email" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="your@email" style={fieldStyle} />
+          </div>
           <div>
             <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>To</div>
             <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email" style={fieldStyle} />

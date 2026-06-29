@@ -138,12 +138,16 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const to = String(body.to || '').trim();
+    const from = String(body.from || user.email || '').trim();
     const subject = String(body.subject || '').trim();
     const bodyNative = String(body.body_native || '');
     const landlordId = String(body.landlord_id || '');
 
     if (!to || !EMAIL_RE.test(to)) {
       return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
+    }
+    if (!from || !EMAIL_RE.test(from)) {
+      return Response.json({ ok: false, error: 'invalid from email' }, { status: 400 });
     }
     if (!subject) {
       return Response.json({ ok: false, error: 'subject is required' }, { status: 400 });
@@ -165,6 +169,7 @@ Deno.serve(async (req) => {
     const html = buildHtml(bodyNative, bannerUrl);
 
     const mime = [
+      `From: ${from}`,
       `To: ${to}`,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
@@ -210,7 +215,7 @@ Deno.serve(async (req) => {
     try {
       await base44.asServiceRole.entities.Email.create({
         landlord_id: landlordId,
-        from_email: user.email || null,
+        from_email: from,
         to_email: to,
         subject,
         body: bodyNative,
