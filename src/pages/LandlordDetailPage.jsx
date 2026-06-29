@@ -38,6 +38,7 @@ import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
+import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -821,9 +822,6 @@ class LandlordDetail extends React.Component {
   // ---------- seed (removed — real data comes from the container page) ----------
   seed(){ return []; }
 
-  // cannedAnalysis removed — real AI data comes from ConversationInsight/ConversationCoach
-  // entities fetched by the LandlordDetailPage container. The Analyse button invokes the
-  // real analyzeLandlordConversation backend function; no demo/fallback content is injected.
   cannedAnalysis(){ return null; }
 
   // ---------- viewmodel ----------
@@ -1506,10 +1504,11 @@ class LandlordDetail extends React.Component {
                 {this.state.composerType === 'Chat' && (
                   <React.Fragment>
                     <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })} />
-                    <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:6px; font-size:9.5px; color:rgba(255,255,255,0.4);")}>
-                      <span style={css("font-weight:600; color:"+(this.state.streamFilter === 'business' ? '#4ade80' : '#93c5fd')+";")}>{this.state.streamFilter === 'business' ? 'Business' : 'Personal'}</span>
-                      WhatsApp
+                    <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:6px;")}>
+                      <span style={css("font-size:9.5px; color:rgba(255,255,255,0.4);")}><span style={css("font-weight:600; color:"+(this.state.streamFilter==='business'?'#4ade80':'#93c5fd')+";")}>{this.state.streamFilter==='business'?'Business':'Personal'}</span> WhatsApp</span>
+                      {this.state.streamFilter==='business' && <button onClick={()=>this.setState(s=>({chatTemplatesOpen:!s.chatTemplatesOpen}))} style={css("display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:7px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:hsl(38 92% 62%);")}> 📋 Templates</button>}
                     </div>
+                    {this.state.streamFilter==='business' && this.state.chatTemplatesOpen && <ChatTemplatePanel landlordId={L.id} phone={L.phone} onClose={()=>this.setState({chatTemplatesOpen:false})} />}
                   </React.Fragment>
                 )}
                 {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
