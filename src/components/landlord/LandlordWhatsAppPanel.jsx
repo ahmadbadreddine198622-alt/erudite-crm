@@ -65,8 +65,8 @@ export default function LandlordWhatsAppPanel({ landlord }) {
       toast.success(`Template "${template.name}" sent via Business WhatsApp!`);
       // Switch to business tab so user sees the sent message
       setChannel('business');
-      qc.invalidateQueries({ queryKey: ['landlord-wa-msgs'] });
-      qc.invalidateQueries({ queryKey: ['landlord-wa-conv', landlord?.id, 'business'] });
+      await qc.invalidateQueries({ queryKey: ['landlord-wa-conv'] });
+      await qc.invalidateQueries({ queryKey: ['landlord-wa-msgs'] });
     } catch (e) {
       toast.error(e.message || 'Failed to send template');
     } finally {

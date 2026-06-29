@@ -2062,13 +2062,16 @@ export default function LandlordDetailPage() {
     return d.toLocaleString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
   const deriveWaChannel = (msg) => {
+    // Check explicit channel field first (most reliable — set by sendWhatsAppMessage backend)
+    if (msg.channel === 'personal' || msg.channel === 'business' || msg.channel === 'malik') return msg.channel;
+    // Fall back to inferring from our phone numbers in the message
     const eruditeSide = msg.direction === 'inbound' ? msg.to_number : msg.from_number;
     if (eruditeSide) {
       const digits = eruditeSide.replace(/\D/g, '');
       if (digits.endsWith('1806000')) return 'personal';
       if (digits.endsWith('2806000')) return 'business';
+      if (digits.endsWith('9871277')) return 'malik';
     }
-    if (msg.channel === 'personal' || msg.channel === 'business') return msg.channel;
     return 'business';
   };
 

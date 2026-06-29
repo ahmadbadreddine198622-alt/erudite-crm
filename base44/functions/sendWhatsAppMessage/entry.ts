@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
   // Use the actual template body text if provided, otherwise fall back to message or a label
   const bodyText = message || template_body || `[Template: ${template_name}]`;
 
-  // Save outbound message
+  // Save outbound message — always tag with the conversation's channel so the UI can label it correctly
   const msgRecord = {
     conversation_id: conv.id,
     wa_message_id: waMessageId || '',
@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
     from_number: '',
     to_number: conv.wa_phone_e164 || conv.phone_number,
     media_type: 'none',
+    channel: conv.channel || 'business',
   };
   if (conv.lead_id) msgRecord.lead_id = conv.lead_id;
   await base44.asServiceRole.entities.WhatsAppMessage.create(msgRecord);

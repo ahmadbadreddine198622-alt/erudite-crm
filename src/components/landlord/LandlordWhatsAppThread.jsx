@@ -131,8 +131,9 @@ export default function LandlordWhatsAppThread({ landlord }) {
       toast.success(`Template "${template.name}" sent via Business WhatsApp!`);
       // Switch to business tab so user sees the sent message
       setSelectedChannel('business');
-      qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
-      qc.invalidateQueries({ queryKey: ['wa-thread-conv', landlord?.id, 'business'] });
+      // Force refetch of business conversations and messages
+      await qc.invalidateQueries({ queryKey: ['wa-thread-conv'] });
+      await qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
     } catch (e) {
       toast.error(e.message || 'Failed to send template');
     } finally {
