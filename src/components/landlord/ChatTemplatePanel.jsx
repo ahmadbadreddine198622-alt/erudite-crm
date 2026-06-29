@@ -18,9 +18,15 @@ function TemplateRow({ t, landlordId, phone, onDone }) {
   const send = async () => {
     setSending(true);
     try {
+      // Meta supports both positional ({1}) and named ({{customer_name}}) params.
+      // Named params require param_name key; positional just need text.
+      const isNamed = vars.length > 0 && isNaN(Number(vars[0]));
       const template_components = vars.length > 0 ? [{
         type: 'body',
-        parameters: vars.map(v => ({ type: 'text', text: values[v] || v }))
+        parameters: vars.map(v => isNamed
+          ? { type: 'text', parameter_name: v, text: values[v] || v }
+          : { type: 'text', text: values[v] || v }
+        )
       }] : [];
       const resolvedBody = vars.reduce((b, v) => b.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), values[v] || v), t.body || '');
 

@@ -10,9 +10,8 @@ Deno.serve(async (req) => {
   const { template_name, template_components, template_body } = body;
   const conversation_id = body.conversation_id || null;
   const message = body.message || body.message_text;
-  // Normalize language: Meta requires locale codes like en_US, ar, en — map bare "en" to "en_US"
-  const rawLang = body.template_language || 'en';
-  const template_language = rawLang === 'en' ? 'en_US' : rawLang;
+  // Use language exactly as returned from Meta — do not remap
+  const template_language = body.template_language || 'en';
 
   if (!conversation_id && !body.to_phone) {
     return Response.json({ error: 'conversation_id or to_phone is required' }, { status: 400 });
