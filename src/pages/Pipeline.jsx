@@ -463,7 +463,7 @@ export default function Pipeline() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-8 mt-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col px-8 mt-0 pb-6">
         <TabsList
           className="self-start"
           style={{
@@ -487,90 +487,82 @@ export default function Pipeline() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sale" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="sale" className="flex flex-col mt-4">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-                <PipelineBoard
-                  track="buyer"
-                  leads={buckets.sale}
-                  getListing={getListing}
-                  getPhotoForPhone={getPhotoForPhone}
-                  onLeadClick={(l) => setSelectedLeadId(l.id)}
-                  onStageChange={handleStageChange}
-                  users={users}
-                  onAssign={(id, email) => assignMutation.mutate({ id, email })}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                />
-              </div>
+            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <PipelineBoard
+                track="buyer"
+                leads={buckets.sale}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="rent" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="rent" className="flex flex-col mt-4">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-                <PipelineBoard
-                  track="tenant"
-                  leads={buckets.rent}
-                  getListing={getListing}
-                  getPhotoForPhone={getPhotoForPhone}
-                  onLeadClick={(l) => setSelectedLeadId(l.id)}
-                  onStageChange={handleStageChange}
-                  users={users}
-                  onAssign={(id, email) => assignMutation.mutate({ id, email })}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                />
-              </div>
+            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <PipelineBoard
+                track="tenant"
+                leads={buckets.rent}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="intake" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="intake" className="flex flex-col mt-4">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-                <PipelineBoard
-                  track="unknown"
-                  leads={buckets.intake}
-                  getListing={getListing}
-                  getPhotoForPhone={getPhotoForPhone}
-                  onLeadClick={(l) => setSelectedLeadId(l.id)}
-                  onStageChange={handleStageChange}
-                  users={users}
-                  onAssign={(id, email) => assignMutation.mutate({ id, email })}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                />
-              </div>
+            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <PipelineBoard
+                track="unknown"
+                leads={buckets.intake}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="whatsapp" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="whatsapp" className="flex flex-col mt-4">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-                <PipelineBoard
-                  track="unknown"
-                  leads={buckets.whatsapp}
-                  getListing={getListing}
-                  getPhotoForPhone={getPhotoForPhone}
-                  onLeadClick={(l) => setSelectedLeadId(l.id)}
-                  onStageChange={handleStageChange}
-                  users={users}
-                  onAssign={(id, email) => assignMutation.mutate({ id, email })}
-                  onDelete={(id) => deleteMutation.mutate(id)}
-                />
-              </div>
+            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <PipelineBoard
+                track="unknown"
+                leads={buckets.whatsapp}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
             </div>
           )}
         </TabsContent>

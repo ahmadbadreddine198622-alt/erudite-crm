@@ -28,8 +28,8 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', minWidth: 0 }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: '70vh', minWidth: 0 }}>
         <div
           className="overflow-x-auto overflow-y-hidden pb-3 pipeline-scroll"
           style={{
