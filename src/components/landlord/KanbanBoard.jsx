@@ -323,7 +323,7 @@ export default function KanbanBoard({
             so columns keep their own vertical scroll. */}
         <div
         ref={scrollRef}
-        className="overflow-x-auto overflow-y-hidden pb-2"
+        className="board-scroll overflow-x-auto overflow-y-hidden pb-2"
         style={{
           height: '100%',
           position: 'relative',
@@ -338,10 +338,10 @@ export default function KanbanBoard({
         }}
         >
           <style>{`
-            .board-inner::-webkit-scrollbar { height: 8px; }
-            .board-inner::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 99px; }
-            .board-inner::-webkit-scrollbar-thumb { background: rgba(201,162,75,.3); border-radius: 99px; }
-            .board-inner::-webkit-scrollbar-thumb:hover { background: rgba(201,162,75,.55); }
+            .board-scroll::-webkit-scrollbar { height: 10px; }
+            .board-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 99px; margin: 0 4px; }
+            .board-scroll::-webkit-scrollbar-thumb { background: rgba(201,162,75,.4); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+            .board-scroll::-webkit-scrollbar-thumb:hover { background: rgba(201,162,75,.65); background-clip: padding-box; }
           `}</style>
 
           <DndContext
