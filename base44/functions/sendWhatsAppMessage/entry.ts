@@ -34,9 +34,10 @@ Deno.serve(async (req) => {
     const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
     toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
   } else {
-    // Direct send to phone — always use/create the business channel conversation
+    // Direct send to phone — use channel from request (default 'business' for notifications)
+    const channel = body.channel || 'business';
     toPhone = body.to_phone.startsWith('+') ? body.to_phone : '+' + body.to_phone.replace(/^\+/, '');
-    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone, channel: 'business' });
+    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone, channel });
     if (existing[0]) {
       conv = existing[0];
     } else {
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
       conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
         wa_phone_e164: toPhone,
         phone_number: toPhone,
-        channel: 'business',
+        channel,
         status: 'open',
         ...(body.landlord_id ? { landlord_id: body.landlord_id } : {}),
       });
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
     from_number: '',
     to_number: conv.wa_phone_e164 || conv.phone_number,
     media_type: 'none',
-    channel: conv.channel || 'business',
+    channel: channel || conv.channel || 'business',
   };
   if (conv.lead_id) msgRecord.lead_id = conv.lead_id;
   await base44.asServiceRole.entities.WhatsAppMessage.create(msgRecord);

@@ -28,19 +28,29 @@ Deno.serve(async (req) => {
 
     const whatsappMessage = `📥 Contact Download Alert\n\nLandlord: ${landlord_name}\nDownloaded by: ${agentName}\nTime: ${new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dubai' })}`;
 
-    // Send email to Ahmad
-    await base44.integrations.Core.SendEmail({
-      to: ahmadEmail,
-      subject,
-      body: emailBody,
-    });
+    // Send email to Ahmad via Core integration
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: ahmadEmail,
+        subject,
+        body: emailBody,
+      });
+      console.log('Email sent to Ahmad:', ahmadEmail);
+    } catch (emailErr) {
+      console.error('Email notification failed:', emailErr);
+    }
 
-    // Send WhatsApp to Ahmad
-    await base44.functions.invoke('sendWhatsAppMessage', {
-      phone: ahmadPhone,
-      text: whatsappMessage,
-      channel: 'business',
-    });
+    // Send WhatsApp to Ahmad via business channel
+    try {
+      const waRes = await base44.functions.invoke('sendWhatsAppMessage', {
+        phone: ahmadPhone,
+        text: whatsappMessage,
+        channel: 'business',
+      });
+      console.log('WhatsApp sent to Ahmad:', waRes);
+    } catch (waErr) {
+      console.error('WhatsApp notification failed:', waErr);
+    }
 
     return Response.json({ success: true, message: 'Notifications sent to Ahmad' });
   } catch (error) {

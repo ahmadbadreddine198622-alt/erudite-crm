@@ -168,8 +168,11 @@ Deno.serve(async (req) => {
 
     const html = buildHtml(bodyNative, bannerUrl);
 
+    // Gmail API ignores From header in raw MIME - must use sendAs alias or authenticated user.
+    // For now, send from authenticated Gmail account but set Reply-To to the agent's email.
     const mime = [
-      `From: ${from}`,
+      `From: ${user.email || 'ahmad@erudite-estate.com'}`,
+      `Reply-To: ${from}`,
       `To: ${to}`,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
