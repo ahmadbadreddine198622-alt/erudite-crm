@@ -296,20 +296,25 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                 <Fact label="Source" value={source} />
                 <Fact label="Residency" value={residency} />
               </div>
-              {/* Row C — channel micro-line (keeps Resolve iMessage behavior) */}
-              {has(L.phone) && (
+              {/* Row C — channel micro-line + download button (visible for all agents) */}
+              {(has(L.phone) || has(L.email) || has(name)) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
-                  <span style={{ fontWeight: 600 }}>{L.imessage_status === 'available' ? 'iMessage' : 'SMS only'}</span>
-                  <Dot />
-                  <IMessageBadge
-                    status={L.imessage_status || 'unknown'}
-                    checkedAt={L.imessage_checked_at}
-                    checking={imessageChecking}
-                    onCheck={onCheckIMessage}
-                    handle={L.imessage_handle}
-                    handles={handles}
-                  />
-                  {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
+                  {has(L.phone) && (
+                    <>
+                      <span style={{ fontWeight: 600 }}>{L.imessage_status === 'available' ? 'iMessage' : 'SMS only'}</span>
+                      <Dot />
+                      <IMessageBadge
+                        status={L.imessage_status || 'unknown'}
+                        checkedAt={L.imessage_checked_at}
+                        checking={imessageChecking}
+                        onCheck={onCheckIMessage}
+                        handle={L.imessage_handle}
+                        handles={handles}
+                      />
+                      {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
+                      <Dot />
+                    </>
+                  )}
                   <button onClick={handleDownload} title="Download contact CSV (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}>
                     <Download size={12} /> Download
                   </button>
