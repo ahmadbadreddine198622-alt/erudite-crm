@@ -6,6 +6,9 @@
 import React from 'react';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
+import { Download } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 
 const GOLD = '#C9A24B';
 
@@ -110,9 +113,32 @@ function Fact({ label, value, valueColor, title }) {
 
 const Dot = () => <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>·</span>;
 
-export default function LandlordIdentityHeader({ landlord, unit, imessageChecking, onCheckIMessage }) {
+export default function LandlordIdentityHeader({ landlord, unit, imessageChecking, onCheckIMessage, landlordId }) {
   const L = landlord || {};
   const U = unit || {};
+
+  const handleDownload = async () => {
+    const name = L.full_name_en || L.full_name || 'Unnamed landlord';
+    const phone = L.phone || '';
+    const email = L.email || '';
+    const rows = [['Name', 'Phone', 'Email'], [name, phone, email]];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, '_')}_contact.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Notify Ahmad
+    try {
+      await base44.functions.invoke('notifyDownloadToAhmad', { landlord_id: landlordId, landlord_name: name });
+      toast.success('Contact downloaded · Ahmad notified');
+    } catch (err) {
+      toast.error('Downloaded but notification failed');
+    }
+  };
   const name = L.full_name_en || L.full_name || 'Unnamed landlord';
   const initials = String(name).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const flag = flagFor(L.nationality);
@@ -283,6 +309,9 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                     handles={handles}
                   />
                   {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
+                  <button onClick={handleDownload} title="Download contact CSV (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}>
+                    <Download size={12} /> Download
+                  </button>
                 </div>
               )}
             </div>
