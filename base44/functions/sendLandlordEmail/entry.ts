@@ -139,15 +139,21 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const to = String(body.to || '').trim();
     const from = String(body.from || user.email || '').trim();
+    const cc = String(body.cc || '').trim();
     const subject = String(body.subject || '').trim();
     const bodyNative = String(body.body_native || '');
     const landlordId = String(body.landlord_id || '');
+    const includeSignature = body.include_signature !== false;
+    const imageUrls = Array.isArray(body.image_urls) ? body.image_urls : [];
 
     if (!to || !EMAIL_RE.test(to)) {
       return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
     }
     if (!from || !EMAIL_RE.test(from)) {
       return Response.json({ ok: false, error: 'invalid from email' }, { status: 400 });
+    }
+    if (cc && !EMAIL_RE.test(cc)) {
+      return Response.json({ ok: false, error: 'invalid CC email' }, { status: 400 });
     }
     if (!subject) {
       return Response.json({ ok: false, error: 'subject is required' }, { status: 400 });
@@ -168,19 +174,32 @@ Deno.serve(async (req) => {
 
     const html = buildHtml(bodyNative, bannerUrl);
 
-    // Gmail API ignores From header in raw MIME - must use sendAs alias or authenticated user.
-    // For now, send from authenticated Gmail account but set Reply-To to the agent's email.
+    // Build signature if requested
+    let fullBody = bodyNative;
+    if (includeSignature) {
+      fullBody += `\n\n-- \nBest regards,\n${user.full_name || 'Erudite Agent'}\nErudite Real Estate\n${user.email || ''}`;
+    }
+
+    // Insert images into body (markdown-style image references)
+    imageUrls.forEach((url, idx) => {
+      fullBody += `\n\n<img src="${url}" alt="Image ${idx + 1}" style="max-width:100%;height:auto;margin:12px 0;" />`;
+    });
+
+    const htmlBody = buildHtml(fullBody, bannerUrl);
+
+    // Gmail API - send from authenticated user with Reply-To
     const mime = [
       `From: ${user.email || 'ahmad@erudite-estate.com'}`,
       `Reply-To: ${from}`,
       `To: ${to}`,
+      cc ? `Cc: ${cc}` : null,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset="UTF-8"',
       'Content-Transfer-Encoding: 7bit',
       '',
-      html,
-    ].join('\r\n');
+      htmlBody,
+    ].filter(Boolean).join('\r\n');
 
     const raw = toBase64Url(mime);
 

@@ -118,6 +118,12 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [language, setLanguage] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
 
+  // Complete email composer fields
+  const [cc, setCc] = useState('');
+  const [signature, setSignature] = useState(true);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
   const needsBuyer = REQUIRES_BUYER.includes(mode);
   const needsMarket = REQUIRES_MARKET.includes(mode);
 
@@ -169,6 +175,31 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    setUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      const imageUrl = res?.file_url || res?.url;
+      if (imageUrl) {
+        setUploadedImages(prev => [...prev, imageUrl]);
+        // Insert image at cursor position in body
+        const imgMarkdown = `\n\n![Image](${imageUrl})\n\n`;
+        setBodyNative(prev => prev + imgMarkdown);
+        toast.success('Image uploaded');
+      }
+    } catch (err) {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const sendEmail = async () => {
     if (sending) return;
     if (!to.trim()) { toast.error('Add a recipient email'); return; }
@@ -177,9 +208,17 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     setSending(true);
     setDelivery(null);
     try {
-      const res = await base44.functions.invoke('sendLandlordEmail', {
-        to: to.trim(), from: from.trim(), subject: subject.trim(), body_native: bodyNative, landlord_id: landlordId,
-      });
+      const payload = {
+        to: to.trim(),
+        from: from.trim(),
+        subject: subject.trim(),
+        body_native: bodyNative,
+        landlord_id: landlordId,
+        cc: cc.trim() || undefined,
+        include_signature: signature,
+        image_urls: uploadedImages.length > 0 ? uploadedImages : undefined,
+      };
+      const res = await base44.functions.invoke('sendLandlordEmail', payload);
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Email send failed');
       // Multi-sensory confirmation: sound + flash overlay + toast.
@@ -192,7 +231,9 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       // Bounces arrive seconds-to-minutes later — re-check the thread after a short delay.
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
-      if (onLogged) onLogged({ subject: subject.trim(), to: to.trim() });
+      if (onLogged) onLogged({ subject: subject.trim(), to: to.trim(), cc });
+      // Reset after send
+      setUploadedImages([]);
     } catch (e) {
       toast.error(e?.message || 'Failed to send email');
       setDelivery({ state: 'failed', reason: e?.message || 'Send failed', checking: false });
@@ -286,17 +327,45 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       {/* editable draft */}
       {hasDraft && (
         <div style={css("display:flex; flex-direction:column; gap:8px;")}>
-          <div>
-            <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>From</div>
-            <input type="email" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="your@email" style={fieldStyle} />
+          {/* From / To / CC row */}
+          <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:8px;")}>
+            <div>
+              <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>From</div>
+              <input type="email" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="your@email" style={fieldStyle} />
+            </div>
+            <div>
+              <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>To</div>
+              <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email" style={fieldStyle} />
+            </div>
           </div>
           <div>
-            <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>To</div>
-            <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email" style={fieldStyle} />
+            <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>CC (optional)</div>
+            <input type="email" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="cc@email" style={fieldStyle} />
           </div>
           <div>
             <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Subject</div>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} style={fieldStyle} />
+          </div>
+          {/* Image upload */}
+          <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:4px;")}>
+            <label style={css("display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:7px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); cursor:pointer; font-size:10.5px; font-weight:600; color:rgba(255,255,255,0.7); font-family:'Inter',sans-serif;")}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              {uploading ? 'Uploading…' : 'Insert image'}
+              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} style={{ display: 'none' }} />
+            </label>
+            {uploadedImages.length > 0 && (
+              <span style={css("font-size:9.5px; color:rgba(255,255,255,0.5);")}>{uploadedImages.length} image(s) attached</span>
+            )}
+            {uploading && <span style={css("font-size:10px; color:rgba(255,255,255,0.5);")}>Uploading…</span>}
+          </div>
+          {/* Signature toggle */}
+          <div style={css("display:flex; alignItems:center; gap:6px; marginBottom:4px;")}>
+            <input type="checkbox" id="sig" checked={signature} onChange={(e) => setSignature(e.target.checked)} style={{ width: 14, height: 14 }} />
+            <label htmlFor="sig" style={css("font-size:10px; font-weight:600; color:rgba(255,255,255,0.6); cursor:pointer;")}>Include my signature</label>
           </div>
           <div>
             <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Body</div>
