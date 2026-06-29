@@ -13,21 +13,43 @@ Deno.serve(async (req) => {
   const rawLang = body.template_language || 'en';
   const template_language = rawLang === 'en' ? 'en_US' : rawLang;
 
-  if (!conversation_id || (!message?.trim() && !template_name)) {
-    return Response.json({ error: 'conversation_id and message (or template_name) are required' }, { status: 400 });
+  if (!conversation_id && !body.to_phone) {
+    return Response.json({ error: 'conversation_id or to_phone is required' }, { status: 400 });
   }
-
-  // Get conversation
-  const convList = await base44.asServiceRole.entities.WhatsAppConversation.filter({ id: conversation_id });
-  const conv = convList[0];
-  if (!conv) return Response.json({ error: 'Conversation not found' }, { status: 404 });
+  if (!message?.trim() && !template_name) {
+    return Response.json({ error: 'message or template_name is required' }, { status: 400 });
+  }
 
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
 
-  // Ensure phone has + prefix — Meta requires E.164 with leading +
-  const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
-  const toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
+  // Resolve conversation and phone
+  let conv = null;
+  let toPhone = '';
+
+  if (conversation_id) {
+    const convList = await base44.asServiceRole.entities.WhatsAppConversation.filter({ id: conversation_id });
+    conv = convList[0];
+    if (!conv) return Response.json({ error: 'Conversation not found' }, { status: 404 });
+    const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
+    toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
+  } else {
+    // Direct send to phone — create or find conversation
+    toPhone = body.to_phone.startsWith('+') ? body.to_phone : '+' + body.to_phone.replace(/^\+/, '');
+    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone });
+    if (existing[0]) {
+      conv = existing[0];
+    } else {
+      // Create a new conversation record
+      conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
+        wa_phone_e164: toPhone,
+        phone_number: toPhone,
+        channel: 'business',
+        status: 'open',
+        ...(body.landlord_id ? { landlord_id: body.landlord_id } : {}),
+      });
+    }
+  }
 
   // Build payload - either text or template
   let payload;

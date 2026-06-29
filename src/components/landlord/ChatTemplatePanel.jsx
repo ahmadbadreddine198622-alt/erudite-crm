@@ -18,25 +18,29 @@ function TemplateRow({ t, landlordId, phone, onDone }) {
   const send = async () => {
     setSending(true);
     try {
-      const waConvs = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'business' });
-      const conv = waConvs[0];
-      if (!conv?.id) { toast.error('No business conversation — send a message first to open the window'); setSending(false); return; }
-
       const template_components = vars.length > 0 ? [{
         type: 'body',
         parameters: vars.map(v => ({ type: 'text', text: values[v] || v }))
       }] : [];
       const resolvedBody = vars.reduce((b, v) => b.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), values[v] || v), t.body || '');
 
+      // Normalize phone to E.164
+      const normalizedPhone = phone.replace(/[\s\-()]/g, '');
+      const toPhone = normalizedPhone.startsWith('+') ? normalizedPhone : '+' + normalizedPhone;
+
+      // Try to find any existing conversation for this phone (any channel)
+      const waConvs = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone });
+      const conv = waConvs[0];
+
       const res = await base44.functions.invoke('sendWhatsAppMessage', {
-        conversation_id: conv.id,
+        ...(conv?.id ? { conversation_id: conv.id } : { to_phone: toPhone, landlord_id: landlordId }),
         template_name: t.name,
         template_language: t.language || 'en',
         template_components,
         template_body: resolvedBody,
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      toast.success(`Template "${t.name}" sent via Business WhatsApp`);
+      toast.success(`Template "${t.name}" sent`);
       onDone();
     } catch (e) {
       toast.error(e.message || 'Failed to send template');
