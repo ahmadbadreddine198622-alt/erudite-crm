@@ -10,8 +10,8 @@ export default function AircallButton({ phone, name, iconOnly = false, size = 's
   // Normalize phone: strip spaces/dashes, ensure + prefix
   const normalized = phone.replace(/[\s\-()]/g, '');
 
-  // Aircall click-to-call deep link
-  const aircallUrl = `aircall://dial?phone=${encodeURIComponent(normalized)}`;
+  // Aircall click-to-call deep link — include name so Aircall shows it on the call screen
+  const aircallUrl = `aircall://dial?phone=${encodeURIComponent(normalized)}${name ? `&name=${encodeURIComponent(name)}` : ''}`;
 
   return (
     <a
