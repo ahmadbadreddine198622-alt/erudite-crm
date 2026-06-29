@@ -34,9 +34,9 @@ Deno.serve(async (req) => {
     const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
     toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
   } else {
-    // Direct send to phone — create or find conversation
+    // Direct send to phone — always use/create the business channel conversation
     toPhone = body.to_phone.startsWith('+') ? body.to_phone : '+' + body.to_phone.replace(/^\+/, '');
-    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone });
+    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone, channel: 'business' });
     if (existing[0]) {
       conv = existing[0];
     } else {
