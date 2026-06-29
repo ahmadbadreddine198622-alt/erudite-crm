@@ -188,6 +188,25 @@ div[id*="Base44"] {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
+/* ─── Pipeline horizontal scroll — taller, gold-tinted, always visible ─── */
+.pipeline-scroll::-webkit-scrollbar { height: 10px; }
+.pipeline-scroll::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 99px;
+  margin: 0 4px;
+}
+.pipeline-scroll::-webkit-scrollbar-thumb {
+  background: hsl(38 92% 50% / 0.5);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.pipeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(38 92% 50% / 0.7);
+  background-clip: padding-box;
+}
+.pipeline-scroll { scrollbar-width: thin; }
+
 /* ─── Glass Card / Surface ─── */
 .glass-card {
   background: rgba(255,255,255,0.06);
