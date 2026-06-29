@@ -1,166 +1,314 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, MessageSquare, Clock, Check, CheckCheck, Building2, User } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Send, Loader2, MessageSquare, Clock, Check, CheckCheck, Building2, User, RefreshCw, Bot, FileText, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import ChannelSwitcher from '@/components/whatsapp/ChannelSwitcher';
+import TemplatesModal from '@/components/whatsapp/TemplatesModal';
 
-// Two-way WhatsApp thread for a landlord. Reads Message records (Evolution/Message
-// entity) and sends replies via the sendMultiChannelWhatsApp backend function.
+function toDigits(raw) { return String(raw || '').replace(/\D/g, ''); }
+const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ''; } };
+
+const CHANNELS = [
+  { id: 'business', label: 'Business', phone: '+971 58 280 6000', color: 'emerald', icon: Building2 },
+  { id: 'personal', label: 'Ahmad',    phone: '+971 58 180 6000', color: 'blue',    icon: User },
+  { id: 'malik',   label: 'Malik',     phone: '+971 52 987 1277', color: 'purple',  icon: User },
+];
+
+const CHANNEL_COLORS = {
+  emerald: { active: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400', text: 'text-emerald-400' },
+  blue:    { active: 'bg-blue-500/15 border-blue-500/40 text-blue-400',          text: 'text-blue-400' },
+  purple:  { active: 'bg-purple-500/15 border-purple-500/40 text-purple-400',    text: 'text-purple-400' },
+};
+
 export default function LandlordWhatsAppThread({ landlord }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('business');
+  const [selectedChannel, setSelectedChannel] = useState('personal');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [isSendingTemplate, setIsSendingTemplate] = useState(false);
+  const [smartReplies, setSmartReplies] = useState([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['landlord-messages', landlord?.id],
-    // filter(filterObj, sort, limit) — 'timestamp' ascending = oldest -> newest (chat style)
-    queryFn: () => base44.entities.Message.filter({ landlord_id: landlord.id }, 'timestamp', 500),
-    enabled: !!landlord?.id,
+  const phone = toDigits(landlord?.phone);
+  const phoneE164 = phone ? '+' + phone : null;
+
+  // Fetch WhatsApp templates for business channel
+  const { data: metaData } = useQuery({
+    queryKey: ['meta_templates_live'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getMetaTemplates', {});
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: selectedChannel === 'business',
   });
+  const displayTemplates = metaData?.templates || [];
+
+  // Find conversations for selected channel
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['wa-thread-conv', landlord?.id, selectedChannel],
+    queryFn: async () => {
+      if (!phoneE164) return [];
+      let r = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel: selectedChannel });
+      if (!r.length) r = await base44.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel: selectedChannel });
+      return [...r].sort((a, b) =>
+        new Date(b.last_message_at || b.updated_date || 0) - new Date(a.last_message_at || a.updated_date || 0)
+      );
+    },
+    enabled: !!phoneE164,
+  });
+  const conversation = conversations[0] || null;
+  const conversationIds = conversations.map(c => c.id).filter(Boolean);
+
+  // Fetch messages from WhatsAppMessage entity (same as LandlordWhatsAppPanel)
+  const { data: messages = [], isLoading, refetch } = useQuery({
+    queryKey: ['wa-thread-msgs', conversationIds.join(',')],
+    queryFn: async () => {
+      const batches = await Promise.all(
+        conversationIds.map(cid =>
+          base44.entities.WhatsAppMessage.filter({ conversation_id: cid }, 'timestamp', 200)
+        )
+      );
+      const seen = new Set();
+      return batches
+        .flat()
+        .filter(m => m.id && !seen.has(m.id) ? (seen.add(m.id), true) : false)
+        .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    },
+    enabled: conversationIds.length > 0,
+    refetchInterval: 8000,
+  });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
 
   // Auto-detect channel from last incoming message
   useEffect(() => {
     if (messages.length > 0) {
-      const lastIncoming = messages.filter(m => m.direction === 'incoming').pop();
-      if (lastIncoming?.channel) {
+      const lastIncoming = [...messages].reverse().find(m => m.direction === 'inbound');
+      if (lastIncoming?.channel && lastIncoming.channel !== selectedChannel) {
         setSelectedChannel(lastIncoming.channel);
       }
     }
-  }, [messages]);
+  }, []); // only on mount
 
   const sendMutation = useMutation({
-    mutationFn: (msg) => base44.functions.invoke('sendMultiChannelWhatsApp', { landlord_id: landlord.id, text: msg, channel: selectedChannel }),
+    mutationFn: (msg) => base44.functions.invoke('sendMultiChannelWhatsApp', {
+      landlord_id: landlord.id,
+      text: msg,
+      channel: selectedChannel,
+    }),
     onSuccess: (res) => {
-      // invoke may wrap the payload in { data }; the function surfaces errors in-body too
       const data = res?.data ?? res;
-      if (data?.error) {
-        toast.error(`Send failed: ${data.error}${data.detail ? ' — ' + data.detail : ''}`);
-        return;
-      }
+      if (data?.error) { toast.error(`Send failed: ${data.error}`); return; }
       setText('');
-      qc.invalidateQueries({ queryKey: ['landlord-messages', landlord.id] });
+      setSmartReplies([]);
+      qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
+      qc.invalidateQueries({ queryKey: ['wa-thread-conv', landlord?.id, selectedChannel] });
       toast.success('Message sent');
     },
-    onError: (e) => {
-      const msg = e?.response?.data?.error || e?.response?.data?.detail || e?.message || 'Unknown error';
-      toast.error(`Send failed: ${msg}`);
-    },
+    onError: (e) => toast.error('Send failed: ' + (e?.response?.data?.error || e?.message)),
   });
 
-  const stats = useMemo(() => {
-    if (!messages.length) return null;
-    const total = messages.length;
-    // avg response time: time between consecutive messages that switch direction
-    const gaps = [];
-    for (let i = 1; i < messages.length; i++) {
-      const prev = messages[i - 1];
-      const curr = messages[i];
-      if (prev.direction !== curr.direction && prev.timestamp && curr.timestamp) {
-        const diff = new Date(curr.timestamp) - new Date(prev.timestamp);
-        if (diff > 0 && diff < 86400000 * 3) gaps.push(diff); // ignore > 3 days
-      }
+  const handleSendTemplate = async (template, template_components, resolvedBody) => {
+    if (!phoneE164) return;
+    setIsSendingTemplate(true);
+    try {
+      const convList = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel: 'business' });
+      const conv = convList[0];
+      if (!conv?.id) { toast.error('No business conversation found — send a message first'); return; }
+      const res = await base44.functions.invoke('sendWhatsAppMessage', {
+        conversation_id: conv.id,
+        template_name: template.name,
+        template_language: template.language || 'en',
+        template_components: template_components || [],
+        template_body: resolvedBody || template.body || '',
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success(`Template "${template.name}" sent!`);
+      qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
+    } catch (e) {
+      toast.error(e.message || 'Failed to send template');
+    } finally {
+      setIsSendingTemplate(false);
+      setShowTemplates(false);
     }
-    const avgMs = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
-    let avgLabel = null;
-    if (avgMs !== null) {
-      const mins = Math.round(avgMs / 60000);
-      avgLabel = mins < 60 ? `${mins}m` : `${Math.round(mins / 60)}h`;
-    }
-    return { total, avgLabel };
-  }, [messages]);
+  };
 
-  const fmt = (ts) => {
-    try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ts || ''; }
+  const fetchSmartReplies = async () => {
+    if (!conversation?.id) { toast.error('No active conversation'); return; }
+    setLoadingReplies(true);
+    try {
+      const res = await base44.functions.invoke('getSmartReplies', { conversation_id: conversation.id });
+      const replies = res?.data?.replies || res?.data?.suggestions || [];
+      setSmartReplies(Array.isArray(replies) ? replies.slice(0, 4) : []);
+      if (!replies.length) toast.info('No suggestions available');
+    } catch { toast.error('Could not load AI suggestions'); }
+    finally { setLoadingReplies(false); }
   };
 
   const submit = (e) => {
     e.preventDefault();
     const t = text.trim();
     if (!t) return;
-    if (!landlord?.phone) { toast.error('This landlord has no phone number to message.'); return; }
+    if (!landlord?.phone) { toast.error('This landlord has no phone number.'); return; }
     sendMutation.mutate(t);
   };
 
-  const CHANNEL_STYLE = {
-    business: { border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: Building2 },
-    personal: { border: 'border-blue-500/40', bg: 'bg-blue-500/10', text: 'text-blue-400', icon: User },
-  };
+  const stats = messages.length > 0 ? { total: messages.length } : null;
 
   return (
-    <div className="flex flex-col h-[420px]">
+    <div className="flex flex-col" style={{ height: 500 }}>
+      {/* Channel tabs + actions */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        {CHANNELS.map(({ id, label, phone, color, icon: Icon }) => {
+          const colors = CHANNEL_COLORS[color];
+          return (
+            <button
+              key={id}
+              onClick={() => { setSelectedChannel(id); setSmartReplies([]); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${selectedChannel === id ? colors.active : 'border-white/15 text-muted-foreground hover:bg-white/8'}`}
+              title={phone}
+            >
+              <Icon className="w-3 h-3" /> {label}
+              <span className="text-[9px] opacity-60">{phone}</span>
+            </button>
+          );
+        })}
+        <div className="ml-auto flex gap-1.5">
+          {selectedChannel === 'business' && (
+            <button
+              onClick={() => setShowTemplates(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+              title="Send a WhatsApp template"
+            >
+              <FileText className="w-3 h-3" />
+              Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
+            </button>
+          )}
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border border-white/15 text-muted-foreground hover:bg-white/8 transition-colors"
+            title="Refresh messages"
+          >
+            <RefreshCw className="w-3 h-3" />
+          </button>
+          <button
+            onClick={fetchSmartReplies}
+            disabled={loadingReplies || !conversation?.id}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors disabled:opacity-40"
+          >
+            {loadingReplies ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />}
+            AI
+          </button>
+        </div>
+      </div>
+
+      {/* Stats bar */}
       {stats && (
-        <div className="flex items-center justify-between gap-4 px-1 pb-2 border-b border-white/10 mb-2">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="font-semibold text-foreground">{stats.total}</span> messages
-            </span>
-            {stats.avgLabel && (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Clock className="w-3.5 h-3.5" />
-                avg response <span className="font-semibold text-foreground">{stats.avgLabel}</span>
-              </span>
-            )}
-          </div>
-          <ChannelSwitcher
-            selectedChannel={selectedChannel}
-            onChannelChange={setSelectedChannel}
-          />
+        <div className="flex items-center gap-4 px-1 pb-2 border-b border-white/10 mb-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span className="font-semibold text-foreground">{stats.total}</span> messages
+          </span>
         </div>
       )}
+
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 p-1">
         {isLoading ? (
-          <div className="text-sm text-muted-foreground text-center py-8">Loading conversation…</div>
+          <div className="text-sm text-muted-foreground text-center py-8 flex items-center justify-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+          </div>
+        ) : !conversation ? (
+          <div className="text-xs text-muted-foreground text-center py-10">
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-2">
+              {selectedChannel === 'business' ? <Building2 className="w-5 h-5 opacity-40" /> : <User className="w-5 h-5 opacity-40" />}
+            </div>
+            No {selectedChannel} conversation yet.<br />
+            <span className="opacity-60">Send a message to start one.</span>
+          </div>
         ) : messages.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-8">No messages yet.</div>
+          <div className="text-xs text-muted-foreground text-center py-10">No messages in this channel yet.</div>
         ) : (
           messages.map((m) => {
-            const out = m.direction === 'outgoing';
-            const StatusIcon = m.status === 'read' || m.status === 'delivered' ? CheckCheck : Check;
+            const out = m.direction === 'outbound';
+            const StatusIcon = ['read', 'delivered'].includes(m.status) ? CheckCheck : Check;
             const statusColor = m.status === 'read' ? 'text-blue-300' : m.status === 'delivered' ? 'text-emerald-300' : 'text-white/50';
-            const channelStyle = CHANNEL_STYLE[m.channel || 'personal'];
-            const ChannelIcon = channelStyle?.icon || User;
             return (
               <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm relative ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`} style={{ borderLeft: out ? 'none' : `3px solid ${m.channel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 60%)'}` }}>
-                  <div className="whitespace-pre-wrap break-words">{m.text}</div>
-                  <div className={`mt-1 text-[10px] flex items-center gap-1.5 ${out ? 'text-white/70' : 'text-muted-foreground'} ${out ? 'justify-end' : ''}`}>
+                <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
+                  <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                  <div className={`mt-1 text-[10px] flex items-center gap-1 ${out ? 'text-white/70 justify-end' : 'text-muted-foreground'}`}>
                     {fmt(m.timestamp)}
-                    {out && (
-                      <>
-                        <StatusIcon className={`w-3 h-3 ${statusColor}`} />
-                        <span className="flex items-center gap-0.5">
-                          <ChannelIcon className="w-2.5 h-2.5" />
-                          {m.channel === 'business' ? 'Business' : 'Personal'}
-                        </span>
-                      </>
-                    )}
+                    {out && <StatusIcon className={`w-3 h-3 ${statusColor}`} />}
                   </div>
                 </div>
               </div>
             );
           })
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={submit} className="space-y-2 pt-2 border-t border-white/10">
-        <div className="flex items-center gap-2">
-          <Input
+      {/* Smart reply chips */}
+      {smartReplies.length > 0 && (
+        <div className="py-2 flex flex-wrap gap-1.5 border-t border-white/10">
+          {smartReplies.map((r, i) => (
+            <button
+              key={i}
+              onClick={() => { setText(typeof r === 'string' ? r : r.text || ''); setSmartReplies([]); }}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors truncate max-w-[90%] text-left"
+            >
+              <Zap className="w-2.5 h-2.5 inline mr-1" />
+              {typeof r === 'string' ? r : r.text || ''}
+            </button>
+          ))}
+          <button onClick={() => setSmartReplies([])} className="text-[10px] text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+      )}
+
+      {/* Composer */}
+      <form onSubmit={submit} className="space-y-1.5 pt-2 border-t border-white/10">
+        <div className="flex items-end gap-2">
+          <textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={landlord?.phone ? 'Type a WhatsApp reply…' : 'No phone number on file'}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); } }}
+            placeholder={landlord?.phone ? `Message via ${CHANNELS.find(c => c.id === selectedChannel)?.label}… (Enter to send)` : 'No phone number on file'}
             disabled={!landlord?.phone || sendMutation.isPending}
-            className="flex-1"
+            rows={2}
+            className="flex-1 text-sm resize-none rounded-lg px-3 py-2"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
           />
-          <Button type="submit" disabled={!text.trim() || sendMutation.isPending}>
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!text.trim() || !landlord?.phone || sendMutation.isPending}
+            className="h-[60px] w-10 shrink-0"
+          >
             {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
+        {selectedChannel === 'business' && (
+          <p className="text-[10px] text-muted-foreground">
+            Business channel · use <span className="text-amber-400">Templates</span> to re-open 24h window
+          </p>
+        )}
       </form>
+
+      <TemplatesModal
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        templates={displayTemplates}
+        onSelect={async (t, comps, resolvedBody) => { await handleSendTemplate(t, comps, resolvedBody); }}
+        isSending={isSendingTemplate}
+        channel="business"
+      />
     </div>
   );
 }
