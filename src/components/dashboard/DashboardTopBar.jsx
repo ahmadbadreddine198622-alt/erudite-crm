@@ -160,6 +160,7 @@ export default function DashboardTopBar({
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 border: '1px solid rgba(212,175,55,0.35)',
+                zIndex: 9999,
               }}
             >
               <div className="p-3 border-b border-white/10">
