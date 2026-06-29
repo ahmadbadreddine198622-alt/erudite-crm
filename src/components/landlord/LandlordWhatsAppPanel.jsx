@@ -62,7 +62,9 @@ export default function LandlordWhatsAppPanel({ landlord }) {
         template_body: resolvedBody || template.body || '',
       });
       if (res.data?.error) throw new Error(res.data.error);
-      toast.success(`Template "${template.name}" sent via Business!`);
+      toast.success(`Template "${template.name}" sent via Business WhatsApp!`);
+      // Switch to business tab so user sees the sent message
+      setChannel('business');
       qc.invalidateQueries({ queryKey: ['landlord-wa-msgs'] });
       qc.invalidateQueries({ queryKey: ['landlord-wa-conv', landlord?.id, 'business'] });
     } catch (e) {
@@ -170,17 +172,15 @@ export default function LandlordWhatsAppPanel({ landlord }) {
           );
         })}
         <div className="ml-auto flex gap-1.5">
-          {/* Templates button — business channel only (Meta templates) */}
-          {channel === 'business' && (
-            <button
-              onClick={() => setShowTemplates(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
-              title="Send a Business WhatsApp template"
-            >
-              <FileText className="w-3 h-3" />
-              Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
-            </button>
-          )}
+          {/* Templates button — always available, always sends via Business (Meta) */}
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            title="Send a Business WhatsApp template (always via Meta Business API)"
+          >
+            <FileText className="w-3 h-3" />
+            Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
+          </button>
           <button
             onClick={() => refetch()}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border border-white/15 text-muted-foreground hover:bg-white/8 transition-colors"
