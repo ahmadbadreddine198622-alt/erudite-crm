@@ -136,6 +136,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
       await base44.functions.invoke('notifyDownloadToAhmad', { landlord_id: landlordId, landlord_name: name });
       toast.success('Contact downloaded · Ahmad notified');
     } catch (err) {
+      console.error('Notification failed:', err);
       toast.error('Downloaded but notification failed');
     }
   };

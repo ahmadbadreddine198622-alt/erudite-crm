@@ -14,10 +14,11 @@ export default function EmailComposeButton({ toEmail, toName, contextLabel, size
   const handleClick = () => {
     if (!hasEmail) return;
     const agentName = user?.full_name || user?.email || 'Erudite Agent';
+    const agentEmail = user?.email || '';
     const subject = toName
       ? `Erudite Real Estate — ${toName}`
       : 'Erudite Real Estate';
-    const body = `Hi ${toName || ''},\n\n\n\nBest regards,\n${agentName}\nErudite Real Estate`;
+    const body = `Hi ${toName || ''},\n\n\n\nBest regards,\n${agentName}\nErudite Real Estate\nFrom: ${agentEmail}`;
     const mailto = `mailto:${toEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
   };
@@ -41,7 +42,7 @@ export default function EmailComposeButton({ toEmail, toName, contextLabel, size
       variant="outline"
       size={size}
       onClick={handleClick}
-      title={`Email ${toName || toEmail}`}
+      title={`From: ${user?.email || 'Your email'}\nTo: ${toEmail}`}
       className={`text-blue-400 hover:text-blue-500 hover:bg-blue-50/10 ${className}`}
     >
       <Mail className="w-4 h-4 mr-1" /> Email
