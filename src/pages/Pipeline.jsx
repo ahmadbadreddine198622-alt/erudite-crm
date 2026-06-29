@@ -275,8 +275,10 @@ export default function Pipeline() {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
+      className="flex flex-col"
       style={{
+        height: '100vh',
+        overflow: 'hidden',
         background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
       }}
     >
@@ -463,7 +465,7 @@ export default function Pipeline() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col px-8 mt-0 pb-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0 px-8 mt-0 pb-4">
         <TabsList
           className="self-start"
           style={{
@@ -487,11 +489,11 @@ export default function Pipeline() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sale" className="flex flex-col mt-4">
+        <TabsContent value="sale" className="flex flex-col mt-4 flex-1 min-h-0">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <PipelineBoard
                 track="buyer"
                 leads={buckets.sale}
@@ -507,11 +509,11 @@ export default function Pipeline() {
           )}
         </TabsContent>
 
-        <TabsContent value="rent" className="flex flex-col mt-4">
+        <TabsContent value="rent" className="flex flex-col mt-4 flex-1 min-h-0">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <PipelineBoard
                 track="tenant"
                 leads={buckets.rent}
@@ -527,11 +529,11 @@ export default function Pipeline() {
           )}
         </TabsContent>
 
-        <TabsContent value="intake" className="flex flex-col mt-4">
+        <TabsContent value="intake" className="flex flex-col mt-4 flex-1 min-h-0">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <PipelineBoard
                 track="unknown"
                 leads={buckets.intake}
@@ -547,11 +549,11 @@ export default function Pipeline() {
           )}
         </TabsContent>
 
-        <TabsContent value="whatsapp" className="flex flex-col mt-4">
+        <TabsContent value="whatsapp" className="flex flex-col mt-4 flex-1 min-h-0">
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <div style={{ minHeight: '70vh', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <PipelineBoard
                 track="unknown"
                 leads={buckets.whatsapp}

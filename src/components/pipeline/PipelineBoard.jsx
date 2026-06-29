@@ -28,22 +28,20 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', minWidth: 0 }}>
-      <div style={{ position: 'relative', flex: 1, minHeight: '70vh', minWidth: 0 }}>
-        <div
-          className="overflow-x-auto overflow-y-hidden pb-3 pipeline-scroll"
-          style={{
-            height: '100%',
-            minWidth: 0,
-            position: 'relative',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
-            overscrollBehavior: 'contain',
-          }}
-        >
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div
+        className="overflow-x-auto overflow-y-hidden pb-3 pipeline-scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
+          overscrollBehavior: 'contain',
+        }}
+      >
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-3 w-max h-full pr-4">
+          <div style={{ display: 'flex', gap: '12px', width: 'max-content', height: '100%', paddingRight: '16px' }}>
             {stages.map((stage) => (
               <PipelineColumn
                 key={stage.key}
@@ -59,7 +57,6 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
             ))}
           </div>
         </DragDropContext>
-        </div>
       </div>
     </div>
   );

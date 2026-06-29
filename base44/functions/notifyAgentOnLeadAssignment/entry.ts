@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
@@ -17,12 +17,12 @@ Deno.serve(async (req) => {
     }
 
     // Get lead data
-    const lead = await base44.entities.Lead.get(lead_id);
+    const lead = await base44.asServiceRole.entities.Lead.get(lead_id);
     if (!lead) {
       return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const appUrl = window.location.origin;
+    const appUrl = 'https://app.erudite-estate.com';
     const notificationPayload = {
       agent_email: new_assigned_agent_email,
       agent_name: lead.assigned_agent_name || new_assigned_agent_email,

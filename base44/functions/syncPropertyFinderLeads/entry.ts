@@ -119,6 +119,49 @@ function mapPFLeadToCRM(pfLead, agentMap) {
   };
 }
 
+async function notifyAgent(base44, lead, crmData) {
+  const agentEmail = crmData.assigned_agent_email;
+  const leadName = crmData.full_name || 'Unknown';
+  const listingRef = crmData.closing_property_ref || '';
+  const leadId = lead.id;
+
+  // 1. CRM in-app notification
+  try {
+    await base44.asServiceRole.entities.Notification.create({
+      type: 'lead_assigned',
+      title: '🎯 New PF Lead Assigned',
+      message: `${leadName} enquired about ${listingRef || 'your listing'} on Property Finder.`,
+      recipient_email: agentEmail,
+      lead_id: leadId,
+      is_read: false,
+    });
+  } catch (e) { console.error('[notify] CRM notification failed:', e.message); }
+
+  // 2. Email notification
+  try {
+    await base44.asServiceRole.integrations.Core.SendEmail({
+      to: agentEmail,
+      subject: `🎯 New Lead: ${leadName} — Property Finder`,
+      body: `Hi,\n\nYou have a new lead from Property Finder:\n\nName: ${leadName}\nPhone: ${crmData.phone || '—'}\nListing: ${listingRef || '—'}\n\nLog in to the CRM to follow up.\n\nErudite CRM`,
+    });
+  } catch (e) { console.error('[notify] Email failed:', e.message); }
+
+  // 3. WhatsApp notification — look up agent's phone
+  try {
+    const agentUsers = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
+    const agent = agentUsers[0];
+    if (agent?.phone) {
+      const waPhone = String(agent.phone).replace(/\D/g, '');
+      const waMsg = `🎯 *New Lead — Property Finder*\n\nName: ${leadName}\nPhone: ${crmData.phone || '—'}\nListing: ${listingRef || '—'}\n\nLog in to the CRM to follow up immediately.`;
+      await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+        to_phone: waPhone.startsWith('0') ? '971' + waPhone.slice(1) : waPhone,
+        message: waMsg,
+        message_text: waMsg,
+      });
+    }
+  } catch (e) { console.error('[notify] WhatsApp failed:', e.message); }
+}
+
 async function withRetry(fn, attempts = 4) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
@@ -234,6 +277,10 @@ Deno.serve(async (req) => {
             existingLeadsMap.set(pfLeadId, newLead);
             if (diag.samples.length < 5) {
               diag.samples.push({ full_name: crmData.full_name, phone: crmData.phone, pf_lead_id: pfLeadId, agent: crmData.assigned_agent_email });
+            }
+            // Fire-and-forget: notify the assigned agent via email, WhatsApp, and CRM notification
+            if (crmData.assigned_agent_email) {
+              notifyAgent(base44, newLead, crmData).catch(e => console.error('[syncPFLeads] notify failed:', e.message));
             }
           } catch (err) {
             console.error('[syncPFLeads] Create failed:', pfLeadId, err.message);
