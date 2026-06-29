@@ -34,15 +34,18 @@ Deno.serve(async (req) => {
 
     // 1. Send WhatsApp notification
     try {
-      const users = await base44.entities.User.filter({ email: new_assigned_agent_email });
+      const users = await base44.asServiceRole.entities.User.filter({ email: new_assigned_agent_email });
       const agent = users[0];
       
       if (agent?.phone) {
+        const rawPhone = String(agent.phone).replace(/\D/g, '');
+        const toPhone = rawPhone.startsWith('0') ? '971' + rawPhone.slice(1) : rawPhone;
         const whatsappMessage = `🎯 New Lead Assigned\n\nLead: ${lead.full_name}\nSource: ${lead.source || 'Meta Ads'}\nScore: ${lead.ai_lead_score || 'N/A'}\n\nView: ${appUrl}/leads?id=${lead.id}`;
         
-        await base44.functions.invoke('sendWhatsAppMessage', {
-          phone: agent.phone,
+        await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+          to_phone: toPhone,
           message: whatsappMessage,
+          message_text: whatsappMessage,
         });
       }
     } catch (error) {
