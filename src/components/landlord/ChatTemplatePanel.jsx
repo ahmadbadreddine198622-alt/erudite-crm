@@ -34,12 +34,10 @@ function TemplateRow({ t, landlordId, phone, onDone }) {
       const normalizedPhone = phone.replace(/[\s\-()]/g, '');
       const toPhone = normalizedPhone.startsWith('+') ? normalizedPhone : '+' + normalizedPhone;
 
-      // Try to find any existing conversation for this phone (any channel)
-      const waConvs = await base44.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone });
-      const conv = waConvs[0];
-
+      // Always send via to_phone — sendWhatsAppMessage uses Meta Business API (never personal channel)
       const res = await base44.functions.invoke('sendWhatsAppMessage', {
-        ...(conv?.id ? { conversation_id: conv.id } : { to_phone: toPhone, landlord_id: landlordId }),
+        to_phone: toPhone,
+        landlord_id: landlordId,
         template_name: t.name,
         template_language: t.language || 'en',
         template_components,
