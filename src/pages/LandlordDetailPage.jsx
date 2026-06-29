@@ -776,6 +776,7 @@ class LandlordDetail extends React.Component {
     // Persist to database
     try {
       await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
+      toast.success('Stage updated');
       // Stage change → full re-analysis (best-effort, fire-and-forget).
       base44.functions.invoke('landlordOrchestrator', { landlord_id: L.id, force: true }).catch(() => {});
     } catch(err) {
