@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { X, Loader2, CheckCircle2, ArrowRight, Sparkles, AlertTriangle } from 'lucide-react';
+import EmailComposeButton from '@/components/shared/EmailComposeButton';
 import { toast } from 'sonner';
 import { CLOSING_STAGES } from '@/pages/ClosingHub';
 
@@ -57,6 +58,16 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
   // V3 Phase 2 (REMEMBER): closing-risk trajectory from the append-only snapshot history. Read-only;
   // degrades to nothing until >=2 snapshots exist (entity created + accrued post-publish). The queryFn
   // swallows errors so it's harmless before ClosingDealScoreSnapshot is live.
+  // Fetch linked lead's email for the Email button
+  const { data: linkedLead } = useQuery({
+    queryKey: ['closing_lead_email', deal.lead_id],
+    queryFn: () => base44.entities.Lead.get(deal.lead_id),
+    enabled: !!deal.lead_id,
+    staleTime: 300_000,
+    retry: false,
+  });
+  const leadEmail = linkedLead?.email || '';
+
   const { data: riskSnapshots = [] } = useQuery({
     queryKey: ['closing_snapshots', deal.id],
     queryFn: async () => {
@@ -366,6 +377,9 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
         </div>
 
         {/* Footer */}
+        <div className="px-6 py-3 border-t flex items-center gap-2" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <EmailComposeButton toEmail={leadEmail} toName={deal.lead_name} />
+        </div>
         <div className="px-6 py-4 border-t flex gap-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <button onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
