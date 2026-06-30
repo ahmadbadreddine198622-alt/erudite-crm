@@ -1,12 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const PROD_BASE = 'https://atlas.propertyfinder.com/v1';
+const SANDBOX_BASE = 'https://sandbox.atlas.propertyfinder.com/v1';
 const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
 
 /**
- * getPFToken — Enterprise API 2.0 cached JWT.
- * Reads from PFCredential entity. Returns cached token if still valid,
- * otherwise requests a fresh JWT and caches it.
+ * getPFToken — Environment-aware cached JWT.
+ * Reads active_environment from PFCredential, uses the right keys + base URL.
+ * Returns { token, baseUrl, environment }.
  */
 async function getPFToken(base44) {
   const creds = await base44.asServiceRole.entities.PFCredential.list();
@@ -14,44 +15,49 @@ async function getPFToken(base44) {
     throw new Error('No Property Finder credentials configured. Set them in Property Finder Sync → Settings.');
   }
   const cred = creds[0];
+  const env = cred.active_environment || 'production';
+  const isSandbox = env === 'sandbox';
+  const baseUrl = isSandbox ? SANDBOX_BASE : PROD_BASE;
+  const apiKey = isSandbox ? cred.sandbox_api_key : cred.api_key;
+  const apiSecret = isSandbox ? cred.sandbox_api_secret : cred.api_secret;
+  const cachedToken = isSandbox ? cred.sandbox_access_token : cred.access_token;
+  const cachedExpiry = isSandbox ? cred.sandbox_token_expires_at : cred.token_expires_at;
   const now = Date.now();
 
-  // Check cached token
-  if (cred.access_token && cred.token_expires_at) {
-    const expiresAtMs = new Date(cred.token_expires_at).getTime();
+  // Return cached token if still valid
+  if (cachedToken && cachedExpiry) {
+    const expiresAtMs = new Date(cachedExpiry).getTime();
     if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
-      return cred.access_token;
+      return { token: cachedToken, baseUrl, environment: env };
     }
   }
 
-  // Request fresh token
-  if (!cred.api_key || !cred.api_secret) {
-    throw new Error('PF API key or secret missing in PFCredential record');
+  if (!apiKey || !apiSecret) {
+    throw new Error(`PF ${env} API key or secret missing in PFCredential record`);
   }
-  const res = await fetch(`${PF_BASE}/auth/token`, {
+  const res = await fetch(`${baseUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey: cred.api_key, apiSecret: cred.api_secret }),
+    body: JSON.stringify({ apiKey, apiSecret }),
   });
   if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
   const data = await res.json();
   const accessToken = data.accessToken;
   if (!accessToken) throw new Error('PF auth returned no accessToken');
 
-  // Cache the token
   const expiresInSec = data.expiresIn || 1800;
   const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
-  const updateData = { access_token: accessToken, token_expires_at: expiresAt, api_environment: 'production' };
-  if (data.scopes) {
-    updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
-  }
+  const updateData = isSandbox
+    ? { sandbox_access_token: accessToken, sandbox_token_expires_at: expiresAt }
+    : { access_token: accessToken, token_expires_at: expiresAt };
+  if (data.scopes) updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
   await base44.asServiceRole.entities.PFCredential.update(cred.id, updateData);
 
-  return accessToken;
+  return { token: accessToken, baseUrl, environment: env };
 }
 
-async function fetchPFListingsPage(token, page, perPage) {
-  const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}`, {
+async function fetchPFListingsPage(token, baseUrl, page, perPage) {
+  const res = await fetch(`${baseUrl}/listings?page=${page}&perPage=${perPage}`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) {
@@ -60,6 +66,9 @@ async function fetchPFListingsPage(token, page, perPage) {
   }
   return await res.json();
 }
+
+// Keep PF_BASE for legacy references in the file
+const PF_BASE = PROD_BASE;
 
 function normalizeOffering(raw) {
   if (!raw) return null;
@@ -390,14 +399,14 @@ Deno.serve(async (req) => {
 
     try { await base44.auth.me(); } catch (_) { /* gate degraded — proceed via service role */ }
 
-    let token;
+    let token, activeBaseUrl, activeEnvironment;
     let tokenAcquiredAt = Date.now();
     try {
       const tokenStart = Date.now();
-      token = await getPFToken(base44);
+      ({ token, baseUrl: activeBaseUrl, environment: activeEnvironment } = await getPFToken(base44));
       tokenAcquiredAt = Date.now();
       diagnostics.time_ms_fetch_total += (tokenAcquiredAt - tokenStart);
-      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart) + ' (Enterprise API 2.0 cached JWT)');
+      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart) + ' env=' + activeEnvironment);
     } catch (err) {
       diagnostics.terminated_reason = 'token_expired';
       diagnostics.first_error_message = 'token: ' + String((err && err.message) || err);
@@ -513,7 +522,7 @@ Deno.serve(async (req) => {
         const fetchStart = Date.now();
         let data;
         try {
-          data = await fetchPFListingsPage(token, page, PER_PAGE);
+          data = await fetchPFListingsPage(token, activeBaseUrl, page, PER_PAGE);
         } catch (err) {
           const msg = String((err && err.message) || err);
           if (!diagnostics.first_error_message) {

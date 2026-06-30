@@ -260,6 +260,28 @@ async function loadImageAsDataURL(url) {
   });
 }
 
+function EnvBadge() {
+  const [env, setEnv] = useState(null);
+  useEffect(() => {
+    base44.functions.invoke('getPFCredentials', {}).then(res => {
+      setEnv(res?.data?.active_environment || 'production');
+    }).catch(() => {});
+  }, []);
+  if (!env) return null;
+  const isSandbox = env === 'sandbox';
+  return (
+    <span style={{
+      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+      padding: '2px 8px', borderRadius: 99,
+      background: isSandbox ? 'rgba(245,158,11,0.15)' : 'rgba(63,207,142,0.12)',
+      color: isSandbox ? '#f59e0b' : '#3fcf8e',
+      border: `1px solid ${isSandbox ? 'rgba(245,158,11,0.35)' : 'rgba(63,207,142,0.3)'}`,
+    }}>
+      {isSandbox ? '🧪 Sandbox' : '🟢 Production'}
+    </span>
+  );
+}
+
 function ListingCard({ listing, onRefresh, onEdit }) {
   const img = listing.images?.[0];
   const isLive = listing.status === 'active';
@@ -267,11 +289,12 @@ function ListingCard({ listing, onRefresh, onEdit }) {
   const beds = listing.bedrooms === 0 ? 'Studio' : listing.bedrooms;
   const title = listing.title || `${listing.property_type} in ${listing.location}`;
 
+  const isDraft = listing.status === 'draft';
   const isLivePill = isLive;
-  const statusLabel = isLive ? 'LIVE' : isPublishing ? 'PUBLISHING' : 'ARCHIVED';
-  const statusColor = isLive ? '#54e0b5' : isPublishing ? '#eccd72' : '#8a93ab';
-  const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : 'rgba(13,16,26,.6)';
-  const statusBorder = isLive ? 'rgba(45,212,167,.40)' : isPublishing ? 'rgba(212,175,55,.40)' : 'rgba(255,255,255,.14)';
+  const statusLabel = isLive ? 'LIVE' : isPublishing ? 'PUBLISHING' : isDraft ? 'DRAFT' : 'ARCHIVED';
+  const statusColor = isLive ? '#54e0b5' : isPublishing ? '#eccd72' : isDraft ? '#a78bfa' : '#8a93ab';
+  const statusBg = isLive ? 'rgba(45,212,167,.16)' : isPublishing ? 'rgba(212,175,55,.16)' : isDraft ? 'rgba(139,92,246,.16)' : 'rgba(13,16,26,.6)';
+  const statusBorder = isLive ? 'rgba(45,212,167,.40)' : isPublishing ? 'rgba(212,175,55,.40)' : isDraft ? 'rgba(139,92,246,.4)' : 'rgba(255,255,255,.14)';
 
   return (
     <div
@@ -465,6 +488,7 @@ export default function PFListingsGrid() {
     return sortListings(listings.filter(l => {
       if (statusTab === 'live' && l.status !== 'active') return false;
       if (statusTab === 'archived' && l.status !== 'inactive') return false;
+      // 'all' tab shows everything including draft/sandbox listings
       if (search) {
         const q = search.toLowerCase();
         if (!((l.title || '').toLowerCase().includes(q) || (l.location || '').toLowerCase().includes(q) || (l.reference_number || '').toLowerCase().includes(q) || (l.pf_listing_id || '').toLowerCase().includes(q))) return false;
@@ -506,6 +530,7 @@ export default function PFListingsGrid() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.42em', color: '#8a93ab' }}>PROPERTY FINDER</span>
+          <EnvBadge />
           <div className="flex-1 h-px min-w-[40px]" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.15), transparent)' }} />
         </div>
 

@@ -372,9 +372,10 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
     last_synced_at: new Date().toISOString(),
   });
 
-  const handleSave = async () => {
+  const handleSave = async (publishToPF = false) => {
     if (!form.title.trim()) { toast.error('Title is required'); return; }
     if (!form.price && !form.price_on_request) { toast.error('Price is required (or mark as On Request)'); return; }
+    if (publishToPF && !form.pf_location_id) { toast.error('Location ID is required to publish — search and select an area'); return; }
     if (!form.pf_location_id && !form.community) { toast.error('Location is required'); return; }
 
     setSaving(true);
@@ -383,10 +384,8 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
       const crmPayload = buildCRMPayload();
 
       if (isEdit) {
-        // Get the PF internal ID (from live load or stored)
         const pfInternalId = form._pf_internal_id || editListing.pf_internal_id;
         if (pfInternalId) {
-          // Push to PF API via PATCH
           const res = await base44.functions.invoke('pfListingAction', {
             action: 'patch_fields',
             pfListingId: editListing.pf_listing_id,
@@ -399,11 +398,16 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
             return;
           }
         }
-        // Update CRM
         await base44.entities.PFListing.update(editListing.id, crmPayload);
         toast.success('Listing updated on Property Finder and CRM');
+      } else if (publishToPF) {
+        // Create + publish directly on PF API (sandbox or production)
+        const res = await base44.functions.invoke('publishNewPFListing', { pfPayload, crmPayload });
+        const data = res?.data;
+        if (!data?.ok) throw new Error(data?.error || 'Publish failed');
+        toast.success(`✅ Listing published on Property Finder (${data.environment || 'active env'})! ID: ${data.pf_listing_id}`);
       } else {
-        // Create draft in CRM
+        // Save as CRM draft only
         await base44.entities.PFListing.create({
           ...crmPayload,
           pf_listing_id: `draft-${Date.now()}`,
@@ -719,16 +723,30 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px', display: 'flex', gap: 8, borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          <button onClick={onClose}
-            style={{ flex: 1, height: 38, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer' }}>
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving || saved || loadingLive}
-            style={{ flex: 2, height: 38, borderRadius: 10, border: `1px solid ${saved ? 'rgba(63,207,142,0.4)' : 'rgba(201,168,92,0.4)'}`, background: saved ? 'rgba(63,207,142,0.15)' : 'rgba(201,168,92,0.15)', color: saved ? '#3fcf8e' : GOLD, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: (saving || saved || loadingLive) ? 0.75 : 1 }}>
-            {saving ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : saved ? <Check style={{ width: 14, height: 14 }} /> : isEdit ? <Pencil style={{ width: 14, height: 14 }} /> : <Plus style={{ width: 14, height: 14 }} />}
-            {saving ? 'Saving…' : saved ? 'Saved!' : isEdit ? 'Save Changes to Property Finder' : 'Save as Draft in CRM'}
-          </button>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          {!isEdit && (
+            <div style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 8, background: 'rgba(201,168,92,0.07)', border: '1px solid rgba(201,168,92,0.15)', fontSize: 10, color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertCircle style={{ width: 11, height: 11, color: GOLD, flexShrink: 0 }} />
+              <span>"Publish to Property Finder" creates the listing live on the active environment (sandbox or production). "Save as Draft" stores it locally in the CRM only.</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onClose}
+              style={{ flex: 1, height: 38, borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            {!isEdit && (
+              <button onClick={() => handleSave(false)} disabled={saving || saved || loadingLive}
+                style={{ flex: 1, height: 38, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.55)', fontSize: 12, cursor: 'pointer', opacity: (saving || saved) ? 0.6 : 1 }}>
+                Save as Draft
+              </button>
+            )}
+            <button onClick={() => handleSave(isEdit ? false : true)} disabled={saving || saved || loadingLive}
+              style={{ flex: 2, height: 38, borderRadius: 10, border: `1px solid ${saved ? 'rgba(63,207,142,0.4)' : 'rgba(201,168,92,0.4)'}`, background: saved ? 'rgba(63,207,142,0.15)' : 'rgba(201,168,92,0.15)', color: saved ? '#3fcf8e' : GOLD, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: (saving || saved || loadingLive) ? 0.75 : 1 }}>
+              {saving ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : saved ? <Check style={{ width: 14, height: 14 }} /> : isEdit ? <Pencil style={{ width: 14, height: 14 }} /> : <Plus style={{ width: 14, height: 14 }} />}
+              {saving ? 'Publishing…' : saved ? 'Published!' : isEdit ? 'Save Changes to Property Finder' : '🚀 Publish to Property Finder'}
+            </button>
+          </div>
         </div>
 
       </div>
