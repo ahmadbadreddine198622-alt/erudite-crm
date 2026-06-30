@@ -38,30 +38,41 @@ Deno.serve(async (req) => {
     availability = { error: e.message || String(e) };
   }
 
-  // 2. Send the test message
-  const url = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
-  const payload = {
-    chatGuid: `iMessage;-;${address}`,
-    tempGuid: `crm-test-${Date.now()}`,
-    message: text,
-    method: 'private-api',
-  };
-
+  // 2. Create or retrieve chat, then send
   let sendResult = null;
   try {
-    const resp = await fetch(url, {
+    // Step A: create/get the chat
+    const chatResp = await fetch(`${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ addresses: [address], service: 'iMessage' }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const chatRaw = await chatResp.text();
+    let chatData; try { chatData = JSON.parse(chatRaw); } catch { chatData = null; }
+    const chatGuid = chatData?.data?.guid || `iMessage;-;${address}`;
+
+    // Step B: send message into the chat
+    const msgResp = await fetch(`${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+      body: JSON.stringify({
+        chatGuid,
+        tempGuid: `crm-test-${Date.now()}`,
+        message: text,
+        method: 'private-api',
+      }),
       signal: AbortSignal.timeout(30000),
     });
-    const raw = await resp.text();
-    let parsed; try { parsed = JSON.parse(raw); } catch { parsed = null; }
+    const msgRaw = await msgResp.text();
+    let msgParsed; try { msgParsed = JSON.parse(msgRaw); } catch { msgParsed = null; }
     sendResult = {
-      status: resp.status,
-      ok: resp.ok,
-      guid: parsed?.data?.guid || null,
-      body: raw.slice(0, 800),
+      chatGuid,
+      chatStatus: chatResp.status,
+      status: msgResp.status,
+      ok: msgResp.ok,
+      guid: msgParsed?.data?.guid || null,
+      body: msgRaw.slice(0, 800),
     };
   } catch (e) {
     sendResult = { error: e.message || String(e) };
