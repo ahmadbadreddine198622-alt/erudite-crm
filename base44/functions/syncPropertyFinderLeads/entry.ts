@@ -8,14 +8,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * - Null-guard: skip any lead with no pf_lead_id
  */
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const PROD_BASE = 'https://atlas.propertyfinder.com/v1';
+const SANDBOX_BASE = 'https://sandbox.atlas.propertyfinder.com/v1';
 const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
 
 /**
- * getPFToken — Enterprise API 2.0 cached JWT.
- * Reads from PFCredential entity (not env vars). Checks if cached token
- * has >60s remaining; if so, returns it. Otherwise requests a fresh JWT
- * from PF and caches it.
+ * getPFToken — reads active_environment from PFCredential, returns the right JWT.
+ * Returns { token, baseUrl, environment }.
  */
 async function getPFToken(base44) {
   const creds = await base44.asServiceRole.entities.PFCredential.list();
@@ -23,44 +22,52 @@ async function getPFToken(base44) {
     throw new Error('No Property Finder credentials configured. Set them in Property Finder Sync → Settings.');
   }
   const cred = creds[0];
+  const env = cred.active_environment || 'sandbox';
+  const isSandbox = env === 'sandbox';
+  const baseUrl = isSandbox ? SANDBOX_BASE : PROD_BASE;
+
+  const apiKey = isSandbox ? cred.sandbox_api_key : cred.api_key;
+  const apiSecret = isSandbox ? cred.sandbox_api_secret : cred.api_secret;
+  const cachedToken = isSandbox ? cred.sandbox_access_token : cred.access_token;
+  const cachedExpiry = isSandbox ? cred.sandbox_token_expires_at : cred.token_expires_at;
+
   const now = Date.now();
 
-  // Check cached token
-  if (cred.access_token && cred.token_expires_at) {
-    const expiresAtMs = new Date(cred.token_expires_at).getTime();
+  // Return cached token if still valid
+  if (cachedToken && cachedExpiry) {
+    const expiresAtMs = new Date(cachedExpiry).getTime();
     if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
-      return cred.access_token;
+      return { token: cachedToken, baseUrl, environment: env };
     }
   }
 
-  // Request fresh token
-  if (!cred.api_key || !cred.api_secret) {
-    throw new Error('PF API key or secret missing in PFCredential record');
+  if (!apiKey || !apiSecret) {
+    throw new Error(`PF ${env} API key or secret missing in PFCredential record`);
   }
-  const res = await fetch(`${PF_BASE}/auth/token`, {
+
+  const res = await fetch(`${baseUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey: cred.api_key, apiSecret: cred.api_secret }),
+    body: JSON.stringify({ apiKey, apiSecret }),
   });
   if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
   const data = await res.json();
   const accessToken = data.accessToken;
   if (!accessToken) throw new Error('PF auth returned no accessToken');
 
-  // Cache the token
   const expiresInSec = data.expiresIn || 1800;
   const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
-  const updateData = { access_token: accessToken, token_expires_at: expiresAt, api_environment: 'production' };
-  if (data.scopes) {
-    updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
-  }
+  const updateData = isSandbox
+    ? { sandbox_access_token: accessToken, sandbox_token_expires_at: expiresAt }
+    : { access_token: accessToken, token_expires_at: expiresAt };
+  if (data.scopes) updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
   await base44.asServiceRole.entities.PFCredential.update(cred.id, updateData);
 
-  return accessToken;
+  return { token: accessToken, baseUrl, environment: env };
 }
 
-async function fetchPFUsers(token) {
-  const res = await fetch(`${PF_BASE}/users`, {
+async function fetchPFUsers(token, baseUrl) {
+  const res = await fetch(`${baseUrl}/users`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('PF users failed: ' + res.status);
@@ -73,8 +80,8 @@ async function fetchPFUsers(token) {
   return map;
 }
 
-async function fetchPFLeadsPage(token, page, perPage) {
-  const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}&sort=-createdAt`, {
+async function fetchPFLeadsPage(token, baseUrl, page, perPage) {
+  const res = await fetch(`${baseUrl}/leads?page=${page}&perPage=${perPage}&sort=-createdAt`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('PF leads fetch failed: ' + res.status + ' ' + await res.text());
@@ -194,10 +201,10 @@ Deno.serve(async (req) => {
     };
 
     // Auth
-    let token;
+    let token, baseUrl, environment;
     try {
-      token = await getPFToken(base44);
-      console.log('[syncPFLeads] Auth OK (Enterprise API 2.0 cached JWT)');
+      ({ token, baseUrl, environment } = await getPFToken(base44));
+      console.log(`[syncPFLeads] Auth OK — environment: ${environment}, baseUrl: ${baseUrl}`);
     } catch (err) {
       return Response.json({ ok: false, error: err.message, ...diag });
     }
@@ -205,7 +212,7 @@ Deno.serve(async (req) => {
     // Agent map
     let agentMap = {};
     try {
-      agentMap = await fetchPFUsers(token);
+      agentMap = await fetchPFUsers(token, baseUrl);
       console.log('[syncPFLeads] Agent map:', Object.keys(agentMap).length, 'users');
     } catch (err) {
       console.error('[syncPFLeads] Agent map failed:', err.message);
@@ -224,7 +231,7 @@ Deno.serve(async (req) => {
     while (diag.total_leads_from_pf < MAX_LEADS) {
       let data;
       try {
-        data = await fetchPFLeadsPage(token, page, perPage);
+        data = await fetchPFLeadsPage(token, baseUrl, page, perPage);
       } catch (err) {
         console.error('[syncPFLeads] Page fetch error:', err.message);
         diag.fetch_error = err.message;
@@ -296,7 +303,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[syncPFLeads] Done:', JSON.stringify(diag));
-    return Response.json({ ok: true, ...diag });
+    return Response.json({ ok: true, environment, ...diag });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
