@@ -5,20 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Users, Mail, Plus, CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function InviteAgents() {
   const [emails, setEmails] = useState([
-    { email: 'Malik@erudite-estate.com', invited: false },
-    { email: 'Ajwa@erudite-estate.com', invited: false },
-    { email: 'Sameie@erudite-estate.com', invited: false },
+    { email: 'Malik@erudite-estate.com', role: 'user', invited: false },
+    { email: 'Ajwa@erudite-estate.com', role: 'user', invited: false },
+    { email: 'Sameie@erudite-estate.com', role: 'user', invited: false },
   ]);
   const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState('user');
   const [isInviting, setIsInviting] = useState(false);
 
-  const handleInvite = async (email) => {
+  const handleInvite = async (email, role) => {
     setIsInviting(true);
     try {
-      await base44.users.inviteUser(email, 'user');
+      await base44.users.inviteUser(email, role);
       setEmails(prev => prev.map(e => 
         e.email === email ? { ...e, invited: true } : e
       ));
@@ -32,8 +40,9 @@ export default function InviteAgents() {
 
   const handleAddEmail = () => {
     if (newEmail && !emails.find(e => e.email === newEmail)) {
-      setEmails(prev => [...prev, { email: newEmail, invited: false }]);
+      setEmails(prev => [...prev, { email: newEmail, role: newRole, invited: false }]);
       setNewEmail('');
+      setNewRole('user');
     }
   };
 
@@ -41,9 +50,9 @@ export default function InviteAgents() {
     setIsInviting(true);
     const pendingEmails = emails.filter(e => !e.invited);
     
-    for (const { email } of pendingEmails) {
+    for (const { email, role } of pendingEmails) {
       try {
-        await base44.users.inviteUser(email, 'user');
+        await base44.users.inviteUser(email, role);
         setEmails(prev => prev.map(e => 
           e.email === email ? { ...e, invited: true } : e
         ));
@@ -99,14 +108,14 @@ export default function InviteAgents() {
                   <div>
                     <p className="text-sm font-medium">{item.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.invited ? 'Invitation sent' : 'Pending invitation'}
+                      {item.invited ? 'Invitation sent' : `Pending invitation · ${item.role === 'admin' ? 'Admin' : 'User'}`}
                     </p>
                   </div>
                 </div>
                 {!item.invited && (
                   <Button
                     size="sm"
-                    onClick={() => handleInvite(item.email)}
+                    onClick={() => handleInvite(item.email, item.role)}
                     disabled={isInviting}
                     className="text-xs"
                   >
@@ -130,6 +139,15 @@ export default function InviteAgents() {
               onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
               className="flex-1"
             />
+            <Select value={newRole} onValueChange={setNewRole}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
             <Button onClick={handleAddEmail} variant="outline" size="icon">
               <Plus className="w-4 h-4" />
             </Button>
