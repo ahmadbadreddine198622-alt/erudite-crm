@@ -5,52 +5,15 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Phone, Mail, MessageCircle, Upload, CheckSquare, Calendar, FileText, RefreshCw, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import ActivityTimeline from '@/components/landlord/ActivityTimeline';
 
 const GOLD = '#C9A24B';
 const TABS = ['Info', 'Activity', 'Pipeline', 'Outreach', 'Unit', 'Qualify', 'Negotiation'];
 
-const ACTIVITY_META = {
-  call: { icon: Phone, color: '#93c5fd', bg: 'rgba(59,130,246,0.14)' },
-  email: { icon: Mail, color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)' },
-  message: { icon: MessageCircle, color: '#4ade80', bg: 'rgba(37,211,102,0.14)' },
-  upload: { icon: Upload, color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)' },
-  task: { icon: CheckSquare, color: '#34d399', bg: 'rgba(16,185,129,0.14)' },
-  appointment: { icon: Calendar, color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)' },
-  note: { icon: FileText, color: 'rgba(255,255,255,0.7)', bg: 'rgba(255,255,255,0.06)' },
-  followup: { icon: RefreshCw, color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)' },
-};
-
 const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };
 const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
 const agentLabel = (email) => (email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null);
-const fmtTime = (ts) => {
-  if (!ts) return '';
-  const d = new Date(ts); if (isNaN(d)) return '';
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-};
-
-function ActivityRow({ item }) {
-  const meta = ACTIVITY_META[item.type] || ACTIVITY_META.note;
-  const Icon = meta.icon;
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '10px 2px' }}>
-      <span style={{ flex: 'none', width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: meta.bg, color: meta.color }}>
-        <Icon size={15} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.9)', fontFamily: "'Inter',sans-serif" }}>{item.title}</div>
-        {item.subtitle && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{item.subtitle}</div>}
-        {item.by && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', marginTop: 4, padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: GOLD, background: 'rgba(201,162,75,0.12)', border: '1px solid rgba(201,162,75,0.25)' }}>
-            by {item.by}
-          </span>
-        )}
-      </div>
-      <span style={{ flex: 'none', fontSize: 10.5, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{item.time}</span>
-    </div>
-  );
-}
 
 function useLandlordActivity(landlordId, landlord) {
   return useQuery({
@@ -89,8 +52,7 @@ function useLandlordActivity(landlordId, landlord) {
 
       return items
         .filter((it) => it.ts)
-        .sort((a, b) => b.ts - a.ts)
-        .map((it) => ({ ...it, time: fmtTime(it.ts) }));
+        .sort((a, b) => b.ts - a.ts);
     },
   });
 }
@@ -150,12 +112,7 @@ export default function LandlordMockTabs({ landlordId, landlord }) {
               No activity yet for this landlord.
             </div>
           ) : (
-            activity.map((item, i) => (
-              <React.Fragment key={i}>
-                <ActivityRow item={item} />
-                {i < activity.length - 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />}
-              </React.Fragment>
-            ))
+            <ActivityTimeline activity={activity} />
           )}
         </div>
       ) : (
