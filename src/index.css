@@ -24,6 +24,7 @@ div[id*="Base44"] {
 
 @layer base {
   :root {
+    color-scheme: dark;
     --font-sans: 'Inter', sans-serif;
     --font-display: 'Playfair Display', serif;
 
