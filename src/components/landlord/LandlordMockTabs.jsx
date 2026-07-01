@@ -2,8 +2,8 @@
 // The Activity tab is now LIVE: it pulls this landlord's real notes, tasks, appointments,
 // documents, calls and messages and renders them as one chronological feed, each row
 // tagged with the agent ("by") who did it. Info/Pipeline tabs remain placeholders.
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 import ActivityTimeline from '@/components/landlord/ActivityTimeline';
@@ -31,13 +31,47 @@ const safe = async (fn) => { try { return (await fn()) || []; } catch { return [
 const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
 const agentLabel = (email) => (email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null);
 
+// Phone → the +/- match variants used for WhatsApp lookups, cleaned of spaces/dashes/parens.
+function phoneVariants(phone) {
+  const cleaned = String(phone || '').replace(/[\s\-()]/g, '');
+  if (!cleaned) return [];
+  return cleaned.startsWith('+') ? [cleaned, cleaned.slice(1)] : [cleaned, '+' + cleaned];
+}
+function dedupeById(batches) {
+  const seen = new Set(); const out = [];
+  for (const row of (batches || []).flat()) {
+    if (row && !seen.has(row.id)) { seen.add(row.id); out.push(row); }
+  }
+  return out;
+}
+
+// Entity types whose changes should refresh the Activity feed the instant they happen.
+const ACTIVITY_ENTITIES = ['LandlordNote', 'LandlordTask', 'LandlordAppointment', 'LandlordDocument', 'IMessage', 'TelegramMessage', 'AircallCall', 'CallQualification', 'Email', 'CallLog', 'WhatsAppMessage'];
+
 function useLandlordActivity(landlordId, landlord) {
+  const queryClient = useQueryClient();
+  const phone = landlord?.phone;
+
+  // Realtime: subscribe to every entity type that feeds the Activity feed and invalidate
+  // immediately on any create/update/delete — no polling, no stale wait.
+  useEffect(() => {
+    if (!landlordId) return;
+    const unsubs = ACTIVITY_ENTITIES.map((name) =>
+      base44.entities[name].subscribe(() => {
+        queryClient.invalidateQueries({ queryKey: ['landlord_activity_feed', landlordId] });
+      })
+    );
+    return () => unsubs.forEach((u) => u && u());
+  }, [landlordId, queryClient]);
+
   return useQuery({
     queryKey: ['landlord_activity_feed', landlordId],
     enabled: !!landlordId,
-    staleTime: 15000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
-      const [notes, tasks, appointments, documents, imessages, telegrams, aircalls, quals, emails] = await Promise.all([
+      const variants = phoneVariants(phone);
+      const [notes, tasks, appointments, documents, imessages, telegrams, aircalls, quals, emails, callLogs, waMessages] = await Promise.all([
         safe(() => base44.entities.LandlordNote.filter({ landlord_id: landlordId }, '-created_date', 50)),
         safe(() => base44.entities.LandlordTask.filter({ landlord_id: landlordId }, '-created_date', 50)),
         safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: landlordId }, '-datetime', 50)),
@@ -47,6 +81,13 @@ function useLandlordActivity(landlordId, landlord) {
         safe(() => base44.entities.AircallCall.filter({ landlord_id: landlordId }, '-started_at', 50)),
         safe(() => base44.entities.CallQualification.filter({ landlord_id: landlordId }, '-call_date', 50)),
         safe(() => base44.entities.Email.filter({ landlord_id: landlordId }, '-sent_at', 50)),
+        safe(() => base44.entities.CallLog.filter({ landlord_id: landlordId }, '-started_at', 50)),
+        variants.length
+          ? Promise.all(variants.flatMap((v) => [
+              safe(() => base44.entities.WhatsAppMessage.filter({ from_number: v }, '-timestamp', 50)),
+              safe(() => base44.entities.WhatsAppMessage.filter({ to_number: v }, '-timestamp', 50)),
+            ])).then(dedupeById)
+          : [],
       ]);
 
       const items = [];
@@ -60,6 +101,8 @@ function useLandlordActivity(landlordId, landlord) {
       aircalls.forEach((c) => items.push({ type: 'call', title: (c.direction === 'inbound' ? 'Inbound call' : 'Outbound call') + (c.duration ? ` · ${Math.round(c.duration / 60)}m` : ''), subtitle: c.from_number || c.to_number || '', by: c.agent_name || agentLabel(c.agent_email), ts: tsOf(c.started_at || c.created_date) }));
       quals.forEach((q) => items.push({ type: 'call', title: 'Call logged · ' + String(q.call_outcome || 'qualification').replace(/_/g, ' '), subtitle: q.agent_notes || '', by: agentLabel(q.agent_email), ts: tsOf(q.call_date || q.created_date) }));
       emails.forEach((e) => items.push({ type: 'email', title: (e.direction === 'inbound' ? 'Email received' : 'Email sent') + (e.subject ? ' · ' + e.subject : ''), subtitle: e.body || e.snippet || '', by: agentLabel(e.agent_email), ts: tsOf(e.sent_at || e.received_at || e.created_date) }));
+      callLogs.forEach((c) => items.push({ type: 'call', title: (c.direction === 'inbound' ? 'Inbound call' : 'Outbound call') + ' · Twilio' + (c.duration_seconds ? ` · ${Math.round(c.duration_seconds / 60)}m` : ''), subtitle: c.from_number || c.to_number || '', by: agentLabel(c.agent_email), ts: tsOf(c.started_at || c.created_date) }));
+      waMessages.forEach((m) => items.push({ type: 'message', title: (m.direction === 'inbound' ? 'WhatsApp received' : 'WhatsApp sent'), subtitle: m.body, by: agentLabel(m.assigned_agent_email), ts: tsOf(m.timestamp || m.created_date) }));
 
       // Synthetic "Lead created" entry showing where the lead originally came from.
       if (landlord?.created_date) {
