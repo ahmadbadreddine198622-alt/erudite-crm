@@ -1,12 +1,17 @@
 // Four-tier identity header card for the Landlord Detail page.
-// Reads the RAW Landlord record (snake_case field names) so values that exist always render
-// — fixes the "Asking —" blank and surfaces the rich deal facts we already store.
-// Self-contained: no schema changes, no impact on any other section.
+// Reads the RAW Landlord record (snake_case field names) so values that exist always render.
+// Now also renders the FULL contact list (all phones + emails) and, per contact, a row of
+// icon-only communication channels (Twilio, Vapi, Aircall, Call, WhatsApp, Email) — replaces
+// the separate PhoneNumbersPanel / Email sidebar cards, which have been folded into this card.
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
-import { Download } from 'lucide-react';
+import { Download, Phone, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
+import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
+import AircallButton from '@/components/shared/AircallButton';
+import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -113,9 +118,106 @@ function Fact({ label, value, valueColor, title }) {
 
 const Dot = () => <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>·</span>;
 
+// One phone or email row — value + Primary/Secondary label.
+function ContactRow({ icon: Icon, value, label, href }) {
+  if (!value) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <Icon size={12} style={{ color: GOLD, flex: 'none' }} />
+      <a href={href} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{value}</a>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+    </div>
+  );
+}
+
+// Shared small square icon-button style used by the Channels row.
+function ChIcon({ href, title, color, bg, border, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={title}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 26, height: 26, borderRadius: 8, flex: 'none',
+        background: bg, border: '1px solid ' + border, color, textDecoration: 'none', cursor: 'pointer',
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+// Icon-only channel row for ONE phone number — no number text, icons only.
+function PhoneChannelRow({ phone, landlord }) {
+  if (!phone) return null;
+  const digits = phone.replace(/[^0-9]/g, '');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+      <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
+        <Phone size={12} />
+      </ChIcon>
+      <TwilioCallDialog landlord={landlord} phoneOverride={phone} iconOnly />
+      <AircallButton phone={phone} iconOnly />
+      <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly />
+      <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
+        <MessageCircle size={12} />
+      </ChIcon>
+    </div>
+  );
+}
+
+// Icon-only channel for ONE email.
+function EmailChannelRow({ email }) {
+  if (!email) return null;
+  return (
+    <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
+      <Mail size={12} />
+    </ChIcon>
+  );
+}
+
+const addPillStyle = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: 'rgba(201,162,75,0.1)', border: '1px dashed rgba(201,162,75,0.4)', color: GOLD };
+const addBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 9px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' };
+const cancelBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 6px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' };
+const smallInputStyle = { fontSize: 11, padding: '4px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' };
+
 export default function LandlordIdentityHeader({ landlord, unit, imessageChecking, onCheckIMessage, landlordId }) {
   const L = landlord || {};
   const U = unit || {};
+  const queryClient = useQueryClient();
+  const [addingPhone, setAddingPhone] = useState(false);
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const allPhones = [
+    ...(has(L.phone) ? [{ value: L.phone, label: 'Primary' }] : []),
+    ...(Array.isArray(L.additional_phones) ? L.additional_phones.filter(Boolean).map((p) => ({ value: p, label: 'Secondary' })) : []),
+  ];
+  const allEmails = [
+    ...(has(L.email) ? [{ value: L.email, label: 'Primary' }] : []),
+    ...(Array.isArray(L.additional_emails) ? L.additional_emails.filter(Boolean).map((e) => ({ value: e, label: 'Secondary' })) : []),
+  ];
+
+  const saveAdditional = async (field, value) => {
+    if (!value.trim() || !landlordId) return;
+    setSaving(true);
+    try {
+      const current = Array.isArray(L[field]) ? L[field] : [];
+      await base44.entities.Landlord.update(landlordId, { [field]: [...current, value.trim()] });
+      queryClient.invalidateQueries({ queryKey: ['landlord', landlordId] });
+      toast.success(field === 'additional_phones' ? 'Number added' : 'Email added');
+    } catch (e) {
+      toast.error('Failed to save: ' + (e?.message || 'unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleAddPhone = async () => { await saveAdditional('additional_phones', newPhone); setNewPhone(''); setAddingPhone(false); };
+  const handleAddEmail = async () => { await saveAdditional('additional_emails', newEmail); setNewEmail(''); setAddingEmail(false); };
 
   const handleDownload = async () => {
     const name = L.full_name_en || L.full_name || 'Unnamed landlord';
@@ -160,7 +262,6 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const initials = String(name).trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const flag = flagFor(L.nationality);
   const lang = LANG_LABEL[L.preferred_language];
-  const extraPhones = Array.isArray(L.additional_phones) ? L.additional_phones.filter(Boolean) : [];
 
   // Tier 2 — property facts. Beds/sqft live on the linked Property (passed via `unit`); the rest
   // (project, unit ref, asking) live on the Landlord record. Only render what exists.
@@ -198,7 +299,6 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
 
   // iMessage micro-line
   const handles = Array.isArray(L.imessage_handles) ? L.imessage_handles : [];
-  const availCount = handles.filter((h) => h && h.imessage_status === 'available').length;
   const checkedShort = L.imessage_checked_at
     ? new Date(L.imessage_checked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
     : null;
@@ -220,25 +320,25 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           {initials}
         </div>
         <div style={{ flex: 1, minWidth: 0, marginTop: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
-              {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
-              {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
-            </div>
-            {has(L.phone) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
-                <a href={`tel:${L.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: GOLD, textDecoration: 'none' }}>
-                  📞 {L.phone}
-                </a>
-                {extraPhones.length > 0 && (
-                  <span title={extraPhones.join(', ')} style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>(+{extraPhones.length})</span>
-                )}
-              </div>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
+            {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
+            {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
           </div>
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
+          )}
+
+          {/* Full contact list — every phone + email, Primary/Secondary labeled */}
+          {(allPhones.length > 0 || allEmails.length > 0) && (
+            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {allPhones.map((p, i) => (
+                <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
+              ))}
+              {allEmails.map((e, i) => (
+                <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
+              ))}
+            </div>
           )}
 
           {/* Refined straight divider after identity */}
@@ -338,6 +438,39 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
               )}
             </div>
           )}
+
+          {/* CHANNELS — icon-only communication row per phone/email + add controls */}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)' }}>
+            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Channels</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
+              {allPhones.map((p, i) => (
+                <PhoneChannelRow key={'phch' + i} phone={p.value} landlord={L} />
+              ))}
+              {allEmails.map((e, i) => (
+                <EmailChannelRow key={'emch' + i} email={e.value} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+              {addingPhone ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
+                  <button onClick={handleAddPhone} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+                  <button onClick={() => { setAddingPhone(false); setNewPhone(''); }} style={cancelBtnStyle}><X size={11} /></button>
+                </div>
+              ) : (
+                <button onClick={() => setAddingPhone(true)} style={addPillStyle}><Plus size={10} /> Add Number</button>
+              )}
+              {addingEmail ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <input autoFocus value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@…" onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()} style={{ ...smallInputStyle, width: 150 }} />
+                  <button onClick={handleAddEmail} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+                  <button onClick={() => { setAddingEmail(false); setNewEmail(''); }} style={cancelBtnStyle}><X size={11} /></button>
+                </div>
+              ) : (
+                <button onClick={() => setAddingEmail(true)} style={addPillStyle}><Plus size={10} /> Add Email</button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
-import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Mail, Download } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Download } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -21,7 +21,6 @@ import CallsTabList from '@/components/landlord/CallsTabList';
 import OutreachTab from '@/components/landlord/OutreachTab';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
 import QualificationStrip from '@/components/landlord/QualificationStrip';
-import PhoneNumbersPanel from '@/components/landlord/PhoneNumbersPanel';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
@@ -1586,37 +1585,6 @@ class LandlordDetail extends React.Component {
                   </select>
                 </div>
               </div>
-
-              <PhoneNumbersPanel landlord={L} />
-
-              {/* Email — compact card (primary + additional) */}
-              {(() => {
-                const allEmails = [
-                  ...(L.email ? [{ addr: L.email, label: 'Primary' }] : []),
-                  ...(Array.isArray(L.additionalEmails) ? L.additionalEmails.map((e, i) => ({ addr: e, label: `Additional ${i + 1}` })) : []),
-                ];
-                if (!allEmails.length) return null;
-                return (
-                  <div style={css("margin-top:8px; border-radius:13px; border:1px solid rgba(201,162,75,0.2); background:linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02)); padding:10px 15px;")}>
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
-                      <Mail className="w-3 h-3" style={css("color:hsl(38 92% 60%);")} />
-                      <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:hsl(38 92% 55%);")}>Email</span>
-                      <span style={css("margin-left:auto; font-size:9px; font-weight:600; color:hsl(38 92% 50% / 0.6);")}>{allEmails.length} email{allEmails.length > 1 ? 's' : ''}</span>
-                    </div>
-                    <div style={css("display:flex; flex-direction:column; gap:5px;")}>
-                      {allEmails.map((entry, i) => (
-                        <div key={i} style={css("display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:9px; background:rgba(201,162,75,0.08); border:1px solid rgba(201,162,75,0.2);")}>
-                          <div style={css("display:flex; align-items:center; gap:6px; min-width:0;")}>
-                            <Mail className="w-3 h-3" style={css("color:rgba(255,255,255,0.5);")} />
-                            <span style={css("font-size:8.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{entry.label}</span>
-                            <a href={`mailto:${entry.addr}`} style={css("font-size:12px; font-weight:600; margin-left:auto; color:rgba(255,255,255,0.9); text-decoration:none; overflow:hidden; text-overflow:ellipsis;")}>{entry.addr}</a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
 
               <MediaPanel media={vm.media} />
 
