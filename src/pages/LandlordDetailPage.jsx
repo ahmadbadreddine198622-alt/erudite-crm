@@ -787,6 +787,10 @@ class LandlordDetail extends React.Component {
       await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
       // Stage change → full re-analysis (best-effort, fire-and-forget).
       base44.functions.invoke('landlordOrchestrator', { landlord_id: L.id, force: true }).catch(() => {});
+      // Refetch the source-of-truth landlord record NOW — otherwise the next periodic poll
+      // (e.g. the iMessage/Telegram refetchInterval) re-syncs this.state.landlords from the
+      // still-stale cached record and silently reverts the stage back.
+      if (this.props.onAnalysed) this.props.onAnalysed();
       playSentSound();
       this.setState({ pendingStage:null, stageSaving:false, stageSaved:true });
       if (this._stageSavedTimer) clearTimeout(this._stageSavedTimer);
