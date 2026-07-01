@@ -99,8 +99,8 @@ export default function LandlordMockTabs({ landlordId, landlord }) {
 
   return (
     <div style={{ marginTop: 14 }}>
-      {/* Underline tab bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Underline tab bar — horizontally scrollable so all tabs fit on narrow screens */}
+      <div className="pipeline-scroll" style={{ display: 'flex', alignItems: 'center', gap: 22, borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
         {TABS.map((t) => {
           const on = active === t;
           return (
@@ -108,6 +108,7 @@ export default function LandlordMockTabs({ landlordId, landlord }) {
               key={t}
               onClick={() => setActive(t)}
               style={{
+                flex: 'none',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
