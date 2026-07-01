@@ -354,149 +354,150 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
+        </div>
+      </div>
 
-          {/* Full contact list — every phone + email, Primary/Secondary labeled */}
-          {(allPhones.length > 0 || allEmails.length > 0) && (
-            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {allPhones.map((p, i) => (
-                <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
-              ))}
-              {allEmails.map((e, i) => (
-                <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
-              ))}
+      {/* Full contact list — every phone + email, Primary/Secondary labeled. Left-aligned to the
+          card edge (not indented under the avatar). */}
+      {(allPhones.length > 0 || allEmails.length > 0) && (
+        <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {allPhones.map((p, i) => (
+            <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
+          ))}
+          {allEmails.map((e, i) => (
+            <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
+          ))}
+        </div>
+      )}
+
+      {/* Refined straight divider after identity */}
+      <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
+
+      {/* TIER 2 — Property + price (more vibrant) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
+        {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
+          .filter(has)
+          .map((part, i, arr) => (
+            <React.Fragment key={i}>
+              <span>{part}</span>
+              {i < arr.length - 1 && <Dot />}
+            </React.Fragment>
+          ))}
+        {askingFull && (
+          <>
+            {(beds || sqft || projectName || unitRef) && <Dot />}
+            <span style={{ fontWeight: 700, color: GOLD }}>Asking {askingFull}</span>
+          </>
+        )}
+        {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
+      </div>
+
+      {/* TIER 3 — Status chips (more vibrant) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 11 }}>
+        {has(L.landlord_archetype) && (
+          <Pill color="#818cf8" bg="rgba(99,102,241,0.2)" border="rgba(99,102,241,0.45)">
+            {ARCHETYPE_LABEL[L.landlord_archetype] || titleize(L.landlord_archetype)}
+          </Pill>
+        )}
+        {has(L.lead_type) && (
+          <Pill color="#2dd4bf" bg="rgba(20,184,166,0.2)" border="rgba(20,184,166,0.45)">
+            {LEAD_TYPE_LABEL[L.lead_type] || titleize(L.lead_type)}
+          </Pill>
+        )}
+        {has(L.stage) && (
+          <Pill outline color="#fbbf24" border="rgba(245,158,11,0.5)" title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined} boxShadow="0 0 10px rgba(245,158,11,0.2)">
+            ◷ {STAGE_LABEL[L.stage] || titleize(L.stage)}
+          </Pill>
+        )}
+        {rapport && (
+          <Pill color={rapport.color} bg={rapport.bg} border={rapport.border} boxShadow={rapport.boxShadow}>{rapport.label}</Pill>
+        )}
+        {mom && (
+          <Pill color={mom.color} bg={mom.bg} border={mom.border}>⚡ {titleize(L.ai_momentum)}</Pill>
+        )}
+      </div>
+
+      {/* Refined straight divider after Tier 3 */}
+      <StraightDivider color={GOLD} opacity={0.45} className="my-4" />
+
+      {/* TIER 4 — Deal facts strip */}
+      {(mandateLine || commissionPct || winPct != null || has(L.form_a_contract_number) || expiry || daysInStage || source || residency || has(L.phone)) && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Row A — mandate / money / win */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+            <Fact label="Mandate" value={mandateLine || null} />
+            <Fact
+              label="Comm"
+              value={commissionPct ? `${commissionPct}${estComm ? ` (~${estComm})` : ''}` : null}
+              valueColor={GOLD}
+            />
+            <Fact label="Win" value={winPct != null ? `${winPct}%` : null} valueColor={winColor} />
+            <Fact label="Form A" value={has(L.form_a_contract_number) ? L.form_a_contract_number : null} />
+          </div>
+          {/* Row B — expiry / stage age / source / residency */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+            {expiry && <Fact label="Expiry" value={expiry.text} valueColor={expiry.color} />}
+            <Fact label="Stage" value={daysInStage} />
+            <Fact label="Source" value={source} />
+            <Fact label="Residency" value={residency} />
+          </div>
+          {/* Row C — channel micro-line + download button (visible for all agents) */}
+          {(has(L.phone) || has(L.email) || has(name)) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+              {has(L.phone) && (
+                <>
+                  <span style={{ fontWeight: 600 }}>{L.imessage_status === 'available' ? 'iMessage' : 'SMS only'}</span>
+                  <Dot />
+                  <IMessageBadge
+                    status={L.imessage_status || 'unknown'}
+                    checkedAt={L.imessage_checked_at}
+                    checking={imessageChecking}
+                    onCheck={onCheckIMessage}
+                    handle={L.imessage_handle}
+                    handles={handles}
+                  />
+                  {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
+                  <Dot />
+                </>
+              )}
+              <button onClick={handleDownload} title="Download contact CSV (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}>
+                <Download size={12} /> Download
+              </button>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Refined straight divider after identity */}
-          <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
-
-          {/* TIER 2 — Property + price (more vibrant) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
-            {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
-              .filter(has)
-              .map((part, i, arr) => (
-                <React.Fragment key={i}>
-                  <span>{part}</span>
-                  {i < arr.length - 1 && <Dot />}
-                </React.Fragment>
-              ))}
-            {askingFull && (
-              <>
-                {(beds || sqft || projectName || unitRef) && <Dot />}
-                <span style={{ fontWeight: 700, color: GOLD }}>Asking {askingFull}</span>
-              </>
-            )}
-            {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
-          </div>
-
-          {/* TIER 3 — Status chips (more vibrant) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 11 }}>
-            {has(L.landlord_archetype) && (
-              <Pill color="#818cf8" bg="rgba(99,102,241,0.2)" border="rgba(99,102,241,0.45)">
-                {ARCHETYPE_LABEL[L.landlord_archetype] || titleize(L.landlord_archetype)}
-              </Pill>
-            )}
-            {has(L.lead_type) && (
-              <Pill color="#2dd4bf" bg="rgba(20,184,166,0.2)" border="rgba(20,184,166,0.45)">
-                {LEAD_TYPE_LABEL[L.lead_type] || titleize(L.lead_type)}
-              </Pill>
-            )}
-            {has(L.stage) && (
-              <Pill outline color="#fbbf24" border="rgba(245,158,11,0.5)" title={has(L.sub_stage) ? titleize(L.sub_stage) : undefined} boxShadow="0 0 10px rgba(245,158,11,0.2)">
-                ◷ {STAGE_LABEL[L.stage] || titleize(L.stage)}
-              </Pill>
-            )}
-            {rapport && (
-              <Pill color={rapport.color} bg={rapport.bg} border={rapport.border} boxShadow={rapport.boxShadow}>{rapport.label}</Pill>
-            )}
-            {mom && (
-              <Pill color={mom.color} bg={mom.bg} border={mom.border}>⚡ {titleize(L.ai_momentum)}</Pill>
-            )}
-          </div>
-
-          {/* Refined straight divider after Tier 3 */}
-          <StraightDivider color={GOLD} opacity={0.45} className="my-4" />
-
-          {/* TIER 4 — Deal facts strip */}
-          {(mandateLine || commissionPct || winPct != null || has(L.form_a_contract_number) || expiry || daysInStage || source || residency || has(L.phone)) && (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Row A — mandate / money / win */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-                <Fact label="Mandate" value={mandateLine || null} />
-                <Fact
-                  label="Comm"
-                  value={commissionPct ? `${commissionPct}${estComm ? ` (~${estComm})` : ''}` : null}
-                  valueColor={GOLD}
-                />
-                <Fact label="Win" value={winPct != null ? `${winPct}%` : null} valueColor={winColor} />
-                <Fact label="Form A" value={has(L.form_a_contract_number) ? L.form_a_contract_number : null} />
-              </div>
-              {/* Row B — expiry / stage age / source / residency */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-                {expiry && <Fact label="Expiry" value={expiry.text} valueColor={expiry.color} />}
-                <Fact label="Stage" value={daysInStage} />
-                <Fact label="Source" value={source} />
-                <Fact label="Residency" value={residency} />
-              </div>
-              {/* Row C — channel micro-line + download button (visible for all agents) */}
-              {(has(L.phone) || has(L.email) || has(name)) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
-                  {has(L.phone) && (
-                    <>
-                      <span style={{ fontWeight: 600 }}>{L.imessage_status === 'available' ? 'iMessage' : 'SMS only'}</span>
-                      <Dot />
-                      <IMessageBadge
-                        status={L.imessage_status || 'unknown'}
-                        checkedAt={L.imessage_checked_at}
-                        checking={imessageChecking}
-                        onCheck={onCheckIMessage}
-                        handle={L.imessage_handle}
-                        handles={handles}
-                      />
-                      {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
-                      <Dot />
-                    </>
-                  )}
-                  <button onClick={handleDownload} title="Download contact CSV (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}>
-                    <Download size={12} /> Download
-                  </button>
-                </div>
-              )}
+      {/* CHANNELS — icon-only communication row per phone/email + add controls */}
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)' }}>
+        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Channels</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
+          {allPhones.map((p, i) => (
+            <PhoneChannelRow key={'phch' + i} phone={p.value} landlord={L} />
+          ))}
+          {allEmails.map((e, i) => (
+            <EmailChannelRow key={'emch' + i} email={e.value} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+          {addingPhone ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
+              <button onClick={handleAddPhone} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+              <button onClick={() => { setAddingPhone(false); setNewPhone(''); }} style={cancelBtnStyle}><X size={11} /></button>
             </div>
+          ) : (
+            <button onClick={() => setAddingPhone(true)} style={addPillStyle}><Plus size={10} /> Add Number</button>
           )}
-
-          {/* CHANNELS — icon-only communication row per phone/email + add controls */}
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)' }}>
-            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Channels</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
-              {allPhones.map((p, i) => (
-                <PhoneChannelRow key={'phch' + i} phone={p.value} landlord={L} />
-              ))}
-              {allEmails.map((e, i) => (
-                <EmailChannelRow key={'emch' + i} email={e.value} />
-              ))}
+          {addingEmail ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input autoFocus value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@…" onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()} style={{ ...smallInputStyle, width: 150 }} />
+              <button onClick={handleAddEmail} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+              <button onClick={() => { setAddingEmail(false); setNewEmail(''); }} style={cancelBtnStyle}><X size={11} /></button>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
-              {addingPhone ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
-                  <button onClick={handleAddPhone} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
-                  <button onClick={() => { setAddingPhone(false); setNewPhone(''); }} style={cancelBtnStyle}><X size={11} /></button>
-                </div>
-              ) : (
-                <button onClick={() => setAddingPhone(true)} style={addPillStyle}><Plus size={10} /> Add Number</button>
-              )}
-              {addingEmail ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <input autoFocus value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@…" onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()} style={{ ...smallInputStyle, width: 150 }} />
-                  <button onClick={handleAddEmail} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
-                  <button onClick={() => { setAddingEmail(false); setNewEmail(''); }} style={cancelBtnStyle}><X size={11} /></button>
-                </div>
-              ) : (
-                <button onClick={() => setAddingEmail(true)} style={addPillStyle}><Plus size={10} /> Add Email</button>
-              )}
-            </div>
-          </div>
+          ) : (
+            <button onClick={() => setAddingEmail(true)} style={addPillStyle}><Plus size={10} /> Add Email</button>
+          )}
         </div>
       </div>
     </div>
