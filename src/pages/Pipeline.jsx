@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineBoard from '@/components/pipeline/PipelineBoard';
+import PipelineSummaryCard from '@/components/pipeline/PipelineSummaryCard';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import MobilePipeline from '@/components/mobile/MobilePipeline';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { STAGES } from '@/lib/pipeline';
+import { STAGES, getStagesForIntent } from '@/lib/pipeline';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
@@ -493,6 +494,7 @@ export default function Pipeline() {
             <LoadingState />
           ) : (
             <div>
+              <PipelineSummaryCard leads={buckets.sale} stages={getStagesForIntent('buyer')} />
               <PipelineBoard
                 track="buyer"
                 leads={buckets.sale}
@@ -513,6 +515,7 @@ export default function Pipeline() {
             <LoadingState />
           ) : (
             <div>
+              <PipelineSummaryCard leads={buckets.rent} stages={getStagesForIntent('tenant')} />
               <PipelineBoard
                 track="tenant"
                 leads={buckets.rent}
@@ -533,6 +536,7 @@ export default function Pipeline() {
             <LoadingState />
           ) : (
             <div>
+              <PipelineSummaryCard leads={buckets.intake} stages={getStagesForIntent('unknown')} />
               <PipelineBoard
                 track="unknown"
                 leads={buckets.intake}
@@ -553,6 +557,7 @@ export default function Pipeline() {
             <LoadingState />
           ) : (
             <div>
+              <PipelineSummaryCard leads={buckets.whatsapp} stages={getStagesForIntent('unknown')} />
               <PipelineBoard
                 track="unknown"
                 leads={buckets.whatsapp}
