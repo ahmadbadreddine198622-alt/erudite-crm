@@ -58,7 +58,7 @@ function useLandlordActivity(landlordId, landlord) {
     enabled: !!landlordId,
     staleTime: 15000,
     queryFn: async () => {
-      const [notes, tasks, appointments, documents, imessages, telegrams, aircalls, quals] = await Promise.all([
+      const [notes, tasks, appointments, documents, imessages, telegrams, aircalls, quals, emails] = await Promise.all([
         safe(() => base44.entities.LandlordNote.filter({ landlord_id: landlordId }, '-created_date', 50)),
         safe(() => base44.entities.LandlordTask.filter({ landlord_id: landlordId }, '-created_date', 50)),
         safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: landlordId }, '-datetime', 50)),
@@ -67,6 +67,7 @@ function useLandlordActivity(landlordId, landlord) {
         safe(() => base44.entities.TelegramMessage.filter({ landlord_id: landlordId }, '-sent_at', 50)),
         safe(() => base44.entities.AircallCall.filter({ landlord_id: landlordId }, '-started_at', 50)),
         safe(() => base44.entities.CallQualification.filter({ landlord_id: landlordId }, '-call_date', 50)),
+        safe(() => base44.entities.Email.filter({ landlord_id: landlordId }, '-sent_at', 50)),
       ]);
 
       const items = [];
@@ -79,6 +80,7 @@ function useLandlordActivity(landlordId, landlord) {
       telegrams.forEach((m) => items.push({ type: 'message', title: (m.direction === 'inbound' ? 'Telegram received' : 'Telegram sent'), subtitle: m.body, by: agentLabel(m.agent_email), ts: tsOf(m.sent_at || m.created_date) }));
       aircalls.forEach((c) => items.push({ type: 'call', title: (c.direction === 'inbound' ? 'Inbound call' : 'Outbound call') + (c.duration ? ` · ${Math.round(c.duration / 60)}m` : ''), subtitle: c.from_number || c.to_number || '', by: c.agent_name || agentLabel(c.agent_email), ts: tsOf(c.started_at || c.created_date) }));
       quals.forEach((q) => items.push({ type: 'call', title: 'Call logged · ' + String(q.call_outcome || 'qualification').replace(/_/g, ' '), subtitle: q.agent_notes || '', by: agentLabel(q.agent_email), ts: tsOf(q.call_date || q.created_date) }));
+      emails.forEach((e) => items.push({ type: 'email', title: (e.direction === 'inbound' ? 'Email received' : 'Email sent') + (e.subject ? ' · ' + e.subject : ''), subtitle: e.body || e.snippet || '', by: agentLabel(e.agent_email), ts: tsOf(e.sent_at || e.received_at || e.created_date) }));
 
       // Synthetic "Lead created" entry showing where the lead originally came from.
       if (landlord?.created_date) {
