@@ -6,7 +6,7 @@
 import React from 'react';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
-import { Download, Phone, Mail } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -226,42 +226,20 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
               {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
               {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
             </div>
+            {has(L.phone) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+                <a href={`tel:${L.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: GOLD, textDecoration: 'none' }}>
+                  📞 {L.phone}
+                </a>
+                {extraPhones.length > 0 && (
+                  <span title={extraPhones.join(', ')} style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>(+{extraPhones.length})</span>
+                )}
+              </div>
+            )}
           </div>
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
-
-          {/* Full contact list — every phone number and email on record */}
-          {(() => {
-            const allPhones = [
-              ...(has(L.phone) ? [{ value: L.phone, label: 'Primary' }] : []),
-              ...(has(L.whatsapp) && L.whatsapp !== L.phone ? [{ value: L.whatsapp, label: 'WhatsApp' }] : []),
-              ...extraPhones.map((p, i) => ({ value: p, label: `Additional ${i + 1}` })),
-            ];
-            const allEmails = [
-              ...(has(L.email) ? [{ value: L.email, label: 'Primary' }] : []),
-              ...(Array.isArray(L.additional_emails) ? L.additional_emails.filter(Boolean).map((e, i) => ({ value: e, label: `Additional ${i + 1}` })) : []),
-            ];
-            if (!allPhones.length && !allEmails.length) return null;
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-                {allPhones.map((p, i) => (
-                  <a key={'p' + i} href={`tel:${p.value}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none', width: 'fit-content' }}>
-                    <Phone size={12} style={{ color: i === 0 ? GOLD : 'rgba(255,255,255,0.45)', flex: 'none' }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? GOLD : 'rgba(255,255,255,0.85)', fontFamily: "'Montserrat',sans-serif" }}>{p.value}</span>
-                    <Pill color="rgba(255,255,255,0.5)">{p.label}</Pill>
-                  </a>
-                ))}
-                {allEmails.map((e, i) => (
-                  <a key={'e' + i} href={`mailto:${e.value}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none', width: 'fit-content' }}>
-                    <Mail size={12} style={{ color: i === 0 ? GOLD : 'rgba(255,255,255,0.45)', flex: 'none' }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: i === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)', fontFamily: "'Montserrat',sans-serif" }}>{e.value}</span>
-                    <Pill color="rgba(255,255,255,0.5)">{e.label}</Pill>
-                  </a>
-                ))}
-              </div>
-            );
-          })()}
 
           {/* Refined straight divider after identity */}
           <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
