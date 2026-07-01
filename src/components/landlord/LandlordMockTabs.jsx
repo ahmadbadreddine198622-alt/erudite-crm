@@ -7,6 +7,22 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 import ActivityTimeline from '@/components/landlord/ActivityTimeline';
+import OutreachTab from '@/components/landlord/OutreachTab';
+import NegotiationTab from '@/components/landlord/NegotiationTab';
+
+// Simple two-column label/value grid — used by the Unit and Qualify tabs.
+function RowsGrid({ rows }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {rows.map((r, i) => (
+        <div key={i} style={{ borderRadius: 11, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', padding: '11px 13px' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>{r.label}</div>
+          <div style={r.valueStyle}>{r.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const GOLD = '#C9A24B';
 const TABS = ['Info', 'Activity', 'Pipeline', 'Outreach', 'Unit', 'Qualify', 'Negotiation'];
@@ -57,7 +73,7 @@ function useLandlordActivity(landlordId, landlord) {
   });
 }
 
-export default function LandlordMockTabs({ landlordId, landlord }) {
+export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData }) {
   const [active, setActive] = useState('Info');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
@@ -115,6 +131,16 @@ export default function LandlordMockTabs({ landlordId, landlord }) {
             <ActivityTimeline activity={activity} />
           )}
         </div>
+      ) : active === 'Outreach' && outreachData ? (
+        <div style={{ marginTop: 14, borderRadius: 14, border: '1px solid rgba(201,162,75,0.18)', background: 'rgba(255,255,255,0.03)', padding: '14px 14px' }}>
+          <OutreachTab tab={outreachData} onToggleStep={onToggleOutreachStep} toggling={outreachToggling} />
+        </div>
+      ) : active === 'Unit' && unitRows ? (
+        <div style={{ marginTop: 14 }}><RowsGrid rows={unitRows} /></div>
+      ) : active === 'Qualify' && qualifyRows ? (
+        <div style={{ marginTop: 14 }}><RowsGrid rows={qualifyRows} /></div>
+      ) : active === 'Negotiation' && negotiationData ? (
+        <div style={{ marginTop: 14 }}><NegotiationTab tab={negotiationData} /></div>
       ) : (
         <div
           style={{

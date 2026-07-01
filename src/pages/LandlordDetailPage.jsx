@@ -90,7 +90,7 @@ class LandlordDetail extends React.Component {
     this.state = {
       landlords,
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
-      activeTab: this.props.defaultTab || 'outreach',
+      activeTab: this.props.defaultTab || 'overview',
       composerType: 'Note',
       composerText: '',
       composerTime: '',
@@ -228,7 +228,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'outreach', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'overview', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
   // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
@@ -1002,7 +1002,7 @@ class LandlordDetail extends React.Component {
     if(L.market){ market.comps=L.market.comps; market.trendLabel=L.market.trend; market.trendStyle={ display:'inline-flex', alignItems:'center', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:'rgba(16,185,129,0.14)', border:'1px solid rgba(16,185,129,0.32)', color:'#34d399' }; }
     else { market.comps=[]; market.trendLabel=''; market.trendStyle={ display:'none' }; }
 
-    const tabDefs=[ ['outreach','Outreach'],['qualify','Qualify'],['calls','Calls'],['overview','Overview'],['unit','Unit'],['negotiation','Negotiation'],['documents','Documents'] ];
+    const tabDefs=[ ['calls','Calls'],['overview','Overview'],['documents','Documents'] ];
     const tabs=tabDefs.map(([id,label])=>{
       const on=S.activeTab===id;
       return { id, label, onClick:()=>this.setTab(id),
@@ -1013,34 +1013,10 @@ class LandlordDetail extends React.Component {
     const at=S.activeTab;
     const kv=(label,value,accent)=>({ label, value, valueStyle:{ fontSize:'13.5px', fontWeight:600, marginTop:'5px', color: accent||'rgba(255,255,255,0.9)' } });
     let tab={ isList:false, isQualify:false, isCalls:false, isNegotiation:false, isDocuments:false, isOutreach:false };
-    if(at==='outreach'){
-      tab.isOutreach=true; const oc=L.outreach;
-      tab.outreachDate=oc.date; tab.stepsCompleted=oc.stepsCompleted; tab.dailyScore=oc.dailyScore;
-      tab.progressStyle={ height:'100%', width:Math.round((oc.stepsCompleted/6)*100)+'%', background:'linear-gradient(90deg, hsl(38 92% 52%), hsl(38 92% 62%))' };
-      tab.steps=oc.steps.map((st)=>({ key:st.key, label:st.label, at: st.at||'—', done:st.done,
-        iconStyle:{ flex:'none', width:'24px', height:'24px', borderRadius:'7px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:800, color: st.done?'#34d399':'rgba(255,255,255,0.35)', background: st.done?'rgba(16,185,129,0.16)':'rgba(255,255,255,0.05)', border:'1px solid '+(st.done?'rgba(16,185,129,0.35)':'rgba(255,255,255,0.1)') },
-        icon: st.done?'✓':'○',
-        labelStyle:{ fontSize:'13px', fontWeight:600, color: st.done?'rgba(255,255,255,0.88)':'rgba(255,255,255,0.5)' } }));
-    } else if(at==='overview'){
+    if(at==='overview'){
       tab.isList=true; tab.rows=[
         kv('Full name', L.name), kv('Phone', L.phone), kv('Source', L.source),
         kv('Archetype', this.titleize(L.archetype), '#c4b5fd'), kv('Owner since', L.ownerSince), kv('Assigned agent', L.agent, 'hsl(38 92% 60%)'),
-      ];
-    } else if(at==='qualify'){
-      tab.isList=true;
-      if(L.qualification){ const q=L.qualification; tab.rows=[
-        kv('Motivation', q.motivation), kv('Timeline / urgency', q.timeline, 'hsl(38 92% 60%)'),
-        kv('Price expectation', q.priceExpectation), kv('Price vs valuation', q.priceVsValuation),
-        kv('Mandate openness', q.mandateOpenness), kv('Decision maker', q.decisionMaker),
-        kv('Tenancy', q.tenancy), kv('Mortgage', q.mortgage),
-        kv('Call outcome', q.outcome, 'hsl(38 92% 60%)'), kv('Next step', q.nextStep), kv('Follow-up', q.followupDate, 'hsl(38 92% 60%)'),
-      ]; }
-      else { tab.rows=[ kv('Qualification', 'Not yet logged — run a CallQualification on the next call') ]; }
-    } else if(at==='unit'){
-      tab.isList=true; const u=L.unit; tab.rows=[
-        kv('Unit', u.building+' · '+u.label), kv('Area', u.area), kv('Layout', u.beds+' · '+u.baths),
-        kv('Size', u.sqft), kv('View', u.view), kv('Parking', u.parking),
-        kv('Service charge', u.serviceCharge), kv('Asking price', u.asking, 'hsl(38 92% 60%)'),
       ];
     } else if(at==='calls'){
       if(L.calls.length){ tab.isCalls=true;
@@ -1058,24 +1034,49 @@ class LandlordDetail extends React.Component {
             recStyle:{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'2px 8px', borderRadius:'99px', fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.6)', background:'rgba(255,255,255,0.06)' } };
         }); }
       else { tab.isList=true; tab.rows=[ kv('Calls','No call logs yet — Aircall, Twilio & WhatsApp calls appear here') ]; }
-    } else if(at==='negotiation'){
-      tab.isNegotiation=true; const u=L.unit;
-      tab.battle = L.battle || { painPoint:'Run AI / battle card to populate.', motivators:[], competitor:'—', pitch:'—', closes:[] };
-      tab.ladder=[
-        { label:'Asking', value:u.asking, color:'rgba(255,255,255,0.92)', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)' } },
-        { label:'Target', value:u.target, color:'hsl(38 92% 60%)', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'hsl(38 92% 50% / 0.07)', border:'1px solid hsl(38 92% 50% / 0.28)' } },
-        { label:'Floor', value:u.floor, color:'#f87171', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.22)' } },
-      ];
-      tab.offers=L.offers.map((o,i)=>{
-        const sm={ pending:['rgba(245,158,11,0.16)','hsl(38 92% 62%)','Pending'], accepted:['rgba(16,185,129,0.16)','#34d399','Accepted'], declined:['rgba(239,68,68,0.16)','#f87171','Declined'] }[o.status]||['rgba(148,163,184,0.16)','rgba(255,255,255,0.6)',o.status];
-        return { key:i, who:o.who, time:o.time, amount:o.amount, status:sm[2], statusStyle:{ padding:'3px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:700, background:sm[0], color:sm[1] } };
-      });
     } else if(at==='documents'){
       tab.isDocuments=true; tab.docsLandlordName=L.name; tab.docs=L.docs.map((d,i)=>{
         const sm={ received:['rgba(16,185,129,0.16)','#34d399','✓ Received'], pending:['rgba(245,158,11,0.16)','hsl(38 92% 62%)','◷ Pending'], missing:['rgba(239,68,68,0.16)','#f87171','✕ Missing'] }[d.status]||['rgba(148,163,184,0.16)','rgba(255,255,255,0.6)',d.status];
         return { key:i, icon:d.icon, label:d.label, provider:d.provider, url:d.url || null, status:sm[2], statusStyle:{ padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:sm[0], color:sm[1] } };
       });
     }
+
+    // Always-computed (independent of the bottom Documents & Mandate tab bar) — feeds the
+    // top-level Outreach / Unit / Qualify / Negotiation tabs in LandlordMockTabs.
+    const oc = L.outreach;
+    const outreachVM = {
+      outreachDate: oc.date, stepsCompleted: oc.stepsCompleted, dailyScore: oc.dailyScore,
+      progressStyle:{ height:'100%', width:Math.round((oc.stepsCompleted/6)*100)+'%', background:'linear-gradient(90deg, hsl(38 92% 52%), hsl(38 92% 62%))' },
+      steps: oc.steps.map((st)=>({ key:st.key, label:st.label, at: st.at||'—', done:st.done,
+        iconStyle:{ flex:'none', width:'24px', height:'24px', borderRadius:'7px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:800, color: st.done?'#34d399':'rgba(255,255,255,0.35)', background: st.done?'rgba(16,185,129,0.16)':'rgba(255,255,255,0.05)', border:'1px solid '+(st.done?'rgba(16,185,129,0.35)':'rgba(255,255,255,0.1)') },
+        icon: st.done?'✓':'○',
+        labelStyle:{ fontSize:'13px', fontWeight:600, color: st.done?'rgba(255,255,255,0.88)':'rgba(255,255,255,0.5)' } })),
+    };
+    const qualifyRows = L.qualification ? (()=>{ const q=L.qualification; return [
+      kv('Motivation', q.motivation), kv('Timeline / urgency', q.timeline, 'hsl(38 92% 60%)'),
+      kv('Price expectation', q.priceExpectation), kv('Price vs valuation', q.priceVsValuation),
+      kv('Mandate openness', q.mandateOpenness), kv('Decision maker', q.decisionMaker),
+      kv('Tenancy', q.tenancy), kv('Mortgage', q.mortgage),
+      kv('Call outcome', q.outcome, 'hsl(38 92% 60%)'), kv('Next step', q.nextStep), kv('Follow-up', q.followupDate, 'hsl(38 92% 60%)'),
+    ]; })() : [ kv('Qualification', 'Not yet logged — run a CallQualification on the next call') ];
+    const unitRows = (()=>{ const u=L.unit; return [
+      kv('Unit', u.building+' · '+u.label), kv('Area', u.area), kv('Layout', u.beds+' · '+u.baths),
+      kv('Size', u.sqft), kv('View', u.view), kv('Parking', u.parking),
+      kv('Service charge', u.serviceCharge), kv('Asking price', u.asking, 'hsl(38 92% 60%)'),
+    ]; })();
+    const negotiationVM = (()=>{ const u=L.unit;
+      const battle = L.battle || { painPoint:'Run AI / battle card to populate.', motivators:[], competitor:'—', pitch:'—', closes:[] };
+      const ladder=[
+        { label:'Asking', value:u.asking, color:'rgba(255,255,255,0.92)', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)' } },
+        { label:'Target', value:u.target, color:'hsl(38 92% 60%)', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'hsl(38 92% 50% / 0.07)', border:'1px solid hsl(38 92% 50% / 0.28)' } },
+        { label:'Floor', value:u.floor, color:'#f87171', cardStyle:{ borderRadius:'12px', padding:'12px 13px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.22)' } },
+      ];
+      const offers=L.offers.map((o,i)=>{
+        const sm={ pending:['rgba(245,158,11,0.16)','hsl(38 92% 62%)','Pending'], accepted:['rgba(16,185,129,0.16)','#34d399','Accepted'], declined:['rgba(239,68,68,0.16)','#f87171','Declined'] }[o.status]||['rgba(148,163,184,0.16)','rgba(255,255,255,0.6)',o.status];
+        return { key:i, who:o.who, time:o.time, amount:o.amount, status:sm[2], statusStyle:{ padding:'3px 9px', borderRadius:'99px', fontSize:'10.5px', fontWeight:700, background:sm[0], color:sm[1] } };
+      });
+      return { battle, ladder, offers };
+    })();
 
     return {
       currentId:S.currentId, landlordOptions,
@@ -1124,6 +1125,7 @@ class LandlordDetail extends React.Component {
       media: L.media || null,
       valuation: L.valuation || null,
       mandate: L.mandate || null,
+      outreachVM, qualifyRows, unitRows, negotiationVM,
     };
   }
 
@@ -1546,7 +1548,16 @@ class LandlordDetail extends React.Component {
                 onCheckIMessage={this.checkIMessage}
               />
 
-              <LandlordMockTabs landlordId={this.state.currentId} landlord={this.props.rawLandlord} />
+              <LandlordMockTabs
+                landlordId={this.state.currentId}
+                landlord={this.props.rawLandlord}
+                outreachData={vm.outreachVM}
+                onToggleOutreachStep={this.onToggleOutreachStep}
+                outreachToggling={this._outreachToggling}
+                qualifyRows={vm.qualifyRows}
+                unitRows={vm.unitRows}
+                negotiationData={vm.negotiationVM}
+              />
 
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
@@ -1718,10 +1729,6 @@ class LandlordDetail extends React.Component {
                   ))}
                 </div>
 
-                {tab.isOutreach && (
-                  <OutreachTab tab={tab} onToggleStep={this.onToggleOutreachStep} toggling={this._outreachToggling} />
-                )}
-
                 {tab.isList && (
                   <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
                     {tab.rows.map((r,i)=>(
@@ -1735,71 +1742,6 @@ class LandlordDetail extends React.Component {
 
                 {tab.isCalls && (
                   <CallsTabList calls={this.cur().calls || []} />
-                )}
-
-                {tab.isNegotiation && (
-                  <React.Fragment>
-                    <div style={css("border-radius:14px; border:1px solid hsl(38 92% 50% / 0.3); background:linear-gradient(180deg, hsl(38 92% 50% / 0.08), rgba(255,255,255,0.02)); overflow:hidden; margin-bottom:16px;")}>
-                      <div style={css("display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid hsl(38 92% 50% / 0.16);")}>
-                        <span style={css("font-size:14px;")}>⚔</span>
-                        <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%);")}>Battle Card</span>
-                        <span style={css("margin-left:auto; font-size:10.5px; color:rgba(255,255,255,0.4);")}>generateBattleCard</span>
-                      </div>
-                      <div style={css("padding:13px 14px;")}>
-                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Pain point</div>
-                        <div style={css("font-size:13px; line-height:1.5; color:rgba(255,255,255,0.85); margin-bottom:12px;")}>{tab.battle.painPoint}</div>
-
-                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;")}>Top motivators</div>
-                        <div style={css("display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;")}>
-                          {tab.battle.motivators.map((mo,i)=>(
-                            <span key={i} style={css("padding:5px 11px; border-radius:99px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); font-size:11.5px; color:rgba(255,255,255,0.8);")}>{mo}</span>
-                          ))}
-                        </div>
-
-                        <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-bottom:12px;")}>
-                          <div style={css("border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); padding:10px 12px;")}>
-                            <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#fca5a5; margin-bottom:4px;")}>Competitor intel</div>
-                            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.78);")}>{tab.battle.competitor}</div>
-                          </div>
-                          <div style={css("border-radius:10px; background:hsl(38 92% 50% / 0.07); border:1px solid hsl(38 92% 50% / 0.25); padding:10px 12px;")}>
-                            <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 60%); margin-bottom:4px;")}>Winning pitch</div>
-                            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{tab.battle.pitch}</div>
-                          </div>
-                        </div>
-
-                        <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:6px;")}>Closing techniques</div>
-                        <div style={css("display:flex; flex-direction:column; gap:5px;")}>
-                          {tab.battle.closes.map((cz,i)=>(
-                            <div key={i} style={css("display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.74); line-height:1.45;")}><span style={css("flex:none; color:hsl(38 92% 58%); font-weight:700;")}>→</span>{cz}</div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={css("display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:15px;")}>
-                      {tab.ladder.map((l,i)=>(
-                        <div key={i} style={l.cardStyle}>
-                          <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.45);")}>{l.label}</div>
-                          <div style={{...css("font-size:18px; font-weight:800; margin-top:5px;"), color:l.color}}>{l.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:7px;")}>Offers received</div>
-                    <div style={css("display:flex; flex-direction:column; gap:6px;")}>
-                      {tab.offers.map((of)=>(
-                        <div key={of.key} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-                          <div>
-                            <div style={css("font-size:12.5px; font-weight:600; color:rgba(255,255,255,0.85);")}>{of.who}</div>
-                            <div style={css("font-size:11px; color:rgba(255,255,255,0.45); margin-top:1px;")}>{of.time}</div>
-                          </div>
-                          <div style={css("display:flex; align-items:center; gap:10px;")}>
-                            <span style={css("font-size:14px; font-weight:700; color:rgba(255,255,255,0.92);")}>{of.amount}</span>
-                            <span style={of.statusStyle}>{of.status}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </React.Fragment>
                 )}
 
                 {tab.isDocuments && (
