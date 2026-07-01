@@ -117,7 +117,7 @@ function useLandlordActivity(landlordId, landlord) {
   });
 }
 
-export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys }) {
+export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys }) {
   const [active, setActive] = useState('Info');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
@@ -152,7 +152,9 @@ export default function LandlordMockTabs({ landlordId, landlord, outreachData, o
       </div>
 
       {/* Content area */}
-      {active === 'Activity' ? (
+      {active === 'Info' && infoRows ? (
+        <div style={{ marginTop: 14 }}><RowsGrid rows={infoRows} /></div>
+      ) : active === 'Activity' ? (
         <div
           style={{
             marginTop: 14,

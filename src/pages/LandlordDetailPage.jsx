@@ -90,7 +90,7 @@ class LandlordDetail extends React.Component {
     this.state = {
       landlords,
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
-      activeTab: this.props.defaultTab || 'overview',
+      activeTab: this.props.defaultTab || 'calls',
       composerType: 'Note',
       composerText: '',
       composerTime: '',
@@ -228,7 +228,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'overview', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
   // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
@@ -1002,7 +1002,7 @@ class LandlordDetail extends React.Component {
     if(L.market){ market.comps=L.market.comps; market.trendLabel=L.market.trend; market.trendStyle={ display:'inline-flex', alignItems:'center', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:'rgba(16,185,129,0.14)', border:'1px solid rgba(16,185,129,0.32)', color:'#34d399' }; }
     else { market.comps=[]; market.trendLabel=''; market.trendStyle={ display:'none' }; }
 
-    const tabDefs=[ ['calls','Calls'],['overview','Overview'],['documents','Documents'] ];
+    const tabDefs=[ ['calls','Calls'],['documents','Documents'] ];
     const tabs=tabDefs.map(([id,label])=>{
       const on=S.activeTab===id;
       return { id, label, onClick:()=>this.setTab(id),
@@ -1013,12 +1013,7 @@ class LandlordDetail extends React.Component {
     const at=S.activeTab;
     const kv=(label,value,accent)=>({ label, value, valueStyle:{ fontSize:'13.5px', fontWeight:600, marginTop:'5px', color: accent||'rgba(255,255,255,0.9)' } });
     let tab={ isList:false, isQualify:false, isCalls:false, isNegotiation:false, isDocuments:false, isOutreach:false };
-    if(at==='overview'){
-      tab.isList=true; tab.rows=[
-        kv('Full name', L.name), kv('Phone', L.phone), kv('Source', L.source),
-        kv('Archetype', this.titleize(L.archetype), '#c4b5fd'), kv('Owner since', L.ownerSince), kv('Assigned agent', L.agent, 'hsl(38 92% 60%)'),
-      ];
-    } else if(at==='calls'){
+    if(at==='calls'){
       if(L.calls.length){ tab.isCalls=true;
         const provMeta={ aircall:['Aircall','📞','#93c5fd','rgba(59,130,246,0.16)'], twilio:['Twilio','☎','#34d399','rgba(16,185,129,0.16)'], whatsapp:['WhatsApp','📲','#4ade80','rgba(37,211,102,0.16)'] };
         tab.calls=L.calls.map((c,i)=>{
@@ -1052,6 +1047,10 @@ class LandlordDetail extends React.Component {
         icon: st.done?'✓':'○',
         labelStyle:{ fontSize:'13px', fontWeight:600, color: st.done?'rgba(255,255,255,0.88)':'rgba(255,255,255,0.5)' } })),
     };
+    const infoRows = [
+      kv('Full name', L.name), kv('Phone', L.phone), kv('Source', L.source),
+      kv('Archetype', this.titleize(L.archetype), '#c4b5fd'), kv('Owner since', L.ownerSince), kv('Assigned agent', L.agent, 'hsl(38 92% 60%)'),
+    ];
     const qualifyRows = L.qualification ? (()=>{ const q=L.qualification; return [
       kv('Motivation', q.motivation), kv('Timeline / urgency', q.timeline, 'hsl(38 92% 60%)'),
       kv('Price expectation', q.priceExpectation), kv('Price vs valuation', q.priceVsValuation),
@@ -1125,7 +1124,7 @@ class LandlordDetail extends React.Component {
       media: L.media || null,
       valuation: L.valuation || null,
       mandate: L.mandate || null,
-      outreachVM, qualifyRows, unitRows, negotiationVM,
+      outreachVM, qualifyRows, unitRows, negotiationVM, infoRows,
     };
   }
 
@@ -1557,6 +1556,7 @@ class LandlordDetail extends React.Component {
                 qualifyRows={vm.qualifyRows}
                 unitRows={vm.unitRows}
                 negotiationData={vm.negotiationVM}
+                infoRows={vm.infoRows}
                 stage={stage}
                 currentStageKey={L.stage}
                 pendingStage={this.state.pendingStage}
