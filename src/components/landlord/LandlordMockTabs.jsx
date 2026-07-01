@@ -8,7 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { Phone, Mail, MessageCircle, Upload, CheckSquare, Calendar, FileText, RefreshCw, Loader2 } from 'lucide-react';
 
 const GOLD = '#C9A24B';
-const TABS = ['Info', 'Activity', 'Pipeline'];
+const TABS = ['Info', 'Activity', 'Pipeline', 'Outreach', 'Unit', 'Qualify', 'Negotiation'];
 
 const ACTIVITY_META = {
   call: { icon: Phone, color: '#93c5fd', bg: 'rgba(59,130,246,0.14)' },
