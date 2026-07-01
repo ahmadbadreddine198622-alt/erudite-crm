@@ -354,21 +354,20 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
+
+          {/* Full contact list — every phone + email, Primary/Secondary labeled — sits right under the name */}
+          {(allPhones.length > 0 || allEmails.length > 0) && (
+            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {allPhones.map((p, i) => (
+                <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
+              ))}
+              {allEmails.map((e, i) => (
+                <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Full contact list — every phone + email, Primary/Secondary labeled. Left-aligned to the
-          card edge (not indented under the avatar). */}
-      {(allPhones.length > 0 || allEmails.length > 0) && (
-        <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {allPhones.map((p, i) => (
-            <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
-          ))}
-          {allEmails.map((e, i) => (
-            <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
-          ))}
-        </div>
-      )}
 
       {/* Refined straight divider after identity */}
       <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
