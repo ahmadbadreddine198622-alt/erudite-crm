@@ -3,7 +3,7 @@
 // messages, uploads/downloads, tasks, appointments). All data below is placeholder — the user will
 // tell us when to wire this to real records.
 import React, { useState } from 'react';
-import { Phone, Mail, MessageCircle, Upload, Download, CheckSquare, Calendar, FileText } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Upload, Download, CheckSquare, Calendar, FileText, RefreshCw } from 'lucide-react';
 
 const GOLD = '#C9A24B';
 const TABS = ['Info', 'Activity', 'Pipeline'];
@@ -17,18 +17,21 @@ const ACTIVITY_META = {
   task: { icon: CheckSquare, color: '#34d399', bg: 'rgba(16,185,129,0.14)' },
   appointment: { icon: Calendar, color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)' },
   document: { icon: FileText, color: 'rgba(255,255,255,0.7)', bg: 'rgba(255,255,255,0.06)' },
+  followup: { icon: RefreshCw, color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)' },
 };
 
-// Placeholder sample rows only — not wired to any entity yet.
+// Placeholder sample rows only — not wired to any entity yet. `by` = agent who did it,
+// `source` (follow-up only) = where the lead originally came from.
 const MOCK_ACTIVITY = [
-  { type: 'call', title: 'Outbound call · 4m 12s', subtitle: 'Ahmad Al Farsi · Twilio', time: 'Today 12:40 PM' },
-  { type: 'email', title: 'Email sent · Listing update', subtitle: 'To landlord@example.com', time: 'Today 11:15 AM' },
-  { type: 'message', title: 'WhatsApp message sent', subtitle: '"Sharing the updated floor plan..."', time: 'Today 10:02 AM' },
-  { type: 'upload', title: 'Document uploaded · Title Deed', subtitle: 'By Ahmad Al Farsi', time: 'Yesterday 4:20 PM' },
-  { type: 'download', title: 'Contact card downloaded', subtitle: 'CSV export', time: 'Yesterday 2:05 PM' },
-  { type: 'task', title: 'Task created · Send Form A', subtitle: 'Due in 2 days', time: 'Yesterday 9:30 AM' },
-  { type: 'appointment', title: 'Appointment booked · Viewing', subtitle: 'Mon 14 Jul · 3:00 PM', time: '2 days ago' },
-  { type: 'document', title: 'Form A drafted', subtitle: 'Awaiting signature', time: '3 days ago' },
+  { type: 'call', title: 'Outbound call · 4m 12s', subtitle: 'Twilio', by: 'Ahmad Al Farsi', time: 'Today 12:40 PM' },
+  { type: 'followup', title: 'Follow-up scheduled', subtitle: 'Lead source: Property Finder', by: 'Ahmad Al Farsi', time: 'Today 11:45 AM' },
+  { type: 'email', title: 'Email sent · Listing update', subtitle: 'To landlord@example.com', by: 'Sara Khoury', time: 'Today 11:15 AM' },
+  { type: 'message', title: 'WhatsApp message sent', subtitle: '"Sharing the updated floor plan..."', by: 'Ahmad Al Farsi', time: 'Today 10:02 AM' },
+  { type: 'upload', title: 'Document uploaded · Title Deed', subtitle: '', by: 'Ahmad Al Farsi', time: 'Yesterday 4:20 PM' },
+  { type: 'download', title: 'Contact card downloaded', subtitle: 'CSV export', by: 'Sara Khoury', time: 'Yesterday 2:05 PM' },
+  { type: 'task', title: 'Task created · Send Form A', subtitle: 'Due in 2 days', by: 'Ahmad Al Farsi', time: 'Yesterday 9:30 AM' },
+  { type: 'appointment', title: 'Appointment booked · Viewing', subtitle: 'Mon 14 Jul · 3:00 PM', by: 'Ahmad Al Farsi', time: '2 days ago' },
+  { type: 'followup', title: 'Lead created', subtitle: 'Lead source: Bayut inquiry', by: 'System', time: '5 days ago' },
 ];
 
 function ActivityRow({ item }) {
@@ -41,7 +44,12 @@ function ActivityRow({ item }) {
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.9)', fontFamily: "'Inter',sans-serif" }}>{item.title}</div>
-        <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{item.subtitle}</div>
+        {item.subtitle && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{item.subtitle}</div>}
+        {item.by && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', marginTop: 4, padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: GOLD, background: 'rgba(201,162,75,0.12)', border: '1px solid rgba(201,162,75,0.25)' }}>
+            by {item.by}
+          </span>
+        )}
       </div>
       <span style={{ flex: 'none', fontSize: 10.5, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{item.time}</span>
     </div>
