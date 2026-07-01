@@ -184,10 +184,12 @@ function PhoneChannelRow({ phone, landlord }) {
         <PhoneCall size={12} />
       </ChIcon>
       <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
-        <ChPill icon={<Phone size={12} />} label="Twilio" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
+        <ChPill label="TW" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
       </TwilioCallDialog>
       <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly label="Vapi" />
-      <ChPill href={`https://wa.me/${digits}`} icon={<MessageCircle size={12} />} label="WhatsApp" color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)" />
+      <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
+        <MessageCircle size={12} />
+      </ChIcon>
     </div>
   );
 }

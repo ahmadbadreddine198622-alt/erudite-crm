@@ -204,9 +204,9 @@ export default function VapiCallDialog({ lead, landlord, iconOnly = false, label
     const trigger = iconOnly ? (
         label ? (
             <button title="AI Voice Call (VAPI)"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
                 style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>
-                <Mic className="w-3 h-3" /> {label}
+                {label}
             </button>
         ) : (
             <button title="AI Voice Call (VAPI)"
