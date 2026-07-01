@@ -134,6 +134,10 @@ class LandlordDetail extends React.Component {
       composerParsing: false,
       composerDraft: null,
       composerCommitting: false,
+      // Pending pipeline stage selection — the stage isn't saved until the agent presses Save.
+      pendingStage: null,
+      stageSaving: false,
+      stageSaved: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -768,10 +772,14 @@ class LandlordDetail extends React.Component {
     }
   };
 
+  // Called only when the agent presses Save — the dropdown itself just stores a pending choice.
   onStageChange = async (newStage)=>{
-    const L=this.cur(); if(!L||!newStage) return;
+    const L=this.cur(); if(!L||!newStage||this._stageSaving) return;
     const idx = this.state.landlords.findIndex(l=>l.id===this.state.currentId);
     if(idx<0) return;
+    this._stageSaving = true;
+    this.setState({ stageSaving:true });
+    const prevStage = L.stage;
     // Optimistic update
     this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:newStage, stageEnteredAt: new Date().toISOString()} : l) }));
     // Persist to database
@@ -779,10 +787,16 @@ class LandlordDetail extends React.Component {
       await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
       // Stage change → full re-analysis (best-effort, fire-and-forget).
       base44.functions.invoke('landlordOrchestrator', { landlord_id: L.id, force: true }).catch(() => {});
+      playSentSound();
+      this.setState({ pendingStage:null, stageSaving:false, stageSaved:true });
+      if (this._stageSavedTimer) clearTimeout(this._stageSavedTimer);
+      this._stageSavedTimer = setTimeout(()=> this.setState({ stageSaved:false }), 1700);
     } catch(err) {
       console.error('Failed to update stage:', err);
       // Revert on error
-      this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:L.stage, stageEnteredAt:L.stageEnteredAt} : l) }));
+      this.setState(s=>({ landlords: s.landlords.map((l,i)=> i===idx ? {...l, stage:prevStage, stageEnteredAt:L.stageEnteredAt} : l), stageSaving:false }));
+    } finally {
+      this._stageSaving = false;
     }
   };
 
@@ -1569,7 +1583,8 @@ class LandlordDetail extends React.Component {
               </div>
 
               {/* pipeline progress + stage selector */}
-              <div style={css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;")}>
+              <div style={{ ...css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;"), position:'relative', overflow:'hidden' }}>
+                {this.state.stageSaved && <SendFlash color="#34d399" label="Saved!" glyph="↕" />}
                 <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
                   <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline</span>
                   <span style={css("font-size:11px; color:hsl(38 92% 60%); font-weight:600;")}>Stage {stage.index} of {stage.total}</span>
@@ -1577,15 +1592,26 @@ class LandlordDetail extends React.Component {
                 <div style={css("height:6px; border-radius:99px; background:rgba(255,255,255,0.07); overflow:hidden;")}><div style={stage.barStyle}></div></div>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;")}>
                   <span style={css("font-size:11px; color:rgba(255,255,255,0.45);")}>{stage.nextLabel}</span>
-                  <select
-                    value={L.stage || 'initial_contact'}
-                    onChange={(e)=> this.onStageChange(e.target.value)}
-                    style={css("padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}
-                  >
-                    {this.STAGES.map((s,i)=> (
-                      <option key={s} value={this.STAGE_KEYS[i]||s} style={{background:'#13182a'}}>{s}</option>
-                    ))}
-                  </select>
+                  <div style={css("display:flex; align-items:center; gap:8px;")}>
+                    <select
+                      value={this.state.pendingStage || L.stage || 'initial_contact'}
+                      onChange={(e)=> this.setState({ pendingStage: e.target.value })}
+                      style={css("padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}
+                    >
+                      {this.STAGES.map((s,i)=> (
+                        <option key={s} value={this.STAGE_KEYS[i]||s} style={{background:'#13182a'}}>{s}</option>
+                      ))}
+                    </select>
+                    {this.state.pendingStage && this.state.pendingStage !== L.stage && (
+                      <button
+                        onClick={()=> this.onStageChange(this.state.pendingStage)}
+                        disabled={this.state.stageSaving}
+                        style={css("padding:6px 12px; border-radius:8px; border:1px solid rgba(52,211,153,0.45); background:rgba(52,211,153,0.16); color:#34d399; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; opacity:"+(this.state.stageSaving?0.6:1)+";")}
+                      >
+                        {this.state.stageSaving ? 'Saving…' : 'Save'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
