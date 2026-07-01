@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import ActivityTimeline from '@/components/landlord/ActivityTimeline';
 import OutreachTab from '@/components/landlord/OutreachTab';
 import NegotiationTab from '@/components/landlord/NegotiationTab';
+import PipelineTab from '@/components/landlord/PipelineTab';
 
 // Simple two-column label/value grid — used by the Unit and Qualify tabs.
 function RowsGrid({ rows }) {
@@ -116,7 +117,7 @@ function useLandlordActivity(landlordId, landlord) {
   });
 }
 
-export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData }) {
+export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys }) {
   const [active, setActive] = useState('Info');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
@@ -173,6 +174,20 @@ export default function LandlordMockTabs({ landlordId, landlord, outreachData, o
           ) : (
             <ActivityTimeline activity={activity} />
           )}
+        </div>
+      ) : active === 'Pipeline' && stage ? (
+        <div style={{ marginTop: 14 }}>
+          <PipelineTab
+            stage={stage}
+            currentStageKey={currentStageKey}
+            pendingStage={pendingStage}
+            onPendingStageChange={onPendingStageChange}
+            stageSaving={stageSaving}
+            stageSaved={stageSaved}
+            onSaveStage={onSaveStage}
+            stages={stages}
+            stageKeys={stageKeys}
+          />
         </div>
       ) : active === 'Outreach' && outreachData ? (
         <div style={{ marginTop: 14, borderRadius: 14, border: '1px solid rgba(201,162,75,0.18)', background: 'rgba(255,255,255,0.03)', padding: '14px 14px' }}>

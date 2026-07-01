@@ -1557,6 +1557,15 @@ class LandlordDetail extends React.Component {
                 qualifyRows={vm.qualifyRows}
                 unitRows={vm.unitRows}
                 negotiationData={vm.negotiationVM}
+                stage={stage}
+                currentStageKey={L.stage}
+                pendingStage={this.state.pendingStage}
+                onPendingStageChange={(v)=> this.setState({ pendingStage: v })}
+                stageSaving={this.state.stageSaving}
+                stageSaved={this.state.stageSaved}
+                onSaveStage={this.onStageChange}
+                stages={this.STAGES}
+                stageKeys={this.STAGE_KEYS}
               />
 
               <ListingManagerStrip 
@@ -1590,39 +1599,6 @@ class LandlordDetail extends React.Component {
                       No commission yet
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* pipeline progress + stage selector */}
-              <div style={{ ...css("margin-top:16px; border-radius:13px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:13px 15px; animation: ld-rise 0.43s cubic-bezier(0.22,1,0.36,1) both;"), position:'relative', overflow:'hidden' }}>
-                {this.state.stageSaved && <SendFlash color="#34d399" label="Saved!" glyph="↕" />}
-                <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
-                  <span style={css("font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.5);")}>Pipeline</span>
-                  <span style={css("font-size:11px; color:hsl(38 92% 60%); font-weight:600;")}>Stage {stage.index} of {stage.total}</span>
-                </div>
-                <div style={css("height:6px; border-radius:99px; background:rgba(255,255,255,0.07); overflow:hidden;")}><div style={stage.barStyle}></div></div>
-                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;")}>
-                  <span style={css("font-size:11px; color:rgba(255,255,255,0.45);")}>{stage.nextLabel}</span>
-                  <div style={css("display:flex; align-items:center; gap:8px;")}>
-                    <select
-                      value={this.state.pendingStage || L.stage || 'initial_contact'}
-                      onChange={(e)=> this.setState({ pendingStage: e.target.value })}
-                      style={css("padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;")}
-                    >
-                      {this.STAGES.map((s,i)=> (
-                        <option key={s} value={this.STAGE_KEYS[i]||s} style={{background:'#13182a'}}>{s}</option>
-                      ))}
-                    </select>
-                    {this.state.pendingStage && this.state.pendingStage !== L.stage && (
-                      <button
-                        onClick={()=> this.onStageChange(this.state.pendingStage)}
-                        disabled={this.state.stageSaving}
-                        style={css("padding:6px 12px; border-radius:8px; border:1px solid rgba(52,211,153,0.45); background:rgba(52,211,153,0.16); color:#34d399; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; opacity:"+(this.state.stageSaving?0.6:1)+";")}
-                      >
-                        {this.state.stageSaving ? 'Saving…' : 'Save'}
-                      </button>
-                    )}
-                  </div>
                 </div>
               </div>
 
