@@ -121,13 +121,29 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
     const name = L.full_name_en || L.full_name || 'Unnamed landlord';
     const phone = L.phone || '';
     const email = L.email || '';
-    const rows = [['Name', 'Phone', 'Email'], [name, phone, email]];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const unitRefVal = L.unit_reference || U.unit_no || '';
+    const towerName = L.project_name || U.building_name || '';
+    const noteParts = [];
+    if (unitRefVal) noteParts.push(`Unit: ${unitRefVal}`);
+    if (towerName) noteParts.push(`Tower: ${towerName}`);
+    const vcfLines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${name}`,
+      `N:${name};;;;`,
+    ];
+    if (phone) vcfLines.push(`TEL;TYPE=CELL:${phone}`);
+    if (email) vcfLines.push(`EMAIL:${email}`);
+    if (unitRefVal) vcfLines.push(`ORG:${towerName || ''};Unit ${unitRefVal}`);
+    else if (towerName) vcfLines.push(`ORG:${towerName}`);
+    if (noteParts.length) vcfLines.push(`NOTE:${noteParts.join(' | ')}`);
+    vcfLines.push('END:VCARD');
+    const vcf = vcfLines.join('\n');
+    const blob = new Blob([vcf], { type: 'text/vcard' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${name.replace(/\s+/g, '_')}_contact.csv`;
+    a.download = `${name.replace(/\s+/g, '_')}_contact.vcf`;
     a.click();
     URL.revokeObjectURL(url);
 
