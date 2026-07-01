@@ -268,13 +268,15 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
   };
 
   return (
-    <div
+    <a
+      href={`/landlord/${landlord.id}`}
       onClick={(e) => {
         e.stopPropagation();
+        e.preventDefault();
         navigate(`/landlord/${landlord.id}`);
       }}
       className={cn(
-        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 border shadow-sm',
+        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 border shadow-sm block',
         isDragging
           ? 'scale-[1.03] shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-accent/60'
           : 'hover:shadow-md border-border',
@@ -594,7 +596,7 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           </button>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
