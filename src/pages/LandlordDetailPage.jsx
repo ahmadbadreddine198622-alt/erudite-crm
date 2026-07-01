@@ -38,6 +38,7 @@ import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreac
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
 import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
+import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1530,6 +1531,8 @@ class LandlordDetail extends React.Component {
                 imessageChecking={this.state.imessageChecking}
                 onCheckIMessage={this.checkIMessage}
               />
+
+              <LandlordMockTabs />
 
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
