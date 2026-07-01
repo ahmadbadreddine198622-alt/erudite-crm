@@ -1,9 +1,11 @@
-// Mockup only — 3-tab underline nav (Info / Activity / Pipeline) shown below the identity header.
-// Activity tab shows a sample timeline of everything that can happen on a contact (calls, emails,
-// messages, uploads/downloads, tasks, appointments). All data below is placeholder — the user will
-// tell us when to wire this to real records.
+// 3-tab underline nav (Info / Activity / Pipeline) shown below the identity header.
+// The Activity tab is now LIVE: it pulls this landlord's real notes, tasks, appointments,
+// documents, calls and messages and renders them as one chronological feed, each row
+// tagged with the agent ("by") who did it. Info/Pipeline tabs remain placeholders.
 import React, { useState } from 'react';
-import { Phone, Mail, MessageCircle, Upload, Download, CheckSquare, Calendar, FileText, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Phone, Mail, MessageCircle, Upload, CheckSquare, Calendar, FileText, RefreshCw, Loader2 } from 'lucide-react';
 
 const GOLD = '#C9A24B';
 const TABS = ['Info', 'Activity', 'Pipeline'];
@@ -13,29 +15,23 @@ const ACTIVITY_META = {
   email: { icon: Mail, color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)' },
   message: { icon: MessageCircle, color: '#4ade80', bg: 'rgba(37,211,102,0.14)' },
   upload: { icon: Upload, color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)' },
-  download: { icon: Download, color: '#34d399', bg: 'rgba(16,185,129,0.14)' },
   task: { icon: CheckSquare, color: '#34d399', bg: 'rgba(16,185,129,0.14)' },
   appointment: { icon: Calendar, color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)' },
-  document: { icon: FileText, color: 'rgba(255,255,255,0.7)', bg: 'rgba(255,255,255,0.06)' },
+  note: { icon: FileText, color: 'rgba(255,255,255,0.7)', bg: 'rgba(255,255,255,0.06)' },
   followup: { icon: RefreshCw, color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)' },
 };
 
-// Placeholder sample rows only — not wired to any entity yet. `by` = agent who did it,
-// `source` (follow-up only) = where the lead originally came from.
-const MOCK_ACTIVITY = [
-  { type: 'call', title: 'Outbound call · 4m 12s', subtitle: 'Twilio', by: 'Ahmad Al Farsi', time: 'Today 12:40 PM' },
-  { type: 'followup', title: 'Follow-up scheduled', subtitle: 'Lead source: Property Finder', by: 'Ahmad Al Farsi', time: 'Today 11:45 AM' },
-  { type: 'email', title: 'Email sent · Listing update', subtitle: 'To landlord@example.com', by: 'Sara Khoury', time: 'Today 11:15 AM' },
-  { type: 'message', title: 'WhatsApp message sent', subtitle: '"Sharing the updated floor plan..."', by: 'Ahmad Al Farsi', time: 'Today 10:02 AM' },
-  { type: 'upload', title: 'Document uploaded · Title Deed', subtitle: '', by: 'Ahmad Al Farsi', time: 'Yesterday 4:20 PM' },
-  { type: 'download', title: 'Contact card downloaded', subtitle: 'CSV export', by: 'Sara Khoury', time: 'Yesterday 2:05 PM' },
-  { type: 'task', title: 'Task created · Send Form A', subtitle: 'Due in 2 days', by: 'Ahmad Al Farsi', time: 'Yesterday 9:30 AM' },
-  { type: 'appointment', title: 'Appointment booked · Viewing', subtitle: 'Mon 14 Jul · 3:00 PM', by: 'Ahmad Al Farsi', time: '2 days ago' },
-  { type: 'followup', title: 'Lead created', subtitle: 'Lead source: Bayut inquiry', by: 'System', time: '5 days ago' },
-];
+const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };
+const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
+const agentLabel = (email) => (email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null);
+const fmtTime = (ts) => {
+  if (!ts) return '';
+  const d = new Date(ts); if (isNaN(d)) return '';
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
 
 function ActivityRow({ item }) {
-  const meta = ACTIVITY_META[item.type] || ACTIVITY_META.document;
+  const meta = ACTIVITY_META[item.type] || ACTIVITY_META.note;
   const Icon = meta.icon;
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '10px 2px' }}>
@@ -56,8 +52,50 @@ function ActivityRow({ item }) {
   );
 }
 
-export default function LandlordMockTabs() {
+function useLandlordActivity(landlordId, landlord) {
+  return useQuery({
+    queryKey: ['landlord_activity_feed', landlordId],
+    enabled: !!landlordId,
+    staleTime: 15000,
+    queryFn: async () => {
+      const [notes, tasks, appointments, documents, imessages, telegrams, aircalls, quals] = await Promise.all([
+        safe(() => base44.entities.LandlordNote.filter({ landlord_id: landlordId }, '-created_date', 50)),
+        safe(() => base44.entities.LandlordTask.filter({ landlord_id: landlordId }, '-created_date', 50)),
+        safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: landlordId }, '-datetime', 50)),
+        safe(() => base44.entities.LandlordDocument.filter({ landlord_id: landlordId }, '-created_date', 50)),
+        safe(() => base44.entities.IMessage.filter({ landlord_id: landlordId }, '-sent_at', 50)),
+        safe(() => base44.entities.TelegramMessage.filter({ landlord_id: landlordId }, '-sent_at', 50)),
+        safe(() => base44.entities.AircallCall.filter({ landlord_id: landlordId }, '-started_at', 50)),
+        safe(() => base44.entities.CallQualification.filter({ landlord_id: landlordId }, '-call_date', 50)),
+      ]);
+
+      const items = [];
+
+      notes.forEach((n) => items.push({ type: 'note', title: 'Note added', subtitle: n.body, by: n.author_name || agentLabel(n.author_email), ts: tsOf(n.created_date) }));
+      tasks.forEach((t) => items.push({ type: 'task', title: 'Task · ' + t.title, subtitle: t.due_date ? `Due ${t.due_date}` : '', by: agentLabel(t.assignee_email), ts: tsOf(t.created_date) }));
+      appointments.forEach((a) => items.push({ type: a.channel === 'call' || a.type === 'call' ? 'call' : a.channel ? 'followup' : 'appointment', title: (a.channel ? 'Follow-up' : 'Appointment') + ' · ' + (a.type || ''), subtitle: a.notes || (a.datetime ? new Date(a.datetime).toLocaleString('en-GB') : ''), by: agentLabel(a.agent_email), ts: tsOf(a.datetime || a.created_date) }));
+      documents.forEach((d) => items.push({ type: 'upload', title: 'Document ' + (d.status === 'missing' ? 'requested' : d.status) + ' · ' + String(d.document_type || '').replace(/_/g, ' '), subtitle: '', by: agentLabel(d.verified_by_email), ts: tsOf(d.verified_at || d.created_date) }));
+      imessages.forEach((m) => items.push({ type: 'message', title: (m.direction === 'inbound' ? 'iMessage received' : 'iMessage sent'), subtitle: m.body, by: agentLabel(m.agent_email), ts: tsOf(m.sent_at || m.created_date) }));
+      telegrams.forEach((m) => items.push({ type: 'message', title: (m.direction === 'inbound' ? 'Telegram received' : 'Telegram sent'), subtitle: m.body, by: agentLabel(m.agent_email), ts: tsOf(m.sent_at || m.created_date) }));
+      aircalls.forEach((c) => items.push({ type: 'call', title: (c.direction === 'inbound' ? 'Inbound call' : 'Outbound call') + (c.duration ? ` · ${Math.round(c.duration / 60)}m` : ''), subtitle: c.from_number || c.to_number || '', by: c.agent_name || agentLabel(c.agent_email), ts: tsOf(c.started_at || c.created_date) }));
+      quals.forEach((q) => items.push({ type: 'call', title: 'Call logged · ' + String(q.call_outcome || 'qualification').replace(/_/g, ' '), subtitle: q.agent_notes || '', by: agentLabel(q.agent_email), ts: tsOf(q.call_date || q.created_date) }));
+
+      // Synthetic "Lead created" entry showing where the lead originally came from.
+      if (landlord?.created_date) {
+        items.push({ type: 'followup', title: 'Lead created', subtitle: landlord.source ? `Source: ${String(landlord.source).replace(/_/g, ' ')}` : '', by: 'System', ts: tsOf(landlord.created_date) });
+      }
+
+      return items
+        .filter((it) => it.ts)
+        .sort((a, b) => b.ts - a.ts)
+        .map((it) => ({ ...it, time: fmtTime(it.ts) }));
+    },
+  });
+}
+
+export default function LandlordMockTabs({ landlordId, landlord }) {
   const [active, setActive] = useState('Info');
+  const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
   return (
     <div style={{ marginTop: 14 }}>
@@ -97,14 +135,25 @@ export default function LandlordMockTabs() {
             border: '1px solid rgba(201,162,75,0.18)',
             background: 'rgba(255,255,255,0.03)',
             padding: '8px 14px',
+            minHeight: 120,
           }}
         >
-          {MOCK_ACTIVITY.map((item, i) => (
-            <React.Fragment key={i}>
-              <ActivityRow item={item} />
-              {i < MOCK_ACTIVITY.length - 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />}
-            </React.Fragment>
-          ))}
+          {isLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 0', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+              <Loader2 size={14} className="animate-spin" /> Loading activity…
+            </div>
+          ) : activity.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.4)', fontSize: 12.5 }}>
+              No activity yet for this landlord.
+            </div>
+          ) : (
+            activity.map((item, i) => (
+              <React.Fragment key={i}>
+                <ActivityRow item={item} />
+                {i < activity.length - 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />}
+              </React.Fragment>
+            ))
+          )}
         </div>
       ) : (
         <div

@@ -1532,7 +1532,7 @@ class LandlordDetail extends React.Component {
                 onCheckIMessage={this.checkIMessage}
               />
 
-              <LandlordMockTabs />
+              <LandlordMockTabs landlordId={this.state.currentId} landlord={this.props.rawLandlord} />
 
               <ListingManagerStrip 
                 listingManagerEmail={L.listing_manager_email}
