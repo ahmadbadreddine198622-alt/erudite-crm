@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
-export default function VapiCallDialog({ lead, landlord, iconOnly = false }) {
+export default function VapiCallDialog({ lead, landlord, iconOnly = false, label = null }) {
     const [open, setOpen]                   = useState(false);
     const [assistants, setAssistants]       = useState([]);
     const [phoneNumbers, setPhoneNumbers]   = useState([]); // VAPI phone numbers
@@ -202,11 +202,19 @@ export default function VapiCallDialog({ lead, landlord, iconOnly = false }) {
     const initial = (entityName || phoneNumber || '?').charAt(0).toUpperCase();
 
     const trigger = iconOnly ? (
-        <button title="AI Voice Call (VAPI)"
-            className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-105"
-            style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
-            <Mic className="w-4 h-4 text-violet-400" />
-        </button>
+        label ? (
+            <button title="AI Voice Call (VAPI)"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>
+                <Mic className="w-3 h-3" /> {label}
+            </button>
+        ) : (
+            <button title="AI Voice Call (VAPI)"
+                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-105"
+                style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                <Mic className="w-4 h-4 text-violet-400" />
+            </button>
+        )
     ) : (
         <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105"
             style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>

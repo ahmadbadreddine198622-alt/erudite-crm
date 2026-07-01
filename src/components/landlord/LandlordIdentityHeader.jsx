@@ -8,9 +8,8 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
-import { Download, Phone, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
+import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
-import AircallButton from '@/components/shared/AircallButton';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -149,21 +148,46 @@ function ChIcon({ href, title, color, bg, border, children }) {
   );
 }
 
-// Icon-only channel row for ONE phone number — no number text, icons only.
+// Icon+label pill used by Twilio/WhatsApp channel buttons.
+function ChPill({ icon, label, color, bg, border, href, onClick }) {
+  const Tag = href ? 'a' : 'div';
+  return (
+    <Tag
+      href={href}
+      target={href ? '_blank' : undefined}
+      rel={href ? 'noopener noreferrer' : undefined}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        height: 26, padding: '0 9px', borderRadius: 8,
+        background: bg, border: '1px solid ' + border, color, textDecoration: 'none', cursor: 'pointer',
+        fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap',
+      }}
+    >
+      {icon}{label}
+    </Tag>
+  );
+}
+
+// Channel row for ONE phone number — Call (icon), Aircall (icon, direct tel: link — fixed to
+// not depend on the shared AircallButton component), Twilio / Vapi / WhatsApp (icon + label).
 function PhoneChannelRow({ phone, landlord }) {
   if (!phone) return null;
   const digits = phone.replace(/[^0-9]/g, '');
+  const cleanTel = phone.replace(/[\s\-()]/g, '');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
       <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
         <Phone size={12} />
       </ChIcon>
-      <TwilioCallDialog landlord={landlord} phoneOverride={phone} iconOnly />
-      <AircallButton phone={phone} iconOnly />
-      <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly />
-      <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
-        <MessageCircle size={12} />
+      <ChIcon href={`tel:${cleanTel}`} title={`Aircall: Call ${phone}`} color="#00beff" bg="rgba(0,190,255,0.14)" border="rgba(0,190,255,0.3)">
+        <PhoneCall size={12} />
       </ChIcon>
+      <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
+        <ChPill icon={<Phone size={12} />} label="Twilio" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
+      </TwilioCallDialog>
+      <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly label="Vapi" />
+      <ChPill href={`https://wa.me/${digits}`} icon={<MessageCircle size={12} />} label="WhatsApp" color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)" />
     </div>
   );
 }
