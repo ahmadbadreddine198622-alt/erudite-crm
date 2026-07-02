@@ -380,17 +380,6 @@ export default function CallQualificationTab({ landlord }) {
               </Field>
             </div>
 
-            <Field label="Agent Notes">
-              <textarea
-                rows={3}
-                className={inputCls + ' resize-none'}
-                style={inputStyle}
-                placeholder="Anything else from the call…"
-                value={form.agent_notes}
-                onChange={e => set('agent_notes', e.target.value)}
-              />
-            </Field>
-
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
