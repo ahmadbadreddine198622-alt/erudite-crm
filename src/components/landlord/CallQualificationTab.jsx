@@ -261,7 +261,8 @@ export default function CallQualificationTab({ landlord }) {
       setSaved(true);
       setIsExpanded(false); // Collapse after save
       setTimeout(() => setSaved(false), 3000);
-      toast({ title: 'Call logged', description: 'Qualification saved. AI scoring will run shortly.' });
+      const { dismiss } = toast({ title: 'Call logged', description: 'Qualification saved. AI scoring will run shortly.' });
+      setTimeout(dismiss, 2000);
     },
     onError: e => toast({ title: 'Save failed', description: e.message, variant: 'destructive' }),
   });
