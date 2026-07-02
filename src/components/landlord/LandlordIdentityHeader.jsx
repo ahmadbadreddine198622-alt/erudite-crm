@@ -357,6 +357,11 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
             {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
             {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
+            {(has(L.phone) || has(L.email) || has(name)) && (
+              <button onClick={handleDownload} title="Download contact (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 999, cursor: 'pointer', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399', flex: 'none' }}>
+                <Download size={12} />
+              </button>
+            )}
           </div>
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
@@ -482,12 +487,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                     handles={handles}
                   />
                   {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
-                  <Dot />
                 </>
               )}
-              <button onClick={handleDownload} title="Download contact CSV (notifies Ahmad)" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}>
-                <Download size={12} /> Download
-              </button>
             </div>
           )}
         </div>
