@@ -31,7 +31,7 @@ export default function AppLayout() {
 
       <main className="flex-1 min-w-0 pb-36 md:pb-0 relative bg-background">
         {/* Persistent Control Rail — Home / Menu / Command */}
-        {location.pathname !== '/' && !location.pathname.startsWith('/landlord/') && <ControlRail onAddLead={() => setAddLeadOpen(true)} onNewListing={() => {}} />}
+        {location.pathname !== '/' && <ControlRail onAddLead={() => setAddLeadOpen(true)} onNewListing={() => {}} />}
         
         <div className="page-enter w-full min-w-0">
           <Outlet />
