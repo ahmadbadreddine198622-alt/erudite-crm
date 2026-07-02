@@ -172,7 +172,7 @@ function ChPill({ icon, label, color, bg, border, href, onClick }) {
 
 // Combined row for ONE phone number — the number itself on the left, and the channel pills
 // (Call, Aircall, Twilio, Vapi, WhatsApp) sitting right next to it on the right.
-function PhoneContactRow({ phone, label, landlord }) {
+function PhoneContactRow({ phone, landlord }) {
   if (!phone) return null;
   const digits = phone.replace(/[^0-9]/g, '');
   const cleanTel = phone.replace(/[\s\-()]/g, '');
@@ -181,7 +181,6 @@ function PhoneContactRow({ phone, label, landlord }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <Phone size={12} style={{ color: GOLD, flex: 'none' }} />
         <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>{label}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
         <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
@@ -368,18 +367,6 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           {has(L.full_name_ar) && (
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
-
-          {/* Full contact list — every phone + email, each with its channel icons right next to it */}
-          {(allPhones.length > 0 || allEmails.length > 0) && (
-            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {allPhones.map((p, i) => (
-                <PhoneContactRow key={'p' + i} phone={p.value} label={p.label} landlord={L} />
-              ))}
-              {allEmails.map((e, i) => (
-                <EmailContactRow key={'e' + i} email={e.value} />
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -403,6 +390,40 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           </>
         )}
         {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
+      </div>
+
+      {/* Contact list — every phone + email, each with its channel icons right next to it */}
+      {(allPhones.length > 0 || allEmails.length > 0) && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {allPhones.map((p, i) => (
+            <PhoneContactRow key={'p' + i} phone={p.value} landlord={L} />
+          ))}
+          {allEmails.map((e, i) => (
+            <EmailContactRow key={'e' + i} email={e.value} />
+          ))}
+        </div>
+      )}
+
+      {/* Add Number / Add Email — right after the contact details */}
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {addingPhone ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
+            <button onClick={handleAddPhone} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+            <button onClick={() => { setAddingPhone(false); setNewPhone(''); }} style={cancelBtnStyle}><X size={11} /></button>
+          </div>
+        ) : (
+          <button onClick={() => setAddingPhone(true)} style={addPillStyle}><Plus size={10} /> Add Number</button>
+        )}
+        {addingEmail ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <input autoFocus value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@…" onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()} style={{ ...smallInputStyle, width: 150 }} />
+            <button onClick={handleAddEmail} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+            <button onClick={() => { setAddingEmail(false); setNewEmail(''); }} style={cancelBtnStyle}><X size={11} /></button>
+          </div>
+        ) : (
+          <button onClick={() => setAddingEmail(true)} style={addPillStyle}><Plus size={10} /> Add Email</button>
+        )}
       </div>
 
       {/* TIER 3 — Status chips (more vibrant) */}
@@ -481,29 +502,6 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
       )}
 
-      {/* Add controls — channel icons now live inline next to each number/email above */}
-      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {addingPhone ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
-              <button onClick={handleAddPhone} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
-              <button onClick={() => { setAddingPhone(false); setNewPhone(''); }} style={cancelBtnStyle}><X size={11} /></button>
-            </div>
-          ) : (
-            <button onClick={() => setAddingPhone(true)} style={addPillStyle}><Plus size={10} /> Add Number</button>
-          )}
-          {addingEmail ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <input autoFocus value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@…" onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()} style={{ ...smallInputStyle, width: 150 }} />
-              <button onClick={handleAddEmail} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
-              <button onClick={() => { setAddingEmail(false); setNewEmail(''); }} style={cancelBtnStyle}><X size={11} /></button>
-            </div>
-          ) : (
-            <button onClick={() => setAddingEmail(true)} style={addPillStyle}><Plus size={10} /> Add Email</button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
