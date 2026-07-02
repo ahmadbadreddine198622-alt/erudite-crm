@@ -65,11 +65,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No destination address (phone or Apple ID) found' }, { status: 400 });
     }
 
-    // Fallback signal for no iMessage handle
-    if (landlord && landlord.imessage_resolved_at && !landlord.imessage_handle && !body.address) {
+    // Fallback signal — only block when we've explicitly confirmed iMessage is NOT available.
+    // (imessage_handle is often empty even when imessage_status is 'available', since the
+    // phone-based availability check never populates it — don't use it to gate sending.)
+    if (landlord && landlord.imessage_status === 'not_available' && !body.address) {
       return Response.json({
         error: 'No iMessage-available handle for this landlord',
-        imessage_status: landlord.imessage_status || 'not_available',
+        imessage_status: landlord.imessage_status,
         fallback: 'whatsapp',
       }, { status: 409 });
     }
