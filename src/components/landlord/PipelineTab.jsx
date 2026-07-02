@@ -1,5 +1,6 @@
 import React from 'react';
 import { SendFlash } from '@/components/landlord/sendFeedback';
+import CommissionPipelineCard from '@/components/landlord/CommissionPipelineCard';
 
 /* Convert a CSS declaration string into a React style object. */
 function css(str) {
@@ -17,8 +18,15 @@ function css(str) {
 
 // Pipeline progress bar + stage selector — moved here from the right-panel sidebar so it lives
 // under the Pipeline tab itself.
-export default function PipelineTab({ stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys }) {
+export default function PipelineTab({ stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys, commissionPct, askingPriceAed, formAContractsCount, onNavigate }) {
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <CommissionPipelineCard
+      commissionPct={commissionPct}
+      askingPriceAed={askingPriceAed}
+      formAContractsCount={formAContractsCount}
+      onClick={() => onNavigate && onNavigate('/commissions')}
+    />
     <div style={{ ...css("border-radius:13px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:13px 15px;"), position: 'relative', overflow: 'hidden' }}>
       {stageSaved && <SendFlash color="#34d399" label="Saved!" glyph="↕" />}
       <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
@@ -49,6 +57,7 @@ export default function PipelineTab({ stage, currentStageKey, pendingStage, onPe
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

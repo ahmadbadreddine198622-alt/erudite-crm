@@ -117,7 +117,7 @@ function useLandlordActivity(landlordId, landlord) {
   });
 }
 
-export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys }) {
+export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys, commissionPct, askingPriceAed, formAContractsCount, onNavigate }) {
   const [active, setActive] = useState('Info');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
@@ -189,6 +189,10 @@ export default function LandlordMockTabs({ landlordId, landlord, outreachData, o
             onSaveStage={onSaveStage}
             stages={stages}
             stageKeys={stageKeys}
+            commissionPct={commissionPct}
+            askingPriceAed={askingPriceAed}
+            formAContractsCount={formAContractsCount}
+            onNavigate={onNavigate}
           />
         </div>
       ) : active === 'Outreach' && outreachData ? (
