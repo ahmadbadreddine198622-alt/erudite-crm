@@ -191,6 +191,9 @@ export default function MobileDock() {
   const { data: conversations = [] } = useQuery({ queryKey: ['dock-wa'], queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 20), staleTime: 60_000 });
   const urgentCount = reminders.filter(r => r.due_at && new Date(r.due_at) < new Date()).length + conversations.reduce((s, c) => s + (c.unread_count || 0), 0);
 
+  // Landlord Detail is its own full-screen app with its own back/nav controls — no dock overlay.
+  if (location.pathname.startsWith('/landlord/')) return null;
+
   // Desktop — no dock (sidebar handles navigation)
   if (!isMobile) return null;
 
