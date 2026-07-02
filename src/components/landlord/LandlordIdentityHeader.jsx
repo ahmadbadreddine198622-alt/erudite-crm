@@ -177,12 +177,9 @@ function PhoneContactRow({ phone, landlord }) {
   const digits = phone.replace(/[^0-9]/g, '');
   const cleanTel = phone.replace(/[\s\-()]/g, '');
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <Phone size={12} style={{ color: GOLD, flex: 'none' }} />
-        <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
+      <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
         <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
           <Phone size={12} />
         </ChIcon>
@@ -190,9 +187,9 @@ function PhoneContactRow({ phone, landlord }) {
           <PhoneCall size={12} />
         </ChIcon>
         <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
-          <ChPill label="TW" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
+          <ChPill label="T" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
         </TwilioCallDialog>
-        <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly label="Vapi" />
+        <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly />
         <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
           <MessageCircle size={12} />
         </ChIcon>
@@ -205,11 +202,8 @@ function PhoneContactRow({ phone, landlord }) {
 function EmailContactRow({ email }) {
   if (!email) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <Mail size={12} style={{ color: GOLD, flex: 'none' }} />
-        <a href={`mailto:${email}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{email}</a>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
+      <a href={`mailto:${email}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{email}</a>
       <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
         <Mail size={12} />
       </ChIcon>
@@ -370,10 +364,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
       </div>
 
-      {/* Refined straight divider after identity */}
-      <StraightDivider color="#C9A24B" opacity={0.5} className="my-4" />
-
-      {/* TIER 2 — Property + price (more vibrant) */}
+      {/* TIER 2 — Property + price (more vibrant), sits tight under the name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
         {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
           .filter(has)
