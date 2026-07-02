@@ -228,8 +228,10 @@ export default function VapiCallDialog({ lead, landlord, iconOnly = false, label
 
             <DialogContent
                 className="p-0 overflow-hidden"
+                overlayClassName="bg-black/30"
                 style={{
-                    background: 'linear-gradient(160deg, #12101f 0%, #0d1120 100%)',
+                    background: 'rgba(18,16,31,0.88)',
+                    backdropFilter: 'blur(6px)',
                     border: '1px solid rgba(139,92,246,0.3)',
                     borderRadius: 20,
                     maxWidth: 360,

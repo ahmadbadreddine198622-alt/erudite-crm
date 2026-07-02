@@ -207,7 +207,8 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
       <DialogContent
         className="p-0 overflow-hidden"
-        style={{ background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
+        overlayClassName="bg-black/30"
+        style={{ background: 'rgba(13,27,42,0.85)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
       >
         <DialogTitle className="sr-only">Call {targetName}</DialogTitle>
 
