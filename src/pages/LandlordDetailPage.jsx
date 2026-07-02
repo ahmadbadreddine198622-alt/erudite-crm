@@ -1600,12 +1600,6 @@ class LandlordDetail extends React.Component {
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
 
-              {/* agent notes */}
-              <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:16px 17px;")}>
-                <div style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:9px;")}>Agent Notes</div>
-                <textarea value={vm.agentNotes} onChange={this.onNotesInput} rows={3} style={css("width:100%; resize:vertical; min-height:64px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:13px; line-height:1.55; font-family:'Inter',sans-serif;")}></textarea>
-              </div>
-
               {/* tabs */}
               <div style={css("margin-top:18px;")}>
                 <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;")}>
