@@ -10,6 +10,7 @@ import ActivityTimeline from '@/components/landlord/ActivityTimeline';
 import OutreachTab from '@/components/landlord/OutreachTab';
 import NegotiationTab from '@/components/landlord/NegotiationTab';
 import PipelineTab from '@/components/landlord/PipelineTab';
+import LandlordInfoExtras from '@/components/landlord/LandlordInfoExtras';
 
 // Simple two-column label/value grid — used by the Unit and Qualify tabs.
 function RowsGrid({ rows }) {
@@ -117,7 +118,7 @@ function useLandlordActivity(landlordId, landlord) {
   });
 }
 
-export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys, commissionPct, askingPriceAed, formAContractsCount, onNavigate }) {
+export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys, commissionPct, askingPriceAed, formAContractsCount, onNavigate, infoExtrasProps }) {
   const [active, setActive] = useState('Info');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
@@ -153,7 +154,10 @@ export default function LandlordMockTabs({ landlordId, landlord, outreachData, o
 
       {/* Content area */}
       {active === 'Info' && infoRows ? (
-        <div style={{ marginTop: 14 }}><RowsGrid rows={infoRows} /></div>
+        <div style={{ marginTop: 14 }}>
+          <RowsGrid rows={infoRows} />
+          {infoExtrasProps && <LandlordInfoExtras {...infoExtrasProps} />}
+        </div>
       ) : active === 'Activity' ? (
         <div
           style={{
