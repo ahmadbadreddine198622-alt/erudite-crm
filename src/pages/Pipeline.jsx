@@ -131,6 +131,13 @@ export default function Pipeline() {
     onError: () => toast.error('Failed to delete lead'),
   });
 
+  const { data: commissions = [] } = useQuery({
+    queryKey: ['pipeline-commissions'],
+    queryFn: () => base44.entities.Commission.filter({ status: 'pending' }),
+    staleTime: 30_000,
+  });
+  const commissionPipelineTotal = commissions.reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
+
   const { data: credRows = [] } = useQuery({
     queryKey: ['pf-credential'],
     queryFn: () => base44.entities.PFCredential.list(),
@@ -283,7 +290,7 @@ export default function Pipeline() {
       }}
     >
       <div className="px-8 pb-4">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div
             className="rounded-xl p-3"
             style={{
@@ -341,6 +348,26 @@ export default function Pipeline() {
             <p className="text-xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
               {totalPipelineValue >= 1_000_000 ? `AED ${(totalPipelineValue / 1_000_000).toFixed(1)}M` : totalPipelineValue >= 1_000 ? `AED ${(totalPipelineValue / 1_000).toFixed(0)}K` : `AED ${totalPipelineValue}`}
             </p>
+          </div>
+          <div
+            className="rounded-xl p-3 flex items-center gap-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-none" style={{ background: 'hsl(38 92% 50% / 0.14)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+              <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
+              <p className="text-sm font-bold truncate" style={{ color: commissionPipelineTotal > 0 ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.4)' }}>
+                {commissionPipelineTotal > 0
+                  ? (commissionPipelineTotal >= 1_000_000 ? `AED ${(commissionPipelineTotal / 1_000_000).toFixed(1)}M` : commissionPipelineTotal >= 1_000 ? `AED ${(commissionPipelineTotal / 1_000).toFixed(0)}K` : `AED ${commissionPipelineTotal}`)
+                  : 'No commission yet'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
