@@ -2055,16 +2055,16 @@ export default function LandlordDetailPage() {
   stream.sort((a, b) => a.order - b.order);
 
   const unit = {
-    label: prop.unit_no || '—',
-    building: prop.building_name || '—',
-    area: prop.location || '—',
+    label: prop.unit_no || L.unit_reference || '—',
+    building: prop.building_name || L.project_name || '—',
+    area: prop.location || L.project_name || '—',
     beds: prop.bedrooms != null ? `${prop.bedrooms} Bed` : '—',
     baths: prop.bathrooms != null ? `${prop.bathrooms} Bath` : '—',
     sqft: prop.area_sqft ? `${prop.area_sqft} sqft` : '—',
     view: prop.view || '—',
     parking: '—',
-    serviceCharge: '—',
-    asking: prop.price_aed ? fmtAED(prop.price_aed) : '—',
+    serviceCharge: lp.service_charge_arrears_aed ? `${fmtAED(lp.service_charge_arrears_aed)} arrears` : (lp.service_charge_status ? lp.service_charge_status.replace(/_/g, ' ') : '—'),
+    asking: prop.price_aed ? fmtAED(prop.price_aed) : (L.asking_price_aed ? fmtAED(L.asking_price_aed) : '—'),
     target: '—',
     floor: '—',
   };
