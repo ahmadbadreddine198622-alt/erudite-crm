@@ -129,7 +129,8 @@ function ContactRow({ icon: Icon, value, label, href }) {
   );
 }
 
-// Shared small square icon-button style used by the Channels row.
+// Shared pill icon-button used inline next to a phone/email — fully rounded to match the
+// channel pill design (call, aircall, message icons).
 function ChIcon({ href, title, color, bg, border, children }) {
   return (
     <a
@@ -139,7 +140,7 @@ function ChIcon({ href, title, color, bg, border, children }) {
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, borderRadius: 8, flex: 'none',
+        width: 26, height: 26, borderRadius: 999, flex: 'none',
         background: bg, border: '1px solid ' + border, color, textDecoration: 'none', cursor: 'pointer',
       }}
     >
@@ -148,7 +149,7 @@ function ChIcon({ href, title, color, bg, border, children }) {
   );
 }
 
-// Icon+label pill used by Twilio/WhatsApp channel buttons.
+// Icon+label pill used by Twilio/Vapi channel buttons.
 function ChPill({ icon, label, color, bg, border, href, onClick }) {
   const Tag = href ? 'a' : 'div';
   return (
@@ -159,7 +160,7 @@ function ChPill({ icon, label, color, bg, border, href, onClick }) {
       onClick={onClick}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        height: 26, padding: '0 9px', borderRadius: 8,
+        height: 26, padding: '0 11px', borderRadius: 999,
         background: bg, border: '1px solid ' + border, color, textDecoration: 'none', cursor: 'pointer',
         fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap',
       }}
@@ -169,38 +170,51 @@ function ChPill({ icon, label, color, bg, border, href, onClick }) {
   );
 }
 
-// Channel row for ONE phone number — Call (icon), Aircall (icon, direct tel: link — fixed to
-// not depend on the shared AircallButton component), Twilio / Vapi / WhatsApp (icon + label).
-function PhoneChannelRow({ phone, landlord }) {
+// Combined row for ONE phone number — the number itself on the left, and the channel pills
+// (Call, Aircall, Twilio, Vapi, WhatsApp) sitting right next to it on the right.
+function PhoneContactRow({ phone, label, landlord }) {
   if (!phone) return null;
   const digits = phone.replace(/[^0-9]/g, '');
   const cleanTel = phone.replace(/[\s\-()]/g, '');
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-      <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
-        <Phone size={12} />
-      </ChIcon>
-      <ChIcon href={`tel:${cleanTel}`} title={`Aircall: Call ${phone}`} color="#00beff" bg="rgba(0,190,255,0.14)" border="rgba(0,190,255,0.3)">
-        <PhoneCall size={12} />
-      </ChIcon>
-      <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
-        <ChPill label="TW" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
-      </TwilioCallDialog>
-      <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly label="Vapi" />
-      <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
-        <MessageCircle size={12} />
-      </ChIcon>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <Phone size={12} style={{ color: GOLD, flex: 'none' }} />
+        <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
+          <Phone size={12} />
+        </ChIcon>
+        <ChIcon href={`tel:${cleanTel}`} title={`Aircall: Call ${phone}`} color="#00beff" bg="rgba(0,190,255,0.14)" border="rgba(0,190,255,0.3)">
+          <PhoneCall size={12} />
+        </ChIcon>
+        <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
+          <ChPill label="TW" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
+        </TwilioCallDialog>
+        <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly label="Vapi" />
+        <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
+          <MessageCircle size={12} />
+        </ChIcon>
+      </div>
     </div>
   );
 }
 
-// Icon-only channel for ONE email.
-function EmailChannelRow({ email }) {
+// Combined row for ONE email — the address on the left, mail icon pill on the right.
+function EmailContactRow({ email }) {
   if (!email) return null;
   return (
-    <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
-      <Mail size={12} />
-    </ChIcon>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <Mail size={12} style={{ color: GOLD, flex: 'none' }} />
+        <a href={`mailto:${email}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{email}</a>
+      </div>
+      <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
+        <Mail size={12} />
+      </ChIcon>
+    </div>
   );
 }
 
@@ -355,14 +369,14 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
             <div dir="rtl" style={{ marginTop: 2, fontFamily: "'Cormorant Garamond',serif", fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{L.full_name_ar}</div>
           )}
 
-          {/* Full contact list — every phone + email, Primary/Secondary labeled — sits right under the name */}
+          {/* Full contact list — every phone + email, each with its channel icons right next to it */}
           {(allPhones.length > 0 || allEmails.length > 0) && (
-            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {allPhones.map((p, i) => (
-                <ContactRow key={'p' + i} icon={Phone} value={p.value} label={p.label} href={`tel:${p.value}`} />
+                <PhoneContactRow key={'p' + i} phone={p.value} label={p.label} landlord={L} />
               ))}
               {allEmails.map((e, i) => (
-                <ContactRow key={'e' + i} icon={Mail} value={e.value} label={e.label} href={`mailto:${e.value}`} />
+                <EmailContactRow key={'e' + i} email={e.value} />
               ))}
             </div>
           )}
@@ -467,18 +481,9 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
       )}
 
-      {/* CHANNELS — icon-only communication row per phone/email + add controls */}
+      {/* Add controls — channel icons now live inline next to each number/email above */}
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)' }}>
-        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Channels</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
-          {allPhones.map((p, i) => (
-            <PhoneChannelRow key={'phch' + i} phone={p.value} landlord={L} />
-          ))}
-          {allEmails.map((e, i) => (
-            <EmailChannelRow key={'emch' + i} email={e.value} />
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {addingPhone ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <input autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+971…" onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()} style={{ ...smallInputStyle, width: 120 }} />
