@@ -41,7 +41,7 @@ const labelStyle = {
   color: 'rgba(255,255,255,0.45)', marginBottom: 5, display: 'block',
 };
 
-export default function EmailTemplateDialog({ open, onClose, template, onSaved }) {
+export default function EmailTemplateDialog({ open, onClose, template, onSaved, channel = 'email' }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -104,7 +104,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved }
         subject: form.subject.trim(),
         body: form.body.trim(),
         category: form.category,
-        channel: 'email',
+        channel: channel,
         visibility: form.visibility,
         shared_with_agents: form.visibility === 'specific_agents' ? form.shared_with_agents : [],
         is_active: true,

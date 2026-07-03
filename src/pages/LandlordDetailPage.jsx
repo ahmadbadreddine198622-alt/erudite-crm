@@ -38,6 +38,8 @@ import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreac
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
 import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
+import EmailTemplatePicker from '@/components/landlord/EmailTemplatePicker';
+import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
@@ -139,6 +141,10 @@ class LandlordDetail extends React.Component {
       pendingStage: null,
       stageSaving: false,
       stageSaved: false,
+      // Unified template system — save/load reusable message templates with access control.
+      saveTemplateOpen: false,
+      saveTemplatePrefill: null,
+      saveTemplateChannel: 'email',
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -1522,6 +1528,30 @@ class LandlordDetail extends React.Component {
                     {this.state.streamFilter==='business' && this.state.chatTemplatesOpen && <ChatTemplatePanel landlordId={L.id} phone={L.phone} onClose={()=>this.setState({chatTemplatesOpen:false})} />}
                   </React.Fragment>
                 )}
+                {/* Unified template picker — Chat (WhatsApp) & Telegram only. Loads a reusable
+                    template body into the shared composer textarea. */}
+                {(this.state.composerType === 'Chat' || this.state.composerType === 'Telegram') && (() => {
+                  const tplChannel = this.state.composerType === 'Chat' ? 'whatsapp' : 'telegram';
+                  return (
+                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:6px;")}>
+                      <EmailTemplatePicker
+                        channel={tplChannel}
+                        onSelect={({ body }) => this.setState({ composerText: body, messageAiSource: null, messageAiDraft: null })}
+                      />
+                      {(this.state.composerText || '').trim() && (
+                        <button
+                          onClick={() => this.setState({
+                            saveTemplateOpen: true,
+                            saveTemplatePrefill: { title: '', subject: '', body: this.state.composerText },
+                            saveTemplateChannel: tplChannel,
+                          })}
+                          title="Save current text as a reusable template"
+                          style={css("display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6);")}
+                        >⌘ Save as Template</button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
@@ -1638,6 +1668,15 @@ class LandlordDetail extends React.Component {
 
             </div>
           </div>
+
+          {/* Unified template dialog — shared by Chat (WhatsApp) & Telegram composers */}
+          <EmailTemplateDialog
+            open={this.state.saveTemplateOpen}
+            onClose={() => this.setState({ saveTemplateOpen: false, saveTemplatePrefill: null })}
+            template={this.state.saveTemplatePrefill ? { ...this.state.saveTemplatePrefill, category: 'general', visibility: 'private' } : null}
+            channel={this.state.saveTemplateChannel}
+            onSaved={() => toast.success('Template saved')}
+          />
         </div>
       </React.Fragment>
     );

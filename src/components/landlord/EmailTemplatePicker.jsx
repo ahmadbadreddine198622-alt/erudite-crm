@@ -19,7 +19,7 @@ const VIS_META = {
   specific_agents: { icon: Users, color: '#60a5fa', label: 'Specific' },
 };
 
-export default function EmailTemplatePicker({ onSelect }) {
+export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -28,9 +28,9 @@ export default function EmailTemplatePicker({ onSelect }) {
   const [editing, setEditing] = useState(null);
 
   const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['emailTemplates'],
+    queryKey: ['messageTemplates', channel],
     queryFn: async () => {
-      const list = await base44.entities.MessageTemplate.filter({ channel: 'email', is_active: true }, '-updated_date', 100);
+      const list = await base44.entities.MessageTemplate.filter({ channel, is_active: true }, '-updated_date', 100);
       return list || [];
     },
   });
@@ -168,7 +168,8 @@ export default function EmailTemplatePicker({ onSelect }) {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         template={editing}
-        onSaved={() => qc.invalidateQueries({ queryKey: ['emailTemplates'] })}
+        channel={channel}
+        onSaved={() => { qc.invalidateQueries({ queryKey: ['messageTemplates', channel] }); qc.invalidateQueries({ queryKey: ['emailTemplates'] }); }}
       />
     </>
   );

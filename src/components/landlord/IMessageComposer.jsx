@@ -14,6 +14,8 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import EmailTemplatePicker from './EmailTemplatePicker';
+import EmailTemplateDialog from './EmailTemplateDialog';
 
 /* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
 function playSentSound() {
@@ -115,6 +117,25 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
   const [justSent, setJustSent] = useState(false);
   const flashTimer = useRef(null);
 
+  // Unified template system — save/load reusable iMessage templates with access control.
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
+
+  const handleTemplateSelect = ({ body }) => {
+    setDraftBody(body || '');
+    setHasDraft(true);
+    toast.success('Template loaded — edit as needed');
+  };
+
+  const handleSaveAsTemplate = () => {
+    setSaveTemplatePrefill({
+      title: draftBody ? draftBody.slice(0, 40) : 'New iMessage Template',
+      subject: '',
+      body: draftBody || '',
+    });
+    setSaveTemplateOpen(true);
+  };
+
   const needsBuyer = REQUIRES_BUYER.includes(mode);
   const needsMarket = REQUIRES_MARKET.includes(mode);
   const activeMode = MODES.find((m) => m.key === mode);
@@ -200,10 +221,13 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         </div>
       )}
 
-      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
-        <span style={{ ...css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;"), color: '#60a5fa' }}>AI iMessage Draft</span>
-        <span style={css("font-size:8.5px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.45);")}>Same brain as email</span>
-        {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; justify-content:space-between;")}>
+        <div style={css("display:flex; align-items:center; gap:6px;")}>
+          <span style={{ ...css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;"), color: '#60a5fa' }}>AI iMessage Draft</span>
+          <span style={css("font-size:8.5px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.45);")}>Same brain as email</span>
+          {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
+        </div>
+        <EmailTemplatePicker channel="imessage" onSelect={handleTemplateSelect} />
       </div>
 
       {/* ── 1) TEMPLATE CHOICES (shared brain) ── */}
@@ -261,13 +285,21 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
               <div style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); margin-top:6px; white-space:pre-wrap;")}>{draftGloss}</div>
             </details>
           )}
-          <button onClick={() => send(draftBody, setSendingDraft, () => { setDraftBody(''); setDraftGloss(''); setHasDraft(false); })} disabled={sendingDraft}
-            style={css(
-              "width:100%; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; " +
-              "background:linear-gradient(180deg, #0A84FF, #0066cc); color:#fff; border:1px solid rgba(10,132,255,0.6); opacity:" + (sendingDraft ? 0.85 : 1) + ";"
-            )}>
-            {sendingDraft ? (<><span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />Sending…</>) : '➤ Send iMessage'}
-          </button>
+          <div style={css("display:flex; gap:7px;")}>
+            <button onClick={() => send(draftBody, setSendingDraft, () => { setDraftBody(''); setDraftGloss(''); setHasDraft(false); })} disabled={sendingDraft}
+              style={css(
+                "flex:1; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; " +
+                "background:linear-gradient(180deg, #0A84FF, #0066cc); color:#fff; border:1px solid rgba(10,132,255,0.6); opacity:" + (sendingDraft ? 0.85 : 1) + ";"
+              )}>
+              {sendingDraft ? (<><span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />Sending…</>) : '➤ Send iMessage'}
+            </button>
+            {hasDraft && (
+              <button onClick={handleSaveAsTemplate} title="Save current draft as a reusable template"
+                style={css("padding:10px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.15);")}>
+                ⌘ Save as Template
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -286,6 +318,15 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         {sendingManual ? (<><span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(96,165,250,0.4)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />Sending…</>) : '➤ Send my message'}
       </button>
       <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center; margin-top:6px;")}>Signature appends automatically · branded banner on first contact.</div>
+
+      {/* Save-as-template dialog */}
+      <EmailTemplateDialog
+        open={saveTemplateOpen}
+        onClose={() => { setSaveTemplateOpen(false); setSaveTemplatePrefill(null); }}
+        template={saveTemplatePrefill ? { ...saveTemplatePrefill, category: 'general', visibility: 'private' } : null}
+        channel="imessage"
+        onSaved={() => toast.success('Template saved')}
+      />
     </div>
   );
 }
