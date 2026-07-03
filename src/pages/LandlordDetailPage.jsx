@@ -1665,6 +1665,8 @@ class LandlordDetail extends React.Component {
                 onCheckIMessage={this.checkIMessage}
               />
 
+              <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
+
               <LandlordMockTabs
                 landlordId={this.state.currentId}
                 landlord={this.props.rawLandlord}
