@@ -54,13 +54,25 @@ Deno.serve(async (req) => {
       `Status: ${appt.status || 'scheduled'}`,
     ].join('\n');
 
-    // Add the acting agent as an attendee so the event also lands on their personal calendar.
+    // Pull the landlord's email so they're invited too (lands on their calendar + Google invite).
+    let landlordEmail = null;
+    if (appt.landlord_id) {
+      try {
+        const ll2 = await base44.asServiceRole.entities.Landlord.get(appt.landlord_id);
+        landlordEmail = ll2?.email || null;
+      } catch (_) { /* best-effort */ }
+    }
+    const attendees = [];
+    if (appt.agent_email) attendees.push({ email: appt.agent_email });
+    if (landlordEmail) attendees.push({ email: landlordEmail });
+
+    // Add the acting agent + landlord as attendees so the event lands on both calendars.
     const event_data = {
       summary: `${(appt.type || 'meeting')} — ${landlordName}`,
       description,
       start: { dateTime: startWall, timeZone: 'Asia/Dubai' },
       end: { dateTime: endWall, timeZone: 'Asia/Dubai' },
-      ...(appt.agent_email ? { attendees: [{ email: appt.agent_email }] } : {}),
+      ...(attendees.length ? { attendees } : {}),
     };
 
     const authHeaders = {
@@ -106,6 +118,20 @@ Deno.serve(async (req) => {
     }
 
     const newId = await createEvent();
+
+    // Send a confirmation email to the landlord on first creation.
+    if (landlordEmail && !appt.confirmation_email_sent) {
+      const dateFormatted = new Date(appt.datetime).toLocaleString('en-GB', {
+        timeZone: 'Asia/Dubai', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      });
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: landlordEmail,
+        subject: `Please confirm your appointment — ${dateFormatted}`,
+        body: `Hi ${landlordName},\n\nWe've scheduled a ${appt.type || 'meeting'} with you:\n\n📅 ${dateFormatted}\n📍 ${appt.location || 'N/A'}\n\nPlease reply to confirm you're available, or let us know if you'd like to reschedule.`,
+      }).catch(() => null);
+      await base44.asServiceRole.entities.LandlordAppointment.update(apptId, { confirmation_email_sent: true });
+    }
+
     return Response.json({ status: 'created', event_id: newId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

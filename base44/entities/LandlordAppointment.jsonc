@@ -68,6 +68,11 @@
       "type": "boolean",
       "default": false,
       "description": "true if the user changed the AI-drafted notes before saving"
+    },
+    "confirmation_email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the customer confirmation email has been sent"
     }
   },
   "required": [
