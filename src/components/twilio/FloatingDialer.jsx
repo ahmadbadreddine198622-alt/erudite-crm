@@ -154,17 +154,17 @@ export default function FloatingDialer() {
       <button
         onClick={() => setOpen(true)}
         title="Open Dialer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
-        style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 24px rgba(34,197,94,0.5)' }}
+        className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', backdropFilter: 'blur(8px)' }}
       >
-        <Phone className="w-6 h-6 text-white" />
+        <Phone className="w-4 h-4 text-green-400" />
       </button>
     );
   }
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 rounded-3xl overflow-hidden shadow-2xl"
+      className="fixed bottom-4 right-4 z-50 rounded-3xl overflow-hidden shadow-2xl"
       style={{ background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: 300, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
     >
       {/* Header */}
