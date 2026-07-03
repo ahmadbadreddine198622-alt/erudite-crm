@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Menu, Command, ChevronRight, Sparkles, X } from 'lucide-react';
+import { Home, Menu, Command, ChevronRight, Sparkles, X, MoreVertical } from 'lucide-react';
 
 // ── Color tokens from design system ───────────────────────────────────────────
 const COLORS = {
@@ -530,7 +530,21 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
-  
+  const [expanded, setExpanded] = useState(false);
+  const railRef = useRef(null);
+
+  // Collapse when clicking outside the rail
+  useEffect(() => {
+    if (!expanded) return;
+    const handleClickOutside = (e) => {
+      if (railRef.current && !railRef.current.contains(e.target)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [expanded]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -576,79 +590,96 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
           from { opacity: 0; transform: translateX(-12px); }
           to { opacity: 1; transform: translateX(0); }
         }
+        @keyframes railExpand {
+          from { opacity: 0; transform: scale(0.85); }
+          to { opacity: 1; transform: scale(1); }
+        }
         @media (prefers-reduced-motion: reduce) {
           * { animation: none !important; transition: none !important; }
         }
       `}</style>
       
-      {/* Rail container — hidden on mobile when viewing Dashboard */}
+      {/* Rail container — collapsed trigger expands to full rail */}
       <div
-        className={`z-[70] p-1.5 ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
-        style={{
-          top: 0,
-          left: 0,
-          borderRadius: 0,
-          background: 'rgba(16,20,32,0.7)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(212,175,55,0.14)',
-          borderRadius: 16,
-          boxShadow: '0 24px 50px -30px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05)',
-        }}
+        ref={railRef}
+        className={`z-[70] ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
+        style={{ top: 8, left: 8 }}
       >
-        {/* Gold hairline top edge */}
-        <div
-          className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
-            marginLeft: 14,
-            marginRight: 14,
-          }}
-        />
-        
-        {/* Buttons column */}
-        <div
-          className="flex flex-col items-center gap-1.5 relative"
-          style={{ paddingTop: 4, paddingBottom: 4 }}
-        >
-          {/* HOME */}
-          <LitButton
-            icon={Home}
-            label="Dashboard"
-            hueRgb="212,175,55"
-            gradient={['#4a3a14', '#2a1f0a', '#160f05']}
-            onClick={() => navigate('/')}
-          />
-          
-          {/* Divider */}
-          <div
+        {/* Collapsed: single trigger button */}
+        {!expanded && (
+          <button
+            onClick={() => setExpanded(true)}
+            title="Open navigation"
+            className="relative flex items-center justify-center transition-all duration-200 hover:scale-105"
             style={{
-              width: '100%',
-              height: 1,
-              background: 'rgba(212,175,55,0.12)',
+              width: 34, height: 34, borderRadius: 11,
+              background: 'radial-gradient(130% 130% at 30% 18%, #2a1f0a, #160f05 70%, #0a0703)',
+              border: '1px solid rgba(212,175,55,0.30)',
+              boxShadow: '0 0 16px -8px rgba(212,175,55,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
+              cursor: 'pointer', overflow: 'hidden',
             }}
-          />
-          
-          {/* MENU */}
-          <LitButton
-            icon={Menu}
-            label="Workspaces"
-            hueRgb="96,124,170"
-            gradient={['#222f45', '#151d2b', '#0b111c']}
-            onClick={() => { setMenuOpen(true); setCommandOpen(false); }}
-          />
-          
-          {/* COMMAND (hero) */}
-          <LitButton
-            icon={Command}
-            label="Command"
-            shortcut="⌘K"
-            hueRgb="139,92,246"
-            gradient={['#372563', '#221540', '#120a26']}
-            onClick={() => { setCommandOpen(true); setMenuOpen(false); }}
-            isHero
-          />
-        </div>
+          >
+            <div className="absolute pointer-events-none" style={{ top: 7, left: 7, right: 7, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)' }} />
+            <MoreVertical width="16" height="16" style={{ strokeWidth: 1.7, color: '#d4af37' }} />
+          </button>
+        )}
+
+        {/* Expanded: full rail with all 3 buttons */}
+        {expanded && (
+          <div
+            className="p-1.5 relative"
+            style={{
+              borderRadius: 16,
+              background: 'rgba(16,20,32,0.85)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(212,175,55,0.14)',
+              boxShadow: '0 24px 50px -30px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05)',
+              animation: 'railExpand 0.18s ease-out',
+            }}
+          >
+            {/* Gold hairline top edge */}
+            <div
+              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)', marginLeft: 14, marginRight: 14 }}
+            />
+
+            {/* Buttons column */}
+            <div className="flex flex-col items-center gap-1.5 relative" style={{ paddingTop: 4, paddingBottom: 4 }}>
+              {/* HOME */}
+              <LitButton
+                icon={Home}
+                label="Dashboard"
+                hueRgb="212,175,55"
+                gradient={['#4a3a14', '#2a1f0a', '#160f05']}
+                onClick={() => { navigate('/'); setExpanded(false); }}
+              />
+
+              {/* Divider */}
+              <div style={{ width: '100%', height: 1, background: 'rgba(212,175,55,0.12)' }} />
+
+              {/* MENU */}
+              <LitButton
+                icon={Menu}
+                label="Workspaces"
+                hueRgb="96,124,170"
+                gradient={['#222f45', '#151d2b', '#0b111c']}
+                onClick={() => { setMenuOpen(true); setCommandOpen(false); setExpanded(false); }}
+              />
+
+              {/* COMMAND (hero) */}
+              <LitButton
+                icon={Command}
+                label="Command"
+                shortcut="⌘K"
+                hueRgb="139,92,246"
+                gradient={['#372563', '#221540', '#120a26']}
+                onClick={() => { setCommandOpen(true); setMenuOpen(false); setExpanded(false); }}
+                isHero
+              />
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Flyouts */}
