@@ -519,8 +519,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
 
       {/* TIER 4 — Deal facts strip */}
       {(mandateLine || commissionPct || winPct != null || has(L.form_a_contract_number) || expiry || daysInStage || source || residency || has(L.phone)) && (
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(201,162,75,0.15)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Row A — mandate / money / win */}
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Inline deal facts — single row */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
             <Fact label="Mandate" value={mandateLine || null} />
             <Fact
@@ -528,11 +528,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
               value={commissionPct ? `${commissionPct}${estComm ? ` (~${estComm})` : ''}` : null}
               valueColor={GOLD}
             />
-
             <Fact label="Form A" value={has(L.form_a_contract_number) ? L.form_a_contract_number : null} />
-          </div>
-          {/* Row B — expiry / stage age / source / residency */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
             {expiry && <Fact label="Expiry" value={expiry.text} valueColor={expiry.color} />}
             <Fact label="Stage" value={daysInStage} />
             <Fact label="Source" value={source} />
