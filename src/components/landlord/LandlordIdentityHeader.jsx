@@ -383,7 +383,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
         <div style={{ flex: 1, minWidth: 0, marginTop: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 28, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
+            <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 22, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
             {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
             {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
             {(has(L.phone) || has(L.email) || has(name)) && (
@@ -528,7 +528,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
               value={commissionPct ? `${commissionPct}${estComm ? ` (~${estComm})` : ''}` : null}
               valueColor={GOLD}
             />
-            <Fact label="Win" value={winPct != null ? `${winPct}%` : null} valueColor={winColor} />
+
             <Fact label="Form A" value={has(L.form_a_contract_number) ? L.form_a_contract_number : null} />
           </div>
           {/* Row B — expiry / stage age / source / residency */}

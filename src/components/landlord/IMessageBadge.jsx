@@ -34,11 +34,10 @@ export default function IMessageBadge({ status = 'unknown', checkedAt, checking,
         <button
           onClick={onCheck}
           disabled={checking}
-          title="Resolve all iMessage handles from contact data"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '99px', fontSize: '9.5px', fontWeight: 600, cursor: checking ? 'default' : 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(10,132,255,0.08)', border: '1px solid rgba(10,132,255,0.25)', color: '#60a5fa', opacity: checking ? 0.6 : 1 }}
+          title="Resolve all iMessage handles"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', cursor: checking ? 'default' : 'pointer', background: 'rgba(10,132,255,0.1)', border: '1px solid rgba(10,132,255,0.25)', color: '#60a5fa', opacity: checking ? 0.6 : 1, flex: 'none' }}
         >
-          <span style={{ display: 'inline-block', animation: checking ? 'ld-spin 0.8s linear infinite' : 'none' }}>↻</span>
-          Resolve iMessage
+          <span style={{ display: 'inline-block', fontSize: 11, animation: checking ? 'ld-spin 0.8s linear infinite' : 'none' }}>↻</span>
         </button>
       </div>
       {!checking && checkedCount > 0 && (
