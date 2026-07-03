@@ -41,6 +41,7 @@ import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
 import EmailTemplatePicker from '@/components/landlord/EmailTemplatePicker';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
+import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
@@ -1237,44 +1238,25 @@ class LandlordDetail extends React.Component {
                 </div>
               )}
 
-              {/* Conversation & Activity header — mirrored layout with filters on left, title on right */}
-              <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; padding:2px 16px 4px;")}>
-                {/* Filter buttons on the LEFT */}
-                <div style={css("display:flex; align-items:center; gap:5px;")}>
-                  <button onClick={()=>this.setStreamFilter('business')} style={{...vm.businessPillStyle, padding:'3px 8px', fontSize:'10px'}}>
-                    <span style={vm.businessDotStyle}></span> Business
-                  </button>
-                  <button onClick={()=>this.setStreamFilter('personal')} style={{...vm.personalPillStyle, padding:'3px 8px', fontSize:'10px'}}>
-                    <span style={vm.personalDotStyle}></span> Personal
-                  </button>
-                  <button onClick={()=>this.setStreamFilter('email')} style={{...vm.emailPillStyle, padding:'3px 8px', fontSize:'10px'}}>
-                    <span style={vm.emailDotStyle}></span> Email
-                  </button>
-                  <button onClick={()=>this.setStreamFilter('imessage')} style={{...vm.imessagePillStyle, padding:'3px 8px', fontSize:'10px'}}>
-                    <span style={vm.imessageDotStyle}></span> iMessage
-                  </button>
-                  <button onClick={()=>this.setStreamFilter('telegram')} style={{...vm.telegramPillStyle, padding:'3px 8px', fontSize:'10px'}}>
-                    <span style={vm.telegramDotStyle}></span> Telegram
-                  </button>
-                  <button onClick={this.onAnalyse} disabled={vm.analyzing} style={css("display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:99px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.12); color:hsl(38 92% 62%); font-size:9px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+ (vm.analyzing ? 0.6 : 1))}>
-                    <span style={vm.analyseIconStyle}>↻</span> {vm.analyseLabel}
-                  </button>
-                </div>
-                {/* Animated lion decorative element in the CENTER */}
-                <div style={css("flex:1; margin:0 16px; position:relative;")}>
-                  <LionAnimatedDivider color="hsl(38 92% 50%)" />
-                </div>
-                {/* Title on the RIGHT */}
-                <div style={css("text-align:right;")}>
-                  <div style={css("font-family:'Playfair Display',serif; font-size:14px; font-weight:600; color:rgba(255,255,255,0.96);")}>Conversation &amp; Activity</div>
-                  <div style={css("font-size:9.5px; color:rgba(255,255,255,0.4); margin-top:0px;")}>{vm.streamCountLabel}</div>
-                </div>
-              </div>
+              <LandlordTabBar
+                activeTab={this.state.composerType}
+                onSelect={(t) => this.setComposerType(t)}
+                onAnalyse={this.onAnalyse}
+                analyzing={vm.analyzing}
+              />
 
               {/* unified stream — replaced by AppointmentFeed when Appointment tab is active */}
               {this.state.composerType === 'Appointment' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
                   <AppointmentFeed landlordId={L.id} />
+                </div>
+              ) : this.state.composerType === 'Documents' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <DocumentsTab docs={L.documents || []} landlordName={L.full_name_en || L.full_name || 'Landlord'} />
+                </div>
+              ) : this.state.composerType === 'Calls' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <CallsTabList calls={L.calls || []} />
                 </div>
               ) : (
                 <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
@@ -1356,19 +1338,7 @@ class LandlordDetail extends React.Component {
                     ⏰ Suggested: {vm.composerTime} <span onClick={this.onClearTime} style={css("cursor:pointer; opacity:0.6;")}>✕</span>
                   </div>
                 )}
-                <div style={css("display:flex; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
-                  {vm.composerTypes.map((t,i)=>(
-                    <button key={t.label} onClick={t.onClick} style={{...t.style, background: t.label==='Chat' ? (t.style.background.includes('37,211,102') ? 'rgba(37,211,102,0.15)' : t.style.background.includes('10,132,255') ? 'rgba(10,132,255,0.15)' : t.style.background.includes('41,182,246') ? 'rgba(41,182,246,0.15)' : 'rgba(245,158,11,0.15)') : t.style.background}}>{t.icon} {t.label}</button>
-                  ))}
-                  <button onClick={()=>this.onNavigate('/task-center')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.3); color:#a1d9b9;")}>
-                    <Calendar className="w-3 h-3" />
-                    SmartTask
-                  </button>
-                  <button onClick={()=>this.setComposerType('Appointment')} style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 9px; borderRadius:8px; fontSize:10.5px; fontWeight:600; cursor:pointer; fontFamily:'Inter',sans-serif; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.35); color:#c4b5fd;")}>
-                    <Calendar className="w-3 h-3" />
-                    Smart Calendar
-                  </button>
-                </div>
+                {/* Tab navigation moved to top — see LandlordTabBar */}
 
                 {/* AI draft control — only for Notes. Pre-fills the editable body from one of
                     three AI sources. Empty sources are disabled (no empty notes). */}
@@ -1559,7 +1529,7 @@ class LandlordDetail extends React.Component {
                     </div>
                   );
                 })()}
-                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && (
+                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (

@@ -167,7 +167,7 @@ function AppointmentCard({ item }) {
         </div>
       </button>
       {expanded && (item.notes || item.location) && (
-        <div style={css("padding:0 12px 12px 56px;")}>
+        <div style={css("padding:0 12px 10px 56px;")}>
           {item.location && (
             <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:5px;")}>
               <MapPin size={11} style={{ color: meta.color }} />
@@ -179,6 +179,16 @@ function AppointmentCard({ item }) {
           )}
         </div>
       )}
+      {/* Footer strip — channel/duration info + Add comment link (matches mock-up) */}
+      <div style={css("display:flex; align-items:center; justify-content:space-between; padding:5px 12px 6px 56px; border-top:1px solid rgba(255,255,255,0.04);")}>
+        <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>
+          {item.kind === 'call' ? 'Outbound' : item.location ? 'In-person' : 'Scheduled'} · {item.duration} min{item.source === 'appointment' && item.kind === 'call' ? ' · Twilio' : ''}
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Add comment
+        </span>
+      </div>
     </div>
   );
 }
