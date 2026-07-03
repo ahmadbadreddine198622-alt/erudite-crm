@@ -155,6 +155,7 @@ class LandlordDetail extends React.Component {
   }
 
   componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); }
+  componentDidUpdate(prevProps){ if(prevProps.landlords!==this.props.landlords && this.props.landlords?.length) this.setState({landlords:this.props.landlords}); }
 
   // Auto-run AI analysis once when a V-card opens, only if never analysed (no ai_processed_at).
   // Already-analysed landlords are left to the manual "Analyse Now" — no reload, refetch in place.

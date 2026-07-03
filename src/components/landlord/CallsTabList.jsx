@@ -29,18 +29,27 @@ const STATUS_META = {
 function InlinePlayer({ url }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
+  const [failed, setFailed] = useState(false);
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
     if (playing) { a.pause(); setPlaying(false); }
-    else a.play().then(() => setPlaying(true)).catch(() => window.open(url, '_blank'));
+    else a.play().then(() => setPlaying(true)).catch(() => { setFailed(true); });
   };
+  if (failed) {
+    return (
+      <div style={css('display:flex; align-items:center; gap:8px; margin-top:8px; padding:7px 9px; border-radius:9px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.22);')}>
+        <span style={css('font-size:11px; color:hsl(38 92% 62%);')}>⚠ Recording can't play inline</span>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={css('flex:none; font-size:10px; padding:4px 9px; border-radius:6px; color:#34d399; text-decoration:none; border:1px solid rgba(16,185,129,0.3);')}>Open ↗</a>
+      </div>
+    );
+  }
   return (
     <div style={css('display:flex; align-items:center; gap:8px; margin-top:8px; padding:7px 9px; border-radius:9px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.22);')}>
       <button onClick={toggle} style={css('flex:none; width:30px; height:30px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; background:rgba(16,185,129,0.25); color:#34d399; font-size:13px;')}>
         {playing ? '❚❚' : '▶'}
       </button>
-      <audio ref={audioRef} src={url} onEnded={() => setPlaying(false)} onPause={() => setPlaying(false)} controls style={{ flex: 1, height: 30, accentColor: '#34d399' }} />
+      <audio ref={audioRef} src={url} onError={() => setFailed(true)} onEnded={() => setPlaying(false)} onPause={() => setPlaying(false)} controls style={{ flex: 1, height: 30, accentColor: '#34d399' }} />
       <a href={url} target="_blank" rel="noopener noreferrer" style={css('flex:none; font-size:10px; padding:4px 7px; border-radius:6px; color:#34d399; text-decoration:none; border:1px solid rgba(16,185,129,0.3);')}>Open ↗</a>
     </div>
   );
@@ -64,6 +73,7 @@ export default function CallsTabList({ calls = [] }) {
                   <span style={{ ...css('display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700;'), color: pm[2], background: pm[3] }}>{pm[1]} {pm[0]}</span>
                   <span style={{ ...css('padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700;'), color: sm[1], background: sm[0] }}>{sm[2]}</span>
                   {c.recording && <span style={css('padding:2px 8px; border-radius:99px; font-size:10px; font-weight:600; color:#34d399; background:rgba(16,185,129,0.12);')}>📼 Recording</span>}
+                  {!c.recording && <span style={css('padding:2px 8px; border-radius:99px; font-size:10px; font-weight:600; color:rgba(255,255,255,0.35); background:rgba(255,255,255,0.04);')}>No recording</span>}
                   <span style={css('font-size:11px; color:rgba(255,255,255,0.42);')}>{c.who}</span>
                 </div>
               </div>
