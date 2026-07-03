@@ -12,6 +12,8 @@ import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import EmailTemplatePicker from './EmailTemplatePicker';
+import EmailTemplateDialog from './EmailTemplateDialog';
 
 /* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
 function playSentSound() {
@@ -117,6 +119,24 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [bodyGloss, setBodyGloss] = useState('');
   const [language, setLanguage] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
+
+  const handleTemplateSelect = ({ subject: s, body: b }) => {
+    setSubject(s || '');
+    setBodyNative(b || '');
+    setHasDraft(true);
+    toast.success('Template loaded — edit as needed');
+  };
+
+  const handleSaveAsTemplate = () => {
+    setSaveTemplatePrefill({
+      title: subject ? subject.slice(0, 40) : 'New Template',
+      subject: subject || '',
+      body: bodyNative || '',
+    });
+    setSaveTemplateOpen(true);
+  };
 
   // Complete email composer fields
   const [cc, setCc] = useState('');
@@ -274,9 +294,12 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         </div>
       )}
 
-      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px;")}>
-        <span style={css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 62%);")}>AI Email Draft</span>
-        {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; justify-content:space-between;")}>
+        <div style={css("display:flex; align-items:center; gap:6px;")}>
+          <span style={css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:hsl(38 92% 62%);")}>AI Email Draft</span>
+          {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
+        </div>
+        <EmailTemplatePicker onSelect={handleTemplateSelect} />
       </div>
 
       {/* mode picker */}
@@ -378,18 +401,26 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
               <div style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); margin-top:6px; white-space:pre-wrap;")}>{bodyGloss}</div>
             </details>
           )}
-          <button onClick={sendEmail} disabled={sending}
-            style={css(
-              "width:100%; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; transition:transform 0.12s ease; "+
-              "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(sending ? 0.85 : 1)+";"
-            )}>
-            {sending ? (
-              <>
-                <span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(26,18,5,0.35)', borderTopColor: '#1a1205', borderRadius: '50%', animation: 'ec-spin 0.7s linear infinite' }} />
-                Sending…
-              </>
-            ) : '✈ Send branded email'}
-          </button>
+          <div style={css("display:flex; gap:7px;")}>
+            <button onClick={sendEmail} disabled={sending}
+              style={css(
+                "flex:1; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; transition:transform 0.12s ease; "+
+                "background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(sending ? 0.85 : 1)+";"
+              )}>
+              {sending ? (
+                <>
+                  <span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(26,18,5,0.35)', borderTopColor: '#1a1205', borderRadius: '50%', animation: 'ec-spin 0.7s linear infinite' }} />
+                  Sending…
+                </>
+              ) : '✈ Send branded email'}
+            </button>
+            {hasDraft && (
+              <button onClick={handleSaveAsTemplate} title="Save current draft as a reusable template"
+                style={css("padding:10px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.15);")}>
+                ⌘ Save as Template
+              </button>
+            )}
+          </div>
           <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center;")}>Sends immediately from your connected Gmail — no draft step.</div>
 
           {delivery && (() => {
@@ -415,6 +446,14 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
           })()}
         </div>
       )}
+
+      {/* Save-as-template dialog */}
+      <EmailTemplateDialog
+        open={saveTemplateOpen}
+        onClose={() => { setSaveTemplateOpen(false); setSaveTemplatePrefill(null); }}
+        template={saveTemplatePrefill ? { ...saveTemplatePrefill, category: 'general', visibility: 'private' } : null}
+        onSaved={() => toast.success('Template saved')}
+      />
     </div>
   );
 }

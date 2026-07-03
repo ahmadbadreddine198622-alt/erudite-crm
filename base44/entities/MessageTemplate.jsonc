@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Short display name for this template"
     },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line (email templates only)"
+    },
     "body": {
       "type": "string",
       "description": "Template body \u2014 use {{landlord_name}}, {{property_name}}, {{project_name}}, {{agent_name}} as placeholders"
@@ -19,9 +23,23 @@
         "form_a",
         "viewing",
         "follow_up_general",
-        "renewal"
+        "renewal",
+        "general"
       ],
+      "default": "general",
       "description": "Grouping category for display"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "whatsapp",
+        "imessage",
+        "telegram",
+        "sms"
+      ],
+      "default": "email",
+      "description": "Which communication channel this template is for"
     },
     "variables": {
       "type": "array",
@@ -39,11 +57,92 @@
       "type": "boolean",
       "default": true,
       "description": "Hidden templates are not shown in the picker"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared",
+        "specific_agents"
+      ],
+      "default": "private",
+      "description": "Who can see this template: private (creator only), shared (everyone), specific_agents (only listed emails)"
+    },
+    "shared_with_agents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Agent emails that can see this template when visibility=specific_agents"
+    },
+    "created_by_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent who created this template"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Display name of the creator"
+    },
+    "last_used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this template was last used"
+    },
+    "usage_count": {
+      "type": "number",
+      "default": 0,
+      "description": "How many times this template has been used"
     }
   },
   "required": [
     "title",
     "body",
     "category"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_email": "{{user.email}}"
+        },
+        {
+          "data.visibility": "shared"
+        },
+        {
+          "data.shared_with_agents": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_email": "{{user.email}}"
+        }
+      ]
+    }
+  }
 }
