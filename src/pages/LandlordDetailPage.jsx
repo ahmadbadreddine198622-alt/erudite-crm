@@ -40,6 +40,7 @@ import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
 import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
 import EmailTemplatePicker from '@/components/landlord/EmailTemplatePicker';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
+import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
@@ -1270,8 +1271,13 @@ class LandlordDetail extends React.Component {
                 </div>
               </div>
 
-              {/* unified stream */}
-              <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
+              {/* unified stream — replaced by AppointmentFeed when Appointment tab is active */}
+              {this.state.composerType === 'Appointment' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
+                  <AppointmentFeed landlordId={L.id} />
+                </div>
+              ) : (
+                <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
                 {vm.stream.map((s)=> s.isMsg ? (
                   <div key={s.key} style={s.rowStyle}>
                     <div style={s.bubbleStyle}>
@@ -1326,7 +1332,8 @@ class LandlordDetail extends React.Component {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
 
               {/* AI Suggested Tasks moved to right panel */}
 
