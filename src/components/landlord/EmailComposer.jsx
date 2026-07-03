@@ -247,7 +247,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       setJustSent(true);
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
-      toast.success('✉ Sent to ' + to.trim(), { description: 'Your email is on its way.' });
+      toast.success('Sent ✓');
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       // Bounces arrive seconds-to-minutes later — re-check the thread after a short delay.
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);

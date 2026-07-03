@@ -683,7 +683,7 @@ class LandlordDetail extends React.Component {
       });
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
-      toast.success('Sent via ' + (channel === 'business' ? 'Business WhatsApp' : 'Personal WhatsApp'));
+      toast.success('Sent ✓');
       tickOutreachStep('whatsapp_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
@@ -716,7 +716,7 @@ class LandlordDetail extends React.Component {
         return;
       }
       if (data?.error) throw new Error(data.error);
-      toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
+      toast.success('Sent ✓');
       tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'imessage', text, time:'Just now', order };
@@ -754,7 +754,7 @@ class LandlordDetail extends React.Component {
       this.setState({ telegramJustSent:true });
       if (this._telegramFlashTimer) clearTimeout(this._telegramFlashTimer);
       this._telegramFlashTimer = setTimeout(()=> this.setState({ telegramJustSent:false }), 1700);
-      toast.success('Telegram sent');
+      toast.success('Sent ✓');
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'telegram', text, time:'Just now', order };
       this.setState(s=>({

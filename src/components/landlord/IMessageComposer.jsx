@@ -189,7 +189,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
       setJustSent(true);
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
-      toast.success('iMessage sent' + (data?.address ? ' · ' + data.address : ''));
+      toast.success('Sent ✓');
       if (onSent) onSent({ text });
       if (onDone) onDone();
     } catch (e) {
