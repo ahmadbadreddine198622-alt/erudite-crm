@@ -1185,14 +1185,14 @@ class LandlordDetail extends React.Component {
                 <span style={css("color:rgba(255,255,255,0.2); font-size:12px;")}>›</span>
                 <span style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.95); font-family:'Inter',sans-serif;")}>{L.full_name_en || L.full_name || 'Landlord'}</span>
               </div>
-              {/* Compact Intelligence badge */}
-              <div style={css("display:inline-flex; align-items:center; gap:7px; padding:4px 12px; border-radius:99px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.28); margin-left:4px;")}>
-                <div style={css("width:5px; height:5px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 8px hsl(38 92% 55% / 0.7); animation: pulse 2s ease-in-out infinite;")}></div>
-                <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:hsl(38 92% 60%); font-family:'Inter',sans-serif;")}>Intelligence</span>
-              </div>
             </div>
             {/* Right: metrics strip + AI Tasks + Analyse + Go Back */}
             <div style={css("display:flex; align-items:center; gap:7px;")}>
+              {/* AI INTELLIGENCE badge */}
+              <button onClick={() => this.setState(s => ({ showCoaching: !s.showCoaching }))} title="Toggle AI Intelligence panel" style={css("display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:8px; background:rgba(255,255,255,0.02); border:1px solid rgba(139,115,85,0.4); cursor:pointer; font-size:10px; font-weight:700; letter-spacing:0.06em; color:rgba(160,160,160,0.9); white-space:nowrap; font-family:'Inter',sans-serif;")}>
+                <div style={css("width:5px; height:5px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 8px hsl(38 92% 55% / 0.7); animation: pulse 2s ease-in-out infinite;")}></div>
+                AI INTELLIGENCE
+              </button>
               {/* Intelligence metrics strip */}
               {vm.aiReady && (() => {
                 const sm = (n) => n>=70 ? {c:'#34d399',b:'rgba(52,211,153,0.15)'} : n>=40 ? {c:'#e4b94a',b:'rgba(228,185,74,0.15)'} : {c:'#f87171',b:'rgba(248,113,113,0.15)'};
