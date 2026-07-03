@@ -39,6 +39,7 @@ import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/lan
 import LionAnimatedDivider from '@/components/landlord/LionAnimatedDivider';
 import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
+import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -2284,6 +2285,9 @@ export default function LandlordDetailPage() {
 
   return (
     <React.Fragment>
+      <div className="px-1 pt-1 pb-2 flex justify-end">
+        <GoogleWorkspaceConnectBanner variant="compact" />
+      </div>
       <LandlordDetail
         landlords={[mapped]}
         rawLandlord={L}

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle } from 'lucide-react';
+import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -206,6 +207,9 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Google Workspace Connection */}
+        <GoogleWorkspaceConnectBanner />
 
         {/* Danger Zone */}
         <Card className="glass-card border-red-500/30">
