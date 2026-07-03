@@ -1,9 +1,12 @@
 // FollowupComposerFields — the Follow-up composer's AI suggested-chips + scheduling fields.
-// Extracted verbatim from LandlordDetailPage to keep that file within the line limit.
+// Extracted from LandlordDetailPage to keep that file within the line limit.
 // Pure presentational: chips + current field values + handlers come from the parent.
+//
+// Now includes: expanded channel options + agent assignment dropdown (HubSpot style).
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 function css(str) {
   const o = {};
@@ -20,10 +23,39 @@ function css(str) {
 
 const fieldStyle = css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11.5px; font-family:'Inter',sans-serif;");
 
+const CHANNELS = [
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'call', label: 'Call' },
+  { value: 'email', label: 'Email' },
+  { value: 'imessage', label: 'iMessage' },
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'meeting', label: 'Meeting' },
+  { value: 'viewing', label: 'Viewing' },
+];
+
 export default function FollowupComposerFields({
   chips, followupAiSource, collapsed, onToggleCollapsed, onPickChip,
   channel, date, hour, onChannel, onDate, onHour, onClearDraft,
+  assignee, onAssignee,
 }) {
+  const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setAgentsLoading(true);
+    base44.functions.invoke('getAssignableAgents', {})
+      .then((res) => {
+        const data = res?.data ?? res;
+        const list = Array.isArray(data?.agents) ? data.agents : Array.isArray(data) ? data : [];
+        if (mounted) setAgents(list);
+      })
+      .catch(() => { /* graceful — manual entry still works */ })
+      .finally(() => { if (mounted) setAgentsLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <div style={css("margin-bottom:9px;")}>
       {chips.length > 0 && (
@@ -68,9 +100,9 @@ export default function FollowupComposerFields({
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Channel
           <select value={channel} onChange={(e) => onChannel(e.target.value)} style={fieldStyle}>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="call">Call</option>
-            <option value="email">Email</option>
+            {CHANNELS.map((ch) => (
+              <option key={ch.value} value={ch.value}>{ch.label}</option>
+            ))}
           </select>
         </label>
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
@@ -80,6 +112,16 @@ export default function FollowupComposerFields({
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Hour
           <input type="number" min="0" max="23" value={hour} onChange={(e) => onHour(e.target.value)} style={{ ...fieldStyle, width: '52px' }} />
+        </label>
+        <label style={css("display:inline-flex; align-items:center; gap:4px; flex:1; min-width:160px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+          Assign to
+          <select value={assignee} onChange={(e) => onAssignee(e.target.value)} style={{ ...fieldStyle, flex:1, minWidth:0 }}>
+            <option value="">Select agent…</option>
+            {agents.map((a) => (
+              <option key={a.email || a.id} value={a.email || ''}>{a.full_name || a.email}</option>
+            ))}
+          </select>
+          {agentsLoading && <span style={css("font-size:8.5px; color:rgba(255,255,255,0.3);")}>…</span>}
         </label>
         {followupAiSource && (
           <button onClick={onClearDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 7px; border-radius:7px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>

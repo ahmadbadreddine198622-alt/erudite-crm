@@ -41,6 +41,7 @@ import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
 import EmailTemplatePicker from '@/components/landlord/EmailTemplatePicker';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
+import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
@@ -119,6 +120,7 @@ class LandlordDetail extends React.Component {
       followupChannel: 'whatsapp',
       followupDate: '',
       followupHour: 10,
+      followupAssignee: '',
       followupSaving: false,
       // AI-draft MESSAGE state (V3 Phase 0: RECORD) — mirrors the note/task pattern. composerText holds
       // the message text; messageAiDraft is the snapshot for edit-detection; messageAiSource is which AI
@@ -617,8 +619,8 @@ class LandlordDetail extends React.Component {
     const hourNum = Math.min(23, Math.max(0, parseInt(this.state.followupHour, 10) || 0));
     const hh = String(hourNum).padStart(2, '0');
     const datetime = `${date}T${hh}:00:00+04:00`; // Asia/Dubai is a fixed +04:00 offset
-    const channel = ['whatsapp','call','email'].includes(followupChannel) ? followupChannel : 'whatsapp';
-    const apptType = channel === 'call' ? 'call' : 'meeting'; // legacy required field; channel carries the real axis
+    const channel = ['whatsapp','call','email','imessage','telegram','sms','meeting','viewing'].includes(followupChannel) ? followupChannel : 'whatsapp';
+    const apptType = (channel === 'call' || channel === 'viewing') ? (channel === 'viewing' ? 'viewing' : 'call') : 'meeting'; // legacy required field; channel carries the real axis
 
     // Optimistic add — reverted on error so the user can retry.
     const order = Date.now();
@@ -631,11 +633,12 @@ class LandlordDetail extends React.Component {
     this.setState({ followupSaving:true });
     let user = this.props.currentUser;
     if(!user){ try { user = await base44.auth.me(); } catch(_) { user = null; } }
+    const assigneeEmail = (this.state.followupAssignee || '').trim() || user?.email || L.agentEmail || undefined;
 
     try {
       await base44.entities.LandlordAppointment.create({
         landlord_id: L.id,
-        agent_email: user?.email || L.agentEmail || undefined,
+        agent_email: assigneeEmail,
         datetime,
         type: apptType,
         channel,
@@ -646,7 +649,7 @@ class LandlordDetail extends React.Component {
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
-      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupSaving:false }));
+      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAssignee:'', followupSaving:false }));
     } catch(e){
       // Revert optimistic add and restore the composer so the user can retry.
       this.setState(s=>({
@@ -1233,7 +1236,7 @@ class LandlordDetail extends React.Component {
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
             {/* ACTIVITY PANEL (right-side visually via order:2) */}
-            <div className="ld-panel" style={css("flex:0 0 65%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; order:2; background:rgba(255,255,255,0.01);")}>
+            <div className="ld-panel" style={css("flex:0 0 65%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; order:2; overflow:hidden; background:rgba(255,255,255,0.01);")}>
 
               {/* AI Suggested Tasks row — intelligence metrics are in the header */}
               <div style={css("flex:none; margin:0 16px 6px;")}>
@@ -1297,7 +1300,7 @@ class LandlordDetail extends React.Component {
                 onSelect={(t) => this.setComposerType(t)}
               />
 
-              {/* unified stream — replaced by AppointmentFeed when Appointment tab is active */}
+              {/* unified stream — each tab renders only its own data */}
               {this.state.composerType === 'Appointment' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
                   <div style={css("margin-bottom:8px;")}>
@@ -1312,6 +1315,54 @@ class LandlordDetail extends React.Component {
               ) : this.state.composerType === 'Calls' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <CallsTabList calls={L.calls || []} />
+                </div>
+              ) : this.state.composerType === 'Email' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <HubSpotActivityList
+                    emptyLabel="No email activity yet"
+                    items={tabStream.filter(s => s.isMsg).map((s, i) => ({
+                      key: 'email-' + i,
+                      icon: '✉',
+                      iconBg: 'hsl(38 92% 50% / 0.15)',
+                      iconColor: 'hsl(38 92% 62%)',
+                      title: s.text ? (s.text.length > 60 ? s.text.slice(0, 60) + '…' : s.text) : '(no subject)',
+                      subtitle: s.sender,
+                      time: s.time,
+                      body: s.text,
+                    }))}
+                  />
+                </div>
+              ) : this.state.composerType === 'Note' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <HubSpotActivityList
+                    emptyLabel="No notes yet"
+                    items={tabStream.filter(s => s.isAct && s._kind === 'note').map((s, i) => ({
+                      key: 'note-' + i,
+                      icon: s.actIcon,
+                      iconBg: 'rgba(139,92,246,0.15)',
+                      iconColor: '#c4b5fd',
+                      title: s.actTitle,
+                      subtitle: s._author ? 'by ' + s._author : null,
+                      time: s.time,
+                      body: s.actBody,
+                    }))}
+                  />
+                </div>
+              ) : this.state.composerType === 'Follow-up' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <HubSpotActivityList
+                    emptyLabel="No follow-up activity yet"
+                    items={tabStream.filter(s => s.isAct && s._kind === 'followup').map((s, i) => ({
+                      key: 'fu-' + i,
+                      icon: s.actIcon,
+                      iconBg: 'rgba(52,211,153,0.15)',
+                      iconColor: '#34d399',
+                      title: s.actTitle,
+                      subtitle: s._author ? 'by ' + s._author : null,
+                      time: s.time,
+                      body: s.actBody,
+                    }))}
+                  />
                 </div>
               ) : (
                 <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
@@ -1517,6 +1568,8 @@ class LandlordDetail extends React.Component {
                     onDate={(v) => this.setState({ followupDate: v })}
                     onHour={(v) => this.setState({ followupHour: v })}
                     onClearDraft={this.clearFollowupDraft}
+                    assignee={this.state.followupAssignee}
+                    onAssignee={(v) => this.setState({ followupAssignee: v })}
                   />
                 )}
 

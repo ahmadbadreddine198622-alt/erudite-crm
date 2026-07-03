@@ -16,7 +16,6 @@ const TABS = [
   { key: 'Email',       label: 'Emails' },
   { key: 'Calls',       label: 'Calls' },
   { key: 'Appointment', label: 'Appointments' },
-  { key: 'Task',        label: 'Tasks' },
   { key: 'Note',        label: 'Notes' },
   { key: 'Chat',        label: 'WhatsApp' },
   { key: 'iMessage',    label: 'iMessage' },
