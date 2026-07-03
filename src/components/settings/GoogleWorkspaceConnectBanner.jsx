@@ -14,7 +14,7 @@ const CONNECTOR_ID = '6a479aa48fb6dd5886beb065';
  * Props:
  *  - variant: "card" (default, for Profile page) | "compact" (for landlord detail header)
  */
-export default function GoogleWorkspaceConnectBanner({ variant = 'card' }) {
+export default function GoogleWorkspaceConnectBanner({ variant = 'card', hideWhenConnected = false }) {
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +80,7 @@ export default function GoogleWorkspaceConnectBanner({ variant = 'card' }) {
 
   // ── Connected state ──────────────────────────────────────────────
   if (connected) {
+    if (hideWhenConnected) return null;
     if (variant === 'compact') {
       return (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"

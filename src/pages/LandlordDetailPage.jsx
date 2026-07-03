@@ -1300,6 +1300,9 @@ class LandlordDetail extends React.Component {
               {/* unified stream — replaced by AppointmentFeed when Appointment tab is active */}
               {this.state.composerType === 'Appointment' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
+                  <div style={css("margin-bottom:8px;")}>
+                    <GoogleWorkspaceConnectBanner variant="compact" hideWhenConnected />
+                  </div>
                   <AppointmentFeed landlordId={L.id} />
                 </div>
               ) : this.state.composerType === 'Documents' ? (
@@ -2393,9 +2396,6 @@ export default function LandlordDetailPage() {
 
   return (
     <React.Fragment>
-      <div className="px-1 pt-1 pb-2 flex justify-end">
-        <GoogleWorkspaceConnectBanner variant="compact" />
-      </div>
       <LandlordDetail
         landlords={[mapped]}
         rawLandlord={L}
