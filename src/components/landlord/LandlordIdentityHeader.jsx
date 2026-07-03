@@ -227,6 +227,10 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const [addingEmail, setAddingEmail] = useState(false);
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [addingUnit, setAddingUnit] = useState(false);
+  const [addingBuilding, setAddingBuilding] = useState(false);
+  const [newUnit, setNewUnit] = useState('');
+  const [newBuilding, setNewBuilding] = useState('');
   const [saving, setSaving] = useState(false);
 
   const allPhones = [
@@ -254,6 +258,23 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   };
   const handleAddPhone = async () => { await saveAdditional('additional_phones', newPhone); setNewPhone(''); setAddingPhone(false); };
   const handleAddEmail = async () => { await saveAdditional('additional_emails', newEmail); setNewEmail(''); setAddingEmail(false); };
+
+  // Save unit_reference / project_name directly on the Landlord entity (single-value fields, not arrays).
+  const saveLandlordField = async (field, value) => {
+    if (!value.trim() || !landlordId) return;
+    setSaving(true);
+    try {
+      await base44.entities.Landlord.update(landlordId, { [field]: value.trim() });
+      queryClient.invalidateQueries({ queryKey: ['landlord', landlordId] });
+      toast.success(field === 'unit_reference' ? 'Unit number saved' : 'Building name saved');
+    } catch (e) {
+      toast.error('Failed to save: ' + (e?.message || 'unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleAddUnit = async () => { await saveLandlordField('unit_reference', newUnit); setNewUnit(''); setAddingUnit(false); };
+  const handleAddBuilding = async () => { await saveLandlordField('project_name', newBuilding); setNewBuilding(''); setAddingBuilding(false); };
 
   const handleDownload = async () => {
     const name = L.full_name_en || L.full_name || 'Unnamed landlord';
@@ -407,6 +428,29 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
           </>
         )}
         {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
+        {/* Inline Add Unit / Add Building — shown when the data is missing, same pattern as Add Number */}
+        {!has(unitRef) && (
+          addingUnit ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input autoFocus value={newUnit} onChange={(e) => setNewUnit(e.target.value)} placeholder="Unit no…" onKeyDown={(e) => e.key === 'Enter' && handleAddUnit()} style={{ ...smallInputStyle, width: 110 }} />
+              <button onClick={handleAddUnit} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+              <button onClick={() => { setAddingUnit(false); setNewUnit(''); }} style={cancelBtnStyle}><X size={11} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setAddingUnit(true)} style={addPillStyle}><Plus size={10} /> Add Unit</button>
+          )
+        )}
+        {!has(projectName) && (
+          addingBuilding ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input autoFocus value={newBuilding} onChange={(e) => setNewBuilding(e.target.value)} placeholder="Building name…" onKeyDown={(e) => e.key === 'Enter' && handleAddBuilding()} style={{ ...smallInputStyle, width: 150 }} />
+              <button onClick={handleAddBuilding} disabled={saving} style={addBtnStyle}>{saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}</button>
+              <button onClick={() => { setAddingBuilding(false); setNewBuilding(''); }} style={cancelBtnStyle}><X size={11} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setAddingBuilding(true)} style={addPillStyle}><Plus size={10} /> Add Building</button>
+          )
+        )}
       </div>
 
       {/* Contact list — every phone + email, each with its channel icons right next to it */}
