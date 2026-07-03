@@ -1151,25 +1151,32 @@ class LandlordDetail extends React.Component {
         <style>{GLOBAL_CSS}</style>
         <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
-          {/* Top bar — centered banner with action buttons */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); backdrop-filter:blur(16px);")}>
-            <div style={css("display:flex; align-items:center; gap:6px; padding-left:50px;")}>
-              <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          {/* Top bar — breadcrumbs header */}
+          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); backdrop-filter:blur(16px);")}>
+            <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
+            {/* Left: back + breadcrumbs trail */}
+            <div style={css("display:flex; align-items:center; gap:8px;")}>
+              <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
               </button>
-              <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
-              </button>
-            </div>
-            <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
-              <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35);")}>
-                <div style={css("width:6px; height:6px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 12px hsl(38 92% 55% / 0.8), 0 0 24px hsl(38 92% 50% / 0.5); animation: pulse 2s ease-in-out infinite;")}></div>
-                <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
-                <span style={css("font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:hsl(38 92% 55%);")}>Landlord Intelligence</span>
+              {/* Breadcrumb: Landlords › [Name] */}
+              <div style={css("display:flex; align-items:center; gap:7px;")}>
+                <button onClick={()=>this.onNavigate('/landlords')} style={css("font-size:12px; font-weight:500; color:rgba(255,255,255,0.5); background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; padding:2px 0;")}>
+                  Landlords
+                </button>
+                <span style={css("color:rgba(255,255,255,0.2); font-size:12px;")}>›</span>
+                <span style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.95); font-family:'Inter',sans-serif;")}>{L.full_name_en || L.full_name || 'Landlord'}</span>
+              </div>
+              {/* Compact Intelligence badge */}
+              <div style={css("display:inline-flex; align-items:center; gap:7px; padding:4px 12px; border-radius:99px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.28); margin-left:4px;")}>
+                <div style={css("width:5px; height:5px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 8px hsl(38 92% 55% / 0.7); animation: pulse 2s ease-in-out infinite;")}></div>
+                <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:hsl(38 92% 60%); font-family:'Inter',sans-serif;")}>Intelligence</span>
               </div>
             </div>
-            
-            <div style={css("flex:none; width:40px;")}></div>
+            {/* Right: Close all */}
+            <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:8px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+              <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
+            </button>
           </div>
 
           {/* Two panels */}
