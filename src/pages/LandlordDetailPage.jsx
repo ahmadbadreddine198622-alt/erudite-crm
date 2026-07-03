@@ -1235,11 +1235,8 @@ class LandlordDetail extends React.Component {
             {/* ACTIVITY PANEL (right-side visually via order:2) */}
             <div className="ld-panel" style={css("flex:0 0 65%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; order:2; background:rgba(255,255,255,0.01);")}>
 
-              {/* AI Intelligence + Suggested Tasks row */}
-              <div style={css("flex:none; display:grid; grid-template-columns:3fr 1fr; gap:8px; margin:0 16px 6px;")}>
-                {vm.aiReady && (
-                  <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
-                )}
+              {/* AI Suggested Tasks row — intelligence metrics are in the header */}
+              <div style={css("flex:none; margin:0 16px 6px;")}>
                 {(() => {
                   const chips = this.suggestedTaskChips();
                   if (!chips.length) return null;
