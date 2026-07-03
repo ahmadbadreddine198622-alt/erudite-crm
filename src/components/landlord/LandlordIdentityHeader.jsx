@@ -132,7 +132,7 @@ function ContactRow({ icon: Icon, value, label, href }) {
 
 // Shared pill icon-button used inline next to a phone/email — fully rounded to match the
 // channel pill design (call, aircall, message icons).
-function ChIcon({ href, title, color, bg, border, children }) {
+function ChIcon({ href, title, color, bg, border, children, size = 26 }) {
   return (
     <a
       href={href}
@@ -141,7 +141,7 @@ function ChIcon({ href, title, color, bg, border, children }) {
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, borderRadius: 999, flex: 'none',
+        width: size, height: size, borderRadius: 999, flex: 'none',
         background: bg, border: '1px solid ' + border, color, textDecoration: 'none', cursor: 'pointer',
       }}
     >
@@ -179,7 +179,12 @@ function PhoneContactRow({ phone, landlord }) {
   const cleanTel = phone.replace(/[\s\-()]/g, '');
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
-      <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)" size={20} iconSize={10}>
+          <MessageCircle size={10} />
+        </ChIcon>
+        <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
         <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
           <Phone size={12} />
@@ -191,9 +196,6 @@ function PhoneContactRow({ phone, landlord }) {
           <ChPill label="T" color="#4ade80" bg="rgba(34,197,94,0.14)" border="rgba(34,197,94,0.3)" />
         </TwilioCallDialog>
         <VapiCallDialog landlord={{ ...landlord, phone, whatsapp: phone }} iconOnly />
-        <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)">
-          <MessageCircle size={12} />
-        </ChIcon>
       </div>
     </div>
   );
