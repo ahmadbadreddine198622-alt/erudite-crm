@@ -51,9 +51,9 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         onMouseLeave={() => setHovered(false)}
         className="relative flex items-center justify-center transition-all duration-200 focus:outline-none"
         style={{
-          width: isHero ? 52 : 48,
-          height: isHero ? 52 : 48,
-          borderRadius: 16,
+          width: isHero ? 38 : 34,
+          height: isHero ? 38 : 34,
+          borderRadius: 11,
           background: `radial-gradient(130% 130% at 30% 18%, ${gradient[0]}, ${gradient[1]} 70%, ${gradient[2]})`,
           border: `1px solid rgba(212,175,55,0.30)`,
           boxShadow: hovered
@@ -69,7 +69,7 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            borderRadius: 16,
+            borderRadius: 11,
             boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.08)',
           }}
         />
@@ -78,9 +78,9 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         <div
           className="absolute pointer-events-none"
           style={{
-            top: 10,
-            left: 10,
-            right: 10,
+            top: 7,
+            left: 7,
+            right: 7,
             height: 1,
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
           }}
@@ -99,7 +99,7 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              borderRadius: 16,
+              borderRadius: 11,
               animation: 'heroPulse 3s ease-in-out infinite',
             }}
           />
@@ -107,8 +107,8 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         
         {/* Icon with gradient stroke */}
         <Icon
-          width="22"
-          height="22"
+          width="16"
+          height="16"
           style={{
             position: 'relative',
             zIndex: 2,
@@ -201,7 +201,7 @@ function MenuFlyout({ isOpen, onClose }) {
         ref={flyoutRef}
         className="fixed z-[60] p-5 overflow-hidden"
         style={{
-          left: 74,
+          left: 56,
           top: 12,
           width: 288,
           background: 'rgba(16,20,32,0.82)',
@@ -326,7 +326,7 @@ function CommandFlyout({ isOpen, onClose, onAddLead, onNewListing }) {
         ref={flyoutRef}
         className="fixed z-[60] p-5 overflow-hidden"
         style={{
-          left: 74,
+          left: 56,
           top: 12,
           width: 380,
           background: 'rgba(16,20,32,0.82)',
@@ -583,7 +583,7 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
       
       {/* Rail container — hidden on mobile when viewing Dashboard */}
       <div
-        className={`z-[70] p-2 ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
+        className={`z-[70] p-1.5 ${hideOnMobile ? 'hidden md:flex' : 'fixed'}`}
         style={{
           top: 0,
           left: 0,
@@ -608,8 +608,8 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
         
         {/* Buttons column */}
         <div
-          className="flex flex-col items-center gap-2 relative"
-          style={{ paddingTop: 6, paddingBottom: 6 }}
+          className="flex flex-col items-center gap-1.5 relative"
+          style={{ paddingTop: 4, paddingBottom: 4 }}
         >
           {/* HOME */}
           <LitButton
