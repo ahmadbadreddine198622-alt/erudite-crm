@@ -369,6 +369,21 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
       </div>
 
+      {/* Last Activity indicator — green dot + timestamp */}
+      {(() => {
+        const ts = L.last_activity_at || L.updated_date || L.ai_processed_at || null;
+        if (!ts) return null;
+        const d = new Date(ts);
+        if (isNaN(d)) return null;
+        const label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 9 }}>
+            <span style={{ flex: 'none', width: 7, height: 7, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.7)' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>Last Activity: {label}</span>
+          </div>
+        );
+      })()}
+
       {/* TIER 2 — Property + price (more vibrant), sits tight under the name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
         {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
