@@ -96,7 +96,7 @@ class LandlordDetail extends React.Component {
       landlords,
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'calls',
-      composerType: 'Activity',
+      composerType: 'Email',
       composerText: '',
       composerTime: '',
       // AI-draft note state — which AI field seeded the note (snake_case key) and the
@@ -902,7 +902,7 @@ class LandlordDetail extends React.Component {
           key:idx, isMsg:true, isAct:false,
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
-          sender: out ? (L.agent+' · Erudite') : L.name,
+          sender: s.channel==='email' ? (s.fromName || s.fromEmail || (out ? 'Erudite' : L.name)) : (out ? (L.agent+' · Erudite') : L.name),
           channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
             color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
@@ -916,6 +916,7 @@ class LandlordDetail extends React.Component {
       } else {
         const [icon,bg,color]=this.actKindMeta(s.kind);
         return { key:idx, isMsg:false, isAct:true, time:s.time, actIcon:icon, actTitle:s.title, actBody:s.body,
+          _kind: s.kind, _author: s.author || '',
           actIconStyle:{ flex:'none', width:'30px', height:'30px', borderRadius:'9px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', background:bg, color, marginTop:'2px' },
           actLabelStyle:{ fontSize:'12px', fontWeight:700, color } };
       }
@@ -1146,6 +1147,20 @@ class LandlordDetail extends React.Component {
     const L = this.cur();
     const { ai, hdr, stage, market, signals, tab } = vm;
 
+    // Filter the VM stream by the active tab — each tab shows ONLY its own data.
+    const tabStream = vm.stream.filter(s => {
+      const ct = this.state.composerType;
+      if (ct === 'Email') return s.isMsg && s.channel === 'Email';
+      if (ct === 'Chat') return s.isMsg && (s.channel === 'WA Personal' || s.channel === 'WA Business');
+      if (ct === 'iMessage') return s.isMsg && s.channel === 'iMessage';
+      if (ct === 'Telegram') return s.isMsg && s.channel === 'Telegram';
+      if (ct === 'Note') return s.isAct && s._kind === 'note';
+      if (ct === 'Task') return s.isAct && s._kind === 'task';
+      if (ct === 'Follow-up') return s.isAct && s._kind === 'followup';
+      if (ct === 'SMS') return false;
+      return true;
+    });
+
     return (
       <React.Fragment>
         <style>{GLOBAL_CSS}</style>
@@ -1267,7 +1282,12 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : (
                 <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
-                {vm.stream.map((s)=> s.isMsg ? (
+                {tabStream.length === 0 && (
+                  <div style={css("display:flex; align-items:center; justify-content:center; flex:1; color:rgba(255,255,255,0.35); font-size:13px; padding:40px 0;")}>
+                    No {this.state.composerType} activity yet
+                  </div>
+                )}
+                {tabStream.map((s)=> s.isMsg ? (
                   <div key={s.key} style={s.rowStyle}>
                     <div style={s.bubbleStyle}>
                       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:5px;")}>
@@ -1318,6 +1338,7 @@ class LandlordDetail extends React.Component {
                         <span style={css("flex:none; font-size:10.5px; color:rgba(255,255,255,0.38);")}>{s.time}</span>
                       </div>
                       <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.72); margin-top:4px;")}>{s.actBody}</div>
+                      {s._author && <div style={css("font-size:10px; color:rgba(255,255,255,0.4); margin-top:3px;")}>by {s._author}</div>}
                     </div>
                   </div>
                 ))}
@@ -1813,6 +1834,13 @@ export default function LandlordDetailPage() {
   // Telegram messages for the stream — sent/received via the Telegram Bot API, matched by landlord_id
   const { data: telegramMessages = [] } = useQ(['telegram_messages', id], () => safe(() => base44.entities.TelegramMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
 
+  // LandlordNote records — historical notes with author + timestamp for the Notes tab.
+  const { data: notes = [] } = useQ(['landlord_notes', id], () => safe(() => base44.entities.LandlordNote.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
+  // LandlordTask records — historical tasks with assignee + due date for the Tasks tab.
+  const { data: tasks = [] } = useQ(['landlord_tasks', id], () => safe(() => base44.entities.LandlordTask.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
+  // LandlordAppointment records — historical follow-ups with channel + datetime for the Follow-up tab.
+  const { data: followups = [] } = useQ(['landlord_followups', id], () => safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: id }, '-datetime', 100)), { enabled: !!id });
+
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
     const variants = phoneVariants(phone);
@@ -1967,6 +1995,8 @@ export default function LandlordDetailPage() {
       text: (em.subject ? em.subject + '\n' : '') + (em.snippet || em.body_text || ''),
       time: fmtMsgTime(em.received_at || em.created_date),
       order: tsOf(em.received_at || em.created_date) || 0,
+      fromEmail: em.from_email || '',
+      fromName: em.from_name || '',
     });
   });
   waStreamMessages.forEach(msg => {
@@ -2061,6 +2091,39 @@ export default function LandlordDetailPage() {
   });
   callLogs.forEach(call => {
     stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: call.to_number || call.from_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
+  });
+  // Notes for the stream — historical LandlordNote records with author + timestamp.
+  notes.forEach(n => {
+    stream.push({
+      t: 'act', kind: 'note',
+      title: 'Note' + (n.created_from_ai ? ' · AI' : ''),
+      body: n.body || '',
+      time: fmtMsgTime(n.created_date),
+      order: tsOf(n.created_date) || 0,
+      author: n.author_name || n.author_email || '',
+    });
+  });
+  // Tasks for the stream — historical LandlordTask records with assignee + due date.
+  tasks.forEach(t => {
+    stream.push({
+      t: 'act', kind: 'task',
+      title: 'Task' + (t.created_from_ai ? ' · AI' : '') + (t.due_date ? ' · due ' + t.due_date : ''),
+      body: t.title || '',
+      time: fmtMsgTime(t.created_date),
+      order: tsOf(t.created_date) || 0,
+      author: t.assignee_email || '',
+    });
+  });
+  // Follow-ups for the stream — historical LandlordAppointment records.
+  followups.forEach(f => {
+    stream.push({
+      t: 'act', kind: 'followup',
+      title: 'Follow-up' + (f.created_from_ai ? ' · AI' : '') + ' · ' + (f.channel || 'call') + ' · ' + fmtMsgTime(f.datetime),
+      body: f.notes || '',
+      time: fmtMsgTime(f.created_date || f.datetime),
+      order: tsOf(f.created_date || f.datetime) || 0,
+      author: f.agent_email || '',
+    });
   });
   stream.sort((a, b) => a.order - b.order);
 
