@@ -17,6 +17,48 @@ export default function FloatingDialer() {
   const [muted, setMuted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Draggable position — persisted to localStorage
+  const [pos, setPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('floatingDialerPos');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return { x: window.innerWidth - 52, y: window.innerHeight - 52 };
+  });
+  const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0, moved: false, startX: 0, startY: 0 });
+
+  const onPointerDown = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      dragging: true,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    if (!dragRef.current.dragging) return;
+    const dx = Math.abs(e.clientX - dragRef.current.startX);
+    const dy = Math.abs(e.clientY - dragRef.current.startY);
+    if (dx > 4 || dy > 4) dragRef.current.moved = true;
+    const newX = Math.max(0, Math.min(window.innerWidth - 36, e.clientX - dragRef.current.offsetX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 36, e.clientY - dragRef.current.offsetY));
+    setPos({ x: newX, y: newY });
+  };
+  const onPointerUp = (e) => {
+    if (!dragRef.current.dragging) return;
+    dragRef.current.dragging = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+    // Only persist if actually dragged
+    if (dragRef.current.moved) {
+      try { localStorage.setItem('floatingDialerPos', JSON.stringify(pos)); } catch (_) {}
+    }
+  };
+  const wasDragged = () => dragRef.current.moved;
+
   const deviceRef = useRef(null);
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -152,10 +194,13 @@ export default function FloatingDialer() {
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
-        title="Open Dialer"
-        className="fixed bottom-4 right-4 z-30 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-        style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', backdropFilter: 'blur(8px)' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onClick={(e) => { if (wasDragged()) { e.preventDefault(); return; } setOpen(true); }}
+        title="Open Dialer (drag to move)"
+        className="fixed z-30 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95 touch-none"
+        style={{ left: pos.x, top: pos.y, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', backdropFilter: 'blur(8px)', cursor: 'grab' }}
       >
         <Phone className="w-4 h-4 text-green-400" />
       </button>
@@ -164,8 +209,8 @@ export default function FloatingDialer() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 rounded-3xl overflow-hidden shadow-2xl"
-      style={{ background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: 300, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
+      className="fixed z-50 rounded-3xl overflow-hidden shadow-2xl"
+      style={{ left: pos.x, top: pos.y, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: 300, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
