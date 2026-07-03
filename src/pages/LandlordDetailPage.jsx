@@ -1188,10 +1188,45 @@ class LandlordDetail extends React.Component {
                 <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:hsl(38 92% 60%); font-family:'Inter',sans-serif;")}>Intelligence</span>
               </div>
             </div>
-            {/* Right: Close all */}
-            <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:8px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-              <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
-            </button>
+            {/* Right: metrics strip + AI Tasks + Analyse + Go Back */}
+            <div style={css("display:flex; align-items:center; gap:7px;")}>
+              {/* Intelligence metrics strip */}
+              {vm.aiReady && (() => {
+                const sm = (n) => n>=70 ? {c:'#34d399',b:'rgba(52,211,153,0.15)'} : n>=40 ? {c:'#e4b94a',b:'rgba(228,185,74,0.15)'} : {c:'#f87171',b:'rgba(248,113,113,0.15)'};
+                const pills = [];
+                if (ai.momentum && /stall|stuck|cold|dormant/i.test(ai.momentum)) pills.push({l:'stalled',c:'#c4b5fd',b:'rgba(103,102,163,0.25)'});
+                if (ai.trust != null) { const m=sm(ai.trust); pills.push({l:'TRUST '+ai.trust,c:m.c,b:m.b}); }
+                if (ai.urgency != null) { const m=sm(ai.urgency); pills.push({l:'URGENCY '+ai.urgency,c:m.c,b:m.b}); }
+                if (ai.win != null) { const m=sm(ai.win); pills.push({l:'WIN '+ai.win+'%',c:m.c,b:m.b}); }
+                if (!pills.length) return null;
+                return (
+                  <div style={css("display:flex; align-items:center; gap:4px; padding:3px 7px; border-radius:10px; border:1px solid rgba(212,175,55,0.18); background:rgba(255,255,255,0.02);")}>
+                    {pills.map((p,i)=>(
+                      <span key={i} style={{display:'inline-flex',alignItems:'center',padding:'2px 7px',borderRadius:99,fontSize:9.5,fontWeight:700,whiteSpace:'nowrap',color:p.c,background:p.b,border:'1px solid '+p.c+'40'}}>{p.l}</span>
+                    ))}
+                  </div>
+                );
+              })()}
+              {/* AI TASKS counter — compact, half the old width */}
+              {(() => {
+                const chips = this.suggestedTaskChips();
+                if (!chips.length) return null;
+                return (
+                  <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} title="Toggle AI suggested tasks" style={css("display:flex; align-items:center; gap:4px; padding:4px 9px; border-radius:8px; border:1px solid rgba(139,92,246,0.25); background:rgba(139,92,246,0.06); cursor:pointer; font-size:10px; font-weight:700; color:#c4b5fd; white-space:nowrap; font-family:'Inter',sans-serif;")}>
+                    ✨ AI TASKS {chips.length}
+                    <ChevronDown size={11} style={{ transform: this.state.aiTasksCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                  </button>
+                );
+              })()}
+              {/* Analyse button */}
+              <button onClick={this.onAnalyse} disabled={vm.analyzing} title="Run AI analysis" style={css("flex:none; display:inline-flex; align-items:center; gap:5px; height:32px; padding:0 12px; border-radius:8px; border:1px solid rgba(212,175,55,0.4); background:rgba(212,175,55,0.14); color:hsl(38 92% 62%); font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+(vm.analyzing?0.5:1)+";")}>
+                {vm.analyzing ? 'Analysing…' : '↻ Analyse'}
+              </button>
+              {/* Go Back — navigates to previous page */}
+              <button onClick={this.onBack} title="Go back to previous page" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 14px; border-radius:8px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                ← Go Back
+              </button>
+            </div>
           </div>
 
           {/* Two panels */}
@@ -1201,7 +1236,7 @@ class LandlordDetail extends React.Component {
             <div className="ld-panel" style={css("flex:0 0 65%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; order:2; background:rgba(255,255,255,0.01);")}>
 
               {/* AI Intelligence + Suggested Tasks row */}
-              <div style={css("flex:none; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 6px;")}>
+              <div style={css("flex:none; display:grid; grid-template-columns:3fr 1fr; gap:8px; margin:0 16px 6px;")}>
                 {vm.aiReady && (
                   <AIIntelligenceCard ai={ai} analyzing={vm.analyzing} onReanalyse={this.onAnalyse} collapsed={this.state.aiIntelligenceCollapsed} onToggle={() => this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }))} />
                 )}
@@ -1263,8 +1298,6 @@ class LandlordDetail extends React.Component {
               <LandlordTabBar
                 activeTab={this.state.composerType}
                 onSelect={(t) => this.setComposerType(t)}
-                onAnalyse={this.onAnalyse}
-                analyzing={vm.analyzing}
               />
 
               {/* unified stream — replaced by AppointmentFeed when Appointment tab is active */}
