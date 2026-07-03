@@ -1187,38 +1187,37 @@ class LandlordDetail extends React.Component {
                 <span style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.95); font-family:'Inter',sans-serif;")}>{L.full_name_en || L.full_name || 'Landlord'}</span>
               </div>
             </div>
-            {/* Right: metrics strip + AI Tasks + Analyse + Go Back */}
-            <div style={css("display:flex; align-items:center; gap:7px;")}>
-              {/* AI INTELLIGENCE badge */}
-              <button onClick={() => this.setState(s => ({ showCoaching: !s.showCoaching }))} title="Toggle AI Intelligence panel" style={css("display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:8px; background:rgba(255,255,255,0.02); border:1px solid rgba(139,115,85,0.4); cursor:pointer; font-size:10px; font-weight:700; letter-spacing:0.06em; color:rgba(160,160,160,0.9); white-space:nowrap; font-family:'Inter',sans-serif;")}>
-                <div style={css("width:5px; height:5px; border-radius:50%; background:hsl(38 92% 55%); box-shadow:0 0 8px hsl(38 92% 55% / 0.7); animation: pulse 2s ease-in-out infinite;")}></div>
-                AI INTELLIGENCE
-              </button>
-              {/* Intelligence metrics strip */}
-              {vm.aiReady && (() => {
-                const sm = (n) => n>=70 ? {c:'#34d399',b:'rgba(52,211,153,0.15)'} : n>=40 ? {c:'#e4b94a',b:'rgba(228,185,74,0.15)'} : {c:'#f87171',b:'rgba(248,113,113,0.15)'};
+            {/* Right: two pill containers + Analyse + Go Back */}
+            <div style={css("display:flex; align-items:center; gap:8px;")}>
+              {/* ── Container 1: AI Intelligence pill (chevron + stalled + metrics + label) ── */}
+              {(() => {
+                const sm = (n) => n>=70 ? {c:'#34d399',b:'rgba(52,211,153,0.12)'} : n>=40 ? {c:'#e4b94a',b:'rgba(228,185,74,0.12)'} : {c:'#DB7575',b:'rgba(219,117,117,0.12)'};
                 const pills = [];
-                if (ai.momentum && /stall|stuck|cold|dormant/i.test(ai.momentum)) pills.push({l:'stalled',c:'#c4b5fd',b:'rgba(103,102,163,0.25)'});
-                if (ai.trust != null) { const m=sm(ai.trust); pills.push({l:'TRUST '+ai.trust,c:m.c,b:m.b}); }
-                if (ai.urgency != null) { const m=sm(ai.urgency); pills.push({l:'URGENCY '+ai.urgency,c:m.c,b:m.b}); }
-                if (ai.win != null) { const m=sm(ai.win); pills.push({l:'WIN '+ai.win+'%',c:m.c,b:m.b}); }
-                if (!pills.length) return null;
+                if (ai.momentum && /stall|stuck|cold|dormant/i.test(ai.momentum)) pills.push({l:'stalled',c:'rgba(255,255,255,0.85)',b:'#343452',bd:'#4a4a6a'});
+                if (ai.trust != null) { const m=sm(ai.trust); pills.push({l:'TRUST '+ai.trust,c:m.c,b:m.b,bd:m.c+'50'}); }
+                if (ai.urgency != null) { const m=sm(ai.urgency); pills.push({l:'URGENCY '+ai.urgency,c:m.c,b:m.b,bd:m.c+'50'}); }
+                if (ai.win != null) { const m=sm(ai.win); pills.push({l:'WIN '+ai.win+'%',c:m.c,b:m.b,bd:m.c+'50'}); }
+                const intelOpen = this.state.showCoaching;
                 return (
-                  <div style={css("display:flex; align-items:center; gap:4px; padding:3px 7px; border-radius:10px; border:1px solid rgba(212,175,55,0.18); background:rgba(255,255,255,0.02);")}>
+                  <button onClick={() => this.setState(s => ({ showCoaching: !s.showCoaching }))} title="Toggle AI Intelligence panel" style={css("display:inline-flex; align-items:center; gap:7px; padding:5px 12px 5px 9px; border-radius:999px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.02); border:1px solid transparent; border-image:linear-gradient(135deg, rgba(168,125,86,0.5), rgba(76,76,100,0.4)) 1; white-space:nowrap;")}>
+                    <span style={css("flex:none; color:rgba(255,255,255,0.4); font-size:12px; font-weight:700;")}>{intelOpen ? '‹' : '›'}</span>
                     {pills.map((p,i)=>(
-                      <span key={i} style={{display:'inline-flex',alignItems:'center',padding:'2px 7px',borderRadius:99,fontSize:9.5,fontWeight:700,whiteSpace:'nowrap',color:p.c,background:p.b,border:'1px solid '+p.c+'40'}}>{p.l}</span>
+                      <span key={i} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:99,fontSize:9.5,fontWeight:700,whiteSpace:'nowrap',color:p.c,background:p.b,border:'1px solid '+p.bd}}>{p.l}</span>
                     ))}
-                  </div>
+                    <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8C8C9A;")}>AI INTELLIGENCE</span>
+                  </button>
                 );
               })()}
-              {/* AI TASKS counter — compact, half the old width */}
+              {/* ── Container 2: AI Tasks pill (sparkle + count + chevron) ── */}
               {(() => {
                 const chips = this.suggestedTaskChips();
                 if (!chips.length) return null;
+                const tasksOpen = !this.state.aiTasksCollapsed;
                 return (
-                  <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} title="Toggle AI suggested tasks" style={css("display:flex; align-items:center; gap:4px; padding:4px 9px; border-radius:8px; border:1px solid rgba(139,92,246,0.25); background:rgba(139,92,246,0.06); cursor:pointer; font-size:10px; font-weight:700; color:#c4b5fd; white-space:nowrap; font-family:'Inter',sans-serif;")}>
-                    ✨ AI TASKS {chips.length}
-                    <ChevronDown size={11} style={{ transform: this.state.aiTasksCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                  <button onClick={() => this.setState(s => ({ aiTasksCollapsed: !s.aiTasksCollapsed }))} title="Toggle AI suggested tasks" style={css("display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.02); border:1px solid rgba(76,76,100,0.45); white-space:nowrap;")}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                    <span style={css("font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:rgba(255,255,255,0.85);")}>AI TASKS {chips.length}</span>
+                    <span style={css("flex:none; color:rgba(255,255,255,0.4); font-size:12px; font-weight:700;")}>{tasksOpen ? '‹' : '›'}</span>
                   </button>
                 );
               })()}
