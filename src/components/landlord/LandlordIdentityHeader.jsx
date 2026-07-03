@@ -13,6 +13,7 @@ import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
 const GOLD = '#C9A24B';
 
@@ -220,6 +221,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const L = landlord || {};
   const U = unit || {};
   const queryClient = useQueryClient();
+  const { getPhotoForPhone } = usePhotoByPhone();
+  const photoUrl = getPhotoForPhone(L.phone || L.whatsapp);
   const [addingPhone, setAddingPhone] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
   const [newPhone, setNewPhone] = useState('');
@@ -349,8 +352,11 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
     >
       {/* TIER 1 — Identity */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: GOLD, background: 'linear-gradient(135deg, rgba(201,162,75,0.18), rgba(201,162,75,0.08))', border: '1px solid rgba(201,162,75,0.4)', boxShadow: '0 4px 12px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
-          {initials}
+        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: GOLD, background: 'linear-gradient(135deg, rgba(201,162,75,0.18), rgba(201,162,75,0.08))', border: '1px solid rgba(201,162,75,0.4)', boxShadow: '0 4px 12px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          {photoUrl ? (
+            <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+          ) : null}
+          <span style={{ display: photoUrl ? 'none' : 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>{initials}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0, marginTop: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
