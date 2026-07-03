@@ -18,7 +18,7 @@ function css(str) {
   return o;
 }
 
-export default function LandlordInfoExtras({ connections, showSignals, scorecards, signals, flagChips, buyChips, hasFlags, summaryText, valuation, market }) {
+export default function LandlordInfoExtras({ connections, showSignals, scorecards, signals, flagChips, buyChips, hasFlags, summaryText, valuation, market, askingPrice, propertyName }) {
   return (
     <React.Fragment>
       {/* connections strip */}
@@ -51,7 +51,7 @@ export default function LandlordInfoExtras({ connections, showSignals, scorecard
       </div>
 
       {/* Contact Evaluation */}
-      <ContactEvaluation valuation={valuation} comps={market?.comps} />
+      <ContactEvaluation valuation={valuation} comps={market?.comps} askingPrice={askingPrice} propertyName={propertyName} />
 
       {/* market intelligence */}
       <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:16px 17px;")}>

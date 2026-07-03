@@ -1665,7 +1665,7 @@ class LandlordDetail extends React.Component {
                 onCheckIMessage={this.checkIMessage}
               />
 
-              <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} />
+              <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} askingPrice={fmtAED(this.props.rawLandlord?.asking_price_aed)} propertyName={(this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) ? (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) : null} />
 
               <LandlordMockTabs
                 landlordId={this.state.currentId}
@@ -1701,6 +1701,8 @@ class LandlordDetail extends React.Component {
                   summaryText: vm.summaryText,
                   valuation: vm.valuation,
                   market,
+                  askingPrice: fmtAED(this.props.rawLandlord?.asking_price_aed),
+                  propertyName: (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) ? (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) : null,
                 }}
               />
 
