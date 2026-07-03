@@ -1152,7 +1152,6 @@ class LandlordDetail extends React.Component {
               <button onClick={this.collapseAll} title="Close all open panels" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:9px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                 <span style={css("font-size:13px; line-height:1;")}>⊟</span> Close all
               </button>
-              <button onClick={()=>{const L=this.cur();if(!L)return;const r=[['Name','Phone','Email'],[L.name||'',L.phone||'',L.email||'']];const c=r.map(x=>x.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');const b=new Blob([c],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`${(L.name||'landlord').replace(/\s+/g,'_')}_contact.csv`;a.click();URL.revokeObjectURL(u);}} title="Download contact CSV" style={css("flex:none; display:inline-flex; align-items:center; gap:5px; height:34px; padding:0 11px; border-radius:9px; border:1px solid rgba(52,211,153,0.35); background:rgba(52,211,153,0.1); color:#34d399; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}><Download size={13} /> CSV</button>
             </div>
             <div style={css("flex:1; display:flex; align-items:center; justify-content:center;")}>
               <div style={css("display:inline-flex; align-items:center; gap:9px; padding:7px 18px; border-radius:99px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35);")}>
@@ -1162,14 +1161,7 @@ class LandlordDetail extends React.Component {
               </div>
             </div>
             
-            <div style={css("display:flex; align-items:center; gap:10px;")}>
-              <span style={css("font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Viewing</span>
-              <select value={vm.currentId} onChange={this.onSwitch} style={css("padding:9px 13px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:rgba(255,255,255,0.88); font-size:12.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; min-width:140px;")}>
-                {vm.landlordOptions.map(o=>(
-                  <option key={o.id} value={o.id} style={{background:'#13182a'}}>{o.name}</option>
-                ))}
-              </select>
-            </div>
+            <div style={css("flex:none; width:40px;")}></div>
           </div>
 
           {/* Two panels */}
