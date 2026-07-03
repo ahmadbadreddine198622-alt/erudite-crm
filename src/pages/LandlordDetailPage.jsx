@@ -96,7 +96,7 @@ class LandlordDetail extends React.Component {
       landlords,
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'calls',
-      composerType: 'Note',
+      composerType: 'Activity',
       composerText: '',
       composerTime: '',
       // AI-draft note state — which AI field seeded the note (snake_case key) and the
@@ -1182,8 +1182,8 @@ class LandlordDetail extends React.Component {
           {/* Two panels */}
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
-            {/* LEFT PANEL */}
-            <div className="ld-panel" style={css("flex:0 0 62%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.01);")}>
+            {/* ACTIVITY PANEL (right-side visually via order:2) */}
+            <div className="ld-panel" style={css("flex:0 0 65%; min-width:0; height:100%; min-height:0; display:flex; flex-direction:column; order:2; background:rgba(255,255,255,0.01);")}>
 
               {/* AI Intelligence + Suggested Tasks row */}
               <div style={css("flex:none; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 6px;")}>
@@ -1547,8 +1547,8 @@ class LandlordDetail extends React.Component {
               </div>
             </div>
 
-            {/* RIGHT PANEL */}
-            <div className="ld-panel ld-scroll" style={css("flex:1 1 38%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px;")}>
+            {/* IDENTITY SIDEBAR (left-side visually via order:1) */}
+            <div className="ld-panel ld-scroll" style={css("flex:0 0 35%; min-width:0; height:100%; min-height:0; overflow-y:auto; padding:18px 22px 28px; order:1; border-right:1px solid rgba(255,255,255,0.07);")}>
 
               {/* header — four-tier identity card (reads the raw Landlord record) */}
               <LandlordIdentityHeader
