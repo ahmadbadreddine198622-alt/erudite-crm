@@ -191,6 +191,15 @@ export default function FloatingDialer() {
 
   const DIALPAD = [['1','2','3'],['4','5','6'],['7','8','9'],['*','0','#']];
 
+  // When the 300px-wide dialog opens, clamp position so the panel stays fully on-screen.
+  const PANEL_W = 300;
+  const PANEL_H = 420;
+  const clampForPanel = (p) => ({
+    x: Math.max(8, Math.min(window.innerWidth - PANEL_W - 8, p.x)),
+    y: Math.max(8, Math.min(window.innerHeight - PANEL_H - 8, p.y)),
+  });
+  const panelPos = open ? clampForPanel(pos) : pos;
+
   if (!open) {
     return (
       <button
@@ -210,7 +219,7 @@ export default function FloatingDialer() {
   return (
     <div
       className="fixed z-50 rounded-3xl overflow-hidden shadow-2xl"
-      style={{ left: pos.x, top: pos.y, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: 300, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
+      style={{ left: panelPos.x, top: panelPos.y, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: PANEL_W, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
