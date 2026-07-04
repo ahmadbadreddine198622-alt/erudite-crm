@@ -36,14 +36,19 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       background: 'rgba(255,255,255,0.015)',
     }}>
+      <style>{`
+        .landlord-tab-scroll::-webkit-scrollbar { display: none; }
+        .landlord-tab-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
       {/* Tab row — horizontally scrollable */}
-      <div style={{
+      <div className="landlord-tab-scroll" style={{
         display: 'flex',
         alignItems: 'center',
         overflowX: 'auto',
         scrollbarWidth: 'none',
         flex: 1,
         minHeight: 0,
+        WebkitOverflowScrolling: 'touch',
       }}>
         {TABS.map((t) => {
           const active = activeTab === t.key;
