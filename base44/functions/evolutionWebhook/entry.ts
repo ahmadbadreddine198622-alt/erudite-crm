@@ -572,6 +572,7 @@ Deno.serve(async (req) => {
             wa_message_id: waMessageId || null,
             channel,
             message_type: parsed.msgType,
+            agent_email: conv?.assigned_agent_email || null,
           });
         }
       } catch (err) {

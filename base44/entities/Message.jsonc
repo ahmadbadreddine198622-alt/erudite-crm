@@ -22,7 +22,11 @@
     },
     "ai_disposition": {
       "type": "string",
-      "enum": ["accepted", "edited", "ignored"],
+      "enum": [
+        "accepted",
+        "edited",
+        "ignored"
+      ],
       "description": "accepted = sent unchanged from draft; edited = changed before send; ignored = draft generated but not used (the ignored case is derived in aggregation, not set at send time)"
     },
     "landlord_id": {
@@ -74,6 +78,11 @@
       ],
       "default": "personal",
       "description": "Which WhatsApp channel: business (erudite / Meta Cloud / +971582806000) or personal (erudite_whatsapp / Baileys / +971581806000)"
+    },
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Agent who owns this message \u2014 stamped from landlord.assigned_agent_email on incoming, from the sending user on outgoing. Used for RLS scoping."
     },
     "media_url": {
       "type": "string",
@@ -198,5 +207,37 @@
     "direction",
     "text",
     "timestamp"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

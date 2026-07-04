@@ -72,18 +72,23 @@ Deno.serve(async (req) => {
   let number = null;
   
   // If landlord_id provided, fetch landlord
+  const isAdmin = user.role === 'admin';
   if (landlord_id) {
     const llList = await svc.entities.Landlord.filter({ id: landlord_id });
     landlord = llList && llList[0];
     if (!landlord) return Response.json({ error: 'Landlord not found', landlord_id }, { status: 404 });
+    // Ownership check — agents can only send to landlords assigned to them
+    if (!isAdmin && landlord.assigned_agent_email !== user.email) {
+      return Response.json({ error: 'You can only send WhatsApp messages to landlords assigned to you' }, { status: 403 });
+    }
     number = toDigits(landlord.phone);
     if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
   } 
-  // If conversation_id provided, get phone from conversation
+  // If conversation_id provided, get phone from conversation (user-scoped — RLS enforces ownership)
   else if (conversation_id) {
-    const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
+    const convList = await base44.entities.WhatsAppConversation.filter({ id: conversation_id });
     const conv = convList && convList[0];
-    if (!conv) return Response.json({ error: 'Conversation not found', conversation_id }, { status: 404 });
+    if (!conv) return Response.json({ error: 'Conversation not found or not assigned to you', conversation_id }, { status: 403 });
     number = toDigits(conv.wa_phone_e164 || conv.phone_number);
     if (!number) return Response.json({ error: 'Conversation has no phone number', conversation_id }, { status: 422 });
   }
@@ -272,6 +277,7 @@ Deno.serve(async (req) => {
           status: 'sent',
           wa_message_id: waId,
           channel: channel,
+          agent_email: user.email,
           // V3 Phase 0 (RECORD): AI-draft provenance, set ONLY when the send originated from an AI
           // draft (passed by the composer). Non-AI messages keep created_from_ai:false and are otherwise
           // unaffected. Instrumentation only — no behavior/wording/timing change.

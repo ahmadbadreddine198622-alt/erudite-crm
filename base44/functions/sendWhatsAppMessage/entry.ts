@@ -26,22 +26,26 @@ Deno.serve(async (req) => {
   // Resolve conversation and phone
   let conv = null;
   let toPhone = '';
+  const isAdmin = user.role === 'admin';
 
   if (conversation_id) {
-    const convList = await base44.asServiceRole.entities.WhatsAppConversation.filter({ id: conversation_id });
+    // User-scoped fetch — RLS ensures agents only see their own conversations
+    const convList = await base44.entities.WhatsAppConversation.filter({ id: conversation_id });
     conv = convList[0];
-    if (!conv) return Response.json({ error: 'Conversation not found' }, { status: 404 });
+    if (!conv) return Response.json({ error: 'Conversation not found or not assigned to you' }, { status: 403 });
     const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
     toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
   } else {
-    // Direct send to phone — use channel from request (default 'business' for notifications)
+    // Direct send to phone (no conversation) — admins only
+    if (!isAdmin) {
+      return Response.json({ error: 'Only admins can send to a phone number directly. Use an assigned conversation instead.' }, { status: 403 });
+    }
     const channel = body.channel || 'business';
     toPhone = body.to_phone.startsWith('+') ? body.to_phone : '+' + body.to_phone.replace(/^\+/, '');
     const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone, channel });
     if (existing[0]) {
       conv = existing[0];
     } else {
-      // Create a new conversation record
       conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
         wa_phone_e164: toPhone,
         phone_number: toPhone,
