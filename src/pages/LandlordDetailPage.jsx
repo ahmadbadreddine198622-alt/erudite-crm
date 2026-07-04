@@ -773,6 +773,9 @@ class LandlordDetail extends React.Component {
     }
   };
 
+  onToggleAIIntelligence = () => {
+    this.setState(s => ({ aiIntelligenceCollapsed: !s.aiIntelligenceCollapsed }));
+  };
   onAnalyse = async ()=>{
     if(!this.state.currentId) return;
     this.setState({ analyzing:true, analyseError:'' });
@@ -1665,7 +1668,15 @@ class LandlordDetail extends React.Component {
                 onCheckIMessage={this.checkIMessage}
               />
 
-              <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} askingPrice={fmtAED(this.props.rawLandlord?.asking_price_aed)} propertyName={(this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) ? (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) : null} />
+              <AIIntelligenceCard
+                ai={ai}
+                analyzing={this.state.analyzing}
+                onReanalyse={this.onAnalyse}
+                collapsed={this.state.aiIntelligenceCollapsed}
+                onToggle={this.onToggleAIIntelligence}
+              >
+                <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} askingPrice={fmtAED(this.props.rawLandlord?.asking_price_aed)} propertyName={(this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) ? (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) : null} />
+              </AIIntelligenceCard>
 
               <LandlordMockTabs
                 landlordId={this.state.currentId}

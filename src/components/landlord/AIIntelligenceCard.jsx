@@ -125,7 +125,7 @@ function TrendCell({ label, metric, suffix, sparkColor, invert }) {
   );
 }
 
-export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle }) {
+export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle, children }) {
   const hasSummary = !!ai.summary;
   const nba = ai.nextBestAction;
   const hasNba = nba && typeof nba === 'object' && (nba.action || nba.reasoning);
@@ -266,6 +266,11 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:3px;")}>Coaching</span>
                 <p style={css("margin:0; font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.72);")}>{ai.coaching}</p>
               </div>
+            )}
+
+            {/* Price evaluation (passed as children) */}
+            {children && (
+              <div style={css("margin-bottom:8px;")}>{children}</div>
             )}
 
             {/* Objections */}
