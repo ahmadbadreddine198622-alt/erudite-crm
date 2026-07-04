@@ -224,7 +224,6 @@ const AuthenticatedApp = () => {
         <Route path="/agent-intelligence" element={<AgentIntelligence />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/automations-hub" element={<AutomationsHub />} />
-            <Route path="/closing" element={<Closing />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
