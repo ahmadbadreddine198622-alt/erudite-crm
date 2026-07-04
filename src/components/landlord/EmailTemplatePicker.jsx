@@ -19,7 +19,7 @@ const VIS_META = {
   specific_agents: { icon: Users, color: '#60a5fa', label: 'Specific' },
 };
 
-export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
+export default function EmailTemplatePicker({ onSelect, channel = 'email', compact = false }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -79,7 +79,15 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
       <div style={{ position: 'relative' }}>
         <button
           onClick={() => setOpen((o) => !o)}
-          style={{
+          title="Templates"
+          style={compact ? {
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+            background: open ? 'hsl(38 92% 50% / 0.18)' : 'transparent',
+            color: open ? 'hsl(38 92% 64%)' : 'rgba(255,255,255,0.6)',
+            border: '1px solid ' + (open ? 'hsl(38 92% 50% / 0.3)' : 'transparent'),
+            transition: 'background 0.15s, border-color 0.15s',
+          } : {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '6px 11px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
             fontFamily: "'Inter',sans-serif",
@@ -88,8 +96,9 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
             border: '1px solid ' + (open ? 'hsl(38 92% 50% / 0.4)' : 'rgba(255,255,255,0.12)'),
           }}
         >
-          <FileText size={13} /> Templates
-          <ChevronDown size={12} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+          <FileText size={compact ? 14 : 13} />
+          {!compact && <span>Templates</span>}
+          {!compact && <ChevronDown size={12} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />}
         </button>
 
         {open && (

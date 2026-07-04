@@ -13,7 +13,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
-import { Clapperboard, Rotate3d, Plane, Ruler, ChevronDown, Users } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, ChevronDown, Users, FileText, Save } from 'lucide-react';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import CallsTabList from '@/components/landlord/CallsTabList';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
@@ -1626,7 +1626,7 @@ class LandlordDetail extends React.Component {
                     <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })} />
                     <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:6px;")}>
                       <span style={css("font-size:9.5px; color:rgba(255,255,255,0.4);")}><span style={css("font-weight:600; color:"+(this.state.streamFilter==='business'?'#4ade80':'#93c5fd')+";")}>{this.state.streamFilter==='business'?'Business':'Personal'}</span> WhatsApp</span>
-                      {this.state.streamFilter==='business' && <button onClick={()=>this.setState(s=>({chatTemplatesOpen:!s.chatTemplatesOpen}))} style={css("display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:7px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:hsl(38 92% 62%);")}> 📋 Templates</button>}
+                      {this.state.streamFilter==='business' && <button onClick={()=>this.setState(s=>({chatTemplatesOpen:!s.chatTemplatesOpen}))} title="Templates" style={css("display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:hsl(38 92% 62%);")}><FileText size={13} /></button>}
                     </div>
                     {this.state.streamFilter==='business' && this.state.chatTemplatesOpen && <ChatTemplatePanel landlordId={L.id} phone={L.phone} onClose={()=>this.setState({chatTemplatesOpen:false})} />}
                   </React.Fragment>
@@ -1639,6 +1639,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:6px;")}>
                       <EmailTemplatePicker
                         channel={tplChannel}
+                        compact
                         onSelect={({ body }) => this.setState({ composerText: body, messageAiSource: null, messageAiDraft: null })}
                       />
                       {(this.state.composerText || '').trim() && (
@@ -1648,16 +1649,16 @@ class LandlordDetail extends React.Component {
                             saveTemplatePrefill: { title: '', subject: '', body: this.state.composerText },
                             saveTemplateChannel: tplChannel,
                           })}
-                          title="Save current text as a reusable template"
-                          style={css("display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border-radius:8px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6);")}
-                        >⌘ Save as Template</button>
+                          title="Save as template"
+                          style={css("display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6);")}
+                        ><Save size={13} /></button>
                       )}
                     </div>
                   );
                 })()}
                 {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
-                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={3} style={css("flex:1; resize:none; min-height:80px; max-height:160px; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto;")}></textarea>
+                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={2} style={css("flex:1; resize:none; min-height:44px; max-height:140px; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
                   <button onClick={this.onSend} disabled={busy} title={this.state.composerParsing ? 'Parsing…' : 'Send'} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+(busy?0.6:1)+";")}>{this.state.composerParsing ? '✦' : busy ? '…' : '➤'}</button>
                   ); })()}

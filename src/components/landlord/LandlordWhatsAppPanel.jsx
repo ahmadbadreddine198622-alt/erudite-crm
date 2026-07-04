@@ -171,29 +171,31 @@ export default function LandlordWhatsAppPanel({ landlord }) {
             </button>
           );
         })}
-        <div className="ml-auto flex gap-1.5">
-          {/* Templates button — always available, always sends via Business (Meta) */}
+        <div className="ml-auto flex gap-1">
+          {/* Templates icon */}
           <button
             onClick={() => setShowTemplates(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
-            title="Send a Business WhatsApp template (always via Meta Business API)"
+            title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
           >
-            <FileText className="w-3 h-3" />
-            Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
+            <FileText className="w-3.5 h-3.5" />
           </button>
+          {/* Refresh icon */}
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border border-white/15 text-muted-foreground hover:bg-white/8 transition-colors"
+            title="Refresh messages"
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-muted-foreground hover:bg-white/10 transition-colors"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
+          {/* AI smart replies icon */}
           <button
             onClick={fetchSmartReplies}
             disabled={loadingReplies || !conversation?.id}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors disabled:opacity-40"
+            title="AI smart replies"
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors disabled:opacity-40"
           >
-            {loadingReplies ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />}
-            AI
+            {loadingReplies ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
@@ -260,30 +262,35 @@ export default function LandlordWhatsAppPanel({ landlord }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={phoneE164
-              ? `Message via ${CHANNELS.find(c => c.id === channel)?.icon} ${CHANNELS.find(c => c.id === channel)?.label}… (Enter to send)`
+              ? `Message via ${CHANNELS.find(c => c.id === channel)?.label}… (Enter to send)`
               : 'No phone number on file'}
             disabled={!phoneE164 || sendMutation.isPending}
-            rows={2}
-            className="flex-1 text-sm resize-none"
+            rows={1}
+            className="flex-1 text-sm resize-none min-h-[36px]"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
           />
-          <Button
+          <button
             type="submit"
-            size="icon"
             disabled={!text.trim() || !phoneE164 || sendMutation.isPending}
-            className="h-[60px] w-10 shrink-0"
+            title="Send message"
+            className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg transition-all border"
+            style={{
+              background: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))',
+              color: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.4)' : '#1a1205',
+              border: `1px solid ${!text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50% / 0.5)'}`,
+              cursor: !text.trim() || sendMutation.isPending ? 'not-allowed' : 'pointer',
+            }}
           >
-            {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
+            {sendMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          </button>
         </div>
         {(() => {
           const ch = CHANNELS.find(c => c.id === channel);
           const pillColor = CHANNEL_COLORS[ch?.color]?.pill || 'text-muted-foreground';
           return (
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Sending via <span className={pillColor}>{ch?.icon} {ch?.label} ({ch?.phone})</span>
-              {ch?.isEvo && <span className="ml-1 opacity-60">· Evolution (no Meta needed)</span>}
-              {channel === 'business' && <span className="ml-1 opacity-60">· Meta Business API · use Templates to re-open 24h window</span>}
+            <p className="text-[9px] text-muted-foreground/60 mt-0.5">
+              via <span className={pillColor}>{ch?.label}</span>
+              {channel === 'business' && <span className="ml-1 opacity-60">· Meta API</span>}
             </p>
           );
         })()}

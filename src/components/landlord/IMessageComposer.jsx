@@ -1,23 +1,20 @@
-// IMessageComposer — draft & send a landlord iMessage, inline on the V-card.
-//
-// SAME BEHAVIOR AS THE EMAIL COMPOSER: pressing "iMessage" opens this panel exactly like
-// pressing "Email" opens EmailComposer. Same shared brain (`draftLandlordEmail` with
-// channel:'imessage'), same mode picker + owner-psychology + generate-then-send flow.
-// Sending goes through the existing `sendIMessage` function (which appends the signature
-// and the branded banner on first contact). A manual free-text box sits below the AI draft.
+// IMessageComposer — compact HubSpot-style iMessage composer with icon toolbar
+// and AI popover. One short textarea + slim icon row. Same shared brain as email.
 //
 // Props:
 //   landlordId   (string)  — current landlord id
-//   onSent       (fn)      — called after an iMessage is sent (e.g. push a stream item)
-//   onFallback   (fn)      — called when no iMessage handle exists (caller may route to WhatsApp)
+//   onSent       (fn)      — called after an iMessage is sent
+//   onFallback   (fn)      — called when no iMessage handle exists
 
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import EmailTemplatePicker from './EmailTemplatePicker';
 import EmailTemplateDialog from './EmailTemplateDialog';
+import { IconButton } from './ComposerToolbar';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Sparkles, Send, Save, X } from 'lucide-react';
 
-/* Play a short "whoosh / sent" sound via the Web Audio API — no asset file needed. */
 function playSentSound() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -46,10 +43,9 @@ function playSentSound() {
     ping.start(now + 0.16);
     ping.stop(now + 0.52);
     setTimeout(() => ctx.close().catch(() => {}), 700);
-  } catch (_) { /* sound is best-effort */ }
+  } catch (_) {}
 }
 
-/* Convert a CSS declaration string into a React style object (matches the V-card pattern). */
 function css(str) {
   const o = {};
   String(str).split(';').forEach((decl) => {
@@ -63,76 +59,67 @@ function css(str) {
   return o;
 }
 
-// SAME modes as the email composer — these come from the one shared brain.
 const MODES = [
-  { key: 'asset_proof', label: 'Asset proof', hint: 'Shows you know their exact unit — no buyer claim.' },
-  { key: 'real_buyer', label: 'Real buyer', hint: 'Built around a specific real buyer (needs buyer detail).' },
-  { key: 'market_gift', label: 'Market gift', hint: 'Leads with one market insight (needs a market figure).' },
-  { key: 'no_ask_interrupt', label: 'No-ask', hint: 'Explicitly not asking for the listing.' },
-  { key: 'collaboration', label: 'Collaboration', hint: 'Work alongside their existing broker.' },
-  { key: 'funds_ready', label: 'Funds ready', hint: 'Buyer ready to deposit on signing (needs buyer detail).' },
+  { key: 'asset_proof', label: 'Asset proof', hint: 'Shows you know their exact unit.' },
+  { key: 'real_buyer', label: 'Real buyer', hint: 'Built around a specific real buyer.' },
+  { key: 'market_gift', label: 'Market gift', hint: 'Leads with one market insight.' },
+  { key: 'no_ask_interrupt', label: 'No-ask', hint: 'Not asking for the listing.' },
+  { key: 'collaboration', label: 'Collaboration', hint: 'Work alongside their broker.' },
+  { key: 'funds_ready', label: 'Funds ready', hint: 'Buyer ready to deposit.' },
 ];
-
 const REQUIRES_BUYER = ['real_buyer', 'funds_ready'];
 const REQUIRES_MARKET = ['market_gift'];
 
-// SAME psychology profiles as the email composer.
 const PSYCHOLOGY_OPTIONS = [
   { value: '', label: 'Default tone' },
-  { value: 'stubborn', label: 'Stubborn / set in their ways' },
+  { value: 'stubborn', label: 'Stubborn' },
   { value: 'dislikes_email', label: 'Dislikes email' },
-  { value: 'avoids_talking', label: "Doesn't want to call or meet" },
-  { value: 'stressed', label: 'Stressed / overwhelmed' },
-  { value: 'skeptical', label: 'Skeptical / distrustful' },
+  { value: 'avoids_talking', label: "Doesn't want to call" },
+  { value: 'stressed', label: 'Stressed' },
+  { value: 'skeptical', label: 'Skeptical' },
   { value: 'time_poor', label: 'Busy / time-poor' },
-  { value: 'analytical', label: 'Analytical / data-driven' },
-  { value: 'emotionally_attached', label: 'Attached to the home' },
+  { value: 'analytical', label: 'Analytical' },
+  { value: 'emotionally_attached', label: 'Attached to home' },
   { value: 'price_anchored', label: 'High price expectation' },
-  { value: 'previously_burned', label: 'Burned by a past broker' },
+  { value: 'previously_burned', label: 'Burned by broker' },
   { value: 'non_committal', label: 'Slow to respond' },
-  { value: 'status_conscious', label: 'Proud / status-conscious' },
+  { value: 'status_conscious', label: 'Status-conscious' },
 ];
 
-const fieldStyle = css("padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; width:100%;");
+const fieldSm = "padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11px; font-family:'Inter',sans-serif; width:100%; outline:none;";
+const labelSm = "font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:2px;";
 
 export default function IMessageComposer({ landlordId, onSent, onFallback }) {
-  // ── template (shared-brain) state ──
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
   const [buyerDetail, setBuyerDetail] = useState('');
   const [marketFigure, setMarketFigure] = useState('');
   const [compReference, setCompReference] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [draftBody, setDraftBody] = useState('');
+  const [aiOpen, setAiOpen] = useState(false);
+
+  // Unified text area — serves as both AI draft and manual text
+  const [text, setText] = useState('');
   const [draftGloss, setDraftGloss] = useState('');
   const [language, setLanguage] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
-  const [sendingDraft, setSendingDraft] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  // ── manual free-text state (independent — never replaced by templates) ──
-  const [manualText, setManualText] = useState('');
-  const [sendingManual, setSendingManual] = useState(false);
-
-  // Brief celebratory flash overlay right after a successful send (blue).
   const [justSent, setJustSent] = useState(false);
   const flashTimer = useRef(null);
 
-  // Unified template system — save/load reusable iMessage templates with access control.
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
 
   const handleTemplateSelect = ({ body }) => {
-    setDraftBody(body || '');
-    setHasDraft(true);
+    setText(body || '');
+    setHasDraft(false);
     toast.success('Template loaded — edit as needed');
   };
 
   const handleSaveAsTemplate = () => {
-    setSaveTemplatePrefill({
-      title: draftBody ? draftBody.slice(0, 40) : 'New iMessage Template',
-      subject: '',
-      body: draftBody || '',
-    });
+    if (!text.trim()) { toast.error('Nothing to save'); return; }
+    setSaveTemplatePrefill({ title: text.slice(0, 40), subject: '', body: text });
     setSaveTemplateOpen(true);
   };
 
@@ -142,7 +129,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
 
   const generate = async () => {
     if (generating) return;
-    if (needsBuyer && !buyerDetail.trim()) { toast.error('This mode needs a specific buyer detail'); return; }
+    if (needsBuyer && !buyerDetail.trim()) { toast.error('This mode needs a buyer detail'); return; }
     if (needsMarket && !marketFigure.trim()) { toast.error('This mode needs a market figure'); return; }
     setGenerating(true);
     try {
@@ -150,18 +137,18 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
       if (buyerDetail.trim()) agent_inputs.buyer_detail = buyerDetail.trim();
       if (marketFigure.trim()) agent_inputs.market_figure = marketFigure.trim();
       if (compReference.trim()) agent_inputs.comp_reference = compReference.trim();
-      // Same brain as email — only channel differs.
       const payload = { landlord_id: landlordId, mode, agent_inputs, channel: 'imessage' };
       if (psychology) payload.psychology = psychology;
       const res = await base44.functions.invoke('draftLandlordEmail', payload);
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
-      setDraftBody(d.body_native || '');
+      setText(d.body_native || '');
       setDraftGloss(d.body_english_gloss || '');
       setLanguage(d.language || '');
       setHasDraft(true);
-      toast.success('iMessage draft generated — review, then send');
+      setAiOpen(false);
+      toast.success('Draft loaded — review, then send');
     } catch (e) {
       toast.error(e?.message || 'Failed to generate draft');
     } finally {
@@ -169,21 +156,19 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
     }
   };
 
-  // Shared send path — sendIMessage appends the signature + first-contact banner.
-  const send = async (text, setBusy, onDone) => {
+  const send = async () => {
     if (!text.trim()) { toast.error('Nothing to send'); return; }
-    setBusy(true);
+    setSending(true);
     try {
       const res = await base44.functions.invoke('sendIMessage', { landlord_id: landlordId, text, origin: window.location.origin });
       const data = res?.data ?? res;
       if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
         toast.error('No iMessage handle for this landlord.');
         if (onFallback) onFallback(text);
-        setBusy(false);
+        setSending(false);
         return;
       }
       if (data?.error) throw new Error(data.error);
-      // Multi-sensory confirmation: sound + blue flash overlay + toast.
       playSentSound();
       if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
       setJustSent(true);
@@ -191,16 +176,20 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
       toast.success('Sent ✓');
       if (onSent) onSent({ text });
-      if (onDone) onDone();
+      setText(''); setDraftGloss(''); setLanguage(''); setHasDraft(false);
     } catch (e) {
       toast.error(e?.message || 'Failed to send iMessage');
     } finally {
-      setBusy(false);
+      setSending(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
   return (
-    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(10,132,255,0.28); background:rgba(10,132,255,0.05); padding:11px 12px;"), position: 'relative', overflow: 'hidden' }}>
+    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(10,132,255,0.28); background:rgba(10,132,255,0.05); padding:10px 12px;"), position: 'relative', overflow: 'hidden' }}>
       <style>{`
         @keyframes imc-spin { to { transform: rotate(360deg); } }
         @keyframes imc-flash-in { 0% { opacity:0; transform:scale(0.6); } 55% { opacity:1; transform:scale(1.08); } 70% { transform:scale(0.97); } 100% { opacity:1; transform:scale(1); } }
@@ -209,7 +198,6 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         @keyframes imc-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
       `}</style>
 
-      {/* celebratory send flash (blue) */}
       {justSent && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'imc-flash-out 0.4s ease forwards 1.3s' }}>
           <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -221,105 +209,106 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         </div>
       )}
 
-      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; justify-content:space-between;")}>
-        <div style={css("display:flex; align-items:center; gap:6px;")}>
-          <span style={{ ...css("font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;"), color: '#60a5fa' }}>AI iMessage Draft</span>
-          <span style={css("font-size:8.5px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.45);")}>Same brain as email</span>
-          {language && <span style={css("font-size:9px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); text-transform:uppercase;")}>{language}</span>}
-        </div>
-        <EmailTemplatePicker channel="imessage" onSelect={handleTemplateSelect} />
-      </div>
+      {/* Unified compact textarea */}
+      <textarea
+        value={text}
+        onChange={(e) => { setText(e.target.value); if (hasDraft && e.target.value !== text) setHasDraft(false); }}
+        onKeyDown={handleKeyDown}
+        rows={2}
+        placeholder="Type an iMessage… (Enter to send, Shift+Enter for new line)"
+        style={{ ...css(fieldSm), resize: 'vertical', minHeight: 44, lineHeight: 1.5, marginBottom: 6 }}
+      />
 
-      {/* ── 1) TEMPLATE CHOICES (shared brain) ── */}
-      <div style={css("display:flex; gap:5px; flex-wrap:wrap; margin-bottom:7px;")}>
-        {MODES.map((m) => {
-          const on = mode === m.key;
-          return (
-            <button key={m.key} onClick={() => setMode(m.key)} title={m.hint}
-              style={css(
-                "padding:4px 9px; border-radius:7px; font-size:10.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; " +
-                "background:" + (on ? "rgba(10,132,255,0.2)" : "rgba(255,255,255,0.04)") + "; " +
-                "color:" + (on ? "#60a5fa" : "rgba(255,255,255,0.6)") + "; " +
-                "border:1px solid " + (on ? "rgba(10,132,255,0.5)" : "rgba(255,255,255,0.1)") + ";"
-              )}>{m.label}</button>
-          );
-        })}
-      </div>
-      {activeMode && <div style={css("font-size:10px; color:rgba(255,255,255,0.45); margin-bottom:8px; line-height:1.4;")}>{activeMode.hint}</div>}
-
-      <div style={css("margin-bottom:9px;")}>
-        <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Owner psychology</div>
-        <select value={psychology} onChange={(e) => setPsychology(e.target.value)} style={{ ...fieldStyle, cursor: 'pointer', appearance: 'auto' }}>
-          {PSYCHOLOGY_OPTIONS.map((p) => (
-            <option key={p.value || 'default'} value={p.value} style={{ background: '#1a2235', color: '#fff' }}>{p.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {needsBuyer && (
-        <input value={buyerDetail} onChange={(e) => setBuyerDetail(e.target.value)} placeholder="Specific buyer detail…" style={{ ...fieldStyle, marginBottom: 7 }} />
+      {/* English gloss if AI-generated in another language */}
+      {draftGloss && draftGloss !== text && (
+        <details style={css("border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:5px 8px; margin-bottom:6px;")}>
+          <summary style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.5); cursor:pointer; list-style:none;")}>English translation (for you)</summary>
+          <div style={css("font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55); margin-top:4px; white-space:pre-wrap;")}>{draftGloss}</div>
+        </details>
       )}
-      {needsMarket && (
-        <input value={marketFigure} onChange={(e) => setMarketFigure(e.target.value)} placeholder="Market figure / insight…" style={{ ...fieldStyle, marginBottom: 7 }} />
-      )}
-      <input value={compReference} onChange={(e) => setCompReference(e.target.value)} placeholder="Optional comp reference…" style={{ ...fieldStyle, marginBottom: 8 }} />
 
-      <button onClick={generate} disabled={generating}
-        style={css(
-          "width:100%; padding:8px; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; margin-bottom:10px; " +
-          "background:rgba(10,132,255,0.14); color:#60a5fa; border:1px solid rgba(10,132,255,0.45); opacity:" + (generating ? 0.6 : 1) + ";"
-        )}>
-        {generating ? 'Generating…' : hasDraft ? '↻ Regenerate draft' : '✦ Generate iMessage draft'}
-      </button>
+      {/* Slim icon toolbar */}
+      <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
+        <div style={css("display:flex; align-items:center; gap:4px;")}>
+          {/* Templates */}
+          <EmailTemplatePicker channel="imessage" onSelect={handleTemplateSelect} compact />
 
-      {hasDraft && (
-        <div style={css("display:flex; flex-direction:column; gap:8px; margin-bottom:4px;")}>
-          <div>
-            <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Message (editable)</div>
-            <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} rows={4}
-              style={{ ...fieldStyle, resize: 'vertical', minHeight: 80, lineHeight: 1.5 }} />
-          </div>
-          {draftGloss && draftGloss !== draftBody && (
-            <details style={css("border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:7px 10px;")}>
-              <summary style={css("font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); cursor:pointer; list-style:none;")}>English translation (for you)</summary>
-              <div style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); margin-top:6px; white-space:pre-wrap;")}>{draftGloss}</div>
-            </details>
-          )}
-          <div style={css("display:flex; gap:7px;")}>
-            <button onClick={() => send(draftBody, setSendingDraft, () => { setDraftBody(''); setDraftGloss(''); setHasDraft(false); })} disabled={sendingDraft}
-              style={css(
-                "flex:1; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; " +
-                "background:linear-gradient(180deg, #0A84FF, #0066cc); color:#fff; border:1px solid rgba(10,132,255,0.6); opacity:" + (sendingDraft ? 0.85 : 1) + ";"
-              )}>
-              {sendingDraft ? (<><span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />Sending…</>) : '➤ Send iMessage'}
-            </button>
-            {hasDraft && (
-              <button onClick={handleSaveAsTemplate} title="Save current draft as a reusable template"
-                style={css("padding:10px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.15);")}>
-                ⌘ Save as Template
+          {/* AI Draft popover */}
+          <Popover open={aiOpen} onOpenChange={setAiOpen}>
+            <PopoverTrigger asChild>
+              <button type="button" title="AI draft — choose a strategy and generate"
+                className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all border ${aiOpen ? 'bg-violet-500/15 border-violet-500/30' : 'border-transparent hover:bg-white/10'}`}>
+                <Sparkles className="w-3.5 h-3.5" style={{ color: aiOpen ? '#c4b5fd' : 'rgba(255,255,255,0.6)' }} />
               </button>
-            )}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-3" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
+                <span style={css("font-size:11px; font-weight:700; color:#c4b5fd; display:flex; align-items:center; gap:5px;")}><Sparkles size={12} /> AI Draft Strategy</span>
+                <button type="button" onClick={() => setAiOpen(false)} style={css("cursor:pointer; background:none; border:none; color:rgba(255,255,255,0.4);")}><X size={13} /></button>
+              </div>
+              {language && <div style={css("font-size:8px; font-weight:600; padding:1px 5px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); margin-bottom:6px; display:inline-block; text-transform:uppercase;")}>{language}</div>}
+              <div style={css("margin-bottom:6px;")}>
+                <div style={css(labelSm)}>Strategy</div>
+                <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
+                  {MODES.map((m) => <option key={m.key} value={m.key} style={{ background: '#1a2235', color: '#fff' }}>{m.label}</option>)}
+                </select>
+                {activeMode && <div style={css("font-size:9px; color:rgba(255,255,255,0.4); margin-top:3px;")}>{activeMode.hint}</div>}
+              </div>
+              <div style={css("margin-bottom:6px;")}>
+                <div style={css(labelSm)}>Psychology</div>
+                <select value={psychology} onChange={(e) => setPsychology(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
+                  {PSYCHOLOGY_OPTIONS.map((p) => <option key={p.value || 'default'} value={p.value} style={{ background: '#1a2235', color: '#fff' }}>{p.label}</option>)}
+                </select>
+              </div>
+              {needsBuyer && (
+                <div style={css("margin-bottom:6px;")}>
+                  <div style={css(labelSm)}>Buyer detail</div>
+                  <input value={buyerDetail} onChange={(e) => setBuyerDetail(e.target.value)} placeholder="Specific buyer…" style={css(fieldSm)} />
+                </div>
+              )}
+              {needsMarket && (
+                <div style={css("margin-bottom:6px;")}>
+                  <div style={css(labelSm)}>Market figure</div>
+                  <input value={marketFigure} onChange={(e) => setMarketFigure(e.target.value)} placeholder="Market insight…" style={css(fieldSm)} />
+                </div>
+              )}
+              <div style={css("margin-bottom:6px;")}>
+                <div style={css(labelSm)}>Comp reference</div>
+                <input value={compReference} onChange={(e) => setCompReference(e.target.value)} placeholder="Optional comp…" style={css(fieldSm)} />
+              </div>
+              <button type="button" onClick={generate} disabled={generating}
+                style={css("width:100%; padding:6px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(139,92,246,0.14); color:#c4b5fd; border:1px solid rgba(139,92,246,0.4); opacity:" + (generating ? 0.6 : 1) + ";")}>
+                {generating ? 'Generating…' : '✦ Generate draft'}
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          {/* Save as template */}
+          <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" disabled={!text.trim()} />
         </div>
-      )}
 
-      {/* divider */}
-      <div style={css("height:1px; background:rgba(255,255,255,0.08); margin:11px 0 10px;")} />
+        {/* Send icon button */}
+        <button type="button" onClick={send} disabled={sending || !text.trim()}
+          title="Send iMessage"
+          className="flex items-center justify-center gap-2 px-4 h-8 rounded-lg transition-all border"
+          style={{
+            background: !text.trim() || sending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(180deg, #0A84FF, #0066cc)',
+            color: !text.trim() || sending ? 'rgba(255,255,255,0.4)' : '#fff',
+            border: `1px solid ${!text.trim() || sending ? 'rgba(255,255,255,0.1)' : 'rgba(10,132,255,0.6)'}`,
+            cursor: !text.trim() || sending ? 'not-allowed' : 'pointer',
+            fontSize: '11px', fontWeight: 700, fontFamily: "'Inter',sans-serif",
+          }}>
+          {sending ? (
+            <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />
+          ) : (
+            <Send className="w-3.5 h-3.5" />
+          )}
+          {sending ? '' : 'Send'}
+        </button>
+      </div>
 
-      {/* ── 2) MANUAL FREE-TEXT (alongside templates, not a replacement) ── */}
-      <div style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:5px;")}>Or type your own message</div>
-      <textarea value={manualText} onChange={(e) => setManualText(e.target.value)} rows={3} placeholder="Type a normal iMessage by hand…"
-        style={{ ...fieldStyle, resize: 'vertical', minHeight: 66, lineHeight: 1.5, marginBottom: 7 }} />
-      <button onClick={() => send(manualText, setSendingManual, () => setManualText(''))} disabled={sendingManual || !manualText.trim()}
-        style={css(
-          "width:100%; padding:9px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; gap:7px; " +
-          "background:rgba(10,132,255,0.12); color:#60a5fa; border:1px solid rgba(10,132,255,0.4); opacity:" + (sendingManual || !manualText.trim() ? 0.6 : 1) + ";"
-        )}>
-        {sendingManual ? (<><span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(96,165,250,0.4)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />Sending…</>) : '➤ Send my message'}
-      </button>
-      <div style={css("font-size:9px; color:rgba(255,255,255,0.35); text-align:center; margin-top:6px;")}>Signature appends automatically · branded banner on first contact.</div>
+      <div style={css("font-size:8.5px; color:rgba(255,255,255,0.35); text-align:center; margin-top:4px;")}>Signature appends automatically · branded banner on first contact</div>
 
-      {/* Save-as-template dialog */}
       <EmailTemplateDialog
         open={saveTemplateOpen}
         onClose={() => { setSaveTemplateOpen(false); setSaveTemplatePrefill(null); }}
