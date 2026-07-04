@@ -61,5 +61,19 @@
     "landlord_id",
     "document_type",
     "status"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

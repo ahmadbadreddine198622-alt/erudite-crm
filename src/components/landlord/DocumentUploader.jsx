@@ -9,6 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Loader2, Upload, FileText, CheckCircle2, ExternalLink, X } from 'lucide-react';
 import DocumentPreviewModal from './DocumentPreviewModal';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const GOLD = 'hsl(38 92% 50%)';
 
@@ -43,6 +44,7 @@ const OTHER_LABELS = {
 
 export default function DocumentUploader({ landlordId, landlordName, onUploadFormA }) {
   const queryClient = useQueryClient();
+  const { isAdmin } = useCurrentUser();
   const [uploading, setUploading] = useState(null); // category key currently uploading
   const [otherLabel, setOtherLabel] = useState('passport');
   const [showOtherInput, setShowOtherInput] = useState(false);
@@ -237,9 +239,11 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
                             <ExternalLink size={11} />
                           </a>
                         )}
-                        <button onClick={() => handleDelete(doc.id)} title="Remove document" style={css("display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:6px; color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); cursor:pointer;")}>
-                          <X size={11} />
-                        </button>
+                        {isAdmin && (
+                          <button onClick={() => handleDelete(doc.id)} title="Remove document (admin only)" style={css("display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:6px; color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); cursor:pointer;")}>
+                            <X size={11} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
