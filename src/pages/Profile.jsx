@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle, FileSignature } from 'lucide-react';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
 export default function Profile() {
@@ -22,15 +22,17 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
+  const signatureInputRef = useRef(null);
+  const [uploadingSig, setUploadingSig] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -50,10 +52,25 @@ export default function Profile() {
     }
   };
 
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSig(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, signature_url: file_url }));
+      toast.success('Signature uploaded');
+    } catch (err) {
+      toast.error('Failed to upload signature');
+    } finally {
+      setUploadingSig(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -204,6 +221,58 @@ export default function Profile() {
                 <Save className="w-4 h-4" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Signature Upload */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSignature className="w-4 h-4 text-accent" /> Email Signature
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Your signature image is automatically appended to the end of every email you send from the CRM.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <div className="w-48 h-20 rounded-xl flex items-center justify-center border-2 border-dashed border-accent/30 overflow-hidden"
+                  style={{ background: form.signature_url ? 'transparent' : 'hsl(38 92% 50% / 0.08)' }}>
+                  {form.signature_url ? (
+                    <img src={form.signature_url} alt="Signature" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No signature</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => signatureInputRef.current?.click()}
+                  disabled={uploadingSig}
+                  className="absolute bottom-1 right-1 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                  style={{ background: 'hsl(38 92% 50%)', color: '#000' }}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSignatureUpload}
+                  disabled={uploadingSig}
+                  className="hidden"
+                />
+              </div>
+              {form.signature_url && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm(f => ({ ...f, signature_url: '' }))}
+                  className="text-red-400 hover:bg-red-500/10 gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

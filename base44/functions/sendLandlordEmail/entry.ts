@@ -172,6 +172,13 @@ Deno.serve(async (req) => {
       bannerUrl = settings?.[0]?.signature_banner_url || '';
     } catch (_) { /* banner is best-effort */ }
 
+    // Pull the user's personal signature image — always appended to the end of every email.
+    let userSignatureUrl = '';
+    try {
+      const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
+      userSignatureUrl = users?.[0]?.signature_url || '';
+    } catch (_) { /* best-effort */ }
+
     const html = buildHtml(bodyNative, bannerUrl);
 
     // Build signature if requested
@@ -184,6 +191,11 @@ Deno.serve(async (req) => {
     imageUrls.forEach((url, idx) => {
       fullBody += `\n\n<img src="${url}" alt="Image ${idx + 1}" style="max-width:100%;height:auto;margin:12px 0;" />`;
     });
+
+    // Always append the user's personal signature image at the very end of every email.
+    if (userSignatureUrl) {
+      fullBody += `\n\n<img src="${userSignatureUrl}" alt="Signature" style="max-width:320px;height:auto;margin:16px 0 0;" />`;
+    }
 
     const htmlBody = buildHtml(fullBody, bannerUrl);
 
