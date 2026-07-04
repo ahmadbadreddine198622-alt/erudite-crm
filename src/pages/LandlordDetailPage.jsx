@@ -121,6 +121,7 @@ class LandlordDetail extends React.Component {
       followupChannel: 'whatsapp',
       followupDate: '',
       followupHour: 10,
+      followupAmPm: 'AM',
       followupAssignee: '',
       followupSaving: false,
       // AI-draft MESSAGE state (V3 Phase 0: RECORD) — mirrors the note/task pattern. composerText holds
@@ -236,7 +237,7 @@ class LandlordDetail extends React.Component {
       this.autoGrowComposer();
     }
   }
-  scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; }); } }
+  scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = 0; }); } }
   cur(){ return this.state.landlords.find(l=>l.id===this.state.currentId); }
 
   // handlers
@@ -484,12 +485,13 @@ class LandlordDetail extends React.Component {
       followupAiSource: chip.template_key,
       followupChannel: chip.channel || 'whatsapp',
       followupDate: this.dueDateInDays(chip.when_offset_days),
-      followupHour: chip.suggested_hour,
+      followupHour: ((chip.suggested_hour + 11) % 12) + 1,
+      followupAmPm: chip.suggested_hour >= 12 ? 'PM' : 'AM',
     });
   };
 
   // Reset to a from-scratch follow-up.
-  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
+  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' });
 
   onSend = ()=>{
     // Email and iMessage are composed and sent from their dedicated panels (their own buttons),
@@ -894,7 +896,7 @@ class LandlordDetail extends React.Component {
       openQuestions: arr(L.aiOpenQuestions),
     };
 
-    const sorted=[...L.stream].sort((a,b)=>a.order-b.order);
+    const sorted=[...L.stream].sort((a,b)=>(b.order||0)-(a.order||0));
     const filterMode=S.streamFilter || 'all';
     const filtered = filterMode==='all' ? sorted
       : filterMode==='email' ? sorted.filter(s => s.channel==='email' || s.kind==='email')
@@ -910,7 +912,7 @@ class LandlordDetail extends React.Component {
           key:idx, isMsg:true, isAct:false,
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
-          sender: s.channel==='email' ? (s.fromName || s.fromEmail || (out ? 'Erudite' : L.name)) : (out ? (L.agent+' · Erudite') : L.name),
+          sender: s.senderName || (out ? (L.agent || 'Agent') : L.name),
           channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
             color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
@@ -1846,6 +1848,14 @@ export default function LandlordDetailPage() {
   // routes_to=photographer suggestions (first task with an assigned photographer; blank if none).
   const { data: landlordPhotographyTasks = [] } = useQ(['landlord_photography_tasks', id], () => safe(() => base44.entities.PhotographyTask.filter({ landlord_id: id }, '-created_date', 5)), { enabled: !!id });
 
+  // All CRM users — used to resolve sender emails to real names (not the assigned agent).
+  const { data: allUsers = [] } = useQ(['all_users_for_names'], () => safe(() => base44.entities.User.list()));
+  const resolveUserName = (email) => {
+    if (!email) return null;
+    const u = allUsers.find(u => u.email === email);
+    return u?.full_name || email.split('@')[0];
+  };
+
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
   const { data: waBusiness = [] } = useQ(['wa_conv_business', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'business' }, '-created_date', 5)), { enabled: !!phone });
@@ -2001,7 +2011,7 @@ export default function LandlordDetailPage() {
   const fmtMsgTime = (ts) => {
     if (!ts) return '';
     const d = new Date(ts); if (isNaN(d)) return String(ts);
-    return d.toLocaleString('en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   };
   const deriveWaChannel = (msg) => {
     // Check explicit channel field first (most reliable — set by sendWhatsAppMessage backend)
@@ -2053,6 +2063,7 @@ export default function LandlordDetailPage() {
   const stream = [];
   emailMessages.forEach(em => {
     const fromLandlord = em.from_email && landlordEmail && em.from_email.toLowerCase() === landlordEmail.toLowerCase();
+    const isOut = !fromLandlord;
     stream.push({
       t: 'msg',
       dir: fromLandlord ? 'in' : 'out',
@@ -2063,14 +2074,17 @@ export default function LandlordDetailPage() {
       order: tsOf(em.received_at || em.created_date) || 0,
       fromEmail: em.from_email || '',
       fromName: em.from_name || '',
+      senderEmail: isOut ? (em.from_email || '') : '',
+      senderName: isOut ? (resolveUserName(em.from_email) || em.from_name || em.from_email || 'Agent') : (em.from_name || L.full_name_en || L.full_name || 'Owner'),
     });
   });
   waStreamMessages.forEach(msg => {
     const hasImage = msg.media_type === 'image' && msg.media_url;
     const hasVoice = msg.media_type === 'audio' || msg.is_voice_note === true;
+    const isOut = msg.direction === 'outbound';
     stream.push({
       t: 'msg',
-      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      dir: isOut ? 'out' : 'in',
       mtype: hasImage ? 'media' : hasVoice ? 'voice' : 'text',
       text: msg.caption || msg.body || '',
       mediaUrl: hasImage ? msg.media_url : null,
@@ -2081,28 +2095,36 @@ export default function LandlordDetailPage() {
       time: fmtMsgTime(msg.timestamp),
       order: tsOf(msg.timestamp) || 0,
       wa: deriveWaChannel(msg),
+      senderEmail: isOut ? (msg.assigned_agent_email || '') : '',
+      senderName: isOut ? (resolveUserName(msg.assigned_agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
     });
   });
   iMessages.forEach(msg => {
+    const isOut = msg.direction === 'outbound';
     stream.push({
       t: 'msg',
-      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      dir: isOut ? 'out' : 'in',
       mtype: 'text',
       channel: 'imessage',
       text: msg.body || '',
       time: fmtMsgTime(msg.sent_at || msg.created_date),
       order: tsOf(msg.sent_at || msg.created_date) || 0,
+      senderEmail: isOut ? (msg.agent_email || '') : '',
+      senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
     });
   });
   telegramMessages.forEach(msg => {
+    const isOut = msg.direction === 'outbound';
     stream.push({
       t: 'msg',
-      dir: msg.direction === 'outbound' ? 'out' : 'in',
+      dir: isOut ? 'out' : 'in',
       mtype: 'text',
       channel: 'telegram',
       text: msg.body || '',
       time: fmtMsgTime(msg.sent_at || msg.created_date),
       order: tsOf(msg.sent_at || msg.created_date) || 0,
+      senderEmail: isOut ? (msg.agent_email || '') : '',
+      senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
     });
   });
   const mapCallStatus = (s) => {
@@ -2123,7 +2145,7 @@ export default function LandlordDetailPage() {
     provider: 'twilio',
     dir: c.direction === 'outbound' ? 'out' : 'in',
     title: 'Call',
-    who: (c.agent_email ? c.agent_email.split('@')[0] : '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
+    who: (resolveUserName(c.agent_email) || '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
     dur: fmtDuration(c.duration_seconds, c.status),
     status: mapCallStatus(c.status),
     recording: !!c.recording_url,
@@ -2142,7 +2164,7 @@ export default function LandlordDetailPage() {
       provider: isVapi ? 'vapi' : 'aircall',
       dir: c.direction === 'inbound' ? 'in' : 'out',
       title: 'Call',
-      who: (c.agent_name || 'AI') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
+      who: (c.agent_name || resolveUserName(c.agent_email) || 'AI') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
       dur: fmtDuration(c.duration, c.status),
       status: ['done', 'ended', 'completed'].includes(c.status) ? 'done' : mapCallStatus(c.status),
       recording: !!(c.recording_url || c.voicemail_url),
@@ -2166,7 +2188,7 @@ export default function LandlordDetailPage() {
       body: n.body || '',
       time: fmtMsgTime(n.created_date),
       order: tsOf(n.created_date) || 0,
-      author: n.author_name || n.author_email || '',
+      author: n.author_name || resolveUserName(n.author_email) || n.author_email || '',
     });
   });
   // Tasks for the stream — historical LandlordTask records with assignee + due date.
@@ -2188,10 +2210,10 @@ export default function LandlordDetailPage() {
       body: f.notes || '',
       time: fmtMsgTime(f.created_date || f.datetime),
       order: tsOf(f.created_date || f.datetime) || 0,
-      author: f.agent_email || '',
+      author: resolveUserName(f.agent_email) || f.agent_email || '',
     });
   });
-  stream.sort((a, b) => a.order - b.order);
+  stream.sort((a, b) => (b.order || 0) - (a.order || 0));
 
   const unit = {
     label: prop.unit_no || L.unit_reference || '—',
