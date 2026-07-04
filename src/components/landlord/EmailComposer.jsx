@@ -339,7 +339,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
           <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email.com" style={css(fieldSm)} />
         </div>
         <button type="button" onClick={() => setShowCc(s => !s)} title="Show CC field"
-          style={css("display:flex; align-items:center; justify-content:center; gap:3px; height:27px; padding:0 8px; border-radius:6px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:") + (showCc ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)") + css("; border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6);")}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', height: '27px', padding: '0 8px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: showCc ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
           Cc
         </button>
       </div>
