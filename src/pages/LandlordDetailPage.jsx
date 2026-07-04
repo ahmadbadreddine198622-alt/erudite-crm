@@ -1720,8 +1720,8 @@ class LandlordDetail extends React.Component {
               />
 
               <ListingManagerStrip 
-                listingManagerEmail={L.listing_manager_email}
-                assignedAgentEmail={L.assigned_agent_email}
+                listingManagerEmail={L.listingManagerEmail}
+                assignedAgentEmail={L.agentEmail}
                 phone={L.phone}
                 whatsapp={L.whatsapp}
               />
