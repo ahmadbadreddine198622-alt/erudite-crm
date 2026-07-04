@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import DocumentDriveButton from '@/components/landlord/DocumentDriveButton';
+import DocumentPreviewModal from './DocumentPreviewModal';
 
 /* Convert a CSS declaration string into a React style object (preserves the design 1:1). */
 function css(str) {
@@ -23,6 +24,8 @@ const statusStyleMap = {
 };
 
 export default function DocumentsTab({ docs, landlordName }) {
+  const [previewDoc, setPreviewDoc] = useState(null);
+
   if (!docs || !docs.length) {
     return (
       <div style={css("display:flex; flex-direction:column; gap:7px;")}>
@@ -39,10 +42,14 @@ export default function DocumentsTab({ docs, landlordName }) {
         const onDrive = dc.url && /drive\.google\.com/.test(dc.url);
         return (
           <div key={dc.key || dc.label || i} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-            <div style={css("display:flex; align-items:center; gap:11px; min-width:0;")}>
+            <div
+              onClick={() => dc.url && setPreviewDoc({ file_url: dc.url, file_name: dc.label, document_type: 'other', status: dc.status })}
+              style={css("display:flex; align-items:center; gap:11px; min-width:0; cursor:" + (dc.url ? 'pointer' : 'default') + "; flex:1;")}
+              title={dc.url ? 'Click to preview' : undefined}
+            >
               <span style={css("font-size:15px;")}>{dc.icon}</span>
               <div style={css("min-width:0;")}>
-                <div style={css("font-size:13px; color:rgba(255,255,255,0.85);")}>{dc.label}</div>
+                <div style={css("font-size:13px; color:" + (dc.url ? 'hsl(38 92% 70%)' : 'rgba(255,255,255,0.85)') + ";")}>{dc.label}</div>
                 <div style={css("font-size:10.5px; color:rgba(255,255,255,0.42); margin-top:1px;")}>{dc.provider}</div>
               </div>
             </div>
@@ -60,6 +67,7 @@ export default function DocumentsTab({ docs, landlordName }) {
           </div>
         );
       })}
+      {previewDoc && <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />}
     </div>
   );
 }

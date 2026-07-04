@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Loader2, Upload, FileText, CheckCircle2, ExternalLink, X } from 'lucide-react';
+import DocumentPreviewModal from './DocumentPreviewModal';
 
 const GOLD = 'hsl(38 92% 50%)';
 
@@ -47,6 +48,7 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
   const [showOtherInput, setShowOtherInput] = useState(false);
   const fileRef = useRef(null);
   const [pendingCategory, setPendingCategory] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   // Fetch existing documents for this landlord
   const { data: docs = [], isLoading } = useQuery({
@@ -214,10 +216,14 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
                 <div style={css("display:flex; flex-direction:column; gap:5px;")}>
                   {catDocs.map((doc) => (
                     <div key={doc.id} style={css("display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
-                      <div style={css("display:flex; align-items:center; gap:7px; min-width:0;")}>
+                      <div
+                        onClick={() => doc.file_url && setPreviewDoc(doc)}
+                        style={css("display:flex; align-items:center; gap:7px; min-width:0; cursor:" + (doc.file_url ? 'pointer' : 'default') + "; flex:1;")}
+                        title={doc.file_url ? 'Click to preview' : undefined}
+                      >
                         <CheckCircle2 size={13} style={{ color: '#34d399', flex: 'none' }} />
                         <div style={css("min-width:0;")}>
-                          <div style={css("font-size:11.5px; font-weight:500; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;")}>
+                          <div style={css("font-size:11.5px; font-weight:500; color:" + (doc.file_url ? 'hsl(38 92% 70%)' : 'rgba(255,255,255,0.85)') + "; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;")}>
                             {doc.file_name || OTHER_LABELS[doc.document_type] || doc.document_type}
                           </div>
                           <div style={css("font-size:9px; color:rgba(255,255,255,0.4); margin-top:1px;")}>
@@ -227,7 +233,7 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
                       </div>
                       <div style={css("display:flex; align-items:center; gap:5px; flex:none;")}>
                         {doc.file_url && (
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer" title="View document" style={css("display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:6px; color:hsl(38 92% 62%); background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3);")}>
+                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer" title="Open in new tab" style={css("display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:6px; color:hsl(38 92% 62%); background:hsl(38 92% 50% / 0.12); border:1px solid hsl(38 92% 50% / 0.3);")}>
                             <ExternalLink size={11} />
                           </a>
                         )}
@@ -243,6 +249,8 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
           })}
         </div>
       )}
+
+      {previewDoc && <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />}
     </div>
   );
 }

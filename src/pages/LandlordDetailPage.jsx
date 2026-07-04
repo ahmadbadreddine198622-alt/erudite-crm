@@ -1315,6 +1315,7 @@ class LandlordDetail extends React.Component {
               ) : this.state.composerType === 'Documents' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <DocumentsTab docs={L.documents || []} landlordName={L.full_name_en || L.full_name || 'Landlord'} />
+                  <DocumentUploader landlordId={this.state.currentId} landlordName={L.name} onUploadFormA={this.props.onUploadFormA} />
                 </div>
               ) : this.state.composerType === 'Calls' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>

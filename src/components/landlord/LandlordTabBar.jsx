@@ -22,6 +22,7 @@ const TABS = [
   { key: 'Telegram',    label: 'Telegram' },
   { key: 'SMS',         label: 'SMS' },
   { key: 'Follow-up',   label: 'Follow Up' },
+  { key: 'Documents',   label: 'Documents' },
 ];
 
 export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzing }) {
