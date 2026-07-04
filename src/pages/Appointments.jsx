@@ -5,7 +5,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
