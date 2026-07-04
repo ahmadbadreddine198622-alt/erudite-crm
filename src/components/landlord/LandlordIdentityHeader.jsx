@@ -301,14 +301,17 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const flag = flagFor(L.nationality);
   const lang = LANG_LABEL[L.preferred_language];
 
-  // Tier 2 — property facts. Beds/sqft live on the linked Property (passed via `unit`); the rest
-  // (project, unit ref, asking) live on the Landlord record. Only render what exists.
+  // Tier 2 — property facts. Beds/sqft/baths/view live on the linked Property (passed via `unit`);
+  // the rest (project, unit ref, asking) live on the Landlord record. Only render what exists.
   const beds = U.bedrooms != null ? `${U.bedrooms} Bed` : null;
+  const baths = U.bathrooms != null ? `${U.bathrooms} Bath` : null;
   const sqft = U.area_sqft ? `${U.area_sqft} sqft` : null;
   const projectName = L.project_name || U.building_name || null;
   const unitRef = L.unit_reference || U.unit_no || null;
   const askingFull = fmtAED(L.asking_price_aed != null ? L.asking_price_aed : U.price_aed);
   const reserve = fmtAEDShort(L.reserve_price);
+  const psf = (askingFull && U.area_sqft) ? `AED ${Math.round((L.asking_price_aed != null ? L.asking_price_aed : U.price_aed) / U.area_sqft)}/sqft` : null;
+  const view = has(U.view) ? titleize(U.view) : null;
 
   // Tier 4 — deal facts
   const rapport = RAPPORT_META[L.rapport_level] || null;
@@ -393,23 +396,43 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
       })()}
 
       {/* TIER 2 — Property + price (more vibrant), sits tight under the name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
-        {[beds, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
-          .filter(has)
-          .map((part, i, arr) => (
-            <React.Fragment key={i}>
-              <span>{part}</span>
-              {i < arr.length - 1 && <Dot />}
-            </React.Fragment>
-          ))}
-        {askingFull && (
-          <>
-            {(beds || sqft || projectName || unitRef) && <Dot />}
-            <span style={{ fontWeight: 700, color: GOLD }}>Asking {askingFull}</span>
-          </>
+      {/* Property details — always-visible compact grid */}
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* Row 1: beds · baths · sqft · building · unit */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
+          {[beds, baths, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
+            .filter(has)
+            .map((part, i, arr) => (
+              <React.Fragment key={i}>
+                <span>{part}</span>
+                {i < arr.length - 1 && <Dot />}
+              </React.Fragment>
+            ))}
+          {view && <><Dot /><span>{view}</span></>}
+        </div>
+        {/* Row 2: price strip — asking · psf · reserve */}
+        {(askingFull || psf || reserve) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '6px 10px', borderRadius: 9, background: 'rgba(201,162,75,0.06)', border: '1px solid rgba(201,162,75,0.18)' }}>
+            {askingFull && (
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>Asking</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: GOLD }}>{askingFull}</span>
+              </span>
+            )}
+            {psf && (
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>PSF</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{psf}</span>
+              </span>
+            )}
+            {reserve && (
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>Reserve</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{reserve}</span>
+              </span>
+            )}
+          </div>
         )}
-        {reserve && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· Reserve {reserve}</span>}
-
       </div>
 
       {/* Contact list — every phone + email, each with its channel icons right next to it */}
