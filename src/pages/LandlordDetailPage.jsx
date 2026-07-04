@@ -1731,15 +1731,14 @@ class LandlordDetail extends React.Component {
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
 
-              {/* Categorized document uploader + assign listing manager */}
-              <div style={css("margin-top:18px;")}>
-                {this.props.onAssignListingManager && (
-                  <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; margin-bottom:6px;")}>
+              {/* Assign listing manager — document uploads live in the Documents tab now */}
+              {this.props.onAssignListingManager && (
+                <div style={css("margin-top:18px;")}>
+                  <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                     <span style={css("font-size:14px; line-height:1;")}>👥</span> Assign Listing Manager
                   </button>
-                )}
-                <DocumentUploader landlordId={this.state.currentId} landlordName={L.name} onUploadFormA={this.props.onUploadFormA} />
-              </div>
+                </div>
+              )}
 
             </div>
           </div>
