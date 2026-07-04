@@ -144,8 +144,8 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
         <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Documents</span>
       </div>
 
-      {/* Category upload buttons */}
-      <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;")}>
+      {/* Category upload buttons — inline single row */}
+      <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:12px; overflow-x:auto; padding-bottom:2px;")}>
         {CATEGORIES.map((cat) => {
           const isUp = uploading === cat.key;
           return (
@@ -153,7 +153,7 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
               key={cat.key}
               onClick={() => handleCategoryClick(cat.key)}
               disabled={isUp}
-              style={css("display:flex; align-items:center; gap:7px; padding:9px 11px; border-radius:10px; border:1px solid " + cat.color + " / 0.4; background:" + cat.color + " / 0.1; color:" + cat.color + "; font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:" + (isUp ? 0.6 : 1) + ";")}
+              style={css("flex:none; display:inline-flex; align-items:center; gap:7px; padding:9px 12px; border-radius:10px; border:1px solid " + cat.color + " / 0.4; background:" + cat.color + " / 0.1; color:" + cat.color + "; font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap; opacity:" + (isUp ? 0.6 : 1) + ";")}
             >
               {isUp ? <Loader2 size={13} className="animate-spin" /> : <span style={{ fontSize: 14 }}>{cat.icon}</span>}
               {isUp ? 'Uploading…' : `Upload ${cat.label}`}
