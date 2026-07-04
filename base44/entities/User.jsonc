@@ -55,6 +55,19 @@
     "signature_url": {
       "type": "string",
       "description": "Public URL of the user's signature image \u2014 auto-appended to every email they send"
+    },
+    "gmail_connected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the agent has connected their Gmail via OAuth \u2014 must be true to send any email"
+    },
+    "gmail_address": {
+      "type": "string",
+      "description": "The connected Gmail address that emails are sent from"
+    },
+    "email_signature_html": {
+      "type": "string",
+      "description": "Rich HTML signature appended to the bottom of every email the agent sends"
     }
   },
   "required": []

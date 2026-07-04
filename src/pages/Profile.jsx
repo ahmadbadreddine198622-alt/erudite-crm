@@ -16,13 +16,14 @@ import {
 import { toast } from 'sonner';
 import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle, FileSignature } from 'lucide-react';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
+import ReactQuill from 'react-quill';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
@@ -32,7 +33,7 @@ export default function Profile() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -70,7 +71,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -273,6 +274,30 @@ export default function Profile() {
                   <Trash2 className="w-3.5 h-3.5" /> Remove
                 </Button>
               )}
+            </div>
+
+            {/* HTML Rich-Text Signature */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">HTML Signature (auto-appended to every email)</label>
+              <div className="ec-quill-sig" style={{ borderRadius: 8, overflow: 'hidden' }}>
+                <style>{`
+                  .ec-quill-sig .ql-toolbar.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-bottom:none !important; background:rgba(255,255,255,0.03); border-radius:8px 8px 0 0; }
+                  .ec-quill-sig .ql-container.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-radius:0 0 8px 8px; background:rgba(255,255,255,0.04); min-height:80px; font-family:'Inter',sans-serif; }
+                  .ec-quill-sig .ql-editor { color:rgba(255,255,255,0.9); font-size:13px; }
+                  .ec-quill-sig .ql-editor.ql-blank::before { color:rgba(255,255,255,0.35); font-style:normal; }
+                  .ec-quill-sig .ql-snow .ql-stroke { stroke:rgba(255,255,255,0.6) !important; }
+                  .ec-quill-sig .ql-snow .ql-fill { fill:rgba(255,255,255,0.6) !important; }
+                  .ec-quill-sig .ql-snow .ql-tooltip { background:#1a2235 !important; border:1px solid rgba(255,255,255,0.15) !important; color:rgba(255,255,255,0.9) !important; }
+                  .ec-quill-sig .ql-snow .ql-tooltip input[type=text] { background:rgba(255,255,255,0.06) !important; border:1px solid rgba(255,255,255,0.12) !important; color:rgba(255,255,255,0.9) !important; border-radius:4px; }
+                `}</style>
+                <ReactQuill
+                  theme="snow"
+                  value={form.email_signature_html}
+                  onChange={(v) => setForm(f => ({ ...f, email_signature_html: v }))}
+                  modules={{ toolbar: [['bold', 'italic', 'underline'], ['link'], ['clean']] }}
+                  placeholder="Best regards, Your Name — Erudite Real Estate"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

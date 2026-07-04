@@ -25,8 +25,24 @@ Deno.serve(async (req) => {
         const profile = await profileRes.json();
         email = profile.email || null;
       }
+      // Sync gmail_connected / gmail_address onto the User entity (only if changed)
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
+        const ue = users?.[0];
+        if (ue && (!ue.gmail_connected || ue.gmail_address !== email)) {
+          await base44.asServiceRole.entities.User.update(ue.id, { gmail_connected: true, gmail_address: email || user.email });
+        }
+      } catch (_) { /* best-effort sync */ }
       return Response.json({ connected: true, email });
     } catch (_) {
+      // Mark as disconnected on the User entity
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
+        const ue = users?.[0];
+        if (ue?.gmail_connected) {
+          await base44.asServiceRole.entities.User.update(ue.id, { gmail_connected: false, gmail_address: '' });
+        }
+      } catch (_) { /* best-effort sync */ }
       return Response.json({ connected: false, email: null });
     }
   } catch (error) {
