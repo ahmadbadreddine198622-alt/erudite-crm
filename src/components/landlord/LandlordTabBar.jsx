@@ -37,8 +37,11 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
       background: 'rgba(255,255,255,0.015)',
     }}>
       <style>{`
-        .landlord-tab-scroll::-webkit-scrollbar { display: none; }
-        .landlord-tab-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .landlord-tab-scroll::-webkit-scrollbar { height: 4px; display: block; }
+        .landlord-tab-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
+        .landlord-tab-scroll::-webkit-scrollbar-thumb { background: rgba(234,179,8,0.5); border-radius: 99px; }
+        .landlord-tab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(234,179,8,0.7); }
+        .landlord-tab-scroll { scrollbar-width: thin; scrollbar-color: rgba(234,179,8,0.5) rgba(255,255,255,0.04); overflow-x: scroll !important; }
       `}</style>
       {/* Tab row — horizontally scrollable */}
       <div className="landlord-tab-scroll" style={{
