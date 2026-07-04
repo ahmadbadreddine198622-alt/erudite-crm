@@ -15,7 +15,7 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const CONNECTOR_ID = '6a4903498052a4dafa37c8ca';
+const CONNECTOR_ID = '6a479aa48fb6dd5886beb065';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function toBase64Url(str) {

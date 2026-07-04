@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Mail, HardDrive, CheckCircle2, RefreshCw, Unplug } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CONNECTOR_ID = '6a4903498052a4dafa37c8ca';
+const CONNECTOR_ID = '6a479aa48fb6dd5886beb065';
 
 /**
  * GoogleWorkspaceConnectBanner
