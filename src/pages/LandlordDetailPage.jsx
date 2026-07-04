@@ -10,6 +10,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
+import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
@@ -1729,47 +1730,14 @@ class LandlordDetail extends React.Component {
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
 
-              {/* tabs */}
+              {/* Categorized document uploader + assign listing manager */}
               <div style={css("margin-top:18px;")}>
-                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;")}>
-                  <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Documents & Mandate</span>
-                  <div style={css("display:flex; gap:6px; flex-wrap:wrap;")}>
-                    {this.props.onUploadFormA && (
-                      <button onClick={this.props.onUploadFormA} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                        <span style={css("font-size:14px; line-height:1;")}>📄</span> Upload Form A
-                      </button>
-                    )}
-                    {this.props.onAssignListingManager && (
-                      <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                        <span style={css("font-size:14px; line-height:1;")}>👥</span> Assign Listing Manager
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div style={css("display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:11px; margin-bottom:15px;")}>
-                  {vm.tabs.map((tb)=>(
-                    <button key={tb.id} onClick={tb.onClick} style={tb.style}>{tb.label}</button>
-                  ))}
-                </div>
-
-                {tab.isList && (
-                  <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:10px;")}>
-                    {tab.rows.map((r,i)=>(
-                      <div key={i} style={css("border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); padding:11px 13px;")}>
-                        <div style={css("font-size:10.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{r.label}</div>
-                        <div style={r.valueStyle}>{r.value}</div>
-                      </div>
-                    ))}
-                  </div>
+                {this.props.onAssignListingManager && (
+                  <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; margin-bottom:6px;")}>
+                    <span style={css("font-size:14px; line-height:1;")}>👥</span> Assign Listing Manager
+                  </button>
                 )}
-
-                {tab.isCalls && (
-                  <CallsTabList calls={this.cur().calls || []} />
-                )}
-
-                {tab.isDocuments && (
-                  <DocumentsTab docs={tab.docs} landlordName={tab.docsLandlordName} />
-                )}
+                <DocumentUploader landlordId={this.state.currentId} landlordName={L.name} onUploadFormA={this.props.onUploadFormA} />
               </div>
 
             </div>

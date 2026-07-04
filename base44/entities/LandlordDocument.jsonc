@@ -18,9 +18,12 @@
         "noc",
         "noc_landlord",
         "form_a",
-        "ownership_proof"
+        "form_b",
+        "form_f",
+        "ownership_proof",
+        "other"
       ],
-      "description": "Type of required document"
+      "description": "Type of document \u2014 form_a, form_b, form_f are DLD forms; other covers passport, ID, and any miscellaneous customer documents"
     },
     "status": {
       "type": "string",
@@ -35,6 +38,10 @@
     "file_url": {
       "type": "string",
       "description": "URL of the uploaded document"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded document"
     },
     "verified_by_email": {
       "type": "string",
