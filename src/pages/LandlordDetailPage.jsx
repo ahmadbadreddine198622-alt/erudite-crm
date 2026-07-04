@@ -14,7 +14,7 @@ import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
 import OwnerInfoDrawers from '@/components/landlord/OwnerInfoDrawers';
-import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Download } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, Camera, ChevronDown, ExternalLink, Trash2, Plus, Save, DollarSign, Calendar, Download, Users } from 'lucide-react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
@@ -1229,6 +1229,12 @@ class LandlordDetail extends React.Component {
               <button onClick={this.onAnalyse} disabled={vm.analyzing} title="Run AI analysis" style={css("flex:none; display:inline-flex; align-items:center; gap:5px; height:32px; padding:0 12px; border-radius:8px; border:1px solid rgba(212,175,55,0.4); background:rgba(212,175,55,0.14); color:hsl(38 92% 62%); font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; opacity:"+(vm.analyzing?0.5:1)+";")}>
                 {vm.analyzing ? 'Analysing…' : '↻ Analyse'}
               </button>
+              {/* Assign Listing Manager — opens the assignment dialog */}
+              {this.props.onAssignListingManager && (
+                <button onClick={this.props.onAssignListingManager} title="Assign listing manager" style={css("flex:none; display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 14px; border-radius:8px; border:1px solid hsl(38 92% 50% / 0.45); background:rgba(212,175,55,0.14); color:hsl(38 92% 62%); font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
+                  <Users size={14} style={{ color: '#93a4c4' }} /> Assign Listing Manager
+                </button>
+              )}
               {/* Go Back — navigates to previous page */}
               <button onClick={this.onBack} title="Go back to previous page" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 14px; border-radius:8px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
                 ← Go Back
@@ -1730,15 +1736,6 @@ class LandlordDetail extends React.Component {
               <MediaPanel media={vm.media} />
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
-
-              {/* Assign listing manager — document uploads live in the Documents tab now */}
-              {this.props.onAssignListingManager && (
-                <div style={css("margin-top:18px;")}>
-                  <button onClick={this.props.onAssignListingManager} style={css("display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid hsl(38 92% 50% / 0.45); background:hsl(38 92% 50% / 0.14); color:hsl(38 92% 62%); font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                    <span style={css("font-size:14px; line-height:1;")}>👥</span> Assign Listing Manager
-                  </button>
-                </div>
-              )}
 
             </div>
           </div>
