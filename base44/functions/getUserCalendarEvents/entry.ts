@@ -1,10 +1,14 @@
 // getUserCalendarEvents — fetches Google Calendar events + CRM appointments,
 // viewings, and meetings, merged into a single timeline.
 //
+// Access control:
+//   - Admins see ALL agents' events (or filter by a specific agent via filter_agent_email)
+//   - Non-admins see only their own events
+//
 // Input:
-//   time_min   (ISO string, optional) — range start; defaults to now
-//   time_max   (ISO string, optional) — range end; defaults to now + 30 days
-//   days_ahead (number, optional)     — legacy: if no time_max, used as range
+//   time_min            (ISO string, optional) — range start; defaults to now
+//   time_max            (ISO string, optional) — range end; defaults to now + 30 days
+//   filter_agent_email  (string, optional)     — admin-only: filter to a specific agent
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
@@ -14,7 +18,14 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
+    const isAdmin = user.role === 'admin';
     const body = await req.json().catch(() => ({}));
+
+    // Determine agent email filter:
+    // - Non-admins always see only their own
+    // - Admins can optionally filter by a specific agent, or see all (null)
+    const agentEmailFilter = isAdmin ? (body.filter_agent_email || null) : user.email;
+
     const now = new Date();
     const timeMin = body.time_min ? new Date(body.time_min).toISOString() : now.toISOString();
     const daysAhead = Number(body.days_ahead) > 0 ? Number(body.days_ahead) : 30;
@@ -22,7 +33,21 @@ Deno.serve(async (req) => {
       ? new Date(body.time_max).toISOString()
       : new Date(now.getTime() + daysAhead * 86400000).toISOString();
 
-    // ── 1. Fetch Google Calendar events ────────────────────────────
+    // ── Build agent name lookup ────────────────────────────────────
+    const agentNames = {};
+    try {
+      const allUsers = await base44.asServiceRole.entities.User.list();
+      for (const u of (allUsers || [])) {
+        if (u.email) agentNames[u.email.toLowerCase()] = u.full_name || u.email;
+      }
+    } catch (_) { /* best-effort */ }
+
+    function resolveAgentName(email) {
+      if (!email) return null;
+      return agentNames[email.toLowerCase()] || email;
+    }
+
+    // ── 1. Fetch Google Calendar events (shared connector) ────────
     let gcalEvents = [];
     try {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
@@ -40,6 +65,8 @@ Deno.serve(async (req) => {
           attendees: (e.attendees || []).map((a) => a.email),
           type: 'google',
           source: 'google',
+          agent_email: user.email,
+          agent_name: resolveAgentName(user.email),
         }));
       }
     } catch (_) { /* calendar is best-effort */ }
@@ -53,12 +80,13 @@ Deno.serve(async (req) => {
       } catch (_) { return null; }
     }
 
+    // Query builder: admins with no filter get {} (all), otherwise filter by agent_email
+    const apptQuery = agentEmailFilter ? { agent_email: agentEmailFilter } : {};
+
     // ── 2. Fetch LandlordAppointment records ───────────────────────
     let crmAppts = [];
     try {
-      const appts = await base44.entities.LandlordAppointment.filter(
-        { agent_email: user.email }, 'datetime', 200
-      );
+      const appts = await base44.entities.LandlordAppointment.filter(apptQuery, 'datetime', 200);
       for (const a of (appts || [])) {
         const landlordName = await enrichLandlord(a.landlord_id);
         crmAppts.push({
@@ -74,6 +102,8 @@ Deno.serve(async (req) => {
           landlord_name: landlordName,
           source: 'crm',
           google_event_id: a.google_event_id || null,
+          agent_email: a.agent_email || null,
+          agent_name: resolveAgentName(a.agent_email),
         });
       }
     } catch (_) { /* best-effort */ }
@@ -81,9 +111,7 @@ Deno.serve(async (req) => {
     // ── 3. Fetch Viewing records ───────────────────────────────────
     let crmViewings = [];
     try {
-      const viewings = await base44.entities.Viewing.filter(
-        { agent_email: user.email }, 'scheduled_at', 200
-      );
+      const viewings = await base44.entities.Viewing.filter(apptQuery, 'scheduled_at', 200);
       for (const v of (viewings || [])) {
         const landlordName = await enrichLandlord(v.landlord_id);
         crmViewings.push({
@@ -99,6 +127,8 @@ Deno.serve(async (req) => {
           landlord_name: landlordName,
           source: 'viewing',
           google_event_id: v.google_event_id || null,
+          agent_email: v.agent_email || null,
+          agent_name: resolveAgentName(v.agent_email),
         });
       }
     } catch (_) { /* best-effort */ }
@@ -106,9 +136,7 @@ Deno.serve(async (req) => {
     // ── 4. Fetch Meeting records ───────────────────────────────────
     let crmMeetings = [];
     try {
-      const meetings = await base44.entities.Meeting.filter(
-        { agent_email: user.email }, 'scheduled_at', 200
-      );
+      const meetings = await base44.entities.Meeting.filter(apptQuery, 'scheduled_at', 200);
       for (const m of (meetings || [])) {
         const landlordName = await enrichLandlord(m.landlord_id);
         crmMeetings.push({
@@ -124,6 +152,8 @@ Deno.serve(async (req) => {
           landlord_name: landlordName,
           source: 'meeting',
           google_event_id: m.google_event_id || null,
+          agent_email: m.agent_email || null,
+          agent_name: resolveAgentName(m.agent_email),
         });
       }
     } catch (_) { /* best-effort */ }
@@ -141,6 +171,7 @@ Deno.serve(async (req) => {
       events: merged,
       google_count: gcalEvents.length,
       crm_count: crmAll.length,
+      is_admin: isAdmin,
     });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });

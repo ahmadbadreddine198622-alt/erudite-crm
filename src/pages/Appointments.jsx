@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 import CalendarMonthView from '@/components/appointments/CalendarMonthView';
 import {
@@ -40,7 +41,7 @@ function formatDuration(start, end) {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
-function AppointmentCard({ appt }) {
+function AppointmentCard({ appt, isAdmin }) {
   const meta = TYPE_META[appt.type] || TYPE_META.meeting;
   const Icon = meta.icon;
   const isGoogle = appt.source === 'google';
@@ -62,6 +63,7 @@ function AppointmentCard({ appt }) {
           {appt.end && <span>{formatDuration(appt.start, appt.end)}</span>}
           {appt.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {appt.location}</span>}
           {appt.landlord_name && <span className="flex items-center gap-1"><User className="w-3 h-3" /> {appt.landlord_name}</span>}
+          {isAdmin && appt.agent_name && <span className="flex items-center gap-1"><User className="w-3 h-3" /> {appt.agent_name}</span>}
           {isGoogle && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>Google</span>}
           {appt.status && appt.status !== 'scheduled' && appt.status !== 'pending' && (
             <span className="text-[9px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: appt.status === 'cancelled' ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)', color: appt.status === 'cancelled' ? '#f87171' : '#34d399' }}>{appt.status}</span>
@@ -73,7 +75,7 @@ function AppointmentCard({ appt }) {
   );
 }
 
-function DateGroup({ label, items }) {
+function DateGroup({ label, items, isAdmin }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2 px-1">
@@ -82,7 +84,7 @@ function DateGroup({ label, items }) {
         <span className="text-[10px] text-muted-foreground">({items.length})</span>
       </div>
       <div className="space-y-2">
-        {items.map((appt, i) => <AppointmentCard key={appt.id || i} appt={appt} />)}
+        {items.map((appt, i) => <AppointmentCard key={appt.id || i} appt={appt} isAdmin={isAdmin} />)}
       </div>
     </div>
   );
@@ -93,6 +95,9 @@ export default function Appointments() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const { user } = useCurrentUser();
+  const isAdmin = user?.role === 'admin';
+  const [agentFilter, setAgentFilter] = useState('all');
 
   // Calendar state
   const [monthDate, setMonthDate] = useState(new Date());
@@ -114,6 +119,7 @@ export default function Appointments() {
       const res = await base44.functions.invoke('getUserCalendarEvents', {
         time_min: gridStart.toISOString(),
         time_max: gridEnd.toISOString(),
+        ...(isAdmin && agentFilter !== 'all' ? { filter_agent_email: agentFilter } : {}),
       });
       const data = res?.data ?? res;
       if (data?.ok !== false) {
@@ -126,7 +132,7 @@ export default function Appointments() {
         setEvents((appts || []).map((a) => ({ ...a, title: `${a.type || 'meeting'}`, type: a.type || 'meeting', source: 'crm' })));
       } catch (_) { /* empty */ }
     } finally { setLoading(false); }
-  }, [gridStart.toISOString(), gridEnd.toISOString()]);
+  }, [gridStart.toISOString(), gridEnd.toISOString(), isAdmin, agentFilter]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
@@ -148,6 +154,17 @@ export default function Appointments() {
       else groups.later.push(e);
     });
     return groups;
+  }, [events]);
+
+  // ── Unique agents for admin filter dropdown ──
+  const uniqueAgents = useMemo(() => {
+    const map = {};
+    (events || []).forEach((e) => {
+      if (e.agent_email && !map[e.agent_email]) {
+        map[e.agent_email] = e.agent_name || e.agent_email;
+      }
+    });
+    return Object.entries(map).map(([email, name]) => ({ email, name }));
   }, [events]);
 
   // ── Selected day events (for month view detail panel) ──
@@ -174,6 +191,16 @@ export default function Appointments() {
             <p className="page-subtitle mt-1">Your calendar — Google + CRM meetings, viewings, and calls in one view.</p>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && uniqueAgents.length > 0 && (
+              <select
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+                className="h-8 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-xs text-foreground cursor-pointer"
+              >
+                <option value="all">All Agents</option>
+                {uniqueAgents.map((a) => <option key={a.email} value={a.email}>{a.name}</option>)}
+              </select>
+            )}
             {/* View toggle */}
             <div className="flex items-center rounded-lg border border-white/10 bg-white/[0.04] p-0.5">
               <button
@@ -242,6 +269,7 @@ export default function Appointments() {
                           <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatTime(appt.start)}</span>
                             {appt.landlord_name && <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" /> {appt.landlord_name}</span>}
+                            {isAdmin && appt.agent_name && <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" /> {appt.agent_name}</span>}
                             {isGoogle && <span className="text-[8px] px-1 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>G</span>}
                           </div>
                         </div>
@@ -273,10 +301,10 @@ export default function Appointments() {
             </div>
           ) : (
             <div className="space-y-6">
-              {listGroups.today.length > 0 && <DateGroup label="Today" items={listGroups.today} />}
-              {listGroups.tomorrow.length > 0 && <DateGroup label="Tomorrow" items={listGroups.tomorrow} />}
-              {listGroups.week.length > 0 && <DateGroup label="This Week" items={listGroups.week} />}
-              {listGroups.later.length > 0 && <DateGroup label="Later" items={listGroups.later} />}
+              {listGroups.today.length > 0 && <DateGroup label="Today" items={listGroups.today} isAdmin={isAdmin} />}
+              {listGroups.tomorrow.length > 0 && <DateGroup label="Tomorrow" items={listGroups.tomorrow} isAdmin={isAdmin} />}
+              {listGroups.week.length > 0 && <DateGroup label="This Week" items={listGroups.week} isAdmin={isAdmin} />}
+              {listGroups.later.length > 0 && <DateGroup label="Later" items={listGroups.later} isAdmin={isAdmin} />}
             </div>
           )
         )}

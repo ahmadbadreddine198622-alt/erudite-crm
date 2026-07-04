@@ -7,7 +7,7 @@ import {
   Bell, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature,
   Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2,
   GitMerge, Mail, FolderOpen, Brain, MapPin, Search, Handshake, Phone, Key,
-  Calendar, TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
+  TrendingUp, Activity, ShieldAlert, Globe, Shield, FileText, BookOpen, HardDrive,
   Target, Repeat, Eye, FileBox, Megaphone, Building, LineChart, UserSearch, CheckCircle, Camera, PhoneCall, ImageIcon, CalendarCheck
 } from 'lucide-react';
 
@@ -75,7 +75,6 @@ export const ALL_APPS = [
   { label: 'Company Settings',   icon: Building2,      path: '/company-settings',    gradient: 'from-orange-500 to-red-600',            glowColor: 'rgba(249,115,22,0.40)' },
   { label: 'Cheques',            icon: FileText,       path: '/cheques',             gradient: 'from-indigo-500 to-purple-700',          glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'PF Leads',           icon: UserSearch,     path: '/property-finder-leads', gradient: 'from-red-500 to-rose-700',             glowColor: 'rgba(239,68,68,0.40)' },
-  { label: 'Calendar',           icon: Calendar,       path: '/calendar',            gradient: 'from-blue-500 to-indigo-700',            glowColor: 'rgba(59,130,246,0.40)' },
   { label: 'Appointments',       icon: CalendarCheck,  path: '/appointments',        gradient: 'from-indigo-500 to-blue-700',            glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Automations Hub',    icon: Zap,            path: '/automations-hub',     gradient: 'from-violet-500 to-purple-700',          glowColor: 'rgba(139,92,246,0.40)' },
 ];
