@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -14,7 +15,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle, FileSignature } from 'lucide-react';
+import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle, FileSignature, Bell, Plus, Clock } from 'lucide-react';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 import ReactQuill from 'react-quill';
 
@@ -23,7 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [] });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
@@ -33,7 +34,7 @@ export default function Profile() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [] });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -71,7 +72,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -299,6 +300,94 @@ export default function Profile() {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* My Reminder Defaults */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="w-4 h-4 text-accent" /> My Reminder Defaults
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              These pre-fill the booking dialog when you schedule an appointment. You can still edit them per booking.
+            </p>
+
+            {/* Default reminder text */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Default reminder message</label>
+              <Textarea
+                value={form.default_reminder_text}
+                onChange={(e) => setForm(f => ({ ...f, default_reminder_text: e.target.value }))}
+                placeholder="Hi {{landlord_name}}, this is a reminder about our meeting: {{title}}. See you soon! — {{agent_name}}"
+                className="glass-input min-h-[60px] text-sm"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Use <code className="text-accent">{'{{landlord_name}}'}</code>, <code className="text-accent">{'{{title}}'}</code>, <code className="text-accent">{'{{agent_name}}'}</code> as placeholders.
+              </p>
+            </div>
+
+            {/* Default reminder set */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-muted-foreground">Default reminders</label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setForm(f => ({ ...f, default_reminders: [...(f.default_reminders || []), { when_hours: 24, text: f.default_reminder_text || '' }] }))}
+                  className="text-accent hover:bg-accent/10 gap-1.5 h-7 text-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add reminder
+                </Button>
+              </div>
+              {(form.default_reminders || []).length === 0 && (
+                <p className="text-xs text-muted-foreground py-2 text-center rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  No default reminders yet.
+                </p>
+              )}
+              {(form.default_reminders || []).map((r, idx) => (
+                <div key={idx} className="flex flex-col gap-1.5 p-2.5 rounded-lg" style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-blue-400 flex-none" />
+                    <select
+                      value={r.when_hours}
+                      onChange={(e) => setForm(f => ({ ...f, default_reminders: f.default_reminders.map((rr, i) => i === idx ? { ...rr, when_hours: Number(e.target.value) } : rr) }))}
+                      className="glass-input px-2 py-1.5 text-xs rounded-md flex-1"
+                    >
+                      <option value={1}>1 hour before</option>
+                      <option value={3}>3 hours before</option>
+                      <option value={6}>6 hours before</option>
+                      <option value={24}>1 day before</option>
+                      <option value={48}>2 days before</option>
+                      <option value={72}>3 days before</option>
+                    </select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setForm(f => ({ ...f, default_reminders: f.default_reminders.filter((_, i) => i !== idx) }))}
+                      className="text-red-400 hover:bg-red-500/10 h-7 w-7 p-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={r.text}
+                    onChange={(e) => setForm(f => ({ ...f, default_reminders: f.default_reminders.map((rr, i) => i === idx ? { ...rr, text: e.target.value } : rr) }))}
+                    placeholder="Reminder message…"
+                    className="glass-input min-h-[36px] text-xs"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <Button onClick={handleSave} disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
+              <Save className="w-4 h-4" />
+              {saving ? 'Saving...' : 'Save Defaults'}
+            </Button>
           </CardContent>
         </Card>
 

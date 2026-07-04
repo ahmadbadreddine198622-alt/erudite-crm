@@ -359,8 +359,8 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         @keyframes ec-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
         /* ── Quill dark theme overrides ── */
         .ec-quill .ql-toolbar.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-bottom:none !important; background:rgba(255,255,255,0.03); border-radius:8px 8px 0 0; }
-        .ec-quill .ql-container.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-radius:0 0 8px 8px; background:rgba(255,255,255,0.04); min-height:180px; font-family:'Inter',sans-serif; }
-        .ec-quill .ql-editor { color:rgba(255,255,255,0.9); font-size:13px; min-height:180px; line-height:1.6; }
+        .ec-quill .ql-container.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-radius:0 0 8px 8px; background:rgba(255,255,255,0.04); min-height:120px; font-family:'Inter',sans-serif; }
+        .ec-quill .ql-editor { color:rgba(255,255,255,0.9); font-size:13px; min-height:120px; line-height:1.6; }
         .ec-quill .ql-editor.ql-blank::before { color:rgba(255,255,255,0.35); font-style:normal; }
         .ec-quill .ql-snow .ql-stroke { stroke:rgba(255,255,255,0.6) !important; }
         .ec-quill .ql-snow .ql-fill { fill:rgba(255,255,255,0.6) !important; }
@@ -428,24 +428,24 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
       {/* Compose fields */}
       <div style={css("display:flex; flex-direction:column; gap:8px;")}>
-        {/* From (locked to connected Gmail) */}
-        <div>
-          <div style={labelStyle}>From</div>
-          <div style={{ ...fieldStyle, display: 'flex', alignItems: 'center', gap: 6, cursor: 'default' }}>
-            <Lock size={11} style={{ color: gmailConnected ? '#34d399' : '#f87171', flex: 'none' }} />
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {checkingConn ? 'Checking connection…' : gmailConnected ? (gmailAddress || user?.email || 'Connected') : 'Not connected'}
-            </span>
-            {!gmailConnected && !checkingConn && (
-              <a href="/profile" style={{ fontSize: 10, fontWeight: 600, color: 'hsl(38 92% 62%)', textDecoration: 'none', flex: 'none' }}>Connect →</a>
-            )}
+        {/* From + To — side by side */}
+        <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:8px;")}>
+          <div>
+            <div style={labelStyle}>From</div>
+            <div style={{ ...fieldStyle, display: 'flex', alignItems: 'center', gap: 6, cursor: 'default' }}>
+              <Lock size={11} style={{ color: gmailConnected ? '#34d399' : '#f87171', flex: 'none' }} />
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                {checkingConn ? 'Checking…' : gmailConnected ? (gmailAddress || user?.email || 'Connected') : 'Not connected'}
+              </span>
+              {!gmailConnected && !checkingConn && (
+                <a href="/profile" style={{ fontSize: 9, fontWeight: 600, color: 'hsl(38 92% 62%)', textDecoration: 'none', flex: 'none' }}>Connect →</a>
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* To */}
-        <div>
-          <div style={labelStyle}>To</div>
-          <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email.com" style={fieldStyle} />
+          <div>
+            <div style={labelStyle}>To</div>
+            <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email.com" style={fieldStyle} />
+          </div>
         </div>
 
         {/* CC */}

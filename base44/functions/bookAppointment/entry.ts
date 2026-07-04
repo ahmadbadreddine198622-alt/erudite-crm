@@ -1,25 +1,21 @@
 // bookAppointment — creates a Google Calendar event + LandlordAppointment record,
-// sends a WhatsApp notification to the creator, and optionally schedules a reminder
-// to the landlord.
+// sends a WhatsApp notification to the creator, and schedules one or more reminders.
 //
 // Input:
-//   landlord_id          (string, required)
-//   title                (string, required)
-//   datetime             (ISO string, required) — Asia/Dubai local
-//   duration_minutes     (number, default 30)
-//   type                 (enum: call|viewing|meeting, default meeting)
-//   location             (string)
-//   notes                (string)
-//   reminder_delay_hours (number) — when to remind the landlord (e.g. 24 = 24h before)
-//   reminder_text        (string) — custom reminder text for the landlord
+//   title              (string, required)
+//   guest_emails       (string[], optional) — guest email addresses (attendees)
+//   datetime           (ISO string, required)
+//   timezone           (string, optional) — IANA timezone e.g. Asia/Dubai (default Asia/Dubai)
+//   duration_minutes   (number, default 30)
+//   landlord_id        (string, optional) — links to a Landlord record
+//   type               (enum: call|viewing|meeting, default meeting)
+//   location           (string)
+//   notes              (string)
+//   reminders          (array of { when_hours, text }, optional) — multiple reminders
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const pad = (n) => String(n).padStart(2, '0');
-const toDubaiWall = (ms) => {
-  const d = new Date(ms + 4 * 60 * 60000);
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:00`;
-};
 
 Deno.serve(async (req) => {
   try {
@@ -28,23 +24,39 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { landlord_id, title, datetime, duration_minutes, type, location, notes, reminder_delay_hours, reminder_text } = body;
+    const { landlord_id, title, datetime, timezone, duration_minutes, type, location, notes, guest_emails, reminders } = body;
 
-    if (!landlord_id || !datetime) {
-      return Response.json({ ok: false, error: 'landlord_id and datetime are required' }, { status: 400 });
+    if (!datetime) {
+      return Response.json({ ok: false, error: 'datetime is required' }, { status: 400 });
+    }
+    if (!title || !String(title).trim()) {
+      return Response.json({ ok: false, error: 'title is required' }, { status: 400 });
     }
 
-    // ── 1. Fetch landlord ──────────────────────────────────────────────
-    const landlord = await base44.entities.Landlord.get(landlord_id);
-    const landlordName = landlord?.full_name_en || landlord?.full_name_ar || 'Landlord';
-    const landlordEmail = landlord?.email || null;
-    const landlordPhone = landlord?.phone || landlord?.whatsapp || null;
+    const tz = timezone || 'Asia/Dubai';
+    const guestEmails = Array.isArray(guest_emails) ? guest_emails.filter((e) => e && String(e).trim()) : [];
+    const reminderList = Array.isArray(reminders) ? reminders.filter((r) => r && r.when_hours != null) : [];
+
+    // ── 1. Fetch landlord (optional) ──────────────────────────────────
+    let landlordName = null;
+    let landlordEmail = null;
+    let landlordPhone = null;
+    if (landlord_id) {
+      try {
+        const landlord = await base44.entities.Landlord.get(landlord_id);
+        landlordName = landlord?.full_name_en || landlord?.full_name_ar || 'Landlord';
+        landlordEmail = landlord?.email || null;
+        landlordPhone = landlord?.phone || landlord?.whatsapp || null;
+      } catch (_) { /* landlord not found — proceed without */ }
+    }
 
     const durMin = Number(duration_minutes) > 0 ? Number(duration_minutes) : 30;
     const apptType = type || 'meeting';
     const startMs = new Date(datetime).getTime();
-    const startWall = toDubaiWall(startMs);
-    const endWall = toDubaiWall(startMs + durMin * 60000);
+    const startISO = new Date(startMs).toISOString();
+    const endISO = new Date(startMs + durMin * 60000).toISOString();
+
+    const displayTitle = landlordName ? `${title} — ${landlordName}` : title;
 
     // ── 2. Create Google Calendar event ────────────────────────────────
     let googleEventId = null;
@@ -53,17 +65,20 @@ Deno.serve(async (req) => {
       const attendees = [];
       if (user.email) attendees.push({ email: user.email });
       if (landlordEmail) attendees.push({ email: landlordEmail });
+      for (const ge of guestEmails) {
+        if (ge !== user.email && ge !== landlordEmail) attendees.push({ email: ge });
+      }
 
       const eventData = {
-        summary: `${title || apptType} — ${landlordName}`,
+        summary: displayTitle,
         description: [
           `Type: ${apptType}`,
           `Organized by: ${user.full_name || user.email}`,
           `Location: ${location || 'N/A'}`,
           notes ? `Notes: ${notes}` : null,
         ].filter(Boolean).join('\n'),
-        start: { dateTime: startWall, timeZone: 'Asia/Dubai' },
-        end: { dateTime: endWall, timeZone: 'Asia/Dubai' },
+        start: { dateTime: startISO, timeZone: tz },
+        end: { dateTime: endISO, timeZone: tz },
         ...(attendees.length ? { attendees } : {}),
       };
 
@@ -78,18 +93,24 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* calendar is best-effort — appointment still saves */ }
 
-    // ── 3. Save LandlordAppointment record ─────────────────────────────
-    const appt = await base44.entities.LandlordAppointment.create({
-      landlord_id,
-      agent_email: user.email,
-      datetime,
-      duration_minutes: durMin,
-      type: apptType,
-      location: location || '',
-      notes: notes || '',
-      status: 'scheduled',
-      google_event_id: googleEventId,
-    });
+    // ── 3. Save LandlordAppointment record (only if linked to a landlord) ─
+    let apptId = null;
+    if (landlord_id) {
+      try {
+        const appt = await base44.entities.LandlordAppointment.create({
+          landlord_id,
+          agent_email: user.email,
+          datetime,
+          duration_minutes: durMin,
+          type: apptType,
+          location: location || '',
+          notes: notes || '',
+          status: 'scheduled',
+          google_event_id: googleEventId,
+        });
+        apptId = appt.id;
+      } catch (_) { /* best-effort */ }
+    }
 
     // ── 4. WhatsApp notification to the creator ────────────────────────
     const creatorPhone = user.phone || null;
@@ -99,9 +120,9 @@ Deno.serve(async (req) => {
         const evoKey = Deno.env.get('EVOLUTION_API_KEY');
         const instance = Deno.env.get('EVOLUTION_INSTANCE');
         const dateFormatted = new Date(datetime).toLocaleString('en-GB', {
-          timeZone: 'Asia/Dubai', weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+          timeZone: tz, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
         });
-        const waText = `📅 *Appointment Booked*\n\n*${title || apptType}*\nOwner: ${landlordName}\nWhen: ${dateFormatted}\nDuration: ${durMin} min${location ? `\nLocation: ${location}` : ''}`;
+        const waText = `📅 *Appointment Booked*\n\n*${title}*\n${landlordName ? `Owner: ${landlordName}\n` : ''}When: ${dateFormatted}\nDuration: ${durMin} min${location ? `\nLocation: ${location}` : ''}`;
         const digits = creatorPhone.replace(/[^0-9]/g, '');
         await fetch(`${evoUrl}/message/sendText/${instance}`, {
           method: 'POST',
@@ -111,28 +132,29 @@ Deno.serve(async (req) => {
       } catch (_) { /* WhatsApp is best-effort */ }
     }
 
-    // ── 5. Schedule landlord reminder ──────────────────────────────────
-    if (reminder_delay_hours && landlordPhone && reminder_text) {
+    // ── 5. Schedule reminders (multiple) ───────────────────────────────
+    for (const r of reminderList) {
       try {
-        const reminderAt = new Date(startMs - Number(reminder_delay_hours) * 3600000).toISOString();
+        const reminderAt = new Date(startMs - Number(r.when_hours) * 3600000).toISOString();
+        const reminderText = (r.text || '')
+          .replace(/\{\{landlord_name\}\}/g, landlordName || 'the owner')
+          .replace(/\{\{agent_name\}\}/g, user.full_name || 'your agent')
+          .replace(/\{\{title\}\}/g, title);
         await base44.asServiceRole.entities.ScheduledMessage.create({
-          recipient_phone: landlordPhone,
-          recipient_name: landlordName,
-          message_body: reminder_text
-            .replace(/\{\{landlord_name\}\}/g, landlordName)
-            .replace(/\{\{agent_name\}\}/g, user.full_name || 'your agent')
-            .replace(/\{\{title\}\}/g, title || apptType),
+          recipient_phone: landlordPhone || null,
+          recipient_name: landlordName || (guestEmails[0] || ''),
+          message_body: reminderText,
           message_kind: 'freeform',
           scheduled_at: reminderAt,
           status: 'pending',
           created_by_email: user.email,
         });
-      } catch (_) { /* reminder is best-effort */ }
+      } catch (_) { /* each reminder is best-effort */ }
     }
 
     return Response.json({
       ok: true,
-      appointment_id: appt.id,
+      appointment_id: apptId,
       google_event_id: googleEventId,
       landlord_name: landlordName,
     });

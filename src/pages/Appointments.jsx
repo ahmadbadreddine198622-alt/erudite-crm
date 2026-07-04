@@ -11,7 +11,7 @@ import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceC
 import CalendarMonthView from '@/components/appointments/CalendarMonthView';
 import {
   Calendar, Plus, Clock, MapPin, User, Loader2, CalendarCheck,
-  Phone, Eye, Users as UsersIcon, ChevronRight, LayoutGrid, List as ListIcon
+  Phone, Eye, Users as UsersIcon, ChevronRight, LayoutGrid, List as ListIcon, Mail
 } from 'lucide-react';
 
 const TYPE_META = {
@@ -61,8 +61,19 @@ function AppointmentCard({ appt, isAdmin }) {
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTime(appt.start)}</span>
           {appt.end && <span>{formatDuration(appt.start, appt.end)}</span>}
           {appt.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {appt.location}</span>}
-          {appt.landlord_name && <span className="flex items-center gap-1"><User className="w-3 h-3" /> {appt.landlord_name}</span>}
-          {isAdmin && appt.agent_name && <span className="flex items-center gap-1"><User className="w-3 h-3" /> {appt.agent_name}</span>}
+          {appt.organizer_name && (
+            <span className="flex items-center gap-1" title="Booked by">
+              <User className="w-3 h-3 text-accent" /> <span className="text-accent/80">Booked by {appt.organizer_name}</span>
+            </span>
+          )}
+          {appt.guest_emails?.length > 0 && (
+            <span className="flex items-center gap-1" title="Guest">
+              <Mail className="w-3 h-3" /> {appt.guest_emails.join(', ')}
+            </span>
+          )}
+          {appt.landlord_name && !appt.guest_emails?.length && (
+            <span className="flex items-center gap-1"><User className="w-3 h-3" /> {appt.landlord_name}</span>
+          )}
           {isGoogle && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>Google</span>}
           {appt.status && appt.status !== 'scheduled' && appt.status !== 'pending' && (
             <span className="text-[9px] px-1.5 py-0.5 rounded-full capitalize" style={{ background: appt.status === 'cancelled' ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)', color: appt.status === 'cancelled' ? '#f87171' : '#34d399' }}>{appt.status}</span>
@@ -267,8 +278,19 @@ export default function Appointments() {
                           <p className="text-xs font-semibold text-foreground truncate">{appt.title}</p>
                           <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatTime(appt.start)}</span>
-                            {appt.landlord_name && <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" /> {appt.landlord_name}</span>}
-                            {isAdmin && appt.agent_name && <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" /> {appt.agent_name}</span>}
+                            {appt.organizer_name && (
+                              <span className="flex items-center gap-1" title="Booked by">
+                                <User className="w-2.5 h-2.5 text-accent" /> <span className="text-accent/80">{appt.organizer_name}</span>
+                              </span>
+                            )}
+                            {appt.guest_emails?.length > 0 && (
+                              <span className="flex items-center gap-1 truncate" title="Guest">
+                                <Mail className="w-2.5 h-2.5" /> {appt.guest_emails[0]}{appt.guest_emails.length > 1 ? ` +${appt.guest_emails.length - 1}` : ''}
+                              </span>
+                            )}
+                            {appt.landlord_name && !appt.guest_emails?.length && (
+                              <span className="flex items-center gap-1"><User className="w-2.5 h-2.5" /> {appt.landlord_name}</span>
+                            )}
                             {isGoogle && <span className="text-[8px] px-1 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd' }}>G</span>}
                           </div>
                         </div>

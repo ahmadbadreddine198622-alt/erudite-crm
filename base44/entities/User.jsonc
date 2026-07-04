@@ -68,6 +68,27 @@
     "email_signature_html": {
       "type": "string",
       "description": "Rich HTML signature appended to the bottom of every email the agent sends"
+    },
+    "default_reminder_text": {
+      "type": "string",
+      "description": "Default reminder message text pre-filled in the booking dialog"
+    },
+    "default_reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "when_hours": {
+            "type": "number",
+            "description": "Hours before the appointment to send the reminder"
+          },
+          "text": {
+            "type": "string",
+            "description": "Reminder message text"
+          }
+        }
+      },
+      "description": "Default set of reminders pre-filled in the booking dialog, editable per booking"
     }
   },
   "required": []
