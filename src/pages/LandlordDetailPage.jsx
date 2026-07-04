@@ -85,6 +85,7 @@ function css(str) {
 }
 
 import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
+import { fmtMsgTime, mapCallStatus, fmtDuration } from '@/lib/landlordStreamHelpers';
 
 class LandlordDetail extends React.Component {
   constructor(props) {
@@ -242,7 +243,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
   // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
@@ -301,7 +302,7 @@ class LandlordDetail extends React.Component {
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     // A suggested-action chip is NOT the Task "Next Action" AI-draft source, so clear task
     // provenance — a task sent from here is recorded as from-scratch.
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10 });
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' });
   };
 
   // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
@@ -620,15 +621,18 @@ class LandlordDetail extends React.Component {
     const createdFromAi = !!followupAiSource;
     const wasEdited = createdFromAi ? (notes !== (followupDraft || '')) : false;
     const date = this.state.followupDate || this.dueDateInDays(1);
-    const hourNum = Math.min(23, Math.max(0, parseInt(this.state.followupHour, 10) || 0));
+    let hourNum = Math.min(12, Math.max(1, parseInt(this.state.followupHour, 10) || 12));
+    if (this.state.followupAmPm === 'PM' && hourNum < 12) hourNum += 12;
+    if (this.state.followupAmPm === 'AM' && hourNum === 12) hourNum = 0;
     const hh = String(hourNum).padStart(2, '0');
-    const datetime = `${date}T${hh}:00:00+04:00`; // Asia/Dubai is a fixed +04:00 offset
+    const datetime = `${date}T${hh}:00:00+04:00`;
     const channel = ['whatsapp','call','email','imessage','telegram','sms','meeting','viewing'].includes(followupChannel) ? followupChannel : 'whatsapp';
     const apptType = (channel === 'call' || channel === 'viewing') ? (channel === 'viewing' ? 'viewing' : 'call') : 'meeting'; // legacy required field; channel carries the real axis
 
     // Optimistic add — reverted on error so the user can retry.
     const order = Date.now();
-    const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${hh}:00`, body:notes, time:'Just now', order };
+    const h12 = ((hourNum + 11) % 12) + 1;
+    const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${h12}:00 ${hourNum>=12?'PM':'AM'}`, body:notes, time:'Just now', order };
     this.setState(s=>({
       landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
       composerText:'', composerTime:'',
@@ -653,7 +657,7 @@ class LandlordDetail extends React.Component {
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
-      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAssignee:'', followupSaving:false }));
+      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM', followupAssignee:'', followupSaving:false }));
     } catch(e){
       // Revert optimistic add and restore the composer so the user can retry.
       this.setState(s=>({
@@ -1577,9 +1581,11 @@ class LandlordDetail extends React.Component {
                     channel={this.state.followupChannel}
                     date={this.state.followupDate}
                     hour={this.state.followupHour}
+                    ampm={this.state.followupAmPm}
                     onChannel={(v) => this.setState({ followupChannel: v })}
                     onDate={(v) => this.setState({ followupDate: v })}
                     onHour={(v) => this.setState({ followupHour: v })}
+                    onAmPm={(v) => this.setState({ followupAmPm: v })}
                     onClearDraft={this.clearFollowupDraft}
                     assignee={this.state.followupAssignee}
                     onAssignee={(v) => this.setState({ followupAssignee: v })}
@@ -2008,11 +2014,6 @@ export default function LandlordDetailPage() {
   const agentName = agentEmail ? agentEmail.split('@')[0] : 'Unassigned';
 
   // Build the Conversation & Activity stream from live WhatsApp messages + call logs
-  const fmtMsgTime = (ts) => {
-    if (!ts) return '';
-    const d = new Date(ts); if (isNaN(d)) return String(ts);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-  };
   const deriveWaChannel = (msg) => {
     // Check explicit channel field first (most reliable — set by sendWhatsAppMessage backend)
     if (msg.channel === 'personal' || msg.channel === 'business' || msg.channel === 'malik') return msg.channel;
@@ -2127,20 +2128,6 @@ export default function LandlordDetailPage() {
       senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
     });
   });
-  const mapCallStatus = (s) => {
-    if (s === 'completed') return 'done';
-    if (s === 'no-answer' || s === 'busy' || s === 'failed') return 'missed';
-    if (s === 'queued' || s === 'initiated' || s === 'ringing') return 'missed';
-    return 'missed';
-  };
-  const fmtDuration = (sec, status) => {
-    if (sec && sec > 0) { const m = Math.floor(sec / 60), s = sec % 60; return m > 0 ? `${m}m ${s}s` : `${s}s`; }
-    if (status === 'no-answer') return 'No answer';
-    if (status === 'busy') return 'Busy';
-    if (status === 'failed') return 'Failed';
-    if (status === 'queued') return 'Queued';
-    return '—';
-  };
   const calls = callLogs.map(c => ({
     provider: 'twilio',
     dir: c.direction === 'outbound' ? 'out' : 'in',

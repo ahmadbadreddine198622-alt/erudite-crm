@@ -36,7 +36,7 @@ const CHANNELS = [
 
 export default function FollowupComposerFields({
   chips, followupAiSource, collapsed, onToggleCollapsed, onPickChip,
-  channel, date, hour, onChannel, onDate, onHour, onClearDraft,
+  channel, date, hour, ampm, onChannel, onDate, onHour, onAmPm, onClearDraft,
   assignee, onAssignee,
 }) {
   const [agents, setAgents] = useState([]);
@@ -111,7 +111,13 @@ export default function FollowupComposerFields({
         </label>
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Hour
-          <input type="number" min="0" max="23" value={hour} onChange={(e) => onHour(e.target.value)} style={{ ...fieldStyle, width: '52px' }} />
+          <input type="number" min="1" max="12" value={hour} onChange={(e) => onHour(e.target.value)} style={{ ...fieldStyle, width: '52px' }} />
+        </label>
+        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+          <select value={ampm || 'AM'} onChange={(e) => onAmPm(e.target.value)} style={fieldStyle}>
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
         </label>
         <label style={css("display:inline-flex; align-items:center; gap:4px; flex:1; min-width:160px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Assign to
