@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // their Google account via the "Agent Google Workspace" app-user connector.
 // Used by the frontend to decide whether to show the "Connect Google Account" prompt.
 
-const CONNECTOR_ID = '6a479aa48fb6dd5886beb065';
+const CONNECTOR_ID = '6a4903498052a4dafa37c8ca';
 
 Deno.serve(async (req) => {
   try {
