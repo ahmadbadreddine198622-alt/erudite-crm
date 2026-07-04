@@ -9,7 +9,7 @@
 //   toEmail      (string)  — recipient prefilled
 //   onLogged     (fn)      — called after a successful send
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -185,8 +185,8 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     return () => { mounted = false; };
   }, [landlordId]);
 
-  /* ── Image upload handler for Quill ── */
-  const handleImageUpload = () => {
+  /* ── Image upload handler for Quill (stable via useCallback) ── */
+  const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
@@ -206,9 +206,10 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         toast.error('Image upload failed');
       }
     };
-  };
+  }, []);
 
-  const quillModules = {
+  /* ── Memoized Quill modules — stable ref prevents re-init crash ── */
+  const quillModules = useMemo(() => ({
     toolbar: {
       container: [
         ['bold', 'italic', 'underline'],
@@ -219,7 +220,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       ],
       handlers: { image: handleImageUpload },
     },
-  };
+  }), [handleImageUpload]);
 
   /* ── AI draft generation ── */
   const generate = async () => {
