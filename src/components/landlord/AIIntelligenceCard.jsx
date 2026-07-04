@@ -156,13 +156,6 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
               {ai.momentum}
             </span>
           )}
-          {hasScores && (
-            <span style={css("display:flex; align-items:center; gap:3px; flex-direction:row-reverse;")}>
-              {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" displayOnly />}
-              {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} displayOnly />}
-              {hasTrust && <ScorePill label="Trust" value={ai.trust} displayOnly />}
-            </span>
-          )}
           <span style={css("font-size:9px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.5); marginLeft:auto;")}>AI Intelligence</span>
         </button>
       ) : (
@@ -192,13 +185,7 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                     {ai.momentum}
                   </span>
                 )}
-                {hasScores && (
-                  <div style={css("display:flex; align-items:center; gap:5px; flex-direction:row-reverse;")}>
-                    {hasWin && <ScorePill label="Win" value={ai.win} suffix="%" rationale={ai.winRationale} />}
-                    {hasUrgency && <ScorePill label="Urgency" value={ai.urgency} rationale={ai.urgencyRationale} />}
-                    {hasTrust && <ScorePill label="Trust" value={ai.trust} rationale={ai.trustRationale} />}
-                  </div>
-                )}
+
               </div>
             </div>
 
