@@ -1175,7 +1175,7 @@ class LandlordDetail extends React.Component {
         <div className="ld-root" style={css("height:100vh; width:100%; display:flex; flex-direction:column; background:radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%); color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif;")}>
 
           {/* Top bar — breadcrumbs header */}
-          <div style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); backdrop-filter:blur(16px);")}>
+          <div className="ld-topbar" style={css("flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 18px; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); backdrop-filter:blur(16px);")}>
             <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
             {/* Left: back + breadcrumbs trail */}
             <div style={css("display:flex; align-items:center; gap:8px;")}>

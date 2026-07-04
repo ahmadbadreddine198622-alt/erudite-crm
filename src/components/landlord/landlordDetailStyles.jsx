@@ -17,5 +17,8 @@ export const GLOBAL_CSS = `
   .ld-panels { flex-direction: column !important; }
   .ld-panel { flex: 1 1 auto !important; width: 100% !important; height: auto !important; max-height: none !important; border-right: none !important; }
   .ld-scroll { max-height: 640px; }
+  .ld-topbar { overflow-x: auto !important; overflow-y: hidden !important; flex-wrap: nowrap !important; justify-content: flex-start !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .ld-topbar::-webkit-scrollbar { display: none; }
+  .ld-topbar > div { flex-shrink: 0 !important; }
 }
 `;
