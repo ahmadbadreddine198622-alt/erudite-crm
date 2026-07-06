@@ -5,9 +5,10 @@
 // Input (JSON):
 //   to          (string, required) — recipient email
 //   subject     (string, required)
-//   body_html   (string, required) — rich HTML body from the composer (signature already appended)
+//   body_html   (string, required) — rich HTML body from the composer (signature already in the body)
 //   landlord_id (string, required) — logging/threading context
 //   cc          (string, optional)
+//   attachments (array, optional) — [{ url, filename, mime }] files uploaded via UploadFile
 //
 // Output:
 //   { ok: true, message_id, thread_id, to, subject, delivery }
@@ -25,9 +26,26 @@ function toBase64Url(str) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+// MIME base64 must be split into lines of <=76 chars
+function chunkBase64(b64) {
+  return b64.match(/.{1,76}/g).join('\r\n');
+}
+
 function encodeSubject(subject) {
   if (/^[\x00-\x7F]*$/.test(subject)) return subject;
   return `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+}
+
+// RFC 2047 encoded-word for filenames with non-ASCII chars
+function encodeFilename(name) {
+  if (/^[\x00-\x7F]*$/.test(name)) return name;
+  return `=?UTF-8?B?${btoa(unescape(encodeURIComponent(name)))}?=`;
 }
 
 function htmlToText(html) {
@@ -66,7 +84,9 @@ Deno.serve(async (req) => {
     const subject = String(body.subject || '').trim();
     const bodyHtml = String(body.body_html || '');
     const landlordId = String(body.landlord_id || '');
+    const attachments = Array.isArray(body.attachments) ? body.attachments : [];
     const fromEmail = userEntity.gmail_address || user.email;
+    const fromName = userEntity.full_name || user.full_name || '';
 
     if (!to || !EMAIL_RE.test(to)) return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
     if (cc && !EMAIL_RE.test(cc)) return Response.json({ ok: false, error: 'invalid CC email' }, { status: 400 });
@@ -80,20 +100,55 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: 'Gmail token unavailable — reconnect in Profile' }, { status: 403 });
     }
 
-    // ── Build the MIME message ────────────────────────────────────
+    // ── Build the HTML document ───────────────────────────────────
     const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#ffffff;"><div style="max-width:600px;margin:0 auto;padding:24px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${bodyHtml}</div></body></html>`;
 
-    const mime = [
-      `From: ${fromEmail}`,
+    // ── Build a multipart/mixed MIME message (base64-encoded parts) ──
+    // base64 encoding fixes the empty-body/spam issue: the previous 7bit encoding
+    // corrupted any non-ASCII byte (em-dashes, Arabic, Russian) in the HTML, so Gmail
+    // rendered a blank body and flagged it as spam-like.
+    const boundary = 'erudite-' + crypto.randomUUID();
+    const fromHeader = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+
+    const headers = [
+      `From: ${fromHeader}`,
       `To: ${to}`,
       cc ? `Cc: ${cc}` : null,
       `Subject: ${encodeSubject(subject)}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/html; charset="UTF-8"',
-      'Content-Transfer-Encoding: 7bit',
-      '',
-      htmlDoc,
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
     ].filter(Boolean).join('\r\n');
+
+    let mime = headers + '\r\n\r\n';
+
+    // HTML part
+    const htmlB64 = chunkBase64(bytesToBase64(new TextEncoder().encode(htmlDoc)));
+    mime += `--${boundary}\r\n`;
+    mime += 'Content-Type: text/html; charset="UTF-8"\r\n';
+    mime += 'Content-Transfer-Encoding: base64\r\n\r\n';
+    mime += htmlB64 + '\r\n';
+
+    // Attachment parts
+    for (const att of attachments) {
+      if (!att?.url) continue;
+      try {
+        const aResp = await fetch(att.url);
+        if (!aResp.ok) continue;
+        const buf = new Uint8Array(await aResp.arrayBuffer());
+        const aB64 = chunkBase64(bytesToBase64(buf));
+        const fname = encodeFilename(att.filename || 'attachment');
+        const ctype = att.mime || 'application/octet-stream';
+        mime += `--${boundary}\r\n`;
+        mime += `Content-Type: ${ctype}; name="${fname}"\r\n`;
+        mime += 'Content-Transfer-Encoding: base64\r\n';
+        mime += `Content-Disposition: attachment; filename="${fname}"\r\n\r\n`;
+        mime += aB64 + '\r\n';
+      } catch (e) {
+        console.warn('attachment fetch failed', att?.url, e?.message || e);
+      }
+    }
+
+    mime += `--${boundary}--\r\n`;
 
     const raw = toBase64Url(mime);
 

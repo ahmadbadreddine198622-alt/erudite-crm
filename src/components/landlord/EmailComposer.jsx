@@ -136,6 +136,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
   const [mergeVars, setMergeVars] = useState({});
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -171,6 +172,19 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     return () => { mounted = false; };
   }, [landlordId]);
 
+  const sigBlock = useMemo(() => {
+    if (!signatureHtml || signatureHtml === '<p><br></p>') return '';
+    return `<div data-signature="1" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">${signatureHtml}</div>`;
+  }, [signatureHtml]);
+
+  const appendSig = useCallback((html) => (sigBlock && !String(html).includes('data-signature="1"')) ? `${html}${sigBlock}` : html, [sigBlock]);
+
+  // Auto-inject the agent's signature into the editor on mount (HubSpot-style: visible while composing)
+  useEffect(() => {
+    if (!sigBlock) return;
+    setBodyHtml((prev) => (prev && prev.includes('data-signature="1"')) ? prev : ((prev && prev.trim()) ? prev + sigBlock : sigBlock));
+  }, [sigBlock]);
+
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
@@ -190,6 +204,25 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       } catch { toast.error('Image upload failed'); }
     };
   }, []);
+
+  const handleAttach = useCallback(() => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('multiple', '');
+    input.click();
+    input.onchange = async () => {
+      const files = Array.from(input.files || []);
+      for (const file of files) {
+        try {
+          const res = await base44.integrations.Core.UploadFile({ file });
+          const url = res?.file_url || res?.url;
+          if (url) setAttachments((a) => [...a, { url, filename: file.name, mime: file.type || 'application/octet-stream', size: file.size }]);
+        } catch { toast.error(`Failed to upload ${file.name}`); }
+      }
+    };
+  }, []);
+
+  const removeAttachment = useCallback((idx) => setAttachments((a) => a.filter((_, i) => i !== idx)), []);
 
   const quillModules = useMemo(() => ({
     toolbar: {
@@ -216,7 +249,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
       setSubject(d.subject || '');
-      setBodyHtml(plainTextToHtml(d.body_native || ''));
+      setBodyHtml(appendSig(plainTextToHtml(d.body_native || '')));
       setBodyGloss(d.body_english_gloss || '');
       setLanguage(d.language || '');
       setAiOpen(false);
@@ -230,7 +263,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const handleTemplateSelect = ({ subject: s, body: b }) => {
     setSubject(replaceMergeFields(s, mergeVars));
-    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)));
+    setBodyHtml(appendSig(plainTextToHtml(replaceMergeFields(b, mergeVars))));
     toast.success('Template loaded — edit as needed');
   };
 
@@ -262,9 +295,9 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     setSending(true);
     setDelivery(null);
     try {
-      const sig = signatureHtml && signatureHtml !== '<p><br></p>' ? signatureHtml : '';
-      const fullBodyHtml = sig ? `${bodyHtml}<div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">${sig}</div>` : bodyHtml;
-      const payload = { to: to.trim(), subject: subject.trim(), body_html: fullBodyHtml, landlord_id: landlordId, cc: cc.trim() || undefined };
+      // Signature already injected into the editor (visible while composing) — just ensure it's present.
+      const finalBody = (sigBlock && !bodyHtml.includes('data-signature="1"')) ? bodyHtml + sigBlock : bodyHtml;
+      const payload = { to: to.trim(), subject: subject.trim(), body_html: finalBody, landlord_id: landlordId, cc: cc.trim() || undefined, attachments: attachments.map((a) => ({ url: a.url, filename: a.filename, mime: a.mime })) };
       const res = await base44.functions.invoke('sendLandlordEmail', payload);
       const data = res?.data ?? res;
       if (!data?.ok) throw new Error(data?.error || 'Email send failed');
@@ -365,6 +398,21 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         </div>
       </div>
 
+      {/* Attachments */}
+      {attachments.length > 0 && (
+        <div style={css("display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px;")}>
+          {attachments.map((a, i) => (
+            <div key={i} style={css("display:flex; align-items:center; gap:5px; padding:3px 7px 3px 6px; border-radius:7px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); font-size:10px; color:#a5b4fc; font-family:'Inter',sans-serif;")}>
+              <Paperclip size={10} style={{ flex: 'none' }} />
+              <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.filename}</span>
+              <button type="button" onClick={() => removeAttachment(i)} title="Remove" style={css("display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.4); padding:0;")}>
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* English gloss (if AI-generated in another language) */}
       {bodyGloss && (
         <details style={css("border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:5px 8px; margin-bottom:6px;")}>
@@ -378,7 +426,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         <div style={css("display:flex; align-items:center; gap:4px;")}>
           {/* Templates */}
           <div style={css("position:relative;")}>
-            <EmailTemplatePicker onSelect={handleTemplateSelect} compact />
+            <EmailTemplatePicker onSelect={handleTemplateSelect} />
           </div>
           {/* AI Draft popover */}
           <Popover open={aiOpen} onOpenChange={setAiOpen}>
@@ -426,7 +474,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
             </PopoverContent>
           </Popover>
           {/* Attach */}
-          <IconButton icon={Paperclip} onClick={handleImageUpload} title="Attach image" />
+          <IconButton icon={Paperclip} onClick={handleAttach} title="Attach files" />
           {/* Save as template */}
           <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" />
         </div>
