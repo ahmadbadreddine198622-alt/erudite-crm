@@ -5,6 +5,8 @@
 
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useCurrentUser } from '@/lib/useCurrentUser';
+import { buildAgentCtaHtml } from '@/lib/agentSignature';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,41 +120,69 @@ function NotifyEditor({ rule, onSave, onCancel }) {
   );
 }
 
-function NotifyRow({ rule, onToggle, onEdit, onDelete }) {
+function NotifyPreview({ rule, user }) {
+  const bodyHtml = (rule.message_body || '').split(/\n{2,}/).map((p) => `<p style="margin:0 0 10px;line-height:1.55;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
+  const cta = user ? buildAgentCtaHtml(user) : '';
+  const fullName = user?.full_name || '';
+  const firstName = fullName.split(' ').filter(Boolean)[0] || fullName || '';
+  return (
+    <div style={{
+      background: '#1e2229', borderRadius: 12, padding: 18, marginTop: 8,
+      border: '1px solid rgba(255,255,255,0.06)',
+      fontFamily: "'Inter',Arial,Helvetica,sans-serif",
+    }}>
+      <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, margin: 0, fontWeight: 600 }}>{rule.message_title}</p>
+      <div style={{ color: '#e0e0e0', fontSize: 13, marginTop: 10 }}
+        dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <p style={{ color: '#e0e0e0', fontSize: 13, margin: '10px 0 2px' }}>Best regards,</p>
+      <p style={{ color: '#e0e0e0', fontSize: 13, fontWeight: 700, margin: '0 0 2px' }}>{fullName || 'Your agent'}</p>
+      <p style={{ color: '#C5A059', fontSize: 12, fontWeight: 600, margin: 0 }}>Erudite Real Estate</p>
+      {cta && <div style={{ marginTop: 12 }} dangerouslySetInnerHTML={{ __html: cta }} />}
+    </div>
+  );
+}
+
+function NotifyRow({ rule, onToggle, onEdit, onDelete, user }) {
+  const [expanded, setExpanded] = useState(false);
   const role = ROLES.find((r) => r.key === rule.recipient_role) || ROLES[2];
   const RoleIcon = role.icon;
   return (
-    <div className="glass-card p-4 flex items-start gap-3">
-      <button onClick={() => onToggle(rule)} className="flex-none mt-0.5" title={rule.is_active ? 'Active' : 'Inactive'}>
-        {rule.is_active
-          ? <ToggleRight className="w-6 h-6 text-emerald-400" />
-          : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-semibold text-foreground">{rule.name}</p>
-          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide flex items-center gap-1"
-            style={{ background: `${role.color}15`, color: role.color }}>
-            <RoleIcon className="w-3 h-3" /> {role.label.split(' ')[0]}
-          </span>
+    <div className="glass-card p-4">
+      <div className="flex items-start gap-3">
+        <button onClick={() => onToggle(rule)} className="flex-none mt-0.5" title={rule.is_active ? 'Active' : 'Inactive'}>
+          {rule.is_active
+            ? <ToggleRight className="w-6 h-6 text-emerald-400" />
+            : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-foreground">{rule.name}</p>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide flex items-center gap-1"
+              style={{ background: `${role.color}15`, color: role.color }}>
+              <RoleIcon className="w-3 h-3" /> {role.label.split(' ')[0]}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(197,160,89,0.12)', color: '#C5A059' }}>
+              {rule.trigger_type?.replace(/_/g, ' ')}
+            </span>
+            {rule.delay_hours > 0 && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> {rule.delay_hours}h</span>}
+            <span className="text-[10px] text-muted-foreground">· Fired {rule.execution_count || 0}×</span>
+          </div>
+          <button onClick={() => setExpanded((e) => !e)} className="text-[11px] text-accent hover:underline mt-1.5">
+            {expanded ? 'Hide preview' : 'View preview'}
+          </button>
         </div>
-        <p className="text-xs text-foreground/80 mt-1 font-medium">{rule.message_title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{rule.message_body?.substring(0, 140)}{rule.message_body?.length > 140 ? '…' : ''}</p>
-        <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1"><Bell className="w-3 h-3" /> {rule.trigger_type?.replace(/_/g, ' ')}</span>
-          {rule.delay_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {rule.delay_hours}h delay</span>}
-          <span>· Fired {rule.execution_count || 0}×</span>
+        <div className="flex-none flex items-center gap-1">
+          <button onClick={() => onEdit(rule)} className="p-1.5 rounded-lg hover:bg-white/5"><Edit3 className="w-4 h-4 text-muted-foreground" /></button>
+          <button onClick={() => onDelete(rule)} className="p-1.5 rounded-lg hover:bg-red-500/10"><Trash2 className="w-4 h-4 text-red-400" /></button>
         </div>
       </div>
-      <div className="flex-none flex items-center gap-1">
-        <button onClick={() => onEdit(rule)} className="p-1.5 rounded-lg hover:bg-white/5"><Edit3 className="w-4 h-4 text-muted-foreground" /></button>
-        <button onClick={() => onDelete(rule)} className="p-1.5 rounded-lg hover:bg-red-500/10"><Trash2 className="w-4 h-4 text-red-400" /></button>
-      </div>
+      {expanded && <NotifyPreview rule={rule} user={user} />}
     </div>
   );
 }
 
 export default function InternalNotificationsTab({ rules, onChanged }) {
+  const { user } = useCurrentUser();
   const [editing, setEditing] = useState(null); // null = list, {} = new, {id} = edit
   const [saving, setSaving] = useState(false);
 
@@ -227,7 +257,7 @@ export default function InternalNotificationsTab({ rules, onChanged }) {
         </div>
       ) : (
         notifyRules.map((rule) => (
-          <NotifyRow key={rule.id} rule={rule} onToggle={handleToggle} onEdit={(r) => setEditing(r)} onDelete={handleDelete} />
+          <NotifyRow key={rule.id} rule={rule} user={user} onToggle={handleToggle} onEdit={(r) => setEditing(r)} onDelete={handleDelete} />
         ))
       )}
     </div>
