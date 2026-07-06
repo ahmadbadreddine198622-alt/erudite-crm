@@ -582,6 +582,11 @@ Deno.serve(async (req) => {
 
     // ---- Background: route + enrich for inbound messages ----
     if (!fromMe && conv?.id) {
+      // For agent-personal lines (malik / sameie / dari), pass the receiving number
+      // so routeWhatsAppMessage can ping the line owner even when the conversation
+      // is assigned to a different agent.
+      const agentLineChannels = ['malik', 'sameie', 'dari'];
+      const lineOwnerPhone = agentLineChannels.includes(channel) ? myNumber : null;
       serviceRole.functions.invoke('routeWhatsAppMessage', {
         phone_e164: e164Phone,
         message_text: parsed.text,
@@ -589,6 +594,7 @@ Deno.serve(async (req) => {
         timestamp,
         conversation_id: conv.id,
         wa_display_name: waDisplayName || '',
+        line_owner_phone: lineOwnerPhone,
       }).catch(() => {});
       serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
       

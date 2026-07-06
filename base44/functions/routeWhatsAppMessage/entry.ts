@@ -120,28 +120,44 @@ async function tagConversation(base44, conversation_id, agentEmail, department, 
  * +971581806000) Evolution instance to the agent's own phone. Fire-and-forget.
  * Skips if the agent has no phone, or if their phone IS the personal line (self-send).
  */
-async function notifyAgentWhatsApp(base44, agentEmail, senderName, senderPhone, messageText, entityType) {
-  if (!agentEmail) return;
+async function sendWhatsAppPing(toDigits, senderName, messageText, entityType) {
+  if (!toDigits || toDigits === '971581806000') return;
+  const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+  const apiKey = Deno.env.get('EVOLUTION_API_KEY') || '';
+  if (!apiUrl || !apiKey) return;
+  const preview = String(messageText || '').slice(0, 200);
+  const label = entityType ? ` [${entityType}]` : '';
+  const text = `📲 New WhatsApp inbound${label}\nFrom: ${senderName || ''}\n\n"${preview}"\n\nOpen the CRM WhatsApp inbox to reply.`;
   try {
-    const users = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
-    const agent = users?.[0];
-    if (!agent?.phone) return;
-    const toDigits = String(agent.phone).replace(/\D/g, '');
-    if (!toDigits || toDigits === '971581806000') return;
-    const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-    const apiKey = Deno.env.get('EVOLUTION_API_KEY') || '';
-    if (!apiUrl || !apiKey) return;
-    const preview = String(messageText || '').slice(0, 200);
-    const label = entityType ? ` [${entityType}]` : '';
-    const text = `📲 New WhatsApp inbound${label}\nFrom: ${senderName || senderPhone}\n\n"${preview}"\n\nOpen the CRM WhatsApp inbox to reply.`;
     const resp = await fetch(`${apiUrl}/message/sendText/erudite_whatsapp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: apiKey },
       body: JSON.stringify({ number: toDigits, text }),
     });
-    console.log(`[notifyAgentWhatsApp] to=${agentEmail} (${toDigits}) status=${resp.status}`);
+    console.log(`[sendWhatsAppPing] to=${toDigits} status=${resp.status}`);
   } catch (err) {
-    console.warn('[notifyAgentWhatsApp] failed', err?.message || err);
+    console.warn('[sendWhatsAppPing] failed', err?.message || err);
+  }
+}
+
+/**
+ * Ping BOTH the assigned agent (looked up by email) AND the line owner
+ * (the agent whose WhatsApp number received the message), deduping when
+ * they're the same person. Fire-and-forget.
+ */
+async function notifyAgentAndLineOwner(base44, agentEmail, lineOwnerPhone, senderName, messageText, entityType) {
+  let agentDigits = null;
+  if (agentEmail) {
+    try {
+      const users = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
+      const agent = users?.[0];
+      if (agent?.phone) agentDigits = String(agent.phone).replace(/\D/g, '');
+    } catch (err) { console.warn('[notifyAgentAndLineOwner] user lookup failed', err?.message || err); }
+  }
+  const lineDigits = lineOwnerPhone ? String(lineOwnerPhone).replace(/\D/g, '') : null;
+  const targets = new Set([agentDigits, lineDigits].filter(Boolean));
+  for (const digits of targets) {
+    await sendWhatsAppPing(digits, senderName, messageText, entityType);
   }
 }
 
@@ -168,7 +184,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [], wa_display_name } = await req.json();
+    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [], wa_display_name, line_owner_phone } = await req.json();
     if (!phone_e164 || !message_text) {
       return Response.json({ error: 'phone_e164 and message_text required' }, { status: 400 });
     }
@@ -254,8 +270,8 @@ Deno.serve(async (req) => {
         base44.asServiceRole.functions.invoke('analyzeConversation', { conversation_id }).catch(() => {});
       }
 
-      // WhatsApp push notification to the owning agent's phone
-      notifyAgentWhatsApp(base44, agentEmail, e.full_name_en || e.full_name || e.name || normalized, normalized, message_text, entityType).catch(() => {});
+      // WhatsApp push notification to the assigned agent + line owner
+      notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, e.full_name_en || e.full_name || e.name || normalized, message_text, entityType).catch(() => {});
 
       return Response.json({
         routed_entity_type: entityType,
@@ -336,8 +352,8 @@ Deno.serve(async (req) => {
       await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
       await createAgentReminder(base44, agentEmail, landlord.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
 
-      // WhatsApp push notification to the assigned agent's phone
-      notifyAgentWhatsApp(base44, agentEmail, name, normalized, message_text, 'landlord').catch(() => {});
+      // WhatsApp push notification to the assigned agent + line owner
+      notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, name, message_text, 'landlord').catch(() => {});
 
       // Fire auto-reply (respects business hours, includes property link)
       base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
@@ -424,8 +440,8 @@ Deno.serve(async (req) => {
     await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
     await createAgentReminder(base44, agentEmail, lead.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
 
-    // WhatsApp push notification to the assigned agent's phone
-    notifyAgentWhatsApp(base44, agentEmail, name, normalized, message_text, 'lead').catch(() => {});
+    // WhatsApp push notification to the assigned agent + line owner
+    notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, name, message_text, 'lead').catch(() => {});
 
     // Fire auto-reply (respects business hours, includes matching property link)
     base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
