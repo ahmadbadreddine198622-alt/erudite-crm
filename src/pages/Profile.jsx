@@ -24,7 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', signature_card_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '',       signature_stat_label: '', whatsapp_number: '', whatsapp_instance: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', signature_card_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', instagram_url: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '', erudite_listings_url: '', meet_team_url: '',       signature_stat_label: '', whatsapp_number: '', whatsapp_instance: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
@@ -39,7 +39,7 @@ export default function Profile() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', signature_card_url: u?.signature_card_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '',       signature_stat_label: u?.signature_stat_label || '', whatsapp_number: u?.whatsapp_number || '', whatsapp_instance: u?.whatsapp_instance || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', signature_card_url: u?.signature_card_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', instagram_url: u?.instagram_url || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '', erudite_listings_url: u?.erudite_listings_url || '', meet_team_url: u?.meet_team_url || '',       signature_stat_label: u?.signature_stat_label || '', whatsapp_number: u?.whatsapp_number || '', whatsapp_instance: u?.whatsapp_instance || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -92,7 +92,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label,       signature_stat_label: form.signature_stat_label, whatsapp_number: form.whatsapp_number, whatsapp_instance: form.whatsapp_instance });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, instagram_url: form.instagram_url, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, erudite_listings_url: form.erudite_listings_url, meet_team_url: form.meet_team_url,       signature_stat_label: form.signature_stat_label, whatsapp_number: form.whatsapp_number, whatsapp_instance: form.whatsapp_instance });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -444,6 +444,18 @@ export default function Profile() {
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block">Property Finder Profile URL</label>
                   <Input value={form.pf_profile_url} onChange={e => setForm(f => ({ ...f, pf_profile_url: e.target.value }))} placeholder="https://www.propertyfinder.ae/en/agent/..." className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Instagram Profile URL</label>
+                  <Input value={form.instagram_url} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))} placeholder="https://instagram.com/..." className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Erudite Listings URL</label>
+                  <Input value={form.erudite_listings_url} onChange={e => setForm(f => ({ ...f, erudite_listings_url: e.target.value }))} placeholder="https://www.eruditeproperty.com" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Meet the Team URL</label>
+                  <Input value={form.meet_team_url} onChange={e => setForm(f => ({ ...f, meet_team_url: e.target.value }))} placeholder="https://www.eruditeproperty.com" className="glass-input" />
                 </div>
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block">PF Rating (★)</label>

@@ -79,7 +79,11 @@
     },
     "instagram_handle": {
       "type": "string",
-      "description": "Instagram handle shown in the branded email signature e.g. @eruditeproperty7"
+      "description": "Instagram handle shown on the Instagram CTA card e.g. @eruditeproperty7"
+    },
+    "instagram_url": {
+      "type": "string",
+      "description": "Instagram profile URL for the Instagram CTA card. Falls back to a URL built from instagram_handle, then to Ahmad's default."
     },
     "linkedin_url": {
       "type": "string",
@@ -100,6 +104,14 @@
     "pf_deals_value_label": {
       "type": "string",
       "description": "Property Finder deals value label e.g. AED 100M+"
+    },
+    "erudite_listings_url": {
+      "type": "string",
+      "description": "URL for the 'Erudite Listings' CTA card. Defaults to https://www.eruditeproperty.com (Ahmad's link)."
+    },
+    "meet_team_url": {
+      "type": "string",
+      "description": "URL for the 'Meet the Team' CTA card. Defaults to https://www.eruditeproperty.com (Ahmad's link)."
     },
     "signature_stat_label": {
       "type": "string",
