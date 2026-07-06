@@ -72,14 +72,10 @@ function agentCtaHtml(u = {}) {
   const pfDeals = u.pf_deals_count != null ? u.pf_deals_count : 56;
   const pfValue = u.pf_deals_value_label || 'AED 100M+';
   const statLabel = u.signature_stat_label || 'AED 100M+ closed in Peninsula';
-  const linkedinUrl = u.linkedin_url || 'https://www.linkedin.com/in/ahmad-badreddine';
   const eruditeListingsUrl = u.erudite_listings_url || 'https://www.eruditeproperty.com';
   const meetTeamUrl = u.meet_team_url || 'https://www.eruditeproperty.com';
-  const instagramUrl = u.instagram_url || (u.instagram_handle ? `https://instagram.com/${u.instagram_handle.replace(/^@/, '')}` : 'https://instagram.com/eruditeproperty7');
-  const instagramHandle = u.instagram_handle || '@eruditeproperty7';
   const pfTitle = hasOwnPf ? `${firstName} on Property Finder` : 'Ahmad on Property Finder';
   const pfSubtitle = `SuperAgent · ${pfRating}⭐ · ${pfDeals} deals · ${pfValue}`;
-  const linkedinSub = u.linkedin_url ? `${firstName}'s profile` : "Ahmad's profile";
   const stat = `<div style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:13px;font-weight:700;margin:14px 0 10px;">🏆 ${statLabel}</div>`;
   const card = (bg, title, sub, href, darkText, right) => {
     const tc = darkText ? '#1a1205' : '#ffffff';
@@ -87,8 +83,7 @@ function agentCtaHtml(u = {}) {
     const pad = right ? 'padding:0 0 10px 5px;' : 'padding:0 5px 10px 0;';
     return `<td width="50%" valign="top" style="${pad}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td bgcolor="${bg}" style="padding:14px 16px;border-radius:12px;"><a href="${href}" target="_blank" style="text-decoration:none;display:block;"><div style="font-family:Arial,Helvetica,sans-serif;color:${tc};font-size:14px;font-weight:700;">${title}</div><div style="font-family:Arial,Helvetica,sans-serif;color:${sc};font-size:11px;margin-top:3px;">${sub}</div></a></td></tr></table></td>`;
   };
-  const linkedinCard = `<td colspan="2" valign="top" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td bgcolor="#2D77E8" style="padding:14px 16px;border-radius:12px;"><a href="${linkedinUrl}" target="_blank" style="text-decoration:none;display:block;"><div style="font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:14px;font-weight:700;">💼 LinkedIn →</div><div style="font-family:Arial,Helvetica,sans-serif;color:#d4e6ff;font-size:11px;margin-top:3px;">${linkedinSub}</div></a></td></tr></table></td>`;
-  const cta = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr>${card('#233552', `⭐ ${pfTitle} →`, pfSubtitle, pfUrl, false, false)}${card('#C5A059', '🏛 Erudite Listings →', 'All live listings for sale', eruditeListingsUrl, true, true)}</tr><tr>${card('#10A492', '👥 Meet the Team →', 'eruditeproperty.com', meetTeamUrl, false, false)}${card('#D7338C', '📷 Instagram →', instagramHandle, instagramUrl, false, true)}</tr><tr>${linkedinCard}</tr></table>`;
+  const cta = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr>${card('#233552', `⭐ ${pfTitle} →`, pfSubtitle, pfUrl, false, false)}${card('#C5A059', '🏛 Erudite Listings →', 'All live listings for sale', eruditeListingsUrl, true, true)}</tr><tr>${card('#10A492', '👥 Meet the Team →', 'eruditeproperty.com', meetTeamUrl, false, false)}${card('#D7338C', '📷 Instagram →', '@eruditeproperty7', 'https://instagram.com/eruditeproperty7', false, true)}</tr></table>`;
   return [stat, cta].filter(Boolean).join('');
 }
 function agentSignatureHtml(u = {}) {

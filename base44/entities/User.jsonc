@@ -77,18 +77,6 @@
       "type": "string",
       "description": "Office address shown in the branded email signature card e.g. The Burlington Tower, Business Bay"
     },
-    "instagram_handle": {
-      "type": "string",
-      "description": "Instagram handle shown on the Instagram CTA card e.g. @eruditeproperty7"
-    },
-    "instagram_url": {
-      "type": "string",
-      "description": "Instagram profile URL for the Instagram CTA card. Falls back to a URL built from instagram_handle, then to Ahmad's default."
-    },
-    "linkedin_url": {
-      "type": "string",
-      "description": "LinkedIn profile URL for the branded email signature CTA card"
-    },
     "pf_profile_url": {
       "type": "string",
       "description": "Property Finder agent profile URL for the branded email signature CTA card"
