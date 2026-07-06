@@ -132,8 +132,9 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [sending, setSending] = useState(false);
   const [delivery, setDelivery] = useState(null);
   const [justSent, setJustSent] = useState(false);
+  const [lastSent, setLastSent] = useState(null);
+  const [sentExpanded, setSentExpanded] = useState(false);
   const flashTimer = useRef(null);
-  const quillRef = useRef(null);
 
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
@@ -196,26 +197,6 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     });
   }, [cardImgHtml]);
 
-  const handleImageUpload = useCallback(() => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.click();
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const res = await base44.integrations.Core.UploadFile({ file });
-        const url = res?.file_url || res?.url;
-        if (url && quillRef.current) {
-          const quill = quillRef.current.getEditor();
-          const range = quill.getSelection() || { index: quill.getLength() };
-          quill.insertEmbed(range.index, 'image', url);
-        }
-      } catch { toast.error('Image upload failed'); }
-    };
-  }, []);
-
   const handleAttach = useCallback(() => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
@@ -235,12 +216,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const removeAttachment = useCallback((idx) => setAttachments((a) => a.filter((_, i) => i !== idx)), []);
 
-  const quillModules = useMemo(() => ({
-    toolbar: {
-      container: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'image'], ['clean']],
-      handlers: { image: handleImageUpload },
-    },
-  }), [handleImageUpload]);
+  const quillModules = useMemo(() => ({ toolbar: false }), []);
 
   const generate = async () => {
     if (generating) return;
@@ -318,6 +294,11 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
       toast.success('Sent ✓');
+      const sentPlainText = bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim();
+      setLastSent({ to: to.trim(), subject: subject.trim(), body: sentPlainText, cc: cc.trim() });
+      setSentExpanded(true);
+      // Clear the composer for the next email (keep recipient); signature card re-remains if present
+      setSubject(''); setBodyHtml(cardImgHtml || ''); setAttachments([]); setCc(''); setShowCc(false);
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
       if (onLogged) onLogged({ subject: subject.trim(), to: to.trim(), cc });
@@ -341,7 +322,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         @keyframes ec-plane { 0% { transform:translate(-6px,4px) rotate(-8deg); opacity:0; } 30% { opacity:1; } 100% { transform:translate(70px,-46px) rotate(12deg); opacity:0; } }
         @keyframes ec-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
         .ec-quill .ql-toolbar.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-bottom:none !important; background:rgba(255,255,255,0.03); border-radius:8px 8px 0 0; }
-        .ec-quill .ql-container.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-radius:0 0 8px 8px; background:rgba(255,255,255,0.04); min-height:60px; font-family:'Inter',sans-serif; }
+        .ec-quill .ql-container.ql-snow { border:1px solid rgba(255,255,255,0.12) !important; border-radius:8px; background:rgba(255,255,255,0.04); min-height:80px; font-family:'Inter',sans-serif; }
         .ec-quill .ql-editor { color:rgba(255,255,255,0.9); font-size:13px; min-height:60px; line-height:1.5; }
         .ec-quill .ql-editor.ql-blank::before { color:rgba(255,255,255,0.35); font-style:normal; }
         .ec-quill .ql-snow .ql-stroke { stroke:rgba(255,255,255,0.6) !important; }
@@ -394,7 +375,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       {/* Body — compact ReactQuill */}
       <div style={css("margin-bottom:6px;")}>
         <div className="ec-quill">
-          <ReactQuill ref={quillRef} theme="snow" value={bodyHtml} onChange={setBodyHtml} modules={quillModules} placeholder="Write your email…" />
+          <ReactQuill theme="snow" value={bodyHtml} onChange={setBodyHtml} modules={quillModules} placeholder="Write your email…" />
         </div>
       </div>
 
@@ -493,6 +474,22 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       {!gmailConnected && !checkingConn && (
         <div style={css("font-size:9px; color:#f87171; text-align:center; padding:3px 0 0;")}>
           ⚠ Connect your Gmail in Profile to send emails.
+        </div>
+      )}
+
+      {/* Last sent preview — shows the sent email text after the body is cleared */}
+      {lastSent && (
+        <div style={{ ...css("border-radius:8px; padding:8px 10px; margin-top:8px;"), background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
+          <div style={css("display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:8px;")} onClick={() => setSentExpanded(s => !s)}>
+            <span style={css("font-size:11px; font-weight:700; color:#34d399; display:flex; align-items:center; gap:5px;")}>✓ Sent — {lastSent.subject || '(no subject)'}</span>
+            <span style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.55); white-space:nowrap;")}>{sentExpanded ? 'Hide' : 'View sent email'}</span>
+          </div>
+          {sentExpanded && (
+            <div style={css("margin-top:7px; padding-top:7px; border-top:1px solid rgba(16,185,129,0.2); font-size:11px; color:rgba(255,255,255,0.8); line-height:1.55; white-space:pre-wrap; max-height:220px; overflow:auto;")}>
+              <div style={css("font-size:9px; color:rgba(255,255,255,0.45); margin-bottom:5px;")}>To: {lastSent.to}{lastSent.cc ? ` · cc: ${lastSent.cc}` : ''}</div>
+              {lastSent.body || '(empty body)'}
+            </div>
+          )}
         </div>
       )}
 
