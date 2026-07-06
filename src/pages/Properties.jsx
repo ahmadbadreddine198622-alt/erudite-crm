@@ -77,6 +77,7 @@ export default function Properties() {
             <SelectItem value="under_offer">Under Offer</SelectItem>
             <SelectItem value="sold">Sold</SelectItem>
             <SelectItem value="rented">Rented</SelectItem>
+            <SelectItem value="handover_done">Handover Done</SelectItem>
           </SelectContent>
         </Select>
       </div>

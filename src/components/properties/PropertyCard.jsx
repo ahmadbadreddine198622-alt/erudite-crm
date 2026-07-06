@@ -11,6 +11,7 @@ const statusStyles = {
   sold: 'bg-red-500/10 text-red-600',
   rented: 'bg-blue-500/10 text-blue-600',
   off_market: 'bg-muted text-muted-foreground',
+  handover_done: 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50',
 };
 
 export default function PropertyCard({ property, onClick }) {
@@ -18,7 +19,10 @@ export default function PropertyCard({ property, onClick }) {
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer group hover:shadow-xl transition-all duration-300"
+      className={cn(
+        "overflow-hidden cursor-pointer group hover:shadow-xl transition-all duration-300",
+        property.status === 'handover_done' && "ring-2 ring-emerald-500/60 border-emerald-500/50 shadow-[0_0_18px_-4px_rgba(16,185,129,0.55)]"
+      )}
       onClick={() => onClick(property)}
     >
       <div className="relative aspect-[16/10] overflow-hidden">
@@ -28,8 +32,8 @@ export default function PropertyCard({ property, onClick }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 left-3 flex gap-1.5">
-          <Badge className={cn("text-[10px] font-semibold", statusStyles[property.status])}>
-            {property.status?.replace('_', ' ')}
+          <Badge className={cn("text-[10px] font-semibold capitalize", statusStyles[property.status])}>
+            {property.status === 'handover_done' ? 'Handover Done' : property.status?.replace('_', ' ')}
           </Badge>
           <Badge className="bg-card/80 text-foreground backdrop-blur text-[10px] font-semibold capitalize">
             {property.listing_type}
