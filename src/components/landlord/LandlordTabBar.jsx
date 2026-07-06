@@ -14,15 +14,15 @@ import React from 'react';
 
 const TABS = [
   { key: 'Email',       label: 'Emails' },
+  { key: 'iMessage',    label: 'iMessage' },
+  { key: 'Chat',        label: 'WhatsApp' },
+  { key: 'Telegram',    label: 'Telegram' },
   { key: 'Calls',       label: 'Calls' },
+  { key: 'SMS',         label: 'SMS' },
   { key: 'Appointment', label: 'Appointments' },
   { key: 'Note',        label: 'Notes' },
-  { key: 'Chat',        label: 'WhatsApp' },
-  { key: 'iMessage',    label: 'iMessage' },
-  { key: 'Telegram',    label: 'Telegram' },
-  { key: 'SMS',         label: 'SMS' },
-  { key: 'Follow-up',   label: 'Follow Up' },
   { key: 'Documents',   label: 'Documents' },
+  { key: 'Follow-up',   label: 'Follow Up' },
 ];
 
 export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzing }) {

@@ -322,7 +322,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const activeMode = MODES.find((m) => m.key === mode);
 
   return (
-    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.22); background:hsl(38 92% 50% / 0.04); padding:10px 12px;"), position: 'relative', overflow: 'hidden' }}>
+    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.22); background:hsl(38 92% 50% / 0.04); padding:10px 12px;"), position: 'relative' }}>
       <style>{`
         @keyframes ec-spin { to { transform: rotate(360deg); } }
         @keyframes ec-flash-in { 0% { opacity:0; transform:scale(0.6); } 55% { opacity:1; transform:scale(1.08); } 70% { transform:scale(0.97); } 100% { opacity:1; transform:scale(1); } }
@@ -345,7 +345,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       `}</style>
 
       {justSent && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'ec-flash-out 0.4s ease forwards 1.3s' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(16,185,129,0.22), rgba(16,185,129,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, overflow: 'hidden', animation: 'ec-flash-out 0.4s ease forwards 1.3s' }}>
           <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid rgba(52,211,153,0.6)', animation: 'ec-ring 0.9s ease-out' }} />
             <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(16,185,129,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#04231a', animation: 'ec-flash-in 0.5s cubic-bezier(0.34,1.56,0.64,1)' }}>✓</div>
@@ -426,7 +426,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         <div style={css("display:flex; align-items:center; gap:4px;")}>
           {/* Templates */}
           <div style={css("position:relative;")}>
-            <EmailTemplatePicker onSelect={handleTemplateSelect} />
+            <EmailTemplatePicker onSelect={handleTemplateSelect} compact />
           </div>
           {/* AI Draft popover */}
           <Popover open={aiOpen} onOpenChange={setAiOpen}>
