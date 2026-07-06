@@ -48,7 +48,7 @@ function buildDatetime(date, hour, ampm, timezone) {
   return `${date}T${hh}:00:00${offset}`;
 }
 
-export default function AppointmentBookingDialog({ open, onOpenChange, onBooked }) {
+export default function AppointmentBookingDialog({ open, onOpenChange, onBooked, prefillLandlordId, prefillGuestEmail, prefillTitle }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [landlords, setLandlords] = useState([]);
@@ -64,7 +64,9 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked 
     reminders: [], // [{ when_hours, text }]
   });
 
-  // Load user defaults + landlord list when dialog opens
+  // Load user defaults + landlord list when dialog opens. When opened from a landlord
+  // detail page, pre-tie the appointment to that landlord (pre-select it, seed the
+  // guest email + title) and hide the landlord picker.
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -77,8 +79,12 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked 
         when_hours: r.when_hours,
         text: r.text || me?.default_reminder_text || '',
       }));
+      const seedGuests = prefillGuestEmail ? [String(prefillGuestEmail).trim().toLowerCase()] : [];
       setForm((f) => ({
         ...f,
+        landlord_id: prefillLandlordId || '',
+        title: prefillTitle || '',
+        guests: seedGuests,
         reminders: defaultReminders.length ? defaultReminders : [],
       }));
     }).finally(() => setLoading(false));
@@ -216,7 +222,8 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked 
             )}
           </div>
 
-          {/* Optional: link to a landlord */}
+          {/* Optional: link to a landlord — hidden when opened pre-tied from a landlord page */}
+          {!prefillLandlordId && (
           <div>
             <Label className="text-xs mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" /> Link to landlord <span className="text-muted-foreground normal-case font-normal">(optional)</span>
@@ -235,6 +242,7 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked 
               ))}
             </select>
           </div>
+          )}
 
           {/* Date + Time + Timezone */}
           <div className="grid grid-cols-2 gap-3">

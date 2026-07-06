@@ -37,6 +37,7 @@ import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import EmailList from '@/components/landlord/EmailList';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
+import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 
 function useQ(key, fn, extra = {}) {
@@ -93,6 +94,7 @@ class LandlordDetail extends React.Component {
       activeTab: this.props.defaultTab || 'calls',
       composerType: 'Email',
       composerText: '',
+      appointmentBookingOpen: false,
       composerTime: '',
       // AI-draft note state — which AI field seeded the note (snake_case key) and the
       // exact drafted string that was loaded, so we can detect edits before save.
@@ -1312,8 +1314,12 @@ class LandlordDetail extends React.Component {
               {/* unified stream — each tab renders only its own data */}
               {this.state.composerType === 'Appointment' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
-                  <div style={css("margin-bottom:8px;")}>
+                  <div style={css("display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;")}>
                     <GoogleWorkspaceConnectBanner variant="compact" hideWhenConnected />
+                    <button onClick={() => this.setState({ appointmentBookingOpen: true })} title="Book appointment with full options"
+                      style={css("flex:none; display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:9px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5);")}>
+                      ＋ Book appointment
+                    </button>
                   </div>
                   <AppointmentFeed landlordId={L.id} />
                 </div>
@@ -1752,6 +1758,8 @@ class LandlordDetail extends React.Component {
             channel={this.state.saveTemplateChannel}
             onSaved={() => toast.success('Template saved')}
           />
+          {/* HubSpot-style booking dialog — opened from the Appointments tab */}
+          <AppointmentBookingDialog open={this.state.appointmentBookingOpen} onOpenChange={(v) => this.setState({ appointmentBookingOpen: v })} prefillLandlordId={L.id} prefillGuestEmail={L.email} prefillTitle={(L.full_name_en || L.full_name) ? `${L.full_name_en || L.full_name} — meeting` : ''} onBooked={() => { this.setState({ appointmentBookingOpen: false }); if (this.props.onAnalysed) this.props.onAnalysed(); }} />
         </div>
       </React.Fragment>
     );
