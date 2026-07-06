@@ -813,10 +813,12 @@ class LandlordDetail extends React.Component {
       await base44.entities.Landlord.update(L.id, { stage: newStage, stage_entered_at: new Date().toISOString() });
       // Stage change → full re-analysis (best-effort, fire-and-forget).
       base44.functions.invoke('landlordOrchestrator', { landlord_id: L.id, force: true }).catch(() => {});
-      // Refetch the source-of-truth landlord record NOW — otherwise the next periodic poll
-      // (e.g. the iMessage/Telegram refetchInterval) re-syncs this.state.landlords from the
-      // still-stale cached record and silently reverts the stage back.
-      if (this.props.onAnalysed) this.props.onAnalysed();
+      // AWAIT the refetch before clearing pendingStage. The componentDidUpdate prop-sync
+      // (below) overwrites this.state.landlords from the parent's [mapped] array on every
+      // render, so the optimistic stage is clobbered by the still-stale react-query record
+      // until the refetch resolves. Keeping pendingStage set pins the dropdown to the chosen
+      // stage through that window; once the refetched props reflect the new stage we clear it.
+      if (this.props.onAnalysed) await this.props.onAnalysed();
       playSentSound();
       this.setState({ pendingStage:null, stageSaving:false, stageSaved:true });
       if (this._stageSavedTimer) clearTimeout(this._stageSavedTimer);
