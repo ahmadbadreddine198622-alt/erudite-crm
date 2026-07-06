@@ -16,7 +16,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X } from 'lucide-react';
-import { buildAgentSignatureHtml } from '@/lib/agentSignature';
+import { buildAgentCtaHtml } from '@/lib/agentSignature';
 
 /* ── helpers ── */
 function css(str) {
@@ -110,6 +110,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailAddress, setGmailAddress] = useState('');
   const [signatureHtml, setSignatureHtml] = useState('');
+  const [signatureCardUrl, setSignatureCardUrl] = useState('');
   const [checkingConn, setCheckingConn] = useState(true);
 
   const [to, setTo] = useState(toEmail || '');
@@ -153,7 +154,10 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (mounted) setCheckingConn(false);
       try {
         const me = await base44.auth.me();
-        if (mounted) setSignatureHtml(buildAgentSignatureHtml(me || {}));
+        if (mounted) {
+          setSignatureHtml(buildAgentCtaHtml(me || {}));
+          setSignatureCardUrl(me?.signature_card_url || '');
+        }
       } catch {}
       if (landlordId) {
         try {
@@ -174,6 +178,23 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   }, [landlordId]);
 
   const sigBlock = useMemo(() => (signatureHtml || ''), [signatureHtml]);
+
+  // The agent's branded signature card image — auto-inserted into the editable body
+  // (so the agent can type their message above it). The CTA grid (sigBlock) is
+  // appended to the sent email only, below this card.
+  const cardImgHtml = useMemo(() => signatureCardUrl
+    ? `<p style="margin-top:16px;"><img src="${signatureCardUrl}" alt="signature" style="display:block;max-width:480px;height:auto;border-radius:12px;"/></p>`
+    : '', [signatureCardUrl]);
+
+  // Auto-insert the signature card into the body once on load (only if the body is still blank)
+  useEffect(() => {
+    if (!cardImgHtml) return;
+    setBodyHtml((prev) => {
+      const blank = !prev || prev.trim() === '' || prev === '<p><br></p>';
+      if (!blank) return prev;
+      return cardImgHtml;
+    });
+  }, [cardImgHtml]);
 
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
@@ -239,7 +260,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
       setSubject(d.subject || '');
-      setBodyHtml(plainTextToHtml(d.body_native || ''));
+      setBodyHtml(plainTextToHtml(d.body_native || '') + cardImgHtml);
       setBodyGloss(d.body_english_gloss || '');
       setLanguage(d.language || '');
       setAiOpen(false);
@@ -253,7 +274,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const handleTemplateSelect = ({ subject: s, body: b }) => {
     setSubject(replaceMergeFields(s, mergeVars));
-    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)));
+    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)) + cardImgHtml);
     toast.success('Template loaded — edit as needed');
   };
 
@@ -408,7 +429,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         <div style={css("display:flex; align-items:center; gap:4px;")}>
           {/* Templates */}
           <div style={css("position:relative;")}>
-            <EmailTemplatePicker onSelect={handleTemplateSelect} compact />
+            <EmailTemplatePicker onSelect={handleTemplateSelect} />
           </div>
           {/* AI Draft popover */}
           <Popover open={aiOpen} onOpenChange={setAiOpen}>
