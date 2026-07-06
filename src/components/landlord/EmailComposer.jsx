@@ -411,14 +411,6 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         </div>
       )}
 
-      {/* English gloss (if AI-generated in another language) */}
-      {bodyGloss && (
-        <details style={css("border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:5px 8px; margin-bottom:6px;")}>
-          <summary style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.5); cursor:pointer; list-style:none;")}>English translation (for you)</summary>
-          <div style={css("font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55); margin-top:4px; white-space:pre-wrap;")}>{bodyGloss}</div>
-        </details>
-      )}
-
       {/* Slim icon toolbar */}
       <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:4px;")}>
