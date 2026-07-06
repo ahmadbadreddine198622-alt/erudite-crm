@@ -225,7 +225,7 @@ class LandlordDetail extends React.Component {
     // Auto-scroll when new messages arrive (count increased) or filter switched.
     // No setState here — just scroll — so no render loop.
     const cnt = (l) => l ? (l.stream||[]).filter(s=>s.t==='msg').length : 0;
-    if (cnt(nextCur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter) {
+    if (cnt(nextCur) > cnt(prevCur) || prevState.streamFilter !== this.state.streamFilter || prevState.composerType !== this.state.composerType) {
       this.scrollBottom();
     }
     // Auto-grow/shrink the composer textarea when text changes (incl. clear-after-send,
@@ -235,7 +235,15 @@ class LandlordDetail extends React.Component {
       this.autoGrowComposer();
     }
   }
-  scrollBottom(){ const el=this.streamRef.current; if(el){ requestAnimationFrame(()=>{ el.scrollTop = 0; }); } }
+  scrollBottom(){
+    const el=this.streamRef.current; if(!el) return;
+    // Chat-style tabs (WhatsApp / iMessage / Telegram / SMS) render oldest→newest, so the
+    // latest message sits at the bottom — scroll to the bottom to mimic a chat. Activity
+    // tabs (Notes/Tasks/Follow-ups) stay newest-first, so scroll to the top.
+    const ct=this.state.composerType;
+    const isChat = ct==='Chat'||ct==='iMessage'||ct==='Telegram'||ct==='SMS';
+    requestAnimationFrame(()=>{ el.scrollTop = isChat ? el.scrollHeight : 0; });
+  }
   cur(){ return this.state.landlords.find(l=>l.id===this.state.currentId); }
 
   // handlers
@@ -1170,6 +1178,9 @@ class LandlordDetail extends React.Component {
       if (ct === 'SMS') return false;
       return true;
     });
+    // Chat-style tabs render oldest→newest so the latest message sits at the bottom (chat UX).
+    // vm.stream is newest-first, so reverse for these tabs only.
+    if (['Chat','iMessage','Telegram','SMS'].includes(this.state.composerType)) tabStream.reverse();
 
     return (
       <React.Fragment>
