@@ -78,6 +78,24 @@
       "type": "string",
       "description": "Specific landlord ID when recipient_type=specific_landlord"
     },
+    "recipient_role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin",
+        "all"
+      ],
+      "default": "all",
+      "description": "For internal-notification rules: who receives the notification \u2014 user (assigned agent), admin (admins only), or all"
+    },
+    "message_title": {
+      "type": "string",
+      "description": "Internal notification title (notify action)"
+    },
+    "message_body": {
+      "type": "string",
+      "description": "Internal notification body (notify action). Supports {{agent_name}}, {{lead_name}}, {{landlord_name}} placeholders."
+    },
     "priority": {
       "type": "number",
       "default": 1,

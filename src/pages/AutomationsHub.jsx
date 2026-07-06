@@ -11,8 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
   Zap, Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Mail, MessageCircle,
-  Clock, Users, RefreshCw, ChevronDown, ChevronUp, Save, X, Loader2, Sparkles, Repeat2
+  Clock, Users, RefreshCw, ChevronDown, ChevronUp, Save, X, Loader2, Sparkles, Repeat2, Bell
 } from 'lucide-react';
+import InternalNotificationsTab from '@/components/automations/InternalNotificationsTab';
 
 const CHANNEL_ICON = { email: Mail, whatsapp: MessageCircle, imessage: MessageCircle, telegram: MessageCircle, sms: MessageCircle };
 const CHANNEL_COLOR = { email: '#3b82f6', whatsapp: '#22c55e', imessage: '#22c55e', telegram: '#22c55e', sms: '#f59e0b' };
@@ -195,7 +196,7 @@ export default function AutomationsHub() {
   const [seeding, setSeeding] = useState(false);
   const [editingTpl, setEditingTpl] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
-  const [section, setSection] = useState('welcome'); // welcome | followups | templates
+  const [section, setSection] = useState('welcome'); // welcome | followups | templates | notifications
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -277,10 +278,12 @@ export default function AutomationsHub() {
   const welcomeTemplates = templates.filter((t) => t.category === 'welcome_sequence').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const otherTemplates = templates.filter((t) => t.category !== 'welcome_sequence');
   const followupRules = rules.filter((r) => r.trigger_type === 'landlord_created' || r.trigger_type === 'days_no_activity' || r.actions?.some((a) => a.type === 'schedule_followup' || a.type === 'send_template'));
+  const notifyRules = rules.filter((r) => r.actions?.some((a) => a.type === 'notify'));
 
   const TABS = [
     { key: 'welcome', label: 'Welcome Sequence', icon: Sparkles, count: welcomeTemplates.length },
     { key: 'followups', label: 'Follow-up Automations', icon: Repeat2, count: followupRules.length },
+    { key: 'notifications', label: 'Internal Notifications', icon: Bell, count: notifyRules.length },
     { key: 'templates', label: 'Templates Library', icon: Mail, count: otherTemplates.length },
   ];
 
@@ -297,9 +300,11 @@ export default function AutomationsHub() {
             <Button onClick={handleSeed} disabled={seeding} variant="outline" size="sm" className="gap-1.5">
               {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Seed Defaults
             </Button>
-            <Button onClick={() => { setEditingTpl(null); setShowEditor(true); }} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> New Template
-            </Button>
+            {section !== 'notifications' && (
+              <Button onClick={() => { setEditingTpl(null); setShowEditor(true); }} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> New Template
+              </Button>
+            )}
           </div>
         </div>
 
@@ -358,6 +363,8 @@ export default function AutomationsHub() {
               ))
             )}
           </div>
+        ) : section === 'notifications' ? (
+          <InternalNotificationsTab rules={rules} onChanged={loadData} />
         ) : (
           <div className="space-y-3">
             {otherTemplates.length === 0 ? (
