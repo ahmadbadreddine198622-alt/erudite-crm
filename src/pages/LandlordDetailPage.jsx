@@ -31,6 +31,7 @@ import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
+import NoteAiDraftBar from '@/components/landlord/NoteAiDraftBar';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
@@ -101,6 +102,7 @@ class LandlordDetail extends React.Component {
       noteAiSource: null,
       noteAiDraft: null,
       noteSaving: false,
+      noteGenerating: null, // 'call' | 'conversation' | null — on-demand note draft in progress
       // AI-draft task state — mirrors the note state. The drafted TITLE lives in composerText
       // (shared with the textarea); taskTitleDraft is its snapshot for edit-detection. due_date
       // and assignee are Task-only editable fields seeded from the AI draft.
@@ -303,28 +305,25 @@ class LandlordDetail extends React.Component {
   // landlord has no content for that field yet). `key` is the exact Landlord field name
   // persisted to LandlordNote.ai_source. ai_next_best_action is an OBJECT — type-guarded
   // here and read as reasoning, falling back to action; never rendered directly.
-  noteDraftSources(){
+  // On-demand note draft grounded in the latest call qualification or conversation.
+  generateNoteDraft = async (source)=>{
     const L = this.cur();
-    if(!L) return [];
-    // Trim at source so the drafted text, the saved (trimmed) body, and the
-    // was_edited_after_draft comparison string are all consistent — otherwise a draft
-    // with trailing whitespace (seen in live ai_next_best_action.reasoning) would falsely
-    // read as edited.
-    const str = (v)=> (typeof v === 'string' && v.trim()) ? v.trim() : '';
-    const nba = (L.aiNextBestAction && typeof L.aiNextBestAction === 'object') ? L.aiNextBestAction : null;
-    const nextActionText = nba ? (str(nba.reasoning) || str(nba.action)) : '';
-    return [
-      { key:'ai_rolling_summary',    label:'Summary',     text: str(L.aiRollingSummary), emptyMsg:'No summary yet — run Analyse' },
-      { key:'ai_coaching_for_agent', label:'Coaching',    text: str(L.aiCoaching),        emptyMsg:'No coaching yet — run Analyse' },
-      { key:'ai_next_best_action',   label:'Next Action', text: nextActionText,           emptyMsg:'No next action yet — run Analyse' },
-    ];
-  }
+    if(!L || this.state.noteGenerating) return;
+    this.setState({ noteGenerating: source });
+    try {
+      const res = await base44.functions.invoke('draftLandlordNote', { landlord_id: L.id, source });
+      const data = res?.data ?? res;
+      if(!data?.ok || !data.text) throw new Error(data?.error || 'Draft failed');
+      this.setState({ composerText: data.text, noteAiSource: source + '_summary', noteAiDraft: data.text });
+      toast.success('Draft loaded — edit as needed');
+    } catch(e){ toast.error(e?.message || 'Failed to generate draft'); }
+    finally { this.setState({ noteGenerating: null }); }
+  };
 
-  // Load an AI draft into the composer. Records the source key + the exact drafted string
-  // so was_edited_after_draft can be computed at save time.
-  pickNoteDraft = (src)=>{
-    if(!src || !src.text) return; // guard: never draft from an empty AI field
-    this.setState({ composerText: src.text, noteAiSource: src.key, noteAiDraft: src.text });
+  // Load a static AI draft (Summary/Coaching/Next Action) into the composer.
+  pickNoteDraft = (text, key)=>{
+    if(!text) return;
+    this.setState({ composerText: text, noteAiSource: key, noteAiDraft: text });
   };
 
   // Reset to a from-scratch note (clears the AI draft + selection).
@@ -1465,51 +1464,19 @@ class LandlordDetail extends React.Component {
                 )}
                 {/* Tab navigation moved to top — see LandlordTabBar */}
 
-                {/* AI draft control — only for Notes. Pre-fills the editable body from one of
-                    three AI sources. Empty sources are disabled (no empty notes). */}
-                {this.state.composerType === 'Note' && (()=>{
-                  const noteSources = this.noteDraftSources();
-                  const noteAiSource = this.state.noteAiSource;
-                  const noneAvailable = noteSources.every(s => !s.text);
-                  return (
-                    <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:7px; flex-wrap:wrap;")}>
-                      <span style={css("display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#c4b5fd;")}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                        AI draft
-                      </span>
-                      {noteSources.map((src)=>{
-                        const available = !!src.text;
-                        const active = noteAiSource === src.key;
-                        return (
-                          <button
-                            key={src.key}
-                            onClick={()=> available && this.pickNoteDraft(src)}
-                            disabled={!available}
-                            title={available ? `Draft this note from ${src.label}` : src.emptyMsg}
-                            style={css(
-                              "display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:7px; font-size:10px; font-weight:600; font-family:'Inter',sans-serif; "+
-                              (available ? "cursor:pointer; " : "cursor:not-allowed; opacity:0.4; ")+
-                              "background:"+(active ? "rgba(139,92,246,0.22)" : "rgba(139,92,246,0.06)")+"; "+
-                              "color:"+(active ? "#ddd6fe" : "#c4b5fd")+"; "+
-                              "border:1px solid "+(active ? "rgba(139,92,246,0.55)" : "rgba(139,92,246,0.25)")+";"
-                            )}
-                          >
-                            {src.label}{!available && <span style={css("font-size:8.5px; font-weight:600; opacity:0.85;")}>· Analyse</span>}
-                          </button>
-                        );
-                      })}
-                      {noteAiSource && (
-                        <button onClick={this.clearNoteDraft} title="Clear AI draft — write from scratch" style={css("display:inline-flex; align-items:center; gap:3px; padding:4px 7px; border-radius:7px; font-size:9.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55);")}>✕ Clear</button>
-                      )}
-                      {noteAiSource && (
-                        <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>AI draft</span>
-                      )}
-                      {!noteAiSource && noneAvailable && (
-                        <span style={css("font-size:9px; color:rgba(255,255,255,0.4);")}>Run Analyse</span>
-                      )}
-                    </div>
-                  );
-                })()}
+                {/* AI draft control — only for Notes. Call/Conversation pills generate a fresh
+                    draft on demand from the latest call qualification or WhatsApp conversation;
+                    Summary/Coaching/Next Action pull from the landlord-level Analyse fields. */}
+                {this.state.composerType === 'Note' && (
+                  <NoteAiDraftBar
+                    landlord={L}
+                    noteAiSource={this.state.noteAiSource}
+                    noteGenerating={this.state.noteGenerating}
+                    onPick={(text, key) => this.pickNoteDraft(text, key)}
+                    onGenerate={(src) => this.generateNoteDraft(src)}
+                    onClear={this.clearNoteDraft}
+                  />
+                )}
 
                 {/* AI draft control + extra fields — only for Tasks. Drafts the title from
                     ai_next_best_action; due_date + assignee are editable below. */}
