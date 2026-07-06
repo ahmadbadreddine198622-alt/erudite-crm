@@ -13,7 +13,7 @@ import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
 import MediaPanel from '@/components/landlord/MediaPanel';
-import { Clapperboard, Rotate3d, Plane, Ruler, ChevronDown, Users, FileText, Save } from 'lucide-react';
+import { Clapperboard, Rotate3d, Plane, Ruler, ChevronDown, Users } from 'lucide-react';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
 import CallsTabList from '@/components/landlord/CallsTabList';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
@@ -21,7 +21,6 @@ import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
-import SuggestedMessages from '@/components/landlord/SuggestedMessages';
 import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
@@ -31,9 +30,8 @@ import ComposerConfirmChip from '@/components/landlord/ComposerConfirmChip';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
 import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreachTick';
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
-import ChatTemplatePanel from '@/components/landlord/ChatTemplatePanel';
-import EmailTemplatePicker from '@/components/landlord/EmailTemplatePicker';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
+import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
@@ -1621,42 +1619,40 @@ class LandlordDetail extends React.Component {
                     onFallback={(text)=>{ this.setState({ composerType:'Chat', composerText:text }); }}
                   />
                 )}
-                {this.state.composerType === 'Chat' && (
-                  <React.Fragment>
-                    <SuggestedMessages messages={L.aiSuggestedMessages} activeText={this.state.composerText} onPick={(text)=>this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })} />
-                    <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:6px;")}>
-                      <span style={css("font-size:9.5px; color:rgba(255,255,255,0.4);")}><span style={css("font-weight:600; color:"+(this.state.streamFilter==='business'?'#4ade80':'#93c5fd')+";")}>{this.state.streamFilter==='business'?'Business':'Personal'}</span> WhatsApp</span>
-                      {this.state.streamFilter==='business' && <button onClick={()=>this.setState(s=>({chatTemplatesOpen:!s.chatTemplatesOpen}))} title="Templates" style={css("display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:hsl(38 92% 62%);")}><FileText size={13} /></button>}
-                    </div>
-                    {this.state.streamFilter==='business' && this.state.chatTemplatesOpen && <ChatTemplatePanel landlordId={L.id} phone={L.phone} onClose={()=>this.setState({chatTemplatesOpen:false})} />}
-                  </React.Fragment>
-                )}
-                {/* Unified template picker — Chat (WhatsApp) & Telegram only. Loads a reusable
-                    template body into the shared composer textarea. */}
-                {(this.state.composerType === 'Chat' || this.state.composerType === 'Telegram') && (() => {
-                  const tplChannel = this.state.composerType === 'Chat' ? 'whatsapp' : 'telegram';
+                {(() => {
+                  const ct = this.state.composerType;
+                  const isChatTab = ct === 'Chat' || ct === 'Telegram' || ct === 'SMS';
+                  if (!isChatTab) return null;
+                  const tplChannel = ct === 'Chat' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
+                  const sending = ct === 'Chat' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
                   return (
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:6px;")}>
-                      <EmailTemplatePicker
-                        channel={tplChannel}
-                        compact
-                        onSelect={({ body }) => this.setState({ composerText: body, messageAiSource: null, messageAiDraft: null })}
-                      />
-                      {(this.state.composerText || '').trim() && (
-                        <button
-                          onClick={() => this.setState({
-                            saveTemplateOpen: true,
-                            saveTemplatePrefill: { title: '', subject: '', body: this.state.composerText },
-                            saveTemplateChannel: tplChannel,
-                          })}
-                          title="Save as template"
-                          style={css("display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6);")}
-                        ><Save size={13} /></button>
-                      )}
-                    </div>
+                    <UnifiedChatComposer
+                      composerType={ct}
+                      text={vm.composerText}
+                      onTextChange={this.onComposerInput}
+                      onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }}
+                      onSend={this.onSend}
+                      sending={sending}
+                      parsing={this.state.composerParsing}
+                      placeholder={vm.composerPlaceholder}
+                      tplChannel={tplChannel}
+                      onPickTemplate={(body)=> this.setState({ composerText: body, messageAiSource: null, messageAiDraft: null })}
+                      onSaveTemplate={()=> this.setState({
+                        saveTemplateOpen: true,
+                        saveTemplatePrefill: { title: '', subject: '', body: this.state.composerText },
+                        saveTemplateChannel: tplChannel,
+                      })}
+                      aiSuggestedMessages={ct === 'Chat' ? L.aiSuggestedMessages : []}
+                      onPickSuggested={(text)=> this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })}
+                      chatTemplatesOpen={this.state.chatTemplatesOpen}
+                      onToggleChatTemplates={()=> this.setState(s=>({ chatTemplatesOpen: !s.chatTemplatesOpen }))}
+                      landlordId={L.id}
+                      phone={L.phone}
+                      streamFilter={this.state.streamFilter}
+                    />
                   );
                 })()}
-                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && (
+                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && this.state.composerType !== 'Chat' && this.state.composerType !== 'Telegram' && this.state.composerType !== 'SMS' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={2} style={css("flex:1; resize:none; min-height:44px; max-height:140px; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
