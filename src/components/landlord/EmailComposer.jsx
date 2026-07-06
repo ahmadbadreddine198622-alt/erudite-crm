@@ -366,40 +366,29 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         </div>
       )}
 
-      {/* From + To on one line, with Cc toggle */}
-      <div style={css("display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; margin-bottom:7px;")}>
-        <div>
-          <div style={css(labelSm)}>From</div>
-          <div style={{ ...css(fieldSm), display: 'flex', alignItems: 'center', gap: 5, cursor: 'default' }}>
-            <Lock size={10} style={{ color: gmailConnected ? '#34d399' : '#f87171', flex: 'none' }} />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {checkingConn ? '…' : gmailConnected ? (gmailAddress || user?.email || 'Connected') : 'Not connected'}
-            </span>
-            {!gmailConnected && !checkingConn && <a href="/profile" style={{ fontSize: 8, fontWeight: 600, color: 'hsl(38 92% 62%)', textDecoration: 'none', flex: 'none' }}>→</a>}
-          </div>
-        </div>
-        <div>
-          <div style={css(labelSm)}>To</div>
-          <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@email.com" style={css(fieldSm)} />
-        </div>
+      {/* Compact header: from chip + To + Cc, then optional CC, then Subject */}
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:6px;")}>
+        <span title="Sending from" style={css("font-size:9.5px; color:rgba(255,255,255,0.45); display:inline-flex; align-items:center; gap:3px; white-space:nowrap; flex:none;")}>
+          <Lock size={10} style={{ color: gmailConnected ? '#34d399' : '#f87171' }} />
+          {checkingConn ? '…' : gmailConnected ? (gmailAddress || user?.email || 'Connected') : 'Not connected'}
+          {!gmailConnected && !checkingConn && <a href="/profile" style={{ fontSize: 8, fontWeight: 600, color: 'hsl(38 92% 62%)', textDecoration: 'none' }}>→</a>}
+        </span>
+        <span style={css("font-size:9px; color:rgba(255,255,255,0.25); flex:none;")}>→</span>
+        <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To — recipient@email.com" style={{ ...css(fieldSm), flex: 1, minWidth: 80, width: 'auto' }} />
         <button type="button" onClick={() => setShowCc(s => !s)} title="Show CC field"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', height: '27px', padding: '0 8px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: showCc ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '27px', padding: '0 9px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: showCc ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', flex: 'none' }}>
           Cc
         </button>
       </div>
 
-      {/* CC (collapsible) */}
       {showCc && (
-        <div style={css("margin-bottom:7px;")}>
-          <div style={css(labelSm)}>CC</div>
-          <input type="email" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="cc@email.com" style={css(fieldSm)} />
+        <div style={css("margin-bottom:6px;")}>
+          <input type="email" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="CC — cc@email.com" style={css(fieldSm)} />
         </div>
       )}
 
-      {/* Subject */}
-      <div style={css("margin-bottom:7px;")}>
-        <div style={css(labelSm)}>Subject</div>
-        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject" style={css(fieldSm)} />
+      <div style={css("margin-bottom:6px;")}>
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" style={css(fieldSm)} />
       </div>
 
       {/* Body — compact ReactQuill */}
