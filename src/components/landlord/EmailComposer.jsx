@@ -403,14 +403,6 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         </div>
       )}
 
-      {/* Signature preview — auto-added to every email (shown on white like the sent email) */}
-      {sigBlock && (
-        <div style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', background: '#ffffff', border: '1px solid rgba(255,255,255,0.12)' }}>
-          <div style={{ fontSize: 9, color: '#9a9a9a', padding: '4px 8px 0', fontFamily: "'Inter',sans-serif" }}>SIGNATURE — auto-added to every email</div>
-          <div style={{ padding: 4 }} dangerouslySetInnerHTML={{ __html: sigBlock }} />
-        </div>
-      )}
-
       {/* Slim icon toolbar */}
       <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:4px;")}>

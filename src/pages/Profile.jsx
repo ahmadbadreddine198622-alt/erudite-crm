@@ -24,17 +24,19 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '', signature_stat_label: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', signature_card_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '', signature_stat_label: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
   const signatureInputRef = useRef(null);
   const [uploadingSig, setUploadingSig] = useState(false);
+  const signatureCardInputRef = useRef(null);
+  const [uploadingCard, setUploadingCard] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '', signature_stat_label: u?.signature_stat_label || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', signature_card_url: u?.signature_card_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '', signature_stat_label: u?.signature_stat_label || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -69,10 +71,25 @@ export default function Profile() {
     }
   };
 
+  const handleSignatureCardUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCard(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, signature_card_url: file_url }));
+      toast.success('Signature card uploaded');
+    } catch (err) {
+      toast.error('Failed to upload signature card');
+    } finally {
+      setUploadingCard(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, signature_stat_label: form.signature_stat_label });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, signature_stat_label: form.signature_stat_label });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -301,21 +318,56 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Branded signature block — auto-built and appended to every email */}
+            {/* Branded email signature — uploaded card image + CTA grid; appended to every email, never shown in composer */}
             <div className="pt-3 mt-3 border-t border-white/10">
-              <label className="text-xs text-accent font-semibold mb-1 block">Branded Signature Block (auto-appended below your emails)</label>
+              <label className="text-xs text-accent font-semibold mb-1 block">Branded Email Signature (appended to every email you send)</label>
               <p className="text-[11px] text-muted-foreground mb-3">
-                These details build the professional signature card &amp; call-to-action grid shown to clients. Leave blank to use defaults.
+                Upload your signature card image (the dark branded card with your photo, title &amp; contact details). The call-to-action grid below is built from your details. These appear only in sent emails — never shown while composing.
               </p>
+
+              {/* Signature card image upload */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative group">
+                  <div className="w-64 h-28 rounded-xl flex items-center justify-center border-2 border-dashed border-accent/30 overflow-hidden"
+                    style={{ background: form.signature_card_url ? 'transparent' : 'hsl(38 92% 50% / 0.08)' }}>
+                    {form.signature_card_url ? (
+                      <img src={form.signature_card_url} alt="Signature card" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No signature card image</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => signatureCardInputRef.current?.click()}
+                    disabled={uploadingCard}
+                    className="absolute bottom-1 right-1 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    style={{ background: 'hsl(38 92% 50%)', color: '#000' }}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    ref={signatureCardInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSignatureCardUpload}
+                    disabled={uploadingCard}
+                    className="hidden"
+                  />
+                </div>
+                {form.signature_card_url && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setForm(f => ({ ...f, signature_card_url: '' }))}
+                    className="text-red-400 hover:bg-red-500/10 gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Remove
+                  </Button>
+                )}
+              </div>
+
+              {/* CTA grid configuration */}
+              <label className="text-[11px] text-muted-foreground mb-2 block">Call-to-action grid details</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">Office Location</label>
-                  <Input value={form.office_location} onChange={e => setForm(f => ({ ...f, office_location: e.target.value }))} placeholder="The Burlington Tower, Business Bay" className="glass-input" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">Instagram Handle</label>
-                  <Input value={form.instagram_handle} onChange={e => setForm(f => ({ ...f, instagram_handle: e.target.value }))} placeholder="@eruditeproperty7" className="glass-input" />
-                </div>
                 <div>
                   <label className="text-[11px] text-muted-foreground mb-1 block">LinkedIn Profile URL</label>
                   <Input value={form.linkedin_url} onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))} placeholder="https://linkedin.com/in/..." className="glass-input" />

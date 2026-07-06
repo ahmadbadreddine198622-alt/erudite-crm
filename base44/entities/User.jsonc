@@ -54,7 +54,11 @@
     },
     "signature_url": {
       "type": "string",
-      "description": "Public URL of the user's signature image \u2014 auto-appended to every email they send"
+      "description": "Public URL of the user's handwritten signature image"
+    },
+    "signature_card_url": {
+      "type": "string",
+      "description": "Public URL of the user's branded signature card image (the dark card with photo, title & contact details) \u2014 auto-appended to every email they send. Each user uploads their own."
     },
     "gmail_connected": {
       "type": "boolean",
