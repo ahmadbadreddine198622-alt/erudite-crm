@@ -1609,6 +1609,7 @@ class LandlordDetail extends React.Component {
                 {this.state.composerType === 'iMessage' && (
                   <IMessageComposer
                     landlordId={L.id}
+                    imessageStatus={this.props.rawLandlord?.imessage_status || L.imessageStatus || 'unknown'}
                     onSent={({ text })=>{
                       tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
@@ -1624,6 +1625,10 @@ class LandlordDetail extends React.Component {
                   if (!isChatTab) return null;
                   const tplChannel = ct === 'Chat' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
                   const sending = ct === 'Chat' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
+                  const waDisabled = ct === 'Chat' && (!this.props.currentUser?.whatsapp_instance && this.props.currentUser?.role !== 'admin');
+                  const tgDisabled = ct === 'Telegram' && !(this.props.rawLandlord?.telegram_chat_id);
+                  const channelDisabled = waDisabled || tgDisabled;
+                  const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
                   return (
                     <UnifiedChatComposer
                       composerType={ct}
@@ -1648,6 +1653,8 @@ class LandlordDetail extends React.Component {
                       landlordId={L.id}
                       phone={L.phone}
                       streamFilter={this.state.streamFilter}
+                      channelDisabled={channelDisabled}
+                      disabledHint={disabledHint}
                     />
                   );
                 })()}

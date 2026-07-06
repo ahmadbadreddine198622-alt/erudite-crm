@@ -24,7 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', signature_card_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '', signature_stat_label: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', signature_card_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '',       signature_stat_label: '', whatsapp_number: '', whatsapp_instance: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
@@ -32,11 +32,14 @@ export default function Profile() {
   const [uploadingSig, setUploadingSig] = useState(false);
   const signatureCardInputRef = useRef(null);
   const [uploadingCard, setUploadingCard] = useState(false);
+  const [waConfiguring, setWaConfiguring] = useState(false);
+  const [waQr, setWaQr] = useState(null);
+  const [waInstance, setWaInstance] = useState('');
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', signature_card_url: u?.signature_card_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '', signature_stat_label: u?.signature_stat_label || '' });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', signature_card_url: u?.signature_card_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '',       signature_stat_label: u?.signature_stat_label || '', whatsapp_number: u?.whatsapp_number || '', whatsapp_instance: u?.whatsapp_instance || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -89,13 +92,34 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, signature_stat_label: form.signature_stat_label });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label,       signature_stat_label: form.signature_stat_label, whatsapp_number: form.whatsapp_number, whatsapp_instance: form.whatsapp_instance });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
       toast.error(e.message || 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfigureWhatsApp = async () => {
+    const num = (form.whatsapp_number || '').trim();
+    if (!num) { toast.error('Enter your WhatsApp number first'); return; }
+    setWaConfiguring(true);
+    setWaQr(null);
+    try {
+      const res = await base44.functions.invoke('setupAgentWhatsApp', { whatsapp_number: num });
+      const data = res?.data ?? res;
+      if (!data?.ok) throw new Error(data?.error || 'Configuration failed');
+      setWaInstance(data.instance || '');
+      setWaQr(data.qr_base64 || null);
+      setForm(f => ({ ...f, whatsapp_number: data.whatsapp_number || num, whatsapp_instance: data.instance || '' }));
+      setUser(prev => ({ ...prev, whatsapp_number: data.whatsapp_number || num, whatsapp_instance: data.instance }));
+      toast.success('Scan the QR with your WhatsApp to link your line');
+    } catch (e) {
+      toast.error(e?.message || 'Failed to configure WhatsApp line');
+    } finally {
+      setWaConfiguring(false);
     }
   };
 
@@ -241,6 +265,51 @@ export default function Profile() {
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Your WhatsApp line */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Phone className="w-4 h-4 text-accent" /> Your WhatsApp Line
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Enter your own WhatsApp number. Messages send from your number, not the shared company line.
+              Configure once and scan the QR with WhatsApp to link it.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Your WhatsApp Number</label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.whatsapp_number}
+                  onChange={e => setForm(f => ({ ...f, whatsapp_number: e.target.value }))}
+                  placeholder="+971 50 000 0000"
+                  className="glass-input"
+                />
+                <Button onClick={handleConfigureWhatsApp} disabled={waConfiguring} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 whitespace-nowrap">
+                  {waConfiguring ? 'Configuring…' : 'Configure'}
+                </Button>
+              </div>
+            </div>
+            {form.whatsapp_instance && (
+              <p className="text-xs text-emerald-400">
+                ✓ Line configured ({form.whatsapp_instance}){waQr ? ' — scan the QR below to link your phone' : ' — linked'}
+              </p>
+            )}
+            {waQr && (
+              <div className="flex flex-col items-center gap-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <img src={waQr.startsWith('data:') ? waQr : `data:image/png;base64,${waQr}`} alt="WhatsApp QR" className="w-48 h-48 rounded-lg" />
+                <p className="text-xs text-muted-foreground text-center">Open WhatsApp → Settings → Linked Devices → Link a Device → scan this code</p>
+              </div>
+            )}
+            {!form.whatsapp_instance && (
+              <p className="text-xs text-amber-400">
+                ⚠ No WhatsApp line configured — your WhatsApp send button is disabled until you set this up.
+              </p>
+            )}
           </CardContent>
         </Card>
 

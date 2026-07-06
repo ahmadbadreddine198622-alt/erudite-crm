@@ -73,6 +73,21 @@ Deno.serve(async (req) => {
   
   // If landlord_id provided, fetch landlord
   const isAdmin = user.role === 'admin';
+
+  // Per-agent own WhatsApp line: each agent sends from their own Evolution instance
+  // (configured in Profile). Agents without a configured line cannot send. Admins bypass
+  // so the company keeps working during transition.
+  let ownInstance = null;
+  let ownNumber = null;
+  try {
+    const meList = await svc.entities.User.filter({ email: user.email });
+    const me = meList?.[0];
+    ownInstance = me?.whatsapp_instance || null;
+    ownNumber = me?.whatsapp_number || null;
+  } catch (_) { /* ignore */ }
+  if (!ownInstance && !isAdmin) {
+    return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
+  }
   if (landlord_id) {
     const llList = await svc.entities.Landlord.filter({ id: landlord_id });
     landlord = llList && llList[0];
@@ -97,7 +112,8 @@ Deno.serve(async (req) => {
   // Bug: replies were resolving the destination to the sending line itself
   // (from === to === +971581806000), so the customer never received them.
   // Reject any send where the recipient equals a known own-number.
-  const OWN_NUMBERS = Object.values(FROM_NUMBER_MAP).map(toDigits);
+  const OWN_NUMBERS = [...Object.values(FROM_NUMBER_MAP).map(toDigits)];
+  if (ownNumber) OWN_NUMBERS.push(toDigits(ownNumber));
   if (OWN_NUMBERS.includes(toDigits(number))) {
     return Response.json({
       error: 'Refusing to send: destination is one of our own WhatsApp numbers (self-send loop)',
@@ -110,7 +126,7 @@ Deno.serve(async (req) => {
   let evoStatus = 0;
   let evoBody = null;
 
-  if (channel === 'business') { // Meta Cloud API
+  if (channel === 'business' && !ownInstance) { // Meta Cloud API (company line — only when agent has no own instance)
     // Business: send via Meta Cloud API
     const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -143,7 +159,7 @@ Deno.serve(async (req) => {
     if (!apiUrl || !apiKey) {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
-    const instanceName = INSTANCE_MAP[channel];
+    const instanceName = ownInstance || INSTANCE_MAP[channel];
     const sendUrl = `${apiUrl}/message/sendText/${instanceName}`;
     try {
       const resp = await fetch(sendUrl, {
@@ -253,7 +269,7 @@ Deno.serve(async (req) => {
         timestamp: new Date().toISOString(),
         status: 'sent',
         wa_message_id: waId,
-        from_number: FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
+        from_number: ownNumber || FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
         to_number: '+' + number,
         channel: effectiveChannel,
         media_type: 'none',

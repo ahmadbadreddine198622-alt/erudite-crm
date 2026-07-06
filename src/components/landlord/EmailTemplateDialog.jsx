@@ -124,6 +124,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         toast.success('Template created');
       }
       qc.invalidateQueries({ queryKey: ['emailTemplates'] });
+      qc.invalidateQueries({ queryKey: ['messageTemplates'] });
       if (onSaved) onSaved(result);
       onClose();
     } catch (e) {
@@ -140,6 +141,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
     try {
       await base44.entities.MessageTemplate.delete(template.id);
       qc.invalidateQueries({ queryKey: ['emailTemplates'] });
+      qc.invalidateQueries({ queryKey: ['messageTemplates'] });
       toast.success('Template deleted');
       if (onSaved) onSaved({ deleted: true, id: template.id });
       onClose();

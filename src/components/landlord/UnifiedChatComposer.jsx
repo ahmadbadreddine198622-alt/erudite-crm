@@ -47,6 +47,8 @@ export default function UnifiedChatComposer({
   chatTemplatesOpen, onToggleChatTemplates, // Meta Business templates (business WA only)
   landlordId, phone,
   streamFilter,        // 'business' | 'personal' (Chat only)
+  channelDisabled = false,
+  disabledHint = '',
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const taRef = useRef(null);
@@ -65,7 +67,7 @@ export default function UnifiedChatComposer({
 
   const accent = composerType === 'Telegram' ? '#29b6f6' : composerType === 'SMS' ? '#60a5fa' : '#25D366';
   const busy = !!(sending || parsing);
-  const canSend = !!((text || '').trim()) && !busy;
+  const canSend = !!((text || '').trim()) && !busy && !channelDisabled;
 
   return (
     <div style={css("position:relative;")}>
@@ -92,6 +94,9 @@ export default function UnifiedChatComposer({
         )}
       />
 
+      {channelDisabled && (
+        <div style={css("margin-top:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ {disabledHint || 'Channel not configured'}</div>
+      )}
       {/* Slim icon toolbar — single row */}
       <div style={css("display:flex; align-items:center; gap:4px; margin-top:6px;")}>
         {/* User message templates (MessageTemplate entity) */}

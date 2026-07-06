@@ -105,6 +105,14 @@
       "type": "string",
       "description": "Trophy stat line above the CTA grid e.g. AED 100M+ closed in Peninsula"
     },
+    "whatsapp_number": {
+      "type": "string",
+      "description": "The agent's OWN WhatsApp number in E.164 (e.g. +971529871277). Entered in Profile; configures a per-agent Evolution instance so all outbound WhatsApp sends come from this number, not the shared company line."
+    },
+    "whatsapp_instance": {
+      "type": "string",
+      "description": "The Evolution API instance name for this agent's own WhatsApp line (e.g. wa_971529871277). Set when the line is configured in Profile. WhatsApp sending is disabled for non-admins when this is empty."
+    },
     "default_reminder_text": {
       "type": "string",
       "description": "Default reminder message text pre-filled in the booking dialog"

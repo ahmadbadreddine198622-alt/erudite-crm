@@ -89,7 +89,8 @@ const PSYCHOLOGY_OPTIONS = [
 const fieldSm = "padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11px; font-family:'Inter',sans-serif; width:100%; outline:none;";
 const labelSm = "font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:2px;";
 
-export default function IMessageComposer({ landlordId, onSent, onFallback }) {
+export default function IMessageComposer({ landlordId, onSent, onFallback, imessageStatus = 'unknown' }) {
+  const blocked = imessageStatus === 'not_available' || imessageStatus === 'error';
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
   const [buyerDetail, setBuyerDetail] = useState('');
@@ -157,6 +158,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
   };
 
   const send = async () => {
+    if (blocked) return;
     if (!text.trim()) { toast.error('Nothing to send'); return; }
     setSending(true);
     try {
@@ -164,7 +166,6 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
       const data = res?.data ?? res;
       if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
         toast.error('No iMessage handle for this landlord.');
-        if (onFallback) onFallback(text);
         setSending(false);
         return;
       }
@@ -227,6 +228,9 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         </details>
       )}
 
+      {blocked && (
+        <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ No iMessage handle for this landlord</div>
+      )}
       {/* Slim icon toolbar */}
       <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:4px;")}>
@@ -288,7 +292,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback }) {
         </div>
 
         {/* Send icon button */}
-        <button type="button" onClick={send} disabled={sending || !text.trim()}
+        <button type="button" onClick={send} disabled={sending || !text.trim() || blocked}
           title="Send iMessage"
           className="flex items-center justify-center gap-2 px-4 h-8 rounded-lg transition-all border"
           style={{
