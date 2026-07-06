@@ -182,17 +182,20 @@ Deno.serve(async (req) => {
 
     // ── Log to Email entity ───────────────────────────────────────
     try {
+      // Email entity schema fields: to / body_html / body_text / received_at (NOT to_email/body/sent_at).
+      // Writing the wrong field names meant sent emails never matched the landlord's Email list query.
+      const plainBody = htmlToText(bodyHtml);
       await base44.asServiceRole.entities.Email.create({
-        landlord_id: landlordId,
-        from_email: fromEmail,
-        to_email: to,
-        subject,
-        body: bodyHtml,
-        direction: 'outbound',
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        agent_email: user.email || null,
         gmail_message_id: data.id || null,
+        gmail_thread_id: data.threadId || null,
+        from_email: fromEmail,
+        from_name: fromName,
+        to,
+        subject,
+        body_html: bodyHtml,
+        body_text: plainBody,
+        snippet: plainBody.slice(0, 200),
+        received_at: new Date().toISOString(),
       });
     } catch (_) { /* best-effort log */ }
 

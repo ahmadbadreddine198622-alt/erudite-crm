@@ -34,6 +34,7 @@ import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
+import EmailList from '@/components/landlord/EmailList';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
@@ -906,6 +907,7 @@ class LandlordDetail extends React.Component {
         return {
           key:idx, isMsg:true, isAct:false,
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
+          subject:s.subject, emailBody:s.emailBody,
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: s.senderName || (out ? (L.agent || 'Agent') : L.name),
           channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
@@ -1326,17 +1328,14 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <HubSpotActivityList
+                  <EmailList
                     emptyLabel="No email activity yet"
                     items={tabStream.filter(s => s.isMsg).map((s, i) => ({
                       key: 'email-' + i,
-                      icon: '✉',
-                      iconBg: 'hsl(38 92% 50% / 0.15)',
-                      iconColor: 'hsl(38 92% 62%)',
-                      title: s.text ? (s.text.length > 60 ? s.text.slice(0, 60) + '…' : s.text) : '(no subject)',
-                      subtitle: s.sender,
+                      subject: s.subject || '',
+                      sender: s.sender,
                       time: s.time,
-                      body: s.text,
+                      body: s.emailBody || s.text || '',
                     }))}
                   />
                 </div>
@@ -2060,6 +2059,8 @@ export default function LandlordDetailPage() {
       dir: fromLandlord ? 'in' : 'out',
       mtype: 'text',
       channel: 'email',
+      subject: em.subject || '',
+      emailBody: em.body_text || em.snippet || '',
       text: (em.subject ? em.subject + '\n' : '') + (em.snippet || em.body_text || ''),
       time: fmtMsgTime(em.received_at || em.created_date),
       order: tsOf(em.received_at || em.created_date) || 0,
