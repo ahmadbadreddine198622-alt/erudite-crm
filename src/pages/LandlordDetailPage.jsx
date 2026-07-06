@@ -118,6 +118,7 @@ class LandlordDetail extends React.Component {
       followupChannel: 'whatsapp',
       followupDate: '',
       followupHour: 10,
+      followupMinute: '00',
       followupAmPm: 'AM',
       followupAssignee: '',
       followupSaving: false,
@@ -239,7 +240,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
   // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
@@ -298,7 +299,7 @@ class LandlordDetail extends React.Component {
     const typeMap={ followup:'Follow-up', meeting:'Appointment', viewing:'Appointment', call:'Task' };
     // A suggested-action chip is NOT the Task "Next Action" AI-draft source, so clear task
     // provenance — a task sent from here is recorded as from-scratch.
-    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' });
+    this.setState({ composerType: typeMap[action.type]||'Follow-up', composerText:action.message, composerTime:action.time, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' });
   };
 
   // The three AI-draft sources for a Note. `text` is the draftable body ('' when the
@@ -485,7 +486,7 @@ class LandlordDetail extends React.Component {
   };
 
   // Reset to a from-scratch follow-up.
-  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM' });
+  clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' });
 
   onSend = ()=>{
     // Email and iMessage are composed and sent from their dedicated panels (their own buttons),
@@ -618,14 +619,15 @@ class LandlordDetail extends React.Component {
     if (this.state.followupAmPm === 'PM' && hourNum < 12) hourNum += 12;
     if (this.state.followupAmPm === 'AM' && hourNum === 12) hourNum = 0;
     const hh = String(hourNum).padStart(2, '0');
-    const datetime = `${date}T${hh}:00:00+04:00`;
+    const mm = String(this.state.followupMinute || '00').padStart(2, '0');
+    const datetime = `${date}T${hh}:${mm}:00+04:00`;
     const channel = ['whatsapp','call','email','imessage','telegram','sms','meeting','viewing'].includes(followupChannel) ? followupChannel : 'whatsapp';
     const apptType = (channel === 'call' || channel === 'viewing') ? (channel === 'viewing' ? 'viewing' : 'call') : 'meeting'; // legacy required field; channel carries the real axis
 
     // Optimistic add — reverted on error so the user can retry.
     const order = Date.now();
     const h12 = ((hourNum + 11) % 12) + 1;
-    const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${h12}:00 ${hourNum>=12?'PM':'AM'}`, body:notes, time:'Just now', order };
+    const item = { t:'act', kind:'followup', title:'Follow-up' + (createdFromAi ? ' · AI' : '') + ` · ${channel} · ${date} ${h12}:${mm} ${hourNum>=12?'PM':'AM'}`, body:notes, time:'Just now', order };
     this.setState(s=>({
       landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
       composerText:'', composerTime:'',
@@ -650,7 +652,7 @@ class LandlordDetail extends React.Component {
         was_edited_after_draft: wasEdited,
       });
       toast.success(createdFromAi ? 'AI follow-up scheduled' : 'Follow-up scheduled');
-      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupAmPm:'AM', followupAssignee:'', followupSaving:false }));
+      this.setState(s=>({ followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM', followupAssignee:'', followupSaving:false }));
     } catch(e){
       // Revert optimistic add and restore the composer so the user can retry.
       this.setState(s=>({
@@ -1544,10 +1546,13 @@ class LandlordDetail extends React.Component {
                     channel={this.state.followupChannel}
                     date={this.state.followupDate}
                     hour={this.state.followupHour}
+                    minute={this.state.followupMinute}
                     ampm={this.state.followupAmPm}
+                    creatorName={(this.props.currentUser?.full_name) || (this.props.currentUser?.email) || 'You'}
                     onChannel={(v) => this.setState({ followupChannel: v })}
                     onDate={(v) => this.setState({ followupDate: v })}
-                    onHour={(v) => this.setState({ followupHour: v })}
+                    onHour={(v) => this.setState({ followupHour: Number(v) })}
+                    onMinute={(v) => this.setState({ followupMinute: v })}
                     onAmPm={(v) => this.setState({ followupAmPm: v })}
                     onClearDraft={this.clearFollowupDraft}
                     assignee={this.state.followupAssignee}

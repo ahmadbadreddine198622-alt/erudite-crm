@@ -36,9 +36,11 @@ const CHANNELS = [
 
 export default function FollowupComposerFields({
   chips, followupAiSource, collapsed, onToggleCollapsed, onPickChip,
-  channel, date, hour, ampm, onChannel, onDate, onHour, onAmPm, onClearDraft,
-  assignee, onAssignee,
+  channel, date, hour, minute, ampm, onChannel, onDate, onHour, onMinute, onAmPm, onClearDraft,
+  assignee, onAssignee, creatorName,
 }) {
+  const HOURS = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const MINUTES = ['00','05','10','15','20','25','30','35','40','45','50','55'];
   const [agents, setAgents] = useState([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
 
@@ -98,6 +100,13 @@ export default function FollowupComposerFields({
       )}
       <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+          Creator
+          <span style={css("padding:5px 8px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.12); display:inline-flex; align-items:center; gap:5px; min-width:110px; font-size:11.5px; font-family:Inter,sans-serif;")}>
+            <span style={css("width:6px; height:6px; border-radius:50%; background:#34d399; flex:none;")} />
+            <span style={css("white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:rgba(255,255,255,0.8);")}>{creatorName || 'You'}</span>
+          </span>
+        </label>
+        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Channel
           <select value={channel} onChange={(e) => onChannel(e.target.value)} style={fieldStyle}>
             {CHANNELS.map((ch) => (
@@ -111,7 +120,19 @@ export default function FollowupComposerFields({
         </label>
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           Hour
-          <input type="number" min="1" max="12" value={hour} onChange={(e) => onHour(e.target.value)} style={{ ...fieldStyle, width: '52px' }} />
+          <select value={hour} onChange={(e) => onHour(e.target.value)} style={fieldStyle}>
+            {HOURS.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </label>
+        <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
+          Min
+          <select value={minute || '00'} onChange={(e) => onMinute(e.target.value)} style={fieldStyle}>
+            {MINUTES.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
         </label>
         <label style={css("display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:600; color:rgba(255,255,255,0.5);")}>
           <select value={ampm || 'AM'} onChange={(e) => onAmPm(e.target.value)} style={fieldStyle}>
