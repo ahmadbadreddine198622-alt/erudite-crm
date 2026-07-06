@@ -62,6 +62,34 @@ function htmlToText(html) {
     .trim();
 }
 
+// agentCtaHtml — branded CTA link grid built from the agent's profile.
+function agentCtaHtml(u = {}) {
+  const fullName = u.full_name || '';
+  const firstName = fullName.split(' ').filter(Boolean)[0] || fullName || '';
+  const linkedinUrl = u.linkedin_url || '';
+  const pfUrl = u.pf_profile_url || '';
+  const pfRating = u.pf_rating;
+  const pfDeals = u.pf_deals_count;
+  const pfValue = u.pf_deals_value_label || '';
+  const statLabel = u.signature_stat_label || '';
+  const pfSubtitle = `SuperAgent${pfRating ? ` · ${pfRating}⭐` : ''}${pfDeals ? ` · ${pfDeals} deals` : ''}${pfValue ? ` · ${pfValue}` : ''}`;
+  const stat = statLabel ? `<div style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:13px;font-weight:700;margin:14px 0 10px;">🏆 ${statLabel}</div>` : '';
+  const card = (bg, title, sub, href, darkText, right) => {
+    const tc = darkText ? '#1a1205' : '#ffffff';
+    const sc = darkText ? '#5a4a1a' : '#dbe6f5';
+    const pad = right ? 'padding:0 0 10px 5px;' : 'padding:0 5px 10px 0;';
+    return `<td width="50%" valign="top" style="${pad}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td bgcolor="${bg}" style="padding:14px 16px;border-radius:12px;"><a href="${href}" target="_blank" style="text-decoration:none;display:block;"><div style="font-family:Arial,Helvetica,sans-serif;color:${tc};font-size:14px;font-weight:700;">${title}</div><div style="font-family:Arial,Helvetica,sans-serif;color:${sc};font-size:11px;margin-top:3px;">${sub}</div></a></td></tr></table></td>`;
+  };
+  const linkedinCard = `<td colspan="2" valign="top" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td bgcolor="#2D77E8" style="padding:14px 16px;border-radius:12px;"><a href="${linkedinUrl || 'https://www.linkedin.com'}" target="_blank" style="text-decoration:none;display:block;"><div style="font-family:Arial,Helvetica,sans-serif;color:#ffffff;font-size:14px;font-weight:700;">💼 LinkedIn →</div><div style="font-family:Arial,Helvetica,sans-serif;color:#d4e6ff;font-size:11px;margin-top:3px;">${firstName ? firstName + "'s profile" : 'LinkedIn profile'}</div></a></td></tr></table></td>`;
+  const cta = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr>${card('#233552', `⭐ ${firstName} on Property Finder →`, pfSubtitle, pfUrl || 'https://www.propertyfinder.ae', false, false)}${card('#C5A059', '🏛 Erudite Listings →', 'All live listings for sale', 'https://www.eruditeproperty.com', true, true)}</tr><tr>${card('#10A492', '👥 Meet the Team →', 'eruditeproperty.com', 'https://www.eruditeproperty.com', false, false)}${card('#D7338C', '📷 Instagram →', '@eruditeproperty7', 'https://instagram.com/eruditeproperty7', false, true)}</tr><tr>${linkedinCard}</tr></table>`;
+  return [stat, cta].filter(Boolean).join('');
+}
+function agentSignatureHtml(u = {}) {
+  const fullName = u.full_name || '';
+  const cta = agentCtaHtml(u);
+  return `<div style="margin-top:18px;border-top:1px solid #eee;padding-top:14px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 2px;color:#1e293b;font-size:14px;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;">Erudite Real Estate</p>${cta}</div>`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -101,7 +129,12 @@ Deno.serve(async (req) => {
     }
 
     // ── Build the HTML document ───────────────────────────────────
-    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#ffffff;"><div style="max-width:600px;margin:0 auto;padding:24px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${bodyHtml}</div></body></html>`;
+    // Ensure every outgoing email carries the agent's branded signature + CTA link grid,
+    // even if the composer body didn't already include it.
+    const finalBodyHtml = /data-signature="1"/.test(bodyHtml)
+      ? bodyHtml
+      : bodyHtml + agentSignatureHtml(userEntity || {});
+    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#ffffff;"><div style="max-width:600px;margin:0 auto;padding:24px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${finalBodyHtml}</div></body></html>`;
 
     // ── Build a multipart/mixed MIME message (base64-encoded parts) ──
     // base64 encoding fixes the empty-body/spam issue: the previous 7bit encoding
@@ -184,7 +217,7 @@ Deno.serve(async (req) => {
     try {
       // Email entity schema fields: to / body_html / body_text / received_at (NOT to_email/body/sent_at).
       // Writing the wrong field names meant sent emails never matched the landlord's Email list query.
-      const plainBody = htmlToText(bodyHtml);
+      const plainBody = htmlToText(finalBodyHtml);
       await base44.asServiceRole.entities.Email.create({
         gmail_message_id: data.id || null,
         gmail_thread_id: data.threadId || null,
@@ -192,7 +225,7 @@ Deno.serve(async (req) => {
         from_name: fromName,
         to,
         subject,
-        body_html: bodyHtml,
+        body_html: finalBodyHtml,
         body_text: plainBody,
         snippet: plainBody.slice(0, 200),
         received_at: new Date().toISOString(),
@@ -201,7 +234,7 @@ Deno.serve(async (req) => {
 
     // ── Mirror into Message entity for orchestrator visibility ────
     try {
-      const plainText = htmlToText(bodyHtml);
+      const plainText = htmlToText(finalBodyHtml);
       await base44.asServiceRole.entities.Message.create({
         landlord_id: landlordId,
         direction: 'outgoing',
