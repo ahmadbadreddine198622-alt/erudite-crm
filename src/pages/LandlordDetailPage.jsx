@@ -2370,6 +2370,7 @@ export default function LandlordDetailPage() {
   telegramUsername: L.telegram_username || '',
   rapport,
   temperature: temperatureFromRapport(rapport),
+  stage: L.stage || 'initial_contact',
   stageIndex: stageIdx >= 1 ? stageIdx : 1,
   ownerSince: '—',
   unit,
