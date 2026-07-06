@@ -32,9 +32,12 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 8,
       padding: '0 16px',
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       background: 'rgba(255,255,255,0.015)',
+      minWidth: 0,
+      overflow: 'hidden',
     }}>
       <style>{`
         .landlord-tab-scroll::-webkit-scrollbar { height: 4px; display: block; }
@@ -50,6 +53,7 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
         overflowX: 'auto',
         scrollbarWidth: 'none',
         flex: 1,
+        minWidth: 0,
         minHeight: 0,
         WebkitOverflowScrolling: 'touch',
       }}>
