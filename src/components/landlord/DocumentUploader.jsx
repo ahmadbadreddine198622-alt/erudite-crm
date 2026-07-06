@@ -42,6 +42,19 @@ const OTHER_LABELS = {
   other: 'Other Document',
 };
 
+// Google Drive folder label per form type. "Other" document sub-types
+// (passport, emirates_id, noc, …) all land under a single "Others" folder
+// so a landlord's Drive stays tidy: {LandlordName}/{Form B | Form F | Others}/
+const DRIVE_FOLDER_BY_TYPE = {
+  form_b: 'Form B',
+  form_f: 'Form F',
+};
+
+// Sanitize a landlord name into a safe Drive folder name (no slashes/colons).
+function safeFolderName(name) {
+  return String(name || '').replace(/[\/\\:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default function DocumentUploader({ landlordId, landlordName, onUploadFormA }) {
   const queryClient = useQueryClient();
   const { isAdmin } = useCurrentUser();
@@ -117,6 +130,22 @@ export default function DocumentUploader({ landlordId, landlordName, onUploadFor
       queryClient.invalidateQueries({ queryKey: ['landlord-documents', landlordId] });
       toast.success(`${CATEGORIES.find((c) => c.key === cat)?.label || 'Document'} uploaded ✓`);
       setShowOtherInput(false);
+
+      // 4. Back up to ahmad@erudite-estate.com's Google Drive — fire-and-forget.
+      // Folder layout: {LandlordName}/{Form B | Form F | Others}/{fileName}
+      // Failure here is non-fatal: the CRM record is already saved above.
+      const landlordFolder = safeFolderName(landlordName) || landlordId;
+      const formFolder = DRIVE_FOLDER_BY_TYPE[docType] || 'Others';
+      try {
+        await base44.functions.invoke('uploadToGoogleDrive', {
+          file_url: fileUrl,
+          fileName: file.name,
+          folderPath: `${landlordFolder}/${formFolder}`,
+        });
+        toast.success('Saved to Google Drive ✓');
+      } catch (driveErr) {
+        toast.error('Saved to CRM, but Google Drive backup failed');
+      }
     } catch (err) {
       toast.error('Upload failed: ' + (err?.message || 'unknown error'));
     } finally {
