@@ -141,24 +141,33 @@ async function sendWhatsAppPing(toDigits, senderName, messageText, entityType) {
 }
 
 /**
- * Ping BOTH the assigned agent (looked up by email) AND the line owner
- * (the agent whose WhatsApp number received the message), deduping when
- * they're the same person. Fire-and-forget.
+ * Route the inbound WhatsApp notification to the right phone.
+ *
+ * WhatsApp chats are per-line: a message to Malik's number lives on Malik's
+ * WhatsApp, a message to Ajwa's number lives on Ajwa's WhatsApp — these are
+ * separate threads and must NOT be mixed. CRM assignment (who owns the
+ * landlord/lead) is separate from which line received the chat.
+ *
+ * So:
+ *  - Agent-personal line (malik / sameie / dari): ping ONLY the line owner —
+ *    they have that chat on their phone; the CRM-assigned agent does not.
+ *  - Shared CRM line (business / personal, no single owner): ping the
+ *    CRM-assigned agent so they know a message came in.
  */
-async function notifyAgentAndLineOwner(base44, agentEmail, lineOwnerPhone, senderName, messageText, entityType) {
-  let agentDigits = null;
-  if (agentEmail) {
-    try {
-      const users = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
-      const agent = users?.[0];
-      if (agent?.phone) agentDigits = String(agent.phone).replace(/\D/g, '');
-    } catch (err) { console.warn('[notifyAgentAndLineOwner] user lookup failed', err?.message || err); }
-  }
+async function notifyLineOwnerOrAgent(base44, agentEmail, lineOwnerPhone, senderName, messageText, entityType) {
   const lineDigits = lineOwnerPhone ? String(lineOwnerPhone).replace(/\D/g, '') : null;
-  const targets = new Set([agentDigits, lineDigits].filter(Boolean));
-  for (const digits of targets) {
-    await sendWhatsAppPing(digits, senderName, messageText, entityType);
+  if (lineDigits && lineDigits !== '971581806000') {
+    await sendWhatsAppPing(lineDigits, senderName, messageText, entityType);
+    return;
   }
+  if (!agentEmail) return;
+  let agentDigits = null;
+  try {
+    const users = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
+    const agent = users?.[0];
+    if (agent?.phone) agentDigits = String(agent.phone).replace(/\D/g, '');
+  } catch (err) { console.warn('[notifyLineOwnerOrAgent] user lookup failed', err?.message || err); }
+  if (agentDigits) await sendWhatsAppPing(agentDigits, senderName, messageText, entityType);
 }
 
 /** Create immediate reminder for assigned agent */
@@ -270,8 +279,8 @@ Deno.serve(async (req) => {
         base44.asServiceRole.functions.invoke('analyzeConversation', { conversation_id }).catch(() => {});
       }
 
-      // WhatsApp push notification to the assigned agent + line owner
-      notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, e.full_name_en || e.full_name || e.name || normalized, message_text, entityType).catch(() => {});
+      // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+      notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, e.full_name_en || e.full_name || e.name || normalized, message_text, entityType).catch(() => {});
 
       return Response.json({
         routed_entity_type: entityType,
@@ -352,8 +361,8 @@ Deno.serve(async (req) => {
       await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
       await createAgentReminder(base44, agentEmail, landlord.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
 
-      // WhatsApp push notification to the assigned agent + line owner
-      notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, name, message_text, 'landlord').catch(() => {});
+      // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+      notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, name, message_text, 'landlord').catch(() => {});
 
       // Fire auto-reply (respects business hours, includes property link)
       base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
@@ -440,8 +449,8 @@ Deno.serve(async (req) => {
     await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
     await createAgentReminder(base44, agentEmail, lead.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
 
-    // WhatsApp push notification to the assigned agent + line owner
-    notifyAgentAndLineOwner(base44, agentEmail, line_owner_phone, name, message_text, 'lead').catch(() => {});
+    // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+    notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, name, message_text, 'lead').catch(() => {});
 
     // Fire auto-reply (respects business hours, includes matching property link)
     base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
