@@ -24,7 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [] });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', profile_image: '', signature_url: '', email_signature_html: '', default_reminder_text: '', default_reminders: [], office_location: '', instagram_handle: '', linkedin_url: '', pf_profile_url: '', pf_rating: '', pf_deals_count: '', pf_deals_value_label: '', signature_stat_label: '' });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
@@ -34,7 +34,7 @@ export default function Profile() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [] });
+      setForm({ full_name: u?.full_name || '', phone: u?.phone || '', position: u?.position || '', profile_image: u?.profile_image || '', signature_url: u?.signature_url || '', email_signature_html: u?.email_signature_html || '', default_reminder_text: u?.default_reminder_text || '', default_reminders: u?.default_reminders || [], office_location: u?.office_location || '', instagram_handle: u?.instagram_handle || '', linkedin_url: u?.linkedin_url || '', pf_profile_url: u?.pf_profile_url || '', pf_rating: u?.pf_rating || '', pf_deals_count: u?.pf_deals_count || '', pf_deals_value_label: u?.pf_deals_value_label || '', signature_stat_label: u?.signature_stat_label || '' });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -72,7 +72,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders });
+      await base44.auth.updateMe({ full_name: form.full_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, instagram_handle: form.instagram_handle, linkedin_url: form.linkedin_url, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, signature_stat_label: form.signature_stat_label });
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
@@ -298,6 +298,48 @@ export default function Profile() {
                   modules={{ toolbar: [['bold', 'italic', 'underline'], ['link'], ['clean']] }}
                   placeholder="Best regards, Your Name — Erudite Real Estate"
                 />
+              </div>
+            </div>
+
+            {/* Branded signature block — auto-built and appended to every email */}
+            <div className="pt-3 mt-3 border-t border-white/10">
+              <label className="text-xs text-accent font-semibold mb-1 block">Branded Signature Block (auto-appended below your emails)</label>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                These details build the professional signature card &amp; call-to-action grid shown to clients. Leave blank to use defaults.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Office Location</label>
+                  <Input value={form.office_location} onChange={e => setForm(f => ({ ...f, office_location: e.target.value }))} placeholder="The Burlington Tower, Business Bay" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Instagram Handle</label>
+                  <Input value={form.instagram_handle} onChange={e => setForm(f => ({ ...f, instagram_handle: e.target.value }))} placeholder="@eruditeproperty7" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">LinkedIn Profile URL</label>
+                  <Input value={form.linkedin_url} onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))} placeholder="https://linkedin.com/in/..." className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Property Finder Profile URL</label>
+                  <Input value={form.pf_profile_url} onChange={e => setForm(f => ({ ...f, pf_profile_url: e.target.value }))} placeholder="https://www.propertyfinder.ae/en/agent/..." className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">PF Rating (★)</label>
+                  <Input type="number" step="0.1" value={form.pf_rating} onChange={e => setForm(f => ({ ...f, pf_rating: e.target.value }))} placeholder="4.3" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">PF Deals Count</label>
+                  <Input type="number" value={form.pf_deals_count} onChange={e => setForm(f => ({ ...f, pf_deals_count: e.target.value }))} placeholder="56" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">PF Deals Value Label</label>
+                  <Input value={form.pf_deals_value_label} onChange={e => setForm(f => ({ ...f, pf_deals_value_label: e.target.value }))} placeholder="AED 100M+" className="glass-input" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">Trophy Stat Line</label>
+                  <Input value={form.signature_stat_label} onChange={e => setForm(f => ({ ...f, signature_stat_label: e.target.value }))} placeholder="AED 100M+ closed in Peninsula" className="glass-input" />
+                </div>
               </div>
             </div>
           </CardContent>

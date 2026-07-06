@@ -16,6 +16,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X } from 'lucide-react';
+import { buildAgentSignatureHtml } from '@/lib/agentSignature';
 
 /* ── helpers ── */
 function css(str) {
@@ -152,7 +153,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (mounted) setCheckingConn(false);
       try {
         const me = await base44.auth.me();
-        if (mounted) setSignatureHtml(me?.email_signature_html || '');
+        if (mounted) setSignatureHtml(buildAgentSignatureHtml(me || {}));
       } catch {}
       if (landlordId) {
         try {
@@ -172,18 +173,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     return () => { mounted = false; };
   }, [landlordId]);
 
-  const sigBlock = useMemo(() => {
-    if (!signatureHtml || signatureHtml === '<p><br></p>') return '';
-    return `<div data-signature="1" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">${signatureHtml}</div>`;
-  }, [signatureHtml]);
-
-  const appendSig = useCallback((html) => (sigBlock && !String(html).includes('data-signature="1"')) ? `${html}${sigBlock}` : html, [sigBlock]);
-
-  // Auto-inject the agent's signature into the editor on mount (HubSpot-style: visible while composing)
-  useEffect(() => {
-    if (!sigBlock) return;
-    setBodyHtml((prev) => (prev && prev.includes('data-signature="1"')) ? prev : ((prev && prev.trim()) ? prev + sigBlock : sigBlock));
-  }, [sigBlock]);
+  const sigBlock = useMemo(() => (signatureHtml || ''), [signatureHtml]);
 
   const handleImageUpload = useCallback(() => {
     const input = document.createElement('input');
@@ -249,7 +239,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
       setSubject(d.subject || '');
-      setBodyHtml(appendSig(plainTextToHtml(d.body_native || '')));
+      setBodyHtml(plainTextToHtml(d.body_native || ''));
       setBodyGloss(d.body_english_gloss || '');
       setLanguage(d.language || '');
       setAiOpen(false);
@@ -263,7 +253,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const handleTemplateSelect = ({ subject: s, body: b }) => {
     setSubject(replaceMergeFields(s, mergeVars));
-    setBodyHtml(appendSig(plainTextToHtml(replaceMergeFields(b, mergeVars))));
+    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)));
     toast.success('Template loaded — edit as needed');
   };
 
@@ -410,6 +400,14 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Signature preview — auto-added to every email (shown on white like the sent email) */}
+      {sigBlock && (
+        <div style={{ marginTop: 8, marginBottom: 8, borderRadius: 10, overflow: 'hidden', background: '#ffffff', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <div style={{ fontSize: 9, color: '#9a9a9a', padding: '4px 8px 0', fontFamily: "'Inter',sans-serif" }}>SIGNATURE — auto-added to every email</div>
+          <div style={{ padding: 4 }} dangerouslySetInnerHTML={{ __html: sigBlock }} />
         </div>
       )}
 

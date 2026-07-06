@@ -69,6 +69,38 @@
       "type": "string",
       "description": "Rich HTML signature appended to the bottom of every email the agent sends"
     },
+    "office_location": {
+      "type": "string",
+      "description": "Office address shown in the branded email signature card e.g. The Burlington Tower, Business Bay"
+    },
+    "instagram_handle": {
+      "type": "string",
+      "description": "Instagram handle shown in the branded email signature e.g. @eruditeproperty7"
+    },
+    "linkedin_url": {
+      "type": "string",
+      "description": "LinkedIn profile URL for the branded email signature CTA card"
+    },
+    "pf_profile_url": {
+      "type": "string",
+      "description": "Property Finder agent profile URL for the branded email signature CTA card"
+    },
+    "pf_rating": {
+      "type": "number",
+      "description": "Property Finder star rating shown on the PF CTA card e.g. 4.3"
+    },
+    "pf_deals_count": {
+      "type": "number",
+      "description": "Number of Property Finder deals shown on the PF CTA card e.g. 56"
+    },
+    "pf_deals_value_label": {
+      "type": "string",
+      "description": "Property Finder deals value label e.g. AED 100M+"
+    },
+    "signature_stat_label": {
+      "type": "string",
+      "description": "Trophy stat line above the CTA grid e.g. AED 100M+ closed in Peninsula"
+    },
     "default_reminder_text": {
       "type": "string",
       "description": "Default reminder message text pre-filled in the booking dialog"
