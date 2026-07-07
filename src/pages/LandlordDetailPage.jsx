@@ -95,7 +95,7 @@ class LandlordDetail extends React.Component {
       landlords,
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'calls',
-      composerType: 'Email',
+      composerType: 'Activity',
       composerText: '',
       appointmentBookingOpen: false,
       composerTime: '',
