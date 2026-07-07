@@ -75,11 +75,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { landlord_id, text } = body;
+    const attachment = body.attachment || null; // { file_url, file_name, media_type }
     let address = body.address;
     const appOrigin = body.origin || '';
 
-    if (!text || !String(text).trim()) {
-      return Response.json({ error: 'Message text is required' }, { status: 400 });
+    if ((!text || !String(text).trim()) && !attachment) {
+      return Response.json({ error: 'Message text or attachment is required' }, { status: 400 });
     }
 
     // Resolve destination address
@@ -118,8 +119,9 @@ Deno.serve(async (req) => {
       signatureText = settings?.[0]?.imessage_signature_text || '';
     } catch (_) { /* best-effort */ }
 
+    const hasText = !!(text && String(text).trim());
     // Build message body: text + signature + ONE short URL
-    let messageBody = String(text).trim();
+    let messageBody = hasText ? String(text).trim() : '';
     
     // Strip any URLs from the original text (we'll add our own short link)
     const urlsStripped = findUrls(messageBody);
@@ -132,7 +134,7 @@ Deno.serve(async (req) => {
     }
 
     // Add plain-text signature (no HTML, just text)
-    if (signatureText && !body.skip_signature) {
+    if (hasText && signatureText && !body.skip_signature) {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
@@ -140,7 +142,7 @@ Deno.serve(async (req) => {
     // text, so we only append the Property Finder agent-profile link here (avoids
     // the duplicate URL the user reported).
     let shortUrl = null;
-    if (!body.skip_signature) {
+    if (hasText && !body.skip_signature) {
       const fixedUrls = ['https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
       messageBody = messageBody.trimEnd() + '\n\n' + fixedUrls.join('\n');
       shortUrl = fixedUrls[0];
@@ -148,68 +150,85 @@ Deno.serve(async (req) => {
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
 
-    // Send text message via BlueBubbles.
-    // Strategy: try private-api first (preferred, works for existing chats). If it
-    // fails with "Chat does not exist!" (new recipient), fall back to chat/new WITH
-    // a message — on macOS Big Sur+ this creates the chat AND sends the message in
-    // one call, which is the BlueBubbles-recommended way to start a new conversation.
-    const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
-    const tempGuid = `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const payload = {
-      chatGuid: `iMessage;-;${address}`,
-      tempGuid,
-      message: messageBody,
-      method: 'private-api',
-    };
+    let data = null;
+    if (hasText) {
+      // Send text message via BlueBubbles.
+      // Strategy: try private-api first (preferred, works for existing chats). If it
+      // fails with "Chat does not exist!" (new recipient), fall back to chat/new WITH
+      // a message — on macOS Big Sur+ this creates the chat AND sends the message in
+      // one call, which is the BlueBubbles-recommended way to start a new conversation.
+      const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
+      const tempGuid = `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const payload = {
+        chatGuid: `iMessage;-;${address}`,
+        tempGuid,
+        message: messageBody,
+        method: 'private-api',
+      };
 
-    let resp = await fetch(sendUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-      body: JSON.stringify(payload),
-    });
+      let resp = await fetch(sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+        body: JSON.stringify(payload),
+      });
 
-    let raw = await resp.text();
-    let data;
-    try { data = JSON.parse(raw); } catch { data = { raw }; }
+      let raw = await resp.text();
+      try { data = JSON.parse(raw); } catch { data = { raw }; }
 
-    // New recipient — private-api can't find the chat. Use chat/new WITH a message
-    // to create the conversation and send the text in a single call.
-    if (!resp.ok) {
-      const errMsg = data?.error?.message || data?.message || '';
-      if (errMsg.includes('Chat does not exist') || errMsg.includes('Message Send Error')) {
-        console.warn('[sendIMessage] private-api failed, trying chat/new with message...');
-        const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
-        const chatResp = await fetch(chatNewUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-          body: JSON.stringify({
-            addresses: [address],
-            message: messageBody,
-            tempGuid: `crm-new-${tempGuid}`,
-          }),
-        });
-        const chatRaw = await chatResp.text();
-        let chatData;
-        try { chatData = JSON.parse(chatRaw); } catch { chatData = { raw: chatRaw }; }
-        console.log('[sendIMessage] chat/new status:', chatResp.status, chatRaw.slice(0, 200));
+      // New recipient — private-api can't find the chat. Use chat/new WITH a message
+      // to create the conversation and send the text in a single call.
+      if (!resp.ok) {
+        const errMsg = data?.error?.message || data?.message || '';
+        if (errMsg.includes('Chat does not exist') || errMsg.includes('Message Send Error')) {
+          console.warn('[sendIMessage] private-api failed, trying chat/new with message...');
+          const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
+          const chatResp = await fetch(chatNewUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+            body: JSON.stringify({
+              addresses: [address],
+              message: messageBody,
+              tempGuid: `crm-new-${tempGuid}`,
+            }),
+          });
+          const chatRaw = await chatResp.text();
+          let chatData;
+          try { chatData = JSON.parse(chatRaw); } catch { chatData = { raw: chatRaw }; }
+          console.log('[sendIMessage] chat/new status:', chatResp.status, chatRaw.slice(0, 200));
 
-        if (chatResp.ok) {
-          resp = chatResp;
-          raw = chatRaw;
-          data = chatData;
+          if (chatResp.ok) {
+            resp = chatResp;
+            raw = chatRaw;
+            data = chatData;
+          } else {
+            return Response.json({
+              error: 'BlueBubbles send failed',
+              status: chatResp.status,
+              detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
+            }, { status: 502 });
+          }
         } else {
           return Response.json({
             error: 'BlueBubbles send failed',
-            status: chatResp.status,
-            detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
+            status: resp.status,
+            detail: errMsg || raw?.slice(0, 500),
           }, { status: 502 });
         }
-      } else {
-        return Response.json({
-          error: 'BlueBubbles send failed',
-          status: resp.status,
-          detail: errMsg || raw?.slice(0, 500),
-        }, { status: 502 });
+      }
+    }
+
+    // ── USER ATTACHMENT (e.g. voice note) ──
+    let attachmentSent = false;
+    if (attachment && attachment.file_url) {
+      try {
+        const attBase64 = await fetchImageAsBase64(attachment.file_url);
+        if (attBase64) {
+          const attName = attachment.file_name || (attachment.media_type === 'audio' ? 'voice-note.m4a' : 'attachment');
+          attachmentSent = await sendBlueBubblesAttachment(serverUrl, password, address, attBase64, attName);
+          if (!attachmentSent) console.warn('[sendIMessage] user attachment failed to send');
+        }
+      } catch (attErr) {
+        console.error('[sendIMessage] attachment error:', attErr);
       }
     }
 
@@ -277,6 +296,7 @@ Deno.serve(async (req) => {
       guid: data?.data?.guid || null,
       shortUrl,
       bannerSent,
+      attachmentSent,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

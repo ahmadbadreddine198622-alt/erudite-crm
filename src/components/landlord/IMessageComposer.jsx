@@ -120,6 +120,9 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
 
+  // Pending voice-note (or other) attachment to send alongside / instead of text.
+  const [attachment, setAttachment] = useState(null);
+
   const taRef = useRef(null);
 
   // Insert an emoji at the cursor position in the textarea.
@@ -197,7 +200,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
   const send = async () => {
     if (blocked) return;
-    if (!text.trim()) { toast.error('Nothing to send'); return; }
+    if (!text.trim() && !attachment) { toast.error('Nothing to send'); return; }
     setSending(true);
     try {
       // Resolve which iMessage handle(s) to send to. When the landlord has 2+
@@ -216,6 +219,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         const payload = { landlord_id: landlordId, text, origin: window.location.origin };
         if (addr) payload.address = addr;
         if (i > 0) payload.skip_banner = true; // attach the first-contact banner only once
+        if (attachment) payload.attachment = attachment; // voice note / file attachment
         const res = await base44.functions.invoke('sendIMessage', payload);
         const data = res?.data ?? res;
         if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
@@ -231,11 +235,11 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
       toast.success(targets.length > 1 ? `Sent to ${targets.length} handles ✓` : 'Sent ✓');
-      const sentText = text.trim();
+      const sentText = text.trim() || (attachment ? '🎙 Voice note' : '');
       setLastSent({ text: sentText, to: targets.filter(Boolean).join(', ') || 'iMessage' });
       setSentExpanded(true);
       if (onSent) onSent({ text });
-      setText(''); setDraftGloss(''); setLanguage(''); setHasDraft(false);
+      setText(''); setDraftGloss(''); setLanguage(''); setHasDraft(false); setAttachment(null);
     } catch (e) {
       toast.error(e?.message || 'Failed to send iMessage');
     } finally {
@@ -336,7 +340,8 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         sendDisabled={blocked}
         accent="#0A84FF"
         voiceEnabled
-        voiceCanSendAudio={false}
+        voiceCanSendAudio
+        onVoiceSent={(url, name) => { setAttachment({ file_url: url, file_name: name, media_type: 'audio' }); setTimeout(() => { send(); }, 80); }}
         onVoiceText={(t) => { setText(t); setHasDraft(false); }}
         inputRef={taRef}
         minHeight={54}
