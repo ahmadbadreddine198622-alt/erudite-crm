@@ -15,7 +15,7 @@
 // this is a presentational shell plus the two new features.
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Globe, Mic, Square, Loader2, Check, Plus, History } from 'lucide-react';
+import { Send, X, Globe, Mic, Square, Loader2, Check, Plus, History, Wand2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import useVoiceRecorder from '@/hooks/useVoiceRecorder';
@@ -31,6 +31,21 @@ export const TRANSLATE_LANGS = [
   { code: 'ja', label: 'Japanese' },
   { code: 'es', label: 'Spanish' },
   { code: 'it', label: 'Italian' },
+];
+
+export const TONE_OPTIONS = [
+  { key: 'aggressive', label: 'Aggressive' },
+  { key: 'calm', label: 'Calm' },
+  { key: 'normal', label: 'Normal' },
+  { key: 'peaceful', label: 'Peaceful' },
+  { key: 'confident', label: 'Confident' },
+  { key: 'friendly', label: 'Friendly' },
+  { key: 'urgent', label: 'Urgent' },
+  { key: 'persuasive', label: 'Persuasive' },
+  { key: 'diplomatic', label: 'Diplomatic' },
+  { key: 'formal', label: 'Formal' },
+  { key: 'casual', label: 'Casual' },
+  { key: 'enthusiastic', label: 'Enthusiastic' },
 ];
 
 function css(str) {
@@ -72,6 +87,8 @@ export default function ModernComposerField({
   const vr = useVoiceRecorder();
   const [stopped, setStopped] = useState(false); // show choice bar after stop
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [toneOpen, setToneOpen] = useState(false);
+  const [toneBusy, setToneBusy] = useState(false);
 
   // Auto-grow textarea to a sensible max.
   useEffect(() => {
@@ -111,6 +128,28 @@ export default function ModernComposerField({
     if (!translation) return;
     onChange({ target: { value: translation.text } });
     setTranslation(null);
+  };
+
+  const runTone = async (tone) => {
+    const src = String(value || '').trim();
+    if (!src) { toast.error('Nothing to rewrite'); return; }
+    setToneOpen(false);
+    setToneBusy(true);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Rewrite the following message in a ${tone.label} tone. Preserve the meaning, key facts, and any placeholders like {{landlord_name}}. Keep the original language. Output ONLY the rewritten message — no quotes, no commentary.\n\nMessage:\n${src}`,
+        response_json_schema: { type: 'object', properties: { rewritten: { type: 'string' } } },
+      });
+      const data = res?.data ?? res;
+      const text = data?.rewritten || (typeof data === 'string' ? data : '');
+      if (!text) throw new Error('No rewrite returned');
+      onChange({ target: { value: text } });
+      toast.success(`Rewritten in ${tone.label.toLowerCase()} tone`);
+    } catch (e) {
+      toast.error(e?.message || 'Tone rewrite failed');
+    } finally {
+      setToneBusy(false);
+    }
   };
 
   const startVoice = () => {
@@ -282,6 +321,34 @@ export default function ModernComposerField({
                   <button key={l.code} type="button" onClick={() => runTranslate(l)}
                     style={css("padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.82);")}>
                     {l.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Tone rewrite */}
+          <Popover open={toneOpen} onOpenChange={setToneOpen}>
+            <PopoverTrigger asChild>
+              <button type="button" title="Rewrite tone" disabled={toneBusy || !hasContent}
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border"
+                style={{
+                  background: toneOpen ? 'rgba(168,85,247,0.18)' : 'transparent',
+                  color: toneOpen ? '#c4b5fd' : 'rgba(255,255,255,0.6)',
+                  border: '1px solid ' + (toneOpen ? 'rgba(168,85,247,0.4)' : 'transparent'),
+                  cursor: (toneBusy || !hasContent) ? 'not-allowed' : 'pointer',
+                  opacity: (toneBusy || !hasContent) ? 0.5 : 1,
+                }}>
+                {toneBusy ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60 p-2" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }} align="start">
+              <div style={css("font-size:10px; font-weight:700; color:rgba(255,255,255,0.6); margin-bottom:5px; letter-spacing:0.04em; text-transform:uppercase;")}>Rewrite tone</div>
+              <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:4px; max-height:200px; overflow-y:auto;")}>
+                {TONE_OPTIONS.map((t) => (
+                  <button key={t.key} type="button" onClick={() => runTone(t)}
+                    style={css("padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.82);")}>
+                    {t.label}
                   </button>
                 ))}
               </div>

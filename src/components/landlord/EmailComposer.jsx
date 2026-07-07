@@ -15,8 +15,8 @@ import EmailTemplatePicker from './EmailTemplatePicker';
 import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X, Globe, Loader2 } from 'lucide-react';
-import { TRANSLATE_LANGS } from './ModernComposerField';
+import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X, Globe, Loader2, Wand2 } from 'lucide-react';
+import { TRANSLATE_LANGS, TONE_OPTIONS } from './ModernComposerField';
 import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 import { buildAgentCtaHtml } from '@/lib/agentSignature';
@@ -165,6 +165,8 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [translating, setTranslating] = useState(false);
   const [transOpen, setTransOpen] = useState(false);
   const [translation, setTranslation] = useState(null);
+  const [toneOpen, setToneOpen] = useState(false);
+  const [toneBusy, setToneBusy] = useState(false);
 
   const quillRef = useRef(null);
 
@@ -375,6 +377,28 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
     setTranslation(null);
   };
 
+  const runTone = async (tone) => {
+    const plain = bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim();
+    if (!plain) { toast.error('Nothing to rewrite'); return; }
+    setToneOpen(false);
+    setToneBusy(true);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Rewrite the following message in a ${tone.label} tone. Preserve the meaning, key facts, and any placeholders like {{landlord_name}}. Keep the original language. Output ONLY the rewritten message — no quotes, no commentary.\n\nMessage:\n${plain}`,
+        response_json_schema: { type: 'object', properties: { rewritten: { type: 'string' } } },
+      });
+      const data = res?.data ?? res;
+      const text = data?.rewritten || (typeof data === 'string' ? data : '');
+      if (!text) throw new Error('No rewrite returned');
+      setBodyHtml(plainTextToHtml(text));
+      toast.success(`Rewritten in ${tone.label.toLowerCase()} tone`);
+    } catch (e) {
+      toast.error(e?.message || 'Tone rewrite failed');
+    } finally {
+      setToneBusy(false);
+    }
+  };
+
   const canSend = !checkingConn && gmailConnected && !sending;
   const activeMode = MODES.find((m) => m.key === mode);
 
@@ -568,6 +592,33 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
                   <button key={l.code} type="button" onClick={() => runTranslate(l)}
                     style={css("padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.82);")}>
                     {l.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          {/* Tone */}
+          <Popover open={toneOpen} onOpenChange={setToneOpen}>
+            <PopoverTrigger asChild>
+              <button type="button" title="Rewrite tone" disabled={toneBusy}
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border"
+                style={{
+                  background: toneOpen ? 'rgba(168,85,247,0.18)' : 'transparent',
+                  color: toneOpen ? '#c4b5fd' : 'rgba(255,255,255,0.6)',
+                  border: '1px solid ' + (toneOpen ? 'rgba(168,85,247,0.4)' : 'transparent'),
+                  cursor: toneBusy ? 'not-allowed' : 'pointer',
+                  opacity: toneBusy ? 0.6 : 1,
+                }}>
+                {toneBusy ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60 p-2" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }} align="start">
+              <div style={css("font-size:10px; font-weight:700; color:rgba(255,255,255,0.6); margin-bottom:5px; letter-spacing:0.04em; text-transform:uppercase;")}>Rewrite tone</div>
+              <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:4px; max-height:200px; overflow-y:auto;")}>
+                {TONE_OPTIONS.map((t) => (
+                  <button key={t.key} type="button" onClick={() => runTone(t)}
+                    style={css("padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.82);")}>
+                    {t.label}
                   </button>
                 ))}
               </div>
