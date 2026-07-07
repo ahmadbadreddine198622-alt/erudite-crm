@@ -106,7 +106,19 @@ export default function Landlords() {
   const [showQueuePanel, setShowQueuePanel] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  // Project filter persists in localStorage so the user stays "locked in" to their
+  // selected project across page refreshes and navigation to/from landlord detail.
+  const [filterProject, setFilterProjectState] = useState(() => {
+    try { return localStorage.getItem('ldc_filter_project') || ''; } catch { return ''; }
+  });
+  const setFilterProject = (val) => {
+    const v = val || '';
+    setFilterProjectState(v);
+    try {
+      if (v) localStorage.setItem('ldc_filter_project', v);
+      else localStorage.removeItem('ldc_filter_project');
+    } catch {}
+  };
   const [filterFloor, setFilterFloor] = useState('');
   const [filterLayout, setFilterLayout] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
