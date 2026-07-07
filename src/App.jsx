@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import BlockedAccount from '@/components/BlockedAccount';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -123,6 +124,10 @@ const AuthenticatedApp = () => {
 
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
+  }
+
+  if (authError?.type === 'domain_not_allowed') {
+    return <BlockedAccount email={authError.email} />;
   }
 
   return (

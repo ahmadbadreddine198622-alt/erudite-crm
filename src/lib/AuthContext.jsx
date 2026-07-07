@@ -2,6 +2,21 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 
+// Organization email allowlist: only @erudite-estate.com addresses plus two
+// approved personal emails may access the CRM. Anyone else is blocked.
+const ALLOWED_DOMAIN = 'erudite-estate.com';
+const ALLOWED_EMAILS = [
+  'maroofali551@gmail.com',
+  'ahmad.badreddine198622@gmail.com',
+];
+
+function isEmailAllowed(email) {
+  if (!email) return false;
+  const e = email.toLowerCase().trim();
+  if (ALLOWED_EMAILS.includes(e)) return true;
+  return e.endsWith('@' + ALLOWED_DOMAIN);
+}
+
 
 const AuthContext = createContext();
 
@@ -99,6 +114,21 @@ export const AuthProvider = ({ children }) => {
       );
       const authPromise = base44.auth.me();
       const currentUser = await Promise.race([authPromise, timeoutPromise]);
+
+      // Enforce the organization email allowlist. A user who somehow has an
+      // account with a non-org / non-approved email is blocked immediately.
+      if (!isEmailAllowed(currentUser?.email)) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({
+          type: 'domain_not_allowed',
+          message: 'Your email is not on the organization allowlist',
+          email: currentUser?.email,
+        });
+        setIsLoadingAuth(false);
+        return;
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
