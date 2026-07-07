@@ -62,7 +62,18 @@ function fmtFullTime(ts) {
   });
 }
 
-export default function AllActivityTab({ items, landlordId, landlordName, onReplyGenerated }) {
+const COMPOSE_CHANNEL_OPTIONS = [
+  { value: '', label: 'Compose via…', icon: '✎' },
+  { value: 'Chat', label: 'WhatsApp', icon: '💬' },
+  { value: 'Email', label: 'Email', icon: '✉' },
+  { value: 'iMessage', label: 'iMessage', icon: '' },
+  { value: 'Telegram', label: 'Telegram', icon: '✈' },
+  { value: 'Follow-up', label: 'Follow-up', icon: '↻' },
+  { value: 'Documents', label: 'Documents', icon: '📄' },
+  { value: 'Appointment', label: 'Appointment', icon: '📅' },
+];
+
+export default function AllActivityTab({ items, landlordId, landlordName, onReplyGenerated, onSelectChannel }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -248,6 +259,21 @@ ${timeline}`,
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Channel composer launcher — picks which composer loads */}
+      {onSelectChannel && (
+        <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:6px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);")}>
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Compose</span>
+          <select
+            value=""
+            onChange={(e) => { const v = e.target.value; if (v && v !== '') onSelectChannel(v); }}
+            style={css("flex:1; padding:5px 10px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid hsl(38 92% 50% / 0.3); color:rgba(255,255,255,0.85); font-size:11.5px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; outline:none; appearance:auto;")}>
+            {COMPOSE_CHANNEL_OPTIONS.map((o) => (
+              <option key={o.value || 'none'} value={o.value} style={{ background: '#1a2235', color: '#fff' }}>{o.icon} {o.label}</option>
+            ))}
+          </select>
         </div>
       )}
 
