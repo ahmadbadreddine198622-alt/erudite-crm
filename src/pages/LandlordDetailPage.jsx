@@ -47,16 +47,12 @@ function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
 }
 
-// Phone → the +/- match variants used by the by-number stream queries (CallLog, WhatsAppMessage),
-// cleaned of spaces/dashes/parens. Returns [] for an empty phone so callers can short-circuit.
 function phoneVariants(phone) {
   const cleaned = String(phone || '').replace(/[\s\-()]/g, '');
   if (!cleaned) return [];
   return cleaned.startsWith('+') ? [cleaned, cleaned.slice(1)] : [cleaned, '+' + cleaned];
 }
 
-// Dedupe entity rows by id, preserving first-seen order. Flattens nested arrays first so callers
-// can pass the raw Promise.all result (an array of per-query arrays) straight in.
 function dedupeById(batches) {
   const seen = new Set(); const out = [];
   for (const row of (batches || []).flat()) {
@@ -244,7 +240,7 @@ class LandlordDetail extends React.Component {
     // latest message sits at the bottom — scroll to the bottom to mimic a chat. Activity
     // tabs (Notes/Tasks/Follow-ups) stay newest-first, so scroll to the top.
     const ct=this.state.composerType;
-    const isChat = ct==='Chat'||ct==='iMessage'||ct==='Telegram'||ct==='SMS';
+    const isChat = ct==='Chat'||ct==='iMessage'||ct==='Telegram'||ct==='SMS'||ct==='Activity';
     requestAnimationFrame(()=>{ el.scrollTop = isChat ? el.scrollHeight : 0; });
   }
   cur(){ return this.state.landlords.find(l=>l.id===this.state.currentId); }
@@ -512,7 +508,7 @@ class LandlordDetail extends React.Component {
     if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
     if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
     if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
-    if(this.state.composerType === 'Chat'){ this.sendChat(txt); return; }
+    if(this.state.composerType === 'Chat' || this.state.composerType === 'Activity'){ this.sendChat(txt); return; }
     if(this.state.composerType === 'Telegram'){ this.sendTelegram(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
@@ -1355,7 +1351,7 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Activity' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} />
+                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} onReplyGenerated={(t)=>this.setState({composerText:t})} />
                 </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
@@ -1626,11 +1622,11 @@ class LandlordDetail extends React.Component {
                 )}
                 {(() => {
                   const ct = this.state.composerType;
-                  const isChatTab = ct === 'Chat' || ct === 'Telegram' || ct === 'SMS';
+                  const isChatTab = ct === 'Chat' || ct === 'Telegram' || ct === 'SMS' || ct === 'Activity';
                   if (!isChatTab) return null;
-                  const tplChannel = ct === 'Chat' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
-                  const sending = ct === 'Chat' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
-                  const waDisabled = ct === 'Chat' && (!this.props.currentUser?.whatsapp_instance && this.props.currentUser?.role !== 'admin');
+                  const tplChannel = ct === 'Chat' || ct === 'Activity' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
+                  const sending = ct === 'Chat' || ct === 'Activity' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
+                  const waDisabled = (ct === 'Chat' || ct === 'Activity') && (!this.props.currentUser?.whatsapp_instance && this.props.currentUser?.role !== 'admin');
                   const tgDisabled = ct === 'Telegram' && !(this.props.rawLandlord?.telegram_chat_id);
                   const channelDisabled = waDisabled || tgDisabled;
                   const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
