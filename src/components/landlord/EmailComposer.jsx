@@ -60,7 +60,7 @@ function plainTextToHtml(text) {
     .replace(/>/g, '&gt;');
   return escaped
     .split(/\n{2,}/)
-    .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+    .map((p) => `<p style="text-align:left;">${p.replace(/\n/g, '<br/>')}</p>`)
     .join('');
 }
 
@@ -184,7 +184,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   // visible while composing and sent with the email. The CTA grid (sigBlock) is
   // appended to the sent email only, below this signature image.
   const cardImgHtml = useMemo(() => signatureUrl
-    ? `<p style="margin-top:16px;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:480px;height:auto;border-radius:12px;"/></p>`
+    ? `<p data-signature-img="1" style="margin-top:16px;text-align:left;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:480px;height:auto;border-radius:12px;"/></p>`
     : '', [signatureUrl]);
 
   // Auto-insert the signature card into the body once on load (only if the body is still blank)
@@ -282,8 +282,16 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     setSending(true);
     setDelivery(null);
     try {
-      // Signature already injected into the editor (visible while composing) — just ensure it's present.
-      const finalBody = (sigBlock && !bodyHtml.includes('data-signature="1"')) ? bodyHtml + sigBlock : bodyHtml;
+      // Ensure the signature image is present in the body (it may have been lost if the
+      // user typed before the async profile fetch completed, or after loading a draft).
+      let finalBody = bodyHtml;
+      if (cardImgHtml && !bodyHtml.includes('data-signature-img="1"')) {
+        finalBody += cardImgHtml;
+      }
+      // Append the CTA grid (sigBlock) if not already present.
+      if (sigBlock && !finalBody.includes('data-signature="1"')) {
+        finalBody += sigBlock;
+      }
       const payload = { to: to.trim(), subject: subject.trim(), body_html: finalBody, landlord_id: landlordId, cc: cc.trim() || undefined, attachments: attachments.map((a) => ({ url: a.url, filename: a.filename, mime: a.mime })) };
       const res = await base44.functions.invoke('sendLandlordEmail', payload);
       const data = res?.data ?? res;

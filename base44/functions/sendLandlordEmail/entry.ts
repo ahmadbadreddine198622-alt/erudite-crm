@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     const finalBodyHtml = /data-signature="1"/.test(bodyHtml)
       ? bodyHtml
       : bodyHtml + agentSignatureHtml(userEntity || {});
-    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#ffffff;"><div style="max-width:600px;margin:0 auto;padding:24px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;">${finalBodyHtml}</div></body></html>`;
+    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;padding:0;background:#ffffff;text-align:left;"><div style="max-width:600px;margin:0 auto;padding:24px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;text-align:left;">${finalBodyHtml}</div></body></html>`;
 
     // ── Build a multipart/mixed MIME message (base64-encoded parts) ──
     // base64 encoding fixes the empty-body/spam issue: the previous 7bit encoding
