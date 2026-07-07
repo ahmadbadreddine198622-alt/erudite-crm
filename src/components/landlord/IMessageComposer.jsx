@@ -6,7 +6,7 @@
 //   onSent       (fn)      — called after an iMessage is sent
 //   onFallback   (fn)      — called when no iMessage handle exists
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import EmailTemplatePicker from './EmailTemplatePicker';
@@ -111,6 +111,19 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
+
+  const [signatureText, setSignatureText] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const settings = await base44.entities.CompanySettings.list('', 1);
+        if (mounted) setSignatureText(settings?.[0]?.imessage_signature_text || '');
+      } catch (_) {}
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const handleTemplateSelect = ({ body }) => {
     setText(body || '');
@@ -231,6 +244,15 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       {blocked && (
         <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ No iMessage handle for this landlord</div>
       )}
+
+      {/* Signature + link preview — appended automatically on send */}
+      {signatureText && (
+        <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(10,132,255,0.06); border:1px solid rgba(10,132,255,0.15); font-size:10px; color:rgba(255,255,255,0.4); white-space:pre-wrap; line-height:1.4;")}>
+          <span style={css("font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.3); display:block; margin-bottom:3px;")}>Auto-appended on send</span>
+          {signatureText}
+          <span style={css("display:block; margin-top:2px; color:rgba(10,132,255,0.5);")}>{window.location.origin.replace(/\/+$/, '')}/u/ahmad</span>
+        </div>
+      )}
       {/* Slim icon toolbar */}
       <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:4px;")}>
@@ -311,7 +333,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         </button>
       </div>
 
-      <div style={css("font-size:8.5px; color:rgba(255,255,255,0.35); text-align:center; margin-top:4px;")}>Signature appends automatically · branded banner on first contact</div>
+      <div style={css("font-size:8.5px; color:rgba(255,255,255,0.35); text-align:center; margin-top:4px;")}>Branded banner attached on first contact</div>
 
       <EmailTemplateDialog
         open={saveTemplateOpen}
