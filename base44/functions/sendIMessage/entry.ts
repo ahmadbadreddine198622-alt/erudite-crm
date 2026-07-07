@@ -111,13 +111,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
-    // Get plain-text signature + company signature image fallback
+    // Get plain-text signature (no image — never included in iMessage)
     let signatureText = '';
-    let companySignatureUrl = '';
     try {
       const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
       signatureText = settings?.[0]?.imessage_signature_text || '';
-      companySignatureUrl = settings?.[0]?.signature_url || '';
     } catch (_) { /* best-effort */ }
 
     // Build message body: text + signature + ONE short URL
@@ -149,33 +147,6 @@ Deno.serve(async (req) => {
     }
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
-    console.log('[sendIMessage] URL count:', findUrls(messageBody).length);
-
-    // ── SIGNATURE IMAGE (every message) ──
-    // Attach the agent's branded signature card image so it appears above the
-    // name line in the iMessage thread. Sent BEFORE the text so it shows above it.
-    let signatureImageSent = false;
-    if (!body.skip_signature) {
-      // iMessage is a single shared channel — one Apple ID via BlueBubbles.
-      // Every send (admin, owner, CEO, agent) uses the SAME company signature card
-      // so the identity is identical regardless of who clicks send.
-      const sigImgUrl = companySignatureUrl;
-      if (sigImgUrl) {
-        try {
-          const sigBase64 = await fetchImageAsBase64(sigImgUrl);
-          if (sigBase64) {
-            signatureImageSent = await sendBlueBubblesAttachment(serverUrl, password, address, sigBase64, 'signature.png');
-            console.log('[sendIMessage] signature image attached:', signatureImageSent);
-          } else {
-            console.warn('[sendIMessage] could not fetch signature image:', sigImgUrl);
-          }
-        } catch (e) {
-          console.error('[sendIMessage] signature image error:', e);
-        }
-      } else {
-        console.warn('[sendIMessage] no signature image configured for user');
-      }
-    }
 
     // Send text message via BlueBubbles
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
@@ -268,8 +239,6 @@ Deno.serve(async (req) => {
       guid: data?.data?.guid || null,
       shortUrl,
       bannerSent,
-      signatureImageSent,
-      previewNote: 'OG tags served by static /public/u/*.html files — Apple scrapes these instantly',
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
