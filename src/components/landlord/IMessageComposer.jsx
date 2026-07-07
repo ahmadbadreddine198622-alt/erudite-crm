@@ -112,6 +112,8 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
   const [justSent, setJustSent] = useState(false);
   const flashTimer = useRef(null);
+  const [lastSent, setLastSent] = useState(null);
+  const [sentExpanded, setSentExpanded] = useState(false);
 
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
@@ -210,6 +212,9 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
       toast.success(targets.length > 1 ? `Sent to ${targets.length} handles ✓` : 'Sent ✓');
+      const sentText = text.trim();
+      setLastSent({ text: sentText, to: targets.filter(Boolean).join(', ') || 'iMessage' });
+      setSentExpanded(true);
       if (onSent) onSent({ text });
       setText(''); setDraftGloss(''); setLanguage(''); setHasDraft(false);
     } catch (e) {
@@ -241,6 +246,22 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
             <span style={{ position: 'absolute', fontSize: 20, animation: 'imc-plane 0.9s ease-out forwards' }}>➤</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', color: '#60a5fa', animation: 'imc-flash-in 0.5s ease' }}>Sent!</span>
+        </div>
+      )}
+
+      {/* Last sent preview — shows the sent iMessage text after the body is cleared */}
+      {lastSent && (
+        <div style={{ ...css("border-radius:8px; padding:8px 10px; margin-bottom:6px;"), background: 'rgba(10,132,255,0.1)', border: '1px solid rgba(10,132,255,0.3)' }}>
+          <div style={css("display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:8px;")} onClick={() => setSentExpanded(s => !s)}>
+            <span style={css("font-size:11px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:5px;")}>✓ Sent — {(lastSent.text || '').slice(0, 40)}{lastSent.text && lastSent.text.length > 40 ? '…' : ''}</span>
+            <span style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.55); white-space:nowrap;")}>{sentExpanded ? 'Hide' : 'View sent message'}</span>
+          </div>
+          {sentExpanded && (
+            <div style={css("margin-top:7px; padding-top:7px; border-top:1px solid rgba(10,132,255,0.2); font-size:11px; color:rgba(255,255,255,0.8); line-height:1.55; white-space:pre-wrap; max-height:220px; overflow:auto;")}>
+              <div style={css("font-size:9px; color:rgba(255,255,255,0.45); margin-bottom:5px;")}>To: {lastSent.to}</div>
+              {lastSent.text || '(empty)'}
+            </div>
+          )}
         </div>
       )}
 
