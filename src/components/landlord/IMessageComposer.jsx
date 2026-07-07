@@ -244,19 +244,21 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         </div>
       )}
 
-      {/* Recipient selector — only when 2+ iMessage handles are confirmed available */}
-      {availableHandles.length >= 2 && (
+      {/* Recipient selector — show the send target for any number of confirmed handles */}
+      {availableHandles.length >= 1 && (
         <div style={css("display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:6px;")}>
           <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); flex:none;")}>To iMessage</span>
-          <button type="button" onClick={() => setSelectedAddress('all')} title="Send to every iMessage handle"
-            style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: selectedAddress === 'all' ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: selectedAddress === 'all' ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (selectedAddress === 'all' ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
-            All ({availableHandles.length})
-          </button>
+          {availableHandles.length >= 2 && (
+            <button type="button" onClick={() => setSelectedAddress('all')} title="Send to every iMessage handle"
+              style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: selectedAddress === 'all' ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: selectedAddress === 'all' ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (selectedAddress === 'all' ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
+              All ({availableHandles.length})
+            </button>
+          )}
           {availableHandles.map((h) => {
-            const on = selectedAddress === h.handle;
+            const on = availableHandles.length === 1 || selectedAddress === h.handle;
             return (
-              <button key={h.handle} type="button" onClick={() => setSelectedAddress(h.handle)} title={`Send only to ${h.handle}`}
-                style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: on ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
+              <button key={h.handle} type="button" onClick={() => availableHandles.length >= 2 && setSelectedAddress(h.handle)} title={`Send to ${h.handle}`}
+                style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:" + (availableHandles.length >= 2 ? 'pointer' : 'default') + "; font-family:'Inter',sans-serif; white-space:nowrap;"), background: on ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
                 {h.handle}
               </button>
             );
