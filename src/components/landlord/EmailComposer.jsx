@@ -322,7 +322,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
       setSubject(''); setBodyHtml(''); setAttachments([]); setCc(''); setShowCc(false);
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
-      if (onLogged) onLogged({ subject: subject.trim(), to: to.trim(), cc });
+      if (onLogged) onLogged({ subject: subject.trim(), to: to.trim(), cc, body: sentPlainText });
     } catch (e) {
       toast.error(e?.message || 'Failed to send email');
       setDelivery({ state: 'failed', reason: e?.message || 'Send failed', checking: false });

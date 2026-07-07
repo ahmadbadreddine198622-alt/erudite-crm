@@ -1578,11 +1578,13 @@ class LandlordDetail extends React.Component {
                     landlordId={L.id}
                     toEmail={L.email}
                     allEmails={Array.isArray(this.props.rawLandlord?.additional_emails) ? this.props.rawLandlord.additional_emails : (Array.isArray(L.additionalEmails) ? L.additionalEmails : [])}
-                    onLogged={({ subject })=>{
+                    onLogged={({ subject, body })=>{
                       tickOutreachStep('email_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
-                      const item = { t:'act', kind:'note', title:'Email draft created', body: subject ? ('Subject: ' + subject) : 'Branded Gmail draft created', time:'Just now', order };
+                      const me = (this.props.currentUser?.full_name) || (this.props.currentUser?.email) || (L.agent || 'Agent');
+                      const item = { t:'msg', dir:'out', mtype:'text', channel:'email', subject: subject || '', emailBody: body || '', text: (subject ? subject + '\n' : '') + (body || ''), time:'Just now', order, senderName: me };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
+                      if (this.props.onEmailSent) this.props.onEmailSent();
                     }}
                   />
                 )}
@@ -2447,6 +2449,7 @@ export default function LandlordDetailPage() {
         rawLandlord={L}
         rawProperty={prop}
         initialId={mapped.id}
+        onEmailSent={() => queryClient.invalidateQueries({ queryKey: ['landlord_emails', landlordEmail] })}
         onBack={() => navigate('/landlords')}
         showCoaching
         showSignals
