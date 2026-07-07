@@ -250,7 +250,8 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(10,132,255,0.06); border:1px solid rgba(10,132,255,0.15); font-size:10px; color:rgba(255,255,255,0.4); white-space:pre-wrap; line-height:1.4;")}>
           <span style={css("font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.3); display:block; margin-bottom:3px;")}>Auto-appended on send</span>
           {signatureText}
-          <span style={css("display:block; margin-top:2px; color:rgba(10,132,255,0.5);")}>{window.location.origin.replace(/\/+$/, '')}/u/ahmad</span>
+          <span style={css("display:block; margin-top:2px; color:rgba(10,132,255,0.6);")}>https://eruditeproperty.com/</span>
+          <span style={css("display:block; color:rgba(10,132,255,0.6);")}>https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264</span>
         </div>
       )}
       {/* Slim icon toolbar */}

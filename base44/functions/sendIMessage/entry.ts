@@ -109,14 +109,12 @@ Deno.serve(async (req) => {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
-    // Append exactly ONE branded short link for OG preview
+    // Append the two branded URLs (fixed — do not change until explicitly requested)
     let shortUrl = null;
     if (!body.skip_signature) {
-      const slug = body.link_slug && SHORT_LINK_SLUGS.includes(body.link_slug) ? body.link_slug : 'ahmad';
-      const fallbackOrigin = req.headers.get('origin') || (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : new URL(req.url).origin);
-      const origin = appOrigin || fallbackOrigin;
-      shortUrl = `${origin.replace(/\/+$/, '')}/u/${slug}`;
-      messageBody = messageBody.trimEnd() + '\n\n' + shortUrl;
+      const fixedUrls = ['https://eruditeproperty.com/', 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
+      messageBody = messageBody.trimEnd() + '\n\n' + fixedUrls.join('\n');
+      shortUrl = fixedUrls[0];
     }
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
