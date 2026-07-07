@@ -61,7 +61,7 @@ function fmtFullTime(ts) {
 }
 
 export default function AllActivityTab({ items }) {
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
 
   // Build a unified normalized activity list from the raw stream items.
@@ -131,6 +131,26 @@ export default function AllActivityTab({ items }) {
     ? activities
     : activities.filter(a => a.channelKey === channelFilter);
 
+  // Expand state: null means "all items with a body are open by default".
+  // Once the user toggles any item, we switch to an explicit Set so they can
+  // collapse/expand individual rows. Clicking never re-collapses everything.
+  const isItemOpen = (key, hasBody) => {
+    if (!hasBody) return false;
+    if (expandedKeys === null) return true;
+    return expandedKeys.has(key);
+  };
+  const toggleItem = (key, hasBody) => {
+    if (!hasBody) return;
+    setExpandedKeys((prev) => {
+      const set = prev === null
+        ? new Set(filtered.filter(a => a.body && String(a.body).trim()).map(a => a.key))
+        : new Set(prev);
+      if (set.has(key)) set.delete(key);
+      else set.add(key);
+      return set;
+    });
+  };
+
   if (!filtered.length) {
     return (
       <div style={css("display:flex; align-items:center; justify-content:center; flex:1; color:rgba(255,255,255,0.35); font-size:13px; padding:40px 0;")}>
@@ -170,12 +190,12 @@ export default function AllActivityTab({ items }) {
 
       {/* Activity rows — collapsible, newest-first */}
       {filtered.map((item) => {
-        const isOpen = expandedKey === item.key;
         const hasBody = item.body && String(item.body).trim();
+        const isOpen = isItemOpen(item.key, hasBody);
         return (
           <div key={item.key} style={css("border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); overflow:hidden; transition:border-color 0.12s ease;")}>
             <button
-              onClick={() => hasBody ? setExpandedKey(isOpen ? null : item.key) : undefined}
+              onClick={() => toggleItem(item.key, hasBody)}
               style={css("width:100%; display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:none; border:none; cursor:" + (hasBody ? 'pointer' : 'default') + "; text-align:left; font-family:'Inter',sans-serif;")}
             >
               {/* Channel/kind icon */}
