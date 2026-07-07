@@ -38,13 +38,14 @@ async function fetchImageAsBase64(url) {
 }
 
 // Send an image attachment via BlueBubbles. Returns true on success.
-async function sendBlueBubblesAttachment(serverUrl, password, address, base64) {
+async function sendBlueBubblesAttachment(serverUrl, password, address, base64, name = 'attachment.png') {
   try {
     const attachUrl = `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`;
     const payload = {
       chatGuid: `iMessage;-;${address}`,
       tempGuid: `crm-att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       attachment: base64,
+      name,
       method: 'private-api',
     };
     const resp = await fetch(attachUrl, {
@@ -160,7 +161,7 @@ Deno.serve(async (req) => {
         try {
           const sigBase64 = await fetchImageAsBase64(sigImgUrl);
           if (sigBase64) {
-            signatureImageSent = await sendBlueBubblesAttachment(serverUrl, password, address, sigBase64);
+            signatureImageSent = await sendBlueBubblesAttachment(serverUrl, password, address, sigBase64, 'signature.png');
             console.log('[sendIMessage] signature image attached:', signatureImageSent);
           } else {
             console.warn('[sendIMessage] could not fetch signature image:', sigImgUrl);
@@ -210,7 +211,7 @@ Deno.serve(async (req) => {
           console.log('[sendIMessage] fetching banner for attachment:', bannerUrl);
           const bannerBase64 = await fetchImageAsBase64(bannerUrl);
           if (bannerBase64) {
-            bannerSent = await sendBlueBubblesAttachment(serverUrl, password, address, bannerBase64);
+            bannerSent = await sendBlueBubblesAttachment(serverUrl, password, address, bannerBase64, 'banner.png');
             if (bannerSent) {
               console.log('[sendIMessage] banner attached successfully');
               await base44.entities.Landlord.update(landlord_id, { imessage_banner_sent: true });

@@ -40,14 +40,20 @@ export function useLandlordEmails(landlordEmail) {
 
   useEffect(() => {
     if (!landlordEmail) return;
-    const unsubscribe = base44.entities.Email.subscribe((event) => {
-      if (event.type !== 'create') return;
-      const d = event.data || {};
-      if (d.from_email === landlordEmail || d.to === landlordEmail) {
-        queryClient.invalidateQueries({ queryKey: ['landlord_emails', landlordEmail] });
-      }
-    });
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+    // Realtime may be unavailable on this plan (no live socket) — guard so a
+    // missing/throwing subscribe() never crashes the whole LandlordDetailPage.
+    let unsubscribe = () => {};
+    try {
+      const unsub = base44.entities.Email.subscribe?.((event) => {
+        if (event.type !== 'create') return;
+        const d = event.data || {};
+        if (d.from_email === landlordEmail || d.to === landlordEmail) {
+          queryClient.invalidateQueries({ queryKey: ['landlord_emails', landlordEmail] });
+        }
+      });
+      if (typeof unsub === 'function') unsubscribe = unsub;
+    } catch (_) { /* realtime unavailable — fall back to polling interval */ }
+    return () => { try { unsubscribe(); } catch (_) {} };
   }, [landlordEmail]);
 
   return { data };
