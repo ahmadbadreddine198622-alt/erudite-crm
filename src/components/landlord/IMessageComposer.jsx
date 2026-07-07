@@ -89,8 +89,11 @@ const PSYCHOLOGY_OPTIONS = [
 const fieldSm = "padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11px; font-family:'Inter',sans-serif; width:100%; outline:none;";
 const labelSm = "font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:2px;";
 
-export default function IMessageComposer({ landlordId, onSent, onFallback, imessageStatus = 'unknown' }) {
+export default function IMessageComposer({ landlordId, onSent, onFallback, imessageStatus = 'unknown', imessageHandles = [] }) {
   const blocked = imessageStatus === 'not_available' || imessageStatus === 'error';
+  const handles = Array.isArray(imessageHandles) ? imessageHandles : [];
+  const availableHandles = handles.filter((h) => h && h.imessage_status === 'available');
+  const [selectedAddress, setSelectedAddress] = useState('all');
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
   const [buyerDetail, setBuyerDetail] = useState('');
@@ -175,20 +178,37 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
     if (!text.trim()) { toast.error('Nothing to send'); return; }
     setSending(true);
     try {
-      const res = await base44.functions.invoke('sendIMessage', { landlord_id: landlordId, text, origin: window.location.origin });
-      const data = res?.data ?? res;
-      if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
-        toast.error('No iMessage handle for this landlord.');
-        setSending(false);
-        return;
+      // Resolve which iMessage handle(s) to send to. When the landlord has 2+
+      // confirmed-available handles, the agent can pick one or "All".
+      let targets;
+      if (availableHandles.length >= 2) {
+        targets = selectedAddress === 'all' ? availableHandles.map((h) => h.handle) : [selectedAddress];
+      } else if (availableHandles.length === 1) {
+        targets = [availableHandles[0].handle];
+      } else {
+        targets = [null]; // no resolved handle — let the backend use the landlord default
       }
-      if (data?.error) throw new Error(data.error);
+
+      for (let i = 0; i < targets.length; i++) {
+        const addr = targets[i];
+        const payload = { landlord_id: landlordId, text, origin: window.location.origin };
+        if (addr) payload.address = addr;
+        if (i > 0) payload.skip_banner = true; // attach the first-contact banner only once
+        const res = await base44.functions.invoke('sendIMessage', payload);
+        const data = res?.data ?? res;
+        if (data?.fallback === 'whatsapp' || (data?.error && /no imessage/i.test(data.error))) {
+          toast.error('No iMessage handle for this landlord.');
+          setSending(false);
+          return;
+        }
+        if (data?.error) throw new Error(data.error);
+      }
       playSentSound();
       if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
       setJustSent(true);
       if (flashTimer.current) clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setJustSent(false), 1700);
-      toast.success('Sent ✓');
+      toast.success(targets.length > 1 ? `Sent to ${targets.length} handles ✓` : 'Sent ✓');
       if (onSent) onSent({ text });
       setText(''); setDraftGloss(''); setLanguage(''); setHasDraft(false);
     } catch (e) {
@@ -220,6 +240,26 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
             <span style={{ position: 'absolute', fontSize: 20, animation: 'imc-plane 0.9s ease-out forwards' }}>➤</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.02em', color: '#60a5fa', animation: 'imc-flash-in 0.5s ease' }}>Sent!</span>
+        </div>
+      )}
+
+      {/* Recipient selector — only when 2+ iMessage handles are confirmed available */}
+      {availableHandles.length >= 2 && (
+        <div style={css("display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:6px;")}>
+          <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); flex:none;")}>To iMessage</span>
+          <button type="button" onClick={() => setSelectedAddress('all')} title="Send to every iMessage handle"
+            style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: selectedAddress === 'all' ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: selectedAddress === 'all' ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (selectedAddress === 'all' ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
+            All ({availableHandles.length})
+          </button>
+          {availableHandles.map((h) => {
+            const on = selectedAddress === h.handle;
+            return (
+              <button key={h.handle} type="button" onClick={() => setSelectedAddress(h.handle)} title={`Send only to ${h.handle}`}
+                style={{ ...css("padding:3px 8px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: on ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
+                {h.handle}
+              </button>
+            );
+          })}
         </div>
       )}
 

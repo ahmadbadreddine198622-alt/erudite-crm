@@ -1602,6 +1602,7 @@ class LandlordDetail extends React.Component {
                   <IMessageComposer
                     landlordId={L.id}
                     imessageStatus={this.props.rawLandlord?.imessage_status || L.imessageStatus || 'unknown'}
+                    imessageHandles={this.props.rawLandlord?.imessage_handles || L.imessageHandles || L.imessage_handles || []}
                     onSent={({ text })=>{
                       tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
