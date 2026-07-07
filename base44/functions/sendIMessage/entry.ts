@@ -148,6 +148,22 @@ Deno.serve(async (req) => {
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
 
+    // ── CREATE CHAT FIRST (required for new recipients) ──
+    // BlueBubbles private-api returns "Chat does not exist!" for recipients
+    // we've never messaged before. Creating the chat first fixes this.
+    const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
+    try {
+      const chatNewResp = await fetch(chatNewUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+        body: JSON.stringify({ addresses: [address] }),
+      });
+      const chatNewRaw = await chatNewResp.text();
+      console.log('[sendIMessage] chat/new status:', chatNewResp.status, chatNewRaw.slice(0, 200));
+    } catch (chatErr) {
+      console.warn('[sendIMessage] chat/new failed (non-fatal):', chatErr.message);
+    }
+
     // Send text message via BlueBubbles
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
     const payload = {
@@ -168,11 +184,40 @@ Deno.serve(async (req) => {
     try { data = JSON.parse(raw); } catch { data = { raw }; }
 
     if (!resp.ok) {
-      return Response.json({
-        error: 'BlueBubbles send failed',
-        status: resp.status,
-        detail: data?.message || data?.error?.message || raw?.slice(0, 500),
-      }, { status: 502 });
+      // If private-api fails with "Chat does not exist!", retry WITHOUT a method
+      // (falls back to the server's default send mechanism)
+      const errMsg = data?.error?.message || data?.message || '';
+      if (errMsg.includes('Chat does not exist')) {
+        console.warn('[sendIMessage] private-api failed (chat missing), retrying default method...');
+        const retryResp = await fetch(sendUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+          body: JSON.stringify({
+            chatGuid: `iMessage;-;${address}`,
+            tempGuid: `crm-retry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            message: messageBody,
+          }),
+        });
+        const retryRaw = await retryResp.text();
+        let retryData;
+        try { retryData = JSON.parse(retryRaw); } catch { retryData = { raw: retryRaw }; }
+
+        if (retryResp.ok) {
+          data = retryData;
+        } else {
+          return Response.json({
+            error: 'BlueBubbles send failed',
+            status: retryResp.status,
+            detail: retryData?.message || retryData?.error?.message || retryRaw?.slice(0, 500),
+          }, { status: 502 });
+        }
+      } else {
+        return Response.json({
+          error: 'BlueBubbles send failed',
+          status: resp.status,
+          detail: errMsg || raw?.slice(0, 500),
+        }, { status: 502 });
+      }
     }
 
     // ── BANNER ATTACHMENT (first contact only) ──
