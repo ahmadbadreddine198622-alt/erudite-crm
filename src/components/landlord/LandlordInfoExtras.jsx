@@ -3,8 +3,6 @@
 import React from 'react';
 import Scorecards from '@/components/landlord/Scorecards';
 import RiskSignals from '@/components/landlord/RiskSignals';
-import ContactEvaluation from '@/components/landlord/ContactEvaluation';
-
 function css(str) {
   const o = {};
   String(str).split(';').forEach((decl) => {
@@ -49,9 +47,6 @@ export default function LandlordInfoExtras({ connections, showSignals, scorecard
         </div>
         <p style={css("margin:0; font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.82);")}>{summaryText}</p>
       </div>
-
-      {/* Contact Evaluation */}
-      <ContactEvaluation valuation={valuation} comps={market?.comps} askingPrice={askingPrice} propertyName={propertyName} />
 
       {/* market intelligence */}
       <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:16px 17px;")}>
