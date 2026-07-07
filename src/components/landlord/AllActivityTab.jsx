@@ -159,14 +159,27 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
   // Generate an AI summary of the most recent activity.
   const handleSummarize = async () => {
     if (summarizing) return;
-    const last = filtered[0];
-    if (!last) return;
+    if (!activities.length) return;
     setSummarizing(true);
     setSummary(null);
     try {
-      const context = `Activity: ${last.title}\nChannel: ${last.channelLabel}\nSender: ${last.sender}\nContent: ${last.body || '(no text)'}`;
+      // Build the full conversation timeline (oldest→newest) so the AI sees the
+      // entire history of interactions with this landlord.
+      const timeline = [...activities].reverse().map((a) => {
+        const body = a.body && String(a.body).trim() ? a.body.trim() : '';
+        return `[${a.time}] ${a.channelLabel} · ${a.direction || ''} ${a.sender ? '(' + a.sender + ')' : ''} — ${a.title}${body ? ': ' + body : ''}`;
+      }).join('\n');
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Summarize this CRM activity in 2-3 concise sentences. Focus on key information and any action items.\n\n${context}`,
+        prompt: `You are analyzing the full communication history between a Dubai real estate agent and a landlord (${landlordName || 'the landlord'}). Below is the complete chronological timeline of every interaction across all channels (WhatsApp, iMessage, email, calls, notes, tasks, etc.).
+
+Provide a comprehensive summary covering:
+1. The overall relationship status and where things stand now
+2. Key topics discussed and any commitments made
+3. The landlord's sentiment, concerns, or objections
+4. Next steps and action items the agent should take
+
+Timeline (oldest→newest):
+${timeline}`,
         response_json_schema: { type: 'object', properties: { summary: { type: 'string' } } },
       });
       const data = res?.data ?? res;
