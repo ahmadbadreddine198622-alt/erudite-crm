@@ -10,9 +10,21 @@
       "type": "string",
       "description": "Gmail thread ID for conversation grouping"
     },
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord \u2014 set when the email is sent to or received from a landlord. Enables reliable landlord-scoped email fetching without substring matching on the to/from fields."
+    },
     "lead_id": {
       "type": "string",
       "description": "Linked Lead ID if sender is a known lead"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "description": "inbound = received from landlord, outbound = sent to landlord"
     },
     "from_email": {
       "type": "string"

@@ -1906,7 +1906,7 @@ export default function LandlordDetailPage() {
   // by any agent in the org show up in the shared history.
   const landlordEmail = L?.email;
   const allLandlordEmails = [L?.email, ...(Array.isArray(L?.additional_emails) ? L.additional_emails : [])].filter(Boolean);
-  const { data: emailMessages = [] } = useLandlordEmails(allLandlordEmails);
+  const { data: emailMessages = [] } = useLandlordEmails(allLandlordEmails, id);
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
   const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });

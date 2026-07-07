@@ -231,6 +231,8 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Email.create({
         gmail_message_id: data.id || null,
         gmail_thread_id: data.threadId || null,
+        landlord_id: landlordId || null,
+        direction: 'outbound',
         from_email: fromEmail,
         from_name: fromName,
         to,
