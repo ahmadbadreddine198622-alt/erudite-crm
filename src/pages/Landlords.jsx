@@ -422,7 +422,7 @@ export default function Landlords() {
     >
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
-      <div className="shrink-0 sticky top-0 z-20 pt-3 pb-2" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+      <div className="shrink-0 sticky top-0 z-20 pt-1.5 pb-1" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
@@ -544,7 +544,7 @@ export default function Landlords() {
         )}
 
         {/* Filters + Bulk Actions — second compact row: filters in a centered scroll track · count pill hard right */}
-        <div className="flex items-center gap-3 w-full mt-2">
+        <div className="flex items-center gap-3 w-full mt-1">
           {selectedIds.size > 0 ? (
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
@@ -695,8 +695,8 @@ export default function Landlords() {
         </div>
 
         {/* Curved "valley" divider — full width, dip centered, fades to transparent at both ends */}
-        <div className="w-full mt-3 -mb-1 pointer-events-none" aria-hidden="true">
-          <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-3 block">
+        <div className="w-full mt-1 -mb-1 pointer-events-none" aria-hidden="true">
+          <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-2 block">
             <defs>
               <linearGradient id="valley-fade" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#c9a24b" stopOpacity="0" />
@@ -718,7 +718,7 @@ export default function Landlords() {
         .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
         .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
       `}</style>
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <KanbanBoard
           stages={STAGES}
