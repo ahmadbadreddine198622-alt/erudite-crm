@@ -138,16 +138,14 @@ Deno.serve(async (req) => {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
-    // Append the branded CTA URL — but only if it isn't already present in the
-    // body (the signature text may already contain it, which caused the duplicate
-    // URL the user reported).
+    // Append the branded CTA URL. eruditeproperty.com is already in the signature
+    // text, so we only append the Property Finder agent-profile link here (avoids
+    // the duplicate URL the user reported).
     let shortUrl = null;
     if (hasText && !body.skip_signature) {
-      const ctaUrl = 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264';
-      if (!messageBody.includes(ctaUrl)) {
-        messageBody = messageBody.trimEnd() + '\n\n' + ctaUrl;
-      }
-      shortUrl = ctaUrl;
+      const fixedUrls = ['https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
+      messageBody = messageBody.trimEnd() + '\n\n' + fixedUrls.join('\n');
+      shortUrl = fixedUrls[0];
     }
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
@@ -177,36 +175,43 @@ Deno.serve(async (req) => {
       let raw = await resp.text();
       try { data = JSON.parse(raw); } catch { data = { raw }; }
 
-      // Any private-api failure (404, "Chat does not exist", "Message Send Error", etc.)
-      // → fall back to chat/new WITH a message, which creates the conversation and sends
-      // the text in a single call (the BlueBubbles-recommended way to start a new chat).
+      // New recipient — private-api can't find the chat. Use chat/new WITH a message
+      // to create the conversation and send the text in a single call.
       if (!resp.ok) {
         const errMsg = data?.error?.message || data?.message || '';
-        console.warn('[sendIMessage] private-api failed (' + resp.status + '):', errMsg.slice(0, 200));
-        const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
-        const chatResp = await fetch(chatNewUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-          body: JSON.stringify({
-            addresses: [address],
-            message: messageBody,
-            tempGuid: `crm-new-${tempGuid}`,
-          }),
-        });
-        const chatRaw = await chatResp.text();
-        let chatData;
-        try { chatData = JSON.parse(chatRaw); } catch { chatData = { raw: chatRaw }; }
-        console.log('[sendIMessage] chat/new status:', chatResp.status, chatRaw.slice(0, 200));
+        if (errMsg.includes('Chat does not exist') || errMsg.includes('Message Send Error')) {
+          console.warn('[sendIMessage] private-api failed, trying chat/new with message...');
+          const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
+          const chatResp = await fetch(chatNewUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+            body: JSON.stringify({
+              addresses: [address],
+              message: messageBody,
+              tempGuid: `crm-new-${tempGuid}`,
+            }),
+          });
+          const chatRaw = await chatResp.text();
+          let chatData;
+          try { chatData = JSON.parse(chatRaw); } catch { chatData = { raw: chatRaw }; }
+          console.log('[sendIMessage] chat/new status:', chatResp.status, chatRaw.slice(0, 200));
 
-        if (chatResp.ok) {
-          resp = chatResp;
-          raw = chatRaw;
-          data = chatData;
+          if (chatResp.ok) {
+            resp = chatResp;
+            raw = chatRaw;
+            data = chatData;
+          } else {
+            return Response.json({
+              error: 'BlueBubbles send failed',
+              status: chatResp.status,
+              detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
+            }, { status: 502 });
+          }
         } else {
           return Response.json({
             error: 'BlueBubbles send failed',
-            status: chatResp.status,
-            detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
+            status: resp.status,
+            detail: errMsg || raw?.slice(0, 500),
           }, { status: 502 });
         }
       }

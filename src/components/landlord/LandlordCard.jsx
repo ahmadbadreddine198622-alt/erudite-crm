@@ -375,11 +375,6 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
             {docBadge.label}
           </span>
         )}
-        {!landlord.asking_price_aed && (
-          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(240,168,48,.12)', border: '1px solid rgba(240,168,48,.3)', color: '#f0a830', fontWeight: 700 }}>
-            ADD PRICE
-          </span>
-        )}
       </div>
 
       {/* Next step — the one action that moves this landlord forward (from stage guide) */}
