@@ -40,21 +40,21 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
       overflow: 'hidden',
     }}>
       <style>{`
-        .landlord-tab-scroll::-webkit-scrollbar { height: 4px; display: block; }
-        .landlord-tab-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 99px; }
-        .landlord-tab-scroll::-webkit-scrollbar-thumb { background: rgba(234,179,8,0.5); border-radius: 99px; }
-        .landlord-tab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(234,179,8,0.7); }
-        .landlord-tab-scroll { scrollbar-width: thin; scrollbar-color: rgba(234,179,8,0.5) rgba(255,255,255,0.04); overflow-x: scroll !important; }
+        .landlord-tab-scroll::-webkit-scrollbar { height: 7px; display: block; -webkit-appearance: none; }
+        .landlord-tab-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 99px; margin: 0 2px; }
+        .landlord-tab-scroll::-webkit-scrollbar-thumb { background: rgba(170,176,190,0.55); border-radius: 99px; border: 1px solid transparent; background-clip: padding-box; }
+        .landlord-tab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(200,206,220,0.75); background-clip: padding-box; }
+        .landlord-tab-scroll { scrollbar-width: thin; scrollbar-color: rgba(170,176,190,0.55) rgba(255,255,255,0.05); overflow-x: scroll !important; }
       `}</style>
       {/* Tab row — horizontally scrollable */}
       <div className="landlord-tab-scroll" style={{
         display: 'flex',
         alignItems: 'center',
         overflowX: 'auto',
-        scrollbarWidth: 'none',
         flex: 1,
         minWidth: 0,
         minHeight: 0,
+        paddingBottom: 2,
         WebkitOverflowScrolling: 'touch',
       }}>
         {TABS.map((t) => {
