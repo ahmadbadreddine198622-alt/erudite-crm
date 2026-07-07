@@ -80,6 +80,7 @@ function css(str) {
 
 import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
 import { fmtMsgTime, mapCallStatus, fmtDuration } from '@/lib/landlordStreamHelpers';
+import { useLandlordEmails } from '@/lib/useLandlordEmails';
 
 class LandlordDetail extends React.Component {
   constructor(props) {
@@ -1584,7 +1585,6 @@ class LandlordDetail extends React.Component {
                       const me = (this.props.currentUser?.full_name) || (this.props.currentUser?.email) || (L.agent || 'Agent');
                       const item = { t:'msg', dir:'out', mtype:'text', channel:'email', subject: subject || '', emailBody: body || '', text: (subject ? subject + '\n' : '') + (body || ''), time:'Just now', order, senderName: me };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
-                      if (this.props.onEmailSent) this.props.onEmailSent();
                     }}
                   />
                 )}
@@ -1901,17 +1901,9 @@ export default function LandlordDetailPage() {
     return dedupeById(batches);
   }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
-  // Emails for the stream — match by the landlord's email (from_email OR to)
+  // Emails for the stream — query + realtime subscription live in src/lib/useLandlordEmails.js
   const landlordEmail = L?.email;
-  const { data: emailMessages = [] } = useQ(['landlord_emails', landlordEmail], async () => {
-    if (!landlordEmail) return [];
-    // from_email / to lookups in parallel (was two serial awaits).
-    const batches = await Promise.all([
-      safe(() => base44.entities.Email.filter({ from_email: landlordEmail }, '-received_at', 100)),
-      safe(() => base44.entities.Email.filter({ to: landlordEmail }, '-received_at', 100)),
-    ]);
-    return dedupeById(batches);
-  }, { enabled: !!landlordEmail, refetchInterval: 60000, refetchOnWindowFocus: false });
+  const { data: emailMessages = [] } = useLandlordEmails(landlordEmail);
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
   const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
@@ -2449,7 +2441,6 @@ export default function LandlordDetailPage() {
         rawLandlord={L}
         rawProperty={prop}
         initialId={mapped.id}
-        onEmailSent={() => queryClient.invalidateQueries({ queryKey: ['landlord_emails', landlordEmail] })}
         onBack={() => navigate('/landlords')}
         showCoaching
         showSignals
