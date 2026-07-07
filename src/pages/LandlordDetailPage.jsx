@@ -1418,7 +1418,7 @@ class LandlordDetail extends React.Component {
                       </div>
 
                       {s.isText && (
-                        <div style={css("font-size:13px; line-height:1.5; color:rgba(255,255,255,0.9);")}>{s.text}</div>
+                        <div style={css("font-size:14px; line-height:1.5; color:rgba(255,255,255,0.9);")}>{s.text}</div>
                       )}
 
                       {s.isVoice && (
