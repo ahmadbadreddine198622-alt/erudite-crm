@@ -419,6 +419,26 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           }
         />
 
+        {/* ── HANDOVER BADGE + UNIT LAYOUT PILL (top of card) ────── */}
+        {(landlord.handover_status || landlord.unit_layout) && (
+          <div className="px-6 pt-3 flex items-center gap-2 flex-wrap">
+            {landlord.handover_status === 'Handed Over' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)' }}>
+                <CheckCircle2 className="w-3 h-3" /> HANDED OVER
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(148,163,184,0.25)' }}>
+                Not Handed Over
+              </span>
+            )}
+            {landlord.unit_layout && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.35)' }}>
+                {landlord.unit_layout}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* ── MARKET INTELLIGENCE CALL PANEL ─────────────────────── */}
         <MarketIntelligencePanel
           landlordProperty={landlordProperty}
@@ -692,6 +712,20 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         <div className="flex-1 overflow-y-auto">
           {/* Quick Info */}
           <div className="px-6 py-5 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* ── PROPERTY & LOCATION ── labeled rows, empty values hidden */}
+            {(landlord.unit_layout || landlord.handover_status || landlord.nationality || landlord.residence_country || landlord.mailing_address) && (
+              <div className="rounded-lg p-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Property &amp; Location</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                  {landlord.unit_layout && (<><span className="text-muted-foreground">Layout</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.unit_layout}</span></>)}
+                  {landlord.handover_status && (<><span className="text-muted-foreground">Handover</span><span style={{ color: landlord.handover_status === 'Handed Over' ? '#34d399' : 'rgba(255,255,255,0.7)' }}>{landlord.handover_status}</span></>)}
+                  {landlord.nationality && (<><span className="text-muted-foreground">Nationality</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.nationality}</span></>)}
+                  {landlord.residence_country && (<><span className="text-muted-foreground">Residency</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.residence_country}</span></>)}
+                  {landlord.mailing_address && (<><span className="text-muted-foreground">Address</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.mailing_address}</span></>)}
+                </div>
+              </div>
+            )}
+
             {/* Edit Contact */}
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Contact Info</p>
@@ -812,15 +846,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 ))}
               </div>
             )}
-            {/* Nationality + Residence country */}
-            {(landlord.nationality || landlord.residence_country) && (
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span style={{ color: 'rgba(255,255,255,0.85)' }}>
-                  {[landlord.nationality, landlord.residence_country].filter(Boolean).join(' · ') || 'Unknown'}
-                </span>
-              </div>
-            )}
+            {/* (Nationality + Residency now shown in the Property & Location block above) */}
             {/* Passport number */}
             {landlord.passport_no && (
               <div className="flex items-center gap-2 text-sm">

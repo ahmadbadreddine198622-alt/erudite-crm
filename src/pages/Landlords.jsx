@@ -125,6 +125,8 @@ export default function Landlords() {
   const [filterLayout, setFilterLayout] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
   const [filterAssignment, setFilterAssignment] = useState('');
+  const [filterHandover, setFilterHandover] = useState('');
+  const [filterUnitLayout, setFilterUnitLayout] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
@@ -241,6 +243,13 @@ export default function Landlords() {
     return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
   }, [landlords, currentUser, safePermissions.view_all_landlords]);
 
+  // Unique unit_layout values from visible landlords (for the filter dropdown)
+  const unitLayoutOptions = useMemo(() => {
+    const set = new Set();
+    visibleLandlords.forEach(l => { if (l.unit_layout) set.add(l.unit_layout); });
+    return Array.from(set).sort();
+  }, [visibleLandlords]);
+
   // Group by stage
   const stageGroups = useMemo(() => {
     const grouped = {};
@@ -286,10 +295,12 @@ export default function Landlords() {
           if (!filterLayout) return true;
           const info = landlordPropertyMap[l.id];
           return info?.layout === filterLayout;
-        });
+        })
+        .filter(l => !filterHandover || l.handover_status === filterHandover)
+        .filter(l => !filterUnitLayout || l.unit_layout === filterUnitLayout);
     });
     return result;
-  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, searchQuery, landlordPropertyMap]);
+  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, filterHandover, filterUnitLayout, searchQuery, landlordPropertyMap]);
 
   // Calculate metrics
   const totalPipeline = visibleLandlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -651,6 +662,27 @@ export default function Landlords() {
                   <option value="4BR+">4BR+</option>
                 </select>
                 <select
+                  value={filterHandover}
+                  onChange={(e) => setFilterHandover(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Handover</option>
+                  <option value="Handed Over">Handed Over</option>
+                  <option value="Not Handed Over">Not Handed Over</option>
+                </select>
+                <select
+                  value={filterUnitLayout}
+                  onChange={(e) => setFilterUnitLayout(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Unit Layouts</option>
+                  {unitLayoutOptions.map(layout => (
+                    <option key={layout} value={layout}>{layout}</option>
+                  ))}
+                </select>
+                <select
                   value={filterLanguage}
                   onChange={(e) => setFilterLanguage(e.target.value)}
                   className="h-9 px-3 text-xs rounded-md shrink-0"
@@ -673,9 +705,9 @@ export default function Landlords() {
                   <option value="unassigned">Unassigned</option>
                   <option value="assigned">Assigned</option>
                 </select>
-                {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
+                {(filterFloor || filterLayout || filterLanguage || filterAssignment || filterHandover || filterUnitLayout || searchQuery) && (
                   <button
-                    onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
+                    onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setFilterHandover(''); setFilterUnitLayout(''); setSearchQuery(''); }}
                     className="h-9 text-xs px-2.5 rounded-md transition-opacity opacity-70 hover:opacity-100 shrink-0 whitespace-nowrap"
                     style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
                   >

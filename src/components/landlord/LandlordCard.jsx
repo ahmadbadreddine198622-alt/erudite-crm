@@ -342,6 +342,17 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           />
           {stageLabel}
         </span>
+        {landlord.handover_status === 'Handed Over' && (
+          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30" style={{ fontWeight: 700 }}>
+            <CheckCircle2 className="w-2 h-2" />
+            HANDED OVER
+          </span>
+        )}
+        {landlord.unit_layout && (
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" style={{ fontWeight: 700 }}>
+            {landlord.unit_layout}
+          </span>
+        )}
         {landlord.urgency_score >= 80 && (
           <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', fontWeight: 700 }}>
             URGENT
