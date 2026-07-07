@@ -19,6 +19,16 @@ export default function ContactEvaluation({ valuation, comps, askingPrice, prope
   const hasValuation = !!valuation;
   const hasAsking = !!askingPrice;
 
+  // Dedupe comps by ref — only show the first occurrence of each unit reference
+  const seenRefs = new Set();
+  const dedupedComps = (comps || []).filter((c) => {
+    const key = String(c?.ref || '').trim().toLowerCase();
+    if (!key) return true;
+    if (seenRefs.has(key)) return false;
+    seenRefs.add(key);
+    return true;
+  });
+
   if (!hasValuation && !hasComps && !hasAsking) {
     return (
       <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
@@ -63,11 +73,11 @@ export default function ContactEvaluation({ valuation, comps, askingPrice, prope
         </React.Fragment>
       )}
 
-      {comps && comps.length > 0 && (
+      {dedupedComps.length > 0 && (
         <React.Fragment>
           <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:7px;")}>Comparable Units · DLD</div>
           <div style={css("display:flex; flex-direction:column; gap:6px;")}>
-            {comps.map((comp, i) => (
+            {dedupedComps.map((comp, i) => (
               <div key={i} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);")}>
                 <div style={css("min-width:0;")}>
                   <div style={css("font-size:12.5px; font-weight:600; color:rgba(255,255,255,0.85);")}>{comp.ref}</div>
