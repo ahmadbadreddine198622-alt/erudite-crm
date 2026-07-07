@@ -5,6 +5,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 import TemplatesModal from "@/components/whatsapp/TemplatesModal";
+import TemplateField from "@/components/common/TemplateField";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -280,7 +281,8 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         <div className={`flex-1 rounded-2xl px-3 py-1.5 border transition-colors ${
           isInternalNote ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-white/7 border-white/10'
         }`}>
-          <Textarea
+          <TemplateField
+            multiline
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder={

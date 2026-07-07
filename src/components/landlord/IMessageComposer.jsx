@@ -14,6 +14,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Sparkles, Send, Save, X } from 'lucide-react';
+import TemplateField from '@/components/common/TemplateField';
 
 function playSentSound() {
   try {
@@ -264,7 +265,8 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       )}
 
       {/* Unified compact textarea */}
-      <textarea
+      <TemplateField
+        multiline
         value={text}
         onChange={(e) => { setText(e.target.value); if (hasDraft && e.target.value !== text) setHasDraft(false); }}
         onKeyDown={handleKeyDown}

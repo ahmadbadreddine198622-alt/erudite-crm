@@ -9,6 +9,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, Save, FileText, X, Zap } from 'lucide-react';
 import EmailTemplatePicker from './EmailTemplatePicker';
+import TemplateField from '@/components/common/TemplateField';
 import ChatTemplatePanel from './ChatTemplatePanel';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
@@ -79,8 +80,9 @@ export default function UnifiedChatComposer({
       )}
 
       {/* Compact auto-growing textarea */}
-      <textarea
-        ref={taRef}
+      <TemplateField
+        multiline
+        inputRef={taRef}
         value={text}
         onChange={onTextChange}
         onKeyDown={onKeyDown}

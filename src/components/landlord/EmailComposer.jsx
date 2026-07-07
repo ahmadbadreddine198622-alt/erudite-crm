@@ -16,6 +16,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X } from 'lucide-react';
+import TemplateField from '@/components/common/TemplateField';
 import { buildAgentCtaHtml } from '@/lib/agentSignature';
 
 /* ── helpers ── */
@@ -406,7 +407,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
       )}
 
       <div style={css("margin-bottom:6px;")}>
-        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" style={css(fieldSm)} />
+        <TemplateField multiline={false} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" style={css(fieldSm)} />
       </div>
 
       {/* Body — compact ReactQuill */}

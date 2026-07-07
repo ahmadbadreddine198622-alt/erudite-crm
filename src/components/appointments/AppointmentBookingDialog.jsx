@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import TemplateField from '@/components/common/TemplateField';
 import { Calendar, Clock, Mail, Plus, X, Bell, Loader2, Globe, User } from 'lucide-react';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
@@ -321,7 +322,8 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked,
             </div>
             <div>
               <Label className="text-xs mb-1.5">Notes</Label>
-              <Input
+              <TemplateField
+                multiline={false}
                 value={form.notes || ''}
                 onChange={(e) => set('notes', e.target.value)}
                 placeholder="Agenda…"
@@ -361,10 +363,11 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked,
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <Textarea
+                <TemplateField
+                  multiline
                   value={r.text}
                   onChange={(e) => updateReminder(idx, 'text', e.target.value)}
-                  placeholder="Reminder message… Use {{landlord_name}}, {{title}}, {{agent_name}}"
+                  placeholder="Reminder message… Type {{ to insert a variable"
                   className="glass-input min-h-[40px] text-xs"
                 />
               </div>

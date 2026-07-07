@@ -11,6 +11,7 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { X, Trash2, Save, Globe, Lock, Users, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import TemplateField from '@/components/common/TemplateField';
 
 const CATEGORY_OPTS = [
   ['general', 'General'],
@@ -187,13 +188,13 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>Template Name</label>
-            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Asset Proof Intro" style={fieldStyle} autoFocus />
+            <TemplateField multiline={false} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Asset Proof Intro" style={fieldStyle} autoFocus />
           </div>
 
           {channel !== 'imessage' && (
             <div>
               <label style={labelStyle}>Subject</label>
-              <input value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Email subject line" style={fieldStyle} />
+              <TemplateField multiline={false} value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Email subject line" style={fieldStyle} />
             </div>
           )}
 
@@ -206,7 +207,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
 
           <div>
             <label style={labelStyle}>Body <span style={{ textTransform: 'none', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>— use {'{{landlord_name}}, {{property_name}}, {{agent_name}}'}</span></label>
-            <textarea value={form.body} onChange={(e) => set('body', e.target.value)} rows={6} placeholder={channel === 'imessage' ? 'Write your iMessage body…' : 'Write your email body…'} style={{ ...fieldStyle, resize: 'vertical', minHeight: 120, lineHeight: 1.5 }} />
+            <TemplateField multiline value={form.body} onChange={(e) => set('body', e.target.value)} rows={6} placeholder={channel === 'imessage' ? 'Write your iMessage body…' : 'Write your email body…'} style={{ ...fieldStyle, resize: 'vertical', minHeight: 120, lineHeight: 1.5 }} />
           </div>
 
           {/* Access control */}
