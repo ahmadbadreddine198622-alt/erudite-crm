@@ -52,8 +52,8 @@ const KIND_META = {
 // Format a timestamp string into a full date+time label (Asia/Dubai locale).
 function fmtFullTime(ts) {
   if (!ts) return '';
-  // "Just now" / relative labels are passed through as-is.
-  if (/just now|ago|^\d/i.test(String(ts))) return String(ts);
+  // Relative labels ("Just now", "5m ago") pass through as-is.
+  if (typeof ts === 'string' && /just now|ago/i.test(ts)) return ts;
   const d = new Date(ts);
   if (isNaN(d)) return String(ts);
   return d.toLocaleString('en-GB', {
@@ -95,7 +95,7 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           title: s.subject ? `📧 ${s.subject}` : (isOut ? 'Sent message' : 'Received message'),
           body: s.emailBody || s.text || '',
           sender: s.senderName || (isOut ? 'Agent' : 'Owner'),
-          time: fmtFullTime(s.time),
+          time: fmtFullTime(s.order || s.time),
           rawTime: s.time,
           order: s.order || 0,
           channelKey: chKey,
@@ -113,7 +113,7 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           title: s.actTitle || meta.label,
           body: s.actBody || '',
           sender: s._author || (s.author || ''),
-          time: fmtFullTime(s.time),
+          time: fmtFullTime(s.order || s.time),
           rawTime: s.time,
           order: s.order || 0,
           channelKey: s.kind,
