@@ -16,6 +16,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X } from 'lucide-react';
+import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 import { buildAgentCtaHtml } from '@/lib/agentSignature';
 
@@ -160,6 +161,18 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
   const [mergeVars, setMergeVars] = useState({});
   const [attachments, setAttachments] = useState([]);
+
+  const quillRef = useRef(null);
+
+  // Insert an emoji at the cursor position in the ReactQuill editor.
+  const insertEmoji = (emoji) => {
+    const ed = quillRef.current?.getEditor?.();
+    if (!ed) { setBodyHtml((bodyHtml || '') + emoji); return; }
+    const sel = ed.getSelection();
+    const idx = sel ? sel.index : ed.getLength();
+    ed.insertText(idx, emoji, 'user');
+    ed.setSelection(idx + emoji.length, idx + emoji.length);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -413,7 +426,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
       {/* Body — compact ReactQuill */}
       <div style={css("margin-bottom:6px;")}>
         <div className="ec-quill">
-          <ReactQuill theme="snow" value={bodyHtml} onChange={setBodyHtml} modules={quillModules} placeholder="Write your email…" />
+          <ReactQuill ref={quillRef} theme="snow" value={bodyHtml} onChange={setBodyHtml} modules={quillModules} placeholder="Write your email…" />
         </div>
       </div>
 
@@ -488,6 +501,9 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
           <IconButton icon={Paperclip} onClick={handleAttach} title="Attach files" />
           {/* Save as template */}
           <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" />
+
+          {/* Emoji picker */}
+          <EmojiPicker onSelect={insertEmoji} />
         </div>
         {/* Send icon */}
         <button type="button" onClick={sendEmail} disabled={!canSend}

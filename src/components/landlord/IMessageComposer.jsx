@@ -14,6 +14,7 @@ import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Sparkles, Send, Save, X } from 'lucide-react';
+import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 
 function playSentSound() {
@@ -117,6 +118,23 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
+
+  const taRef = useRef(null);
+
+  // Insert an emoji at the cursor position in the textarea.
+  const insertEmoji = (emoji) => {
+    const ta = taRef.current;
+    if (!ta) { setText((text || '') + emoji); return; }
+    const start = ta.selectionStart ?? (text || '').length;
+    const end = ta.selectionEnd ?? (text || '').length;
+    const next = (text || '').slice(0, start) + emoji + (text || '').slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + emoji.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  };
 
   const [signatureText, setSignatureText] = useState('');
 
@@ -290,6 +308,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       {/* Unified compact textarea */}
       <TemplateField
         multiline
+        inputRef={taRef}
         value={text}
         onChange={(e) => { setText(e.target.value); if (hasDraft && e.target.value !== text) setHasDraft(false); }}
         onKeyDown={handleKeyDown}
@@ -376,6 +395,9 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
           {/* Save as template */}
           <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" disabled={!text.trim()} />
+
+          {/* Emoji picker */}
+          <EmojiPicker onSelect={insertEmoji} />
         </div>
 
         {/* Send icon button */}

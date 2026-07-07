@@ -9,6 +9,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, Save, FileText, X, Zap } from 'lucide-react';
 import EmailTemplatePicker from './EmailTemplatePicker';
+import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 import ChatTemplatePanel from './ChatTemplatePanel';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -69,6 +70,21 @@ export default function UnifiedChatComposer({
   const accent = composerType === 'Telegram' ? '#29b6f6' : composerType === 'SMS' ? '#60a5fa' : '#25D366';
   const busy = !!(sending || parsing);
   const canSend = !!((text || '').trim()) && !busy && !channelDisabled;
+
+  // Insert an emoji at the cursor position in the textarea, then restore focus.
+  const insertEmoji = (emoji) => {
+    const ta = taRef.current;
+    if (!ta) { onTextChange({ target: { value: (text || '') + emoji } }); return; }
+    const start = ta.selectionStart ?? (text || '').length;
+    const end = ta.selectionEnd ?? (text || '').length;
+    const next = (text || '').slice(0, start) + emoji + (text || '').slice(end);
+    onTextChange({ target: { value: next } });
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + emoji.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  };
 
   return (
     <div style={css("position:relative;")}>
@@ -179,6 +195,9 @@ export default function UnifiedChatComposer({
         >
           <Save size={14} />
         </button>
+
+        {/* Emoji picker */}
+        <EmojiPicker onSelect={insertEmoji} />
 
         {/* Send — icon button at the end */}
         <button
