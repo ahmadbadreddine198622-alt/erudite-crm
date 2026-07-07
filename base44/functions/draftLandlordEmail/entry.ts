@@ -145,14 +145,57 @@ Deno.serve(async (req) => {
     const safe = {
       full_name_en: landlord.full_name_en || null,
       full_name_ar: landlord.full_name_ar || null,
+      first_name: landlord.first_name || (landlord.full_name_en ? landlord.full_name_en.split(' ')[0] : null),
       preferred_language: landlord.preferred_language || 'en',
       project_name: landlord.project_name || null,
       unit_reference: landlord.unit_reference || null,
       landlord_archetype: landlord.landlord_archetype || null,
       assigned_agent_email: landlord.assigned_agent_email || null,
       stage: landlord.stage || null,
+      mandate_status: landlord.mandate_status || null,
+      mandate_type: landlord.mandate_type || null,
+      asking_price_aed: landlord.asking_price_aed || null,
+      rapport_level: landlord.rapport_level || null,
+      prior_brokerage_count: landlord.prior_brokerage_count || null,
+      days_on_market: landlord.days_on_market || null,
+      ai_rolling_summary: landlord.ai_rolling_summary || null,
+      ai_objections: Array.isArray(landlord.ai_objections) ? landlord.ai_objections : [],
+      ai_coaching_for_agent: landlord.ai_coaching_for_agent || null,
+      ai_momentum: landlord.ai_momentum || null,
       is_currently_listed_with_others: !!landlord.is_currently_listed_with_others
     };
+
+    // ── Pull the landlord's prior conversation history (WhatsApp + iMessage + Email) ──
+    // so the draft is context-aware of what has already been said, by whom, and when.
+    let conversationHistory = '';
+    try {
+      const [waMsgs, imMsgs, emails] = await Promise.all([
+        base44.asServiceRole.entities.Message.filter({ landlord_id, direction: { $in: ['incoming', 'outgoing'] } }, '-timestamp', 15).catch(() => []),
+        base44.asServiceRole.entities.IMessage.filter({ landlord_id }, '-sent_at', 10).catch(() => []),
+        base44.asServiceRole.entities.Email.filter({ landlord_id }, '-created_date', 5).catch(() => []),
+      ]);
+      const lines = [];
+      const fmtTs = (ts) => { try { return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); } catch { return ''; } };
+      for (const m of (waMsgs || [])) {
+        if (!m || !m.text) continue;
+        const who = m.direction === 'outgoing' ? 'Agent (WhatsApp)' : 'Owner (WhatsApp)';
+        lines.push(`[${fmtTs(m.timestamp)}] ${who}: ${String(m.text).slice(0, 220)}`);
+      }
+      for (const m of (imMsgs || [])) {
+        if (!m || !m.body) continue;
+        const who = m.direction === 'outbound' ? 'Agent (iMessage)' : 'Owner (iMessage)';
+        lines.push(`[${fmtTs(m.sent_at || m.created_date)}] ${who}: ${String(m.body).slice(0, 220)}`);
+      }
+      for (const e of (emails || [])) {
+        if (!e) continue;
+        const who = e.direction === 'outbound' ? 'Agent (Email)' : 'Owner (Email)';
+        const preview = (e.body_text || e.body || e.subject || '').replace(/<[^>]+>/g, '').slice(0, 220);
+        if (preview) lines.push(`[${fmtTs(e.created_date)}] ${who}: ${preview}`);
+      }
+      // Most recent last so the model reads the relationship chronologically.
+      lines.reverse();
+      conversationHistory = lines.slice(0, 18).join('\n');
+    } catch (_) { /* best-effort */ }
 
     if (!safe.full_name_en) {
       return Response.json({ ok: false, error: 'landlord has no full_name_en to address' }, { status: 400 });
@@ -177,7 +220,8 @@ GLOBAL RULES:
 - If a READER PSYCHOLOGY is provided, let it shape tone, emphasis, and what to avoid — but it NEVER overrides the mode's core intent, the length/format ceiling, the no-fabrication rule, or the no-signature rule.
 - Do NOT include any signature, sign-off block, footer, or contact details — the template/send layer adds that identically every time. End the body on the last substantive sentence.
 - body_english_gloss must be a faithful English translation of body_native (verbatim if the body is already English).
-- ${channelCfg.needsSubject ? "Produce a short subject line in the owner's language." : 'Return an EMPTY STRING for subject — an iMessage has no subject line.'}`;
+- ${channelCfg.needsSubject ? "Produce a short subject line in the owner's language." : 'Return an EMPTY STRING for subject — an iMessage has no subject line.'}
+- If prior conversation history is provided, the draft MUST feel like a natural continuation — reference shared context only when it genuinely helps, never repeat what was already sent, and never contradict what the owner has already said.`;
 
     const agentInputLines = [];
     if (inputs.buyer_detail) agentInputLines.push(`- buyer_detail (real, specific buyer behaviour): ${inputs.buyer_detail}`);
@@ -190,14 +234,30 @@ GLOBAL RULES:
 
 ${MODE_GUIDANCE[mode]}
 ${psychologyGuidance ? `\n${psychologyGuidance}\n` : ''}
-OWNER & UNIT (the only facts about them you may use):
+OWNER & UNIT — full profile (use these real facts; never invent):
 - Owner English name (address them by this): ${safe.full_name_en}
+- Owner first name: ${safe.first_name || safe.full_name_en}
 - Project: ${safe.project_name || '(unknown — do not invent one)'}
 - Unit reference: ${safe.unit_reference || '(unknown — do not invent one)'}
-- Owner's preferred language code (write the body in this): ${lang}
-- Owner archetype (context for tone only, do not name it back to them): ${safe.landlord_archetype || 'unknown'}
+- Asking price: ${safe.asking_price_aed ? safe.asking_price_aed + ' AED' : '(unknown)'}
+- Current pipeline stage: ${safe.stage || 'unknown'}
+- Mandate status: ${safe.mandate_status || 'none/unknown'}${safe.mandate_type ? ` (${safe.mandate_type})` : ''}
+- Rapport level with agent: ${safe.rapport_level || 'cold'}
+- Prior brokerages the owner has used: ${safe.prior_brokerage_count ?? 'unknown'}
+- Days on market: ${safe.days_on_market ?? 'unknown'}
 - Currently listed with another broker: ${safe.is_currently_listed_with_others ? 'YES' : 'no/unknown'}
+- Owner archetype (context for tone only, do not name it back to them): ${safe.landlord_archetype || 'unknown'}
+- Owner's preferred language code (write the body in this): ${lang}
 - Ahmad personally speaks this owner's language: ${ahmadSpeaksOwnerLang ? 'YES — you may make direct-in-their-language a trust/benefit point' : 'no — do not claim to speak this language'}
+
+AI RELATIONSHIP INTELLIGENCE (use to calibrate tone and avoid repeating past mistakes):
+- AI rolling summary of the relationship: ${safe.ai_rolling_summary || '(none yet)'}
+- Known owner objections: ${safe.ai_objections.length ? safe.ai_objections.join('; ') : '(none recorded)'}
+- AI coaching for the agent: ${safe.ai_coaching_for_agent || '(none)'}
+- AI momentum read: ${safe.ai_momentum || '(none)'}
+
+PRIOR CONVERSATION HISTORY (chronological, most recent last — DO NOT repeat anything already sent, and DO NOT contradict what the owner has said. Reference shared history naturally only if it helps):
+${conversationHistory || '(no prior messages on record — this may be first contact)'}
 
 REAL AGENT-SUPPLIED SPECIFICS${agentInputLines.length ? ':' : ' (none supplied — rely on what this mode allows; do NOT invent specifics):'}
 ${agentInputLines.join('\n') || '(none)'}
