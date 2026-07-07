@@ -92,6 +92,7 @@ class LandlordDetail extends React.Component {
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'calls',
       composerType: 'Activity',
+      activityComposer: 'Chat',
       composerText: '',
       appointmentBookingOpen: false,
       composerTime: '',
@@ -496,20 +497,21 @@ class LandlordDetail extends React.Component {
   clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' });
 
   onSend = ()=>{
+    const effType = this.state.composerType === 'Activity' ? (this.state.activityComposer || 'Chat') : this.state.composerType;
     // Email and iMessage are composed and sent from their dedicated panels (their own buttons),
     // so the shared textarea/send-arrow does nothing for them.
-    if(this.state.composerType === 'Email'){ return; }
-    if(this.state.composerType === 'iMessage'){ return; }
+    if(effType === 'Email'){ return; }
+    if(effType === 'iMessage'){ return; }
     // Appointments are parsed & booked from the dedicated AppointmentComposer panel.
-    if(this.state.composerType === 'Appointment'){ return; }
+    if(effType === 'Appointment'){ return; }
     const txt=(this.state.composerText||'').trim(); if(!txt) return;
     // Note/Task/Follow-up persist directly through their dedicated save methods,
     // which already handle provenance, optimistic stream updates and error recovery.
-    if(this.state.composerType === 'Note'){ this.saveNote(txt); return; }
-    if(this.state.composerType === 'Task'){ this.saveTask(txt); return; }
-    if(this.state.composerType === 'Follow-up'){ this.saveFollowup(txt); return; }
-    if(this.state.composerType === 'Chat' || this.state.composerType === 'Activity'){ this.sendChat(txt); return; }
-    if(this.state.composerType === 'Telegram'){ this.sendTelegram(txt); return; }
+    if(effType === 'Note'){ this.saveNote(txt); return; }
+    if(effType === 'Task'){ this.saveTask(txt); return; }
+    if(effType === 'Follow-up'){ this.saveFollowup(txt); return; }
+    if(effType === 'Chat' || effType === 'Activity'){ this.sendChat(txt); return; }
+    if(effType === 'Telegram'){ this.sendTelegram(txt); return; }
     const typeMap={ 'Note':'note', 'Task':'task', 'Follow-up':'followup', 'Appointment':'appointment' };
     const kind=typeMap[this.state.composerType]||'note';
     const order=Date.now();
@@ -1169,6 +1171,7 @@ class LandlordDetail extends React.Component {
     const vm = this.computeVM();
     const L = this.cur();
     const { ai, hdr, stage, market, signals, tab } = vm;
+    const effComposer = this.state.composerType === 'Activity' ? (this.state.activityComposer || 'Chat') : this.state.composerType;
 
     // Filter the VM stream by the active tab — each tab shows ONLY its own data.
     const tabStream = vm.stream.filter(s => {
@@ -1351,7 +1354,7 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Activity' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setComposerType(t)} />
+                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} />
                 </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
@@ -1556,7 +1559,7 @@ class LandlordDetail extends React.Component {
                 {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
                     Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
                     (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
-                {this.state.composerType === 'Follow-up' && (
+                {effComposer === 'Follow-up' && (
                   <FollowupComposerFields
                     chips={this.suggestedFollowupChips()}
                     followupAiSource={this.state.followupAiSource}
@@ -1580,7 +1583,7 @@ class LandlordDetail extends React.Component {
                   />
                 )}
 
-                {this.state.composerType === 'Email' && (
+                {effComposer === 'Email' && (
                   <EmailComposer
                     landlordId={L.id}
                     toEmail={L.email}
@@ -1594,7 +1597,7 @@ class LandlordDetail extends React.Component {
                     }}
                   />
                 )}
-                {this.state.composerType === 'Appointment' && (
+                {effComposer === 'Appointment' && (
                   <AppointmentComposer
                     landlordId={L.id}
                     propertyId={L.unit && L.unit.propertyId}
@@ -1606,7 +1609,7 @@ class LandlordDetail extends React.Component {
                     }}
                   />
                 )}
-                {this.state.composerType === 'iMessage' && (
+                {effComposer === 'iMessage' && (
                   <IMessageComposer
                     landlordId={L.id}
                     imessageStatus={this.props.rawLandlord?.imessage_status || L.imessageStatus || 'unknown'}
@@ -1621,7 +1624,7 @@ class LandlordDetail extends React.Component {
                   />
                 )}
                 {(() => {
-                  const ct = this.state.composerType;
+                  const ct = effComposer;
                   const isChatTab = ct === 'Chat' || ct === 'Telegram' || ct === 'SMS' || ct === 'Activity';
                   if (!isChatTab) return null;
                   const tplChannel = ct === 'Chat' || ct === 'Activity' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
@@ -1661,7 +1664,7 @@ class LandlordDetail extends React.Component {
                     />
                   );
                 })()}
-                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && this.state.composerType !== 'Chat' && this.state.composerType !== 'Telegram' && this.state.composerType !== 'SMS' && this.state.composerType !== 'Activity' && (
+                {(effComposer === 'Note' || effComposer === 'Task' || effComposer === 'Follow-up') && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={2} style={css("flex:1; resize:none; min-height:44px; max-height:140px; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
