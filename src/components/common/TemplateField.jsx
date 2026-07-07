@@ -47,7 +47,10 @@ export default function TemplateField({
   }, []);
 
   const handleChange = (e) => {
-    onChange?.(e.target.value);
+    // Pass the real DOM event so consumers can read e.target.value / e.target
+    // exactly like a native <input>/<textarea> — several composers also rely on
+    // e.target.style / e.target.scrollHeight for auto-grow.
+    onChange?.(e);
     // Detect on the next frame so the DOM value is current.
     requestAnimationFrame(detect);
   };
@@ -62,7 +65,11 @@ export default function TemplateField({
     const before = cur.slice(0, popup.start);
     const after = cur.slice(caret);
     const insertion = '{{' + varKey + '}}';
-    onChange?.(before + insertion + after);
+    const newVal = before + insertion + after;
+    // Set the DOM value directly so event-expecting handlers read the new value
+    // off the real element (e.target.value, e.target.style, scrollHeight).
+    el.value = newVal;
+    onChange?.({ target: el, currentTarget: el });
     setPopup(null);
     requestAnimationFrame(() => {
       const e = internalRef.current;
