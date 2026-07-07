@@ -30,23 +30,26 @@ function css(str) {
 }
 
 // Channel visual metadata: icon, color, background, label.
+// Each channel/kind has a UNIQUE color so cards are distinguishable at a glance.
+// `tab` maps the badge click to the matching LandlordDetailPage tab.
 const CHANNEL_META = {
-  whatsapp_personal: { icon: '💬', color: '#93c5fd', bg: 'rgba(59,130,246,0.14)', label: 'WhatsApp' },
-  whatsapp_business: { icon: '💬', color: '#4ade80', bg: 'rgba(37,211,102,0.14)', label: 'WA Business' },
-  imessage:          { icon: '', color: '#60a5fa', bg: 'rgba(10,132,255,0.14)', label: 'iMessage' },
-  telegram:          { icon: '✈', color: '#29b6f6', bg: 'rgba(41,182,246,0.14)', label: 'Telegram' },
-  sms:               { icon: '✉', color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)', label: 'SMS' },
-  email:             { icon: '✉', color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.12)', label: 'Email' },
+  whatsapp_personal: { icon: '💬', color: '#25D366', bg: 'rgba(37,211,102,0.16)', label: 'WhatsApp', tab: 'Chat' },
+  whatsapp_business: { icon: '💬', color: '#8b5cf6', bg: 'rgba(139,92,246,0.16)', label: 'WA Business', tab: 'Chat' },
+  imessage:          { icon: '', color: '#0A84FF', bg: 'rgba(10,132,255,0.16)', label: 'iMessage', tab: 'iMessage' },
+  telegram:          { icon: '✈', color: '#29b6f6', bg: 'rgba(41,182,246,0.16)', label: 'Telegram', tab: 'Telegram' },
+  sms:               { icon: '✉', color: '#f97316', bg: 'rgba(249,115,22,0.16)', label: 'SMS', tab: 'SMS' },
+  email:             { icon: '✉', color: '#f59e0b', bg: 'rgba(245,158,11,0.16)', label: 'Email', tab: 'Email' },
 };
 
 // Activity-kind visual metadata: icon, color, background, label.
 const KIND_META = {
-  call:        { icon: '📞', color: '#93c5fd', bg: 'rgba(59,130,246,0.14)', label: 'Call' },
-  note:        { icon: '📝', color: 'rgba(255,255,255,0.7)', bg: 'rgba(148,163,184,0.14)', label: 'Note' },
-  task:        { icon: '✓', color: '#34d399', bg: 'rgba(16,185,129,0.14)', label: 'Task' },
-  followup:    { icon: '↻', color: 'hsl(38 92% 62%)', bg: 'hsl(38 92% 50% / 0.14)', label: 'Follow-up' },
-  appointment: { icon: '📅', color: '#c4b5fd', bg: 'rgba(139,92,246,0.14)', label: 'Appointment' },
-  stage:       { icon: '⇪', color: '#34d399', bg: 'rgba(16,185,129,0.14)', label: 'Stage' },
+  call:        { icon: '📞', color: '#6366f1', bg: 'rgba(99,102,241,0.16)', label: 'Call', tab: 'Calls' },
+  note:        { icon: '📝', color: '#94a3b8', bg: 'rgba(148,163,184,0.16)', label: 'Note', tab: 'Note' },
+  task:        { icon: '✓', color: '#22c55e', bg: 'rgba(34,197,94,0.16)', label: 'Task', tab: 'Task' },
+  followup:    { icon: '↻', color: '#f43f5e', bg: 'rgba(244,63,94,0.16)', label: 'Follow-up', tab: 'Follow-up' },
+  appointment: { icon: '📅', color: '#a855f7', bg: 'rgba(168,85,247,0.16)', label: 'Appointment', tab: 'Appointment' },
+  document:    { icon: '📄', color: '#06b6d4', bg: 'rgba(6,182,212,0.16)', label: 'Document', tab: 'Documents' },
+  stage:       { icon: '⇪', color: '#14b8a6', bg: 'rgba(20,184,166,0.16)', label: 'Stage', tab: 'Activity' },
 };
 
 // Format a timestamp string into a full date+time label (Asia/Dubai locale).
@@ -74,7 +77,7 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
 
-export default function AllActivityTab({ items, landlordId, landlordName, onReplyGenerated, onSelectChannel }) {
+export default function AllActivityTab({ items, landlordId, landlordName, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -103,6 +106,7 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           iconColor: meta.color,
           iconBg: meta.bg,
           channelLabel: meta.label,
+          tab: meta.tab || null,
           direction: isOut ? 'Outbound' : 'Inbound',
           title: s.subject ? `📧 ${s.subject}` : (isOut ? 'Sent message' : 'Received message'),
           body: s.emailBody || s.text || '',
@@ -121,10 +125,11 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           iconColor: meta.color,
           iconBg: meta.bg,
           channelLabel: meta.label,
+          tab: meta.tab || null,
           direction: '',
-          title: s.actTitle || meta.label,
-          body: s.actBody || '',
-          sender: s._author || (s.author || ''),
+          title: s.title || meta.label,
+          body: s.body || '',
+          sender: s.author || '',
           time: fmtFullTime(s.order || s.time),
           rawTime: s.time,
           order: s.order || 0,
@@ -304,8 +309,11 @@ ${timeline}`,
                     {item.title}
                   </span>
                   <span style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
-                    {/* Channel badge */}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '1px 7px', borderRadius: 99, fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', background: item.iconBg, color: item.iconColor, whiteSpace: 'nowrap' }}>
+                    {/* Channel badge — click to jump to the matching tab */}
+                    <span
+                      onClick={onNavigateToTab && item.tab ? (e) => { e.stopPropagation(); onNavigateToTab(item.tab); } : undefined}
+                      title={onNavigateToTab && item.tab ? `Go to ${item.channelLabel} tab` : item.channelLabel}
+                      style={{ display: 'inline-flex', alignItems: 'center', padding: '1px 7px', borderRadius: 99, fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', background: item.iconBg, color: item.iconColor, whiteSpace: 'nowrap', cursor: onNavigateToTab && item.tab ? 'pointer' : 'default', border: '1px solid ' + item.iconColor + '40' }}>
                       {item.channelLabel}
                     </span>
                     {/* Direction for messages */}
