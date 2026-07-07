@@ -1901,9 +1901,12 @@ export default function LandlordDetailPage() {
     return dedupeById(batches);
   }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
 
-  // Emails for the stream — query + realtime subscription live in src/lib/useLandlordEmails.js
+  // Emails for the stream — query + realtime subscription live in src/lib/useLandlordEmails.js.
+  // Pass ALL the landlord's addresses (primary + additional) so emails sent to any of them
+  // by any agent in the org show up in the shared history.
   const landlordEmail = L?.email;
-  const { data: emailMessages = [] } = useLandlordEmails(landlordEmail);
+  const allLandlordEmails = [L?.email, ...(Array.isArray(L?.additional_emails) ? L.additional_emails : [])].filter(Boolean);
+  const { data: emailMessages = [] } = useLandlordEmails(allLandlordEmails);
 
   // iMessages for the stream — sent/received via BlueBubbles, matched by landlord_id
   const { data: iMessages = [] } = useQ(['imessages', id], () => safe(() => base44.entities.IMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
