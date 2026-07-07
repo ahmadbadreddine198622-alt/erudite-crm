@@ -15,6 +15,7 @@ import { IconButton } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Sparkles, Send, Save, X } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
+import ModernComposerField from './ModernComposerField';
 import TemplateField from '@/components/common/TemplateField';
 
 function playSentSound() {
@@ -305,18 +306,6 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         </div>
       )}
 
-      {/* Unified compact textarea */}
-      <TemplateField
-        multiline
-        inputRef={taRef}
-        value={text}
-        onChange={(e) => { setText(e.target.value); if (hasDraft && e.target.value !== text) setHasDraft(false); }}
-        onKeyDown={handleKeyDown}
-        rows={2}
-        placeholder="Type an iMessage… (Enter to send, Shift+Enter for new line)"
-        style={{ ...css(fieldSm), resize: 'vertical', minHeight: 44, lineHeight: 1.5, marginBottom: 6 }}
-      />
-
       {/* English gloss if AI-generated in another language */}
       {draftGloss && draftGloss !== text && (
         <details style={css("border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:5px 8px; margin-bottom:6px;")}>
@@ -337,88 +326,80 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
           <span style={css("display:block; color:rgba(10,132,255,0.6);")}>https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264</span>
         </div>
       )}
-      {/* Slim icon toolbar */}
-      <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
-        <div style={css("display:flex; align-items:center; gap:4px;")}>
-          {/* Templates */}
-          <EmailTemplatePicker channel="imessage" landlordId={landlordId} onSelect={handleTemplateSelect} compact />
+      <ModernComposerField
+        value={text}
+        onChange={(e) => { setText(e.target.value); if (hasDraft && e.target.value !== text) setHasDraft(false); }}
+        onKeyDown={handleKeyDown}
+        placeholder="Type an iMessage… (Enter to send, Shift+Enter for new line)"
+        onSend={send}
+        sending={sending}
+        sendDisabled={blocked}
+        accent="#0A84FF"
+        voiceEnabled
+        voiceCanSendAudio={false}
+        onVoiceText={(t) => { setText(t); setHasDraft(false); }}
+        inputRef={taRef}
+        minHeight={54}
+      >
+        {/* Templates */}
+        <EmailTemplatePicker channel="imessage" landlordId={landlordId} onSelect={handleTemplateSelect} compact />
 
-          {/* AI Draft popover */}
-          <Popover open={aiOpen} onOpenChange={setAiOpen}>
-            <PopoverTrigger asChild>
-              <button type="button" title="AI draft — choose a strategy and generate"
-                className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all border ${aiOpen ? 'bg-violet-500/15 border-violet-500/30' : 'border-transparent hover:bg-white/10'}`}>
-                <Sparkles className="w-3.5 h-3.5" style={{ color: aiOpen ? '#c4b5fd' : 'rgba(255,255,255,0.6)' }} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-3" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
-                <span style={css("font-size:11px; font-weight:700; color:#c4b5fd; display:flex; align-items:center; gap:5px;")}><Sparkles size={12} /> AI Draft Strategy</span>
-                <button type="button" onClick={() => setAiOpen(false)} style={css("cursor:pointer; background:none; border:none; color:rgba(255,255,255,0.4);")}><X size={13} /></button>
-              </div>
-              {language && <div style={css("font-size:8px; font-weight:600; padding:1px 5px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); margin-bottom:6px; display:inline-block; text-transform:uppercase;")}>{language}</div>}
+        {/* AI Draft popover */}
+        <Popover open={aiOpen} onOpenChange={setAiOpen}>
+          <PopoverTrigger asChild>
+            <button type="button" title="AI draft — choose a strategy and generate"
+              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all border ${aiOpen ? 'bg-violet-500/15 border-violet-500/30' : 'border-transparent hover:bg-white/10'}`}>
+              <Sparkles className="w-3.5 h-3.5" style={{ color: aiOpen ? '#c4b5fd' : 'rgba(255,255,255,0.6)' }} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <div style={css("display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;")}>
+              <span style={css("font-size:11px; font-weight:700; color:#c4b5fd; display:flex; align-items:center; gap:5px;")}><Sparkles size={12} /> AI Draft Strategy</span>
+              <button type="button" onClick={() => setAiOpen(false)} style={css("cursor:pointer; background:none; border:none; color:rgba(255,255,255,0.4);")}><X size={13} /></button>
+            </div>
+            {language && <div style={css("font-size:8px; font-weight:600; padding:1px 5px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); margin-bottom:6px; display:inline-block; text-transform:uppercase;")}>{language}</div>}
+            <div style={css("margin-bottom:6px;")}>
+              <div style={css(labelSm)}>Strategy</div>
+              <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
+                {MODES.map((m) => <option key={m.key} value={m.key} style={{ background: '#1a2235', color: '#fff' }}>{m.label}</option>)}
+              </select>
+              {activeMode && <div style={css("font-size:9px; color:rgba(255,255,255,0.4); margin-top:3px;")}>{activeMode.hint}</div>}
+            </div>
+            <div style={css("margin-bottom:6px;")}>
+              <div style={css(labelSm)}>Psychology</div>
+              <select value={psychology} onChange={(e) => setPsychology(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
+                {PSYCHOLOGY_OPTIONS.map((p) => <option key={p.value || 'default'} value={p.value} style={{ background: '#1a2235', color: '#fff' }}>{p.label}</option>)}
+              </select>
+            </div>
+            {needsBuyer && (
               <div style={css("margin-bottom:6px;")}>
-                <div style={css(labelSm)}>Strategy</div>
-                <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
-                  {MODES.map((m) => <option key={m.key} value={m.key} style={{ background: '#1a2235', color: '#fff' }}>{m.label}</option>)}
-                </select>
-                {activeMode && <div style={css("font-size:9px; color:rgba(255,255,255,0.4); margin-top:3px;")}>{activeMode.hint}</div>}
+                <div style={css(labelSm)}>Buyer detail</div>
+                <input value={buyerDetail} onChange={(e) => setBuyerDetail(e.target.value)} placeholder="Specific buyer…" style={css(fieldSm)} />
               </div>
+            )}
+            {needsMarket && (
               <div style={css("margin-bottom:6px;")}>
-                <div style={css(labelSm)}>Psychology</div>
-                <select value={psychology} onChange={(e) => setPsychology(e.target.value)} style={{ ...css(fieldSm), cursor: 'pointer', appearance: 'auto' }}>
-                  {PSYCHOLOGY_OPTIONS.map((p) => <option key={p.value || 'default'} value={p.value} style={{ background: '#1a2235', color: '#fff' }}>{p.label}</option>)}
-                </select>
+                <div style={css(labelSm)}>Market figure</div>
+                <input value={marketFigure} onChange={(e) => setMarketFigure(e.target.value)} placeholder="Market insight…" style={css(fieldSm)} />
               </div>
-              {needsBuyer && (
-                <div style={css("margin-bottom:6px;")}>
-                  <div style={css(labelSm)}>Buyer detail</div>
-                  <input value={buyerDetail} onChange={(e) => setBuyerDetail(e.target.value)} placeholder="Specific buyer…" style={css(fieldSm)} />
-                </div>
-              )}
-              {needsMarket && (
-                <div style={css("margin-bottom:6px;")}>
-                  <div style={css(labelSm)}>Market figure</div>
-                  <input value={marketFigure} onChange={(e) => setMarketFigure(e.target.value)} placeholder="Market insight…" style={css(fieldSm)} />
-                </div>
-              )}
-              <div style={css("margin-bottom:6px;")}>
-                <div style={css(labelSm)}>Comp reference</div>
-                <input value={compReference} onChange={(e) => setCompReference(e.target.value)} placeholder="Optional comp…" style={css(fieldSm)} />
-              </div>
-              <button type="button" onClick={generate} disabled={generating}
-                style={css("width:100%; padding:6px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(139,92,246,0.14); color:#c4b5fd; border:1px solid rgba(139,92,246,0.4); opacity:" + (generating ? 0.6 : 1) + ";")}>
-                {generating ? 'Generating…' : '✦ Generate draft'}
-              </button>
-            </PopoverContent>
-          </Popover>
+            )}
+            <div style={css("margin-bottom:6px;")}>
+              <div style={css(labelSm)}>Comp reference</div>
+              <input value={compReference} onChange={(e) => setCompReference(e.target.value)} placeholder="Optional comp…" style={css(fieldSm)} />
+            </div>
+            <button type="button" onClick={generate} disabled={generating}
+              style={css("width:100%; padding:6px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(139,92,246,0.14); color:#c4b5fd; border:1px solid rgba(139,92,246,0.4); opacity:" + (generating ? 0.6 : 1) + ";")}>
+              {generating ? 'Generating…' : '✦ Generate draft'}
+            </button>
+          </PopoverContent>
+        </Popover>
 
-          {/* Save as template */}
-          <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" disabled={!text.trim()} />
+        {/* Save as template */}
+        <IconButton icon={Save} onClick={handleSaveAsTemplate} title="Save as template" disabled={!text.trim()} />
 
-          {/* Emoji picker */}
-          <EmojiPicker onSelect={insertEmoji} />
-        </div>
-
-        {/* Send icon button */}
-        <button type="button" onClick={send} disabled={sending || !text.trim() || blocked}
-          title="Send iMessage"
-          className="flex items-center justify-center gap-2 px-4 h-8 rounded-lg transition-all border"
-          style={{
-            background: !text.trim() || sending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(180deg, #0A84FF, #0066cc)',
-            color: !text.trim() || sending ? 'rgba(255,255,255,0.4)' : '#fff',
-            border: `1px solid ${!text.trim() || sending ? 'rgba(255,255,255,0.1)' : 'rgba(10,132,255,0.6)'}`,
-            cursor: !text.trim() || sending ? 'not-allowed' : 'pointer',
-            fontSize: '11px', fontWeight: 700, fontFamily: "'Inter',sans-serif",
-          }}>
-          {sending ? (
-            <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'imc-spin 0.7s linear infinite' }} />
-          ) : (
-            <Send className="w-3.5 h-3.5" />
-          )}
-          {sending ? '' : 'Send'}
-        </button>
-      </div>
+        {/* Emoji picker */}
+        <EmojiPicker onSelect={insertEmoji} />
+      </ModernComposerField>
 
       <div style={css("font-size:8.5px; color:rgba(255,255,255,0.35); text-align:center; margin-top:4px;")}>Branded banner attached on first contact</div>
 

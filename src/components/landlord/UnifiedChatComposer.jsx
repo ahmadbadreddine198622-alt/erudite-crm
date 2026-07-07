@@ -12,6 +12,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import EmailTemplatePicker from './EmailTemplatePicker';
 import EmojiPicker from './EmojiPicker';
+import ModernComposerField from './ModernComposerField';
 import TemplateField from '@/components/common/TemplateField';
 import ChatTemplatePanel from './ChatTemplatePanel';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -150,23 +151,6 @@ export default function UnifiedChatComposer({
         </div>
       )}
 
-      {/* Compact auto-growing textarea */}
-      <TemplateField
-        multiline
-        inputRef={taRef}
-        value={text}
-        onChange={onTextChange}
-        onKeyDown={onKeyDown}
-        rows={1}
-        placeholder={placeholder}
-        style={css(
-          "display:block; width:100%; resize:none; min-height:38px; max-height:140px; "+
-          "padding:8px 11px; border-radius:10px; "+
-          "background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); "+
-          "color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto; outline:none;"
-        )}
-      />
-
       {channelDisabled && (
         <div style={css("margin-top:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ {disabledHint || 'Channel not configured'}</div>
       )}
@@ -186,8 +170,22 @@ export default function UnifiedChatComposer({
           </button>
         </div>
       )}
-      {/* Slim icon toolbar — single row */}
-      <div style={css("display:flex; align-items:center; gap:4px; margin-top:6px;")}>
+      <ModernComposerField
+        value={text}
+        onChange={onTextChange}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        onSend={onSend}
+        sending={busy}
+        sendDisabled={channelDisabled}
+        accent={accent}
+        voiceEnabled={composerType !== 'SMS'}
+        voiceCanSendAudio={composerType !== 'SMS'}
+        onVoiceSent={(url, name) => { if (onAttachmentChange) onAttachmentChange({ file_url: url, file_name: name, media_type: 'audio', mime: 'audio/webm' }); setTimeout(() => { if (onSend) onSend(); }, 80); }}
+        onVoiceText={(t) => onTextChange({ target: { value: t } })}
+        inputRef={taRef}
+        minHeight={44}
+      >
         {/* User message templates (MessageTemplate entity) */}
         <div style={css("position:relative;")}>
           <EmailTemplatePicker channel={tplChannel} landlordId={landlordId} compact onSelect={({ body }) => onPickTemplate(body || '')} />
@@ -287,30 +285,7 @@ export default function UnifiedChatComposer({
             </button>
           </>
         )}
-
-        {/* Send — icon button at the end */}
-        <button
-          type="button"
-          onClick={onSend}
-          disabled={!canSend}
-          title={parsing ? 'Parsing…' : 'Send'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 34, height: 32, borderRadius: 8, flex: 'none',
-            background: canSend ? 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))' : 'rgba(255,255,255,0.08)',
-            color: canSend ? '#1a1205' : 'rgba(255,255,255,0.4)',
-            border: '1px solid ' + (canSend ? 'hsl(38 92% 50% / 0.5)' : 'rgba(255,255,255,0.1)'),
-            cursor: canSend ? 'pointer' : 'not-allowed',
-            marginLeft: 'auto',
-          }}
-        >
-          {busy ? (
-            <span style={{ display: 'inline-block', width: 13, height: 13, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'ld-spin 0.7s linear infinite' }} />
-          ) : (
-            <Send size={15} />
-          )}
-        </button>
-      </div>
+      </ModernComposerField>
     </div>
   );
 }

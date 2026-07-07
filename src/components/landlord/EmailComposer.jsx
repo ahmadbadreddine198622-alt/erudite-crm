@@ -15,7 +15,8 @@ import EmailTemplatePicker from './EmailTemplatePicker';
 import EmailTemplateDialog from './EmailTemplateDialog';
 import { IconButton, ToolbarDivider } from './ComposerToolbar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X } from 'lucide-react';
+import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X, Globe, Loader2 } from 'lucide-react';
+import { TRANSLATE_LANGS } from './ModernComposerField';
 import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 import { buildAgentCtaHtml } from '@/lib/agentSignature';
@@ -161,6 +162,9 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
   const [mergeVars, setMergeVars] = useState({});
   const [attachments, setAttachments] = useState([]);
+  const [translating, setTranslating] = useState(false);
+  const [transOpen, setTransOpen] = useState(false);
+  const [translation, setTranslation] = useState(null);
 
   const quillRef = useRef(null);
 
@@ -344,6 +348,33 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
     }
   };
 
+  const runTranslate = async (lang) => {
+    const plain = bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim();
+    if (!plain) { toast.error('Nothing to translate'); return; }
+    setTransOpen(false);
+    setTranslating(true);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Translate the following message into ${lang.label}. Preserve the tone, line breaks, and any placeholders like {{landlord_name}}. Output ONLY the translated text — no quotes, no commentary.\n\nMessage:\n${plain}`,
+        response_json_schema: { type: 'object', properties: { translated: { type: 'string' } } },
+      });
+      const data = res?.data ?? res;
+      const text = data?.translated || (typeof data === 'string' ? data : '');
+      if (!text) throw new Error('No translation returned');
+      setTranslation({ text, langLabel: lang.label });
+    } catch (e) {
+      toast.error(e?.message || 'Translation failed');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const applyTranslation = () => {
+    if (!translation) return;
+    setBodyHtml(plainTextToHtml(translation.text));
+    setTranslation(null);
+  };
+
   const canSend = !checkingConn && gmailConnected && !sending;
   const activeMode = MODES.find((m) => m.key === mode);
 
@@ -430,6 +461,22 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
         </div>
       </div>
 
+      {/* Translation preview — keep original, show below */}
+      {translation && (
+        <div style={css("border-radius:8px; padding:7px 9px; margin-bottom:6px; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.32);")}>
+          <div style={css("display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px;")}>
+            <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#93c5fd;")}>{translation.langLabel} translation</span>
+            <div style={css("display:flex; gap:5px;")}>
+              <button type="button" onClick={applyTranslation} title="Replace email body with translation"
+                style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:#2563eb; color:#fff; border:1px solid #2563eb;")}>Apply</button>
+              <button type="button" onClick={() => setTranslation(null)} title="Discard translation"
+                style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.16);")}>Discard</button>
+            </div>
+          </div>
+          <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.88); white-space:pre-wrap; max-height:140px; overflow:auto;")}>{translation.text}</div>
+        </div>
+      )}
+
       {/* Attachments */}
       {attachments.length > 0 && (
         <div style={css("display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px;")}>
@@ -504,6 +551,28 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
 
           {/* Emoji picker */}
           <EmojiPicker onSelect={insertEmoji} />
+
+          {/* Translate */}
+          <Popover open={transOpen} onOpenChange={setTransOpen}>
+            <PopoverTrigger asChild>
+              <button type="button" title="Translate email" disabled={translating}
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border border-transparent hover:bg-white/10"
+                style={{ color: transOpen ? '#93c5fd' : 'rgba(255,255,255,0.6)', opacity: translating ? 0.6 : 1 }}>
+                {translating ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.15)' }} align="start">
+              <div style={css("font-size:10px; font-weight:700; color:rgba(255,255,255,0.6); margin-bottom:5px; letter-spacing:0.04em; text-transform:uppercase;")}>Translate to</div>
+              <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:4px;")}>
+                {TRANSLATE_LANGS.map((l) => (
+                  <button key={l.code} type="button" onClick={() => runTranslate(l)}
+                    style={css("padding:5px 8px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.82);")}>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         {/* Send icon */}
         <button type="button" onClick={sendEmail} disabled={!canSend}
