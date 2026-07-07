@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
     // name line in the iMessage thread. Sent BEFORE the text so it shows above it.
     let signatureImageSent = false;
     if (!body.skip_signature) {
-      const sigImgUrl = user.signature_card_url || user.signature_url || companySignatureUrl;
+      // iMessage is a single shared channel — one Apple ID via BlueBubbles.
+      // Every send (admin, owner, CEO, agent) uses the SAME company signature card
+      // so the identity is identical regardless of who clicks send.
+      const sigImgUrl = companySignatureUrl;
       if (sigImgUrl) {
         try {
           const sigBase64 = await fetchImageAsBase64(sigImgUrl);
