@@ -83,7 +83,7 @@ export default function IMessageTemplates() {
 
   const openDuplicate = (t) => {
     setEditing(null);
-    setPrefill({ title: `${t.title} (copy)`, body: t.body || '', subject: '', category: t.category || 'general', visibility: 'private' });
+    setPrefill({ title: `${t.title} (copy)`, body: t.body || '', subject: '', category: t.category || 'general', visibility: 'shared' });
     setDialogOpen(true);
   };
 
@@ -121,7 +121,7 @@ export default function IMessageTemplates() {
             iMessage Templates
           </h1>
           <p className="page-subtitle" style={{ marginTop: 6 }}>
-            Save and reuse common iMessage responses. Admins can share templates with the team or specific agents.
+            Save and reuse common iMessage responses. New templates default to Everyone so any agent can reuse them.
           </p>
         </div>
         <button onClick={openCreate}

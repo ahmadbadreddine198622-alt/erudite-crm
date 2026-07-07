@@ -133,7 +133,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
   const handleSaveAsTemplate = () => {
     if (!text.trim()) { toast.error('Nothing to save'); return; }
-    setSaveTemplatePrefill({ title: text.slice(0, 40), subject: '', body: text });
+    setSaveTemplatePrefill({ title: text.slice(0, 40), subject: '', body: text, visibility: 'shared' });
     setSaveTemplateOpen(true);
   };
 
