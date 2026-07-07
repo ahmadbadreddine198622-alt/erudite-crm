@@ -176,7 +176,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontSize: 20, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
-            {isEdit ? 'Edit Template' : 'New Email Template'}
+            {isEdit ? 'Edit Template' : channel === 'imessage' ? 'New iMessage Template' : 'New Email Template'}
           </h3>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}>
             <X size={15} />
@@ -190,10 +190,12 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
             <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Asset Proof Intro" style={fieldStyle} autoFocus />
           </div>
 
-          <div>
-            <label style={labelStyle}>Subject</label>
-            <input value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Email subject line" style={fieldStyle} />
-          </div>
+          {channel !== 'imessage' && (
+            <div>
+              <label style={labelStyle}>Subject</label>
+              <input value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Email subject line" style={fieldStyle} />
+            </div>
+          )}
 
           <div>
             <label style={labelStyle}>Category</label>
@@ -204,7 +206,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
 
           <div>
             <label style={labelStyle}>Body <span style={{ textTransform: 'none', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>— use {'{{landlord_name}}, {{property_name}}, {{agent_name}}'}</span></label>
-            <textarea value={form.body} onChange={(e) => set('body', e.target.value)} rows={6} placeholder="Write your email body…" style={{ ...fieldStyle, resize: 'vertical', minHeight: 120, lineHeight: 1.5 }} />
+            <textarea value={form.body} onChange={(e) => set('body', e.target.value)} rows={6} placeholder={channel === 'imessage' ? 'Write your iMessage body…' : 'Write your email body…'} style={{ ...fieldStyle, resize: 'vertical', minHeight: 120, lineHeight: 1.5 }} />
           </div>
 
           {/* Access control */}

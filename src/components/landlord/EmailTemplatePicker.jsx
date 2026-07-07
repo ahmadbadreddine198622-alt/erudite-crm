@@ -25,6 +25,7 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
     onSelect?.({ subject: t.subject || '', body: t.body || '', template: t });
     base44.entities.MessageTemplate.update(t.id, { usage_count: (t.usage_count || 0) + 1, last_used_at: new Date().toISOString() }).catch(() => {});
     qc.invalidateQueries({ queryKey: ['emailTemplates'] });
+    qc.invalidateQueries({ queryKey: ['messageTemplates'] });
   };
 
   return (
