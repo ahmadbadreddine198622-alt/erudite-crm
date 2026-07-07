@@ -339,9 +339,9 @@ ${timeline}`,
                   <ChevronDown size={14} style={{ flex: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '8px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 )}
               </button>
-              {/* Expanded body */}
+              {/* Expanded body — tinted with the channel color for instant identification */}
               {isOpen && hasBody && (
-                <div style={css("padding:0 12px 11px 52px; font-size:12px; line-height:1.55; color:rgba(255,255,255,0.72); white-space:pre-wrap; max-height:280px; overflow:auto;")}>
+                <div style={{ margin: '0 8px 8px 52px', padding: '9px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.82)', whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', background: item.iconBg, borderLeft: '3px solid ' + item.iconColor }}>
                   {item.body}
                 </div>
               )}
