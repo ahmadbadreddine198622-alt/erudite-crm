@@ -423,7 +423,7 @@ export default function Landlords() {
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
       <div className="shrink-0 sticky top-0 z-20 pt-1.5 pb-1" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-nowrap overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -528,18 +528,6 @@ export default function Landlords() {
         {showQueuePanel && (
           <div className="mt-2 p-4 rounded-xl"               style={{ background: LDC.cardBg, border: LDC.cardBr, boxShadow: LDC.cardSh }}>
             <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
-          </div>
-        )}
-
-        {/* Project Intelligence */}
-        {filterProject && filterProject !== 'unassigned' && (
-          <div className="mt-1">
-            <ProjectIntelStrip
-              landlords={allFilteredLandlords}
-              landlordPropertyMap={landlordPropertyMap}
-              properties={properties}
-              landlordProperties={landlordProperties}
-            />
           </div>
         )}
 
@@ -709,9 +697,24 @@ export default function Landlords() {
         </div>
       </div>
 
+      {/* Project Intelligence — sits above the board, outside the sticky header so
+          the header height never shifts when a project filter is selected. */}
+      {filterProject && filterProject !== 'unassigned' && (
+        <div className="shrink-0 px-2 pt-1" style={{ paddingLeft: '4.5rem', paddingRight: '0.5rem' }}>
+          <ProjectIntelStrip
+            landlords={allFilteredLandlords}
+            landlordPropertyMap={landlordPropertyMap}
+            properties={properties}
+            landlordProperties={landlordProperties}
+          />
+        </div>
+      )}
+
       {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
-          dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
+           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <style>{`
+        .flex-nowrap::-webkit-scrollbar { display: none; }
+        .flex-nowrap { -ms-overflow-style: none; scrollbar-width: none; }
         .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
         .filter-track::-webkit-scrollbar { height: 6px; }
         .filter-track::-webkit-scrollbar-track { background: transparent; }
