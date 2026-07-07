@@ -15,6 +15,7 @@ import LandlordCommandCenter from './LandlordCommandCenter';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery',
   listing_commitment: 'Listing Commitment',
   form_a_initiation: 'Form A Initiation',
@@ -93,6 +94,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
   const STAGE_OPTIONS = [
     'initial_contact',
+    'attempted_to_contact',
     'price_discovery',
     'listing_commitment',
     'form_a_initiation',

@@ -86,8 +86,8 @@ class LandlordDetail extends React.Component {
     super(props);
     this.streamRef = React.createRef();
     this.composerRef = React.createRef();
-    this.STAGES = ['Initial Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
-    this.STAGE_KEYS = ['initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing','owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification','listing_publication','final_confirmation','marketing_agents','marketing_network','open_house','client_blast','deal_closed'];
+    this.STAGES = ['Initial Contact','Attempted to Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
+    this.STAGE_KEYS = ['initial_contact','attempted_to_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing','owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification','listing_publication','final_confirmation','marketing_agents','marketing_network','open_house','client_blast','deal_closed'];
     const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
     this.state = {
       landlords,
@@ -1756,7 +1756,7 @@ class LandlordDetail extends React.Component {
 
 /* Stage keys in pipeline order — mirrors Landlords.jsx STAGES (17 stages). */
 const STAGE_KEYS = [
-  'initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
+  'initial_contact','attempted_to_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
   'owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification',
   'listing_publication','final_confirmation','marketing_agents','marketing_network','open_house',
   'client_blast','deal_closed',
@@ -1789,7 +1789,7 @@ const latest = (arr, dateKey) => {
 
 // Full stage enum from Landlord entity schema (17 values)
 const PIPELINE_STAGES = [
-  'initial_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
+  'initial_contact','attempted_to_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
   'owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification',
   'listing_publication','final_confirmation','marketing_agents','marketing_network','open_house',
   'client_blast','deal_closed',

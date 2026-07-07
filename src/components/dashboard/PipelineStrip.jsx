@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Phase groupings map each stage enum to a phase
 const PHASE_STAGES = {
-  New: ['initial_contact', 'price_discovery'],
+  New: ['initial_contact', 'attempted_to_contact', 'price_discovery'],
   Mandate: ['listing_commitment', 'form_a_initiation', 'form_a_signing'],
   'Docs & Media': ['owner_documents', 'photos_videos', 'photographer_scheduling'],
   Listing: ['listing_creation', 'internal_verification', 'listing_publication', 'final_confirmation'],

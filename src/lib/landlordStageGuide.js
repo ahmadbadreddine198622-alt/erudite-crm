@@ -9,7 +9,7 @@ export const PHASES = [
     name: 'Win the Mandate',
     purpose: 'Relationship — earn trust and sign the mandate.',
     color: '#C9A24B', // gold
-    stages: ['initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing'],
+    stages: ['initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing'],
   },
   {
     key: 'build_listing',
@@ -30,7 +30,7 @@ export const PHASES = [
 // Full ordered stage enum (17 keys) — single source of truth for adjacent-stage moves.
 // Matches the Landlord.stage enum exactly; never reorder or rename without an entity migration.
 export const STAGE_ORDER = [
-  'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
+  'initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
   'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification',
   'listing_publication', 'final_confirmation', 'marketing_agents', 'marketing_network', 'open_house',
   'client_blast', 'deal_closed',
@@ -63,6 +63,14 @@ export const STAGE_GUIDE = {
     move: 'Open warm, prove I know their project/unit, ask one smart question about the property. Build the first thread of trust. Confirm we have the right person.',
     exitRule: 'Landlord replies and confirms they own (or represent) the unit AND shows any willingness to talk price or listing.',
     capture: 'Confirm vCard basics — name, phone/WhatsApp, email, project, unit reference, language, nationality. Set rapport to warming once they engage.',
+  },
+  attempted_to_contact: {
+    title: 'Attempted to Contact',
+    meaning: "We've reached out but haven't connected yet.",
+    mindset: '"Another broker… I\'ll reply when I have time."',
+    move: 'Follow up via a second channel or a warmer angle. Keep it light — no pressure. Log each attempt so the pattern is visible.',
+    exitRule: 'Landlord replies, confirms ownership, and shows willingness to engage — advance to Price Discovery.',
+    capture: 'Log attempt channel + timestamp and any partial reply. Only move rapport once they actually engage.',
   },
   price_discovery: {
     title: 'Price Discovery & Negotiation',

@@ -12,6 +12,7 @@ import IMessageBadge from './IMessageBadge';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial contact',
+  attempted_to_contact: 'Attempted to contact',
   price_discovery: 'Price discovery',
   listing_commitment: 'Listing commitment',
   form_a_initiation: 'Form A initiation',
@@ -26,7 +27,7 @@ const STAGE_LABELS = {
 };
 
 const STAGE_OPTIONS = [
-  'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation',
+  'initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation',
   'form_a_signing', 'owner_documents', 'photos_videos', 'photographer_scheduling',
   'listing_creation', 'internal_verification', 'listing_publication', 'final_confirmation',
 ];

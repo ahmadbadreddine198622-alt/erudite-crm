@@ -55,6 +55,7 @@ const LDC = {
 
 const STAGES = [
   'initial_contact',
+  'attempted_to_contact',
   'price_discovery',
   'listing_commitment',
   'form_a_initiation',
@@ -75,6 +76,7 @@ const STAGES = [
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery & Negotiation',
   listing_commitment: 'Listing Commitment Validation',
   form_a_initiation: 'Form A Initiation',

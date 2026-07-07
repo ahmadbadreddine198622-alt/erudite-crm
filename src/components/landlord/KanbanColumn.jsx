@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 import { Users } from 'lucide-react';
 import KanbanCardRow from './KanbanCardRow';
 import StageGuidePopover from './StageGuidePopover';
-import ContactDataMiniPanel from './ContactDataMiniPanel';
-import { PHASE_BY_STAGE, VCARD_STAGES } from '@/lib/landlordStageGuide';
+import { PHASE_BY_STAGE } from '@/lib/landlordStageGuide';
 
 // One pipeline column. Memoized so dragging within / over another column doesn't re-render
 // columns whose card list is unchanged. The whole column body is a droppable so an EMPTY
@@ -32,7 +31,7 @@ function KanbanColumn({
   const itemIds = landlords.map((l) => l.id);
   const phase = PHASE_BY_STAGE[stage];
   const accent = phase?.color || 'hsl(38 92% 50%)';
-  const showVCard = VCARD_STAGES.includes(stage);
+
 
   return (
     <div
@@ -74,7 +73,6 @@ function KanbanColumn({
         <p className="text-xs font-bold" style={{ color: accent, textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
           AED {(totalCommission / 1000000).toFixed(1)}M
         </p>
-        {showVCard && <ContactDataMiniPanel stage={stage} landlords={landlords} />}
       </div>
 
       {/* Cards Container — droppable, independent vertical scroll */}

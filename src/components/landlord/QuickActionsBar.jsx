@@ -10,6 +10,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery',
   listing_commitment: 'Listing Commitment',
   form_a_initiation: 'Form A Initiation',
