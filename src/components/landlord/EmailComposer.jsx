@@ -110,7 +110,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailAddress, setGmailAddress] = useState('');
   const [signatureHtml, setSignatureHtml] = useState('');
-  const [signatureCardUrl, setSignatureCardUrl] = useState('');
+  const [signatureUrl, setSignatureUrl] = useState('');
   const [checkingConn, setCheckingConn] = useState(true);
 
   const [to, setTo] = useState(toEmail || '');
@@ -157,7 +157,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
         const me = await base44.auth.me();
         if (mounted) {
           setSignatureHtml(buildAgentCtaHtml(me || {}));
-          setSignatureCardUrl(me?.signature_card_url || '');
+          setSignatureUrl(me?.signature_url || '');
         }
       } catch {}
       if (landlordId) {
@@ -180,12 +180,12 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const sigBlock = useMemo(() => (signatureHtml || ''), [signatureHtml]);
 
-  // The agent's branded signature card image — auto-inserted into the editable body
-  // (so the agent can type their message above it). The CTA grid (sigBlock) is
-  // appended to the sent email only, below this card.
-  const cardImgHtml = useMemo(() => signatureCardUrl
-    ? `<p style="margin-top:16px;"><img src="${signatureCardUrl}" alt="signature" style="display:block;max-width:480px;height:auto;border-radius:12px;"/></p>`
-    : '', [signatureCardUrl]);
+  // The agent's signature image — auto-inserted into the editable body so it's
+  // visible while composing and sent with the email. The CTA grid (sigBlock) is
+  // appended to the sent email only, below this signature image.
+  const cardImgHtml = useMemo(() => signatureUrl
+    ? `<p style="margin-top:16px;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:480px;height:auto;border-radius:12px;"/></p>`
+    : '', [signatureUrl]);
 
   // Auto-insert the signature card into the body once on load (only if the body is still blank)
   useEffect(() => {

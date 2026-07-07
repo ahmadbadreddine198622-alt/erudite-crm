@@ -322,7 +322,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Your signature image is automatically appended to the end of every email you send from the CRM.
+              Your signature image appears at the bottom of the compose window and is sent with every email. The branded call-to-action grid below is appended automatically on send.
             </p>
             <div className="flex items-center gap-4">
               <div className="relative group">
@@ -387,52 +387,12 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Branded email signature — uploaded card image + CTA grid; appended to every email, never shown in composer */}
+            {/* Branded call-to-action grid — appended to every email you send (built from the details below) */}
             <div className="pt-3 mt-3 border-t border-white/10">
-              <label className="text-xs text-accent font-semibold mb-1 block">Branded Email Signature (appended to every email you send)</label>
+              <label className="text-xs text-accent font-semibold mb-1 block">Branded Call-to-Action Grid (appended to every email you send)</label>
               <p className="text-[11px] text-muted-foreground mb-3">
-                Upload your signature card image (the dark branded card with your photo, title &amp; contact details). The call-to-action grid below is built from your details. These appear only in sent emails — never shown while composing.
+                This grid of links (Property Finder, Erudite Listings, Meet the Team, Instagram) is built from your details below and appended below your signature image on every sent email.
               </p>
-
-              {/* Signature card image upload */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative group">
-                  <div className="w-64 h-28 rounded-xl flex items-center justify-center border-2 border-dashed border-accent/30 overflow-hidden"
-                    style={{ background: form.signature_card_url ? 'transparent' : 'hsl(38 92% 50% / 0.08)' }}>
-                    {form.signature_card_url ? (
-                      <img src={form.signature_card_url} alt="Signature card" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">No signature card image</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => signatureCardInputRef.current?.click()}
-                    disabled={uploadingCard}
-                    className="absolute bottom-1 right-1 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                    style={{ background: 'hsl(38 92% 50%)', color: '#000' }}
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
-                  <input
-                    ref={signatureCardInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSignatureCardUpload}
-                    disabled={uploadingCard}
-                    className="hidden"
-                  />
-                </div>
-                {form.signature_card_url && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setForm(f => ({ ...f, signature_card_url: '' }))}
-                    className="text-red-400 hover:bg-red-500/10 gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Remove
-                  </Button>
-                )}
-              </div>
 
               {/* CTA grid configuration */}
               <label className="text-[11px] text-muted-foreground mb-2 block">Call-to-action grid details</label>

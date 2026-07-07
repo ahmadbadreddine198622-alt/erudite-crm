@@ -29,14 +29,11 @@ export function buildAgentCtaHtml(u = {}) {
   const pfTitle = hasOwnPf ? `${firstName} on Property Finder` : 'Ahmad on Property Finder';
   const pfSubtitle = `SuperAgent · ${pfRating}⭐ · ${pfDeals} deals · ${pfValue}`;
 
-  // Agent identity block + uploaded handwritten signature image + optional rich-text
-  // signature. These appear above the CTA grid so the agent's personal signature
-  // (uploaded in Profile) is visible in every outgoing email.
-  const sigImg = u.signature_url
-    ? `<img src="${u.signature_url}" alt="${fullName} signature" style="display:block;max-width:280px;max-height:130px;margin:8px 0 12px;border:0;outline:none;text-decoration:none;" />`
-    : '';
+  // Agent identity block + optional rich-text signature. The uploaded signature
+  // image is inserted into the composer body (visible while composing) so it is
+  // NOT duplicated here. These appear above the CTA grid in the sent email.
   const richSig = u.email_signature_html ? `<div style="margin:6px 0 10px;">${u.email_signature_html}</div>` : '';
-  const identity = `<p style="margin:0 0 2px;color:#1e293b;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;font-family:Arial,Helvetica,sans-serif;">Erudite Real Estate</p>${sigImg}${richSig}`;
+  const identity = `<p style="margin:0 0 2px;color:#1e293b;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;font-family:Arial,Helvetica,sans-serif;">Erudite Real Estate</p>${richSig}`;
 
   const stat = `<div style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:13px;font-weight:700;margin:14px 0 10px;">🏆 ${statLabel}</div>`;
 
