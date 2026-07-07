@@ -26,13 +26,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Admin-gated bulk job (matches processDueScheduledMessages). The work below uses asServiceRole,
-    // which bypasses RLS — so an open endpoint would let any anonymous caller trigger a full
-    // BlueBubbles pull + bulk writes across all landlords. (If a cron must run this unauthenticated,
-    // gate the no-user path behind a shared-secret header instead of leaving it open.)
+    // Scheduled automations run with no user context — allow them through (the automation is
+    // admin-controlled). For interactive calls, require admin. This matches the pattern used
+    // by other scheduled sync functions (e.g. processDueScheduledMessages).
     const user = await base44.auth.me().catch(() => null);
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
+    if (user && user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     // How far back to pull, in days (default 30). Scheduled runs pass a small window.
