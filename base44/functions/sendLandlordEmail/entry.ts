@@ -89,7 +89,13 @@ function agentCtaHtml(u = {}) {
 function agentSignatureHtml(u = {}) {
   const fullName = u.full_name || '';
   const cta = agentCtaHtml(u);
-  return `<div style="margin-top:18px;border-top:1px solid #eee;padding-top:14px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 2px;color:#1e293b;font-size:14px;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;">Erudite Real Estate</p>${cta}</div>`;
+  // Uploaded handwritten signature image (PNG/JPG stored in the agent's Profile).
+  const sigImg = u.signature_url
+    ? `<img src="${u.signature_url}" alt="${fullName} signature" style="display:block;max-width:280px;max-height:130px;margin:8px 0 12px;border:0;outline:none;text-decoration:none;" />`
+    : '';
+  // Optional rich-text signature block the agent can author in Profile.
+  const richSig = u.email_signature_html ? `<div style="margin:6px 0 10px;">${u.email_signature_html}</div>` : '';
+  return `<div style="margin-top:18px;border-top:1px solid #eee;padding-top:14px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 2px;color:#1e293b;font-size:14px;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;">Erudite Real Estate</p>${sigImg}${richSig}${cta}</div>`;
 }
 
 Deno.serve(async (req) => {

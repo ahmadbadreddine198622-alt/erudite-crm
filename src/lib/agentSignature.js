@@ -29,6 +29,15 @@ export function buildAgentCtaHtml(u = {}) {
   const pfTitle = hasOwnPf ? `${firstName} on Property Finder` : 'Ahmad on Property Finder';
   const pfSubtitle = `SuperAgent · ${pfRating}⭐ · ${pfDeals} deals · ${pfValue}`;
 
+  // Agent identity block + uploaded handwritten signature image + optional rich-text
+  // signature. These appear above the CTA grid so the agent's personal signature
+  // (uploaded in Profile) is visible in every outgoing email.
+  const sigImg = u.signature_url
+    ? `<img src="${u.signature_url}" alt="${fullName} signature" style="display:block;max-width:280px;max-height:130px;margin:8px 0 12px;border:0;outline:none;text-decoration:none;" />`
+    : '';
+  const richSig = u.email_signature_html ? `<div style="margin:6px 0 10px;">${u.email_signature_html}</div>` : '';
+  const identity = `<p style="margin:0 0 2px;color:#1e293b;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;font-family:Arial,Helvetica,sans-serif;">Erudite Real Estate</p>${sigImg}${richSig}`;
+
   const stat = `<div style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:13px;font-weight:700;margin:14px 0 10px;">🏆 ${statLabel}</div>`;
 
   const ctaCard = (bg, title, sub, href, darkText, right) => {
@@ -40,5 +49,5 @@ export function buildAgentCtaHtml(u = {}) {
 
   const cta = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr>${ctaCard('#233552', `⭐ ${pfTitle} →`, pfSubtitle, pfUrl, false, false)}${ctaCard('#C5A059', '🏛 Erudite Listings →', 'All live listings for sale', eruditeListingsUrl, true, true)}</tr><tr>${ctaCard('#10A492', '👥 Meet the Team →', 'eruditeproperty.com', meetTeamUrl, false, false)}${ctaCard('#D7338C', '📷 Instagram →', '@eruditeproperty7', 'https://instagram.com/eruditeproperty7', false, true)}</tr></table>`;
 
-  return `<div data-signature="1" style="margin-top:14px;">${stat}${cta}</div>`;
+  return `<div data-signature="1" style="margin-top:14px;border-top:1px solid #eee;padding-top:14px;">${identity}${stat}${cta}</div>`;
 }
