@@ -1492,7 +1492,7 @@ class LandlordDetail extends React.Component {
                 {/* AI draft control — only for Notes. Call/Conversation pills generate a fresh
                     draft on demand from the latest call qualification or WhatsApp conversation;
                     Summary/Coaching/Next Action pull from the landlord-level Analyse fields. */}
-                {this.state.composerType === 'Note' && (
+                {effComposer === 'Note' && (
                   <NoteAiDraftBar
                     landlord={L}
                     noteAiSource={this.state.noteAiSource}

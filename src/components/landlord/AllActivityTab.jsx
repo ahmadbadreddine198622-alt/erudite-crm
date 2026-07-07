@@ -69,6 +69,7 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'iMessage', label: 'iMessage', icon: '' },
   { value: 'Telegram', label: 'Telegram', icon: '✈' },
   { value: 'Follow-up', label: 'Follow-up', icon: '↻' },
+  { value: 'Note', label: 'Note', icon: '📝' },
   { value: 'Documents', label: 'Documents', icon: '📄' },
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
