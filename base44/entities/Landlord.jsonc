@@ -141,6 +141,19 @@
     "unit_reference": {
       "type": "string"
     },
+    "unit_layout": {
+      "type": "string",
+      "description": "Unit layout shorthand (e.g. '2BHK', '3BHK', '4BHK', 'Penthouse', 'Studio')"
+    },
+    "handover_status": {
+      "type": "string",
+      "enum": [
+        "Handed Over",
+        "Not Handed Over"
+      ],
+      "default": "Not Handed Over",
+      "description": "Keys handed over to buyer. When 'Handed Over', a green badge is shown on the landlord card."
+    },
     "project_name": {
       "type": "string"
     },
