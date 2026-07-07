@@ -104,7 +104,7 @@ const DELIVERY_META = {
   failed:    { label: 'Failed to send', color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)' },
 };
 
-export default function EmailComposer({ landlordId, toEmail, onLogged }) {
+export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged }) {
   const { user } = useCurrentUser();
 
   const [gmailConnected, setGmailConnected] = useState(false);
@@ -113,7 +113,26 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
   const [signatureUrl, setSignatureUrl] = useState('');
   const [checkingConn, setCheckingConn] = useState(true);
 
-  const [to, setTo] = useState(toEmail || '');
+  // Recipient selection — a landlord may have multiple emails (primary + additional_emails).
+  // All are selected by default; the agent can toggle individual emails or add custom recipients.
+  const recipientEmails = useMemo(() => {
+    const list = [toEmail, ...(Array.isArray(allEmails) ? allEmails : [])]
+      .map((e) => String(e || '').trim().toLowerCase())
+      .filter(Boolean);
+    return [...new Set(list)];
+  }, [toEmail, allEmails]);
+  const [selectedEmails, setSelectedEmails] = useState(() => recipientEmails);
+  const [manualTo, setManualTo] = useState('');
+  const to = useMemo(() => {
+    const manual = String(manualTo).split(',').map((s) => s.trim()).filter(Boolean);
+    return [...new Set([...selectedEmails, ...manual])].join(', ');
+  }, [selectedEmails, manualTo]);
+  const toggleEmail = useCallback((em) => {
+    setSelectedEmails((cur) => (cur.includes(em) ? cur.filter((x) => x !== em) : [...cur, em]));
+  }, []);
+  useEffect(() => {
+    setSelectedEmails((cur) => [...new Set([...cur, ...recipientEmails])]);
+  }, [recipientEmails]);
   const [cc, setCc] = useState('');
   const [showCc, setShowCc] = useState(false);
   const [subject, setSubject] = useState('');
@@ -356,7 +375,24 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
           {!gmailConnected && !checkingConn && <a href="/profile" style={{ fontSize: 8, fontWeight: 600, color: 'hsl(38 92% 62%)', textDecoration: 'none' }}>→</a>}
         </span>
         <span style={css("font-size:9px; color:rgba(255,255,255,0.25); flex:none;")}>→</span>
-        <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To — recipient@email.com" style={{ ...css(fieldSm), flex: 1, minWidth: 80, width: 'auto' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 80, flexWrap: 'wrap' }}>
+          {recipientEmails.map((em) => {
+            const on = selectedEmails.includes(em);
+            return (
+              <button key={em} type="button" onClick={() => toggleEmail(em)} title={on ? 'Click to remove from recipients' : 'Click to add as recipient'}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap', background: on ? 'hsl(38 92% 50% / 0.18)' : 'rgba(255,255,255,0.05)', color: on ? 'hsl(38 92% 64%)' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'hsl(38 92% 50% / 0.5)' : 'rgba(255,255,255,0.12)') }}>
+                {em}<span style={{ fontSize: 9, opacity: 0.8 }}>{on ? '✓' : '+'}</span>
+              </button>
+            );
+          })}
+          {recipientEmails.length > 1 && (
+            <button type="button" onClick={() => setSelectedEmails((cur) => cur.length === recipientEmails.length ? [] : recipientEmails)} title="Toggle all landlord emails"
+              style={{ padding: '3px 8px', borderRadius: 99, fontSize: 9.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              {selectedEmails.length === recipientEmails.length ? 'Clear' : 'All'}
+            </button>
+          )}
+          <input type="email" value={manualTo} onChange={(e) => setManualTo(e.target.value)} placeholder="+ add recipient" style={{ ...css(fieldSm), flex: 1, minWidth: 70, width: 'auto' }} />
+        </div>
         <button type="button" onClick={() => setShowCc(s => !s)} title="Show CC field"
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '27px', padding: '0 9px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: showCc ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', flex: 'none' }}>
           Cc

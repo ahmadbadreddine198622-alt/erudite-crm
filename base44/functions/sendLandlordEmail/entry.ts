@@ -124,8 +124,10 @@ Deno.serve(async (req) => {
     const fromEmail = userEntity.gmail_address || user.email;
     const fromName = userEntity.full_name || user.full_name || '';
 
-    if (!to || !EMAIL_RE.test(to)) return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
-    if (cc && !EMAIL_RE.test(cc)) return Response.json({ ok: false, error: 'invalid CC email' }, { status: 400 });
+    const toList = String(to).split(',').map((s) => s.trim()).filter(Boolean);
+    if (toList.length === 0 || toList.some((e) => !EMAIL_RE.test(e))) return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
+    const ccList = cc ? String(cc).split(',').map((s) => s.trim()).filter(Boolean) : [];
+    if (ccList.some((e) => !EMAIL_RE.test(e))) return Response.json({ ok: false, error: 'invalid CC email' }, { status: 400 });
     if (!subject) return Response.json({ ok: false, error: 'subject is required' }, { status: 400 });
     if (!bodyHtml.trim()) return Response.json({ ok: false, error: 'body is required' }, { status: 400 });
     if (!landlordId) return Response.json({ ok: false, error: 'landlord_id is required' }, { status: 400 });
