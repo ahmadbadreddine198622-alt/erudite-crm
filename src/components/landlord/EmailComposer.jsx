@@ -187,15 +187,8 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
     ? `<p data-signature-img="1" style="margin-top:10px;text-align:left;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:300px;max-height:130px;height:auto;border-radius:8px;"/></p>`
     : '', [signatureUrl]);
 
-  // Auto-insert the signature card into the body once on load (only if the body is still blank)
-  useEffect(() => {
-    if (!cardImgHtml) return;
-    setBodyHtml((prev) => {
-      const blank = !prev || prev.trim() === '' || prev === '<p><br></p>';
-      if (!blank) return prev;
-      return cardImgHtml;
-    });
-  }, [cardImgHtml]);
+  // Signature image is NOT shown in the composer (takes too much space);
+  // it's appended to the email body only at send time.
 
   const handleAttach = useCallback(() => {
     const input = document.createElement('input');
@@ -236,7 +229,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       if (!data?.ok) throw new Error(data?.error || 'Draft generation failed');
       const d = data.draft || {};
       setSubject(d.subject || '');
-      setBodyHtml(plainTextToHtml(d.body_native || '') + cardImgHtml);
+      setBodyHtml(plainTextToHtml(d.body_native || ''));
       setBodyGloss(d.body_english_gloss || '');
       setLanguage(d.language || '');
       setAiOpen(false);
@@ -250,7 +243,7 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
 
   const handleTemplateSelect = ({ subject: s, body: b }) => {
     setSubject(replaceMergeFields(s, mergeVars));
-    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)) + cardImgHtml);
+    setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)));
     toast.success('Template loaded — edit as needed');
   };
 
@@ -305,8 +298,8 @@ export default function EmailComposer({ landlordId, toEmail, onLogged }) {
       const sentPlainText = bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim();
       setLastSent({ to: to.trim(), subject: subject.trim(), body: sentPlainText, cc: cc.trim() });
       setSentExpanded(true);
-      // Clear the composer for the next email (keep recipient); signature card re-remains if present
-      setSubject(''); setBodyHtml(cardImgHtml || ''); setAttachments([]); setCc(''); setShowCc(false);
+      // Clear the composer for the next email (signature image is appended on send, not shown here)
+      setSubject(''); setBodyHtml(''); setAttachments([]); setCc(''); setShowCc(false);
       setDelivery({ state: data.delivery === 'sent' ? 'sent' : 'accepted', thread_id: data.thread_id || null, message_id: data.message_id || null, reason: null, checking: false });
       if (data.thread_id) setTimeout(() => recheckDelivery(data.thread_id, data.message_id), 8000);
       if (onLogged) onLogged({ subject: subject.trim(), to: to.trim(), cc });
