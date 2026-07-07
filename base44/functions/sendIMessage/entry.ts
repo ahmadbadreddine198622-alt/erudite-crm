@@ -148,67 +148,60 @@ Deno.serve(async (req) => {
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
 
-    // ── CREATE CHAT FIRST (required for new recipients) ──
-    // BlueBubbles private-api returns "Chat does not exist!" for recipients
-    // we've never messaged before. Creating the chat first fixes this.
-    const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
-    try {
-      const chatNewResp = await fetch(chatNewUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-        body: JSON.stringify({ addresses: [address] }),
-      });
-      const chatNewRaw = await chatNewResp.text();
-      console.log('[sendIMessage] chat/new status:', chatNewResp.status, chatNewRaw.slice(0, 200));
-    } catch (chatErr) {
-      console.warn('[sendIMessage] chat/new failed (non-fatal):', chatErr.message);
-    }
-
-    // Send text message via BlueBubbles
+    // Send text message via BlueBubbles.
+    // Strategy: try private-api first (preferred, works for existing chats). If it
+    // fails with "Chat does not exist!" (new recipient), fall back to chat/new WITH
+    // a message — on macOS Big Sur+ this creates the chat AND sends the message in
+    // one call, which is the BlueBubbles-recommended way to start a new conversation.
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
+    const tempGuid = `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const payload = {
       chatGuid: `iMessage;-;${address}`,
-      tempGuid: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      tempGuid,
       message: messageBody,
       method: 'private-api',
     };
 
-    const resp = await fetch(sendUrl, {
+    let resp = await fetch(sendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
       body: JSON.stringify(payload),
     });
 
-    const raw = await resp.text();
+    let raw = await resp.text();
     let data;
     try { data = JSON.parse(raw); } catch { data = { raw }; }
 
+    // New recipient — private-api can't find the chat. Use chat/new WITH a message
+    // to create the conversation and send the text in a single call.
     if (!resp.ok) {
-      // If private-api fails with "Chat does not exist!", retry WITHOUT a method
-      // (falls back to the server's default send mechanism)
       const errMsg = data?.error?.message || data?.message || '';
-      if (errMsg.includes('Chat does not exist')) {
-        console.warn('[sendIMessage] private-api failed (chat missing), retrying default method...');
-        const retryResp = await fetch(sendUrl, {
+      if (errMsg.includes('Chat does not exist') || errMsg.includes('Message Send Error')) {
+        console.warn('[sendIMessage] private-api failed, trying chat/new with message...');
+        const chatNewUrl = `${serverUrl}/api/v1/chat/new?password=${encodeURIComponent(password)}`;
+        const chatResp = await fetch(chatNewUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
           body: JSON.stringify({
-            chatGuid: `iMessage;-;${address}`,
-            tempGuid: `crm-retry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            addresses: [address],
             message: messageBody,
+            tempGuid: `crm-new-${tempGuid}`,
           }),
         });
-        const retryRaw = await retryResp.text();
-        let retryData;
-        try { retryData = JSON.parse(retryRaw); } catch { retryData = { raw: retryRaw }; }
+        const chatRaw = await chatResp.text();
+        let chatData;
+        try { chatData = JSON.parse(chatRaw); } catch { chatData = { raw: chatRaw }; }
+        console.log('[sendIMessage] chat/new status:', chatResp.status, chatRaw.slice(0, 200));
 
-        if (retryResp.ok) {
-          data = retryData;
+        if (chatResp.ok) {
+          resp = chatResp;
+          raw = chatRaw;
+          data = chatData;
         } else {
           return Response.json({
             error: 'BlueBubbles send failed',
-            status: retryResp.status,
-            detail: retryData?.message || retryData?.error?.message || retryRaw?.slice(0, 500),
+            status: chatResp.status,
+            detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
           }, { status: 502 });
         }
       } else {
