@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Zap, X, Plus, Pencil, Trash2, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { filterVisibleTemplates } from '@/lib/templateVisibility';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const CATEGORY_LABELS = {
   initial_contact: '👋 Initial Contact',
@@ -189,12 +191,15 @@ export default function TemplatePicker({ landlord, agentName = 'Ahmad', onSelect
   const [manageOpen, setManageOpen] = useState(false);
   const [expandedCats, setExpandedCats] = useState({});
   const ref = useRef(null);
+  const { user, isAdmin } = useCurrentUser();
 
-  const { data: templates = [] } = useQuery({
+  const { data: rawTemplates = [] } = useQuery({
     queryKey: ['message-templates'],
     queryFn: () => base44.entities.MessageTemplate.list('sort_order', 200),
     enabled: open,
   });
+
+  const templates = filterVisibleTemplates(rawTemplates, user?.email, isAdmin);
 
   // Close on click outside
   useEffect(() => {
@@ -204,7 +209,7 @@ export default function TemplatePicker({ landlord, agentName = 'Ahmad', onSelect
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const activeTemplates = templates.filter(t => t.is_active !== false);
+  const activeTemplates = templates;
 
   const vars = {
     landlord_name: landlord?.full_name_en || landlord?.full_name || '',

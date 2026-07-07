@@ -12,9 +12,12 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { buildTemplateContext, replaceTemplateVars } from '@/lib/templateVars';
+import { filterVisibleTemplates } from '@/lib/templateVisibility';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 export default function EmailTemplatePicker({ onSelect, channel = 'email', landlordId, compact }) {
   const qc = useQueryClient();
+  const { user, isAdmin } = useCurrentUser();
   const [ctx, setCtx] = useState({});
 
   // Build the merge-field context once per landlord (landlord + current user).
@@ -35,13 +38,17 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email', landl
     return () => { mounted = false; };
   }, [landlordId]);
 
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: rawTemplates = [], isLoading } = useQuery({
     queryKey: ['messageTemplates', channel],
     queryFn: async () => {
       const list = await base44.entities.MessageTemplate.filter({ channel, is_active: true }, '-updated_date', 200);
       return list || [];
     },
   });
+
+  // Apply explicit visibility logic so creators see their own private templates,
+  // shared templates show to everyone, and specific_agents templates show to listed agents.
+  const templates = filterVisibleTemplates(rawTemplates, user?.email, isAdmin);
 
   const handleChange = (e) => {
     const id = e.target.value;
