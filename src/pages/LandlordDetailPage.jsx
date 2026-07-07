@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -1805,6 +1805,7 @@ export default function LandlordDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);
   const [listingManagerDialogOpen, setListingManagerDialogOpen] = useState(false);
@@ -1813,6 +1814,14 @@ export default function LandlordDetailPage() {
   const [mediaInputs, setMediaInputs] = useState({});
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
+
+  // After any change that mutates this landlord (stage move, analysis, appointment),
+  // refresh both this page's record AND the Landlords list cache so the pipeline
+  // reflects the new stage when the agent navigates back.
+  const handleAnalysed = async () => {
+    await refetchLandlord();
+    queryClient.invalidateQueries({ queryKey: ['landlords'] });
+  };
   // Today's outreach checklist — the REAL sequence state shown in the Outreach tab. Auto-ticked by
   // the composer success handlers (tickOutreachStep) and by Call/Qualification entity automations.
   const OUTREACH_TODAY = new Date().toISOString().slice(0, 10);
@@ -2463,7 +2472,7 @@ export default function LandlordDetailPage() {
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
-        onAnalysed={refetchLandlord}
+        onAnalysed={handleAnalysed}
         />
       <FormAUploadDialog
         open={formADialogOpen}
