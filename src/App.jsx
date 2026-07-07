@@ -104,6 +104,7 @@ import TeamPerformance from '@/pages/TeamPerformance';
 import AgentIntelligence from '@/pages/AgentIntelligence';
 import Appointments from '@/pages/Appointments';
 import AutomationsHub from '@/pages/AutomationsHub';
+import IMessageTemplates from '@/pages/IMessageTemplates';
 
 const AuthenticatedApp = () => {
   const location = useLocation();
@@ -224,6 +225,7 @@ const AuthenticatedApp = () => {
         <Route path="/agent-intelligence" element={<AgentIntelligence />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/automations-hub" element={<AutomationsHub />} />
+        <Route path="/imessage-templates" element={<IMessageTemplates />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />

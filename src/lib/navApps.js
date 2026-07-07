@@ -77,6 +77,7 @@ export const ALL_APPS = [
   { label: 'PF Leads',           icon: UserSearch,     path: '/property-finder-leads', gradient: 'from-red-500 to-rose-700',             glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'Appointments',       icon: CalendarCheck,  path: '/appointments',        gradient: 'from-indigo-500 to-blue-700',            glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Automations Hub',    icon: Zap,            path: '/automations-hub',     gradient: 'from-violet-500 to-purple-700',          glowColor: 'rgba(139,92,246,0.40)' },
+  { label: 'iMessage Templates', icon: MessageSquare,  path: '/imessage-templates',  gradient: 'from-blue-500 to-indigo-700',             glowColor: 'rgba(10,132,255,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];
