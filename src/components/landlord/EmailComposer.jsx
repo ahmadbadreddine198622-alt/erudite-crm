@@ -204,7 +204,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   // visible while composing and sent with the email. The CTA grid (sigBlock) is
   // appended to the sent email only, below this signature image.
   const cardImgHtml = useMemo(() => signatureUrl
-    ? `<p data-signature-img="1" style="margin-top:10px;text-align:left;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:300px;max-height:130px;height:auto;border-radius:8px;"/></p>`
+    ? `<p data-signature-img="1" style="margin-top:10px;text-align:left;"><img src="${signatureUrl}" alt="signature" style="display:block;max-width:400px;max-height:230px;height:auto;border-radius:8px;"/></p>`
     : '', [signatureUrl]);
 
   // Signature image is NOT shown in the composer (takes too much space);
