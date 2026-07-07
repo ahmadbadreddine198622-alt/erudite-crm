@@ -1,13 +1,39 @@
-// EmailTemplatePicker — a compact native <select> of the agent's visible email
-// templates. Choosing one loads it into the composer. (Creating new templates is
-// done via the "Save as template" disk in the composer toolbar / the Email Templates page.)
+// EmailTemplatePicker — a compact native <select> of the agent's visible
+// email/iMessage/WhatsApp templates. Choosing one loads it into the composer
+// with all {{merge_fields}} replaced from the current landlord + agent context.
+//
+// Props:
+//   onSelect   (fn)      — called with { subject, body, template } (vars already replaced)
+//   channel    (string)  — 'email' | 'imessage' | 'whatsapp' | 'telegram' | 'sms'
+//   landlordId (string)  — current landlord id (used to build merge-field context)
+//   compact    (bool)    — smaller dropdown width
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { buildTemplateContext, replaceTemplateVars } from '@/lib/templateVars';
 
-export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
+export default function EmailTemplatePicker({ onSelect, channel = 'email', landlordId, compact }) {
   const qc = useQueryClient();
+  const [ctx, setCtx] = useState({});
+
+  // Build the merge-field context once per landlord (landlord + current user).
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      try {
+        const [me, landlord] = await Promise.all([
+          base44.auth.me().catch(() => null),
+          landlordId ? base44.entities.Landlord.get(landlordId).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (mounted) setCtx(buildTemplateContext(landlord, me));
+      } catch {
+        if (mounted) setCtx({});
+      }
+    };
+    run();
+    return () => { mounted = false; };
+  }, [landlordId]);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['messageTemplates', channel],
@@ -22,7 +48,9 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
     const t = templates.find((x) => x.id === id);
     e.target.value = ''; // reset so the same template can be re-picked
     if (!t) return;
-    onSelect?.({ subject: t.subject || '', body: t.body || '', template: t });
+    const subject = replaceTemplateVars(t.subject || '', ctx);
+    const body = replaceTemplateVars(t.body || '', ctx);
+    onSelect?.({ subject, body, template: t });
     base44.entities.MessageTemplate.update(t.id, { usage_count: (t.usage_count || 0) + 1, last_used_at: new Date().toISOString() }).catch(() => {});
     qc.invalidateQueries({ queryKey: ['emailTemplates'] });
     qc.invalidateQueries({ queryKey: ['messageTemplates'] });
@@ -34,7 +62,7 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email' }) {
       value=""
       title="Choose a template"
       style={{
-        height: 32, maxWidth: 190, padding: '0 8px', borderRadius: 8, cursor: 'pointer',
+        height: 32, maxWidth: compact ? 150 : 190, padding: '0 8px', borderRadius: 8, cursor: 'pointer',
         fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif",
         background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)',
         border: '1px solid rgba(255,255,255,0.12)', outline: 'none',

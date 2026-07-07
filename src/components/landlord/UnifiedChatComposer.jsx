@@ -101,7 +101,7 @@ export default function UnifiedChatComposer({
       <div style={css("display:flex; align-items:center; gap:4px; margin-top:6px;")}>
         {/* User message templates (MessageTemplate entity) */}
         <div style={css("position:relative;")}>
-          <EmailTemplatePicker channel={tplChannel} compact onSelect={({ body }) => onPickTemplate(body || '')} />
+          <EmailTemplatePicker channel={tplChannel} landlordId={landlordId} compact onSelect={({ body }) => onPickTemplate(body || '')} />
         </div>
 
         {/* Meta Business Templates — business WhatsApp only */}

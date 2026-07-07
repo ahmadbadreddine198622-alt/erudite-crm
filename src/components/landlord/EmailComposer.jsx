@@ -436,7 +436,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
         <div style={css("display:flex; align-items:center; gap:4px;")}>
           {/* Templates */}
           <div style={css("position:relative;")}>
-            <EmailTemplatePicker onSelect={handleTemplateSelect} />
+            <EmailTemplatePicker landlordId={landlordId} onSelect={handleTemplateSelect} />
           </div>
           {/* AI Draft popover */}
           <Popover open={aiOpen} onOpenChange={setAiOpen}>

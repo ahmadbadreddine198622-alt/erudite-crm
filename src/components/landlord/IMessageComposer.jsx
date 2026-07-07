@@ -298,7 +298,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       <div style={css("display:flex; align-items:center; gap:4px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:4px;")}>
           {/* Templates */}
-          <EmailTemplatePicker channel="imessage" onSelect={handleTemplateSelect} compact />
+          <EmailTemplatePicker channel="imessage" landlordId={landlordId} onSelect={handleTemplateSelect} compact />
 
           {/* AI Draft popover */}
           <Popover open={aiOpen} onOpenChange={setAiOpen}>

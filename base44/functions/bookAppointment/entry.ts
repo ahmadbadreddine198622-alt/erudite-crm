@@ -38,12 +38,13 @@ Deno.serve(async (req) => {
     const reminderList = Array.isArray(reminders) ? reminders.filter((r) => r && r.when_hours != null) : [];
 
     // ── 1. Fetch landlord (optional) ──────────────────────────────────
+    let landlord = null;
     let landlordName = null;
     let landlordEmail = null;
     let landlordPhone = null;
     if (landlord_id) {
       try {
-        const landlord = await base44.entities.Landlord.get(landlord_id);
+        landlord = await base44.entities.Landlord.get(landlord_id);
         landlordName = landlord?.full_name_en || landlord?.full_name_ar || 'Landlord';
         landlordEmail = landlord?.email || null;
         landlordPhone = landlord?.phone || landlord?.whatsapp || null;
@@ -136,10 +137,27 @@ Deno.serve(async (req) => {
     for (const r of reminderList) {
       try {
         const reminderAt = new Date(startMs - Number(r.when_hours) * 3600000).toISOString();
-        const reminderText = (r.text || '')
-          .replace(/\{\{landlord_name\}\}/g, landlordName || 'the owner')
-          .replace(/\{\{agent_name\}\}/g, user.full_name || 'your agent')
-          .replace(/\{\{title\}\}/g, title);
+        // Comprehensive merge-field replacement (matches src/lib/templateVars.js)
+        const rCtx = {
+          owner_first_name: (landlordName || '').split(' ')[0] || '',
+          owner_last_name: (landlordName || '').split(' ').slice(1).join(' ') || '',
+          owner_name: landlordName || 'the owner',
+          landlord_name: landlordName || 'the owner',
+          contact_name: landlordName || '',
+          property_name: landlord?.unit_reference || landlord?.project_name || '',
+          unit_reference: landlord?.unit_reference || '',
+          project_name: landlord?.project_name || '',
+          agent_name: user.full_name || 'your agent',
+          agent_first_name: (user.full_name || '').split(' ')[0] || '',
+          agent_email: user.email || '',
+          agent_title: 'Senior Broker',
+          company_name: 'Erudite Real Estate',
+          title: title || '',
+        };
+        const reminderText = (r.text || '').replace(/\{\{(\w+)\}\}/g, (m, k) => {
+          const v = rCtx[k];
+          return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : m;
+        });
         await base44.asServiceRole.entities.ScheduledMessage.create({
           recipient_phone: landlordPhone || null,
           recipient_name: landlordName || (guestEmails[0] || ''),
