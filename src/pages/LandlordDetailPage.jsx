@@ -36,6 +36,7 @@ import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import EmailList from '@/components/landlord/EmailList';
+import AllActivityTab from '@/components/landlord/AllActivityTab';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
@@ -1347,6 +1348,10 @@ class LandlordDetail extends React.Component {
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <CallsTabList calls={L.calls || []} />
                 </div>
+              ) : this.state.composerType === 'Activity' ? (
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} />
+                </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <EmailList
@@ -1653,7 +1658,7 @@ class LandlordDetail extends React.Component {
                     />
                   );
                 })()}
-                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && this.state.composerType !== 'Chat' && this.state.composerType !== 'Telegram' && this.state.composerType !== 'SMS' && (
+                {this.state.composerType !== 'Email' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'Appointment' && this.state.composerType !== 'Documents' && this.state.composerType !== 'Calls' && this.state.composerType !== 'Chat' && this.state.composerType !== 'Telegram' && this.state.composerType !== 'SMS' && this.state.composerType !== 'Activity' && (
                 <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
                   <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={2} style={css("flex:1; resize:none; min-height:44px; max-height:140px; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto;")}></textarea>
                   {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (

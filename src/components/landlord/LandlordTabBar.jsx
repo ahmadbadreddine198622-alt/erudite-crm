@@ -13,6 +13,7 @@
 import React from 'react';
 
 const TABS = [
+  { key: 'Activity',    label: 'Activity' },
   { key: 'Email',       label: 'Emails' },
   { key: 'iMessage',    label: 'iMessage' },
   { key: 'Chat',        label: 'WhatsApp' },
