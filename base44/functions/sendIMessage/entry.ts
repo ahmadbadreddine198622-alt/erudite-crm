@@ -37,6 +37,32 @@ async function fetchImageAsBase64(url) {
   }
 }
 
+// Send an image attachment via BlueBubbles. Returns true on success.
+async function sendBlueBubblesAttachment(serverUrl, password, address, base64) {
+  try {
+    const attachUrl = `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`;
+    const payload = {
+      chatGuid: `iMessage;-;${address}`,
+      tempGuid: `crm-att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      attachment: base64,
+      method: 'private-api',
+    };
+    const resp = await fetch(attachUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const raw = await resp.text();
+      console.warn('[sendBlueBubblesAttachment] failed:', raw.slice(0, 300));
+    }
+    return resp.ok;
+  } catch (e) {
+    console.error('[sendBlueBubblesAttachment] error:', e);
+    return false;
+  }
+}
+
 // Slug → destination map
 const SHORT_LINK_SLUGS = ['ahmad', 'linkedin'];
 
@@ -84,11 +110,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
-    // Get plain-text signature
+    // Get plain-text signature + company signature image fallback
     let signatureText = '';
+    let companySignatureUrl = '';
     try {
       const settings = await base44.asServiceRole.entities.CompanySettings.list('', 1);
       signatureText = settings?.[0]?.imessage_signature_text || '';
+      companySignatureUrl = settings?.[0]?.signature_url || '';
     } catch (_) { /* best-effort */ }
 
     // Build message body: text + signature + ONE short URL
@@ -109,16 +137,41 @@ Deno.serve(async (req) => {
       messageBody = messageBody.trimEnd() + '\n\n' + signatureText;
     }
 
-    // Append the two branded URLs (fixed — do not change until explicitly requested)
+    // Append the branded CTA URL. eruditeproperty.com is already in the signature
+    // text, so we only append the Property Finder agent-profile link here (avoids
+    // the duplicate URL the user reported).
     let shortUrl = null;
     if (!body.skip_signature) {
-      const fixedUrls = ['https://eruditeproperty.com/', 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
+      const fixedUrls = ['https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
       messageBody = messageBody.trimEnd() + '\n\n' + fixedUrls.join('\n');
       shortUrl = fixedUrls[0];
     }
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
     console.log('[sendIMessage] URL count:', findUrls(messageBody).length);
+
+    // ── SIGNATURE IMAGE (every message) ──
+    // Attach the agent's branded signature card image so it appears above the
+    // name line in the iMessage thread. Sent BEFORE the text so it shows above it.
+    let signatureImageSent = false;
+    if (!body.skip_signature) {
+      const sigImgUrl = user.signature_card_url || user.signature_url || companySignatureUrl;
+      if (sigImgUrl) {
+        try {
+          const sigBase64 = await fetchImageAsBase64(sigImgUrl);
+          if (sigBase64) {
+            signatureImageSent = await sendBlueBubblesAttachment(serverUrl, password, address, sigBase64);
+            console.log('[sendIMessage] signature image attached:', signatureImageSent);
+          } else {
+            console.warn('[sendIMessage] could not fetch signature image:', sigImgUrl);
+          }
+        } catch (e) {
+          console.error('[sendIMessage] signature image error:', e);
+        }
+      } else {
+        console.warn('[sendIMessage] no signature image configured for user');
+      }
+    }
 
     // Send text message via BlueBubbles
     const sendUrl = `${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`;
@@ -157,25 +210,10 @@ Deno.serve(async (req) => {
           console.log('[sendIMessage] fetching banner for attachment:', bannerUrl);
           const bannerBase64 = await fetchImageAsBase64(bannerUrl);
           if (bannerBase64) {
-            const attachUrl = `${serverUrl}/api/v1/message/attachment?password=${encodeURIComponent(password)}`;
-            const attachPayload = {
-              chatGuid: `iMessage;-;${address}`,
-              tempGuid: `crm-banner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              attachment: bannerBase64,
-              method: 'private-api',
-            };
-            const attachResp = await fetch(attachUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-              body: JSON.stringify(attachPayload),
-            });
-            if (attachResp.ok) {
-              bannerSent = true;
+            bannerSent = await sendBlueBubblesAttachment(serverUrl, password, address, bannerBase64);
+            if (bannerSent) {
               console.log('[sendIMessage] banner attached successfully');
               await base44.entities.Landlord.update(landlord_id, { imessage_banner_sent: true });
-            } else {
-              const attachRaw = await attachResp.text();
-              console.warn('[sendIMessage] banner attach failed:', attachRaw.slice(0, 300));
             }
           }
         } else {
@@ -226,6 +264,7 @@ Deno.serve(async (req) => {
       guid: data?.data?.guid || null,
       shortUrl,
       bannerSent,
+      signatureImageSent,
       previewNote: 'OG tags served by static /public/u/*.html files — Apple scrapes these instantly',
     });
   } catch (error) {
