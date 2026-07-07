@@ -91,7 +91,7 @@ function agentSignatureHtml(u = {}) {
   const cta = agentCtaHtml(u);
   // Uploaded handwritten signature image (PNG/JPG stored in the agent's Profile).
   const sigImg = u.signature_url
-    ? `<img src="${u.signature_url}" alt="${fullName} signature" style="display:block;max-width:280px;max-height:130px;margin:8px 0 12px;border:0;outline:none;text-decoration:none;" />`
+    ? `<img src="${u.signature_url}" alt="${fullName} signature" style="display:block;max-width:280px;max-height:130px;margin:8px 0 8px;border:0;outline:none;text-decoration:none;" />`
     : '';
   // Optional rich-text signature block the agent can author in Profile.
   const richSig = u.email_signature_html ? `<div style="margin:6px 0 10px;">${u.email_signature_html}</div>` : '';
