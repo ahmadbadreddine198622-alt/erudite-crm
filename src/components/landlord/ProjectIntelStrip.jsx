@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Layers, Home, Camera, FileText, Globe, Bed } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Layers, Home, Camera, FileText, Globe, Bed, ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
  * ProjectIntelStrip
@@ -74,17 +74,43 @@ export default function ProjectIntelStrip({ landlords, landlordPropertyMap, prop
   const LANG_LABELS = { en: '🇬🇧 EN', ar: '🇦🇪 AR', ru: '🇷🇺 RU', zh: '🇨🇳 ZH', hi: '🇮🇳 HI', fr: '🇫🇷 FR' };
 
   return (
+    <ProjectIntelStripView stats={stats} LANG_LABELS={LANG_LABELS} />
+  );
+}
+
+function ProjectIntelStripView({ stats, LANG_LABELS }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
     <div
-      className="rounded-xl p-3 mb-3"
+      className="rounded-lg px-3 py-1.5 mb-1"
       style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}
     >
-      <div className="flex items-center gap-1.5 mb-2">
-        <Layers className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Project Intelligence</span>
-        <span className="text-[10px] text-white/30 ml-1">{stats.total} owners · {stats.linked} linked units · {stats.unlinked} unlinked</span>
-      </div>
+      {/* Header row — always visible, clickable to toggle */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="flex items-center gap-1.5 w-full text-left"
+      >
+        <Layers className="w-3 h-3 text-amber-400 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Project Intelligence</span>
+        <span className="text-[9px] text-white/30">{stats.total} owners · {stats.linked} linked · {stats.unlinked} unlinked</span>
+        {/* Inline mini-stats — always visible when collapsed */}
+        {!expanded && (
+          <span className="text-[9px] text-white/40 ml-1 flex items-center gap-2.5">
+            <span>🏠 {stats.floorBuckets['1–10']}/{stats.floorBuckets['11–20']}/{stats.floorBuckets['21+']}</span>
+            <span>📷 {stats.photoReady}</span>
+            <span>🎬 {stats.hasMedia}</span>
+            <span>✅ {stats.titleVerified}</span>
+          </span>
+        )}
+        {expanded
+          ? <ChevronUp className="w-3 h-3 text-white/40 ml-auto" />
+          : <ChevronDown className="w-3 h-3 text-white/40 ml-auto" />}
+      </button>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      {/* Expandable detail grid */}
+      {expanded && (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1.5">
         {/* Floor distribution */}
         <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
           <p className="text-[9px] uppercase tracking-wider text-white/30 mb-1.5">Floor Split</p>
@@ -152,6 +178,7 @@ export default function ProjectIntelStrip({ landlords, landlordPropertyMap, prop
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

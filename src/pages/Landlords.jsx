@@ -533,7 +533,7 @@ export default function Landlords() {
 
         {/* Project Intelligence */}
         {filterProject && filterProject !== 'unassigned' && (
-          <div className="mt-2">
+          <div className="mt-1">
             <ProjectIntelStrip
               landlords={allFilteredLandlords}
               landlordPropertyMap={landlordPropertyMap}
