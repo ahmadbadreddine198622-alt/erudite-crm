@@ -96,7 +96,7 @@ const navSections = [
       { label: 'WhatsApp Setup',      icon: MessageCircle,   path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700' },
       { label: 'Broadcasts',          icon: Megaphone,       path: '/broadcasts',          gradient: 'from-purple-500 to-violet-700' },
       { label: 'Email Automations',   icon: Mail,            path: '/email-automations',   gradient: 'from-indigo-500 to-blue-800' },
-      { label: 'Email Templates',     icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
+      { label: 'Template Hub',        icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
       { label: 'Twilio Hub',          icon: PhoneCall,       path: '/twilio',              gradient: 'from-red-500 to-red-800' },
       { label: 'AI Voice',            icon: Mic,             path: '/vapi',                gradient: 'from-violet-500 to-purple-800' },
     ],

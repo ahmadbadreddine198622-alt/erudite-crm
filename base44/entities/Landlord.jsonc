@@ -65,6 +65,22 @@
     "residence_country": {
       "type": "string"
     },
+    "mailing_address": {
+      "type": "string",
+      "description": "Full one-line mailing address (e.g. 'Villa 34, Street 7, Springs 9, Dubai, United Arab Emirates'). Separate from residence_country; does not replace it."
+    },
+    "address_city": {
+      "type": "string",
+      "description": "City only from the mailing address (e.g. 'Dubai', 'London', 'Moscow')"
+    },
+    "address_postal_code": {
+      "type": "string",
+      "description": "Postal / ZIP code"
+    },
+    "address_country": {
+      "type": "string",
+      "description": "Country from the mailing address. Kept separate from residence_country."
+    },
     "is_resident_uae": {
       "type": "boolean",
       "default": false
