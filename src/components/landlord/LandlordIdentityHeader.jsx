@@ -11,6 +11,7 @@ import StraightDivider from '@/components/landlord/StraightDivider';
 import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import IMessageCheckIcon from '@/components/landlord/IMessageCheckIcon';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
@@ -172,8 +173,8 @@ function ChPill({ icon, label, color, bg, border, href, onClick }) {
 }
 
 // Combined row for ONE phone number — the number itself on the left, and the channel pills
-// (Call, Aircall, Twilio, Vapi, WhatsApp) sitting right next to it on the right.
-function PhoneContactRow({ phone, landlord }) {
+// (WhatsApp, iMessage, Call, Aircall, Twilio, Vapi) sitting right next to it on the right.
+function PhoneContactRow({ phone, landlord, landlordId, handles }) {
   if (!phone) return null;
   const digits = phone.replace(/[^0-9]/g, '');
   const cleanTel = phone.replace(/[\s\-()]/g, '');
@@ -184,6 +185,7 @@ function PhoneContactRow({ phone, landlord }) {
         <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)" size={26}>
           <MessageCircle size={12} />
         </ChIcon>
+        <IMessageCheckIcon address={phone} landlordId={landlordId} handles={handles} />
         <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
           <Phone size={12} />
         </ChIcon>
@@ -199,15 +201,18 @@ function PhoneContactRow({ phone, landlord }) {
   );
 }
 
-// Combined row for ONE email — the address on the left, mail icon pill on the right.
-function EmailContactRow({ email }) {
+// Combined row for ONE email — the address on the left, iMessage check + mail icon on the right.
+function EmailContactRow({ email, landlordId, handles }) {
   if (!email) return null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
       <a href={`mailto:${email}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{email}</a>
-      <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
-        <Mail size={12} />
-      </ChIcon>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
+        <IMessageCheckIcon address={email} landlordId={landlordId} handles={handles} />
+        <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
+          <Mail size={12} />
+        </ChIcon>
+      </div>
     </div>
   );
 }
@@ -437,10 +442,10 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
       {(allPhones.length > 0 || allEmails.length > 0) && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {allPhones.map((p, i) => (
-            <PhoneContactRow key={'p' + i} phone={p.value} landlord={L} />
+            <PhoneContactRow key={'p' + i} phone={p.value} landlord={L} landlordId={landlordId} handles={handles} />
           ))}
           {allEmails.map((e, i) => (
-            <EmailContactRow key={'e' + i} email={e.value} />
+            <EmailContactRow key={'e' + i} email={e.value} landlordId={landlordId} handles={handles} />
           ))}
         </div>
       )}

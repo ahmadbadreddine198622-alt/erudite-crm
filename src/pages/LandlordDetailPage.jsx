@@ -1667,6 +1667,7 @@ class LandlordDetail extends React.Component {
               <LandlordIdentityHeader
                 landlord={this.props.rawLandlord}
                 unit={this.props.rawProperty}
+                landlordId={this.state.currentId}
                 imessageChecking={this.state.imessageChecking}
                 onCheckIMessage={this.checkIMessage}
               />
