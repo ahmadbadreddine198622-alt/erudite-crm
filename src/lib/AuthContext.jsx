@@ -8,6 +8,7 @@ const ALLOWED_DOMAIN = 'erudite-estate.com';
 const ALLOWED_EMAILS = [
   'maroofali551@gmail.com',
   'ahmad.badreddine198622@gmail.com',
+  'ahmad@erudite-estate.com',
 ];
 
 function isEmailAllowed(email) {
