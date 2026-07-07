@@ -214,6 +214,7 @@ Deno.serve(async (req) => {
           status: 'sent',
           channel: 'imessage',
           wa_message_id: guid || undefined,
+          agent_email: user.email || null,
         });
       } catch (_) { /* best-effort */ }
     }
