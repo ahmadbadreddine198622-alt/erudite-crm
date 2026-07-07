@@ -1577,7 +1577,7 @@ class LandlordDetail extends React.Component {
                   <EmailComposer
                     landlordId={L.id}
                     toEmail={L.email}
-                    allEmails={Array.isArray(L.additional_emails) ? L.additional_emails : []}
+                    allEmails={Array.isArray(this.props.rawLandlord?.additional_emails) ? this.props.rawLandlord.additional_emails : (Array.isArray(L.additionalEmails) ? L.additionalEmails : [])}
                     onLogged={({ subject })=>{
                       tickOutreachStep('email_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
