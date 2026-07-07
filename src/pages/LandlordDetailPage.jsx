@@ -1620,12 +1620,10 @@ class LandlordDetail extends React.Component {
                   if (!isChatTab) return null;
                   const tplChannel = ct === 'Chat' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
                   const sending = ct === 'Chat' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
-                  // WhatsApp is a shared company line (all agents send from it), like iMessage/Telegram —
-                  // never gated by a personal whatsapp_instance. The backend falls back to the shared line.
-                  const waDisabled = false;
+                  const waDisabled = ct === 'Chat' && (!this.props.currentUser?.whatsapp_instance && this.props.currentUser?.role !== 'admin');
                   const tgDisabled = ct === 'Telegram' && !(this.props.rawLandlord?.telegram_chat_id);
                   const channelDisabled = waDisabled || tgDisabled;
-                  const disabledHint = tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
+                  const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
                   return (
                     <UnifiedChatComposer
                       composerType={ct}
