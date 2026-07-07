@@ -48,10 +48,17 @@ Deno.serve(async (req) => {
   const conversation_id = body.conversation_id;
   const text = body.text;
   const channel = body.channel || 'personal';
+  // Optional attachment: { attachment_url, attachment_name, attachment_media_type }
+  // When set, the message is sent as media (image/document/video/audio) with the text as caption.
+  const attachment_url = body.attachment_url || null;
+  const attachment_name = body.attachment_name || 'attachment';
+  let attachmentMediaType = (body.attachment_media_type || 'document').toLowerCase();
+  if (!['image', 'document', 'video', 'audio'].includes(attachmentMediaType)) attachmentMediaType = 'document';
   
-  // Support both landlord_id OR conversation_id - at least one required
-  if ((!landlord_id && !conversation_id) || !text || !String(text).trim()) {
-    return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
+  // Support both landlord_id OR conversation_id - at least one required.
+  // Text may be empty when sending a media-only message (caption is optional).
+  if ((!landlord_id && !conversation_id) || (!text || !String(text).trim()) && !attachment_url) {
+    return Response.json({ error: 'landlord_id or conversation_id, and (text or attachment) are required' }, { status: 400 });
   }
 
   if (!['business', 'personal', 'malik', 'sameie', 'dari'].includes(channel)) {
@@ -139,6 +146,43 @@ Deno.serve(async (req) => {
       type: 'text',
       text: { body: String(text), preview_url: false },
     };
+
+    // Meta Cloud API: send media by uploading the file to /media first, then referencing its id.
+    if (attachment_url) {
+      try {
+        const fileResp = await fetch(attachment_url);
+        if (!fileResp.ok) throw new Error('Could not fetch attachment from ' + attachment_url);
+        const fileBlob = await fileResp.blob();
+        const mime = fileResp.headers.get('content-type') || 'application/octet-stream';
+        const filename = attachment_name || 'attachment';
+        const form = new FormData();
+        form.append('messaging_product', 'whatsapp');
+        form.append('type', attachmentMediaType === 'image' ? 'image'
+          : attachmentMediaType === 'video' ? 'video'
+          : attachmentMediaType === 'audio' ? 'audio'
+          : 'document');
+        form.append('file', fileBlob, filename);
+        const upResp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/media`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+          body: form,
+        });
+        const upJson = await upResp.json().catch(() => ({}));
+        if (!upResp.ok || !upJson?.id) throw new Error('Meta media upload failed: ' + JSON.stringify(upJson));
+        const mediaId = upJson.id;
+        const typeKey = attachmentMediaType === 'image' ? 'image'
+          : attachmentMediaType === 'video' ? 'video'
+          : attachmentMediaType === 'audio' ? 'audio'
+          : 'document';
+        metaPayload.type = typeKey;
+        metaPayload[typeKey] = { id: mediaId, caption: (text && String(text).trim()) ? String(text) : undefined };
+        // remove the text block to avoid an invalid payload
+        delete metaPayload.text;
+      } catch (e) {
+        return Response.json({ error: 'Failed to prepare media for Meta', detail: String(e?.message || e) }, { status: 502 });
+      }
+    }
+
     try {
       const resp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
         method: 'POST',
@@ -160,12 +204,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
     const instanceName = ownInstance || INSTANCE_MAP[channel];
-    const sendUrl = `${apiUrl}/message/sendText/${instanceName}`;
+    // sendMedia when an attachment is present (caption = text); otherwise plain sendText.
+    const isMedia = !!attachment_url;
+    const sendUrl = isMedia
+      ? `${apiUrl}/message/sendMedia/${instanceName}`
+      : `${apiUrl}/message/sendText/${instanceName}`;
     try {
+      const payload = isMedia
+        ? { number, media: attachment_url, mediatype: attachmentMediaType, caption: String(text || ''), fileName: attachment_name }
+        : { number, text: String(text) };
       const resp = await fetch(sendUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: apiKey },
-        body: JSON.stringify({ number, text: String(text) }),
+        body: JSON.stringify(payload),
       });
       evoStatus = resp.status;
       const raw = await resp.text();
@@ -265,14 +316,15 @@ Deno.serve(async (req) => {
         lead_id: null,
         landlord_id: landlord_id || null,
         direction: 'outbound',
-        body: String(text),
+        body: String(text || ''),
         timestamp: new Date().toISOString(),
         status: 'sent',
         wa_message_id: waId,
         from_number: ownNumber || FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
         to_number: '+' + number,
         channel: effectiveChannel,
-        media_type: 'none',
+        media_type: attachment_url ? attachmentMediaType : 'none',
+        media_url: attachment_url || null,
         assigned_agent_email: conversation?.assigned_agent_email || landlord?.assigned_agent_email || landlord?.listing_manager_email || null,
       });
     } else {
@@ -288,12 +340,14 @@ Deno.serve(async (req) => {
           landlord_id: landlord_id || null,
           phone: number,
           direction: 'outgoing',
-          text: String(text),
+          text: String(text || ''),
           timestamp: new Date().toISOString(),
           status: 'sent',
           wa_message_id: waId,
           channel: channel,
           agent_email: user.email,
+          media_url: attachment_url || null,
+          media_type: attachment_url ? attachmentMediaType : 'none',
           // V3 Phase 0 (RECORD): AI-draft provenance, set ONLY when the send originated from an AI
           // draft (passed by the composer). Non-AI messages keep created_from_ai:false and are otherwise
           // unaffected. Instrumentation only — no behavior/wording/timing change.

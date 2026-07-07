@@ -7,12 +7,29 @@
 // This is a LAYOUT-ONLY redesign — all send/template logic stays in the parent (LandlordDetailPage).
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Save, FileText, X, Zap } from 'lucide-react';
+import { Sparkles, Send, Save, FileText, X, Zap, Paperclip, Loader2 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import EmailTemplatePicker from './EmailTemplatePicker';
 import EmojiPicker from './EmojiPicker';
 import TemplateField from '@/components/common/TemplateField';
 import ChatTemplatePanel from './ChatTemplatePanel';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+
+// Infer a coarse media type from filename / mime so the backend can pick the
+// right send endpoint (image vs document vs video vs audio).
+function detectMediaType(filename, mime) {
+  const ext = String(filename || '').toLowerCase().split('.').pop();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+  if (['mp4', 'mov', '3gp', 'webm', 'mkv'].includes(ext)) return 'video';
+  if (['mp3', 'ogg', 'aac', 'm4a', 'opus', 'wav'].includes(ext)) return 'audio';
+  if (mime) {
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+  }
+  return 'document';
+}
 
 function css(str) {
   const o = {};
@@ -51,9 +68,46 @@ export default function UnifiedChatComposer({
   streamFilter,        // 'business' | 'personal' (Chat only)
   channelDisabled = false,
   disabledHint = '',
+  attachment,          // { file_url, file_name, media_type } | null — current pending attachment
+  onAttachmentChange,  // fn(att | null) — set/clear the pending attachment in parent state
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const taRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Attachment is only available for WhatsApp and Telegram (not SMS).
+  const canAttach = composerType === 'Chat' || composerType === 'Telegram';
+
+  // Pick a file, upload it to Base44 storage, then hand the URL to the parent.
+  const handleFilePick = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+    const maxMb = 25;
+    if (file.size > maxMb * 1024 * 1024) {
+      toast.error(`File too large (max ${maxMb} MB)`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      const url = res?.file_url || res?.data?.file_url || res?.url;
+      if (!url) throw new Error('Upload failed — no file URL returned');
+      onAttachmentChange && onAttachmentChange({
+        file_url: url,
+        file_name: file.name,
+        media_type: detectMediaType(file.name, file.type),
+        mime: file.type || '',
+      });
+    } catch (err) {
+      toast.error('Upload failed: ' + (err?.message || 'unknown error'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAttachment = () => onAttachmentChange && onAttachmentChange(null);
 
   const suggestions = (Array.isArray(aiSuggestedMessages) ? aiSuggestedMessages : [])
     .filter(m => m && typeof m === 'object' && typeof m.text === 'string' && m.text.trim());
@@ -68,8 +122,9 @@ export default function UnifiedChatComposer({
   }, [text, composerType]);
 
   const accent = composerType === 'Telegram' ? '#29b6f6' : composerType === 'SMS' ? '#60a5fa' : '#25D366';
-  const busy = !!(sending || parsing);
-  const canSend = !!((text || '').trim()) && !busy && !channelDisabled;
+  const busy = !!(sending || parsing || uploading);
+  const hasContent = !!((text || '').trim()) || !!attachment;
+  const canSend = hasContent && !busy && !channelDisabled;
 
   // Insert an emoji at the cursor position in the textarea, then restore focus.
   const insertEmoji = (emoji) => {
@@ -114,6 +169,22 @@ export default function UnifiedChatComposer({
 
       {channelDisabled && (
         <div style={css("margin-top:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ {disabledHint || 'Channel not configured'}</div>
+      )}
+
+      {/* Pending attachment chip */}
+      {attachment && (
+        <div style={css("margin-top:6px; display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:9px; background:" + accent + "1a; border:1px solid " + accent + "44;")}>
+          <span style={{ flex: 'none', width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: accent + '33', color: accent, fontSize: 13 }}>
+            {attachment.media_type === 'image' ? '🖼' : attachment.media_type === 'video' ? '🎬' : attachment.media_type === 'audio' ? '🎵' : '📎'}
+          </span>
+          <span style={css("flex:1; min-width:0; font-size:11.5px; color:rgba(255,255,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;")}>
+            {attachment.file_name || 'Attachment'}
+          </span>
+          <button type="button" onClick={removeAttachment} title="Remove attachment"
+            style={css("flex:none; cursor:pointer; background:none; border:none; color:rgba(255,255,255,0.5); padding:2px; display:flex;")}>
+            <X size={13} />
+          </button>
+        </div>
       )}
       {/* Slim icon toolbar — single row */}
       <div style={css("display:flex; align-items:center; gap:4px; margin-top:6px;")}>
@@ -198,6 +269,24 @@ export default function UnifiedChatComposer({
 
         {/* Emoji picker */}
         <EmojiPicker onSelect={insertEmoji} />
+
+        {/* Attachment picker — WhatsApp + Telegram only */}
+        {canAttach && (
+          <>
+            <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFilePick} />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              disabled={busy}
+              title="Attach a file"
+              style={tplBtn(!!attachment, accent)}
+            >
+              {uploading
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Paperclip size={14} />}
+            </button>
+          </>
+        )}
 
         {/* Send — icon button at the end */}
         <button

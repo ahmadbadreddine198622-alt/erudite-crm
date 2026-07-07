@@ -37,6 +37,7 @@ import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import EmailList from '@/components/landlord/EmailList';
 import AllActivityTab from '@/components/landlord/AllActivityTab';
+import { LANDLORD_STAGE_LABELS as _STAGE_LABELS, LANDLORD_STAGE_KEYS as _STAGE_KEYS } from '@/lib/landlordStages';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
@@ -86,10 +87,9 @@ import { useLandlordEmails } from '@/lib/useLandlordEmails';
 class LandlordDetail extends React.Component {
   constructor(props) {
     super(props);
-    this.streamRef = React.createRef();
-    this.composerRef = React.createRef();
-    this.STAGES = ['Initial Contact','Attempted to Contact','Price Discovery','Listing Commitment','Form A Initiation','Form A Signing','Owner Documents','Photos & Videos','Photographer Scheduling','Listing Creation','Internal Verification','Listing Publication','Final Confirmation','Marketing — Agents','Marketing — Network','Open House','Client Blast','Deal Closed'];
-    this.STAGE_KEYS = ['initial_contact','attempted_to_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing','owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification','listing_publication','final_confirmation','marketing_agents','marketing_network','open_house','client_blast','deal_closed'];
+    this.streamRef = React.createRef(); this.composerRef = React.createRef();
+    this.STAGES = _STAGE_LABELS;
+    this.STAGE_KEYS = _STAGE_KEYS;
     const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
     this.state = {
       landlords,
@@ -99,6 +99,7 @@ class LandlordDetail extends React.Component {
       composerText: '',
       appointmentBookingOpen: false,
       composerTime: '',
+      composerAttachment: null, // { file_url, file_name, media_type, mime } | null — pending WhatsApp/Telegram attachment
       // AI-draft note state — which AI field seeded the note (snake_case key) and the
       // exact drafted string that was loaded, so we can detect edits before save.
       noteAiSource: null,
@@ -685,6 +686,7 @@ class LandlordDetail extends React.Component {
     // V3 Phase 0 (RECORD): AI-draft provenance, mirroring saveTask. created_from_ai is true when the
     // text was seeded from an AI message draft (even if edited); was_edited compares sent vs draft.
     const { messageAiSource, messageAiDraft } = this.state;
+    const attachment = this.state.composerAttachment || null;
     const createdFromAi = !!messageAiSource;
     const wasEdited = createdFromAi ? (text !== (messageAiDraft || '')) : false;
     const aiDisposition = createdFromAi ? (wasEdited ? 'edited' : 'accepted') : undefined;
@@ -696,6 +698,9 @@ class LandlordDetail extends React.Component {
         ai_draft_text: createdFromAi ? messageAiDraft : undefined,
         was_edited_after_draft: wasEdited,
         ai_disposition: aiDisposition,
+        attachment_url: attachment ? attachment.file_url : undefined,
+        attachment_name: attachment ? attachment.file_name : undefined,
+        attachment_media_type: attachment ? attachment.media_type : undefined,
       });
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
@@ -705,7 +710,7 @@ class LandlordDetail extends React.Component {
       const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
       this.setState(s=>({
         landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', chatSending:false, messageAiSource:null, messageAiDraft:null,
+        composerText:'', chatSending:false, messageAiSource:null, messageAiDraft:null, composerAttachment: null,
       }), ()=>this.scrollBottom());
     } catch(e){
       toast.error('Failed to send WhatsApp: ' + (e?.message || 'unknown error'));
@@ -752,9 +757,9 @@ class LandlordDetail extends React.Component {
     const L = this.cur();
     if(!L || this._telegramSending) return;
     this._telegramSending = true;
-    this.setState({ telegramSending:true });
+    const attachment = this.state.composerAttachment||null; this.setState({ telegramSending:true });
     try {
-      const res = await base44.functions.invoke('sendTelegram', { landlord_id: L.id, text });
+      const res = await base44.functions.invoke('sendTelegram', { landlord_id: L.id, text, attachment_url: attachment?.file_url, attachment_name: attachment?.file_name, attachment_media_type: attachment?.media_type });
       const data = res?.data ?? res;
       // Graceful fallback: landlord hasn't started a chat with the bot → offer WhatsApp instead.
       if (data?.fallback === 'whatsapp' || (data?.error && /no telegram chat/i.test(data.error))) {
@@ -775,7 +780,7 @@ class LandlordDetail extends React.Component {
       const item = { t:'msg', dir:'out', mtype:'text', channel:'telegram', text, time:'Just now', order };
       this.setState(s=>({
         landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', telegramSending:false,
+        composerText:'', telegramSending:false, composerAttachment: null,
       }), ()=>this.scrollBottom());
     } catch(e){
       toast.error('Failed to send Telegram: ' + (e?.message || 'unknown error'));
@@ -1648,6 +1653,8 @@ class LandlordDetail extends React.Component {
                       })}
                       aiSuggestedMessages={ct === 'Chat' ? L.aiSuggestedMessages : []}
                       onPickSuggested={(text)=> this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })}
+                      attachment={this.state.composerAttachment}
+                      onAttachmentChange={(a)=> this.setState({ composerAttachment: a })}
                       chatTemplatesOpen={this.state.chatTemplatesOpen}
                       onToggleChatTemplates={()=> this.setState(s=>({ chatTemplatesOpen: !s.chatTemplatesOpen }))}
                       landlordId={L.id}

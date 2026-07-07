@@ -18,9 +18,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { landlord_id, text } = body;
     let chatId = body.chat_id;
+    const attachment_url = body.attachment_url || null;
+    const attachment_name = body.attachment_name || 'attachment';
+    const attachmentMediaType = body.attachment_media_type || 'document';
 
-    if (!text || !String(text).trim()) {
-      return Response.json({ error: 'Message text is required' }, { status: 400 });
+    // Text may be empty when sending a media-only message (caption is optional).
+    if ((!text || !String(text).trim()) && !attachment_url) {
+      return Response.json({ error: 'Message text or attachment is required' }, { status: 400 });
     }
 
     // Resolve the destination chat_id: explicit > landlord.telegram_chat_id.
@@ -68,12 +72,30 @@ Deno.serve(async (req) => {
       } catch (_) { isFirstContact = false; }
     }
 
-    // Telegram Bot API sendMessage.
-    const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: messageBody }),
-    });
+    // Telegram Bot API: send media when an attachment is present, otherwise plain text.
+    let resp;
+    if (attachment_url) {
+      const isImage = attachmentMediaType === 'image';
+      const endpoint = isImage ? 'sendPhoto' : 'sendDocument';
+      const mediaKey = isImage ? 'photo' : 'document';
+      const mediaResp = await fetch(`https://api.telegram.org/bot${token}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          [mediaKey]: attachment_url,
+          caption: messageBody || undefined,
+          parse_mode: undefined,
+        }),
+      });
+      resp = mediaResp;
+    } else {
+      resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: messageBody }),
+      });
+    }
 
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || !data?.ok) {
