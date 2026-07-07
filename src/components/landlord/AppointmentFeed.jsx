@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Calendar, Phone, Video, MapPin, ChevronDown, Plus, Clock, Users } from 'lucide-react';
+import { Calendar, Phone, Video, MapPin, ChevronDown, Plus, Clock, Users, UserCircle2 } from 'lucide-react';
 
 function css(str) {
   const o = {};
@@ -42,6 +42,7 @@ function normalizeAppt(item) {
     source: 'appointment',
     created_from_ai: item.created_from_ai || false,
     created_date: item.created_date,
+    agent_email: item.agent_email || '',
   };
 }
 
@@ -58,6 +59,7 @@ function normalizeViewing(item) {
     source: 'viewing',
     created_from_ai: item.created_from_ai || false,
     created_date: item.created_date,
+    agent_email: item.agent_email || '',
   };
 }
 
@@ -74,6 +76,7 @@ function normalizeMeeting(item) {
     source: 'meeting',
     created_from_ai: item.created_from_ai || false,
     created_date: item.created_date,
+    agent_email: item.agent_email || '',
   };
 }
 
@@ -181,7 +184,16 @@ function AppointmentCard({ item }) {
       )}
       {/* Footer strip — channel/duration info + Add comment link (matches mock-up) */}
       <div style={css("display:flex; align-items:center; justify-content:space-between; padding:5px 12px 6px 56px; border-top:1px solid rgba(255,255,255,0.04);")}>
-        <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>
+        <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {item.agent_email ? (
+            <>
+              <span style={css("display:inline-flex; align-items:center; gap:4px;")}>
+                <UserCircle2 size={11} style={{ color: meta.color }} />
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{item.agent_email.split('@')[0]}</span>
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
+            </>
+          ) : null}
           {item.kind === 'call' ? 'Outbound' : item.location ? 'In-person' : 'Scheduled'} · {item.duration} min{item.source === 'appointment' && item.kind === 'call' ? ' · Twilio' : ''}
         </span>
         <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
