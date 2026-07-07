@@ -46,7 +46,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
   const qc = useQueryClient();
   const [form, setForm] = useState({
     title: '', subject: '', body: '', category: 'general',
-    visibility: channel === 'imessage' ? 'shared' : 'private', shared_with_agents: [],
+    visibility: 'private', shared_with_agents: [],
   });
   const [agentEmailInput, setAgentEmailInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -65,7 +65,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         shared_with_agents: Array.isArray(template.shared_with_agents) ? template.shared_with_agents : [],
       });
     } else {
-      setForm({ title: '', subject: '', body: '', category: 'general', visibility: channel === 'imessage' ? 'shared' : 'private', shared_with_agents: [] });
+      setForm({ title: '', subject: '', body: '', category: 'general', visibility: 'private', shared_with_agents: [] });
     }
     setAgentEmailInput('');
   }, [template, open]);
