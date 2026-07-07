@@ -48,6 +48,8 @@ export default function KanbanBoard({
   photographyTasks = [],
   getPhotoForPhone,
   onDragActiveChange,
+  capStages = {},
+  collapseEmpty = false,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [activeStage, setActiveStage] = useState(stages[0]);
@@ -401,6 +403,8 @@ export default function KanbanBoard({
                             getPhotoForPhone={getPhotoForPhone}
                             activeId={activeId}
                             onStageChange={onStageChange}
+                            cap={capStages[stage]}
+                            defaultCollapsed={collapseEmpty && (stageGroups[stage] || []).length === 0}
                           />
                         </div>
                       ))}

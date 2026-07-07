@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered, LayoutGrid, List } from 'lucide-react';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import ProjectSelectorWithUpload from '@/components/landlord/ProjectSelectorWithUpload';
@@ -22,6 +22,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import KanbanBoard from '@/components/landlord/KanbanBoard';
+import ProjectScopeSwitcher from '@/components/landlord/ProjectScopeSwitcher';
+import CommandCenterHero from '@/components/landlord/CommandCenterHero';
+import StrikeList from '@/components/landlord/StrikeList';
+import GroupedLandlordView from '@/components/landlord/GroupedLandlordView';
 import AddLandlordDialog from '@/components/landlord/AddLandlordDialog';
 import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
@@ -100,6 +104,9 @@ export default function Landlords() {
   const safePermissions = permissions || {};
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('today');
+  const [activeTileFilter, setActiveTileFilter] = useState(null);
+  const [boardGroupBy, setBoardGroupBy] = useState('stage');
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showVirtualViewing, setShowVirtualViewing] = useState(false);
@@ -329,6 +336,93 @@ export default function Landlords() {
     return daysSinceCreation > 21 && l.stage !== 'listing_publication';
   }).length;
 
+  // ── Command Center computed values ──
+
+  // Project scope switcher options: "All" + projects sorted by landlord count
+  const projectScopeOptions = useMemo(() => {
+    const counts = {};
+    visibleLandlords.forEach(l => {
+      const pid = l.project_id || '';
+      const pname = l.project_name || (pid ? 'Unnamed Project' : '');
+      if (!pid) { counts.__unassigned = (counts.__unassigned || 0) + 1; return; }
+      if (!counts[pid]) counts[pid] = { id: pid, label: pname, count: 0 };
+      counts[pid].count++;
+    });
+    const projList = Object.entries(counts)
+      .filter(([k]) => k !== '__unassigned')
+      .map(([_, v]) => v)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6); // top 6 projects
+    const allCount = visibleLandlords.length;
+    return [{ id: '', label: 'All', count: allCount }, ...projList];
+  }, [visibleLandlords]);
+
+  // Hero tile counts
+  const heroCounts = useMemo(() => ({
+    strike: visibleLandlords.filter(l => l.ai_strike_now === true).length,
+    review: visibleLandlords.filter(l => l.needs_human_review === true).length,
+    hot: visibleLandlords.filter(l => (l.urgency_score || 0) >= 70).length,
+    new: visibleLandlords.filter(l => l.stage === 'initial_contact' && !l.ai_processed_at).length,
+  }), [visibleLandlords]);
+
+  // Strike List — filtered by active tile, then sorted by urgency × win-probability
+  const strikeListData = useMemo(() => {
+    let list = visibleLandlords;
+    if (activeTileFilter === 'strike') list = list.filter(l => l.ai_strike_now === true);
+    else if (activeTileFilter === 'review') list = list.filter(l => l.needs_human_review === true);
+    else if (activeTileFilter === 'hot') list = list.filter(l => (l.urgency_score || 0) >= 70);
+    else if (activeTileFilter === 'new') list = list.filter(l => l.stage === 'initial_contact' && !l.ai_processed_at);
+    // Apply search query + project scope if set
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(l => {
+        const name = (l.full_name_en || l.full_name || '').toLowerCase();
+        const unit = (l.unit_reference || '').toLowerCase();
+        const phone = (l.phone || '').toLowerCase();
+        return name.includes(q) || unit.includes(q) || phone.includes(q);
+      });
+    }
+    if (filterProject) {
+      list = list.filter(l => l.project_id === filterProject || (filterProject === 'unassigned' && !l.project_id));
+    }
+    return list;
+  }, [visibleLandlords, activeTileFilter, searchQuery, filterProject]);
+
+  // Grouped board data (for Project / Agent grouping)
+  const groupedBoardData = useMemo(() => {
+    if (boardGroupBy === 'stage') return null;
+    const q = searchQuery.trim().toLowerCase();
+    let base = allFilteredLandlords;
+    if (q) {
+      base = base.filter(l => {
+        const name = (l.full_name_en || l.full_name || '').toLowerCase();
+        const unit = (l.unit_reference || '').toLowerCase();
+        return name.includes(q) || unit.includes(q);
+      });
+    }
+    const groups = {};
+    base.forEach(l => {
+      let key, label, color;
+      if (boardGroupBy === 'project') {
+        key = l.project_id || 'unassigned';
+        label = l.project_name || 'Unassigned Project';
+        color = '#5a93e0';
+      } else { // agent
+        key = l.assigned_agent_email || 'unassigned';
+        label = l.assigned_agent_email ? (l.assigned_agent_email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) : 'Unassigned';
+        color = '#3fb98a';
+      }
+      if (!groups[key]) groups[key] = { key, label, color, landlords: [] };
+      groups[key].landlords.push(l);
+    });
+    return Object.values(groups).sort((a, b) => b.landlords.length - a.landlords.length);
+  }, [allFilteredLandlords, boardGroupBy, searchQuery]);
+
+  // Cap config: initial_contact capped to 25 by urgency_score
+  const boardCapStages = useMemo(() => ({ initial_contact: 25 }), []);
+  // Collapse empty stages in the board
+  const boardCollapseEmpty = true;
+
   const handleLandlordCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['landlords'] });
     setShowNewDialog(false);
@@ -448,6 +542,35 @@ export default function Landlords() {
       {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
           so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
       <div className="shrink-0 sticky top-0 z-20 pt-1.5 pb-1" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+        {/* Row 0: Project scope switcher (left) + Today/Board tab toggle (right) */}
+        <div className="flex items-center justify-between gap-3 mb-1.5">
+          <ProjectScopeSwitcher options={projectScopeOptions} value={filterProject} onChange={(v) => setFilterProject(v || '')} />
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setActiveTab('today')}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: activeTab === 'today' ? 'linear-gradient(135deg, rgba(201,162,75,.22), rgba(201,162,75,.08))' : 'rgba(255,255,255,.035)',
+                border: activeTab === 'today' ? '1px solid rgba(201,162,75,.55)' : '1px solid rgba(255,255,255,.08)',
+                color: activeTab === 'today' ? LDC.glite : 'rgba(255,255,255,.6)',
+              }}
+            >
+              <List className="w-3.5 h-3.5" /> Today
+            </button>
+            <button
+              onClick={() => setActiveTab('board')}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: activeTab === 'board' ? 'linear-gradient(135deg, rgba(201,162,75,.22), rgba(201,162,75,.08))' : 'rgba(255,255,255,.035)',
+                border: activeTab === 'board' ? '1px solid rgba(201,162,75,.55)' : '1px solid rgba(255,255,255,.08)',
+                color: activeTab === 'board' ? LDC.glite : 'rgba(255,255,255,.6)',
+              }}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Board
+            </button>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 flex-nowrap overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {/* Title + icon */}
           <div className="flex items-center gap-2.5 shrink-0">
@@ -556,8 +679,8 @@ export default function Landlords() {
           </div>
         )}
 
-        {/* Filters + Bulk Actions — second compact row: filters in a centered scroll track · count pill hard right */}
-        <div className="flex items-center gap-3 w-full mt-1">
+        {/* Filters + Bulk Actions — second compact row (Board tab only): filters in a centered scroll track · count pill hard right */}
+        <div className="flex items-center gap-3 w-full mt-1" style={{ display: activeTab === 'board' ? 'flex' : 'none' }}>
           {selectedIds.size > 0 ? (
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
@@ -743,21 +866,6 @@ export default function Landlords() {
         </div>
       </div>
 
-      {/* Project Intelligence — sits above the board, outside the sticky header so
-          the header height never shifts when a project filter is selected. */}
-      {filterProject && filterProject !== 'unassigned' && (
-        <div className="shrink-0 px-2 pt-1" style={{ paddingLeft: '4.5rem', paddingRight: '0.5rem' }}>
-          <ProjectIntelStrip
-            landlords={allFilteredLandlords}
-            landlordPropertyMap={landlordPropertyMap}
-            properties={properties}
-            landlordProperties={landlordProperties}
-          />
-        </div>
-      )}
-
-      {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
-           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
       <style>{`
         .flex-nowrap::-webkit-scrollbar { display: none; }
         .flex-nowrap { -ms-overflow-style: none; scrollbar-width: none; }
@@ -767,26 +875,97 @@ export default function Landlords() {
         .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
         .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
       `}</style>
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
-        <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-        <KanbanBoard
-          stages={STAGES}
-          stageLabels={STAGE_LABELS}
-          stageGroups={filteredGroups}
-          selectedLandlordId={null}
-          onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
-          onStageChange={handleStageChange}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          users={users}
-          onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
-          photographyTasks={photographyTasks}
-          getPhotoForPhone={getPhotoForPhone}
-          onDragActiveChange={() => {}}
-          style={{ height: '100%' }}
-        />
+
+      {/* ── Today view: hero tiles + strike list ── */}
+      {activeTab === 'today' && (
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0.75rem 1rem 2rem 4.5rem' }}>
+          <CommandCenterHero counts={heroCounts} activeFilter={activeTileFilter} onToggle={setActiveTileFilter} />
+          <div className="mt-4 max-w-3xl">
+            <StrikeList
+              landlords={strikeListData}
+              activeFilter={activeTileFilter}
+              onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
+              getPhotoForPhone={getPhotoForPhone}
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Board view: group-by toggle + project intel + kanban/grouped ── */}
+      {activeTab === 'board' && (
+        <>
+          {/* Group-by toggle */}
+          <div className="shrink-0 flex items-center gap-2 px-2 pb-1" style={{ paddingLeft: '4.5rem' }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: LDC.slate, fontFamily: "'Inter',sans-serif" }}>Group by</span>
+            {['stage', 'project', 'agent'].map((g) => (
+              <button
+                key={g}
+                onClick={() => setBoardGroupBy(g)}
+                className="px-2.5 h-7 rounded-full text-[11px] font-semibold transition-all"
+                style={{
+                  background: boardGroupBy === g ? 'rgba(201,162,75,.15)' : 'rgba(255,255,255,.035)',
+                  border: boardGroupBy === g ? '1px solid rgba(201,162,75,.45)' : '1px solid rgba(255,255,255,.08)',
+                  color: boardGroupBy === g ? LDC.gold : 'rgba(255,255,255,.5)',
+                }}
+              >
+                {g === 'stage' ? 'Stage' : g === 'project' ? 'Project' : 'Agent'}
+              </button>
+            ))}
+          </div>
+
+          {/* Project Intelligence */}
+          {filterProject && filterProject !== 'unassigned' && (
+            <div className="shrink-0 px-2 pt-1" style={{ paddingLeft: '4.5rem', paddingRight: '0.5rem' }}>
+              <ProjectIntelStrip
+                landlords={allFilteredLandlords}
+                landlordPropertyMap={landlordPropertyMap}
+                properties={properties}
+                landlordProperties={landlordProperties}
+              />
+            </div>
+          )}
+
+          {/* Kanban Board (stage grouping) or Grouped View (project/agent) */}
+          {boardGroupBy === 'stage' ? (
+            <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+              <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+                <KanbanBoard
+                  stages={STAGES}
+                  stageLabels={STAGE_LABELS}
+                  stageGroups={filteredGroups}
+                  selectedLandlordId={null}
+                  onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
+                  onStageChange={handleStageChange}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  users={users}
+                  onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
+                  photographyTasks={photographyTasks}
+                  getPhotoForPhone={getPhotoForPhone}
+                  onDragActiveChange={() => {}}
+                  capStages={boardCapStages}
+                  collapseEmpty={boardCollapseEmpty}
+                  style={{ height: '100%' }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '0.5rem 1rem 2rem 4.5rem' }}>
+              <GroupedLandlordView
+                groups={groupedBoardData || []}
+                selectedLandlordId={null}
+                selectedIds={selectedIds}
+                onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
+                onToggleSelect={toggleSelect}
+                users={users}
+                onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
+                photographyTasks={photographyTasks}
+                getPhotoForPhone={getPhotoForPhone}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Dialogs */}
       <AddLandlordDialog
