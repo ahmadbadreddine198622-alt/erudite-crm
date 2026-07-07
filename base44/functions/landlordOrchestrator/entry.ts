@@ -481,7 +481,14 @@ Reason over all of the above and emit the orchestrator result.`;
         review_reason: result.review_reason
       });
 
-      if (result.new_stage && result.new_stage !== landlord.stage && STAGES.indexOf(result.new_stage) >= 0) {
+      // Stage writes are FORWARD-ONLY: the AI may advance the pipeline when evidence supports it,
+      // but it must NEVER regress a stage a human set manually (e.g. reverting price_discovery back
+      // to initial_contact). This was the root cause of landlords snapping back to initial_contact
+      // ~5 min after a manual stage move — the backfill/orchestrator overwrote the human's choice.
+      const curStageIdx = STAGES.indexOf(landlord.stage);
+      const newStageIdx = STAGES.indexOf(result.new_stage);
+      if (result.new_stage && result.new_stage !== landlord.stage &&
+          newStageIdx >= 0 && newStageIdx > curStageIdx) {
         update.stage = result.new_stage;
         update.stage_entered_at = new Date().toISOString();
         // stage_history item shape matches the live Landlord schema: {stage, entered_at, duration_days}.
