@@ -13,6 +13,13 @@ import { toast } from 'sonner';
 
 const GOLD = '#C9A24B';
 
+function fmtNoteDate(d) {
+  if (!d) return '';
+  const x = new Date(d);
+  if (isNaN(x)) return '';
+  return x.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
 function css(str) {
   const o = {};
   String(str).split(';').forEach((decl) => {
@@ -37,7 +44,7 @@ export default function FounderBossVoiceButton({
   const [refining, setRefining] = useState(false);
   const [prevText, setPrevText] = useState(null);
 
-  const buildContext = () => {
+  const buildContext = async () => {
     const parts = [];
     parts.push(`Landlord: ${landlord?.full_name_en || landlord?.full_name || 'Unknown'}`);
     parts.push(`Stage: ${landlord?.stage || 'unknown'}`);
@@ -52,6 +59,27 @@ export default function FounderBossVoiceButton({
     if (landlord?.ai_rolling_summary) parts.push(`AI summary: ${String(landlord.ai_rolling_summary).slice(0, 400)}`);
     if (landlord?.ai_next_best_action?.action) parts.push(`AI next-best-action: ${landlord.ai_next_best_action.action}`);
     if (landlord?.assigned_agent_email) parts.push(`Assigned agent: ${landlord.assigned_agent_email}`);
+
+    // Pull the 5 most recent agent notes so the directive incorporates what
+    // agents are learning on the ground — objections, feedback, landlord mood.
+    try {
+      const notes = await base44.entities.LandlordNote.filter(
+        { landlord_id: landlordId },
+        '-created_date',
+        5
+      );
+      if (notes && notes.length) {
+        const noteBlock = notes
+          .filter(n => n.body && String(n.body).trim())
+          .map(n => `- ${n.author_name || n.author_email || 'Agent'} (${fmtNoteDate(n.created_date)}): ${String(n.body).trim().slice(0, 300)}`)
+          .join('\n');
+        if (noteBlock) {
+          parts.push('\nRECENT AGENT NOTES (what the team is learning on the ground):');
+          parts.push(noteBlock);
+        }
+      }
+    } catch (_) { /* notes are supplementary — don't block the directive */ }
+
     return parts.join('\n');
   };
 
@@ -62,6 +90,7 @@ export default function FounderBossVoiceButton({
     }
     setRefining(true);
     try {
+      const context = await buildContext();
       const prompt = `You are the founder of a Dubai real-estate brokerage, speaking to one of your agents about a specific landlord deal. 
 
 The founder's raw notes (what they actually want to say):
@@ -70,7 +99,7 @@ ${draftText.trim()}
 """
 
 Live landlord context:
-${buildContext()}
+${context}
 
 Rewrite the founder's notes as a polished FOUNDER DIRECTIVE — a clear, actionable instruction the agent reads and acts on. 
 
