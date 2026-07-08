@@ -1932,10 +1932,6 @@ export default function LandlordDetailPage() {
   const { data: tasks = [] } = useQ(['landlord_tasks', id], () => safe(() => base44.entities.LandlordTask.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
   // LandlordAppointment records — historical follow-ups with channel + datetime for the Follow-up tab.
   const { data: followups = [] } = useQ(['landlord_followups', id], () => safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: id }, '-datetime', 100)), { enabled: !!id });
-  // Founder directives — appear chronologically in the activity timeline
-  const { data: directives = [] } = useQ(['landlord_directives_stream', id], () => safe(() => base44.entities.LandlordDirective.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
-  // Activity comments — founder coaching annotations on specific activity items
-  const { data: activityComments = [] } = useQ(['activity_comments', id], () => safe(() => base44.entities.ActivityComment.filter({ landlord_id: id }, '-created_date', 500)), { enabled: !!id, refetchInterval: 15000 });
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
@@ -2482,7 +2478,6 @@ export default function LandlordDetailPage() {
         formAContracts={formAContracts}
         currentUser={currentUser}
         isAdmin={isAdmin}
-        activityComments={activityComments}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
