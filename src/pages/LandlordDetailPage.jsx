@@ -1834,8 +1834,6 @@ class LandlordDetail extends React.Component {
                 phone={L.phone}
                 whatsapp={L.whatsapp}
               />
-              <CallQualificationTab landlord={this.props.landlords?.[0] || L} />
-
               <MediaPanel media={vm.media} />
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
