@@ -81,7 +81,7 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
 
-export default function AllActivityTab({ items, landlordId, landlordName, comments, isAdmin, currentUser, canCoach, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
+export default function AllActivityTab({ items, landlordId, landlordName, comments, directives, isAdmin, currentUser, canCoach, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -260,6 +260,9 @@ ${timeline}`,
 
   return (
     <div style={css("display:flex; flex-direction:column; gap:6px; padding:2px 0 8px;")}>
+      {/* Founder Memories — all founder directives + coaching comments in one log */}
+      <FounderMemoriesPanel directives={directives || []} comments={comments || []} canCoach={canCoach} />
+
       {/* Channel filter pills */}
       {channelKeys.length > 1 && (
         <div style={css("display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:6px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);")}>
