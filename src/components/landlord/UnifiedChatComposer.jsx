@@ -71,6 +71,7 @@ export default function UnifiedChatComposer({
   disabledHint = '',
   attachment,          // { file_url, file_name, media_type } | null — current pending attachment
   onAttachmentChange,  // fn(att | null) — set/clear the pending attachment in parent state
+  targetLanguage,      // landlord's preferred language code — enables bidirectional EN↔target editing
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const taRef = useRef(null);
@@ -183,6 +184,7 @@ export default function UnifiedChatComposer({
         voiceCanSendAudio={composerType !== 'SMS'}
         onVoiceSent={(url, name) => { if (onAttachmentChange) onAttachmentChange({ file_url: url, file_name: name, media_type: 'audio', mime: 'audio/webm' }); setTimeout(() => { if (onSend) onSend(); }, 80); }}
         onVoiceText={(t) => onTextChange({ target: { value: t } })}
+        targetLanguage={targetLanguage}
         inputRef={taRef}
         minHeight={44}
       >

@@ -1661,6 +1661,7 @@ class LandlordDetail extends React.Component {
                       streamFilter={this.state.streamFilter}
                       channelDisabled={channelDisabled}
                       disabledHint={disabledHint}
+                      targetLanguage={this.props.rawLandlord?.preferred_language}
                     />
                   );
                 })()}

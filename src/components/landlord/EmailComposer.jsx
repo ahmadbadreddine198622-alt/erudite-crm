@@ -161,6 +161,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [saveTemplatePrefill, setSaveTemplatePrefill] = useState(null);
   const [mergeVars, setMergeVars] = useState({});
+  const [preferredLanguage, setPreferredLanguage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [translating, setTranslating] = useState(false);
   const [transOpen, setTransOpen] = useState(false);
@@ -169,6 +170,10 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [toneBusy, setToneBusy] = useState(false);
   const [autoGloss, setAutoGloss] = useState('');
   const [autoGlossBusy, setAutoGlossBusy] = useState(false);
+  const [glossEdited, setGlossEdited] = useState(false);
+  const [backTranslating, setBackTranslating] = useState(false);
+  const skipAutoGloss = useRef(false);
+  const backTranslateTimer = useRef(null);
 
   const quillRef = useRef(null);
   const autoGlossTimer = useRef(null);
@@ -212,6 +217,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
               project_name: l?.project_name || l?.project || '',
               agent_name: user?.full_name || '',
             });
+            setPreferredLanguage(l?.preferred_language || '');
           }
         } catch {}
       }
@@ -227,7 +233,9 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   // Auto-translate non-English body to English — always visible for the agent.
   useEffect(() => {
     const text = bodyPlainText;
-    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(''); return; }
+    if (skipAutoGloss.current) { skipAutoGloss.current = false; return; }
+    setGlossEdited(false);
+    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(text); return; }
     if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current);
     autoGlossTimer.current = setTimeout(async () => {
       setAutoGlossBusy(true);
@@ -241,7 +249,35 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
       } catch { /* silent */ } finally { setAutoGlossBusy(false); }
     }, 800);
     return () => { if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current); };
-  }, [bodyPlainText]);
+  }, [bodyPlainText, glossEdited]);
+
+  // When the agent edits the English translation, back-translate to the
+  // landlord's language and update the email body (HTML).
+  const onGlossEdit = (e) => {
+    const newText = e?.target?.value ?? '';
+    setGlossEdited(true);
+    setAutoGloss(newText);
+    const targetLang = preferredLanguage;
+    if (!targetLang || targetLang === 'en') return;
+    const langLabel = TRANSLATE_LANGS.find((l) => l.code === targetLang)?.label || targetLang;
+    if (backTranslateTimer.current) clearTimeout(backTranslateTimer.current);
+    backTranslateTimer.current = setTimeout(async () => {
+      if (!newText.trim()) return;
+      setBackTranslating(true);
+      try {
+        const res = await base44.integrations.Core.InvokeLLM({
+          prompt: `Translate the following message into ${langLabel}. Preserve the tone, meaning, and any placeholders. Output ONLY the translated text — no quotes, no commentary.\n\nMessage:\n${newText}`,
+          response_json_schema: { type: 'object', properties: { translated: { type: 'string' } } },
+        });
+        const data = res?.data ?? res;
+        const translated = data?.translated || '';
+        if (translated) {
+          skipAutoGloss.current = true;
+          setBodyHtml(plainTextToHtml(translated));
+        }
+      } catch { /* silent */ } finally { setBackTranslating(false); }
+    }, 1000);
+  };
 
   // The agent's signature image — auto-inserted into the editable body so it's
   // visible while composing and sent with the email. The CTA grid (sigBlock) is
@@ -509,15 +545,21 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
         </div>
       </div>
 
-      {/* Auto English translation — persistent, always visible for non-English text */}
-      {(autoGloss || autoGlossBusy) && (
+      {/* Auto English translation — editable so the agent can correct it.
+          When preferredLanguage is set, editing the English back-translates to
+          the landlord's language in the email body. */}
+      {(autoGloss || autoGlossBusy || (preferredLanguage && preferredLanguage !== 'en')) && (
         <div style={css("border-radius:8px; padding:7px 9px; margin-bottom:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);")}>
           <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>
-            English translation (for you){autoGlossBusy ? ' …' : ''}
+            English translation (for you){autoGlossBusy ? ' …' : ''}{backTranslating ? ' → translating back' : ''}
           </span>
-          <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.6); white-space:pre-wrap; margin-top:3px; max-height:140px; overflow:auto;")}>
-            {autoGloss || ''}
-          </div>
+          <textarea
+            value={autoGloss}
+            onChange={onGlossEdit}
+            rows={1}
+            placeholder={preferredLanguage && preferredLanguage !== 'en' ? 'Write in English — it will be translated to ' + (TRANSLATE_LANGS.find((l) => l.code === preferredLanguage)?.label || preferredLanguage) : 'English translation'}
+            style={css("display:block; width:100%; resize:none; min-height:32px; max-height:140px; padding:6px 9px; margin-top:4px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); font-size:12px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto; outline:none;")}
+          />
         </div>
       )}
 

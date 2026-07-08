@@ -338,6 +338,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         onVoiceSent={(url, name) => { setAttachment({ file_url: url, file_name: name, media_type: 'audio' }); setTimeout(() => { send(); }, 80); }}
         onVoiceText={(t) => { setText(t); setHasDraft(false); }}
         gloss={hasDraft ? draftGloss : undefined}
+        targetLanguage={language || undefined}
         inputRef={taRef}
         minHeight={54}
       >

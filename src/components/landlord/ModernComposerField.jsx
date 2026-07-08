@@ -77,6 +77,7 @@ export default function ModernComposerField({
   onVoiceSent = () => {},         // (fileUrl, filename) — parent sends audio as attachment
   onVoiceText = () => {},         // (transcript) — parent drops transcript into the field
   gloss,                          // optional external English translation (from AI draft)
+  targetLanguage,                 // landlord's preferred language code (e.g. 'hi', 'ar', 'ru', 'zh') — enables bidirectional editing
   children,                       // left-cluster toolbar icons (templates / AI / attach / emoji)
   inputRef, minHeight = 72,
 }) {
@@ -93,6 +94,13 @@ export default function ModernComposerField({
   const [autoGloss, setAutoGloss] = useState('');
   const [autoGlossBusy, setAutoGlossBusy] = useState(false);
   const autoGlossTimer = useRef(null);
+  const [glossEdited, setGlossEdited] = useState(false);
+  const [backTranslating, setBackTranslating] = useState(false);
+  const skipAutoGloss = useRef(false);
+  const backTranslateTimer = useRef(null);
+
+  const langLabel = TRANSLATE_LANGS.find((l) => l.code === targetLanguage)?.label || '';
+  const hasTargetLang = targetLanguage && targetLanguage !== 'en' && langLabel;
 
   // Auto-grow textarea to a sensible max.
   useEffect(() => {
@@ -106,8 +114,11 @@ export default function ModernComposerField({
   // can read what they're sending in a language they understand.
   useEffect(() => {
     const text = String(value || '').trim();
-    if (gloss) return; // external gloss (AI draft) takes priority
-    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(''); return; }
+    if (gloss && !glossEdited) return; // external gloss (AI draft) takes priority until edited
+    if (skipAutoGloss.current) { skipAutoGloss.current = false; return; }
+    // User edited the main field → resume auto-translation mode
+    setGlossEdited(false);
+    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(text); return; }
     if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current);
     autoGlossTimer.current = setTimeout(async () => {
       setAutoGlossBusy(true);
@@ -121,7 +132,33 @@ export default function ModernComposerField({
       } catch { /* silent */ } finally { setAutoGlossBusy(false); }
     }, 800);
     return () => { if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current); };
-  }, [value, gloss]);
+  }, [value, gloss, glossEdited]);
+
+  // When the agent edits the English translation, back-translate to the
+  // landlord's language and update the main message field.
+  const onGlossEdit = (e) => {
+    const newText = e?.target?.value ?? '';
+    setGlossEdited(true);
+    setAutoGloss(newText);
+    if (!hasTargetLang) return;
+    if (backTranslateTimer.current) clearTimeout(backTranslateTimer.current);
+    backTranslateTimer.current = setTimeout(async () => {
+      if (!newText.trim()) return;
+      setBackTranslating(true);
+      try {
+        const res = await base44.integrations.Core.InvokeLLM({
+          prompt: `Translate the following message into ${langLabel}. Preserve the tone, meaning, and any placeholders. Output ONLY the translated text — no quotes, no commentary.\n\nMessage:\n${newText}`,
+          response_json_schema: { type: 'object', properties: { translated: { type: 'string' } } },
+        });
+        const data = res?.data ?? res;
+        const translated = data?.translated || (typeof data === 'string' ? data : '') || '';
+        if (translated) {
+          skipAutoGloss.current = true; // prevent main→English re-translation loop
+          onChange({ target: { value: translated } });
+        }
+      } catch { /* silent */ } finally { setBackTranslating(false); }
+    }, 1000);
+  };
 
   const wordCount = String(value || '').trim() ? String(value || '').trim().split(/\s+/).length : 0;
 
@@ -265,15 +302,26 @@ export default function ModernComposerField({
         </div>
       )}
 
-      {/* Auto English translation — persistent, always visible for non-English text */}
-      {(gloss || autoGloss || autoGlossBusy) && (
+      {/* Auto English translation — editable so the agent can correct it.
+          When targetLanguage is set, editing the English back-translates to
+          the landlord's language in the main field. */}
+      {(gloss || autoGloss || autoGlossBusy || hasTargetLang) && (
         <div style={css("border-radius:8px; padding:7px 9px; margin-bottom:7px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);")}>
           <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>
-            English translation (for you){autoGlossBusy ? ' …' : ''}
+            English translation (for you){autoGlossBusy ? ' …' : ''}{backTranslating ? ' → ' + langLabel : ''}
           </span>
-          <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.6); white-space:pre-wrap; margin-top:3px;")}>
-            {gloss || autoGloss || ''}
-          </div>
+          <textarea
+            value={glossEdited ? autoGloss : (gloss || autoGloss)}
+            onChange={onGlossEdit}
+            rows={1}
+            placeholder={hasTargetLang ? 'Write in English — it will be translated to ' + langLabel + ' above' : 'English translation'}
+            style={css(
+              "display:block; width:100%; resize:none; min-height:32px; max-height:140px; "+
+              "padding:6px 9px; margin-top:4px; border-radius:7px; "+
+              "background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); "+
+              "color:rgba(255,255,255,0.7); font-size:12px; font-family:'Inter',sans-serif; line-height:1.45; overflow-y:auto; outline:none;"
+            )}
+          />
         </div>
       )}
 
