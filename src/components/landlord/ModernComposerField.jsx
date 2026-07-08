@@ -76,6 +76,7 @@ export default function ModernComposerField({
   voiceCanSendAudio = true,      // hide "Send voice" when false (iMessage)
   onVoiceSent = () => {},         // (fileUrl, filename) — parent sends audio as attachment
   onVoiceText = () => {},         // (transcript) — parent drops transcript into the field
+  gloss,                          // optional external English translation (from AI draft)
   children,                       // left-cluster toolbar icons (templates / AI / attach / emoji)
   inputRef, minHeight = 72,
 }) {
@@ -89,6 +90,9 @@ export default function ModernComposerField({
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [toneOpen, setToneOpen] = useState(false);
   const [toneBusy, setToneBusy] = useState(false);
+  const [autoGloss, setAutoGloss] = useState('');
+  const [autoGlossBusy, setAutoGlossBusy] = useState(false);
+  const autoGlossTimer = useRef(null);
 
   // Auto-grow textarea to a sensible max.
   useEffect(() => {
@@ -97,6 +101,27 @@ export default function ModernComposerField({
     ta.style.height = 'auto';
     ta.style.height = Math.min(220, Math.max(minHeight, ta.scrollHeight)) + 'px';
   }, [value, minHeight, ref]);
+
+  // Auto-translate non-English text to English — always visible so the agent
+  // can read what they're sending in a language they understand.
+  useEffect(() => {
+    const text = String(value || '').trim();
+    if (gloss) return; // external gloss (AI draft) takes priority
+    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(''); return; }
+    if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current);
+    autoGlossTimer.current = setTimeout(async () => {
+      setAutoGlossBusy(true);
+      try {
+        const res = await base44.integrations.Core.InvokeLLM({
+          prompt: `Translate the following message into English. Preserve the tone, meaning, and any placeholders. Output ONLY the translated text — no quotes, no commentary.\n\nMessage:\n${text}`,
+          response_json_schema: { type: 'object', properties: { translated: { type: 'string' } } },
+        });
+        const data = res?.data ?? res;
+        setAutoGloss(data?.translated || (typeof data === 'string' ? data : '') || '');
+      } catch { /* silent */ } finally { setAutoGlossBusy(false); }
+    }, 800);
+    return () => { if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current); };
+  }, [value, gloss]);
 
   const wordCount = String(value || '').trim() ? String(value || '').trim().split(/\s+/).length : 0;
 
@@ -237,6 +262,18 @@ export default function ModernComposerField({
             </div>
           </div>
           <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.88); white-space:pre-wrap; max-height:140px; overflow:auto;")}>{translation.text}</div>
+        </div>
+      )}
+
+      {/* Auto English translation — persistent, always visible for non-English text */}
+      {(gloss || autoGloss || autoGlossBusy) && (
+        <div style={css("border-radius:8px; padding:7px 9px; margin-bottom:7px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);")}>
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>
+            English translation (for you){autoGlossBusy ? ' …' : ''}
+          </span>
+          <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.6); white-space:pre-wrap; margin-top:3px;")}>
+            {gloss || autoGloss || ''}
+          </div>
         </div>
       )}
 

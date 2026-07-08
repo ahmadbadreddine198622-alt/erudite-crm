@@ -310,13 +310,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         </div>
       )}
 
-      {/* English gloss if AI-generated in another language */}
-      {draftGloss && draftGloss !== text && (
-        <details style={css("border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:5px 8px; margin-bottom:6px;")}>
-          <summary style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.5); cursor:pointer; list-style:none;")}>English translation (for you)</summary>
-          <div style={css("font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55); margin-top:4px; white-space:pre-wrap;")}>{draftGloss}</div>
-        </details>
-      )}
+      {/* English gloss is now shown inside ModernComposerField via the `gloss` prop */}
 
       {blocked && (
         <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ No iMessage handle for this landlord</div>
@@ -343,6 +337,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         voiceCanSendAudio
         onVoiceSent={(url, name) => { setAttachment({ file_url: url, file_name: name, media_type: 'audio' }); setTimeout(() => { send(); }, 80); }}
         onVoiceText={(t) => { setText(t); setHasDraft(false); }}
+        gloss={hasDraft ? draftGloss : undefined}
         inputRef={taRef}
         minHeight={54}
       >

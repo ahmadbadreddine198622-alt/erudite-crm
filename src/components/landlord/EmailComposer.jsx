@@ -167,8 +167,11 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [translation, setTranslation] = useState(null);
   const [toneOpen, setToneOpen] = useState(false);
   const [toneBusy, setToneBusy] = useState(false);
+  const [autoGloss, setAutoGloss] = useState('');
+  const [autoGlossBusy, setAutoGlossBusy] = useState(false);
 
   const quillRef = useRef(null);
+  const autoGlossTimer = useRef(null);
 
   // Insert an emoji at the cursor position in the ReactQuill editor.
   const insertEmoji = (emoji) => {
@@ -218,6 +221,27 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   }, [landlordId]);
 
   const sigBlock = useMemo(() => (signatureHtml || ''), [signatureHtml]);
+
+  const bodyPlainText = useMemo(() => bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim(), [bodyHtml]);
+
+  // Auto-translate non-English body to English — always visible for the agent.
+  useEffect(() => {
+    const text = bodyPlainText;
+    if (!text || !/[^\u0000-\u007F]/.test(text)) { setAutoGloss(''); return; }
+    if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current);
+    autoGlossTimer.current = setTimeout(async () => {
+      setAutoGlossBusy(true);
+      try {
+        const res = await base44.integrations.Core.InvokeLLM({
+          prompt: `Translate the following message into English. Preserve the tone, meaning, and any placeholders. Output ONLY the translated text — no quotes, no commentary.\n\nMessage:\n${text}`,
+          response_json_schema: { type: 'object', properties: { translated: { type: 'string' } } },
+        });
+        const data = res?.data ?? res;
+        setAutoGloss(data?.translated || (typeof data === 'string' ? data : '') || '');
+      } catch { /* silent */ } finally { setAutoGlossBusy(false); }
+    }, 800);
+    return () => { if (autoGlossTimer.current) clearTimeout(autoGlossTimer.current); };
+  }, [bodyPlainText]);
 
   // The agent's signature image — auto-inserted into the editable body so it's
   // visible while composing and sent with the email. The CTA grid (sigBlock) is
@@ -484,6 +508,18 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
           <ReactQuill ref={quillRef} theme="snow" value={bodyHtml} onChange={setBodyHtml} modules={quillModules} placeholder="Write your email…" />
         </div>
       </div>
+
+      {/* Auto English translation — persistent, always visible for non-English text */}
+      {(autoGloss || autoGlossBusy) && (
+        <div style={css("border-radius:8px; padding:7px 9px; margin-bottom:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);")}>
+          <span style={css("font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>
+            English translation (for you){autoGlossBusy ? ' …' : ''}
+          </span>
+          <div style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.6); white-space:pre-wrap; margin-top:3px; max-height:140px; overflow:auto;")}>
+            {autoGloss || ''}
+          </div>
+        </div>
+      )}
 
       {/* Translation preview — keep original, show below */}
       {translation && (
