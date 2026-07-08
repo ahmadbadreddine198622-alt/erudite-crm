@@ -119,7 +119,7 @@ function useLandlordActivity(landlordId, landlord) {
 }
 
 export default function LandlordMockTabs({ landlordId, landlord, outreachData, onToggleOutreachStep, outreachToggling, qualifyRows, unitRows, negotiationData, infoRows, stage, currentStageKey, pendingStage, onPendingStageChange, stageSaving, stageSaved, onSaveStage, stages, stageKeys, commissionPct, askingPriceAed, formAContractsCount, onNavigate, infoExtrasProps }) {
-  const [active, setActive] = useState('Info');
+  const [active, setActive] = useState('Pipeline');
   const { data: activity = [], isLoading } = useLandlordActivity(landlordId, landlord);
 
   return (
