@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const maxLandlords = (typeof body.max_landlords === 'number' && body.max_landlords > 0) ? Math.floor(body.max_landlords) : 500;
 
     // 1. Active landlords with an assigned agent, not deal_closed.
-    const all = await svc.entities.Landlord.list('-updated_date', 5000).catch(() => []);
+    const all = await svc.entities.Landlord.list('-updated_date', 5000);
     const candidates = (all || []).filter((l) =>
       l && l.assigned_agent_email && !TERMINAL_STAGES.includes(l.stage)
     ).slice(0, maxLandlords);
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         // 3. Dedup + next-touch check in a single pending-followup fetch.
         const pendingFups = await svc.entities.Followup.filter(
           { landlord_id: lid, status: 'pending' }, '-created_date', 50
-        ).catch(() => []);
+        );
 
         const hasLawPending = (pendingFups || []).some((f) => f && f.title === LAW_TITLE);
         if (hasLawPending) { skippedExisting++; return; }
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         // 1b. Future appointment?
         const futureAppts = await svc.entities.LandlordAppointment.filter(
           { landlord_id: lid, status: 'scheduled' }, '-datetime', 50
-        ).catch(() => []);
+        );
         const hasFutureAppt = (futureAppts || []).some(
           (a) => a && a.datetime && new Date(a.datetime).getTime() > now
         );
@@ -126,10 +126,10 @@ Deno.serve(async (req) => {
 
         // 1a. Last outbound contact across the 4 channels.
         const [msgs, ims, tgs, ems] = await Promise.all([
-          svc.entities.Message.filter({ landlord_id: lid, direction: 'outgoing' }, '-timestamp', 1).catch(() => []),
-          svc.entities.IMessage.filter({ landlord_id: lid, direction: 'outbound' }, '-sent_at', 1).catch(() => []),
-          svc.entities.TelegramMessage.filter({ landlord_id: lid, direction: 'outbound' }, '-sent_at', 1).catch(() => []),
-          svc.entities.Email.filter({ landlord_id: lid, direction: 'outbound' }, '-received_at', 1).catch(() => []),
+          svc.entities.Message.filter({ landlord_id: lid, direction: 'outgoing' }, '-timestamp', 1),
+          svc.entities.IMessage.filter({ landlord_id: lid, direction: 'outbound' }, '-sent_at', 1),
+          svc.entities.TelegramMessage.filter({ landlord_id: lid, direction: 'outbound' }, '-sent_at', 1),
+          svc.entities.Email.filter({ landlord_id: lid, direction: 'outbound' }, '-received_at', 1),
         ]);
 
         let lastTs = 0;
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
           priority: ll.ai_strike_now === true ? 'high' : 'normal',
           agent_email: agent,
           created_from_ai: true,
-        }).catch(() => {});
+        });
 
         perAgentCount[agent] = (perAgentCount[agent] || 0) + 1;
         followupsCreated++;
