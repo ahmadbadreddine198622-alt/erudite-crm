@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
     // resilient — a missing entity or query error degrades to [] rather than failing the run.
     const [
       properties, messages, notes, tasks, appointments, followups, calls, meetings, viewings,
-      qualifications, negotiation, stakeholders, activities, docs, brandVoice, directives
+      qualifications, negotiation, stakeholders, activities, docs, brandVoice, directives, coachingComments
     ] = await Promise.all([
       svc.entities.LandlordProperty.filter({ landlord_id }).catch(() => []),
       svc.entities.Message.filter({ landlord_id }, '-timestamp', 60).catch(() => []),
@@ -297,7 +297,8 @@ Deno.serve(async (req) => {
       svc.entities.Activity.filter({ lead_id: landlord_id }, '-created_at', 20).catch(() => []),
       svc.entities.DocumentChecklistItem.filter({ landlord_id }).catch(() => []),
       svc.entities.BrandVoice.filter({ is_active: true }, '-updated_date', 1).then(r => r?.[0]).catch(() => null),
-      svc.entities.LandlordDirective.filter({ landlord_id }, '-created_date', 20)
+      svc.entities.LandlordDirective.filter({ landlord_id }, '-created_date', 20).catch(() => []),
+      svc.entities.ActivityComment.filter({ landlord_id }, '-created_date', 30).catch(() => [])
       ]);
 
     // Derived context
@@ -470,6 +471,9 @@ ${convo || '(no messages yet)'}
 
 AGENT'S OWN NOTES (human-written, high signal):
 ${notesBlock}
+
+FOUNDER COACHING (founder annotations on specific activities — learn from these):
+${(Array.isArray(coachingComments) && coachingComments.length) ? coachingComments.map(c => `- [${fmtDate(c.created_date)}] ${c.author_name || c.author_email || 'founder'} on ${c.activity_type || 'activity'}: ${String(c.comment_text || '').slice(0, 500)}${c.priority ? ` [${c.priority.toUpperCase()}]` : ''}`).join('\n') : '(none yet)'}
 
 EXISTING TASKS — OPEN (${openTasks.length}): ${openTasks.map(t => `"${t.title}"${t.ai_source ? ` [${t.ai_source}]` : ''}`).join(', ') || '(none)'}
 EXISTING TASKS — DONE (${doneTasks.length}): ${doneTasks.map(t => `"${t.title}"`).join(', ') || '(none)'}

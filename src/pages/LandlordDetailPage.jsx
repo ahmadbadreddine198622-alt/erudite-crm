@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import { buildLandlordStream } from '@/lib/buildLandlordStream';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
@@ -1359,7 +1360,7 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Activity' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                  <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                 </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
@@ -1868,6 +1869,10 @@ export default function LandlordDetailPage() {
   // Photography tasks for this landlord — used to resolve a photographer email for
   // routes_to=photographer suggestions (first task with an assigned photographer; blank if none).
   const { data: landlordPhotographyTasks = [] } = useQ(['landlord_photography_tasks', id], () => safe(() => base44.entities.PhotographyTask.filter({ landlord_id: id }, '-created_date', 5)), { enabled: !!id });
+  // Founder directives + coaching comments — feed the stream (so they appear in the timeline)
+  // AND pass through to AllActivityTab for comment threads + FounderMemoriesPanel.
+  const { data: directives = [] } = useQ(['landlord_directives', id], () => safe(() => base44.entities.LandlordDirective.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  const { data: activityComments = [] } = useQ(['landlord_activity_comments', id], () => safe(() => base44.entities.ActivityComment.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
 
   // All CRM users — used to resolve sender emails to real names (not the assigned agent).
   const { data: allUsers = [] } = useQ(['all_users_for_names'], () => safe(() => base44.entities.User.list()));
@@ -2071,148 +2076,12 @@ export default function LandlordDetailPage() {
   if ((Array.isArray(L.form_a_contracts) && L.form_a_contracts.length) || ['form_a_drafted', 'form_a_signed'].includes(L.mandate_status)) connections.docusign = `Form A ${L.mandate_status || 'in progress'}`;
   if (lp.title_deed_verified === true) connections.dld = 'Title verified';
 
-  const stream = [];
-  emailMessages.forEach(em => {
-    const fromLandlord = em.from_email && landlordEmail && em.from_email.toLowerCase() === landlordEmail.toLowerCase();
-    const isOut = !fromLandlord;
-    stream.push({
-      t: 'msg',
-      dir: fromLandlord ? 'in' : 'out',
-      mtype: 'text',
-      channel: 'email',
-      subject: em.subject || '',
-      emailBody: em.body_text || em.snippet || '',
-      text: (em.subject ? em.subject + '\n' : '') + (em.snippet || em.body_text || ''),
-      time: fmtMsgTime(em.received_at || em.created_date),
-      order: tsOf(em.received_at || em.created_date) || 0,
-      fromEmail: em.from_email || '',
-      fromName: em.from_name || '',
-      senderEmail: isOut ? (em.from_email || '') : '',
-      senderName: isOut ? (resolveUserName(em.from_email) || em.from_name || em.from_email || 'Agent') : (em.from_name || L.full_name_en || L.full_name || 'Owner'),
-    });
+  const { stream, calls } = buildLandlordStream({
+    emailMessages, waStreamMessages, iMessages, telegramMessages,
+    callLogs, aircallCalls, aircallByPhone,
+    notes, tasks, followups, directives, activityComments,
+    landlordEmail, L, resolveUserName, deriveWaChannel, tsOf,
   });
-  waStreamMessages.forEach(msg => {
-    const hasImage = msg.media_type === 'image' && msg.media_url;
-    const hasVoice = msg.media_type === 'audio' || msg.is_voice_note === true;
-    const isOut = msg.direction === 'outbound';
-    stream.push({
-      t: 'msg',
-      dir: isOut ? 'out' : 'in',
-      mtype: hasImage ? 'media' : hasVoice ? 'voice' : 'text',
-      text: msg.caption || msg.body || '',
-      mediaUrl: hasImage ? msg.media_url : null,
-      mediaLabel: msg.media_type || '',
-      transcript: msg.transcription || '',
-      transcriptLang: msg.detected_language || '',
-      translation: msg.translations && typeof msg.translations === 'object' ? (msg.translations.en || '') : '',
-      time: fmtMsgTime(msg.timestamp),
-      order: tsOf(msg.timestamp) || 0,
-      wa: deriveWaChannel(msg),
-      senderEmail: isOut ? (msg.assigned_agent_email || '') : '',
-      senderName: isOut ? (resolveUserName(msg.assigned_agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
-    });
-  });
-  iMessages.forEach(msg => {
-    const isOut = msg.direction === 'outbound';
-    stream.push({
-      t: 'msg',
-      dir: isOut ? 'out' : 'in',
-      mtype: 'text',
-      channel: 'imessage',
-      text: msg.body || '',
-      time: fmtMsgTime(msg.sent_at || msg.created_date),
-      order: tsOf(msg.sent_at || msg.created_date) || 0,
-      senderEmail: isOut ? (msg.agent_email || '') : '',
-      senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
-    });
-  });
-  telegramMessages.forEach(msg => {
-    const isOut = msg.direction === 'outbound';
-    stream.push({
-      t: 'msg',
-      dir: isOut ? 'out' : 'in',
-      mtype: 'text',
-      channel: 'telegram',
-      text: msg.body || '',
-      time: fmtMsgTime(msg.sent_at || msg.created_date),
-      order: tsOf(msg.sent_at || msg.created_date) || 0,
-      senderEmail: isOut ? (msg.agent_email || '') : '',
-      senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
-    });
-  });
-  const calls = callLogs.map(c => ({
-    provider: 'twilio',
-    dir: c.direction === 'outbound' ? 'out' : 'in',
-    title: 'Call',
-    who: (resolveUserName(c.agent_email) || '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
-    dur: fmtDuration(c.duration_seconds, c.status),
-    status: mapCallStatus(c.status),
-    recording: !!c.recording_url,
-    recordingUrl: c.recording_url || null,
-    _ts: tsOf(c.started_at || c.created_date),
-  }));
-  // Merge VAPI + Aircall calls (by landlord_id AND by phone), deduped, into the Calls tab so their
-  // recordings get an inline play button. VAPI rows are distinguished by source==='vapi'.
-  const seenCallIds = new Set();
-  [...aircallCalls, ...aircallByPhone].forEach(c => {
-    const uid = c.id || c.aircall_id;
-    if (!uid || seenCallIds.has(uid)) return;
-    seenCallIds.add(uid);
-    const isVapi = c.source === 'vapi' || (c.notes && String(c.notes).startsWith('Vapi'));
-    calls.push({
-      provider: isVapi ? 'vapi' : 'aircall',
-      dir: c.direction === 'inbound' ? 'in' : 'out',
-      title: 'Call',
-      who: (c.agent_name || resolveUserName(c.agent_email) || 'AI') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
-      dur: fmtDuration(c.duration, c.status),
-      status: ['done', 'ended', 'completed'].includes(c.status) ? 'done' : mapCallStatus(c.status),
-      recording: !!(c.recording_url || c.voicemail_url),
-      recordingUrl: c.recording_url || c.voicemail_url || null,
-      _ts: tsOf(c.started_at || c.created_date),
-    });
-  });
-  // Newest-first so the most recent VAPI call (with its recording) sits at the top of the Calls tab.
-  calls.sort((a, b) => (b._ts || 0) - (a._ts || 0));
-  aircallCalls.forEach(call => {
-    stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Aircall`, body: call.from_number || call.to_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
-  });
-  callLogs.forEach(call => {
-    stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: call.to_number || call.from_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0 });
-  });
-  // Notes for the stream — historical LandlordNote records with author + timestamp.
-  notes.forEach(n => {
-    stream.push({
-      t: 'act', kind: 'note',
-      title: 'Note' + (n.created_from_ai ? ' · AI' : ''),
-      body: n.body || '',
-      time: fmtMsgTime(n.created_date),
-      order: tsOf(n.created_date) || 0,
-      author: n.author_name || resolveUserName(n.author_email) || n.author_email || '',
-    });
-  });
-  // Tasks for the stream — historical LandlordTask records with assignee + due date.
-  tasks.forEach(t => {
-    stream.push({
-      t: 'act', kind: 'task',
-      title: 'Task' + (t.created_from_ai ? ' · AI' : '') + (t.due_date ? ' · due ' + t.due_date : ''),
-      body: t.title || '',
-      time: fmtMsgTime(t.created_date),
-      order: tsOf(t.created_date) || 0,
-      author: t.assignee_email || '',
-    });
-  });
-  // Follow-ups for the stream — historical LandlordAppointment records.
-  followups.forEach(f => {
-    stream.push({
-      t: 'act', kind: 'followup',
-      title: 'Follow-up' + (f.created_from_ai ? ' · AI' : '') + ' · ' + (f.channel || 'call') + ' · ' + fmtMsgTime(f.datetime),
-      body: f.notes || '',
-      time: fmtMsgTime(f.created_date || f.datetime),
-      order: tsOf(f.created_date || f.datetime) || 0,
-      author: resolveUserName(f.agent_email) || f.agent_email || '',
-    });
-  });
-  stream.sort((a, b) => (b.order || 0) - (a.order || 0));
 
   const unit = {
     label: prop.unit_no || L.unit_reference || '—',
@@ -2478,6 +2347,9 @@ export default function LandlordDetailPage() {
         formAContracts={formAContracts}
         currentUser={currentUser}
         isAdmin={isAdmin}
+        canCoach={canCoach}
+        comments={activityComments}
+        directives={directives}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
