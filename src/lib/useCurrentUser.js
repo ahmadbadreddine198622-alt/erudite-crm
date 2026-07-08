@@ -24,6 +24,10 @@ export function useCurrentUser() {
     });
   }, []);
 
+  const customRole = user?.custom_role_id
+    ? roles.find(r => r.id === user.custom_role_id)
+    : null;
+
   const owner = isOwner(user?.email); // owners bypass every restriction
   const isAdmin = owner || user?.role === 'admin';
   const isCEO = owner || user?.role === 'ceo';
@@ -32,10 +36,6 @@ export function useCurrentUser() {
   // comments on activity items in the landlord timeline.
   const isDirector = !!(customRole?.name && customRole.name.toLowerCase().includes('director'));
   const canCoach = owner || user?.role === 'admin' || user?.role === 'ceo' || isDirector;
-
-  const customRole = user?.custom_role_id
-    ? roles.find(r => r.id === user.custom_role_id)
-    : null;
 
   const MALIK_EMAIL = 'malik@erudite-estate.com';
   const isMalik = user?.email === MALIK_EMAIL;
