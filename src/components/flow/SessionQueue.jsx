@@ -78,7 +78,7 @@ export default function SessionQueue({ queue, currentIndex, loading, onStart, on
           const stageLabel = (ll.stage || '').replace(/_/g, ' ');
           return (
             <button key={ll.id} type="button" onClick={() => onSelect(idx)}
-              style={css("display:flex; align-items:center; gap:9px; width:100%; padding:9px 11px; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; margin-bottom:2px; transition:background 0.12s;") + (isActive ? '' : ' hover:bg-white/5')}
+              style={css("display:flex; align-items:center; gap:9px; width:100%; padding:9px 11px; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; text-align:left; margin-bottom:2px; transition:background 0.12s;")}
               {...(isActive ? {} : {})}>
               <div style={css("display:flex; flex-direction:column; align-items:center; gap:1px; flex:none; width:28px;")}>
                 <span style={{ fontSize: isActive ? 13 : 12, fontWeight: 700, color: isActive ? 'hsl(38 92% 60%)' : isPast ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.5)' }}>{idx + 1}</span>

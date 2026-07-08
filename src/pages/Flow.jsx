@@ -237,10 +237,10 @@ export default function Flow() {
         </div>
         {/* Tabs */}
         <div style={css("display:flex; align-items:center; gap:4px; padding:3px; border-radius:10px; background:rgba(255,255,255,0.04);")}>
-          <button onClick={() => setTab('session')} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; transition:background 0.12s;") + (tab === 'session' ? 'background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9);' : 'background:transparent; color:rgba(255,255,255,0.5);')}>
+          <button onClick={() => setTab('session')} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; transition:background 0.12s;" + (tab === 'session' ? 'background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9);' : 'background:transparent; color:rgba(255,255,255,0.5);'))}>
             <Layout size={12} /> Session
           </button>
-          <button onClick={() => setTab('unmatched')} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; transition:background 0.12s;") + (tab === 'unmatched' ? 'background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9);' : 'background:transparent; color:rgba(255,255,255,0.5);')}>
+          <button onClick={() => setTab('unmatched')} style={css("display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; transition:background 0.12s;" + (tab === 'unmatched' ? 'background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9);' : 'background:transparent; color:rgba(255,255,255,0.5);'))}>
             <Inbox size={12} /> Unmatched
           </button>
         </div>
@@ -259,7 +259,7 @@ export default function Flow() {
           {/* Mobile panel switcher */}
           <div style={css("flex:none; display:flex; align-items:center; gap:2px; padding:4px; border-bottom:1px solid rgba(255,255,255,0.06); md:hidden;")}>
             {['left', 'center', 'right'].map(p => (
-              <button key={p} onClick={() => setMobilePanel(p)} style={css("flex:1; padding:5px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; text-transform:capitalize;") + (mobilePanel === p ? 'background:rgba(255,255,255,0.08); color:hsl(38 92% 60%);' : 'background:transparent; color:rgba(255,255,255,0.35);')}>
+              <button key={p} onClick={() => setMobilePanel(p)} style={css("flex:1; padding:5px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; border:none; text-transform:capitalize;" + (mobilePanel === p ? 'background:rgba(255,255,255,0.08); color:hsl(38 92% 60%);' : 'background:transparent; color:rgba(255,255,255,0.35);'))}>
                 {p === 'left' ? 'Queue' : p === 'center' ? 'Chat' : 'AI'}
               </button>
             ))}
@@ -268,23 +268,23 @@ export default function Flow() {
           {/* Three-zone layout */}
           <div style={css("flex:1; display:flex; overflow:hidden;")}>
             {/* Left — Session Queue */}
-            <div style={css("width:280px; flex:none; border-right:1px solid rgba(255,255,255,0.08); overflow:hidden; ") + (mobilePanel === 'left' ? 'display:flex;' : 'display:none;') + ' md:flex;'}>
+            <div style={css("width:280px; flex:none; border-right:1px solid rgba(255,255,255,0.08); overflow:hidden;" + (mobilePanel === 'left' ? 'display:flex;' : 'display:none;') + 'md:flex;')}>
               <SessionQueue queue={queue} currentIndex={currentIndex} loading={loading} onStart={startSession} onSelect={goTo} sessionActive={sessionActive} />
             </div>
 
             {/* Center — Conversation */}
-            <div style={css("flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden;") + (mobilePanel === 'center' ? 'display:flex;' : 'display:none;') + ' md:flex;'}>
+            <div style={css("flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden;" + (mobilePanel === 'center' ? 'display:flex;' : 'display:none;') + 'md:flex;')}>
               {/* Landlord header + nav */}
               {currentLandlord && (
                 <div style={css("flex:none; display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.06);")}>
-                  <button onClick={goPrev} disabled={currentIndex === 0} style={css("display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); opacity:") + (currentIndex === 0 ? '0.3;' : '1;')}>
+                  <button onClick={goPrev} disabled={currentIndex === 0} style={css("display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); opacity:" + (currentIndex === 0 ? '0.3;' : '1;'))}>
                     <ChevronLeft size={15} style={{ color: 'rgba(255,255,255,0.6)' }} />
                   </button>
                   <div style={css("flex:1; min-width:0;")}>
                     <div style={css("font-size:13px; font-weight:700; color:rgba(255,255,255,0.9); font-family:'Inter',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;")}>{currentLandlord.full_name_en || currentLandlord.full_name || 'Unknown'}</div>
                     <div style={css("font-size:10px; color:rgba(255,255,255,0.35); font-family:'Inter',sans-serif; text-transform:capitalize;")}>{(currentLandlord.stage || '').replace(/_/g, ' ') || 'no stage'}</div>
                   </div>
-                  <button onClick={goNext} disabled={currentIndex + 1 >= queue.length} style={css("display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); opacity:") + (currentIndex + 1 >= queue.length ? '0.3;' : '1;')}>
+                  <button onClick={goNext} disabled={currentIndex + 1 >= queue.length} style={css("display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:7px; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); opacity:" + (currentIndex + 1 >= queue.length ? '0.3;' : '1;'))}>
                     <ChevronRight size={15} style={{ color: 'rgba(255,255,255,0.6)' }} />
                   </button>
                 </div>
@@ -304,7 +304,7 @@ export default function Flow() {
             </div>
 
             {/* Right — AI Co-Pilot Dock */}
-            <div style={css("width:300px; flex:none; border-left:1px solid rgba(255,255,255,0.08); overflow:hidden; ") + (mobilePanel === 'right' ? 'display:flex;' : 'display:none;') + ' md:flex;'}>
+            <div style={css("width:300px; flex:none; border-left:1px solid rgba(255,255,255,0.08); overflow:hidden;" + (mobilePanel === 'right' ? 'display:flex;' : 'display:none;') + 'md:flex;')}>
               {currentLandlord ? (
                 <AiCopilotDock landlord={currentLandlord} onPickSuggestion={pickSuggestion} />
               ) : (

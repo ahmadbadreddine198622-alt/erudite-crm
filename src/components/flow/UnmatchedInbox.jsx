@@ -224,7 +224,7 @@ export default function UnmatchedInbox() {
                 {g.messages.slice(0, 5).map((m) => (
                   <div key={m.id} style={css("padding:5px 8px; margin-bottom:2px; border-radius:6px; background:rgba(255,255,255,0.02);")}>
                     <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:2px;")}>
-                      <span style={css("font-size:8px; font-weight:600; padding:0 4px; border-radius:4px; background:") + (m.direction === 'incoming' ? 'rgba(96,165,250,0.15); color:#93c5fd;' : 'rgba(245,158,11,0.15); color:hsl(38 92% 60%);')}>{m.direction === 'incoming' ? '← in' : '→ out'}</span>
+                      <span style={css("font-size:8px; font-weight:600; padding:0 4px; border-radius:4px; background:" + (m.direction === 'incoming' ? 'rgba(96,165,250,0.15); color:#93c5fd;' : 'rgba(245,158,11,0.15); color:hsl(38 92% 60%);'))}>{m.direction === 'incoming' ? '← in' : '→ out'}</span>
                       <span style={css("font-size:9px; color:rgba(255,255,255,0.3);")}>{formatTime(m.timestamp)}</span>
                     </div>
                     <span style={css("font-size:10.5px; color:rgba(255,255,255,0.55); line-height:1.4;")}>{(m.text || '').slice(0, 120)}</span>

@@ -79,16 +79,16 @@ export default function VerdictBar({ landlord, onDone, onSnooze, onEscalate }) {
     <div style={css("padding:8px 14px; border-top:1px solid rgba(255,255,255,0.08); flex:none; position:relative;")}>
       <div style={css("display:flex; gap:6px;")}>
         <button type="button" onClick={onDone} disabled={busy}
-          style={css(btnBase + "background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.3); opacity:") + (busy ? '0.5;' : '1;')}>
-          <Check size={14} /> Done
+          style={css(btnBase + "background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.3); opacity:" + (busy ? '0.5;' : '1;'))}>
+            <Check size={14} /> Done
         </button>
         <button type="button" onClick={() => setSnoozeOpen(!snoozeOpen)} disabled={busy}
-          style={css(btnBase + "background:rgba(96,165,250,0.15); color:#93c5fd; border-color:rgba(96,165,250,0.3); opacity:") + (busy ? '0.5;' : '1;')}>
-          <Clock size={14} /> Snooze
+          style={css(btnBase + "background:rgba(96,165,250,0.15); color:#93c5fd; border-color:rgba(96,165,250,0.3); opacity:" + (busy ? '0.5;' : '1;'))}>
+            <Clock size={14} /> Snooze
         </button>
         <button type="button" onClick={() => setEscalateOpen(!escalateOpen)} disabled={busy}
-          style={css(btnBase + "background:rgba(239,68,68,0.15); color:#f87171; border-color:rgba(239,68,68,0.3); opacity:") + (busy ? '0.5;' : '1;')}>
-          <AlertTriangle size={14} /> Escalate
+          style={css(btnBase + "background:rgba(239,68,68,0.15); color:#f87171; border-color:rgba(239,68,68,0.3); opacity:" + (busy ? '0.5;' : '1;'))}>
+            <AlertTriangle size={14} /> Escalate
         </button>
       </div>
 
@@ -102,7 +102,7 @@ export default function VerdictBar({ landlord, onDone, onSnooze, onEscalate }) {
           <input type="datetime-local" value={snoozeDate} onChange={(e) => setSnoozeDate(e.target.value)}
             style={css("width:100%; padding:6px 9px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; color-scheme:dark; outline:none; margin-bottom:7px;")} />
           <button type="button" onClick={handleSnooze} disabled={!snoozeDate || busy}
-            style={css("width:100%; padding:6px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(96,165,250,0.2); color:#93c5fd; border:1px solid rgba(96,165,250,0.4); opacity:") + (!snoozeDate || busy ? '0.5;' : '1;')}>
+            style={css("width:100%; padding:6px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(96,165,250,0.2); color:#93c5fd; border:1px solid rgba(96,165,250,0.4); opacity:" + (!snoozeDate || busy ? '0.5;' : '1;'))}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : 'Create follow-up & advance'}
           </button>
         </div>
@@ -118,7 +118,7 @@ export default function VerdictBar({ landlord, onDone, onSnooze, onEscalate }) {
           <textarea value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} rows={2} placeholder="Why does this need human review?"
             style={css("width:100%; resize:none; padding:6px 9px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; outline:none; margin-bottom:7px;")} />
           <button type="button" onClick={handleEscalate} disabled={busy}
-            style={css("width:100%; padding:6px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); opacity:") + (busy ? '0.5;' : '1;')}>
+            style={css("width:100%; padding:6px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); opacity:" + (busy ? '0.5;' : '1;'))}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : 'Flag for review & advance'}
           </button>
         </div>

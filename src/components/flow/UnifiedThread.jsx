@@ -128,7 +128,7 @@ export default function UnifiedThread({ landlordId, onThreadLoaded }) {
         const Icon = meta.icon;
         const isInbound = item.direction === 'inbound';
         return (
-          <div key={item.id} style={css("display:flex; flex-direction:column; gap:3px; max-width:82%; ") + (isInbound ? 'align-self:flex-start;' : 'align-self:flex-end; align-items:flex-end;')}>
+          <div key={item.id} style={css("display:flex; flex-direction:column; gap:3px; max-width:82%;" + (isInbound ? 'align-self:flex-start;' : 'align-self:flex-end; align-items:flex-end;'))}>
             <div style={css("display:flex; align-items:center; gap:5px; padding:0 4px;")}>
               <Icon size={11} style={{ color: meta.color, flex: 'none' }} />
               {item.subject && <span style={css("font-size:9px; font-weight:600; color:rgba(255,255,255,0.4);")}>{item.subject}</span>}
