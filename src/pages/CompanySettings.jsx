@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, Upload } from "lucide-react";
+import { Loader2, Save, Upload, Wrench } from "lucide-react";
 
 const DEFAULTS = {
   company_name_en: "ERUDITE REAL ESTATE",
@@ -41,8 +41,22 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [fixing, setFixing] = useState(false);
+  const [fixSummary, setFixSummary] = useState(null);
 
   useEffect(() => { load(); }, []);
+
+  async function fixOrphans() {
+    setFixing(true); setFixSummary(null);
+    try {
+      const res = await base44.functions.invoke("fixOrphanMessages", {});
+      const data = res?.data ?? res;
+      setFixSummary(data?.summary || data);
+      setMsg({ type: "success", text: "Orphan messages fixed." });
+    } catch (e) {
+      setMsg({ type: "error", text: "Fix failed: " + (e?.message ?? e) });
+    } finally { setFixing(false); }
+  }
 
   async function load() {
     setLoading(true);
@@ -136,6 +150,29 @@ export default function CompanySettingsPage() {
               </label>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border mb-6">
+        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">Data Maintenance</CardTitle></CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Re-links orphaned WhatsApp messages to landlords, fixes invalid channel values, removes duplicates, and filters noise (own line numbers, shortcodes, landlines).
+            </p>
+            <Button onClick={fixOrphans} disabled={fixing}>
+              {fixing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Fixing…</> : <><Wrench className="w-4 h-4 mr-2" />Fix Orphan Messages</>}
+            </Button>
+          </div>
+          {fixSummary && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Linked to landlord/lead</div><div className="text-lg font-bold text-foreground">{fixSummary.matched ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Still unmatched</div><div className="text-lg font-bold text-foreground">{fixSummary.still_unmatched ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Channels fixed</div><div className="text-lg font-bold text-foreground">{fixSummary.channel_fixed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Duplicates removed</div><div className="text-lg font-bold text-foreground">{fixSummary.duplicates_removed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Noise removed</div><div className="text-lg font-bold text-foreground">{fixSummary.noise_removed ?? 0}</div></div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

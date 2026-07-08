@@ -19,6 +19,11 @@ const MALIK_NUMBER = '+971529871277';
 const SAMEIE_NUMBER = '+971522869064';
 const DARI_NUMBER = '+971559508545';
 
+// Own WhatsApp line numbers (digits-only) — used to filter self-echo and noise from inbound.
+const OWN_LINE_NUMBERS = new Set([
+  '971582806000', '971581806000', '971529871277', '971522869064', '971559508545',
+]);
+
 function stripPlus(raw) {
   if (!raw) return '';
   return String(raw).replace(/^\+/, '').replace(/\s+/g, '').trim();
@@ -352,6 +357,9 @@ Deno.serve(async (req) => {
     : channel === 'sameie' ? SAMEIE_NUMBER
     : channel === 'dari' ? DARI_NUMBER
     : PERSONAL_NUMBER;
+  // Message entity channel is strictly 'business' or 'personal' per its enum.
+  // The raw instance name is stored on Message.instance_name for traceability.
+  const messageChannel = instanceName === 'erudite' ? 'business' : 'personal';
 
   try {
     // ---- Status updates ----
@@ -439,6 +447,23 @@ Deno.serve(async (req) => {
 
     const digitsPhone = jidToDigits(remoteJid);
     if (!digitsPhone || remoteJid.includes('@lid')) return Response.json({ status: 'no_phone', remoteJid });
+
+    // ── Noise filter (inbound only): skip own line numbers, shortcodes, UAE landlines ──
+    if (!fromMe) {
+      const senderDigits = digitsPhone.replace(/\D/g, '');
+      if (OWN_LINE_NUMBERS.has(senderDigits)) {
+        console.log(`[evolutionWebhook] Skipping self-echo from own line: ${senderDigits}`);
+        return Response.json({ status: 'skipped_own_line' });
+      }
+      if (senderDigits.length < 9) {
+        console.log(`[evolutionWebhook] Skipping shortcode sender: ${senderDigits}`);
+        return Response.json({ status: 'skipped_shortcode' });
+      }
+      if (senderDigits.startsWith('9714')) {
+        console.log(`[evolutionWebhook] Skipping UAE landline: ${senderDigits}`);
+        return Response.json({ status: 'skipped_landline' });
+      }
+    }
 
     const e164Phone = normalizePhone(digitsPhone);
     const timestamp = tsToIso(data.messageTimestamp);
@@ -554,7 +579,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Legacy Message record (backward compat) ----
+    // ---- Legacy Message record (backward compat) — with identity resolution + dedup ----
     let legacyMessage = null;
     if (!fromMe) {
       try {
@@ -562,17 +587,28 @@ Deno.serve(async (req) => {
           ? await serviceRole.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => [])
           : [];
         if (!existing?.length) {
+          // Identity resolution: match landlord by phone → additional_phones → WhatsAppNumberCache → lead
+          let landlordId = null, leadId = null, agentEmail = conv?.assigned_agent_email || null;
+          try {
+            const idRes = await serviceRole.functions.invoke('resolveMessageIdentity', { digits_phone: digitsPhone });
+            const idData = idRes?.data ?? idRes;
+            landlordId = idData?.landlord_id || null;
+            leadId = idData?.lead_id || null;
+            if (idData?.agent_email) agentEmail = agentEmail || idData.agent_email;
+          } catch (e) { console.warn('[evolutionWebhook] Identity resolution failed:', e?.message); }
           legacyMessage = await serviceRole.entities.Message.create({
-            landlord_id: null,
+            landlord_id: landlordId,
+            lead_id: leadId,
             phone: digitsPhone,
             direction: 'incoming',
             text: parsed.text,
             timestamp,
             status: 'received',
             wa_message_id: waMessageId || null,
-            channel,
+            channel: messageChannel,
+            instance_name: instanceName,
             message_type: parsed.msgType,
-            agent_email: conv?.assigned_agent_email || null,
+            agent_email: agentEmail,
           });
         }
       } catch (err) {
@@ -585,8 +621,8 @@ Deno.serve(async (req) => {
       // For agent-personal lines (malik / sameie / dari), pass the receiving number
       // so routeWhatsAppMessage can ping the line owner even when the conversation
       // is assigned to a different agent.
-      const agentLineChannels = ['malik', 'sameie', 'dari'];
-      const lineOwnerPhone = agentLineChannels.includes(channel) ? myNumber : null;
+      const agentLineInstances = ['malik', 'malik_whatsapp', 'samy', 'dari'];
+      const lineOwnerPhone = agentLineInstances.includes(instanceName) ? myNumber : null;
       serviceRole.functions.invoke('routeWhatsAppMessage', {
         phone_e164: e164Phone,
         message_text: parsed.text,
