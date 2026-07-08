@@ -20,7 +20,7 @@ export default function FloatingDialer() {
   // Draggable position — persisted to localStorage
   const [pos, setPos] = useState(() => {
     try {
-      const saved = localStorage.getItem('floatingDialerPos');
+      const saved = localStorage.getItem('floatingDialerPos_v2');
       if (saved) return JSON.parse(saved);
     } catch (_) {}
     return { x: 16, y: window.innerHeight - 60 };
@@ -54,7 +54,7 @@ export default function FloatingDialer() {
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
     // Only persist if actually dragged
     if (dragRef.current.moved) {
-      try { localStorage.setItem('floatingDialerPos', JSON.stringify(pos)); } catch (_) {}
+      try { localStorage.setItem('floatingDialerPos_v2', JSON.stringify(pos)); } catch (_) {}
     }
   };
   const wasDragged = () => dragRef.current.moved;

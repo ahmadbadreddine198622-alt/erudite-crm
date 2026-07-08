@@ -8,7 +8,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Sparkles, Loader2, Send, Eraser } from 'lucide-react';
+import { Sparkles, Loader2, Send, Eraser, MessageCircle } from 'lucide-react';
 import EmailTemplatePicker from './EmailTemplatePicker';
 
 const GOLD = '#d4b483';
@@ -29,6 +29,7 @@ function css(str) {
 export default function NoteComposerBar({
   composerRef, value, onChange, onKeyDown, onSend,
   placeholder, composerType, landlordId, busy, composerParsing,
+  onSwitchToWhatsApp,
 }) {
   const [magicBusy, setMagicBusy] = useState(false);
   const isNote = composerType === 'Note';
@@ -128,6 +129,15 @@ export default function NoteComposerBar({
         <span style={css("font-size:10px; color:rgba(255,255,255,0.35); white-space:nowrap; font-family:'Inter',sans-serif;")}>
           {wordCount} {wordCount === 1 ? 'word' : 'words'}
         </span>
+
+        {/* Quick-switch to WhatsApp — carry the text over */}
+        {isNote && onSwitchToWhatsApp && (
+          <button type="button" onClick={() => onSwitchToWhatsApp(value)}
+            title="Send via WhatsApp"
+            style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(37,211,102,0.14); color:#25D366; border:1px solid rgba(37,211,102,0.4);")}>
+            <MessageCircle size={12} /> WhatsApp
+          </button>
+        )}
 
         {/* Clear */}
         <button type="button" onClick={handleClear} disabled={!hasText}
