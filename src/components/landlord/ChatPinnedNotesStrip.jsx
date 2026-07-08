@@ -64,8 +64,6 @@ export default function ChatPinnedNotesStrip({ landlordId, onJumpToComposer, onN
     if (t && !createMutation.isPending) createMutation.mutate(t);
   };
 
-  if (!notes.length) return null; // no notes → no strip; chat looks exactly as before
-
   const latest = notes[0];
   const visible = showAll ? notes : notes.slice(0, MAX_VISIBLE);
   const hiddenCount = notes.length - visible.length;
@@ -89,9 +87,14 @@ export default function ChatPinnedNotesStrip({ landlordId, onJumpToComposer, onN
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: GOLD, flex: 'none' }}>
           Notes {notes.length > 1 ? '· ' + notes.length : ''}
         </span>
-        {collapsed && (
+        {collapsed && latest && (
           <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'hsl(38 92% 70%)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {latest.body}
+          </span>
+        )}
+        {collapsed && !latest && (
+          <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+            No notes yet — add the first one
           </span>
         )}
         {!collapsed && <span style={{ flex: 1 }} />}
@@ -115,36 +118,38 @@ export default function ChatPinnedNotesStrip({ landlordId, onJumpToComposer, onN
       {/* Expanded body — note cards + quick update input */}
       {!collapsed && (
         <div style={{ padding: '0 12px 9px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 170, overflowY: 'auto' }}>
-            {visible.map(n => (
-              <div key={n.id} style={{
-                borderRadius: 9,
-                padding: '7px 10px',
-                background: n.pinned ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
-                border: n.pinned ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(255,255,255,0.08)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  {n.pinned && <Pin size={10} style={{ color: GOLD, flex: 'none' }} />}
-                  <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.45)' }}>
-                    {(n.author_name || n.author_email?.split('@')[0] || 'Agent')}
-                    {n.created_date ? ' · ' + format(new Date(n.created_date), 'd MMM HH:mm') : ''}
-                  </span>
+          {visible.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 170, overflowY: 'auto' }}>
+              {visible.map(n => (
+                <div key={n.id} style={{
+                  borderRadius: 9,
+                  padding: '7px 10px',
+                  background: n.pinned ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
+                  border: n.pinned ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    {n.pinned && <Pin size={10} style={{ color: GOLD, flex: 'none' }} />}
+                    <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.45)' }}>
+                      {(n.author_name || n.author_email?.split('@')[0] || 'Agent')}
+                      {n.created_date ? ' · ' + format(new Date(n.created_date), 'd MMM HH:mm') : ''}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {n.body}
+                  </p>
                 </div>
-                <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {n.body}
-                </p>
-              </div>
-            ))}
-            {hiddenCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.5)', padding: '1px 2px', fontFamily: "'Inter',sans-serif" }}
-              >
-                Show {hiddenCount} more…
-              </button>
-            )}
-          </div>
+              ))}
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll(true)}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.5)', padding: '1px 2px', fontFamily: "'Inter',sans-serif" }}
+                >
+                  Show {hiddenCount} more…
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Quick update input — saves a new LandlordNote without leaving the chat */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
