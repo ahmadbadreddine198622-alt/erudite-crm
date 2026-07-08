@@ -26,6 +26,7 @@ export default function LandlordNavArrows({ currentId }) {
   const idx = ids.indexOf(currentId);
   const hasPrev = idx > 0;
   const hasNext = idx >= 0 && idx < ids.length - 1;
+  const loading = !ids.length;
 
   const go = useCallback((dir) => {
     const newIdx = idx + dir;
@@ -46,8 +47,6 @@ export default function LandlordNavArrows({ currentId }) {
     return () => window.removeEventListener('keydown', handler);
   }, [go]);
 
-  if (!ids.length) return null;
-
   const btnStyle = (enabled) => ({
     flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: 28, height: 28, borderRadius: 7, cursor: enabled ? 'pointer' : 'not-allowed',
@@ -61,7 +60,7 @@ export default function LandlordNavArrows({ currentId }) {
         <ChevronLeft size={15} />
       </button>
       <span style={{ fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.35)', minWidth: 28, textAlign: 'center', fontFamily: "'Inter',sans-serif" }}>
-        {idx >= 0 ? (idx + 1) + '/' + ids.length : '—'}
+        {loading ? '…' : (idx >= 0 ? (idx + 1) + '/' + ids.length : '—')}
       </span>
       <button onClick={() => go(1)} disabled={!hasNext} title="Next landlord (→)" style={btnStyle(hasNext)}>
         <ChevronRight size={15} />
