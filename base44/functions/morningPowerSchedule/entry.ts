@@ -62,8 +62,25 @@ function agentDisplayName(email, nameMap) {
 
 // ─── Digest composition ───
 
-function composeDigest({ agentName, subjectDate, doctrineQueue, topFollowups, landlordNames, strikeLandlords, touchCount }) {
+function composeDigest({ agentName, subjectDate, doctrineQueue, topFollowups, landlordNames, strikeLandlords, touchCount, pendingDirectives }) {
   const sections = [];
+
+  // 0. FOUNDER DIRECTIVES WAITING
+  sections.push(`
+    <div style="margin-bottom:24px;">
+      <h3 style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:15px;margin:0 0 8px;">👑 FOUNDER DIRECTIVES WAITING (${pendingDirectives.length})</h3>
+      ${pendingDirectives.length === 0
+        ? '<p style="font-family:Arial,Helvetica,sans-serif;color:#888;font-size:13px;margin:0;">No pending founder directives.</p>'
+        : pendingDirectives.map(item => {
+            const name = item.landlord.full_name_en || item.landlord.full_name_ar || 'Unknown landlord';
+            const text = String(item.directive.directive_text || '').slice(0, 80);
+            return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:4px 0;padding:6px 10px;border-radius:6px;background:rgba(201,162,75,0.06);border-left:3px solid #C5A059;">
+              <strong>${esc(name)}</strong>: ${esc(text)}${String(item.directive.directive_text || '').length > 80 ? '…' : ''}
+            </div>`;
+          }).join('')
+      }
+    </div>
+  `);
 
   // 1. TODAY'S DOCTRINE QUEUE
   sections.push(`
@@ -185,6 +202,7 @@ Deno.serve(async (req) => {
       ims,
       tgs,
       ems,
+      activeDirectives,
     ] = await Promise.all([
       svc.entities.Landlord.list('-updated_date', 5000),
       svc.entities.Followup.filter({ status: 'pending' }, '-scheduled_at', 5000),
@@ -193,6 +211,7 @@ Deno.serve(async (req) => {
       svc.entities.IMessage.filter({ direction: 'outbound' }, '-sent_at', 1000),
       svc.entities.TelegramMessage.filter({ direction: 'outbound' }, '-sent_at', 1000),
       svc.entities.Email.filter({ direction: 'outbound' }, '-received_at', 1000),
+      svc.entities.LandlordDirective.filter({ status: 'active' }, '-created_date', 5000),
     ]);
 
     // ─── Build agent name map ───
@@ -238,13 +257,24 @@ Deno.serve(async (req) => {
       followupsByAgent[k].push(f);
     });
 
-    // ─── Build per-agent strike-now list ───
-    const strikeByAgent = {};
+    // ─── Build per-agent founder-directive-waiting list ───
+    // Directives with status 'active' (not yet acknowledged) assigned to the landlord's agent.
+    const directiveByAgent = {};
+    const directiveLandlordIds = new Set();
+    (activeDirectives || []).forEach(d => {
+      if (!d.landlord_id) return;
+      directiveLandlordIds.add(d.landlord_id);
+    });
+    // For each active landlord that has an active directive, attribute it to the agent.
     activeLandlords.forEach(l => {
-      if (!l.ai_strike_now) return;
+      if (!directiveLandlordIds.has(l.id)) return;
+      const matchingDirectives = (activeDirectives || []).filter(d => d.landlord_id === l.id);
+      if (!matchingDirectives.length) return;
       const k = l.assigned_agent_email.toLowerCase();
-      if (!strikeByAgent[k]) strikeByAgent[k] = [];
-      strikeByAgent[k].push(l);
+      if (!directiveByAgent[k]) directiveByAgent[k] = [];
+      for (const d of matchingDirectives) {
+        directiveByAgent[k].push({ landlord: l, directive: d });
+      }
     });
 
     // ─── Process each agent ───

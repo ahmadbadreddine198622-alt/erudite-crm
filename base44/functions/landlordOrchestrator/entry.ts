@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
     // resilient — a missing entity or query error degrades to [] rather than failing the run.
     const [
       properties, messages, notes, tasks, appointments, followups, calls, meetings, viewings,
-      qualifications, negotiation, stakeholders, activities, docs, brandVoice
+      qualifications, negotiation, stakeholders, activities, docs, brandVoice, directives
     ] = await Promise.all([
       svc.entities.LandlordProperty.filter({ landlord_id }).catch(() => []),
       svc.entities.Message.filter({ landlord_id }, '-timestamp', 60).catch(() => []),
@@ -296,8 +296,9 @@ Deno.serve(async (req) => {
       svc.entities.LandlordStakeholder.filter({ landlord_id }).catch(() => []),
       svc.entities.Activity.filter({ lead_id: landlord_id }, '-created_at', 20).catch(() => []),
       svc.entities.DocumentChecklistItem.filter({ landlord_id }).catch(() => []),
-      svc.entities.BrandVoice.filter({ is_active: true }, '-updated_date', 1).then(r => r?.[0]).catch(() => null)
-    ]);
+      svc.entities.BrandVoice.filter({ is_active: true }, '-updated_date', 1).then(r => r?.[0]).catch(() => null),
+      svc.entities.LandlordDirective.filter({ landlord_id }, '-created_date', 20)
+      ]);
 
     // Derived context
     const prop = properties[0] || {};
@@ -344,6 +345,21 @@ Deno.serve(async (req) => {
     // Doctrine violation = active stage + no scheduled next touch.
     const doctrineViolation = isActiveStage && !hasScheduledTouch;
 
+    // ── FOUNDER DIRECTIVE (TOP-PRIORITY CONTEXT) ──
+    // The most recent active or acknowledged directive overrides all other strategic
+    // considerations — every next-best-action, coaching note, and suggested message must
+    // align with it.
+    const activeDirective = (Array.isArray(directives) ? directives : [])
+      .filter(d => d && (d.status === 'active' || d.status === 'acknowledged'))
+      .sort((a, b) => new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime())[0] || null;
+    const directiveBlock = activeDirective ? `
+FOUNDER DIRECTIVE — this overrides all other strategic considerations; every next-best-action, coaching note, and suggested message must align with it.
+Priority: ${activeDirective.priority || 'normal'}
+Directive: ${String(activeDirective.directive_text || '').slice(0, 1000)}
+Issued by: ${activeDirective.created_by_name || activeDirective.created_by_email || 'founder'} on ${fmtDate(activeDirective.created_date)}
+${activeDirective.status === 'acknowledged' && activeDirective.agent_response ? `Agent acknowledged with response: ${String(activeDirective.agent_response).slice(0, 500)}` : ''}
+` : '';
+
     // ── CONVERTING THE UNSOLD ──
     // When the unit is listed with competitors, factor mandate expiry + competitor fatigue.
     const isListedWithOthers = !!landlord.is_currently_listed_with_others;
@@ -377,7 +393,7 @@ BRAND VOICE (obey in every message draft):
 - Language rules: ${String(brandVoice.language_rules || '').slice(0, 800)}
 ` : '';
 
-      const coldSystem = `You are LANDLORD AURORA (cold-tier) — assessing a brand-new Dubai landlord lead with NO conversation history yet. Output only: urgency_score (0-100) + rationale, rapport_level (likely "cold"), a best-guess landlord_archetype, a 1-2 sentence ai_rolling_summary, a concrete ai_next_best_action to make first contact, and ai_suggested_messages: 2-3 PERSONAL first-contact WhatsApp openers (mode="cold_open", channel="whatsapp", in the landlord's preferred language) tailored to this owner's tower/unit/project and archetype — never generic blasts; each with tone, intent, rationale. Do not fabricate scores you cannot justify. STRICT tool output.${DOCTRINE_RULES}${brandVoiceBlock}`;
+      const coldSystem = `You are LANDLORD AURORA (cold-tier) — assessing a brand-new Dubai landlord lead with NO conversation history yet. Output only: urgency_score (0-100) + rationale, rapport_level (likely "cold"), a best-guess landlord_archetype, a 1-2 sentence ai_rolling_summary, a concrete ai_next_best_action to make first contact, and ai_suggested_messages: 2-3 PERSONAL first-contact WhatsApp openers (mode="cold_open", channel="whatsapp", in the landlord's preferred language) tailored to this owner's tower/unit/project and archetype — never generic blasts; each with tone, intent, rationale. Do not fabricate scores you cannot justify. STRICT tool output.${DOCTRINE_RULES}${brandVoiceBlock}${directiveBlock}`;
       const coldPrompt = `NEW LANDLORD: ${landlord.full_name_en || landlord.full_name || `${landlord.first_name || ''} ${landlord.last_name || ''}`}
 Phone: ${landlord.phone || '?'} | Lang: ${landlord.preferred_language || 'en'} | Nationality: ${landlord.nationality || '?'}
 Source: ${landlord.source || '?'} | Stage: ${landlord.stage || 'initial_contact'}
@@ -414,7 +430,7 @@ BRAND VOICE (obey in EVERY message draft, coaching line, and next-best-action dr
 - Language rules: ${String(brandVoice.language_rules || '').slice(0, 1000)}
 ` : '';
 
-      const systemPrompt = `You are LANDLORD AURORA — an autonomous AI co-pilot for a Dubai real-estate agent pursuing landlord mandates. You reason over the ENTIRE context below (conversation, the agent's own notes, logged calls, the unit valuation, and everything already actioned/scheduled) and produce ONE coherent, internally-consistent picture.${DOCTRINE_RULES}${brandVoiceBlock}
+      const systemPrompt = `You are LANDLORD AURORA — an autonomous AI co-pilot for a Dubai real-estate agent pursuing landlord mandates. You reason over the ENTIRE context below (conversation, the agent's own notes, logged calls, the unit valuation, and everything already actioned/scheduled) and produce ONE coherent, internally-consistent picture.${DOCTRINE_RULES}${brandVoiceBlock}${directiveBlock}
 
 Decide and emit:
 1. STAGE PROGRESSION: new_stage only if EARNED by evidence; detect sub_stage. new_stage MUST be one of (or null): ${STAGES.join(', ')}.

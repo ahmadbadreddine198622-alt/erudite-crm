@@ -43,6 +43,7 @@ import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
+import FounderDirectiveStrip from '@/components/landlord/FounderDirectiveStrip';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1264,6 +1265,7 @@ class LandlordDetail extends React.Component {
             </div>
           </div>
 
+          <FounderDirectiveStrip landlordId={this.state.currentId} landlord={this.props.rawLandlord} currentUser={this.props.currentUser} isAdmin={this.props.isAdmin} />
           {/* Two panels */}
           <div className="ld-panels" style={css("flex:1; min-height:0;")}>
 
@@ -1814,7 +1816,7 @@ function temperatureFromRapport(rapport) {
 export default function LandlordDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useCurrentUser();
+  const { user: currentUser, isAdmin } = useCurrentUser();
   const queryClient = useQueryClient();
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);
@@ -2474,6 +2476,7 @@ export default function LandlordDetailPage() {
         onNavigate={navigate}
         formAContracts={formAContracts}
         currentUser={currentUser}
+        isAdmin={isAdmin}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
