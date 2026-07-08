@@ -271,10 +271,11 @@ export default function NoteComposerBar({
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFilePick} />
 
-      {/* Toolbar */}
-      <div style={css("display:flex; align-items:center; gap:7px; flex-wrap:nowrap;")}>
-        {/* Templates dropdown */}
-        <div style={css("flex:none;")}>
+      {/* Toolbar — left cluster scrolls horizontally, right cluster is fixed */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+        {/* Left: scrollable tool cluster */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2, scrollbarWidth: 'thin' }}>
+          {/* Templates dropdown */}
           <EmailTemplatePicker
             channel="email"
             landlordId={landlordId}
@@ -285,98 +286,99 @@ export default function NoteComposerBar({
               else { onChange({ target: { value: body || '' } }); }
             }}
           />
+
+          {/* Save as template */}
+          {isNote && onSaveTemplate && (
+            <button type="button" onClick={onSaveTemplate} disabled={!hasText}
+              title="Save as template"
+              style={iconBtn(false, 'rgba(255,255,255,0.5)')}>
+              <FileText size={13} />
+            </button>
+          )}
+
+          {/* Emoji picker */}
+          {isNote && (
+            <EmojiPicker onSelect={(emoji) => insertAtCursor(emoji)} />
+          )}
+
+          {/* Attachment picker */}
+          {isNote && (
+            <button type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} disabled={anyBusy}
+              title="Attach a file"
+              style={iconBtn(!!attachment)}>
+              {uploading ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+            </button>
+          )}
+
+          {/* Divider */}
+          {isNote && <span style={{ flex: 'none', width: 1, height: 18, background: 'rgba(255,255,255,0.1)' }} />}
+
+          {/* AI magic — gold sparkle */}
+          {isNote && (
+            <button type="button" onClick={runMagic} disabled={magicBusy || !hasText}
+              title="✨ AI Magic — reshape for impact"
+              style={iconBtn(magicBusy, GOLD, GOLD)}>
+              {magicBusy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            </button>
+          )}
+
+          {/* Web search */}
+          {isNote && (
+            <button type="button" onClick={runWebEnrich} disabled={webBusy || !hasText}
+              title="🌐 Enrich with real-time market context"
+              style={iconBtn(webBusy, 'rgba(59,130,246,0.7)', '#3b82f6')}>
+              {webBusy ? <Loader2 size={13} className="animate-spin" /> : <Globe size={13} />}
+            </button>
+          )}
+
+          {/* Polish */}
+          {isNote && (
+            <button type="button" onClick={runPolish} disabled={polishBusy || !hasText}
+              title="✦ Polish & clean grammar"
+              style={iconBtn(polishBusy, 'rgba(167,139,246,0.7)', '#a78bfa')}>
+              {polishBusy ? <Loader2 size={13} className="animate-spin" /> : <span style={{ fontSize: 13, fontWeight: 700 }}>✦</span>}
+            </button>
+          )}
+
+          {/* Voice input */}
+          {isNote && (
+            <button type="button" onClick={handleMicClick} disabled={anyBusy && !vr.recording}
+              title={vr.recording ? 'Stop & transcribe' : 'Voice input'}
+              style={iconBtn(vr.recording, 'rgba(239,68,68,0.8)', '#ef4444')}>
+              {vr.recording ? <Square size={11} /> : <Mic size={13} />}
+            </button>
+          )}
         </div>
 
-        {/* Save as template */}
-        {isNote && onSaveTemplate && (
-          <button type="button" onClick={onSaveTemplate} disabled={!hasText}
-            title="Save as template"
-            style={iconBtn(false, 'rgba(255,255,255,0.5)')}>
-            <FileText size={13} />
+        {/* Right: fixed action cluster — always visible */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none' }}>
+          {/* Word counter */}
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontFamily: "'Inter',sans-serif" }}>
+            {wordCount} {wordCount === 1 ? 'word' : 'words'}
+          </span>
+
+          {/* Quick-switch to WhatsApp */}
+          {isNote && onSwitchToWhatsApp && (
+            <button type="button" onClick={() => onSwitchToWhatsApp(value)}
+              title="Send via WhatsApp"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)' }}>
+              <MessageCircle size={12} /> WhatsApp
+            </button>
+          )}
+
+          {/* Clear */}
+          <button type="button" onClick={handleClear} disabled={!hasText}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: hasText ? 'pointer' : 'not-allowed', fontFamily: "'Inter',sans-serif", background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', opacity: hasText ? 1 : 0.4 }}>
+            <Eraser size={11} /> Clear
           </button>
-        )}
 
-        {/* Emoji picker */}
-        {isNote && (
-          <EmojiPicker onSelect={(emoji) => insertAtCursor(emoji)} />
-        )}
-
-        {/* Attachment picker */}
-        {isNote && (
-          <button type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} disabled={anyBusy}
-            title="Attach a file"
-            style={iconBtn(!!attachment)}>
-            {uploading ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+          {/* Send */}
+          <button onClick={handleSend} disabled={busy2}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 16px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))', color: '#1a1205', border: '1px solid hsl(38 92% 50% / 0.5)', opacity: busy2 ? 0.6 : 1 }}>
+            {composerParsing ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+            {composerParsing ? 'Parsing…' : busy ? '…' : 'Send'}
           </button>
-        )}
-
-        {/* ── Divider ── */}
-        {isNote && <span style={css("flex:none; width:1px; height:18px; background:rgba(255,255,255,0.1);")} />}
-
-        {/* AI magic reshape — gold sparkle (Note only) */}
-        {isNote && (
-          <button type="button" onClick={runMagic} disabled={magicBusy || !hasText}
-            title="✨ Structure this note for the AI brain"
-            style={iconBtn(magicBusy, GOLD, GOLD)}>
-            {magicBusy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-          </button>
-        )}
-
-        {/* Web search enrichment */}
-        {isNote && (
-          <button type="button" onClick={runWebEnrich} disabled={webBusy || !hasText}
-            title="🌐 Enrich with real-time market context"
-            style={iconBtn(webBusy, 'rgba(59,130,246,0.7)', '#3b82f6')}>
-            {webBusy ? <Loader2 size={13} className="animate-spin" /> : <Globe size={13} />}
-          </button>
-        )}
-
-        {/* Polish / clean text */}
-        {isNote && (
-          <button type="button" onClick={runPolish} disabled={polishBusy || !hasText}
-            title="✦ Polish & clean grammar"
-            style={iconBtn(polishBusy, 'rgba(167,139,246,0.7)', '#a78bfa')}>
-            {polishBusy ? <Loader2 size={13} className="animate-spin" /> : <span style={{ fontSize: 13, fontWeight: 700 }}>✦</span>}
-          </button>
-        )}
-
-        {/* Voice input */}
-        {isNote && (
-          <button type="button" onClick={handleMicClick} disabled={anyBusy && !vr.recording}
-            title={vr.recording ? 'Stop & transcribe' : 'Voice input → transcribe'}
-            style={iconBtn(vr.recording, 'rgba(239,68,68,0.8)', '#ef4444')}>
-            {vr.recording ? <Square size={11} /> : <Mic size={13} />}
-          </button>
-        )}
-
-        <span style={css("flex:1;")} />
-
-        {/* Word counter */}
-        <span style={css("font-size:10px; color:rgba(255,255,255,0.35); white-space:nowrap; font-family:'Inter',sans-serif;")}>
-          {wordCount} {wordCount === 1 ? 'word' : 'words'}
-        </span>
-
-        {/* Quick-switch to WhatsApp — carry the text over */}
-        {isNote && onSwitchToWhatsApp && (
-          <button type="button" onClick={() => onSwitchToWhatsApp(value)}
-            title="Send via WhatsApp"
-            style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(37,211,102,0.14); color:#25D366; border:1px solid rgba(37,211,102,0.4);")}>
-            <MessageCircle size={12} /> WhatsApp
-          </button>
-        )}
-
-        {/* Clear */}
-        <button type="button" onClick={handleClear} disabled={!hasText}
-          style={css("display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:"+(hasText?'pointer':'not-allowed')+"; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.1); opacity:"+(hasText?1:0.4)+";")}>
-          <Eraser size={11} /> Clear
-        </button>
-
-        {/* Send — pill */}
-        <button onClick={handleSend} disabled={busy2}
-          style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 16px; border-radius:99px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(busy2?0.6:1)+";")}>
-          {composerParsing ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-          {composerParsing ? 'Parsing…' : busy ? '…' : 'Send'}
-        </button>
+        </div>
       </div>
     </div>
   );
