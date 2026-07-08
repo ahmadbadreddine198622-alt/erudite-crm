@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import InvestigationPanel from './InvestigationPanel';
 
 /* Convert a CSS declaration string into a React style object. */
 function css(str) {
@@ -129,88 +125,7 @@ function TrendCell({ label, metric, suffix, sparkColor, invert }) {
   );
 }
 
-export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle, children, landlordId, investigation, onInvestigate, onConfirmMatch, onWrongPerson, onReinvestigate, investigationBusy }) {
-  // ── Self-contained investigation logic ──
-  // If the parent doesn't pass investigation props (e.g. LandlordDetailPage is too
-  // large to edit), the card manages investigation state itself: extracts the
-  // landlord ID from the URL, fetches the record, and handles all actions.
-  const { id: routeLandlordId } = useParams();
-  const llId = landlordId || routeLandlordId || null;
-
-  const [invBusy, setInvBusy] = useState(false);
-  const [invData, setInvData] = useState(investigation || null);
-
-  // Fetch the landlord record to get investigation fields when not passed by parent.
-  const fetchInvestigation = useCallback(async () => {
-    if (!llId || investigation) return; // parent-managed mode — don't fetch
-    try {
-      const l = await base44.entities.Landlord.get(llId);
-      setInvData({
-        profile: l?.investigation_profile || null,
-        status: l?.investigation_status || 'not_run',
-        investigatedAt: l?.investigated_at || null,
-        matchStatus: l?.investigation_match_status || 'unconfirmed',
-        hint: l?.investigation_hint || '',
-      });
-    } catch (_) { /* silent — card still renders without investigation */ }
-  }, [llId, investigation]);
-
-  useEffect(() => { fetchInvestigation(); }, [fetchInvestigation]);
-
-  const handleInvestigate = useCallback(async (id) => {
-    if (!id || invBusy || investigationBusy) return;
-    // If parent provided a handler, delegate to it.
-    if (onInvestigate) { onInvestigate(id); return; }
-    setInvBusy(true);
-    setInvData(prev => ({ ...(prev || {}), status: 'in_progress' }));
-    try {
-      await base44.functions.invoke('investigateLandlord', { landlord_id: id });
-      toast.success('Identity investigation complete');
-      // Refetch to get the updated investigation_profile.
-      const l = await base44.entities.Landlord.get(id);
-      setInvData({
-        profile: l?.investigation_profile || null,
-        status: l?.investigation_status || 'completed',
-        investigatedAt: l?.investigated_at || null,
-        matchStatus: l?.investigation_match_status || 'unconfirmed',
-        hint: l?.investigation_hint || '',
-      });
-    } catch (e) {
-      toast.error('Investigation failed: ' + (e?.message || 'unknown error'));
-      setInvData(prev => ({ ...(prev || {}), status: 'failed', profile: { summary: 'Investigation failed: ' + (e?.message || 'unknown error'), confidence: 'low' } }));
-    } finally {
-      setInvBusy(false);
-    }
-  }, [invBusy, investigationBusy, onInvestigate]);
-
-  const handleConfirmMatch = useCallback(async () => {
-    if (!llId) return;
-    if (onConfirmMatch) { onConfirmMatch(); return; }
-    try {
-      await base44.entities.Landlord.update(llId, { investigation_match_status: 'confirmed' });
-      setInvData(prev => ({ ...(prev || {}), matchStatus: 'confirmed' }));
-      toast.success('Match confirmed');
-    } catch (e) { toast.error('Failed to update'); }
-  }, [llId, onConfirmMatch]);
-
-  const handleWrongPerson = useCallback(async () => {
-    if (!llId) return;
-    if (onWrongPerson) { onWrongPerson(); return; }
-    try {
-      await base44.entities.Landlord.update(llId, { investigation_match_status: 'wrong_person' });
-      setInvData(prev => ({ ...(prev || {}), matchStatus: 'wrong_person' }));
-    } catch (e) { toast.error('Failed to update'); }
-  }, [llId, onWrongPerson]);
-
-  const handleReinvestigate = useCallback(async (hint) => {
-    if (!llId) return;
-    if (onReinvestigate) { onReinvestigate(hint); return; }
-    try {
-      if (hint) await base44.entities.Landlord.update(llId, { investigation_hint: hint });
-      await handleInvestigate(llId);
-    } catch (e) { toast.error('Re-investigation failed'); }
-  }, [llId, onReinvestigate, handleInvestigate]);
-
+export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle, children }) {
   const hasSummary = !!ai.summary;
   const nba = ai.nextBestAction;
   const hasNba = nba && typeof nba === 'object' && (nba.action || nba.reasoning);
@@ -273,19 +188,6 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
 
               </div>
             </div>
-
-            {/* Identity Investigation — on-demand web research on who this landlord is */}
-            {llId && (
-              <InvestigationPanel
-                landlordId={llId}
-                investigation={invData}
-                onInvestigate={handleInvestigate}
-                onConfirmMatch={handleConfirmMatch}
-                onWrongPerson={handleWrongPerson}
-                onReinvestigate={handleReinvestigate}
-                busy={invBusy || investigationBusy}
-              />
-            )}
 
             {/* Summary */}
             {hasSummary && (

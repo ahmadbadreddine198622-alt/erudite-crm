@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered, Zap, Loader2 } from 'lucide-react';
+import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered } from 'lucide-react';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import ProjectSelectorWithUpload from '@/components/landlord/ProjectSelectorWithUpload';
@@ -132,8 +132,6 @@ export default function Landlords() {
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [aiBoostBusy, setAiBoostBusy] = useState(false);
-  const [aiBoostResult, setAiBoostResult] = useState(null);
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
   const rootRef = useRef(null);
@@ -429,28 +427,6 @@ export default function Landlords() {
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
 
-  const handleAiBoostImport = async () => {
-    setAiBoostBusy(true);
-    setAiBoostResult(null);
-    try {
-      const res = await base44.functions.invoke('importAiBoostSheet', {});
-      const data = res?.data || res;
-      setAiBoostResult(data);
-      if (data?.error) {
-        toast.error('AI Boost import failed: ' + data.error);
-      } else {
-        toast.success(`AI Boost: ${data?.total_created || 0} created, ${data?.total_updated || 0} updated`);
-        queryClient.invalidateQueries({ queryKey: ['landlords'] });
-        queryClient.invalidateQueries({ queryKey: ['properties'] });
-        queryClient.invalidateQueries({ queryKey: ['landlord_properties'] });
-      }
-    } catch (e) {
-      toast.error('AI Boost import failed: ' + (e?.message || 'unknown error'));
-    } finally {
-      setAiBoostBusy(false);
-    }
-  };
-
   if (userLoading || !currentUser || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -549,11 +525,6 @@ export default function Landlords() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <Button variant="outline" onClick={handleAiBoostImport} disabled={aiBoostBusy} className="gap-2 h-9"
-              style={{ borderColor: 'rgba(168,85,247,.4)', color: aiBoostBusy ? undefined : '#c4b5fd' }}>
-              {aiBoostBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              <span className="hidden xl:inline">{aiBoostBusy ? 'Importing…' : 'AI Boost'}</span>
-            </Button>
             <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
               <Upload className="w-4 h-4" />
               <span className="hidden xl:inline">Import</span>
@@ -879,68 +850,6 @@ export default function Landlords() {
             >
               {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* AI Boost Import Result Dialog */}
-      <AlertDialog open={!!aiBoostResult} onOpenChange={(open) => !open && setAiBoostResult(null)}>
-        <AlertDialogContent className="max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-purple-400" />
-              AI Boost Import Complete
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 pt-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">CSV Rows</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.csv_rows ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">After Cleaning</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.after_cleaning ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">After Dedup</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.after_dedup ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">Dropped (no name)</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.dropped_contact_support ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">Dropped (duplicates)</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.dropped_duplicates ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-emerald-500/10">
-                    <span className="text-emerald-400">Total Created</span>
-                    <span className="font-bold tabular-nums text-emerald-400">{aiBoostResult?.total_created ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-blue-500/10">
-                    <span className="text-blue-400">Total Updated</span>
-                    <span className="font-bold tabular-nums text-blue-400">{aiBoostResult?.total_updated ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between p-2 rounded-md bg-white/5">
-                    <span className="text-muted-foreground">New Links</span>
-                    <span className="font-bold tabular-nums">{aiBoostResult?.created_links ?? 0}</span>
-                  </div>
-                </div>
-                {(aiBoostResult?.created_landlords > 0 || aiBoostResult?.updated_landlords > 0) && (
-                  <p className="text-xs text-muted-foreground">
-                    Landlords: {aiBoostResult?.created_landlords} created, {aiBoostResult?.updated_landlords} updated ·
-                    Properties: {aiBoostResult?.created_properties} created, {aiBoostResult?.updated_properties} updated
-                  </p>
-                )}
-                {aiBoostResult?.error && (
-                  <p className="text-xs text-destructive">{aiBoostResult.error}</p>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setAiBoostResult(null)}>Done</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

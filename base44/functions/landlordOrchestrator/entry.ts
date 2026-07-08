@@ -486,16 +486,9 @@ PRIOR ROLLING SUMMARY (refine, don't blindly restate): ${landlord.ai_rolling_sum
 PRIOR DEAL THESIS (evolve it — keep what holds, revise only what changed): ${landlord.ai_deal_thesis || '(none yet — establish it)'}
 
 SALES DOCTRINE STATE:
- 14-Day Law violation: ${doctrineViolation ? 'YES — active stage but NO scheduled next touch (no pending Followup, no upcoming appointment, no scheduled task/call/meeting/viewing). The next-best-action MUST be "schedule_next_touch" and a cadence follow-up MUST be proposed.' : 'no (a next touch is already scheduled)'}
- days_since_last_contact: ${daysSinceLastContact ?? 'unknown (no messages yet)'}
- has_scheduled_touch: ${hasScheduledTouch ? 'yes' : 'no'}
-
-${(landlord.investigation_profile?.summary && landlord.investigation_match_status !== 'wrong_person') ? `
-IDENTITY INTELLIGENCE (from web research — use this to personalize outreach):
- Summary: ${landlord.investigation_profile.summary}
- Occupation: ${landlord.investigation_profile.occupation || 'unknown'}
- Talking points: ${Array.isArray(landlord.investigation_profile.talking_points) ? landlord.investigation_profile.talking_points.join('; ') : 'none'}
-` : ''}
+14-Day Law violation: ${doctrineViolation ? 'YES — active stage but NO scheduled next touch (no pending Followup, no upcoming appointment, no scheduled task/call/meeting/viewing). The next-best-action MUST be "schedule_next_touch" and a cadence follow-up MUST be proposed.' : 'no (a next touch is already scheduled)'}
+days_since_last_contact: ${daysSinceLastContact ?? 'unknown (no messages yet)'}
+has_scheduled_touch: ${hasScheduledTouch ? 'yes' : 'no'}
 
 CONVERTING THE UNSOLD:
 listed_with_competitors: ${isListedWithOthers ? 'YES' : 'no'}
