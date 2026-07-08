@@ -14,6 +14,7 @@ import React from 'react';
 
 const TABS = [
   { key: 'Activity',    label: 'Activity' },
+  { key: 'Note',        label: 'Notes' },
   { key: 'Email',       label: 'Emails' },
   { key: 'iMessage',    label: 'iMessage' },
   { key: 'Chat',        label: 'WhatsApp' },
@@ -21,7 +22,6 @@ const TABS = [
   { key: 'Calls',       label: 'Calls' },
   { key: 'SMS',         label: 'SMS' },
   { key: 'Appointment', label: 'Appointments' },
-  { key: 'Note',        label: 'Notes' },
   { key: 'Documents',   label: 'Documents' },
   { key: 'Follow-up',   label: 'Follow Up' },
 ];
