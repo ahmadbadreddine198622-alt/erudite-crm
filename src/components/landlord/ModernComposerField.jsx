@@ -79,6 +79,8 @@ export default function ModernComposerField({
   gloss,                          // optional external English translation (from AI draft)
   targetLanguage,                 // landlord's preferred language code (e.g. 'hi', 'ar', 'ru', 'zh') — enables bidirectional editing
   landlordContext,                // { name, unit, project, asking, agentName } — grounds the magic reshape in the unit + project
+  landlordId,                     // landlord entity ID — for V2 magic reshape backend call
+  channel,                        // 'imessage' | 'whatsapp' | 'telegram' | 'sms' | 'email' — context for the backend
   children,                       // left-cluster toolbar icons (templates / AI / attach / emoji)
   inputRef, minHeight = 72,
 }) {
@@ -163,59 +165,32 @@ export default function ModernComposerField({
     }, 1000);
   };
 
-  // ── Magic reshape — one button. Each click rewrites the current message with a
-  // fresh, powerful real-estate angle grounded in the landlord's exact unit + project.
-  // The angle rotates on every click so you never get the same approach twice in a row.
-  const MAGIC_ANGLES = [
-    { key: 'buyer_led', label: 'Ready-buyer urgency', brief: 'Lead with a specific, ready buyer actively looking in their building — make the buyer feel real and imminent, not speculative.' },
-    { key: 'market_gift', label: 'Market intelligence gift', brief: 'Open with a sharp, specific market insight about their project (recent transactions, AED/sqft, demand trend) delivered as a gift before any ask.' },
-    { key: 'hyper_specialist', label: 'Hyper-specialist asset proof', brief: 'Demonstrate you know their exact unit, floor, stack, view and recent comps better than any other broker — proof by specificity, not adjectives.' },
-    { key: 'social_proof', label: 'Credibility stack', brief: 'Lead with recent closed deals in the SAME project/building as concrete social proof you are the broker who actually transacts here.' },
-    { key: 'collaboration', label: 'Co-broker collaboration', brief: 'Position yourself as working alongside whoever they may already be listed with — collaborative, not competitive.' },
-    { key: 'funds_on_table', label: 'Funds on the table', brief: 'Emphasize the buyer has funds ready to deposit now and can move fast — reduce the owner\'s perceived risk and friction.' },
-    { key: 'no_ask', label: 'No-ask value interrupt', brief: 'Deliver genuine value first with ZERO ask for the listing — a soft, non-transactional interrupt that earns a reply.' },
-    { key: 'scarcity_window', label: 'Scarcity / closing window', brief: 'Frame the buyer or market window as narrow right now — give a concrete reason to act this week, not next month.' },
-    { key: 'pain_reframe', label: 'Pain-point reframe', brief: 'Name the owner\'s likely pain (time-wasters, lowballs, stale listing) and reframe your approach as the clean solution to it.' },
-    { key: 'future_pace', label: 'Future-pace the close', brief: 'Walk the owner through the concrete next steps and the outcome they want — make saying yes feel like a decision already made.' },
-  ];
-
+  // ── Magic reshape V2 — one button. Each click rewrites the current message using
+  // the backend `magicReshapeV2` function which merges THREE brains:
+  //   1. The landlord's AI brain (deal thesis, next best action, coaching, objections)
+  //   2. The unit details (unit number, project, asking price, layout)
+  //   3. The full conversation history (WhatsApp, email, iMessage, Telegram, notes)
+  // The angle rotates on every click so you never get the same approach twice.
   const runMagic = async () => {
     const src = String(value || '').trim();
     if (!src) { toast.error('Nothing to reshape'); return; }
     if (magicBusy) return;
+    if (!landlordId) { toast.error('No landlord selected'); return; }
     setMagicBusy(true);
-    const angle = MAGIC_ANGLES[magicAngleIdx.current % MAGIC_ANGLES.length];
-    magicAngleIdx.current += 1;
     try {
-      const ctx = landlordContext || {};
-      const ctxLines = [
-        ctx.name && `Landlord (owner) name: ${ctx.name}`,
-        ctx.unit && `Unit reference / number: ${ctx.unit}`,
-        ctx.project && `Project / Building: ${ctx.project}`,
-        ctx.asking && `Asking price (AED): ${ctx.asking}`,
-        ctx.agentName && `Agent sending: ${ctx.agentName}`,
-      ].filter(Boolean);
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt:
-          `You are an elite Dubai real-estate broker writing a direct outreach message from an AGENT to a LANDLORD (the owner of the unit). ` +
-          `Rewrite the message below using a DIFFERENT, more powerful approach.\n\n` +
-          `USE THIS ANGLE: "${angle.label}" — ${angle.brief}\n\n` +
-          `Rules:\n` +
-          `- Ground the message in the specific unit number and project so it is unmistakably about THEIR property, never a generic template.\n` +
-          `- Keep EVERY factual detail from the original (buyer nationality/details, project names, unit number, prices, closed-deal records, credibility claims). Invent nothing.\n` +
-          `- Sound confident, specific and human — powerful but never sleazy, never desperate, never long-winded.\n` +
-          `- Keep it concise and punchy. End with a single, low-friction call to action.\n` +
-          `- Write in the SAME language as the original message.\n` +
-          `- Output ONLY the rewritten message — no quotes, no commentary, no preamble.\n` +
-          (ctxLines.length ? `\nContext:\n${ctxLines.join('\n')}\n` : '') +
-          `\nOriginal message:\n${src}`,
-        response_json_schema: { type: 'object', properties: { message: { type: 'string' } } },
+      const res = await base44.functions.invoke('magicReshapeV2', {
+        landlord_id: landlordId,
+        text: src,
+        channel: channel || 'unknown',
+        angle_index: magicAngleIdx.current,
       });
       const data = res?.data ?? res;
-      const text = data?.message || (typeof data === 'string' ? data : '');
-      if (!text) throw new Error('No message returned');
-      onChange({ target: { value: text } });
-      toast.success(`✨ Reshaped · ${angle.label}`);
+      if (!data?.ok) throw new Error(data?.error || 'Reshape failed');
+      const msg = data.message || '';
+      if (!msg) throw new Error('No message returned');
+      onChange({ target: { value: msg } });
+      magicAngleIdx.current = data.next_angle_index || magicAngleIdx.current + 1;
+      toast.success(`✨ Reshaped · ${data.angle_label || 'smart rewrite'}`);
     } catch (e) {
       toast.error(e?.message || 'Magic reshape failed');
     } finally {

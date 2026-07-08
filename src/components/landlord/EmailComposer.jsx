@@ -168,6 +168,8 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
   const [translation, setTranslation] = useState(null);
   const [toneOpen, setToneOpen] = useState(false);
   const [toneBusy, setToneBusy] = useState(false);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const magicAngleIdx = useRef(0);
   const [autoGloss, setAutoGloss] = useState('');
   const [autoGlossBusy, setAutoGlossBusy] = useState(false);
   const [glossEdited, setGlossEdited] = useState(false);
@@ -459,6 +461,33 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
     }
   };
 
+  const runMagic = async () => {
+    const plain = bodyHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim();
+    if (!plain) { toast.error('Nothing to reshape'); return; }
+    if (magicBusy) return;
+    if (!landlordId) { toast.error('No landlord selected'); return; }
+    setMagicBusy(true);
+    try {
+      const res = await base44.functions.invoke('magicReshapeV2', {
+        landlord_id: landlordId,
+        text: plain,
+        channel: 'email',
+        angle_index: magicAngleIdx.current,
+      });
+      const data = res?.data ?? res;
+      if (!data?.ok) throw new Error(data?.error || 'Reshape failed');
+      const msg = data.message || '';
+      if (!msg) throw new Error('No message returned');
+      setBodyHtml(plainTextToHtml(msg));
+      magicAngleIdx.current = data.next_angle_index || magicAngleIdx.current + 1;
+      toast.success(`✨ Reshaped · ${data.angle_label || 'smart rewrite'}`);
+    } catch (e) {
+      toast.error(e?.message || 'Magic reshape failed');
+    } finally {
+      setMagicBusy(false);
+    }
+  };
+
   const canSend = !checkingConn && gmailConnected && !sending;
   const activeMode = MODES.find((m) => m.key === mode);
 
@@ -646,6 +675,22 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
               </button>
             </PopoverContent>
           </Popover>
+          {/* Magic reshape V2 — deep context (brain + conversation + unit) */}
+          <button type="button" onClick={runMagic} disabled={magicBusy || !bodyHtml.replace(/<[^>]+>/g, '').trim()}
+            title="Magic reshape — rewrite with deep context (brain + conversation + unit)"
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border"
+            style={{
+              background: magicBusy
+                ? 'rgba(245,158,11,0.18)'
+                : 'linear-gradient(135deg, rgba(245,158,11,0.28), rgba(212,175,55,0.18))',
+              color: magicBusy ? '#fcd34d' : '#fbbf24',
+              border: '1px solid ' + (magicBusy ? 'rgba(245,158,11,0.5)' : 'rgba(245,158,11,0.55)'),
+              boxShadow: magicBusy ? 'none' : '0 0 10px rgba(245,158,11,0.22)',
+              cursor: 'pointer',
+              opacity: magicBusy ? 0.55 : 1,
+            }}>
+            {magicBusy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          </button>
           {/* Attach */}
           <IconButton icon={Paperclip} onClick={handleAttach} title="Attach files" />
           {/* Save as template */}

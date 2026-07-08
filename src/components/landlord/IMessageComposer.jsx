@@ -353,6 +353,8 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         gloss={hasDraft ? draftGloss : undefined}
         targetLanguage={language || undefined}
         landlordContext={llCtx}
+        landlordId={landlordId}
+        channel="imessage"
         inputRef={taRef}
         minHeight={54}
       >

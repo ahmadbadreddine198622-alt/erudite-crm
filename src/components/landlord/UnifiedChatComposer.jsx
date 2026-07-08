@@ -207,6 +207,8 @@ export default function UnifiedChatComposer({
         onVoiceText={(t) => onTextChange({ target: { value: t } })}
         targetLanguage={targetLanguage}
         landlordContext={llCtx}
+        landlordId={landlordId}
+        channel={tplChannel}
         inputRef={taRef}
         minHeight={44}
       >
