@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Phone, PhoneOff, Mic, MicOff, Clock, X, Loader2, Delete } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Clock, X, Loader2, Delete, Move } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -23,7 +23,7 @@ export default function FloatingDialer() {
       const saved = localStorage.getItem('floatingDialerPos');
       if (saved) return JSON.parse(saved);
     } catch (_) {}
-    return { x: window.innerWidth - 52, y: window.innerHeight - 52 };
+    return { x: 16, y: window.innerHeight - 60 };
   });
   const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0, moved: false, startX: 0, startY: 0 });
 
@@ -208,10 +208,11 @@ export default function FloatingDialer() {
         onPointerUp={onPointerUp}
         onClick={(e) => { if (wasDragged()) { e.preventDefault(); return; } setOpen(true); }}
         title="Open Dialer (drag to move)"
-        className="fixed z-30 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95 touch-none"
+        className="fixed z-30 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95 touch-none group"
         style={{ left: pos.x, top: pos.y, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', backdropFilter: 'blur(8px)', cursor: 'grab' }}
       >
         <Phone className="w-4 h-4 text-green-400" />
+        <Move className="w-2.5 h-2.5 text-green-300/60 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
       </button>
     );
   }
