@@ -6,7 +6,6 @@ import MobileDock from './MobileDock';
 import ControlRail from '@/components/ui/ControlRail';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
 import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
-import { Zap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AppLayout() {
