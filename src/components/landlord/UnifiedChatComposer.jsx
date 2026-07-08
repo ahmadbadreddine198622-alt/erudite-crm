@@ -73,9 +73,11 @@ export default function UnifiedChatComposer({
   onAttachmentChange,  // fn(att | null) — set/clear the pending attachment in parent state
   targetLanguage,     // landlord's preferred language code — enables bidirectional EN↔target editing
   extraToolbarChildren, // additional React nodes rendered in the ModernComposerField toolbar (e.g. EruditeToneButton)
+  inputRef,            // optional external ref to the composer textarea (e.g. jump-to-composer from the notes strip)
   }) {
   const [aiOpen, setAiOpen] = useState(false);
-  const taRef = useRef(null);
+  const taRefInternal = useRef(null);
+  const taRef = inputRef || taRefInternal;
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [llCtx, setLlCtx] = useState(null);
