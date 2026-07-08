@@ -37,6 +37,7 @@ import NoteComposerBar from '@/components/landlord/NoteComposerBar';
 import NoteCard from '@/components/landlord/NoteCard';
 import ChatPinnedNotesStrip from '@/components/landlord/ChatPinnedNotesStrip';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
+import ChatExtraTools from '@/components/landlord/ChatExtraTools';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import EmailList from '@/components/landlord/EmailList';
@@ -1693,6 +1694,14 @@ class LandlordDetail extends React.Component {
                       disabledHint={disabledHint}
                       targetLanguage={this.props.rawLandlord?.preferred_language}
                       inputRef={ct === 'Chat' ? this.chatComposerRef : undefined}
+                      extraToolbarChildren={ct === 'Chat' ? (
+                        <ChatExtraTools
+                          text={vm.composerText}
+                          onTextChange={this.onComposerInput}
+                          landlordId={L.id}
+                          landlordName={L.full_name_en || L.full_name}
+                        />
+                      ) : null}
                     />
                   );
                 })()}
