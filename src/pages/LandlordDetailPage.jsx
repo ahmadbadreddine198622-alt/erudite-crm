@@ -34,6 +34,7 @@ import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/lan
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import NoteAiDraftBar from '@/components/landlord/NoteAiDraftBar';
 import NoteComposerBar from '@/components/landlord/NoteComposerBar';
+import ChatPinnedNotesStrip from '@/components/landlord/ChatPinnedNotesStrip';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
@@ -88,6 +89,7 @@ class LandlordDetail extends React.Component {
   constructor(props) {
     super(props);
     this.streamRef = React.createRef(); this.composerRef = React.createRef();
+    this.chatComposerRef = React.createRef(); // WhatsApp composer textarea — focused by the notes strip "Write message" button
     this.STAGES = _STAGE_LABELS;
     this.STAGE_KEYS = _STAGE_KEYS;
     const landlords = (props.landlords && props.landlords.length) ? props.landlords : [];
@@ -1337,6 +1339,25 @@ class LandlordDetail extends React.Component {
                 onSelect={(t) => this.setComposerType(t)}
               />
 
+              {/* WhatsApp tab only — notes pinned ABOVE the chat thread, always visible on open.
+                  Includes a quick "add update" input and a jump-to-composer button. */}
+              {this.state.composerType === 'Chat' && (
+                <ChatPinnedNotesStrip
+                  landlordId={L.id}
+                  onJumpToComposer={() => {
+                    const ta = this.chatComposerRef.current;
+                    if (ta) { ta.focus(); ta.scrollIntoView({ behavior: 'smooth', block: 'end' }); }
+                  }}
+                  onNoteAdded={({ body }) => {
+                    // Mirror saveNote's optimistic stream add so the update also shows
+                    // on the Activity and Notes tabs immediately, without a reload.
+                    const order = Date.now();
+                    const item = { t:'act', kind:'note', title:'Note', body, time:'Just now', order };
+                    this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }));
+                  }}
+                />
+              )}
+
               {/* unified stream — each tab renders only its own data */}
               {this.state.composerType === 'Appointment' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px;")}>
@@ -1668,6 +1689,7 @@ class LandlordDetail extends React.Component {
                       channelDisabled={channelDisabled}
                       disabledHint={disabledHint}
                       targetLanguage={this.props.rawLandlord?.preferred_language}
+                      inputRef={ct === 'Chat' ? this.chatComposerRef : undefined}
                     />
                   );
                 })()}
