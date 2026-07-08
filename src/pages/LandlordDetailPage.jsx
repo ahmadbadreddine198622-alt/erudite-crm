@@ -50,6 +50,7 @@ import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceC
 import FounderDirectiveStrip from '@/components/landlord/FounderDirectiveStrip';
 import LandlordNavArrows from '@/components/landlord/LandlordNavArrows';
 import PersistentNotesPanel from '@/components/landlord/PersistentNotesPanel';
+import WhatsAppChannelSelector from '@/components/landlord/WhatsAppChannelSelector';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1678,6 +1679,16 @@ class LandlordDetail extends React.Component {
                   const channelDisabled = waDisabled || tgDisabled;
                   const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
                   return (
+                    <React.Fragment>
+                    {ct === 'Chat' && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 2 }}>
+                        <WhatsAppChannelSelector
+                          mode={this.state.streamFilter}
+                          onMode={(m)=> this.setState({ streamFilter: m })}
+                          isAdmin={this.props.isAdmin}
+                        />
+                      </div>
+                    )}
                     <UnifiedChatComposer
                       composerType={ct}
                       text={vm.composerText}
@@ -1716,6 +1727,7 @@ class LandlordDetail extends React.Component {
                         />
                       ) : null}
                     />
+                    </React.Fragment>
                   );
                 })()}
                 {(effComposer === 'Note' || effComposer === 'Task' || effComposer === 'Follow-up') && (
