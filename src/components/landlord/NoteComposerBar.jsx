@@ -42,7 +42,11 @@ export default function NoteComposerBar({
       if (!data?.ok) throw new Error(data?.error || 'Reshape failed');
       const msg = data.message || '';
       if (!msg) throw new Error('No message returned');
-      onChange({ target: { value: msg } });
+      // Use the real textarea DOM element as the event target so the parent's
+      // onComposerInput can access .style and .scrollHeight for auto-grow.
+      const ta = composerRef?.current;
+      if (ta) { ta.value = msg; onChange({ target: ta }); }
+      else { onChange({ target: { value: msg } }); }
       toast.success('✨ Note structured for the brain');
     } catch (e) {
       toast.error(e?.message || 'Magic reshape failed');
