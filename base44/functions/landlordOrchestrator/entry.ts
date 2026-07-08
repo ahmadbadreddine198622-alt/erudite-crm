@@ -50,8 +50,27 @@ const TASK_TEMPLATE_KEYS = [
 
 const FOLLOWUP_TEMPLATE_KEYS = [
   'post_call_recap', 'silence_nudge_24h', 'silence_nudge_72h', 'docs_reminder',
-  'price_check_in', 'post_viewing_followup', 'weekly_touch', 'mandate_renewal_warn'
+  'price_check_in', 'post_viewing_followup', 'weekly_touch', 'mandate_renewal_warn',
+  // Sales Doctrine — the 14-Day Law cadence + unsold competitor watch
+  'rule5_day2_value_drop', 'rule5_day5_call', 'rule5_day9_voice_note',
+  'rule5_day14_snapshot', 'law14_nurture', 'unsold_competitor_watch_30'
 ];
+
+// Sales Doctrine — the non-negotiable rules every AI output must obey.
+const DOCTRINE_RULES = `
+SALES DOCTRINE (non-negotiable — every message, action, and follow-up MUST obey):
+1. ONE clear ask per message. Never bundle multiple requests. The landlord should know exactly what to do next.
+2. Next step is ALWAYS scheduled. No message leaves the landlord hanging — every outbound either proposes a specific time or references an already-scheduled touch.
+3. VALUE BEFORE PRICE. Lead with what the landlord gains (data, market insight, buyer access, saved time) before discussing commission or asking price. Never open with price.
+4. FOLLOW UP UNTIL SIGNED OR DEFINITIVE NO. Silence is not a "no". A landlord who ghosted is a landlord still in play — the cadence continues until you have a signed mandate or an explicit, unambiguous "no".
+5. THE 14-DAY LAW: no landlord in an active stage goes 14 days without a scheduled next touch. If the landlord has NO pending Followup, NO upcoming LandlordAppointment, and NO scheduled task/call/meeting/viewing, that is a DOCTRINE VIOLATION. The next-best-action MUST be "schedule_next_touch" and a follow-up from the cadence below MUST be proposed.
+6. THE CADENCE (pick the right one based on stage, days_in_stage, and last-contact recency):
+   - rule5_day2_value_drop   → day 2 after last contact: deliver a piece of value (a comp, a market data point, a buyer persona) — NO ask.
+   - rule5_day5_call         → day 5: a short call to check in (not a hard pitch).
+   - rule5_day9_voice_note   → day 9: a personal voice note (warmth + presence).
+   - rule5_day14_snapshot    → day 14: a "where we are" snapshot message — restate value + the one ask.
+   - law14_nurture           → beyond 14 days with no response: shift to long-horizon nurture (monthly value touch, no pressure).
+   - unsold_competitor_watch_30 → when the unit is listed with others and not selling: every 30 days, send a market-reality check (days on market of comparable listings, price drops nearby) to gently pull the mandate toward us.`;
 
 const FULL_MODEL = 'claude-opus-4-8';            // strongest — quality matters for the brain
 const COLD_MODEL = 'claude-haiku-4-5-20251001';  // lighter — used only when there's no conversation yet
@@ -261,7 +280,7 @@ Deno.serve(async (req) => {
     // resilient — a missing entity or query error degrades to [] rather than failing the run.
     const [
       properties, messages, notes, tasks, appointments, followups, calls, meetings, viewings,
-      qualifications, negotiation, stakeholders, activities, docs
+      qualifications, negotiation, stakeholders, activities, docs, brandVoice
     ] = await Promise.all([
       svc.entities.LandlordProperty.filter({ landlord_id }).catch(() => []),
       svc.entities.Message.filter({ landlord_id }, '-timestamp', 60).catch(() => []),
@@ -276,7 +295,8 @@ Deno.serve(async (req) => {
       svc.entities.MandateNegotiation.filter({ landlord_id }).then(r => r?.[0]).catch(() => null),
       svc.entities.LandlordStakeholder.filter({ landlord_id }).catch(() => []),
       svc.entities.Activity.filter({ lead_id: landlord_id }, '-created_at', 20).catch(() => []),
-      svc.entities.DocumentChecklistItem.filter({ landlord_id }).catch(() => [])
+      svc.entities.DocumentChecklistItem.filter({ landlord_id }).catch(() => []),
+      svc.entities.BrandVoice.filter({ is_active: true }, '-updated_date', 1).then(r => r?.[0]).catch(() => null)
     ]);
 
     // Derived context
@@ -303,6 +323,35 @@ Deno.serve(async (req) => {
       ...followups.filter(f => f.status === 'pending' && typeof f.ai_source === 'string').map(f => f.ai_source)
     ]);
 
+    // ── SALES DOCTRINE: The 14-Day Law ──
+    // A landlord in an active stage with NO scheduled next touch (pending Followup, upcoming
+    // LandlordAppointment, scheduled task/call/meeting/viewing) is a doctrine violation.
+    // Also compute last-contact recency so the cadence picker can choose the right rule5_* step.
+    const now = Date.now();
+    const isActiveStage = !!landlord.stage && landlord.stage !== 'deal_closed';
+    const hasScheduledTouch = scheduledTouchpoints.length > 0 ||
+      openTasks.some(t => t.scheduled_at || t.due_date);
+
+    // Last contact = most recent inbound message timestamp (or outbound if no inbound).
+    let lastContactAt = null;
+    const lastInbound = messages.find(m => m.direction === 'incoming');
+    const lastOutbound = messages.find(m => m.direction === 'outgoing');
+    if (lastInbound?.timestamp) lastContactAt = lastInbound.timestamp;
+    else if (lastOutbound?.timestamp) lastContactAt = lastOutbound.timestamp;
+    const daysSinceLastContact = lastContactAt
+      ? Math.floor((now - new Date(lastContactAt).getTime()) / 86400000) : null;
+
+    // Doctrine violation = active stage + no scheduled next touch.
+    const doctrineViolation = isActiveStage && !hasScheduledTouch;
+
+    // ── CONVERTING THE UNSOLD ──
+    // When the unit is listed with competitors, factor mandate expiry + competitor fatigue.
+    const isListedWithOthers = !!landlord.is_currently_listed_with_others;
+    const mandateExpiresAt = landlord.mandate_expires_at ? new Date(landlord.mandate_expires_at).getTime() : null;
+    const daysToMandateExpiry = mandateExpiresAt
+      ? Math.floor((mandateExpiresAt - now) / 86400000) : null;
+    const unsoldDays = landlord.days_on_market ?? null;
+
     // Price vs valuation
     const valuation = num(prop.ai_estimated_value_aed);
     const latestQual = qualifications[0] || null;
@@ -322,7 +371,13 @@ Deno.serve(async (req) => {
     if (effectiveTier === 'cold') {
       // COLD: no conversation yet (record just created). Light, cheap, minimal output.
       modelUsed = COLD_MODEL;
-      const coldSystem = `You are LANDLORD AURORA (cold-tier) — assessing a brand-new Dubai landlord lead with NO conversation history yet. Output only: urgency_score (0-100) + rationale, rapport_level (likely "cold"), a best-guess landlord_archetype, a 1-2 sentence ai_rolling_summary, a concrete ai_next_best_action to make first contact, and ai_suggested_messages: 2-3 PERSONAL first-contact WhatsApp openers (mode="cold_open", channel="whatsapp", in the landlord's preferred language) tailored to this owner's tower/unit/project and archetype — never generic blasts; each with tone, intent, rationale. Do not fabricate scores you cannot justify. STRICT tool output.`;
+      const brandVoiceBlock = brandVoice ? `
+BRAND VOICE (obey in every message draft):
+- Charter: ${String(brandVoice.charter_text || '').slice(0, 1200)}
+- Language rules: ${String(brandVoice.language_rules || '').slice(0, 800)}
+` : '';
+
+      const coldSystem = `You are LANDLORD AURORA (cold-tier) — assessing a brand-new Dubai landlord lead with NO conversation history yet. Output only: urgency_score (0-100) + rationale, rapport_level (likely "cold"), a best-guess landlord_archetype, a 1-2 sentence ai_rolling_summary, a concrete ai_next_best_action to make first contact, and ai_suggested_messages: 2-3 PERSONAL first-contact WhatsApp openers (mode="cold_open", channel="whatsapp", in the landlord's preferred language) tailored to this owner's tower/unit/project and archetype — never generic blasts; each with tone, intent, rationale. Do not fabricate scores you cannot justify. STRICT tool output.${DOCTRINE_RULES}${brandVoiceBlock}`;
       const coldPrompt = `NEW LANDLORD: ${landlord.full_name_en || landlord.full_name || `${landlord.first_name || ''} ${landlord.last_name || ''}`}
 Phone: ${landlord.phone || '?'} | Lang: ${landlord.preferred_language || 'en'} | Nationality: ${landlord.nationality || '?'}
 Source: ${landlord.source || '?'} | Stage: ${landlord.stage || 'initial_contact'}
@@ -353,7 +408,13 @@ No conversation, notes, tasks, or calls exist yet. Emit the cold-tier assessment
         notes: latestQual.agent_notes
       }) : '(no qualification logged)';
 
-      const systemPrompt = `You are LANDLORD AURORA — an autonomous AI co-pilot for a Dubai real-estate agent pursuing landlord mandates. You reason over the ENTIRE context below (conversation, the agent's own notes, logged calls, the unit valuation, and everything already actioned/scheduled) and produce ONE coherent, internally-consistent picture.
+      const brandVoiceBlock = brandVoice ? `
+BRAND VOICE (obey in EVERY message draft, coaching line, and next-best-action draft_message):
+- Charter: ${String(brandVoice.charter_text || '').slice(0, 1500)}
+- Language rules: ${String(brandVoice.language_rules || '').slice(0, 1000)}
+` : '';
+
+      const systemPrompt = `You are LANDLORD AURORA — an autonomous AI co-pilot for a Dubai real-estate agent pursuing landlord mandates. You reason over the ENTIRE context below (conversation, the agent's own notes, logged calls, the unit valuation, and everything already actioned/scheduled) and produce ONE coherent, internally-consistent picture.${DOCTRINE_RULES}${brandVoiceBlock}
 
 Decide and emit:
 1. STAGE PROGRESSION: new_stage only if EARNED by evidence; detect sub_stage. new_stage MUST be one of (or null): ${STAGES.join(', ')}.
@@ -362,13 +423,13 @@ Decide and emit:
 4. SIGNALS: buying_signals[] and red_flags[]. OBJECTIONS: ai_objections[] (the landlord's stated/implied hesitations).
 5. ROLLING SUMMARY: 3-5 sentences. It MUST reflect what is already scheduled (e.g. "call already booked for X") and what tasks are already pending/done — do not describe those as if they still need creating.
 6. COACHING: 1-2 specific sentences for THIS agent on THIS landlord.
-7. NEXT BEST ACTION: action + priority + scheduled_for + draft_message (in the landlord's language) + reasoning + confidence.
+7. NEXT BEST ACTION: action + priority + scheduled_for + draft_message (in the landlord's language, obeying the Brand Voice) + reasoning + confidence. If a 14-DAY LAW violation is flagged below, the action MUST be "schedule_next_touch" (priority high/urgent) and a cadence follow-up MUST be proposed in section 12. If the unit is listed with competitors (unsold), factor mandate expiry + competitor fatigue into the action and reference the unsold_competitor_watch_30 cadence.
 8. MOMENTUM: accelerating | steady | slowing | stalled. STRIKE_NOW: momentum=accelerating AND urgency>70 AND mandate_win>0.4.
 9. ESCALATION: needs_human_review if value >10M AED with a red flag, OR competing brokers ≥3, OR stuck >14d in stage.
 10. PRICE ↔ VALUATION RECONCILIATION (critical): cross-reference the asking price (or the landlord's stated expectation) against the AI valuation. If the asking is unrealistic vs valuation, say so explicitly in the summary AND add it to ai_objections. If there is NO asking price yet but a valuation exists, the next-best-action should use the valuation as the hook.
 11. SUGGESTED TASKS (state-aware): recommend NEW tasks ONLY, each referencing one of: ${TASK_TEMPLATE_KEYS.join(', ')}. Do NOT suggest anything that already exists as an open or done task (listed below) — reference those as pending instead. 0 is valid if everything is already covered.
-12. SUGGESTED FOLLOW-UPS (state-aware): recommend NEW time-based follow-ups ONLY, each referencing one of: ${FOLLOWUP_TEMPLATE_KEYS.join(', ')}, with when_offset_days, suggested_hour (0-23 Asia/Dubai), channel. Do NOT duplicate an already-scheduled appointment/follow-up (listed below).
-13. SUGGESTED MESSAGES (reply mode): 2-3 send-ready WhatsApp drafts (mode="reply", channel="whatsapp") in the landlord's preferred_language that advance the next-best-action — ready to send, NO placeholders. Vary the angle (e.g. direct vs soft). Each with tone, intent, rationale. Ground them in the actual conversation and the price reality.
+12. SUGGESTED FOLLOW-UPS (state-aware + doctrine cadence): recommend NEW time-based follow-ups ONLY, each referencing one of: ${FOLLOWUP_TEMPLATE_KEYS.join(', ')}, with when_offset_days, suggested_hour (0-23 Asia/Dubai), channel. Do NOT duplicate an already-scheduled appointment/follow-up (listed below). When a 14-DAY LAW violation is flagged, you MUST include the appropriate cadence step (rule5_day2_value_drop / rule5_day5_call / rule5_day9_voice_note / rule5_day14_snapshot / law14_nurture / unsold_competitor_watch_30) based on days_since_last_contact and stage. When the unit is listed with competitors, include unsold_competitor_watch_30 if no recent competitor-watch touch exists.
+13. SUGGESTED MESSAGES (reply mode): 2-3 send-ready WhatsApp drafts (mode="reply", channel="whatsapp") in the landlord's preferred_language that advance the next-best-action — ready to send, NO placeholders. Vary the angle (e.g. direct vs soft). Each with tone, intent, rationale. Ground them in the actual conversation and the price reality. EVERY draft MUST obey the Sales Doctrine (one clear ask, value before price, next step scheduled) AND the Brand Voice charter/language rules.
 14. DEAL THESIS (persistent — EVOLVE, don't reset): ai_deal_thesis is the durable 2-4 sentence strategy for winning THIS mandate — the through-line that should hold across many runs (who the decision-maker is, the core lever, the path to signature, the main risk). You are given the PRIOR thesis below: keep what is still true, revise only what genuinely changed, and let it accrue. This is DISTINCT from ai_rolling_summary (which is the tactical current-state) — do not just repeat the summary here.
 15. OPEN QUESTIONS (ask-the-agent — be honest about uncertainty): ai_open_questions is 0-3 specific things a HUMAN could answer that would materially sharpen the strategy (e.g. "Is the owner's spouse a co-decision-maker?", "Did the last viewing actually happen?"). Each with a one-line 'why'. Return an EMPTY array when nothing is genuinely blocking — do not invent questions to fill the slot.
 
@@ -403,6 +464,18 @@ STAKEHOLDERS (${stakeholders.length}): ${stakeholders.map(s => `${s.name}(${s.ro
 NEGOTIATION: ${negotiation ? JSON.stringify({ asking: negotiation.asking_price_current, cma: negotiation.cma_value_aed, gap_pct: negotiation.pricing_gap_pct }) : '(none)'}
 PRIOR ROLLING SUMMARY (refine, don't blindly restate): ${landlord.ai_rolling_summary || '(none)'}
 PRIOR DEAL THESIS (evolve it — keep what holds, revise only what changed): ${landlord.ai_deal_thesis || '(none yet — establish it)'}
+
+SALES DOCTRINE STATE:
+14-Day Law violation: ${doctrineViolation ? 'YES — active stage but NO scheduled next touch (no pending Followup, no upcoming appointment, no scheduled task/call/meeting/viewing). The next-best-action MUST be "schedule_next_touch" and a cadence follow-up MUST be proposed.' : 'no (a next touch is already scheduled)'}
+days_since_last_contact: ${daysSinceLastContact ?? 'unknown (no messages yet)'}
+has_scheduled_touch: ${hasScheduledTouch ? 'yes' : 'no'}
+
+CONVERTING THE UNSOLD:
+listed_with_competitors: ${isListedWithOthers ? 'YES' : 'no'}
+competing_brokers_count: ${landlord.competing_brokers_count || 0}
+days_on_market: ${unsoldDays ?? 'unknown'}
+mandate_expires_at: ${landlord.mandate_expires_at ? fmtDate(landlord.mandate_expires_at) : 'none'}${daysToMandateExpiry != null ? ` (${daysToMandateExpiry}d from now)` : ''}
+${isListedWithOthers ? '→ Factor competitor listing fatigue into the next-best-action. If no recent unsold_competitor_watch_30 touch exists, propose one (market-reality check: comparable days on market, nearby price drops) to pull the mandate toward us.' : ''}
 
 Reason over all of the above and emit the orchestrator result.`;
 
