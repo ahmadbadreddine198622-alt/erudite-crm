@@ -159,6 +159,7 @@ class LandlordDetail extends React.Component {
       saveTemplateOpen: false,
       saveTemplatePrefill: null,
       saveTemplateChannel: 'email',
+      showCallQualForm: false,
     };
     this.onNavigate = this.props.onNavigate || (() => {});
     this.formAContracts = this.props.formAContracts || [];
@@ -1624,6 +1625,26 @@ class LandlordDetail extends React.Component {
                 {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
                     Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
                     (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
+                {effComposer === 'Follow-up' && (
+                  <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:7px;")}>
+                    <button
+                      type="button"
+                      onClick={() => this.setState(s => ({ showCallQualForm: !s.showCallQualForm }))}
+                      title="Log this call — AI qualification"
+                      style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:99px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, #22c55e, #16a34a); color:#052e16; border:1px solid rgba(34,197,94,0.6); touch-action:manipulation;")}
+                    >
+                      📞 Dial · Log Call
+                    </button>
+                    {this.state.showCallQualForm && (
+                      <span style={css("font-size:10px; color:rgba(255,255,255,0.45);")}>Qualification form open below</span>
+                    )}
+                  </div>
+                )}
+                {effComposer === 'Follow-up' && this.state.showCallQualForm && (
+                  <div style={css("margin-bottom:8px; border-radius:11px; overflow:hidden; border:1px solid rgba(250,180,40,0.18);")}>
+                    <CallQualificationTab landlord={this.props.rawLandlord || L} />
+                  </div>
+                )}
                 {effComposer === 'Follow-up' && (
                   <FollowupComposerFields
                     chips={this.suggestedFollowupChips()}
