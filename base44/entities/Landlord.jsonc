@@ -671,6 +671,120 @@
     "telegram_username": {
       "type": "string",
       "description": "Telegram @username of the landlord, if known (display/reference only \u2014 sending requires telegram_chat_id)"
+    },
+    "investigation_profile": {
+      "type": "object",
+      "description": "AI identity investigation result \u2014 web research on who the landlord is (profession, companies, social profiles, wealth signals, talking points). Written by investigateLandlord.",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "3-5 sentence plain-English 'who this person is'"
+        },
+        "occupation": {
+          "type": "string"
+        },
+        "companies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "linkedin_url": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "articles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "wealth_signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "talking_points": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "3-4 conversation hooks the agent can use to build rapport"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "confidence_reason": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "URLs consulted during the investigation"
+        }
+      }
+    },
+    "investigation_status": {
+      "type": "string",
+      "enum": [
+        "not_run",
+        "in_progress",
+        "completed",
+        "failed"
+      ],
+      "default": "not_run",
+      "description": "Current status of the AI identity investigation"
+    },
+    "investigated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the identity investigation was last completed"
+    },
+    "investigation_match_status": {
+      "type": "string",
+      "enum": [
+        "unconfirmed",
+        "confirmed",
+        "wrong_person"
+      ],
+      "default": "unconfirmed",
+      "description": "Agent-verified match status: confirmed = correct person, wrong_person = investigation found the wrong person"
+    },
+    "investigation_hint": {
+      "type": "string",
+      "description": "Optional agent-provided hint (company name, profession) to improve re-runs of the identity investigation"
     }
   },
   "required": [
