@@ -257,6 +257,15 @@ Deno.serve(async (req) => {
       followupsByAgent[k].push(f);
     });
 
+    // ─── Build per-agent strike-now list ───
+    const strikeByAgent = {};
+    activeLandlords.forEach(l => {
+      if (!l.ai_strike_now) return;
+      const k = l.assigned_agent_email.toLowerCase();
+      if (!strikeByAgent[k]) strikeByAgent[k] = [];
+      strikeByAgent[k].push(l);
+    });
+
     // ─── Build per-agent founder-directive-waiting list ───
     // Directives with status 'active' (not yet acknowledged) assigned to the landlord's agent.
     const directiveByAgent = {};
@@ -290,9 +299,10 @@ Deno.serve(async (req) => {
       );
       const strikeLandlords = (strikeByAgent[agentKey] || []).slice(0, 5);
       const touchCount = touchCounts[agentKey] || 0;
+      const pendingDirectives = (directiveByAgent[agentKey] || []).slice(0, 10);
 
-      // Skip agents with zero items in all three sections.
-      if (doctrineQueue.length === 0 && strikeLandlords.length === 0 && touchCount === 0) {
+      // Skip agents with zero items in all sections.
+      if (doctrineQueue.length === 0 && strikeLandlords.length === 0 && touchCount === 0 && pendingDirectives.length === 0) {
         continue;
       }
 
@@ -316,6 +326,7 @@ Deno.serve(async (req) => {
         landlordNames,
         strikeLandlords,
         touchCount,
+        pendingDirectives,
       });
 
       digests.push({ agent_email: agentEmail, ...digest.summary });
