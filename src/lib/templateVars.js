@@ -35,6 +35,7 @@ export function buildTemplateContext(landlord, user) {
     property_name: l.unit_reference || l.project_name || '',
     unit_reference: l.unit_reference || '',
     unit_no: l.unit_reference || '',
+    unit_layout: l.unit_layout || '',
     project_name: l.project_name || '',
     building_name: l.building_name || '',
     // Agent

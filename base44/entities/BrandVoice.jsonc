@@ -1,0 +1,63 @@
+{
+  "name": "BrandVoice",
+  "properties": {
+    "banned_patterns": {
+      "description": "Words/patterns never to use (e.g. exclamation marks, pressure phrases)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "charter_text": {
+      "description": "The full tone-of-voice charter every AI draft and tone-adjust must obey",
+      "type": "string"
+    },
+    "good_examples": {
+      "description": "Real messages that exemplify the voice",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "is_active": {
+      "default": true,
+      "description": "Only one charter should be active; the tone-adjust AI reads the active one",
+      "type": "boolean"
+    },
+    "language_rules": {
+      "description": "Per-language formality rules (Arabic, Russian, etc.)",
+      "type": "string"
+    },
+    "name": {
+      "description": "Charter name, e.g. 'Erudite Landlord Voice v1'",
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  "required": [
+    "name",
+    "charter_text"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
+}

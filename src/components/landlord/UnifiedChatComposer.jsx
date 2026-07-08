@@ -71,8 +71,9 @@ export default function UnifiedChatComposer({
   disabledHint = '',
   attachment,          // { file_url, file_name, media_type } | null — current pending attachment
   onAttachmentChange,  // fn(att | null) — set/clear the pending attachment in parent state
-  targetLanguage,      // landlord's preferred language code — enables bidirectional EN↔target editing
-}) {
+  targetLanguage,     // landlord's preferred language code — enables bidirectional EN↔target editing
+  extraToolbarChildren, // additional React nodes rendered in the ModernComposerField toolbar (e.g. EruditeToneButton)
+  }) {
   const [aiOpen, setAiOpen] = useState(false);
   const taRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -212,6 +213,8 @@ export default function UnifiedChatComposer({
         inputRef={taRef}
         minHeight={44}
       >
+        {/* Extra toolbar children (EruditeToneButton etc.) */}
+        {extraToolbarChildren}
         {/* User message templates (MessageTemplate entity) */}
         <div style={css("position:relative;")}>
           <EmailTemplatePicker channel={tplChannel} landlordId={landlordId} compact onSelect={({ body }) => onPickTemplate(body || '')} />

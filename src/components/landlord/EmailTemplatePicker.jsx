@@ -15,7 +15,7 @@ import { buildTemplateContext, replaceTemplateVars } from '@/lib/templateVars';
 import { filterVisibleTemplates } from '@/lib/templateVisibility';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 
-export default function EmailTemplatePicker({ onSelect, channel = 'email', landlordId, compact }) {
+export default function EmailTemplatePicker({ onSelect, channel = 'email', landlordId, compact, preferredLanguage }) {
   const qc = useQueryClient();
   const { user, isAdmin } = useCurrentUser();
   const [ctx, setCtx] = useState({});
@@ -48,7 +48,12 @@ export default function EmailTemplatePicker({ onSelect, channel = 'email', landl
 
   // Apply explicit visibility logic so creators see their own private templates,
   // shared templates show to everyone, and specific_agents templates show to listed agents.
-  const templates = filterVisibleTemplates(rawTemplates, user?.email, isAdmin);
+  const visible = filterVisibleTemplates(rawTemplates, user?.email, isAdmin);
+
+  // Prefer templates matching the landlord's preferred language; fall back to 'en'.
+  const lang = preferredLanguage || 'en';
+  const langMatches = visible.filter(t => (t.language || 'en') === lang);
+  const templates = langMatches.length ? langMatches : visible.filter(t => (t.language || 'en') === 'en');
 
   const handleChange = (e) => {
     const id = e.target.value;
