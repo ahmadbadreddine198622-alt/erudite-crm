@@ -1195,7 +1195,7 @@ class LandlordDetail extends React.Component {
     });
     // Chat-style tabs render oldest→newest so the latest message sits at the bottom (chat UX).
     // vm.stream is newest-first, so reverse for these tabs only.
-    if (['Chat','iMessage','Telegram','SMS'].includes(this.state.composerType)) tabStream.reverse();
+    if (['iMessage','Telegram','SMS'].includes(this.state.composerType)) tabStream.reverse();
 
     return (
       <React.Fragment>
@@ -1380,7 +1380,7 @@ class LandlordDetail extends React.Component {
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <CallsTabList calls={L.calls || []} />
                 </div>
-              ) : this.state.composerType === 'Activity' ? (
+              ) : (this.state.composerType === 'Activity' || this.state.composerType === 'Chat') ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <AllActivityTab items={L.stream.map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                 </div>
