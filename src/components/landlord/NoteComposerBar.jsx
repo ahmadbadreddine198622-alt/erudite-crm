@@ -272,9 +272,9 @@ export default function NoteComposerBar({
       <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFilePick} />
 
       {/* Toolbar — left cluster scrolls horizontally, right cluster is fixed */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-        {/* Left: scrollable tool cluster */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2, scrollbarWidth: 'thin' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, position: 'relative', zIndex: 5 }}>
+        {/* Left: scrollable tool cluster — touchAction pan-x so it only captures horizontal drags, not taps */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2, scrollbarWidth: 'thin', touchAction: 'pan-x' }}>
           {/* Templates dropdown */}
           <EmailTemplatePicker
             channel="email"
@@ -350,8 +350,8 @@ export default function NoteComposerBar({
           )}
         </div>
 
-        {/* Right: fixed action cluster — always visible */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none' }}>
+        {/* Right: fixed action cluster — always visible, stacked above scroll container */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none', position: 'relative', zIndex: 10, touchAction: 'manipulation' }}>
           {/* Word counter */}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontFamily: "'Inter',sans-serif" }}>
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
@@ -361,20 +361,20 @@ export default function NoteComposerBar({
           {isNote && onSwitchToWhatsApp && (
             <button type="button" onClick={() => onSwitchToWhatsApp(value)}
               title="Send via WhatsApp"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', touchAction: 'manipulation', minHeight: 36 }}>
               <MessageCircle size={12} /> WhatsApp
             </button>
           )}
 
           {/* Clear */}
           <button type="button" onClick={handleClear} disabled={!hasText}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: hasText ? 'pointer' : 'not-allowed', fontFamily: "'Inter',sans-serif", background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', opacity: hasText ? 1 : 0.4 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: hasText ? 'pointer' : 'not-allowed', fontFamily: "'Inter',sans-serif", background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', opacity: hasText ? 1 : 0.4, touchAction: 'manipulation', minHeight: 36 }}>
             <Eraser size={11} /> Clear
           </button>
 
           {/* Send */}
-          <button onClick={handleSend} disabled={busy2}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 16px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))', color: '#1a1205', border: '1px solid hsl(38 92% 50% / 0.5)', opacity: busy2 ? 0.6 : 1 }}>
+          <button type="button" onClick={handleSend} disabled={busy2}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))', color: '#1a1205', border: '1px solid hsl(38 92% 50% / 0.5)', opacity: busy2 ? 0.6 : 1, touchAction: 'manipulation', minHeight: 36 }}>
             {composerParsing ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
             {composerParsing ? 'Parsing…' : busy ? '…' : 'Send'}
           </button>

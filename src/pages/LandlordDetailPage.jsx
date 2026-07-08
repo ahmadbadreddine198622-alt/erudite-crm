@@ -1534,7 +1534,7 @@ class LandlordDetail extends React.Component {
               {/* AI Suggested Tasks moved to right panel */}
 
               {/* composer */}
-              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 12px; background:rgba(255,255,255,0.02);"), position: 'relative', overflow: 'hidden' }}>
+              <div style={{ ...css("flex:none; border-top:1px solid rgba(255,255,255,0.08); padding:10px 16px 14px; background:rgba(255,255,255,0.02);"), position: 'relative', overflow: 'visible' }}>
                 {this.state.telegramJustSent && <SendFlash color="#29b6f6" label="Sent!" glyph="✈" />}
                 {this.state.composerDraft && (
                   <ComposerConfirmChip
