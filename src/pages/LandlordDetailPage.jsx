@@ -44,6 +44,7 @@ import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 import FounderDirectiveStrip from '@/components/landlord/FounderDirectiveStrip';
+import LandlordNavArrows from '@/components/landlord/LandlordNavArrows';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1213,6 +1214,7 @@ class LandlordDetail extends React.Component {
                 <span style={css("color:rgba(255,255,255,0.2); font-size:12px;")}>›</span>
                 <span style={css("font-size:13px; font-weight:600; color:rgba(255,255,255,0.95); font-family:'Inter',sans-serif;")}>{L.full_name_en || L.full_name || 'Landlord'}</span>
               </div>
+              <LandlordNavArrows currentId={this.state.currentId} />
             </div>
             {/* Right: two pill containers + Analyse + Go Back */}
             <div style={css("display:flex; align-items:center; gap:8px;")}>
@@ -1930,6 +1932,10 @@ export default function LandlordDetailPage() {
   const { data: tasks = [] } = useQ(['landlord_tasks', id], () => safe(() => base44.entities.LandlordTask.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
   // LandlordAppointment records — historical follow-ups with channel + datetime for the Follow-up tab.
   const { data: followups = [] } = useQ(['landlord_followups', id], () => safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: id }, '-datetime', 100)), { enabled: !!id });
+  // Founder directives — appear chronologically in the activity timeline
+  const { data: directives = [] } = useQ(['landlord_directives_stream', id], () => safe(() => base44.entities.LandlordDirective.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
+  // Activity comments — founder coaching annotations on specific activity items
+  const { data: activityComments = [] } = useQ(['activity_comments', id], () => safe(() => base44.entities.ActivityComment.filter({ landlord_id: id }, '-created_date', 500)), { enabled: !!id, refetchInterval: 15000 });
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
@@ -2351,7 +2357,6 @@ export default function LandlordDetailPage() {
   if (L.form_a_pdf_url && !docs.some(d => d.label.includes('Form A') || d.label.includes('Brokerage'))) {
     docs.unshift({ icon: '✍', label: 'Form A Contract', provider: L.form_a_contract_number ? `Contract ${L.form_a_contract_number}` : 'Signed Form A', status: 'received', url: L.form_a_pdf_url });
   }
-
     const langMap = {
     ru: 'Russian', en: 'English', ar: 'Arabic', zh: 'Chinese', hi: 'Hindi', ur: 'Urdu', fa: 'Farsi',
   };
@@ -2477,6 +2482,7 @@ export default function LandlordDetailPage() {
         formAContracts={formAContracts}
         currentUser={currentUser}
         isAdmin={isAdmin}
+        activityComments={activityComments}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}

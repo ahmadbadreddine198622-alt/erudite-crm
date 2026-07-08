@@ -1,0 +1,71 @@
+{
+  "name": "ActivityComment",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "email",
+        "imessage",
+        "telegram",
+        "note",
+        "task",
+        "followup",
+        "call",
+        "founder_directive"
+      ],
+      "description": "Which type of activity this comment is attached to"
+    },
+    "activity_id": {
+      "type": "string",
+      "description": "The entity record ID of the activity being commented on"
+    },
+    "comment_text": {
+      "type": "string",
+      "description": "The founder's coaching comment / annotation on this specific activity"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "urgent",
+        "important",
+        "normal"
+      ],
+      "default": "normal",
+      "description": "Visual priority \u2014 urgent shows red, important shows gold, normal shows muted. Lets agents instantly spot founder feedback."
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email of the commenter"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of the commenter"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "activity_type",
+    "activity_id",
+    "comment_text"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

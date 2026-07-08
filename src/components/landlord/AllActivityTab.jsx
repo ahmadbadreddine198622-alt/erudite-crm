@@ -13,6 +13,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, Sparkles, Loader2, CornerUpLeft } from 'lucide-react';
+import ActivityCommentThread from './ActivityCommentThread';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -50,6 +51,7 @@ const KIND_META = {
   appointment: { icon: '📅', color: '#a855f7', bg: 'rgba(168,85,247,0.16)', label: 'Appointment', tab: 'Appointment' },
   document:    { icon: '📄', color: '#06b6d4', bg: 'rgba(6,182,212,0.16)', label: 'Document', tab: 'Documents' },
   stage:       { icon: '⇪', color: '#14b8a6', bg: 'rgba(20,184,166,0.16)', label: 'Stage', tab: 'Activity' },
+  founder_directive: { icon: '👑', color: '#C9A24B', bg: 'rgba(201,162,75,0.16)', label: 'Founder Directive', tab: null },
 };
 
 // Format a timestamp string into a full date+time label (Asia/Dubai locale).
@@ -77,7 +79,7 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
 
-export default function AllActivityTab({ items, landlordId, landlordName, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
+export default function AllActivityTab({ items, landlordId, landlordName, comments, isAdmin, currentUser, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -115,6 +117,8 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           rawTime: s.time,
           order: s.order || 0,
           channelKey: chKey,
+          entityType: s._entityType,
+          entityId: s._entityId,
         });
       } else if (s.t === 'act') {
         const meta = KIND_META[s.kind] || KIND_META.note;
@@ -134,6 +138,8 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
           rawTime: s.time,
           order: s.order || 0,
           channelKey: s.kind,
+          entityType: s._entityType,
+          entityId: s._entityId,
         });
       }
     }
@@ -148,6 +154,17 @@ export default function AllActivityTab({ items, landlordId, landlordName, onRepl
     for (const a of activities) if (a.channelKey) seen.add(a.channelKey);
     return [...seen];
   }, [activities]);
+
+  // Build a lookup map of comments keyed by "activityType:activityId"
+  const commentMap = useMemo(() => {
+    const m = {};
+    for (const c of (comments || [])) {
+      const key = `${c.activity_type}:${c.activity_id}`;
+      if (!m[key]) m[key] = [];
+      m[key].push(c);
+    }
+    return m;
+  }, [comments]);
 
   const filtered = channelFilter === 'all'
     ? activities
@@ -344,6 +361,17 @@ ${timeline}`,
                 <div style={{ margin: '0 8px 8px 52px', padding: '9px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.82)', whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', background: item.iconBg, borderLeft: '3px solid ' + item.iconColor }}>
                   {item.body}
                 </div>
+              )}
+              {/* Founder coaching comments — always visible, distinct color */}
+              {item.entityType && item.entityId && (
+                <ActivityCommentThread
+                  comments={commentMap[`${item.entityType}:${item.entityId}`] || []}
+                  landlordId={landlordId}
+                  activityType={item.entityType}
+                  activityId={item.entityId}
+                  isAdmin={isAdmin}
+                  currentUser={currentUser}
+                />
               )}
               {/* Summarize button — only on the most recent activity */}
               {isLast && (
