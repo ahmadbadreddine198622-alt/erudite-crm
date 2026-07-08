@@ -203,16 +203,20 @@ export default function NoteComposerBar({
     setAttachment(null);
   };
 
-  // On send, append attachment URL to the note text if present
+  // On send, append attachment URL to the note text if present.
+  // Pass the current text directly to onSend as a fallback — the parent reads
+  // this.state.composerText which can lag behind by a tick on fast mobile taps.
   const handleSend = () => {
+    let textToSend = (value || '').trim();
     if (attachment) {
-      const ta = composerRef?.current;
       const enriched = (value || '') + `\n📎 ${attachment.file_name}: ${attachment.file_url}`;
+      const ta = composerRef?.current;
       if (ta) { ta.value = enriched; onChange({ target: ta }); }
       else { onChange({ target: { value: enriched } }); }
+      textToSend = enriched.trim();
       setAttachment(null);
     }
-    if (onSend) onSend();
+    if (onSend) onSend(textToSend);
   };
 
   const busy2 = !!(busy || composerParsing);
@@ -350,8 +354,8 @@ export default function NoteComposerBar({
           )}
         </div>
 
-        {/* Right: fixed action cluster — always visible, stacked above scroll container */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none', position: 'relative', zIndex: 10, touchAction: 'manipulation' }}>
+        {/* Right: fixed action cluster — always visible, stacked above scroll container + any left-cluster popovers */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none', position: 'relative', zIndex: 50, touchAction: 'manipulation', pointerEvents: 'auto' }}>
           {/* Word counter */}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontFamily: "'Inter',sans-serif" }}>
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
@@ -359,9 +363,9 @@ export default function NoteComposerBar({
 
           {/* Quick-switch to WhatsApp */}
           {isNote && onSwitchToWhatsApp && (
-            <button type="button" onClick={() => onSwitchToWhatsApp(value)}
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSwitchToWhatsApp(value); }}
               title="Send via WhatsApp"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', touchAction: 'manipulation', minHeight: 36 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', touchAction: 'manipulation', minHeight: 36, pointerEvents: 'auto', position: 'relative' }}>
               <MessageCircle size={12} /> WhatsApp
             </button>
           )}
@@ -373,8 +377,8 @@ export default function NoteComposerBar({
           </button>
 
           {/* Send */}
-          <button type="button" onClick={handleSend} disabled={busy2}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))', color: '#1a1205', border: '1px solid hsl(38 92% 50% / 0.5)', opacity: busy2 ? 0.6 : 1, touchAction: 'manipulation', minHeight: 36 }}>
+          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSend(); }} disabled={busy2}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))', color: '#1a1205', border: '1px solid hsl(38 92% 50% / 0.5)', opacity: busy2 ? 0.6 : 1, touchAction: 'manipulation', minHeight: 36, pointerEvents: 'auto', position: 'relative' }}>
             {composerParsing ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
             {composerParsing ? 'Parsing…' : busy ? '…' : 'Send'}
           </button>

@@ -507,7 +507,7 @@ class LandlordDetail extends React.Component {
   // Reset to a from-scratch follow-up.
   clearFollowupDraft = ()=> this.setState({ composerText:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' });
 
-  onSend = ()=>{
+  onSend = (directText)=>{
     const effType = this.state.composerType === 'Activity' ? (this.state.activityComposer || 'Chat') : this.state.composerType;
     // Email and iMessage are composed and sent from their dedicated panels (their own buttons),
     // so the shared textarea/send-arrow does nothing for them.
@@ -515,7 +515,9 @@ class LandlordDetail extends React.Component {
     if(effType === 'iMessage'){ return; }
     // Appointments are parsed & booked from the dedicated AppointmentComposer panel.
     if(effType === 'Appointment'){ return; }
-    const txt=(this.state.composerText||'').trim(); if(!txt) return;
+    // Accept text passed directly from NoteComposerBar (avoids stale-state on fast mobile taps);
+    // fall back to this.state.composerText for other callers (keyboard Enter, etc.).
+    const txt=(directText || this.state.composerText || '').trim(); if(!txt) return;
     // Note/Task/Follow-up persist directly through their dedicated save methods,
     // which already handle provenance, optimistic stream updates and error recovery.
     if(effType === 'Note'){ this.saveNote(txt); return; }
