@@ -186,7 +186,7 @@ export default function FlowComposer({ landlord, thread, onSent, aiDraftFields }
               {availableChannels.map((c) => (
                 <button key={c.key} type="button"
                   onClick={() => { setChannel(c.key); setChannelMenuOpen(false); }}
-                  style={css("display:flex; align-items:center; gap:7px; width:100%; padding:7px 10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; background:transparent; border:none; color:") + (channel === c.key ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.7)') + ';' + (channel === c.key ? 'background:rgba(255,255,255,0.06);' : '')}>
+                  style={css("display:flex; align-items:center; gap:7px; width:100%; padding:7px 10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; background:transparent; border:none; color:" + (channel === c.key ? 'hsl(38 92% 60%)' : 'rgba(255,255,255,0.7)') + ';' + (channel === c.key ? 'background:rgba(255,255,255,0.06);' : ''))}>
                   <c.icon size={12} style={{ color: c.color, flex: 'none' }} />
                   {c.label}
                 </button>
