@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
     const svc = base44.asServiceRole;
 
     let body = {};
-    try { body = await req.json(); } catch (_) {}
+    const rawBody = await req.text();
+    if (rawBody.trim()) {
+      body = JSON.parse(rawBody); // throws on malformed JSON → surfaces in outer catch, no silent swallow
+    }
     const dryRun = body.dry_run === true;
     const batchSize = (typeof body.batch_size === 'number' && body.batch_size > 0) ? Math.floor(body.batch_size) : 15;
     const maxLandlords = (typeof body.max_landlords === 'number' && body.max_landlords > 0) ? Math.floor(body.max_landlords) : 500;
@@ -88,6 +91,7 @@ Deno.serve(async (req) => {
     const slots = nextWorkdaySlots(5);
     const perAgentCount = {};
 
+    const errors = [];
     let landlordsChecked = 0;
     let violationsFound = 0;
     let followupsCreated = 0;
@@ -97,7 +101,7 @@ Deno.serve(async (req) => {
       if (Date.now() - startedAt > STOP_AT_MS) break;
       const batch = candidates.slice(i, i + batchSize);
 
-      await Promise.allSettled(batch.map(async (ll) => {
+      const results = await Promise.allSettled(batch.map(async (ll) => {
         landlordsChecked++;
         const lid = ll.id;
         const now = Date.now();
@@ -180,6 +184,13 @@ Deno.serve(async (req) => {
         perAgentCount[agent] = (perAgentCount[agent] || 0) + 1;
         followupsCreated++;
       }));
+
+      // Collect rejected promises — no silent swallowing.
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          errors.push(String(r.reason?.message || r.reason || 'Unknown error'));
+        }
+      }
     }
 
     const summary = {
@@ -187,6 +198,7 @@ Deno.serve(async (req) => {
       violations_found: violationsFound,
       followups_created: followupsCreated,
       skipped_existing: skippedExisting,
+      errors,
       dry_run: dryRun,
       elapsed_ms: Date.now() - startedAt,
     };

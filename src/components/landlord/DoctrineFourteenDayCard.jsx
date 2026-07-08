@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, Scale, TrendingUp, CheckCircle2, Activity } from 'lucide-react';
 
 const LAW_TITLE = '14-Day Law — schedule next touch';
+const DAILY_TOUCH_TARGET = 30;
 
 // Returns a Date object representing the start of "today" in Dubai time (UTC+4).
 // Dubai has no DST, so it's a fixed +4 offset.
@@ -197,26 +198,33 @@ export default function DoctrineFourteenDayCard({ isAdmin }) {
               </span>
             </div>
             {touchesToday.length > 0 ? (
-              <div className="space-y-1.5">
-                {touchesToday.map(({ email, count }, idx) => (
-                  <div key={email} className="flex items-center gap-3">
-                    <span className="text-xs font-bold tabular-nums w-5 text-right" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                      {idx + 1}
-                    </span>
-                    <span className="flex-1 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>{agentDisplay(email)}</span>
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${teamTouchTotal > 0 ? (count / teamTouchTotal) * 100 : 0}%`,
-                          background: 'hsl(38 92% 50%)',
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-bold tabular-nums w-8 text-right" style={{ color: 'rgba(255,255,255,0.9)' }}>{count}</span>
+            <div className="space-y-1.5">
+            {touchesToday.map(({ email, count }, idx) => {
+              const pctVsTarget = Math.round((count / DAILY_TOUCH_TARGET) * 100);
+              const met = count >= DAILY_TOUCH_TARGET;
+              const barColor = met ? '#34d399' : count >= DAILY_TOUCH_TARGET * 0.5 ? 'hsl(38 92% 50%)' : '#f87171';
+              return (
+                <div key={email} className="flex items-center gap-3">
+                  <span className="text-xs font-bold tabular-nums w-5 text-right" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {idx + 1}
+                  </span>
+                  <span className="flex-1 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}>{agentDisplay(email)}</span>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, pctVsTarget)}%`,
+                        background: barColor,
+                      }}
+                    />
                   </div>
-                ))}
-              </div>
+                  <span className="text-sm font-bold tabular-nums w-12 text-right" style={{ color: met ? '#34d399' : 'rgba(255,255,255,0.9)' }}>
+                    {count}/{DAILY_TOUCH_TARGET}
+                  </span>
+                </div>
+              );
+            })}
+            </div>
             ) : (
               <p className="text-sm text-center py-2" style={{ color: 'rgba(255,255,255,0.35)' }}>No outbound touches logged today yet.</p>
             )}
