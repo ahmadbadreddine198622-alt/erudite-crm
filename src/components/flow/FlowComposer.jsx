@@ -172,7 +172,7 @@ export default function FlowComposer({ landlord, thread, onSent, aiDraftFields }
       {/* Channel selector chip */}
       <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:7px; position:relative;")}>
         <button type="button" onClick={() => setChannelMenuOpen(!channelMenuOpen)}
-          style={css("display:inline-flex; align-items:center; gap:5px; padding:3px 9px 3px 7px; border-radius:99px; cursor:pointer; font-family:'Inter',sans-serif; font-size:10px; font-weight:600; transition:background 0.12s;") + (channelMenuOpen ? '' : ' hover:bg-white/10')}
+          style={css("display:inline-flex; align-items:center; gap:5px; padding:3px 9px 3px 7px; border-radius:99px; cursor:pointer; font-family:'Inter',sans-serif; font-size:10px; font-weight:600; transition:background 0.12s;")}
           {...({})}>
           <Icon size={11} style={{ color: activeChannel.color, flex: 'none' }} />
           <span style={{ color: 'rgba(255,255,255,0.7)' }}>{activeChannel.label}</span>
