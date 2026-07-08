@@ -1388,6 +1388,23 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Calls' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  {/* Professional Dial bar — opens the AI call qualification form inline */}
+                  <div style={css("display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:9px 12px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                    <button
+                      type="button"
+                      onClick={() => this.setState(s => ({ showCallQualForm: !s.showCallQualForm }))}
+                      style={css("display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:9px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, #16a34a, #15803d); color:#ffffff; border:1px solid rgba(34,197,94,0.55); touch-action:manipulation; box-shadow:0 2px 8px rgba(22,163,74,0.25);")}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      {this.state.showCallQualForm ? 'Close' : 'Dial · Log Call'}
+                    </button>
+                    <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>{this.state.showCallQualForm ? 'AI qualification form open below' : 'Log a call with full AI qualification'}</span>
+                  </div>
+                  {this.state.showCallQualForm && (
+                    <div style={css("margin-bottom:14px; border-radius:11px; overflow:hidden; border:1px solid rgba(250,180,40,0.18);")}>
+                      <CallQualificationTab landlord={this.props.rawLandlord || L} />
+                    </div>
+                  )}
                   <CallsTabList calls={L.calls || []} />
                   <div style={css("margin-top:12px;")}>
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
@@ -1622,29 +1639,6 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
 
-                {/* AI Suggested Follow-ups + scheduling fields — only for the Follow-up composer.
-                    Chips pre-fill notes/channel/date/hour; sending creates a LandlordAppointment
-                    (no Google Calendar — Phase 3). Graceful empty-state: no chips, no crash. */}
-                {effComposer === 'Follow-up' && (
-                  <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:7px;")}>
-                    <button
-                      type="button"
-                      onClick={() => this.setState(s => ({ showCallQualForm: !s.showCallQualForm }))}
-                      title="Log this call — AI qualification"
-                      style={css("display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:99px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, #22c55e, #16a34a); color:#052e16; border:1px solid rgba(34,197,94,0.6); touch-action:manipulation;")}
-                    >
-                      📞 Dial · Log Call
-                    </button>
-                    {this.state.showCallQualForm && (
-                      <span style={css("font-size:10px; color:rgba(255,255,255,0.45);")}>Qualification form open below</span>
-                    )}
-                  </div>
-                )}
-                {effComposer === 'Follow-up' && this.state.showCallQualForm && (
-                  <div style={css("margin-bottom:8px; border-radius:11px; overflow:hidden; border:1px solid rgba(250,180,40,0.18);")}>
-                    <CallQualificationTab landlord={this.props.rawLandlord || L} />
-                  </div>
-                )}
                 {effComposer === 'Follow-up' && (
                   <FollowupComposerFields
                     chips={this.suggestedFollowupChips()}
