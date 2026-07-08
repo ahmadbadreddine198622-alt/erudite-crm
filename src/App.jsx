@@ -105,6 +105,7 @@ import TeamPerformance from '@/pages/TeamPerformance';
 import AgentIntelligence from '@/pages/AgentIntelligence';
 import Appointments from '@/pages/Appointments';
 import AutomationsHub from '@/pages/AutomationsHub';
+import Flow from '@/pages/Flow';
 
 
 const AuthenticatedApp = () => {
@@ -230,6 +231,7 @@ const AuthenticatedApp = () => {
         <Route path="/agent-intelligence" element={<AgentIntelligence />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/automations-hub" element={<AutomationsHub />} />
+        <Route path="/flow" element={<Flow />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
