@@ -31,9 +31,9 @@ function css(str) {
 }
 
 const PRIORITY_META = {
-  urgent:    { label: 'URGENT',    color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.3)' },
-  important:{ label: 'IMPORTANT', color: '#C9A24B', bg: 'rgba(201,162,75,0.08)',  border: 'rgba(201,162,75,0.3)' },
-  normal:   { label: 'NOTE',      color: 'rgba(255,255,255,0.6)', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.1)' },
+  urgent:    { label: 'URGENT',    color: '#ff3b5c', bg: 'linear-gradient(135deg, rgba(255,59,92,0.14), rgba(255,59,92,0.03))', border: 'rgba(255,59,92,0.5)', glow: '0 0 12px rgba(255,59,92,0.3)' },
+  important: { label: 'IMPORTANT', color: '#a855f7', bg: 'linear-gradient(135deg, rgba(168,85,247,0.14), rgba(168,85,247,0.03))', border: 'rgba(168,85,247,0.5)', glow: '0 0 12px rgba(168,85,247,0.3)' },
+  normal:    { label: 'NOTE',      color: '#22d3ee', bg: 'linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.02))', border: 'rgba(34,211,238,0.4)', glow: '0 0 10px rgba(34,211,238,0.2)' },
 };
 
 export default function ActivityCommentThread({ comments, landlordId, activityType, activityId, isAdmin, currentUser, canCoach }) {
@@ -91,15 +91,15 @@ export default function ActivityCommentThread({ comments, landlordId, activityTy
         const meta = PRIORITY_META[c.priority] || PRIORITY_META.normal;
         return (
           <div key={c.id} style={css(
-            "padding:7px 10px; border-radius:8px; background:"+meta.bg+"; border:1px solid "+meta.border+"; "+
-            "border-left:3px solid "+meta.color+"; position:relative;"
+            "padding:8px 11px; border-radius:9px; background:"+meta.bg+"; border:1px solid "+meta.border+"; "+
+            "border-left:4px solid "+meta.color+"; position:relative; box-shadow:"+meta.glow+";"
           )}>
-            <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:3px;")}>
-              <Crown size={10} style={{ color: meta.color, flex: 'none' }} />
-              <span style={css("font-size:8px; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; color:"+meta.color+"; font-family:'Inter',sans-serif;")}>
+            <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:4px;")}>
+              <Crown size={11} style={{ color: meta.color, flex: 'none', filter: 'drop-shadow(0 0 3px '+meta.color+')' }} />
+              <span style={css("font-size:8.5px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:"+meta.color+"; font-family:'Inter',sans-serif;")}>
                 {meta.label}
               </span>
-              <span style={css("font-size:9px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif;")}>
+              <span style={css("font-size:9px; color:rgba(255,255,255,0.45); font-family:'Inter',sans-serif;")}>
                 {c.author_name || c.author_email || 'Founder'}
               </span>
               {canCoach && (
@@ -109,7 +109,7 @@ export default function ActivityCommentThread({ comments, landlordId, activityTy
                 </button>
               )}
             </div>
-            <p style={css("font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.88); margin:0; font-family:'Inter',sans-serif; white-space:pre-wrap;")}>
+            <p style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.92); margin:0; font-family:'Inter',sans-serif; white-space:pre-wrap;")}>
               {c.comment_text}
             </p>
           </div>
