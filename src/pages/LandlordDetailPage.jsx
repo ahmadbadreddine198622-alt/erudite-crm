@@ -1679,16 +1679,6 @@ class LandlordDetail extends React.Component {
                   const channelDisabled = waDisabled || tgDisabled;
                   const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
                   return (
-                    <React.Fragment>
-                    {ct === 'Chat' && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 2 }}>
-                        <WhatsAppChannelSelector
-                          mode={this.state.streamFilter}
-                          onMode={(m)=> this.setState({ streamFilter: m })}
-                          isAdmin={this.props.isAdmin}
-                        />
-                      </div>
-                    )}
                     <UnifiedChatComposer
                       composerType={ct}
                       text={vm.composerText}
@@ -1719,15 +1709,21 @@ class LandlordDetail extends React.Component {
                       targetLanguage={this.props.rawLandlord?.preferred_language}
                       inputRef={ct === 'Chat' ? this.chatComposerRef : undefined}
                       extraToolbarChildren={ct === 'Chat' ? (
-                        <ChatExtraTools
-                          text={vm.composerText}
-                          onTextChange={this.onComposerInput}
-                          landlordId={L.id}
-                          landlordName={L.full_name_en || L.full_name}
-                        />
+                        <React.Fragment>
+                          <WhatsAppChannelSelector
+                            mode={this.state.streamFilter}
+                            onMode={(m)=> this.setState({ streamFilter: m })}
+                            isAdmin={this.props.isAdmin}
+                          />
+                          <ChatExtraTools
+                            text={vm.composerText}
+                            onTextChange={this.onComposerInput}
+                            landlordId={L.id}
+                            landlordName={L.full_name_en || L.full_name}
+                          />
+                        </React.Fragment>
                       ) : null}
                     />
-                    </React.Fragment>
                   );
                 })()}
                 {(effComposer === 'Note' || effComposer === 'Task' || effComposer === 'Follow-up') && (
