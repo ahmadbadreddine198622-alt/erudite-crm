@@ -14,6 +14,7 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, Sparkles, Loader2, CornerUpLeft } from 'lucide-react';
 import ActivityCommentThread from './ActivityCommentThread';
+import FounderMemoriesPanel from './FounderMemoriesPanel';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -52,6 +53,7 @@ const KIND_META = {
   document:    { icon: '📄', color: '#06b6d4', bg: 'rgba(6,182,212,0.16)', label: 'Document', tab: 'Documents' },
   stage:       { icon: '⇪', color: '#14b8a6', bg: 'rgba(20,184,166,0.16)', label: 'Stage', tab: 'Activity' },
   founder_directive: { icon: '👑', color: '#C9A24B', bg: 'rgba(201,162,75,0.16)', label: 'Founder Directive', tab: null },
+  coaching_comment:  { icon: '💬', color: '#f0c674', bg: 'rgba(240,198,116,0.12)', label: 'Coaching', tab: null },
 };
 
 // Format a timestamp string into a full date+time label (Asia/Dubai locale).
