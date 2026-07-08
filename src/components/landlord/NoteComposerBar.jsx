@@ -340,10 +340,10 @@ export default function NoteComposerBar({
             </button>
           )}
 
-          {/* Voice input */}
+          {/* Voice input — fast smart AI transcription */}
           {isNote && (
             <button type="button" onClick={handleMicClick} disabled={anyBusy && !vr.recording}
-              title={vr.recording ? 'Stop & transcribe' : 'Voice input'}
+              title={vr.recording ? 'Stop & transcribe' : '🎤 Voice input — AI transcript'}
               style={iconBtn(vr.recording, 'rgba(239,68,68,0.8)', '#ef4444')}>
               {vr.recording ? <Square size={11} /> : <Mic size={13} />}
             </button>
