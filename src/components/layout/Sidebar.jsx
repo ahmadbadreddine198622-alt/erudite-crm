@@ -60,7 +60,6 @@ const navSections = [
   {
     section: 'Landlords & Listings',
     items: [
-      { label: 'Flow',                icon: Zap,             path: '/flow',                gradient: 'from-amber-400 to-yellow-600' },
       { label: 'Landlords',           icon: Building2,       path: '/landlords',           gradient: 'from-amber-500 to-orange-700', permission: 'manage_landlords' },
       { label: 'Projects',            icon: FolderOpen,      path: '/projects',            gradient: 'from-teal-500 to-teal-800' },
       { label: 'Property Finder',     icon: Link2,           path: '/property-finder',     gradient: 'from-red-500 to-rose-700' },
