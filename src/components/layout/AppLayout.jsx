@@ -6,6 +6,7 @@ import MobileDock from './MobileDock';
 import ControlRail from '@/components/ui/ControlRail';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
 import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
+import { Zap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AppLayout() {
@@ -40,6 +41,25 @@ export default function AppLayout() {
 
       <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
       <FloatingDialer />
+      {/* Global Flow launcher — one tap to the Comms Command Center from anywhere */}
+      {location.pathname !== '/flow' && (
+        <button
+          onClick={() => navigate('/flow')}
+          title="Open Flow — Comms Command Center"
+          style={{
+            position: 'fixed', bottom: '88px', right: '18px', zIndex: 60,
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '12px 18px', borderRadius: '9999px', border: '1px solid rgba(201,162,75,0.55)',
+            background: 'linear-gradient(135deg, #C9A24B 0%, #a87f2f 100%)',
+            color: '#0B1F3A', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '13px',
+            letterSpacing: '0.04em', cursor: 'pointer',
+            boxShadow: '0 8px 28px rgba(201,162,75,0.45), 0 2px 8px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Zap size={16} strokeWidth={2.6} />
+          FLOW
+        </button>
+      )}
       <MobileDock />
     </div>
   );
