@@ -79,7 +79,7 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
 
-export default function AllActivityTab({ items, landlordId, landlordName, comments, isAdmin, currentUser, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
+export default function AllActivityTab({ items, landlordId, landlordName, comments, isAdmin, currentUser, canCoach, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -370,6 +370,7 @@ ${timeline}`,
                   activityType={item.entityType}
                   activityId={item.entityId}
                   isAdmin={isAdmin}
+                  canCoach={canCoach}
                   currentUser={currentUser}
                 />
               )}

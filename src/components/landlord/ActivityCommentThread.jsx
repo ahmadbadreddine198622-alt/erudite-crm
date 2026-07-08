@@ -36,7 +36,7 @@ const PRIORITY_META = {
   normal:   { label: 'NOTE',      color: 'rgba(255,255,255,0.6)', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.1)' },
 };
 
-export default function ActivityCommentThread({ comments, landlordId, activityType, activityId, isAdmin, currentUser }) {
+export default function ActivityCommentThread({ comments, landlordId, activityType, activityId, isAdmin, currentUser, canCoach }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [priority, setPriority] = useState('important');
@@ -102,7 +102,7 @@ export default function ActivityCommentThread({ comments, landlordId, activityTy
               <span style={css("font-size:9px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif;")}>
                 {c.author_name || c.author_email || 'Founder'}
               </span>
-              {isAdmin && (
+              {canCoach && (
                 <button onClick={() => handleDelete(c.id)} title="Delete comment"
                   style={css("margin-left:auto; cursor:pointer; background:none; border:none; color:rgba(255,255,255,0.25); padding:0; display:flex;")}>
                   <Trash2 size={10} />
@@ -150,13 +150,13 @@ export default function ActivityCommentThread({ comments, landlordId, activityTy
             </button>
           </div>
         </div>
-      ) : (
+      ) : canCoach ? (
         <button onClick={() => setOpen(true)}
           style={css("display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(201,162,75,0.06); color:rgba(201,162,75,0.6); border:1px solid rgba(201,162,75,0.15); align-self:flex-start;")}>
           <MessageSquarePlus size={11} />
           {sortedComments.length > 0 ? 'Add comment' : 'Comment'}
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

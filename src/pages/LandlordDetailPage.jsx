@@ -1818,7 +1818,7 @@ function temperatureFromRapport(rapport) {
 export default function LandlordDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, isAdmin } = useCurrentUser();
+  const { user: currentUser, isAdmin, canCoach } = useCurrentUser();
   const queryClient = useQueryClient();
   const [formAOpen, setFormAOpen] = useState(false);
   const [formADialogOpen, setFormADialogOpen] = useState(false);

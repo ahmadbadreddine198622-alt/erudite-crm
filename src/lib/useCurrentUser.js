@@ -28,6 +28,10 @@ export function useCurrentUser() {
   const isAdmin = owner || user?.role === 'admin';
   const isCEO = owner || user?.role === 'ceo';
   const isManager = owner || user?.role === 'admin' || user?.role === 'manager' || user?.role === 'ceo';
+  // canCoach — only senior leadership (senior admin, director, CEO) can add coaching
+  // comments on activity items in the landlord timeline.
+  const isDirector = !!(customRole?.name && customRole.name.toLowerCase().includes('director'));
+  const canCoach = owner || user?.role === 'admin' || user?.role === 'ceo' || isDirector;
 
   const customRole = user?.custom_role_id
     ? roles.find(r => r.id === user.custom_role_id)
@@ -50,5 +54,5 @@ export function useCurrentUser() {
     export_data: owner || isAdmin || isCEO || customRole?.permissions?.export_data || false,
   };
 
-  return { user, loading, isAdmin, isManager, isOwner: owner, permissions, customRole };
+  return { user, loading, isAdmin, isManager, isOwner: owner, canCoach, permissions, customRole };
 }
