@@ -34,6 +34,7 @@ import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/lan
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import NoteAiDraftBar from '@/components/landlord/NoteAiDraftBar';
 import NoteComposerBar from '@/components/landlord/NoteComposerBar';
+import NoteCard from '@/components/landlord/NoteCard';
 import ChatPinnedNotesStrip from '@/components/landlord/ChatPinnedNotesStrip';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
@@ -1397,20 +1398,22 @@ class LandlordDetail extends React.Component {
                   />
                 </div>
               ) : this.state.composerType === 'Note' ? (
-                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <HubSpotActivityList
-                    emptyLabel="No notes yet"
-                    items={tabStream.filter(s => s.isAct && s._kind === 'note').map((s, i) => ({
-                      key: 'note-' + i,
-                      icon: s.actIcon,
-                      iconBg: 'rgba(139,92,246,0.15)',
-                      iconColor: '#c4b5fd',
-                      title: s.actTitle,
-                      subtitle: s._author ? 'by ' + s._author : null,
-                      time: s.time,
-                      body: s.actBody,
-                    }))}
-                  />
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px; display:flex; flex-direction:column; gap:8px;")}>
+                  {(() => {
+                    const noteItems = tabStream.filter(s => s.isAct && s._kind === 'note');
+                    if (!noteItems.length) return <div style={css("display:flex; align-items:center; justify-content:center; flex:1; color:rgba(255,255,255,0.35); font-size:13px; padding:40px 0;")}>No notes yet</div>;
+                    return noteItems.map((s, i) => (
+                      <NoteCard
+                        key={'note-' + i}
+                        note={s}
+                        landlordId={L.id}
+                        comments={this.props.comments}
+                        isAdmin={this.props.isAdmin}
+                        canCoach={this.props.canCoach}
+                        currentUser={this.props.currentUser}
+                      />
+                    ));
+                  })()}
                 </div>
               ) : this.state.composerType === 'Follow-up' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
