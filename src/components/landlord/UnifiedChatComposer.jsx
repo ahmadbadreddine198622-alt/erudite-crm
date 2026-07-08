@@ -77,6 +77,27 @@ export default function UnifiedChatComposer({
   const taRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [llCtx, setLlCtx] = useState(null);
+
+  // Fetch the landlord record once so the magic-reshape button can ground its
+  // rewrites in the exact unit + project + asking price.
+  useEffect(() => {
+    let mounted = true;
+    if (!landlordId) return;
+    (async () => {
+      try {
+        const l = await base44.entities.Landlord.get(landlordId);
+        if (mounted) setLlCtx({
+          name: l?.full_name_en || l?.full_name || '',
+          unit: l?.unit_reference || '',
+          project: l?.project_name || '',
+          asking: l?.asking_price_aed || '',
+          agentName: l?.assigned_agent_email || '',
+        });
+      } catch (_) {}
+    })();
+    return () => { mounted = false; };
+  }, [landlordId]);
 
   // Attachment is only available for WhatsApp and Telegram (not SMS).
   const canAttach = composerType === 'Chat' || composerType === 'Telegram';
@@ -185,6 +206,7 @@ export default function UnifiedChatComposer({
         onVoiceSent={(url, name) => { if (onAttachmentChange) onAttachmentChange({ file_url: url, file_name: name, media_type: 'audio', mime: 'audio/webm' }); setTimeout(() => { if (onSend) onSend(); }, 80); }}
         onVoiceText={(t) => onTextChange({ target: { value: t } })}
         targetLanguage={targetLanguage}
+        landlordContext={llCtx}
         inputRef={taRef}
         minHeight={44}
       >

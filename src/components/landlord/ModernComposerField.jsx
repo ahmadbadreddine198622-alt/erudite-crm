@@ -15,7 +15,7 @@
 // this is a presentational shell plus the two new features.
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Globe, Mic, Square, Loader2, Check, Plus, History, Wand2 } from 'lucide-react';
+import { Send, X, Globe, Mic, Square, Loader2, Check, Plus, History, Wand2, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import useVoiceRecorder from '@/hooks/useVoiceRecorder';
@@ -78,6 +78,7 @@ export default function ModernComposerField({
   onVoiceText = () => {},         // (transcript) — parent drops transcript into the field
   gloss,                          // optional external English translation (from AI draft)
   targetLanguage,                 // landlord's preferred language code (e.g. 'hi', 'ar', 'ru', 'zh') — enables bidirectional editing
+  landlordContext,                // { name, unit, project, asking, agentName } — grounds the magic reshape in the unit + project
   children,                       // left-cluster toolbar icons (templates / AI / attach / emoji)
   inputRef, minHeight = 72,
 }) {
@@ -91,6 +92,8 @@ export default function ModernComposerField({
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [toneOpen, setToneOpen] = useState(false);
   const [toneBusy, setToneBusy] = useState(false);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const magicAngleIdx = useRef(0);
   const [autoGloss, setAutoGloss] = useState('');
   const [autoGlossBusy, setAutoGlossBusy] = useState(false);
   const autoGlossTimer = useRef(null);
@@ -158,6 +161,66 @@ export default function ModernComposerField({
         }
       } catch { /* silent */ } finally { setBackTranslating(false); }
     }, 1000);
+  };
+
+  // ── Magic reshape — one button. Each click rewrites the current message with a
+  // fresh, powerful real-estate angle grounded in the landlord's exact unit + project.
+  // The angle rotates on every click so you never get the same approach twice in a row.
+  const MAGIC_ANGLES = [
+    { key: 'buyer_led', label: 'Ready-buyer urgency', brief: 'Lead with a specific, ready buyer actively looking in their building — make the buyer feel real and imminent, not speculative.' },
+    { key: 'market_gift', label: 'Market intelligence gift', brief: 'Open with a sharp, specific market insight about their project (recent transactions, AED/sqft, demand trend) delivered as a gift before any ask.' },
+    { key: 'hyper_specialist', label: 'Hyper-specialist asset proof', brief: 'Demonstrate you know their exact unit, floor, stack, view and recent comps better than any other broker — proof by specificity, not adjectives.' },
+    { key: 'social_proof', label: 'Credibility stack', brief: 'Lead with recent closed deals in the SAME project/building as concrete social proof you are the broker who actually transacts here.' },
+    { key: 'collaboration', label: 'Co-broker collaboration', brief: 'Position yourself as working alongside whoever they may already be listed with — collaborative, not competitive.' },
+    { key: 'funds_on_table', label: 'Funds on the table', brief: 'Emphasize the buyer has funds ready to deposit now and can move fast — reduce the owner\'s perceived risk and friction.' },
+    { key: 'no_ask', label: 'No-ask value interrupt', brief: 'Deliver genuine value first with ZERO ask for the listing — a soft, non-transactional interrupt that earns a reply.' },
+    { key: 'scarcity_window', label: 'Scarcity / closing window', brief: 'Frame the buyer or market window as narrow right now — give a concrete reason to act this week, not next month.' },
+    { key: 'pain_reframe', label: 'Pain-point reframe', brief: 'Name the owner\'s likely pain (time-wasters, lowballs, stale listing) and reframe your approach as the clean solution to it.' },
+    { key: 'future_pace', label: 'Future-pace the close', brief: 'Walk the owner through the concrete next steps and the outcome they want — make saying yes feel like a decision already made.' },
+  ];
+
+  const runMagic = async () => {
+    const src = String(value || '').trim();
+    if (!src) { toast.error('Nothing to reshape'); return; }
+    if (magicBusy) return;
+    setMagicBusy(true);
+    const angle = MAGIC_ANGLES[magicAngleIdx.current % MAGIC_ANGLES.length];
+    magicAngleIdx.current += 1;
+    try {
+      const ctx = landlordContext || {};
+      const ctxLines = [
+        ctx.name && `Landlord (owner) name: ${ctx.name}`,
+        ctx.unit && `Unit reference / number: ${ctx.unit}`,
+        ctx.project && `Project / Building: ${ctx.project}`,
+        ctx.asking && `Asking price (AED): ${ctx.asking}`,
+        ctx.agentName && `Agent sending: ${ctx.agentName}`,
+      ].filter(Boolean);
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt:
+          `You are an elite Dubai real-estate broker writing a direct outreach message from an AGENT to a LANDLORD (the owner of the unit). ` +
+          `Rewrite the message below using a DIFFERENT, more powerful approach.\n\n` +
+          `USE THIS ANGLE: "${angle.label}" — ${angle.brief}\n\n` +
+          `Rules:\n` +
+          `- Ground the message in the specific unit number and project so it is unmistakably about THEIR property, never a generic template.\n` +
+          `- Keep EVERY factual detail from the original (buyer nationality/details, project names, unit number, prices, closed-deal records, credibility claims). Invent nothing.\n` +
+          `- Sound confident, specific and human — powerful but never sleazy, never desperate, never long-winded.\n` +
+          `- Keep it concise and punchy. End with a single, low-friction call to action.\n` +
+          `- Write in the SAME language as the original message.\n` +
+          `- Output ONLY the rewritten message — no quotes, no commentary, no preamble.\n` +
+          (ctxLines.length ? `\nContext:\n${ctxLines.join('\n')}\n` : '') +
+          `\nOriginal message:\n${src}`,
+        response_json_schema: { type: 'object', properties: { message: { type: 'string' } } },
+      });
+      const data = res?.data ?? res;
+      const text = data?.message || (typeof data === 'string' ? data : '');
+      if (!text) throw new Error('No message returned');
+      onChange({ target: { value: text } });
+      toast.success(`✨ Reshaped · ${angle.label}`);
+    } catch (e) {
+      toast.error(e?.message || 'Magic reshape failed');
+    } finally {
+      setMagicBusy(false);
+    }
   };
 
   const wordCount = String(value || '').trim() ? String(value || '').trim().split(/\s+/).length : 0;
@@ -383,6 +446,23 @@ export default function ModernComposerField({
       <div style={css("display:flex; align-items:center; gap:4px; margin-top:7px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:3px;")}>
           {children}
+
+          {/* Magic reshape — one button, fresh powerful angle each click */}
+          <button type="button" onClick={runMagic} disabled={magicBusy || !hasContent}
+            title="Magic reshape — rewrite with a fresh, powerful angle"
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border"
+            style={{
+              background: magicBusy
+                ? 'rgba(245,158,11,0.18)'
+                : 'linear-gradient(135deg, rgba(245,158,11,0.28), rgba(212,175,55,0.18))',
+              color: magicBusy ? '#fcd34d' : '#fbbf24',
+              border: '1px solid ' + (magicBusy ? 'rgba(245,158,11,0.5)' : 'rgba(245,158,11,0.55)'),
+              boxShadow: magicBusy ? 'none' : '0 0 10px rgba(245,158,11,0.22)',
+              cursor: (magicBusy || !hasContent) ? 'not-allowed' : 'pointer',
+              opacity: (magicBusy || !hasContent) ? 0.55 : 1,
+            }}>
+            {magicBusy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          </button>
 
           {/* Translate */}
           <Popover open={transOpen} onOpenChange={setTransOpen}>

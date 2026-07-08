@@ -141,6 +141,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
   };
 
   const [signatureText, setSignatureText] = useState('');
+  const [llCtx, setLlCtx] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -149,9 +150,21 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         const settings = await base44.entities.CompanySettings.list('', 1);
         if (mounted) setSignatureText(settings?.[0]?.imessage_signature_text || '');
       } catch (_) {}
+      if (landlordId) {
+        try {
+          const l = await base44.entities.Landlord.get(landlordId);
+          if (mounted) setLlCtx({
+            name: l?.full_name_en || l?.full_name || '',
+            unit: l?.unit_reference || '',
+            project: l?.project_name || '',
+            asking: l?.asking_price_aed || '',
+            agentName: l?.assigned_agent_email || '',
+          });
+        } catch (_) {}
+      }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [landlordId]);
 
   const handleTemplateSelect = ({ body }) => {
     setText(body || '');
@@ -339,6 +352,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         onVoiceText={(t) => { setText(t); setHasDraft(false); }}
         gloss={hasDraft ? draftGloss : undefined}
         targetLanguage={language || undefined}
+        landlordContext={llCtx}
         inputRef={taRef}
         minHeight={54}
       >
