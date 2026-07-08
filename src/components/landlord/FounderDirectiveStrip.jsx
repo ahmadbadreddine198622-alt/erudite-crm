@@ -16,6 +16,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Crown, ChevronDown, Plus, X, Check, Edit3, History, Loader2, Flag } from 'lucide-react';
+import FounderBossVoiceButton from './FounderBossVoiceButton';
 
 const GOLD = '#C9A24B';
 
@@ -399,7 +400,14 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
             placeholder="Directive text…"
             style={css("width:100%; padding:6px 10px; border-radius:8px; font-size:12px; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.08); outline:none; resize:vertical; min-height:44px;")}
           />
-          <div style={css("display:flex; align-items:center; gap:6px;")}>
+          <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
+            <FounderBossVoiceButton
+              draftText={draftText}
+              onApply={(text) => setDraftText(text)}
+              landlordId={landlordId}
+              landlord={landlord}
+              lens={lens}
+            />
             {Object.entries(PRIORITY_META).map(([key, meta]) => (
               <button key={key} onClick={() => setDraftPriority(key)}
                 style={css(
@@ -451,7 +459,14 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
             placeholder="What must the agent prioritize for this landlord?"
             style={css("width:100%; padding:6px 10px; border-radius:8px; font-size:12px; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.08); outline:none; resize:vertical; min-height:44px;")}
           />
-          <div style={css("display:flex; align-items:center; gap:6px;")}>
+          <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
+            <FounderBossVoiceButton
+              draftText={draftText}
+              onApply={(text) => setDraftText(text)}
+              landlordId={landlordId}
+              landlord={landlord}
+              lens={lens}
+            />
             {Object.entries(PRIORITY_META).map(([key, meta]) => (
               <button key={key} onClick={() => setDraftPriority(key)}
                 style={css(
