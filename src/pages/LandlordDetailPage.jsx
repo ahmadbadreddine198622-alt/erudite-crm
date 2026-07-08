@@ -99,7 +99,7 @@ class LandlordDetail extends React.Component {
       currentId: props.initialId || (landlords[0] && landlords[0].id) || null,
       activeTab: this.props.defaultTab || 'calls',
       composerType: 'Activity',
-      activityComposer: 'Chat',
+      activityComposer: 'Note',
       composerText: '',
       appointmentBookingOpen: false,
       composerTime: '',
@@ -255,7 +255,7 @@ class LandlordDetail extends React.Component {
 
   // handlers
   onBack = ()=>{ if(this.props.onBack) this.props.onBack(); };
-  onSwitch = (e)=>{ this.setState({ currentId:e.target.value, activeTab:this.props.defaultTab||'calls', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' }, ()=>this.scrollBottom()); };
+  onSwitch = (e)=>{ this.setState({ currentId:e.target.value,       activeTab:this.props.defaultTab||'calls', activityComposer:'Note', composerText:'', composerTime:'', composerDraft:null, composerParsing:false, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, taskDueDate:'', taskAssignee:'', followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null, followupChannel:'whatsapp', followupDate:'', followupHour:10, followupMinute:'00', followupAmPm:'AM' }, ()=>this.scrollBottom()); };
   setTab = (id)=> this.setState({ activeTab:id });
   // Manual toggle of an outreach step from the V-card Outreach tab. Optimistically flips the
   // step locally, persists via tickOutreachStep(toggleTo), then refetches the real row.
