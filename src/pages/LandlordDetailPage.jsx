@@ -32,6 +32,7 @@ import { tickOutreachStep, buildOutreachVM } from '@/components/landlord/outreac
 import { deriveOpenQuestions, deriveScoreTrend } from '@/components/landlord/landlordAiFields';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import NoteAiDraftBar from '@/components/landlord/NoteAiDraftBar';
+import NoteComposerBar from '@/components/landlord/NoteComposerBar';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
@@ -1666,12 +1667,7 @@ class LandlordDetail extends React.Component {
                   );
                 })()}
                 {(effComposer === 'Note' || effComposer === 'Task' || effComposer === 'Follow-up') && (
-                <div style={css("display:flex; align-items:flex-end; gap:7px;")}>
-                  <textarea ref={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} placeholder={vm.composerPlaceholder} rows={2} style={css("flex:1; resize:none; min-height:44px; max-height:140px; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:12.5px; font-family:'Inter',sans-serif; line-height:1.4; overflow-y:auto;")}></textarea>
-                  {(()=>{ const busy = this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending; return (
-                  <button onClick={this.onSend} disabled={busy} title={this.state.composerParsing ? 'Parsing…' : 'Send'} style={css("flex:none; width:38px; height:38px; border-radius:10px; border:1px solid hsl(38 92% 50% / 0.5); background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:"+(busy?0.6:1)+";")}>{this.state.composerParsing ? '✦' : busy ? '…' : '➤'}</button>
-                  ); })()}
-                </div>
+                  <NoteComposerBar composerRef={this.composerRef} value={vm.composerText} onChange={this.onComposerInput} onKeyDown={(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if((this.state.composerText||'').trim()) this.onSend(); } }} onSend={this.onSend} placeholder={vm.composerPlaceholder} composerType={effComposer} landlordId={L.id} busy={!!(this.state.composerParsing||this.state.noteSaving||this.state.taskSaving||this.state.followupSaving||this.state.chatSending||this.state.imessageSending||this.state.telegramSending)} composerParsing={!!this.state.composerParsing} />
                 )}
               </div>
             </div>
