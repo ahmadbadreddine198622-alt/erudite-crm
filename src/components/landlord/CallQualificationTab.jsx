@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, PhoneCall, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import CallBrainPanel from './CallBrainPanel';
 
 // ── Field option lists ────────────────────────────────────────────────────────
 
@@ -312,6 +313,9 @@ export default function CallQualificationTab({ landlord }) {
           }}
         >
           <div className="px-4 pb-4 pt-2 space-y-3 border-t" style={{ borderColor: 'rgba(250,180,40,0.1)' }}>
+            {/* Live AI call coach — reacts to form state in real time */}
+            <CallBrainPanel landlord={landlord} form={form} />
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Motivation">
                 <Sel value={form.motivation} onChange={v => set('motivation', v)} opts={MOTIVATION_OPTS} />
