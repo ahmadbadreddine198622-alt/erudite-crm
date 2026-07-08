@@ -49,6 +49,7 @@ import AppointmentBookingDialog from '@/components/appointments/AppointmentBooki
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
 import FounderDirectiveStrip from '@/components/landlord/FounderDirectiveStrip';
 import LandlordNavArrows from '@/components/landlord/LandlordNavArrows';
+import PersistentNotesPanel from '@/components/landlord/PersistentNotesPanel';
 
 function useQ(key, fn, extra = {}) {
   return useQuery({ queryKey: key, queryFn: fn, retry: false, staleTime: 30000, ...extra });
@@ -1789,6 +1790,13 @@ class LandlordDetail extends React.Component {
               <MediaPanel media={vm.media} />
 
               {vm.mandate && <MandateDrawer mandate={vm.mandate} />}
+
+              <PersistentNotesPanel
+                landlordId={L.id}
+                notes={L.stream.filter(s => s.t === 'act' && s.kind === 'note')}
+                onSaveNote={this.saveNote}
+                saving={!!this.state.noteSaving}
+              />
 
             </div>
           </div>
