@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,22 +41,47 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
-  const [fixing, setFixing] = useState(false);
-  const [fixSummary, setFixSummary] = useState(null);
+  const [fixRunning, setFixRunning] = useState(false);
+  const [fixTotals, setFixTotals] = useState(null);
+  const [fixComplete, setFixComplete] = useState(false);
+  const fixStopRef = useRef(false);
+  const fixCursorRef = useRef(null);
 
   useEffect(() => { load(); }, []);
 
-  async function fixOrphans() {
-    setFixing(true); setFixSummary(null);
+  async function runFixOrphans() {
+    setFixRunning(true);
+    setFixComplete(false);
+    fixStopRef.current = false;
+    fixCursorRef.current = null;
+    setFixTotals({ matched: 0, channel_fixed: 0, noise_removed: 0, duplicates_removed: 0 });
+    setMsg(null);
     try {
-      const res = await base44.functions.invoke("fixOrphanMessages", {});
-      const data = res?.data ?? res;
-      setFixSummary(data?.summary || data);
-      setMsg({ type: "success", text: "Orphan messages fixed." });
+      while (!fixStopRef.current) {
+        const res = await base44.functions.invoke("fixOrphanMessages", { cursor: fixCursorRef.current });
+        const data = res?.data ?? res;
+        const p = data?.processed || {};
+        setFixTotals((t) => ({
+          matched: (t.matched || 0) + (p.matched || 0),
+          channel_fixed: (t.channel_fixed || 0) + (p.channel_fixed || 0),
+          noise_removed: (t.noise_removed || 0) + (p.noise_removed || 0),
+          duplicates_removed: (t.duplicates_removed || 0) + (p.duplicates_removed || 0),
+        }));
+        if (data?.cursor) fixCursorRef.current = data.cursor;
+        if (!data?.remaining) break;
+      }
+      if (fixStopRef.current) {
+        setMsg({ type: "info", text: "Stopped — partial progress saved." });
+      } else {
+        setFixComplete(true);
+        setMsg({ type: "success", text: "Orphan message cleanup complete." });
+      }
     } catch (e) {
       setMsg({ type: "error", text: "Fix failed: " + (e?.message ?? e) });
-    } finally { setFixing(false); }
+    } finally { setFixRunning(false); }
   }
+
+  function stopFixOrphans() { fixStopRef.current = true; }
 
   async function load() {
     setLoading(true);
@@ -158,19 +183,28 @@ export default function CompanySettingsPage() {
         <CardContent className="pt-6 space-y-4">
           <div>
             <p className="text-sm text-muted-foreground mb-3">
-              Re-links orphaned WhatsApp messages to landlords, fixes invalid channel values, removes duplicates, and filters noise (own line numbers, shortcodes, landlines).
+              Re-links orphaned WhatsApp messages to landlords, fixes invalid channel values, removes duplicates, and filters noise (own line numbers, shortcodes, landlines). Runs in batches of 300.
             </p>
-            <Button onClick={fixOrphans} disabled={fixing}>
-              {fixing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Fixing…</> : <><Wrench className="w-4 h-4 mr-2" />Fix Orphan Messages</>}
-            </Button>
+            <div className="flex items-center gap-3">
+              {!fixRunning ? (
+                <Button onClick={runFixOrphans}>
+                  <Wrench className="w-4 h-4 mr-2" />{fixComplete ? "Run Again" : "Fix Orphan Messages"}
+                </Button>
+              ) : (
+                <Button onClick={stopFixOrphans} variant="destructive">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />Stop
+                </Button>
+              )}
+              {fixRunning && <span className="text-xs text-muted-foreground">Processing batch… (cursor-based)</span>}
+              {fixComplete && <span className="text-xs font-semibold text-primary">Complete</span>}
+            </div>
           </div>
-          {fixSummary && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Linked to landlord/lead</div><div className="text-lg font-bold text-foreground">{fixSummary.matched ?? 0}</div></div>
-              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Still unmatched</div><div className="text-lg font-bold text-foreground">{fixSummary.still_unmatched ?? 0}</div></div>
-              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Channels fixed</div><div className="text-lg font-bold text-foreground">{fixSummary.channel_fixed ?? 0}</div></div>
-              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Duplicates removed</div><div className="text-lg font-bold text-foreground">{fixSummary.duplicates_removed ?? 0}</div></div>
-              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Noise removed</div><div className="text-lg font-bold text-foreground">{fixSummary.noise_removed ?? 0}</div></div>
+          {fixTotals && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Linked to landlord/lead</div><div className="text-lg font-bold text-foreground">{fixTotals.matched ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Channels fixed</div><div className="text-lg font-bold text-foreground">{fixTotals.channel_fixed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Duplicates removed</div><div className="text-lg font-bold text-foreground">{fixTotals.duplicates_removed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Noise removed</div><div className="text-lg font-bold text-foreground">{fixTotals.noise_removed ?? 0}</div></div>
             </div>
           )}
         </CardContent>
