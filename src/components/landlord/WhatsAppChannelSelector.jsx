@@ -1,15 +1,52 @@
 // WhatsAppChannelSelector — compact inline toolbar element for the composer
-// toolbar. Renders two small pill buttons (Personal / Business) that let admins
-// choose the outgoing WhatsApp line. Non-admins see a read-only active badge.
+// toolbar. Renders two small pill buttons (Personal / Business) that let
+// authorized users choose the outgoing WhatsApp line.
+//
+// The Personal/Business line chooser is restricted to a small allowlist of
+// emails. Everyone else sees a compact "Connect WhatsApp →" prompt linking to
+// their Profile settings, where they configure their own WhatsApp number.
 //
 // Props:
-//   mode     ('all'|'personal'|'business') — current streamFilter
-//   onMode   (fn) — called with 'personal' | 'business' to switch
-//   isAdmin  (bool)
+//   mode      ('all'|'personal'|'business') — current streamFilter
+//   onMode    (fn) — called with 'personal' | 'business' to switch
+//   isAdmin    (bool)
+//   userEmail (string) — current user's email (gates the P/B chooser)
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function WhatsAppChannelSelector({ mode, onMode, isAdmin = false }) {
+const ALLOWED_EMAILS = [
+  'ahmad@erudite-estate.com',
+  'ahmad.badreddine198622@gmail.com',
+];
+
+export default function WhatsAppChannelSelector({ mode, onMode, isAdmin = false, userEmail }) {
+  const navigate = useNavigate();
+  const canChoose = !!userEmail && ALLOWED_EMAILS.includes(userEmail.toLowerCase());
+
+  // Non-authorized users: prompt to connect their WhatsApp in Profile settings.
+  if (!canChoose) {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate('/profile')}
+        title="Connect your WhatsApp number in Profile settings"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 9px', borderRadius: 99, fontSize: 9, fontWeight: 700,
+          cursor: 'pointer', fontFamily: "'Inter',sans-serif",
+          background: 'rgba(37,211,102,0.10)',
+          border: '1px solid rgba(37,211,102,0.35)',
+          color: '#4ade80',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
+        Connect WhatsApp →
+      </button>
+    );
+  }
+
   const effective = mode === 'business' ? 'business' : 'personal';
 
   const basePill = (active, color) => ({
