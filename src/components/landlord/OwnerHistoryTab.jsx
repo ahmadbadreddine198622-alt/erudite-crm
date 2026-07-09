@@ -72,7 +72,9 @@ export default function OwnerHistoryTab({ landlordId, landlord }) {
       return res?.data ?? res;
     },
     enabled: !!ownerName || !!ownerEmail || !!ownerPhone,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const matched = data?.matched === true;

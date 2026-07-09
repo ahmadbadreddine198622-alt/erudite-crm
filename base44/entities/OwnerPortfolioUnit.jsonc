@@ -1,0 +1,68 @@
+{
+  "name": "OwnerPortfolioUnit",
+  "type": "object",
+  "properties": {
+    "owner_code": {
+      "type": "string",
+      "description": "Stable per-owner key from the spreadsheet (identical on every row for the same owner)"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "owner_phone": {
+      "type": "string",
+      "description": "Raw cleaned tel(1) or tel(2)"
+    },
+    "property_code": {
+      "type": "string"
+    },
+    "property_name": {
+      "type": "string"
+    },
+    "unit_code": {
+      "type": "string"
+    },
+    "spa_status": {
+      "type": "string"
+    },
+    "owner_status": {
+      "type": "string"
+    },
+    "sales_agent": {
+      "type": "string"
+    },
+    "area": {
+      "type": "string"
+    },
+    "source_file": {
+      "type": "string",
+      "description": "Spreadsheet file name this row was parsed from"
+    }
+  },
+  "required": [
+    "owner_code",
+    "owner_name",
+    "unit_code"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
