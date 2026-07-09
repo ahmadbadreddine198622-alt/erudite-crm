@@ -16,11 +16,11 @@ import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssi
 import MediaPanel from '@/components/landlord/MediaPanel';
 import { Clapperboard, Rotate3d, Plane, Ruler, ChevronDown, Users } from 'lucide-react';
 import DocumentsTab from '@/components/landlord/DocumentsTab';
-import CallsTabWithCopilot from '@/components/landlord/CallsTabWithCopilot';
+import CallsTabList from '@/components/landlord/CallsTabList';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
-
+import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
 import EmailComposer from '@/components/landlord/EmailComposer';
@@ -1383,15 +1383,26 @@ class LandlordDetail extends React.Component {
                   <DocumentUploader landlordId={this.state.currentId} landlordName={L.name} onUploadFormA={this.props.onUploadFormA} />
                 </div>
               ) : this.state.composerType === 'Calls' ? (
-                <CallsTabWithCopilot
-                  landlordId={this.state.currentId}
-                  landlordName={L.full_name_en || L.full_name}
-                  phone={L.phone}
-                  rawLandlord={this.props.rawLandlord}
-                  currentUser={this.props.currentUser}
-                  calls={L.calls}
-                  onCallReportSaved={this.props.onCallReportSaved}
-                />
+                <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  {/* Professional Dial bar — opens the AI call qualification form inline */}
+                  <div style={css("display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:9px 12px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                    <button
+                      type="button"
+                      onClick={() => this.setState(s => ({ showCallQualForm: !s.showCallQualForm }))}
+                      style={css("display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:9px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, #16a34a, #15803d); color:#ffffff; border:1px solid rgba(34,197,94,0.55); touch-action:manipulation; box-shadow:0 2px 8px rgba(22,163,74,0.25);")}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      {this.state.showCallQualForm ? 'Close' : 'Dial · Log Call'}
+                    </button>
+                    <span style={css("font-size:10px; color:rgba(255,255,255,0.4);")}>{this.state.showCallQualForm ? 'AI qualification form open below' : 'Log a call with full AI qualification'}</span>
+                  </div>
+                  {this.state.showCallQualForm && (
+                    <div style={css("margin-bottom:14px; border-radius:11px; overflow:hidden; border:1px solid rgba(250,180,40,0.18);")}>
+                      <CallQualificationTab landlord={this.props.rawLandlord || L} onReportSaved={this.props.onCallReportSaved} />
+                    </div>
+                  )}
+                  <CallsTabList calls={L.calls || []} />
+                </div>
               ) : this.state.composerType === 'Activity' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
                   <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />

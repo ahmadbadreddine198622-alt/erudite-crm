@@ -15,11 +15,8 @@ Deno.serve(async (req) => {
     const caller = url.searchParams.get('caller') || '';
     const logId = url.searchParams.get('log') || '';
     const record = url.searchParams.get('record') === 'true';
-    const copilot = url.searchParams.get('copilot') === 'true';
-    const copilotLandlordId = url.searchParams.get('landlord_id') || '';
-    const copilotAgentEmail = url.searchParams.get('agent_email') || '';
 
-    console.log(`[twilioMakeBridge] customer=${customer} caller=${caller} logId=${logId} record=${record} copilot=${copilot}`);
+    console.log(`[twilioMakeBridge] customer=${customer} caller=${caller} logId=${logId} record=${record}`);
 
     if (!customer) {
       console.error('[twilioMakeBridge] No customer number — hanging up');
@@ -38,18 +35,9 @@ Deno.serve(async (req) => {
       dialAttrs += ` record="record-from-answer-dual" recordingStatusCallback="${recordCb}" recordingStatusCallbackMethod="POST"`;
     }
 
-    // Copilot audio stream — added before <Dial> when copilot=true
-    let copilotStreamXml = '';
-    if (copilot) {
-      const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      copilotStreamXml = `<Start><Stream url="wss://copilot.peninsulabusinessbay.com/twilio" track="both_tracks"><Parameter name="call_log_id" value="${esc(logId)}" /><Parameter name="landlord_id" value="${esc(copilotLandlordId)}" /><Parameter name="agent_email" value="${esc(copilotAgentEmail)}" /></Stream></Start>`;
-      console.log(`[twilioMakeBridge] Copilot stream enabled: landlord=${copilotLandlordId} agent=${copilotAgentEmail} log=${logId}`);
-    }
-
     // Dial customer — no announcement, instant connection
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${copilotStreamXml}
   <Dial ${dialAttrs}>
     <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${customer}</Number>
   </Dial>

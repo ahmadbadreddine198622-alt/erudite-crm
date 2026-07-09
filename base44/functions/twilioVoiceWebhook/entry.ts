@@ -191,9 +191,7 @@ Deno.serve(async (req) => {
 
       const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLog.id}`;
       const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
-      const copilotFlag = body.copilot === true ? '&copilot=true' : '';
-      const copilotParams = body.copilot === true ? `&landlord_id=${encodeURIComponent(landlord_id || '')}&agent_email=${encodeURIComponent(agentEmail)}` : '';
-      const bridgeUrl = `${PUBLIC_BASE}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(creds.voiceNumber)}&log=${callLog.id}&base=${encodeURIComponent(PUBLIC_BASE)}&record=${creds.recordCalls ? 'true' : 'false'}${copilotFlag}${copilotParams}`;
+      const bridgeUrl = `${PUBLIC_BASE}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(creds.voiceNumber)}&log=${callLog.id}&base=${encodeURIComponent(PUBLIC_BASE)}&record=${creds.recordCalls ? 'true' : 'false'}`;
 
       // Twilio calls agent_phone first, when answered → bridges to customer
       const callParams = new URLSearchParams({
@@ -291,20 +289,6 @@ Deno.serve(async (req) => {
     const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status`;
     const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording`;
 
-    // Copilot params — passed from the browser SDK device.connect() call
-    const copilot = formParams.get('copilot') === 'true' || url.searchParams.get('copilot') === 'true';
-    const copilotLandlordId = formParams.get('landlord_id') || url.searchParams.get('landlord_id') || '';
-    const copilotAgentEmail = formParams.get('agent_email') || url.searchParams.get('agent_email') || '';
-    const copilotCallLogId = formParams.get('call_log_id') || url.searchParams.get('call_log_id') || '';
-
-    // Build the <Start><Stream> block for Copilot audio streaming
-    let copilotStreamXml = '';
-    if (copilot) {
-      const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      copilotStreamXml = `<Start><Stream url="wss://copilot.peninsulabusinessbay.com/twilio" track="both_tracks"><Parameter name="call_log_id" value="${esc(copilotCallLogId)}" /><Parameter name="landlord_id" value="${esc(copilotLandlordId)}" /><Parameter name="agent_email" value="${esc(copilotAgentEmail)}" /></Stream></Start>`;
-      console.log(`[twilioVoiceWebhook] Copilot stream enabled: landlord=${copilotLandlordId} agent=${copilotAgentEmail} log=${copilotCallLogId}`);
-    }
-
     // callerId must be a verified number on the account
     let dialAttrs = `callerId="${voiceNumber}" timeout="60"`;
     if (recordCalls) {
@@ -313,7 +297,6 @@ Deno.serve(async (req) => {
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${copilotStreamXml}
   <Dial ${dialAttrs}>
     <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${to}</Number>
   </Dial>
