@@ -43,10 +43,10 @@ function isRateLimit(err) {
 }
 
 const STAGES = [
-  'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
-  'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification',
-  'listing_publication', 'final_confirmation', 'marketing_agents', 'marketing_network', 'open_house',
-  'client_blast', 'deal_closed'
+  'initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation',
+  'form_a_signing', 'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation',
+  'internal_verification', 'listing_publication', 'final_confirmation', 'marketing_agents',
+  'marketing_network', 'open_house', 'client_blast', 'deal_closed'
 ];
 
 const TASK_TEMPLATE_KEYS = [

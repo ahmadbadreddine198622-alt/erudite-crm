@@ -36,8 +36,8 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 // stale pre-migration taxonomy here, which silently disabled stage progression: the write guard
 // STAGES.indexOf(new_stage) never matched the live enum, so update.stage was never set.)
 const STAGES = [
-  'initial_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing',
-  'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation',
+  'initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation',
+  'form_a_signing', 'owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation',
   'internal_verification', 'listing_publication', 'final_confirmation', 'marketing_agents',
   'marketing_network', 'open_house', 'client_blast', 'deal_closed'
 ];
