@@ -11,6 +11,7 @@ import OutreachTab from '@/components/landlord/OutreachTab';
 import NegotiationTab from '@/components/landlord/NegotiationTab';
 import PipelineTab from '@/components/landlord/PipelineTab';
 import SimilarUnitTab from '@/components/landlord/SimilarUnitTab';
+import OwnerHistoryTab from '@/components/landlord/OwnerHistoryTab';
 import LandlordInfoExtras from '@/components/landlord/LandlordInfoExtras';
 
 // Simple two-column label/value grid — used by the Unit and Qualify tabs.
@@ -28,7 +29,7 @@ function RowsGrid({ rows }) {
 }
 
 const GOLD = '#C9A24B';
-const TABS = ['Info', 'Activity', 'Similar Unit', 'Pipeline', 'Outreach', 'Unit', 'Qualify', 'Negotiation'];
+const TABS = ['Info', 'Activity', 'Similar Unit', 'Owner History', 'Pipeline', 'Outreach', 'Unit', 'Qualify', 'Negotiation'];
 
 const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };
 const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
@@ -184,6 +185,8 @@ export default function LandlordMockTabs({ landlordId, landlord, outreachData, o
         </div>
       ) : active === 'Similar Unit' ? (
         <SimilarUnitTab landlordId={landlordId} landlord={landlord} />
+      ) : active === 'Owner History' ? (
+        <OwnerHistoryTab landlordId={landlordId} landlord={landlord} />
       ) : active === 'Pipeline' && stage ? (
         <div style={{ marginTop: 14 }}>
           <PipelineTab
