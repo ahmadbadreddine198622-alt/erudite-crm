@@ -112,7 +112,12 @@ export default function AllActivityTab({ items, landlordId, landlordName, commen
     for (const s of items) {
       if (s.t === 'msg') {
         // Determine channel key for visual styling.
+        // WhatsApp messages from buildLandlordStream use `wa` ('personal'/'business')
+        // instead of `channel` — map to the normalized key so the Chat tab filter works.
         let chKey = s.channel || '';
+        if (!chKey && s.wa) {
+          chKey = s.wa === 'personal' ? 'whatsapp_personal' : 'whatsapp_business';
+        }
         if (chKey === 'WA Personal') chKey = 'whatsapp_personal';
         else if (chKey === 'WA Business') chKey = 'whatsapp_business';
         else if (chKey === 'iMessage') chKey = 'imessage';
