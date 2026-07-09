@@ -12,6 +12,10 @@
       ],
       "default": "agent"
     },
+    "display_name": {
+      "type": "string",
+      "description": "User-editable display name. The built-in full_name cannot be overridden via updateMe, so this field is the editable name the user controls in their Profile. Falls back to full_name when empty."
+    },
     "custom_role_id": {
       "type": "string",
       "description": "Reference to Role entity for granular permissions"
