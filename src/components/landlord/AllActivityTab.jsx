@@ -81,7 +81,24 @@ const COMPOSE_CHANNEL_OPTIONS = [
   { value: 'Appointment', label: 'Appointment', icon: '📅' },
 ];
 
-export default function AllActivityTab({ items, landlordId, landlordName, comments, directives, isAdmin, currentUser, canCoach, onReplyGenerated, onSelectChannel, onNavigateToTab }) {
+// Maps each LandlordTabBar tab key to the activity channelKey(s) it should show.
+// null = show everything (the "Activity" tab). Only items whose channelKey is in
+// the list are displayed when a specific tab is active.
+const TAB_CHANNEL_MAP = {
+  Activity:    null,
+  Note:        ['note'],
+  'Follow-up': ['followup'],
+  Email:       ['email'],
+  iMessage:    ['imessage'],
+  Chat:        ['whatsapp_personal', 'whatsapp_business'],
+  Telegram:    ['telegram'],
+  Calls:       ['call'],
+  SMS:         ['sms'],
+  Appointment: ['appointment'],
+  Documents:   ['document'],
+};
+
+export default function AllActivityTab({ items, landlordId, landlordName, comments, directives, isAdmin, currentUser, canCoach, onReplyGenerated, onSelectChannel, onNavigateToTab, activeTab = 'Activity' }) {
   const [expandedKeys, setExpandedKeys] = useState(null); // null = all-with-body expanded by default
   const [channelFilter, setChannelFilter] = useState('all');
   const [summarizing, setSummarizing] = useState(false);
@@ -89,7 +106,7 @@ export default function AllActivityTab({ items, landlordId, landlordName, commen
   const [replyGenerating, setReplyGenerating] = useState(false);
 
   // Build a unified normalized activity list from the raw stream items.
-  const activities = useMemo(() => {
+  const allActivities = useMemo(() => {
     if (!items || !items.length) return [];
     const out = [];
     for (const s of items) {
@@ -149,6 +166,14 @@ export default function AllActivityTab({ items, landlordId, landlordName, commen
     out.sort((a, b) => (b.order || 0) - (a.order || 0));
     return out;
   }, [items]);
+
+  // Filter by the active tab — each tab shows only its own channel/type.
+  // "Activity" (null in TAB_CHANNEL_MAP) shows everything.
+  const activities = useMemo(() => {
+    const tabKeys = TAB_CHANNEL_MAP[activeTab];
+    if (!tabKeys) return allActivities;
+    return allActivities.filter(a => tabKeys.includes(a.channelKey));
+  }, [allActivities, activeTab]);
 
   // Unique channel keys for the filter pills.
   const channelKeys = useMemo(() => {

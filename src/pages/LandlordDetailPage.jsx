@@ -1380,7 +1380,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
                     </div>
-                    <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                   </div>
                 </div>
               ) : this.state.composerType === 'Documents' ? (
@@ -1412,12 +1412,12 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
                     </div>
-                    <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                   </div>
                 </div>
               ) : (this.state.composerType === 'Activity' || this.state.composerType === 'Chat') ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
-                  <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                  <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                 </div>
               ) : this.state.composerType === 'Email' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
@@ -1435,7 +1435,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
                     </div>
-                    <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                   </div>
                 </div>
               ) : this.state.composerType === 'Note' ? (
@@ -1475,7 +1475,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
                     </div>
-                    <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                   </div>
                 </div>
               ) : (
@@ -1545,7 +1545,7 @@ class LandlordDetail extends React.Component {
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
                     </div>
-                    <AllActivityTab items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
+                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
                   </div>
                 )}
                 </div>
