@@ -78,10 +78,11 @@ Deno.serve(async (req) => {
 
     let body = {};
     try { body = await req.json(); } catch (_) { body = {}; }
+    const listOwners = !!body.list_owners;
     const matchName = nameKey(clean(body.owner_name || ''));
     const matchEmail = emailKey(body.owner_email || '');
     const matchPhone = last9(phoneKey(body.owner_phone || ''));
-    if (!matchName && !matchEmail && !matchPhone) {
+    if (!listOwners && !matchName && !matchEmail && !matchPhone) {
       return Response.json({ error: 'No owner_name, owner_email or owner_phone supplied' });
     }
 
@@ -130,6 +131,60 @@ Deno.serve(async (req) => {
           totalUnits++;
         }
       }
+    }
+
+    // List mode: aggregate every owner and return those with multiple units.
+    if (listOwners) {
+      const byEmail = new Map();
+      const byPhone = new Map();
+      const byNameKey = new Map();
+      const owners = new Map(); // key -> { name, email, phone, units: [], projects: Set }
+
+      const getOrCreate = (key, r) => {
+        if (!owners.has(key)) {
+          owners.set(key, {
+            name: clean(r[COLS.owner_name]),
+            email: emailKey(clean(r[COLS.owner_email])),
+            phone: clean(r[COLS.owner_tel1]) || clean(r[COLS.owner_tel2]),
+            unit_count: 0,
+            unit_codes: [],
+            projects: new Set(),
+          });
+        }
+        return owners.get(key);
+      };
+
+      for (const { r } of allRows) {
+        const e = emailKey(clean(r[COLS.owner_email]));
+        const p = last9(phoneKey(clean(r[COLS.owner_tel1]) || clean(r[COLS.owner_tel2])));
+        const nk = nameKey(clean(r[COLS.owner_name]));
+        let key = null;
+        if (e && byEmail.has(e)) key = byEmail.get(e);
+        else if (p && byPhone.has(p)) key = byPhone.get(p);
+        else if (nk && byNameKey.has(nk)) key = byNameKey.get(nk);
+        if (!key) {
+          key = 'o' + (owners.size + 1);
+          if (e) byEmail.set(e, key);
+          if (p) byPhone.set(p, key);
+          if (nk) byNameKey.set(nk, key);
+        } else {
+          if (e && !byEmail.has(e)) byEmail.set(e, key);
+          if (p && !byPhone.has(p)) byPhone.set(p, key);
+        }
+        const o = getOrCreate(key, r);
+        o.unit_count++;
+        const uc = clean(r[COLS.unit_code]);
+        if (uc) o.unit_codes.push(uc);
+        const pn = clean(r[COLS.property_name]);
+        if (pn) o.projects.add(pn);
+      }
+
+      const list = Array.from(owners.values())
+        .map((o) => ({ ...o, projects: Array.from(o.projects) }))
+        .filter((o) => o.unit_count > 1)
+        .sort((a, b) => b.unit_count - a.unit_count);
+
+      return Response.json({ ok: true, multi_unit_owners: list, count: list.length, totalUnits });
     }
 
     // Pass 1: identify the landlord against the supplied name/email/phone.
