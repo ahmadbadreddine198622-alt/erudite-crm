@@ -1404,7 +1404,7 @@ class LandlordDetail extends React.Component {
                   </div>
                   {this.state.showCallQualForm && (
                     <div style={css("margin-bottom:14px; border-radius:11px; overflow:hidden; border:1px solid rgba(250,180,40,0.18);")}>
-                      <CallQualificationTab landlord={this.props.rawLandlord || L} />
+                      <CallQualificationTab landlord={this.props.rawLandlord || L} onReportSaved={this.props.onCallReportSaved} />
                     </div>
                   )}
                   <CallsTabList calls={L.calls || []} />
@@ -1934,6 +1934,14 @@ export default function LandlordDetailPage() {
     await refetchLandlord();
     queryClient.invalidateQueries({ queryKey: ['landlords'] });
   };
+  // After the AI call report is saved (→ LandlordNote + Followup), refresh the
+  // notes + follow-ups queries so the Notes tab and Activity stream pick it up
+  // immediately, then refetch the landlord record so the stream rebuilds.
+  const handleCallReportSaved = async () => {
+    queryClient.invalidateQueries({ queryKey: ['landlord_notes', id] });
+    queryClient.invalidateQueries({ queryKey: ['landlord_followups', id] });
+    await refetchLandlord();
+  };
   // Today's outreach checklist — the REAL sequence state shown in the Outreach tab. Auto-ticked by
   // the composer success handlers (tickOutreachStep) and by Call/Qualification entity automations.
   const OUTREACH_TODAY = new Date().toISOString().slice(0, 10);
@@ -2451,6 +2459,7 @@ export default function LandlordDetailPage() {
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
         onAnalysed={handleAnalysed}
+        onCallReportSaved={handleCallReportSaved}
         />
       <FormAUploadDialog
         open={formADialogOpen}

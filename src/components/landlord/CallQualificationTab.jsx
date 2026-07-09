@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
-import { Loader2, PhoneCall, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { Loader2, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import CallBrainPanel from './CallBrainPanel';
+import FieldInsight from './FieldInsight';
+import { useFieldInsights } from '@/hooks/useFieldInsights';
 
 // ── Field option lists ────────────────────────────────────────────────────────
 
@@ -103,11 +105,12 @@ const RAPPORT_OPTS = [
 const inputCls = 'w-full px-2.5 py-1.5 text-xs rounded-md';
 const inputStyle = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' };
 
-function Field({ label, children }) {
+function Field({ label, children, insight, loading, hasValue }) {
   return (
     <div>
       <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</label>
       {children}
+      <FieldInsight insight={insight} loading={loading} hasValue={hasValue} fieldKey={label} />
     </div>
   );
 }
@@ -213,13 +216,16 @@ const EMPTY = {
   next_step: '', followup_date: '', agent_notes: '',
 };
 
-export default function CallQualificationTab({ landlord }) {
+export default function CallQualificationTab({ landlord, onReportSaved }) {
   const { user } = useCurrentUser();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [saved, setSaved] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const { insights, loading: insightsLoading } = useFieldInsights(form, landlord);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -254,16 +260,42 @@ export default function CallQualificationTab({ landlord }) {
       }
       return base44.entities.CallQualification.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ['call-qualifications', landlord.id] });
       // New qualification → full re-analysis (best-effort, fire-and-forget).
       base44.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }).catch(() => {});
       setForm(EMPTY);
       setSaved(true);
       setIsExpanded(false); // Collapse after save
-      setTimeout(() => setSaved(false), 3000);
-      const { dismiss } = toast({ title: 'Call logged', description: 'Qualification saved. AI scoring will run shortly.' });
-      setTimeout(dismiss, 2000);
+
+      // AI builds a full call report from every Q&A and saves it to Note + Follow-up.
+      setReportLoading(true);
+      try {
+        const reportRes = await base44.functions.invoke('generateCallReport', {
+          landlord_id: landlord.id,
+          qualification: form,
+          agent_email: user?.email || '',
+          agent_name: user?.full_name || '',
+        });
+        const data = reportRes?.data ?? reportRes;
+        if (data?.ok) {
+          if (onReportSaved) onReportSaved();
+          const { dismiss } = toast({
+            title: '✅ Call logged',
+            description: 'AI report saved to Notes & Activity' + (data.followup_id ? ' + Follow-up scheduled' : ''),
+          });
+          setTimeout(dismiss, 2500);
+        } else if (data?.error) {
+          const { dismiss } = toast({ title: 'Call logged', description: data.error });
+          setTimeout(dismiss, 2500);
+        }
+      } catch (e) {
+        const { dismiss } = toast({ title: 'Call logged', description: 'Report generation failed — qualification saved.' });
+        setTimeout(dismiss, 2500);
+      } finally {
+        setReportLoading(false);
+        setTimeout(() => setSaved(false), 3000);
+      }
     },
     onError: e => toast({ title: 'Save failed', description: e.message, variant: 'destructive' }),
   });
@@ -317,84 +349,86 @@ export default function CallQualificationTab({ landlord }) {
             <CallBrainPanel landlord={landlord} form={form} />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Motivation">
+              <Field label="Motivation" insight={insights.motivation} loading={insightsLoading} hasValue={!!form.motivation}>
                 <Sel value={form.motivation} onChange={v => set('motivation', v)} opts={MOTIVATION_OPTS} />
               </Field>
-              <Field label="Timeline / Urgency">
+              <Field label="Timeline / Urgency" insight={insights.timeline_urgency} loading={insightsLoading} hasValue={!!form.timeline_urgency}>
                 <Sel value={form.timeline_urgency} onChange={v => set('timeline_urgency', v)} opts={TIMELINE_OPTS} />
               </Field>
             </div>
 
-            <Field label="Motivation Notes">
+            <Field label="Motivation Notes" insight={insights.motivation_notes} loading={insightsLoading} hasValue={!!form.motivation_notes}>
               <input className={inputCls} style={inputStyle} placeholder="In the owner's own words…" value={form.motivation_notes} onChange={e => set('motivation_notes', e.target.value)} />
             </Field>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Price Expectation (AED)">
+              <Field label="Price Expectation (AED)" insight={insights.price_expectation_aed} loading={insightsLoading} hasValue={!!form.price_expectation_aed}>
                 <input type="number" className={inputCls} style={inputStyle} placeholder="e.g. 1400000" value={form.price_expectation_aed} onChange={e => set('price_expectation_aed', e.target.value)} />
               </Field>
-              <Field label="Price vs Valuation">
+              <Field label="Price vs Valuation" insight={insights.price_vs_valuation} loading={insightsLoading} hasValue={!!form.price_vs_valuation}>
                 <Sel value={form.price_vs_valuation} onChange={v => set('price_vs_valuation', v)} opts={PRICE_VS_VAL_OPTS} />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Mandate Openness">
+              <Field label="Mandate Openness" insight={insights.mandate_openness} loading={insightsLoading} hasValue={!!form.mandate_openness}>
                 <Sel value={form.mandate_openness} onChange={v => set('mandate_openness', v)} opts={MANDATE_OPTS} />
               </Field>
-              <Field label="Competing Brokers">
+              <Field label="Competing Brokers" insight={insights.competing_brokers} loading={insightsLoading} hasValue={!!form.competing_brokers}>
                 <input className={inputCls} style={inputStyle} placeholder="Which / how many?" value={form.competing_brokers} onChange={e => set('competing_brokers', e.target.value)} />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Tenancy Status">
+              <Field label="Tenancy Status" insight={insights.tenancy_status} loading={insightsLoading} hasValue={!!form.tenancy_status}>
                 <Sel value={form.tenancy_status} onChange={v => set('tenancy_status', v)} opts={TENANCY_OPTS} />
               </Field>
-              <Field label="Available From">
+              <Field label="Available From" insight={insights.available_from} loading={insightsLoading} hasValue={!!form.available_from}>
                 <input type="date" className={inputCls} style={inputStyle} value={form.available_from} onChange={e => set('available_from', e.target.value)} />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Mortgage Status">
+              <Field label="Mortgage Status" insight={insights.mortgage_status} loading={insightsLoading} hasValue={!!form.mortgage_status}>
                 <Sel value={form.mortgage_status} onChange={v => set('mortgage_status', v)} opts={MORTGAGE_OPTS} />
               </Field>
-              <Field label="Decision Maker?">
+              <Field label="Decision Maker?" insight={insights.is_decision_maker} loading={insightsLoading} hasValue={!!form.is_decision_maker}>
                 <Sel value={form.is_decision_maker} onChange={v => set('is_decision_maker', v)} opts={DECISION_OPTS} />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Call Outcome">
+              <Field label="Call Outcome" insight={insights.call_outcome} loading={insightsLoading} hasValue={!!form.call_outcome}>
                 <Sel value={form.call_outcome} onChange={v => set('call_outcome', v)} opts={OUTCOME_OPTS} />
               </Field>
-              <Field label="Rapport After Call">
+              <Field label="Rapport After Call" insight={insights.rapport_after_call} loading={insightsLoading} hasValue={!!form.rapport_after_call}>
                 <Sel value={form.rapport_after_call} onChange={v => set('rapport_after_call', v)} opts={RAPPORT_OPTS} />
               </Field>
             </div>
 
-            <Field label="Next Step">
+            <Field label="Next Step" insight={insights.next_step} loading={insightsLoading} hasValue={!!form.next_step}>
               <input className={inputCls} style={inputStyle} placeholder="Agreed next action…" value={form.next_step} onChange={e => set('next_step', e.target.value)} />
             </Field>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Follow-Up Date">
+              <Field label="Follow-Up Date" insight={insights.followup_date} loading={insightsLoading} hasValue={!!form.followup_date}>
                 <input type="date" className={inputCls} style={inputStyle} value={form.followup_date} onChange={e => set('followup_date', e.target.value)} />
               </Field>
             </div>
 
             <button
               onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || reportLoading}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ background: saved ? 'rgba(16,185,129,0.2)' : 'hsl(38 92% 50%)', color: saved ? '#34d399' : 'hsl(222 47% 11%)', border: saved ? '1px solid rgba(16,185,129,0.4)' : 'none' }}
             >
               {saveMutation.isPending
                 ? <Loader2 className="w-4 h-4 animate-spin" />
+                : reportLoading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Building AI report…</>
                 : saved
                 ? <><CheckCircle2 className="w-4 h-4" /> Saved!</>
-                : <><PhoneCall className="w-4 h-4" /> Save Call</>}
+                : <><PhoneCall className="w-4 h-4" /> Save Call & Build Report</>}
             </button>
           </div>
         </div>
