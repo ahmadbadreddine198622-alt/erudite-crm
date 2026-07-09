@@ -165,14 +165,28 @@ export default function Appointments() {
       });
       const data = res?.data ?? res;
       if (data?.ok !== false) {
-        setEvents(data.events || []);
+        let evts = data.events || [];
+        // Client-side safety filter: if a specific agent is selected, only show
+        // events where they are the organizer/agent or a guest — even if the
+        // backend didn't filter (shared calendar, race condition, etc.)
+        if (isAdmin && agentFilter !== 'all') {
+          const filterEmail = agentFilter.toLowerCase();
+          evts = evts.filter((e) => {
+            const org = (e.organizer_email || e.agent_email || '').toLowerCase();
+            return org === filterEmail ||
+                   (e.guest_emails || []).some((g) => g.toLowerCase() === filterEmail);
+          });
+        }
+        setEvents(evts);
         setGoogleConnected(data.google_connected !== false);
       }
     } catch (e) {
-      // Fallback: just load CRM appointments
+      // Fallback: just load CRM appointments (filtered by agent)
       try {
-        const appts = await base44.entities.LandlordAppointment.list('datetime', 50);
-        setEvents((appts || []).map((a) => ({ ...a, title: `${a.type || 'meeting'}`, type: a.type || 'meeting', source: 'crm' })));
+        const query = isAdmin && agentFilter !== 'all' ? { agent_email: agentFilter } : {};
+        const appts = await base44.entities.LandlordAppointment.filter(query, 'datetime', 50);
+        let mapped = (appts || []).map((a) => ({ ...a, title: `${a.type || 'meeting'}`, type: a.type || 'meeting', source: 'crm' }));
+        setEvents(mapped);
       } catch (_) { /* empty */ }
     } finally { setLoading(false); }
   }, [gridStart.toISOString(), gridEnd.toISOString(), isAdmin, agentFilter]);
