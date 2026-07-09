@@ -80,7 +80,28 @@ Only return real, currently-active for-sale listings in THIS project. Do not inv
     const listings = Array.isArray(data?.listings) ? data.listings : [];
     const note = data?.research_note || '';
 
-    return Response.json({ ok: true, project, layout, asking, listings, research_note: note, searched_at: new Date().toISOString() });
+    // The web-search LLM often returns the portal homepage as the "source_url"
+    // (e.g. just https://www.propertyfinder.ae) because it can't reliably surface
+    // the exact listing deep link. Detect those generic links and replace them
+    // with a real, working search URL scoped to THIS project so the click lands
+    // on genuine results instead of the portal root.
+    const enc = encodeURIComponent(project.trim());
+    const pfSearch = `https://www.propertyfinder.ae/en/search?q=${enc}&destination=dubai`;
+    const bayutSearch = `https://www.bayut.com/search/?query=${enc}`;
+    const pfRoot = /^https?:\/\/(www\.)?propertyfinder\.ae\/?$/i;
+    const bayutRoot = /^https?:\/\/(www\.)?bayut\.com\/?$/i;
+    const isGeneric = (u) => !u || pfRoot.test(u) || bayutRoot.test(u);
+
+    const fixed = listings.map((l) => {
+      let url = l.source_url || '';
+      const portal = (l.portal || 'Property Finder').toLowerCase();
+      if (isGeneric(url)) {
+        url = portal.includes('bayut') ? bayutSearch : pfSearch;
+      }
+      return { ...l, source_url: url };
+    });
+
+    return Response.json({ ok: true, project, layout, asking, listings: fixed, research_note: note, searched_at: new Date().toISOString() });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
