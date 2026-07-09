@@ -497,9 +497,14 @@ export default function ModernComposerField({
 
           {/* Voice (WhatsApp / iMessage / Telegram) */}
           {voiceEnabled && !vr.recording && !stopped && (
-            <button type="button" onClick={startVoice} title="Record voice note"
-              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border border-transparent hover:bg-white/10"
-              style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <button type="button" onClick={startVoice}
+              title={vr.error ? `Voice unavailable: ${vr.error}` : 'Record voice note'}
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all border"
+              style={{
+                color: vr.error ? '#fca5a5' : 'rgba(255,255,255,0.6)',
+                borderColor: vr.error ? 'rgba(244,63,94,0.3)' : 'transparent',
+                background: vr.error ? 'rgba(244,63,94,0.08)' : 'transparent',
+              }}>
               <Mic size={14} />
             </button>
           )}

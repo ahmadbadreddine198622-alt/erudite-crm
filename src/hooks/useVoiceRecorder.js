@@ -70,7 +70,11 @@ export default function useVoiceRecorder() {
       setBlob(null);
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     } catch (e) {
-      setError(e?.name === 'NotAllowedError' ? 'Microphone permission denied' : (e?.message || 'Could not start recording'));
+      const msg = e?.name === 'NotAllowedError' ? 'Microphone permission denied'
+        : e?.name === 'NotFoundError' ? 'No microphone found on this device'
+        : e?.name === 'NotReadableError' ? 'Microphone is already in use by another app'
+        : (e?.message || 'Could not start recording');
+      setError(msg);
       cleanup();
     }
   }, [cleanup]);

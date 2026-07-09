@@ -1746,19 +1746,11 @@ class LandlordDetail extends React.Component {
                       targetLanguage={this.props.rawLandlord?.preferred_language}
                       inputRef={ct === 'Chat' ? this.chatComposerRef : undefined}
                       extraToolbarChildren={ct === 'Chat' ? (
-                        <React.Fragment>
-                          <WhatsAppChannelSelector
-                            mode={this.state.streamFilter}
-                            onMode={(m)=> this.setState({ streamFilter: m })}
-                            isAdmin={this.props.isAdmin}
-                          />
-                          <ChatExtraTools
-                            text={vm.composerText}
-                            onTextChange={this.onComposerInput}
-                            landlordId={L.id}
-                            landlordName={L.full_name_en || L.full_name}
-                          />
-                        </React.Fragment>
+                        <WhatsAppChannelSelector
+                          mode={this.state.streamFilter}
+                          onMode={(m)=> this.setState({ streamFilter: m })}
+                          isAdmin={this.props.isAdmin}
+                        />
                       ) : null}
                     />
                   );

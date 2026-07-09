@@ -7,7 +7,7 @@
 // This is a LAYOUT-ONLY redesign — all send/template logic stays in the parent (LandlordDetailPage).
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Save, FileText, X, Zap, Paperclip, Loader2 } from 'lucide-react';
+import { Sparkles, Send, Save, FileText, X, Zap, Paperclip, Loader2, Lightbulb } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import EmailTemplatePicker from './EmailTemplatePicker';
@@ -239,7 +239,7 @@ export default function UnifiedChatComposer({
           <Popover open={aiOpen} onOpenChange={setAiOpen}>
             <PopoverTrigger asChild>
               <button type="button" title="AI suggested messages" style={tplBtn(aiOpen, '#a78bfa')}>
-                <Sparkles size={14} />
+                <Lightbulb size={14} />
               </button>
             </PopoverTrigger>
             <PopoverContent
