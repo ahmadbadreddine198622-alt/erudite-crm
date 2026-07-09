@@ -1408,12 +1408,6 @@ class LandlordDetail extends React.Component {
                     </div>
                   )}
                   <CallsTabList calls={L.calls || []} />
-                  <div style={css("margin-top:12px;")}>
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
-                      <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
-                    </div>
-                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
-                  </div>
                 </div>
               ) : (this.state.composerType === 'Activity' || this.state.composerType === 'Chat') ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
@@ -1429,16 +1423,10 @@ class LandlordDetail extends React.Component {
                       sender: s.sender,
                       time: s.time,
                       body: s.emailBody || s.text || '',
-                    }))}
-                  />
-                  <div style={css("margin-top:12px;")}>
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
-                      <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
-                    </div>
-                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
-                  </div>
-                </div>
-              ) : this.state.composerType === 'Note' ? (
+                      }))}
+                      />
+                      </div>
+                      ) : this.state.composerType === 'Note' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px; display:flex; flex-direction:column; gap:8px;")}>
                   {(() => {
                     const noteItems = tabStream.filter(s => s.isAct && s._kind === 'note');
@@ -1471,12 +1459,6 @@ class LandlordDetail extends React.Component {
                       body: s.actBody,
                     }))}
                   />
-                  <div style={css("margin-top:12px;")}>
-                    <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
-                      <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
-                    </div>
-                    <AllActivityTab activeTab={this.state.composerType} items={L.stream.filter(s => !(s.t === 'act' && s.kind === 'note')).map((s, i) => ({ ...s, key: i }))} landlordId={L.id} landlordName={L.full_name_en || L.full_name} comments={this.props.comments} directives={this.props.directives} isAdmin={this.props.isAdmin} canCoach={this.props.canCoach} currentUser={this.props.currentUser} onReplyGenerated={(t)=>this.setState({composerText:t})} onSelectChannel={(t)=>this.setState({ activityComposer: t })} onNavigateToTab={(t)=>this.setComposerType(t)} />
-                  </div>
                 </div>
               ) : (
                 <div className="ld-scroll" ref={this.streamRef} style={css("flex:1; min-height:0; overflow-y:auto; padding:2px 16px 8px; display:flex; flex-direction:column; gap:8px;")}>
