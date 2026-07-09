@@ -40,6 +40,15 @@ export function useCurrentUser() {
   const MALIK_EMAIL = 'malik@erudite-estate.com';
   const isMalik = user?.email === MALIK_EMAIL;
 
+  // Property Finder visibility is restricted to these five people.
+  // Matched against the user's full name tokens and email local-part.
+  const PF_VIEW_NAMES = ['ajwa', 'malik', 'dari', 'ahmad', 'francis'];
+  const _fn = (user?.full_name || '').toLowerCase();
+  const _emailLocal = (user?.email || '').split('@')[0].toLowerCase();
+  const _tokens = _fn.split(/[\s._-]+/).filter(Boolean);
+  const _nameMatch = PF_VIEW_NAMES.some(n => _tokens.includes(n) || _fn.includes(n) || _emailLocal.includes(n));
+  const canViewPropertyFinder = owner || _nameMatch;
+
   const permissions = {
     view_all_leads: owner || isAdmin || isCEO || customRole?.permissions?.view_all_leads || false,
     view_all_pipeline: owner || isAdmin || isCEO || customRole?.permissions?.view_all_pipeline || false,
@@ -54,5 +63,5 @@ export function useCurrentUser() {
     export_data: owner || isAdmin || isCEO || customRole?.permissions?.export_data || false,
   };
 
-  return { user, loading, isAdmin, isManager, isOwner: owner, canCoach, permissions, customRole };
+  return { user, loading, isAdmin, isManager, isOwner: owner, canCoach, permissions, customRole, isMalik, canViewPropertyFinder };
 }

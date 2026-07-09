@@ -7,9 +7,6 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { LayoutGrid, Settings, FlaskConical, Lock } from 'lucide-react';
 
-// Property Finder listings are restricted to Malik Ahmad Francis Ajwa only.
-const PF_ACCESS_EMAILS = ['malik@erudite-estate.com'];
-
 const TABS = [
   { id: 'listings', label: 'My Listings', icon: LayoutGrid },
   { id: 'leads', label: 'Lead Sync Test', icon: FlaskConical },
@@ -17,11 +14,11 @@ const TABS = [
 ];
 
 export default function PropertyFinderSync() {
-  const { user, loading } = useCurrentUser();
+  const { loading, canViewPropertyFinder } = useCurrentUser();
   const [tab, setTab] = useState('listings');
   const [environment, setEnvironment] = useState('sandbox');
 
-  const allowed = !!(user?.email && PF_ACCESS_EMAILS.includes(user.email.toLowerCase()));
+  const allowed = !!canViewPropertyFinder;
 
   useEffect(() => {
     if (!allowed) return;
@@ -53,7 +50,7 @@ export default function PropertyFinderSync() {
           </div>
           <h2 className="text-lg font-bold text-foreground mb-2">Access restricted</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Property Finder listings are only visible to Malik Ahmad Francis Ajwa. Contact an administrator if you believe this is an error.
+            Property Finder is restricted to Ajwa, Malik, Dari, Ahmad, and Francis. Contact an administrator if you believe this is an error.
           </p>
         </div>
       </EruditePage>

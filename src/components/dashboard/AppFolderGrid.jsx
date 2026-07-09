@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Crown, Target, Building2, DollarSign, MessageCircle, Brain, Users, Wrench } from 'lucide-react';
 import ExtremeLiquidIcon from '@/components/ui/ExtremeLiquidIcon';
 import { ALL_APPS } from '@/lib/navApps';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 // ── Folder definitions ────────────────────────────────────────────────────────
 // Maps exact app labels to folders. Apps not listed fall into Tools & Reference.
@@ -419,9 +420,15 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   const navigate = useNavigate();
+  const { canViewPropertyFinder } = useCurrentUser();
   const [openFolder, setOpenFolder] = useState(null);
 
-  const activeFolder = openFolder ? FOLDERS.find(f => f.id === openFolder) : null;
+  // Hide the Property Finder app for users who aren't on the allowlist.
+  const folders = canViewPropertyFinder
+    ? FOLDERS
+    : FOLDERS.map(f => ({ ...f, apps: f.apps.filter(a => a.label !== 'Property Finder') }));
+
+  const activeFolder = openFolder ? folders.find(f => f.id === openFolder) : null;
 
   const handleNavigate = (app) => {
     setOpenFolder(null);
@@ -443,7 +450,7 @@ export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
           paddingBottom: '2px',
         }}
       >
-        {FOLDERS.map(folder => (
+        {folders.map(folder => (
           <FolderTile
             key={folder.id}
             folder={folder}
