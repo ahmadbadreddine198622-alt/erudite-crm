@@ -419,12 +419,19 @@ export default function Team() {
                               className="h-7 text-xs gap-1 border-red-500/40 text-red-400 hover:bg-red-500/10">
                               <Trash2 className="w-3 h-3" /> Delete
                             </Button>
+                            <Button size="sm" variant="outline"
+                              onClick={() => {
+                                const next = u.role === 'admin' ? 'agent' : 'admin';
+                                updateUserRoleMutation.mutate({ userId: u.id, role: next, customRoleId: u.custom_role_id });
+                              }}
+                              className="h-7 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                              <Crown className="w-3 h-3" /> {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                            </Button>
                             <select value={u.role || 'agent'}
                               onChange={e => updateUserRoleMutation.mutate({ userId: u.id, role: e.target.value, customRoleId: u.custom_role_id })}
                               className="text-xs rounded-lg px-2 py-1.5"
                               style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}>
                               <option value="admin">Admin</option>
-                              <option value="ceo">CEO</option>
                               <option value="manager">Manager</option>
                               <option value="agent">Agent</option>
                               <option value="viewer">Viewer</option>
