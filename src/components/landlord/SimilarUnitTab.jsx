@@ -127,12 +127,12 @@ export default function SimilarUnitTab({ landlordId, landlord }) {
         </div>
         <button
           onClick={runSearch}
-          disabled={loading || !project}
+          disabled={loading}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10,
             fontSize: 12, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', fontFamily: "'Inter',sans-serif",
             background: 'linear-gradient(180deg, rgba(0,208,156,0.22), rgba(0,208,156,0.1))',
-            color: '#34d399', border: '1px solid rgba(0,208,156,0.4)', opacity: (loading || !project) ? 0.6 : 1,
+            color: '#34d399', border: '1px solid rgba(0,208,156,0.4)', opacity: loading ? 0.6 : 1,
           }}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
