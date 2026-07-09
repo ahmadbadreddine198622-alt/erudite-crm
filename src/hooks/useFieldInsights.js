@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { GRANT_CARDONE_PERSONA_COMPACT } from '@/lib/grantCardoneVoice';
 
 // useFieldInsights — debounced AI "smart note" generator for the call qualification
 // form. As the agent answers each question, this calls InvokeLLM ONCE (debounced)
@@ -72,7 +73,9 @@ export function useFieldInsights(form, landlord) {
         ].filter(Boolean).join('\n');
 
         const res = await base44.integrations.Core.InvokeLLM({
-          prompt: `You are a Dubai real estate call coach. An agent is on a qualification call with ${ownerName}. For each answer captured below, write ONE short, sharp insight line (max ~14 words) that tells the agent what that answer MEANS for the deal and what to watch for. Be specific, practical, and grounded in Dubai selling reality (RERA Form A, developer NOC, mortgage liability letters, tenanted vs vacant, POA for overseas owners). Do NOT repeat the answer back — add interpretation only.
+          prompt: `${GRANT_CARDONE_PERSONA_COMPACT}
+
+You are coaching an agent LIVE on a qualification call with ${ownerName}. For each answer captured below, write ONE short, sharp insight line (max ~14 words) that tells the agent what that answer MEANS for the deal and what to watch for. Be specific, practical, and grounded in Dubai selling reality (RERA Form A, developer NOC, mortgage liability letters, tenanted vs vacant, POA for overseas owners). Push toward the close. Do NOT repeat the answer back — add interpretation only.
 
 LANDLORD CONTEXT:
 ${ctx}

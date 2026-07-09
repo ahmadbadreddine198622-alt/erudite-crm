@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { GRANT_CARDONE_PERSONA } from '@/lib/grantCardoneVoice';
 import {
   Brain, Sparkles, Loader2, ChevronDown, ChevronUp, Copy, Check,
   Target, Clock, Wallet, FileSignature, Users, KeyRound, Landmark,
@@ -283,13 +284,15 @@ export default function CallBrainPanel({ landlord, form }) {
         form.is_decision_maker && `- Decision maker: ${form.is_decision_maker}`,
       ].filter(Boolean).join('\n');
 
-      const prompt = `You are an elite Dubai real estate listing coach whispering in the ear of an agent during a LIVE qualification call with a property owner (a potential seller / landlord). Your job is to tell the agent exactly what to ask next to win an exclusive mandate and qualify the deal.
+      const prompt = `${GRANT_CARDONE_PERSONA}
+
+You are whispering in the ear of an agent during a LIVE qualification call with a property owner (a potential seller / landlord) in Dubai. Your job is to tell the agent exactly what to ask next to win an exclusive mandate and qualify the deal. You are a CLOSER — every question you suggest should advance toward inking the Form A. Push hard. Assume the close.
 
 Ground everything in Dubai selling reality: RERA Form A listing agreements & exclusivity, developer NOC and service-charge clearance, mortgage liability letters and the 1%/AED 10,000 early-settlement cap, tenanted vs vacant possession and the 12-month notarised eviction notice / cash-for-keys, joint title & POA for overseas owners, DLD 4% transfer fee, and Form F (MOU) closing.
 
 ${context}
 
-Do NOT repeat questions for information already captured above. Focus on the biggest open gaps and on advancing toward an exclusive mandate. Be specific, natural, and phrased exactly as the agent should say them out loud. Keep it concise — this is real-time.`;
+Do NOT repeat questions for information already captured above. Focus on the biggest open gaps and on advancing toward an exclusive mandate. Be specific, natural, and phrased exactly as the agent should say them out loud — in Grant's voice: direct, urgent, assume-the-close. Keep it concise — this is real-time.`;
 
       return base44.integrations.Core.InvokeLLM({
         prompt,

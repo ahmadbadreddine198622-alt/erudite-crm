@@ -69,7 +69,19 @@ Deno.serve(async (req) => {
       L.ai_rolling_summary && `Prior history: ${L.ai_rolling_summary}`,
     ].filter(Boolean).join('\n');
 
-    const prompt = `You are an elite Dubai real estate analyst. An agent just finished a qualification call with a property owner (potential seller / landlord). Below is everything captured on the call, plus the landlord context. Build a concise, professional CALL REPORT that the agent's team can read to understand exactly what happened on the call and what to do next.
+    // ── Fetch Grant Cardone persona from the voice function ──
+    let persona = '';
+    try {
+      const pv = await base44.asServiceRole.functions.invoke('grantCardoneVoice', {});
+      persona = (pv?.data?.persona || pv?.persona || '').trim();
+    } catch (_) { /* persona is a nice-to-have; fallback to built-in below */ }
+    if (!persona) {
+      persona = 'PERSONA: You speak like Grant Cardone — direct, urgent, zero-hedging. Nothing happens until you close. Every objection is a buying signal. Time kills deals — speed closes them. Push toward action. Assume the close.';
+    }
+
+    const prompt = `${persona}
+
+You are an elite Dubai real estate analyst AND a ruthless closer. An agent just finished a qualification call with a property owner (potential seller / landlord). Below is everything captured on the call, plus the landlord context. Build a concise, hard-hitting CALL REPORT that the agent's team can read to understand exactly what happened on the call and what to do next. Write it in Grant Cardone's voice: direct, urgent, no hedging, always pushing toward the close.
 
 Ground everything in Dubai selling reality: RERA Form A / exclusivity, developer NOC + service-charge clearance, mortgage liability letters + 1%/AED 10,000 early-settlement cap, tenanted vs vacant possession + 12-month notarised eviction notice, joint title / POA for overseas owners, DLD 4% transfer fee, Form F (MOU) closing.
 
@@ -91,9 +103,9 @@ Bullet list of deal risks or Dubai compliance flags to watch (or "None surfaced"
 ## Recommended Next Steps
 2-4 numbered, concrete next actions for the agent.
 ## One-line Verdict
-A single punchy line summarising the deal's health.
+A single punchy Grant Cardone-style line summarising the deal's health. No hedging — "This deal is hot, close it now" or "This deal is dead unless you move today." Pick a side.
 
-Be specific and grounded in the captured data — do not invent facts. Keep it tight and skimmable.`;
+Be specific and grounded in the captured data — do not invent facts. Keep it tight and skimmable. Write every word like a closer, not a visitor.`;
 
     const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
