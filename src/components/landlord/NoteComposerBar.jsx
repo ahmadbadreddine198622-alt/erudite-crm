@@ -354,18 +354,21 @@ export default function NoteComposerBar({
           )}
         </div>
 
-        {/* Right: fixed action cluster — always visible, stacked above scroll container + any left-cluster popovers */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none', position: 'relative', zIndex: 50, touchAction: 'manipulation', pointerEvents: 'auto' }}>
+        {/* Right: fixed action cluster — always visible, isolated stacking context so the
+            scrollable left cluster (overflowX:auto + touchAction:pan-x) can never intercept
+            pointer events over these buttons. flexShrink:0 keeps it at content width. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none', flexShrink: 0, position: 'relative', zIndex: 50, isolation: 'isolate', touchAction: 'manipulation', pointerEvents: 'auto' }}>
           {/* Word counter */}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontFamily: "'Inter',sans-serif" }}>
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
           </span>
 
-          {/* Quick-switch to WhatsApp */}
+          {/* Quick-switch to WhatsApp — explicit zIndex so the full button box is the
+              topmost hit target (nothing in the cluster paints over it). */}
           {isNote && onSwitchToWhatsApp && (
             <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSwitchToWhatsApp(value); }}
               title="Send via WhatsApp"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', touchAction: 'manipulation', minHeight: 36, pointerEvents: 'auto', position: 'relative' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter',sans-serif", background: 'rgba(37,211,102,0.14)', color: '#25D366', border: '1px solid rgba(37,211,102,0.4)', touchAction: 'manipulation', minHeight: 36, pointerEvents: 'auto', position: 'relative', zIndex: 2 }}>
               <MessageCircle size={12} /> WhatsApp
             </button>
           )}
