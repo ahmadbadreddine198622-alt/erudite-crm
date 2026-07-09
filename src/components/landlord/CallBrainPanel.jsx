@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   Brain, Sparkles, Loader2, ChevronDown, ChevronUp, Copy, Check,
   Target, Clock, Wallet, FileSignature, Users, KeyRound, Landmark,
-  UserCheck, ShieldAlert, MessageCircle,
+  UserCheck, ShieldAlert, MessageCircle, Languages,
 } from 'lucide-react';
 
 /*
@@ -198,12 +198,65 @@ function AreaCard({ area, dimmed }) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
+const LANGS = [
+  { code: 'ru', label: 'Russian', flag: '🇷🇺' },
+  { code: 'zh', label: 'Chinese', flag: '🇨🇳' },
+  { code: 'ar', label: 'Arabic', flag: '🇦🇪' },
+];
+
 export default function CallBrainPanel({ landlord, form }) {
   const [open, setOpen] = useState(false);
   const [ai, setAi] = useState(null);
+  const [aiOriginal, setAiOriginal] = useState(null);
+  const [lang, setLang] = useState(null); // null = original English
+  const [translating, setTranslating] = useState(false);
 
   const gaps = useMemo(() => BANK.filter(a => !a.filled(form)), [form]);
   const covered = useMemo(() => BANK.filter(a => a.filled(form)), [form]);
+
+  const translate = async (targetCode) => {
+    if (!ai || translating) return;
+    setTranslating(true);
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Translate the following JSON from English to ${targetCode === 'ru' ? 'Russian' : targetCode === 'zh' ? 'Chinese (Simplified)' : 'Arabic'}. Keep the same structure. Translate ALL text values (opening, question, why, area, trigger, response, flags). Return the translated JSON with the exact same keys.\n\n${JSON.stringify(ai)}`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            opening: { type: 'string' },
+            questions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  area: { type: 'string' },
+                  question: { type: 'string' },
+                  why: { type: 'string' },
+                },
+              },
+            },
+            objections: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  trigger: { type: 'string' },
+                  response: { type: 'string' },
+                },
+              },
+            },
+            flags: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      });
+      setAi(res);
+      setLang(targetCode);
+    } catch {
+      // silently fail — original text stays
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const brainMutation = useMutation({
     mutationFn: async () => {
@@ -277,7 +330,7 @@ Do NOT repeat questions for information already captured above. Focus on the big
         },
       });
     },
-    onSuccess: data => setAi(data),
+    onSuccess: data => { setAi(data); setAiOriginal(data); setLang(null); },
   });
 
   return (
@@ -331,6 +384,38 @@ Do NOT repeat questions for information already captured above. Focus on the big
           {/* AI results */}
           {ai && (
             <div className="rounded-lg border p-2.5 space-y-2.5" style={{ background: `${AI_BLUE}0.06)`, borderColor: `${AI_BLUE}0.22)` }}>
+              {/* Translate bar */}
+              <div className="flex items-center gap-1.5 flex-wrap pb-1" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="text-[9px] uppercase tracking-wider font-bold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <Languages className="w-2.5 h-2.5" /> Translate
+                </span>
+                <button
+                  onClick={() => { if (lang !== null && aiOriginal) { setLang(null); setAi(aiOriginal); } }}
+                  className="px-2 py-0.5 rounded text-[10px] font-semibold transition-colors"
+                  style={{
+                    background: lang === null ? `${AI_BLUE}0.2)` : 'rgba(255,255,255,0.04)',
+                    color: lang === null ? `${AI_BLUE}0.95)` : 'rgba(255,255,255,0.5)',
+                    border: `1px solid ${lang === null ? `${AI_BLUE}0.35)` : 'rgba(255,255,255,0.08)'}`,
+                  }}
+                >EN</button>
+                {LANGS.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => translate(l.code)}
+                    disabled={translating}
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                    style={{
+                      background: lang === l.code ? `${AI_BLUE}0.2)` : 'rgba(255,255,255,0.04)',
+                      color: lang === l.code ? `${AI_BLUE}0.95)` : 'rgba(255,255,255,0.5)',
+                      border: `1px solid ${lang === l.code ? `${AI_BLUE}0.35)` : 'rgba(255,255,255,0.08)'}`,
+                    }}
+                  >
+                    {l.flag} {l.label}
+                    {translating && lang === l.code && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                  </button>
+                ))}
+              </div>
+
               {ai.opening && (
                 <div>
                   <p className="text-[9px] uppercase tracking-wider font-bold mb-1" style={{ color: `${AI_BLUE}0.6)` }}>Say this now</p>
