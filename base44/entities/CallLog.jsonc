@@ -70,6 +70,15 @@
     "twilio_number_used": {
       "type": "string",
       "description": "Which Twilio number was used to make this call"
+    },
+    "copilot_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the Live Call Copilot relay was active for this call"
+    },
+    "copilot_signals": {
+      "type": "object",
+      "description": "Signals detected by the Copilot relay during the call (talk_ratio, detected_flags, etc.)"
     }
   },
   "required": [

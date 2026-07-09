@@ -8,7 +8,7 @@ import { toast } from 'sonner';
  * Browser-based calling via Twilio Voice SDK.
  * Direct call: browser mic + speakers → customer phone. No bridge. No personal phone needed.
  */
-export default function TwilioCallDialog({ lead, landlord, contact, phoneOverride, iconOnly = false, children }) {
+export default function TwilioCallDialog({ lead, landlord, contact, phoneOverride, iconOnly = false, children, copilotEnabled = false }) {
   const [open, setOpen] = useState(false);
   const [dialNumber, setDialNumber] = useState('');
   const [callerNumber, setCallerNumber] = useState('');
@@ -143,8 +143,17 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
       device.on('error', handleDeviceError);
 
-      // 4. Connect directly — no register()
-      const call = await device.connect({ params: { To: toPhone } });
+      // 4. Connect directly — no register(). Pass copilot params when enabled
+      //    so twilioVoiceWebhook adds the <Start><Stream> for the relay server.
+      const connectParams = { To: toPhone };
+      if (copilotEnabled && landlordId) {
+        connectParams.copilot = 'true';
+        connectParams.landlord_id = landlordId;
+        connectParams.agent_email = entity?.assigned_agent_email || '';
+        // call_log_id will be set by twilioMakeCall below — the TwiML webhook
+        // reads it from the form body, and the status callback links it.
+      }
+      const call = await device.connect({ params: connectParams });
       callRef.current = call;
       setPhase('ringing');
 
@@ -156,6 +165,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
         from_phone: callerNumber,
         lead_name: targetName,
         browser_mode: true,
+        copilot: copilotEnabled && !!landlordId,
       }).then(res => { callLogIdRef.current = res.data?.call_log_id || ''; }).catch(() => {});
 
       call.on('ringing', () => setPhase('ringing'));

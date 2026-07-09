@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     } catch (_) {}
 
     const body = await req.json();
-    const { lead_id, landlord_id, to_phone, from_phone, lead_name, browser_mode } = body;
+    const { lead_id, landlord_id, to_phone, from_phone, lead_name, browser_mode, copilot } = body;
 
     if (!to_phone) {
       return Response.json({ error: 'to_phone is required' }, { status: 400 });
@@ -100,12 +100,16 @@ Deno.serve(async (req) => {
     const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
 
     // Bridge URL: when agent answers their phone, Twilio executes this TwiML
-    // which immediately dials the customer and connects audio
+    // which immediately dials the customer and connects audio.
+    // Copilot params are forwarded so twilioMakeBridge can add the <Start><Stream>.
+    const copilotFlag = copilot ? '&copilot=true' : '';
+    const copilotParams = copilot ? `&landlord_id=${encodeURIComponent(landlord_id || '')}&agent_email=${encodeURIComponent(agentEmail)}` : '';
     const bridgeUrl = `${PUBLIC_BASE}/functions/twilioMakeBridge` +
       `?customer=${encodeURIComponent(to_phone)}` +
       `&caller=${encodeURIComponent(voiceNumber)}` +
       `&log=${callLog.id}` +
-      `&record=${c.record_calls !== false ? 'true' : 'false'}`;
+      `&record=${c.record_calls !== false ? 'true' : 'false'}` +
+      copilotFlag + copilotParams;
 
     // Twilio REST: call agent's phone → when answered → execute bridgeUrl TwiML
     const callParams = new URLSearchParams({

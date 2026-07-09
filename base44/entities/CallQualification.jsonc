@@ -32,6 +32,28 @@
       "default": "phone",
       "description": "How the call/contact happened"
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "copilot"
+      ],
+      "default": "manual",
+      "description": "How this qualification was created \u2014 manual entry or AI copilot auto-detection"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "pending_confirmation"
+      ],
+      "default": "confirmed",
+      "description": "pending_confirmation when auto-filled by copilot \u2014 agent reviews and confirms"
+    },
+    "call_log_id": {
+      "type": "string",
+      "description": "FK to CallLog this qualification was derived from (copilot source)"
+    },
     "motivation": {
       "type": "string",
       "enum": [
