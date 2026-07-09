@@ -312,6 +312,15 @@ function extractRecords(rows, fileName) {
   return records;
 }
 
+async function upsertSyncState(base44, key, value) {
+  const existing = await base44.asServiceRole.entities.SyncState.filter({ key });
+  if (existing && existing.length > 0) {
+    await base44.asServiceRole.entities.SyncState.update(existing[0].id, { value });
+  } else {
+    await base44.asServiceRole.entities.SyncState.create({ key, value });
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -334,7 +343,7 @@ Deno.serve(async (req) => {
     // Process a subset per run using a byte budget, cycling through files
     const MAX_BYTES_PER_RUN = 15_000_000;
     const syncState = await base44.asServiceRole.entities.SyncState.filter({ key: 'owner_portfolio_offset' });
-    const offset = (syncState && syncState.length > 0) ? (syncState[0].value || 0) : 0;
+    const offset = (syncState && syncState.length > 0) ? (parseInt(syncState[0].value) || 0) : 0;
 
     const toProcess = [];
     let totalBytes = 0;
@@ -346,12 +355,7 @@ Deno.serve(async (req) => {
       totalBytes += sz;
     }
     const nextOffset = (offset + toProcess.length) % uniqueFiles.length;
-    await base44.asServiceRole.entities.SyncState.updateMany(
-      { key: 'owner_portfolio_offset' },
-      { $set: { value: nextOffset } }
-    ).catch(async () => {
-      await base44.asServiceRole.entities.SyncState.create({ key: 'owner_portfolio_offset', value: nextOffset });
-    });
+    await upsertSyncState(base44, 'owner_portfolio_offset', String(nextOffset));
 
     const records = [];
     let filesParsed = 0;
@@ -381,6 +385,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Update total counts in SyncState for fetchOwnerPortfolio to display
+    // Accumulate per-file counts across runs (sync processes files incrementally)
+    const fcState = await base44.asServiceRole.entities.SyncState.filter({ key: 'owner_portfolio_file_counts' });
+    let fileCounts = {};
+    if (fcState && fcState.length > 0) {
+      try { fileCounts = JSON.parse(fcState[0].value || '{}'); } catch (_) {}
+    }
+    for (const stat of fileStats) {
+      if (stat.records !== undefined) {
+        fileCounts[stat.file] = stat.records;
+      }
+    }
+    const totalUnits = Object.values(fileCounts).reduce((s, c) => s + (Number(c) || 0), 0);
+    await upsertSyncState(base44, 'owner_portfolio_file_counts', JSON.stringify(fileCounts));
+    await upsertSyncState(base44, 'owner_portfolio_total_units', String(totalUnits));
+
     return Response.json({
       ok: true,
       synced: records.length,
@@ -390,6 +410,7 @@ Deno.serve(async (req) => {
       unique_files: uniqueFiles.length,
       processed_this_run: toProcess.length,
       next_offset: nextOffset,
+      total_units_in_db: totalUnits,
       file_stats: fileStats,
     });
   } catch (error) {

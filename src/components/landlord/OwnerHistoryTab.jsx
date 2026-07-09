@@ -113,9 +113,11 @@ export default function OwnerHistoryTab({ landlordId, landlord }) {
         <div style={{ ...card(), padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 12.5 }}>
           <AlertCircle size={18} style={{ margin: '0 auto 8px', display: 'block', color: 'rgba(255,255,255,0.3)' }} />
           No owner record found in the portfolio spreadsheets matching this landlord.
-          <div style={{ fontSize: 11, marginTop: 6, color: 'rgba(255,255,255,0.3)' }}>
-            Searched {data?.totalOwners ?? 0} owners across {data?.totalUnits ?? 0} units.
-          </div>
+          {data?.totalUnits > 0 && (
+            <div style={{ fontSize: 11, marginTop: 6, color: 'rgba(255,255,255,0.3)' }}>
+              Searched {data.totalUnits.toLocaleString()} units synced from Drive.
+            </div>
+          )}
         </div>
       )}
 
