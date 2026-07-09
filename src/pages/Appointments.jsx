@@ -11,7 +11,7 @@ import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceC
 import CalendarMonthView from '@/components/appointments/CalendarMonthView';
 import {
   Calendar, Plus, Clock, MapPin, User, Loader2, CalendarCheck,
-  Phone, Eye, Users as UsersIcon, ChevronRight, LayoutGrid, List as ListIcon, Mail
+  Phone, Eye, Users as UsersIcon, ChevronRight, LayoutGrid, List as ListIcon, Mail, CalendarX
 } from 'lucide-react';
 
 const TYPE_META = {
@@ -100,6 +100,22 @@ function DateGroup({ label, items, isAdmin }) {
   );
 }
 
+function NotConnectedCard({ name, googleConnected }) {
+  return (
+    <div className="glass-card p-12 text-center">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+        <CalendarX className="w-7 h-7 text-red-400" />
+      </div>
+      <p className="text-sm font-semibold text-foreground">Calendar not connected</p>
+      <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto">
+        {googleConnected
+          ? `${name || 'This agent'} has no calendar events. Their Google Calendar may not be linked or they have no upcoming appointments.`
+          : `Google Calendar is not connected. Connect it to see ${name || 'this agent'}'s events.`}
+      </p>
+    </div>
+  );
+}
+
 export default function Appointments() {
   const [view, setView] = useState('month'); // 'month' | 'list'
   const [events, setEvents] = useState([]);
@@ -109,6 +125,7 @@ export default function Appointments() {
   const isAdmin = user?.role === 'admin';
   const [agentFilter, setAgentFilter] = useState('all');
   const [allAgents, setAllAgents] = useState([]);
+  const [googleConnected, setGoogleConnected] = useState(true);
 
   // Fetch all team members so the admin filter dropdown shows everyone,
   // not just agents who already have events in the current view.
@@ -149,6 +166,7 @@ export default function Appointments() {
       const data = res?.data ?? res;
       if (data?.ok !== false) {
         setEvents(data.events || []);
+        setGoogleConnected(data.google_connected !== false);
       }
     } catch (e) {
       // Fallback: just load CRM appointments
@@ -194,6 +212,9 @@ export default function Appointments() {
   const selectedDayLabel = selectedDate
     ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
+
+  const selectedAgentName = allAgents.find((a) => a.email === agentFilter)?.name;
+  const agentNotConnected = agentFilter !== 'all' && !loading && events.length === 0;
 
   return (
     <div className="page-root">
@@ -244,6 +265,9 @@ export default function Appointments() {
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent" /></div>
         ) : view === 'month' ? (
+          agentNotConnected ? (
+            <NotConnectedCard name={selectedAgentName} googleConnected={googleConnected} />
+          ) : (
           /* ── Month calendar view ── */
           <div className="grid lg:grid-cols-[1fr_300px] gap-5">
             <CalendarMonthView
@@ -316,14 +340,19 @@ export default function Appointments() {
               </div>
             </div>
           </div>
+          )
         ) : (
           /* ── List view ── */
           events.length === 0 ? (
+            agentNotConnected ? (
+              <NotConnectedCard name={selectedAgentName} googleConnected={googleConnected} />
+            ) : (
             <div className="glass-card p-12 text-center">
               <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
               <p className="text-sm font-semibold text-foreground">No upcoming appointments</p>
               <p className="text-xs text-muted-foreground mt-1">Click "Book" to schedule your first meeting.</p>
             </div>
+            )
           ) : (
             <div className="space-y-6">
               {listGroups.today.length > 0 && <DateGroup label="Today" items={listGroups.today} isAdmin={isAdmin} />}

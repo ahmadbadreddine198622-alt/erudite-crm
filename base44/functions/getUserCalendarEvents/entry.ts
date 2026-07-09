@@ -43,11 +43,13 @@ Deno.serve(async (req) => {
 
     // ── 1. Fetch Google Calendar events (shared connector) ────────
     let gcalEvents = [];
+    let googleConnected = false;
     try {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
       const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=250`;
       const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (resp.ok) {
+        googleConnected = true;
         const data = await resp.json();
         gcalEvents = (data.items || []).map((e) => {
           const organizerEmail = e.organizer?.email || null;
@@ -175,20 +177,30 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* best-effort */ }
 
-    // ── 5. Merge & dedupe by google_event_id ───────────────────────
-    const gcalIds = new Set(gcalEvents.map((e) => e.id));
+    // ── 5. Filter Google events by selected agent, then merge ─────
+    const filteredGcal = agentEmailFilter
+      ? gcalEvents.filter((e) => {
+          const em = agentEmailFilter.toLowerCase();
+          return (e.organizer_email || '').toLowerCase() === em ||
+                 (e.guest_emails || []).some((g) => g.toLowerCase() === em);
+        })
+      : gcalEvents;
+
+    const gcalIds = new Set(filteredGcal.map((e) => e.id));
     const crmAll = [...crmAppts, ...crmViewings, ...crmMeetings];
     const merged = [
-      ...gcalEvents,
+      ...filteredGcal,
       ...crmAll.filter((a) => !a.google_event_id || !gcalIds.has(a.google_event_id)),
     ].sort((a, b) => new Date(a.start || 0).getTime() - new Date(b.start || 0).getTime());
 
     return Response.json({
       ok: true,
       events: merged,
-      google_count: gcalEvents.length,
+      google_count: filteredGcal.length,
       crm_count: crmAll.length,
       is_admin: isAdmin,
+      google_connected: googleConnected,
+      filtered_agent_email: agentEmailFilter,
     });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
