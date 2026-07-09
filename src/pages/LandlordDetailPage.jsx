@@ -1516,7 +1516,7 @@ class LandlordDetail extends React.Component {
                     </div>
                   </div>
                 ))}
-                {this.state.composerType !== 'Chat' && this.state.composerType !== 'Activity' && (
+                {this.state.composerType !== 'Chat' && this.state.composerType !== 'Activity' && this.state.composerType !== 'iMessage' && this.state.composerType !== 'SMS' && this.state.composerType !== 'Telegram' && (
                   <div style={css("margin-top:12px;")}>
                     <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);")}>
                       <span style={css("font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.5); font-family:'Inter',sans-serif;")}>All Activity</span>
