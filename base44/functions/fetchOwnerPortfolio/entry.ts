@@ -28,8 +28,26 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch (_) { body = {}; }
     const listOwners = !!body.list_owners;
 
-    const all = await base44.asServiceRole.entities.OwnerPortfolioUnit.list('-created_date', 5000);
-    const rows = Array.isArray(all) ? all : (all.items || []);
+    // Paginate through ALL entity records — list() caps at 5000 per call,
+    // so we page using created_date cursor until no more results come back.
+    const PAGE_SIZE = 5000;
+    const rows = [];
+    let cursor = null;
+    while (true) {
+      let page;
+      if (cursor) {
+        page = await base44.asServiceRole.entities.OwnerPortfolioUnit.filter(
+          { created_date: { $lt: cursor } }, '-created_date', PAGE_SIZE
+        );
+      } else {
+        page = await base44.asServiceRole.entities.OwnerPortfolioUnit.list('-created_date', PAGE_SIZE);
+      }
+      const items = Array.isArray(page) ? page : (page.items || []);
+      if (items.length === 0) break;
+      rows.push(...items);
+      if (items.length < PAGE_SIZE) break;
+      cursor = items[items.length - 1].created_date;
+    }
 
     if (listOwners) {
       const map = new Map();
@@ -84,8 +102,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Count unique owners for the "searched N owners" display
+    const ownerSet = new Set();
+    for (const u of rows) { if (u.owner_code) ownerSet.add(u.owner_code); }
+
     if (matchedCodes.size === 0) {
-      return Response.json({ ok: true, matched: false, totalUnits: rows.length });
+      return Response.json({ ok: true, matched: false, totalUnits: rows.length, totalOwners: ownerSet.size });
     }
 
     const units = [];
@@ -120,6 +142,7 @@ Deno.serve(async (req) => {
       areas: Array.from(areas),
       units,
       totalUnits: rows.length,
+      totalOwners: ownerSet.size,
     });
   } catch (error) {
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });

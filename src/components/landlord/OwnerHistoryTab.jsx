@@ -114,7 +114,7 @@ export default function OwnerHistoryTab({ landlordId, landlord }) {
           <AlertCircle size={18} style={{ margin: '0 auto 8px', display: 'block', color: 'rgba(255,255,255,0.3)' }} />
           No owner record found in the portfolio spreadsheets matching this landlord.
           <div style={{ fontSize: 11, marginTop: 6, color: 'rgba(255,255,255,0.3)' }}>
-            Searched {data?.totalOwners || 0} owners across {data?.totalUnits || 0} units.
+            Searched {data?.totalOwners ?? 0} owners across {data?.totalUnits ?? 0} units.
           </div>
         </div>
       )}
