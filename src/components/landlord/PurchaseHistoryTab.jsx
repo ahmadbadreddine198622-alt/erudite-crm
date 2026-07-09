@@ -22,10 +22,10 @@ function card() {
     padding: '14px 16px',
   };
 }
-function label(s) {
+function labelStyle() {
   return { fontSize: 9.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' };
 }
-function val(s) {
+function valueStyle() {
   return { fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.92)', marginTop: 2 };
 }
 function fmtAED(n) {
@@ -45,8 +45,8 @@ function StatPill({ icon, label, value, color }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={label()}>{label}</div>
-        <div style={{ ...val(), fontSize: 17 }}>{value}</div>
+        <div style={labelStyle()}>{label}</div>
+        <div style={{ ...valueStyle(), fontSize: 17 }}>{value}</div>
       </div>
     </div>
   );
@@ -97,7 +97,7 @@ function PropertyCard({ lp, prop }) {
           { l: 'Beds', v: prop?.bedrooms != null ? String(prop.bedrooms) : '—' },
         ].map((r, i) => (
           <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: '7px 9px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={label()}>{r.l}</div>
+            <div style={labelStyle()}>{r.l}</div>
             <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.82)', marginTop: 1 }}>{r.v}</div>
           </div>
         ))}
@@ -106,11 +106,11 @@ function PropertyCard({ lp, prop }) {
       {/* Value + tenancy footer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 9, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div>
-          <div style={label()}>Estimated value</div>
+          <div style={labelStyle()}>Estimated value</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: GOLD }}>{fmtAED(valueAed)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={label()}>Tenancy</div>
+          <div style={labelStyle()}>Tenancy</div>
           <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{String(tenancy).replace(/_/g, ' ')}</div>
         </div>
       </div>
@@ -153,7 +153,7 @@ function OnlinePropertyCard({ p }) {
           ['Est. value', fmtAED(p.estimated_value_aed)],
         ].map(([l, v], i) => (
           <div key={i} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 7, padding: '6px 8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={label()}>{l}</div>
+            <div style={labelStyle()}>{l}</div>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginTop: 1 }}>{v || '—'}</div>
           </div>
         ))}
@@ -246,7 +246,7 @@ export default function PurchaseHistoryTab({ landlordId, landlord }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <MapPin size={16} color="rgba(255,255,255,0.5)" />
           <div style={{ minWidth: 0 }}>
-            <div style={label()}>Owner address</div>
+            <div style={labelStyle()}>Owner address</div>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginTop: 1 }}>{ownerAddress || 'Not on file'}</div>
           </div>
         </div>
