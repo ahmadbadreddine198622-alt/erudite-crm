@@ -207,22 +207,25 @@ ${text}`;
 
         {/* Action bar */}
         <div className="flex items-center gap-2 mt-1">
-          {/* Mic */}
+          {/* Record — speak your qualification notes */}
           <button
             onClick={handleMic}
             disabled={transcribing || autoFillMutation.isPending}
-            className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg transition-colors disabled:opacity-50"
             style={{
               background: vr.recording ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${vr.recording ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
             }}
-            title={vr.recording ? 'Stop & transcribe' : 'Speak your notes'}
+            title={vr.recording ? 'Stop & transcribe' : 'Record your notes'}
           >
             {transcribing
               ? <Loader2 className="w-4 h-4 animate-spin text-white/60" />
               : vr.recording
               ? <Square className="w-4 h-4 text-red-400" />
               : <Mic className="w-4 h-4 text-white/60" />}
+            <span className="text-[10px] font-semibold" style={{ color: vr.recording ? '#fca5a5' : 'rgba(255,255,255,0.5)' }}>
+              {vr.recording ? `${vr.seconds}s` : 'Record'}
+            </span>
           </button>
 
           {/* AI Auto-Fill */}

@@ -349,6 +349,15 @@ export default function CallQualificationTab({ landlord, onReportSaved }) {
             {/* Fast path: dump notes, AI fills every field below */}
             <QuickQualifyBox form={form} setForm={setForm} landlord={landlord} />
 
+            {/* Divider: two paths, both always available */}
+            <div className="flex items-center gap-2 py-1">
+              <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                Or fill fields manually ↓
+              </span>
+              <span className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Motivation" insight={insights.motivation} loading={insightsLoading} hasValue={!!form.motivation}>
                 <Sel value={form.motivation} onChange={v => set('motivation', v)} opts={MOTIVATION_OPTS} />
