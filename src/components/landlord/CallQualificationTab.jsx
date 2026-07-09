@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, PhoneCall, ChevronDown, ChevronUp, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import CallBrainPanel from './CallBrainPanel';
+import QuickQualifyBox from './QuickQualifyBox';
 import FieldInsight from './FieldInsight';
 import { useFieldInsights } from '@/hooks/useFieldInsights';
 
@@ -347,6 +348,9 @@ export default function CallQualificationTab({ landlord, onReportSaved }) {
           <div className="px-4 pb-4 pt-2 space-y-3 border-t" style={{ borderColor: 'rgba(250,180,40,0.1)' }}>
             {/* Live AI call coach — reacts to form state in real time */}
             <CallBrainPanel landlord={landlord} form={form} />
+
+            {/* Fast path: dump notes, AI fills every field */}
+            <QuickQualifyBox form={form} setForm={setForm} landlord={landlord} />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Motivation" insight={insights.motivation} loading={insightsLoading} hasValue={!!form.motivation}>
