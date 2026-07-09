@@ -108,6 +108,21 @@ export default function Appointments() {
   const { user } = useCurrentUser();
   const isAdmin = user?.role === 'admin';
   const [agentFilter, setAgentFilter] = useState('all');
+  const [allAgents, setAllAgents] = useState([]);
+
+  // Fetch all team members so the admin filter dropdown shows everyone,
+  // not just agents who already have events in the current view.
+  useEffect(() => {
+    if (!isAdmin) return;
+    base44.entities.User.list()
+      .then((users) => {
+        const agents = (users || [])
+          .filter((u) => u.email)
+          .map((u) => ({ email: u.email, name: u.full_name || u.email }));
+        setAllAgents(agents);
+      })
+      .catch(() => {});
+  }, [isAdmin]);
 
   // Calendar state
   const [monthDate, setMonthDate] = useState(new Date());
@@ -166,17 +181,6 @@ export default function Appointments() {
     return groups;
   }, [events]);
 
-  // ── Unique agents for admin filter dropdown ──
-  const uniqueAgents = useMemo(() => {
-    const map = {};
-    (events || []).forEach((e) => {
-      if (e.agent_email && !map[e.agent_email]) {
-        map[e.agent_email] = e.agent_name || e.agent_email;
-      }
-    });
-    return Object.entries(map).map(([email, name]) => ({ email, name }));
-  }, [events]);
-
   // ── Selected day events (for month view detail panel) ──
   const selectedDayEvents = useMemo(() => {
     if (!selectedDate) return [];
@@ -201,14 +205,14 @@ export default function Appointments() {
             <p className="page-subtitle mt-1">Your calendar — Google + CRM meetings, viewings, and calls in one view.</p>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && uniqueAgents.length > 0 && (
+            {isAdmin && (
               <select
                 value={agentFilter}
                 onChange={(e) => setAgentFilter(e.target.value)}
                 className="h-8 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-xs text-foreground cursor-pointer"
               >
                 <option value="all">All Agents</option>
-                {uniqueAgents.map((a) => <option key={a.email} value={a.email}>{a.name}</option>)}
+                {allAgents.map((a) => <option key={a.email} value={a.email}>{a.name}</option>)}
               </select>
             )}
             {/* View toggle */}
