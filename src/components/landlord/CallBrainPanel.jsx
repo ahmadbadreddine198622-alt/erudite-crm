@@ -205,8 +205,8 @@ const LANGS = [
   { code: 'ar', label: 'Arabic', flag: '🇦🇪' },
 ];
 
-export default function CallBrainPanel({ landlord, form }) {
-  const [open, setOpen] = useState(false);
+export default function CallBrainPanel({ landlord, form, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [ai, setAi] = useState(null);
   const [aiOriginal, setAiOriginal] = useState(null);
   const [lang, setLang] = useState(null); // null = original English

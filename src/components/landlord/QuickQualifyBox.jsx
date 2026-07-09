@@ -95,7 +95,7 @@ ${text}`;
       ];
       for (const k of fields) {
         const v = data?.[k];
-        if (v !== null && v !== undefined && v !== '' && !(typeof v === 'number' && isNaN(v))) {
+        if (v !== null && v !== undefined && v !== '' && v !== 'null' && v !== 'undefined' && !(typeof v === 'number' && isNaN(v))) {
           updates[k] = v;
           filled.add(k);
         }
