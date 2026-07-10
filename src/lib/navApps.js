@@ -57,7 +57,6 @@ export const ALL_APPS = [
   { label: 'Negotiations',       icon: Handshake,      path: '/negotiations',        gradient: 'from-purple-500 to-violet-700',      glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'Follow Ups',         icon: Repeat,         path: '/follow-ups',          gradient: 'from-orange-500 to-amber-700',        glowColor: 'rgba(245,158,11,0.40)' },
   { label: 'Viewings',           icon: Eye,            path: '/viewings',            gradient: 'from-cyan-500 to-blue-700',            glowColor: 'rgba(6,182,212,0.40)' },
-  { label: 'Email Templates',    icon: FileBox,        path: '/email-templates',     gradient: 'from-slate-500 to-gray-700',         glowColor: 'rgba(148,163,184,0.40)' },
   { label: 'Broadcasts',         icon: Megaphone,      path: '/broadcasts',          gradient: 'from-rose-500 to-pink-700',            glowColor: 'rgba(244,63,94,0.40)', agentHidden: true },
   { label: 'Property Intel',     icon: Building,       path: '/property-intel',      gradient: 'from-teal-500 to-emerald-700',         glowColor: 'rgba(20,184,166,0.40)' },
   { label: 'Market Intelligence',icon: LineChart,      path: '/market-intelligence', gradient: 'from-indigo-500 to-purple-700',        glowColor: 'rgba(99,102,241,0.40)' },

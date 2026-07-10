@@ -42,12 +42,12 @@ const labelStyle = {
   color: 'rgba(255,255,255,0.45)', marginBottom: 5, display: 'block',
 };
 
-export default function EmailTemplateDialog({ open, onClose, template, onSaved, channel = 'email' }) {
+export default function EmailTemplateDialog({ open, onClose, template, onSaved, channel = 'email', showChannelSelector = false }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [form, setForm] = useState({
     title: '', subject: '', body: '', category: 'general',
-    visibility: 'private', shared_with_agents: [],
+    channel: channel || 'email', visibility: 'private', shared_with_agents: [],
   });
   const [agentEmailInput, setAgentEmailInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -62,11 +62,12 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         subject: template.subject || '',
         body: template.body || '',
         category: template.category || 'general',
+        channel: template.channel || channel || 'email',
         visibility: template.visibility || 'private',
         shared_with_agents: Array.isArray(template.shared_with_agents) ? template.shared_with_agents : [],
       });
     } else {
-      setForm({ title: '', subject: '', body: '', category: 'general', visibility: 'private', shared_with_agents: [] });
+      setForm({ title: '', subject: '', body: '', category: 'general', channel: channel || 'email', visibility: 'private', shared_with_agents: [] });
     }
     setAgentEmailInput('');
   }, [template, open]);
@@ -105,7 +106,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         subject: form.subject.trim(),
         body: form.body.trim(),
         category: form.category,
-        channel: channel,
+        channel: form.channel,
         visibility: form.visibility,
         shared_with_agents: form.visibility === 'specific_agents' ? form.shared_with_agents : [],
         is_active: true,
@@ -177,7 +178,7 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontSize: 20, fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>
-            {isEdit ? 'Edit Template' : channel === 'imessage' ? 'New iMessage Template' : 'New Email Template'}
+            {isEdit ? 'Edit Template' : `New ${form.channel === 'imessage' ? 'iMessage' : (form.channel.charAt(0).toUpperCase() + form.channel.slice(1))} Template`}
           </h3>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}>
             <X size={15} />
@@ -191,7 +192,20 @@ export default function EmailTemplateDialog({ open, onClose, template, onSaved, 
             <TemplateField multiline={false} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Asset Proof Intro" style={fieldStyle} autoFocus />
           </div>
 
-          {channel !== 'imessage' && (
+          {showChannelSelector && (
+            <div>
+              <label style={labelStyle}>Channel <span style={{ textTransform: 'none', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>— this template belongs to the selected channel</span></label>
+              <select value={form.channel} onChange={(e) => set('channel', e.target.value)} style={{ ...fieldStyle, cursor: 'pointer', appearance: 'auto' }}>
+                <option value="email" style={{ background: '#1a2235', color: '#fff' }}>Email</option>
+                <option value="whatsapp" style={{ background: '#1a2235', color: '#fff' }}>WhatsApp</option>
+                <option value="imessage" style={{ background: '#1a2235', color: '#fff' }}>iMessage</option>
+                <option value="telegram" style={{ background: '#1a2235', color: '#fff' }}>Telegram</option>
+                <option value="sms" style={{ background: '#1a2235', color: '#fff' }}>SMS</option>
+              </select>
+            </div>
+          )}
+
+          {form.channel === 'email' && (
             <div>
               <label style={labelStyle}>Subject</label>
               <TemplateField multiline={false} value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Email subject line" style={fieldStyle} />
