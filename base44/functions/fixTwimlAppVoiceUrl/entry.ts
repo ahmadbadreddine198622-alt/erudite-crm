@@ -118,6 +118,35 @@ Deno.serve(async (req) => {
   results.voice_application_sid = numData.voice_application_sid;
   console.log(`[fixTwimlAppVoiceUrl] ✅ Phone number ${numData.phone_number} now uses TwiML App: ${numData.voice_application_sid}`);
 
+  // ── Step 3: Enable calls to UAE (+971) in Voice Geo Permissions ─────────
+  // Disabled by default on new Twilio accounts — every call to a UAE number
+  // fails with error 13227 until this is switched on.
+  try {
+    const geoRes = await fetch('https://voice.twilio.com/v1/DialingPermissions/BulkCountryUpdates', {
+      method: 'POST',
+      headers: { 'Authorization': auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        UpdateRequest: JSON.stringify([{
+          iso_code: 'AE',
+          low_risk_numbers_enabled: true,
+          high_risk_special_numbers_enabled: false,
+          high_risk_tollfraud_numbers_enabled: false,
+        }]),
+      }).toString(),
+    });
+    const geoData = await geoRes.json().catch(() => ({}));
+    results.uae_dialing_enabled = geoRes.ok;
+    if (!geoRes.ok) {
+      results.uae_dialing_error = geoData?.message || `HTTP ${geoRes.status}`;
+      console.warn('[fixTwimlAppVoiceUrl] UAE geo-permission update failed:', results.uae_dialing_error);
+    } else {
+      console.log('[fixTwimlAppVoiceUrl] ✅ UAE (+971) dialing enabled');
+    }
+  } catch (e) {
+    results.uae_dialing_enabled = false;
+    results.uae_dialing_error = e.message;
+  }
+
   return Response.json({
     success: true,
     message: 'Twilio calling fully configured',

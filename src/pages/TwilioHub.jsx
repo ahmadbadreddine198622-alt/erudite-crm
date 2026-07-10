@@ -258,6 +258,13 @@ function CallingDiagnostics() {
                   detail={report.checks.twiml_app?.error
                     || (report.checks.twiml_app?.voice_url && `Voice URL: ${report.checks.twiml_app.voice_url}`)}
                 />
+                {report.checks.uae_dialing && (
+                  <CheckRow
+                    ok={!!report.checks.uae_dialing.enabled}
+                    label="UAE (+971) calling enabled"
+                    detail={report.checks.uae_dialing.error}
+                  />
+                )}
 
                 {report.checks.recent_alerts?.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/10">
@@ -298,6 +305,11 @@ function CallingDiagnostics() {
             )}
             {fixResult.phone_number && (
               <p className="text-xs text-muted-foreground">Number {fixResult.phone_number} now routes through the TwiML App</p>
+            )}
+            {fixResult.uae_dialing_enabled !== undefined && (
+              <p className="text-xs text-muted-foreground">
+                UAE (+971) dialing: {fixResult.uae_dialing_enabled ? 'enabled ✓' : `could not enable (${fixResult.uae_dialing_error || 'unknown'}) — enable United Arab Emirates manually in Twilio Console → Voice → Settings → Geo permissions`}
+              </p>
             )}
           </div>
         )}

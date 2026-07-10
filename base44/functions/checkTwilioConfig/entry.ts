@@ -100,6 +100,26 @@ Deno.serve(async (req) => {
       checks.twiml_app.error = 'TwiML App SID missing';
     }
 
+    // For a Dubai CRM every destination is +971 — Twilio blocks calls to
+    // countries not enabled in Voice Geo Permissions, and UAE is disabled by
+    // default on new accounts. Calls then fail (error 13227) while every other
+    // config check stays green, so verify it explicitly.
+    checks.uae_dialing = { enabled: false, error: '' };
+    try {
+      const geoRes = await fetch('https://voice.twilio.com/v1/DialingPermissions/Countries/AE', { headers: { Authorization: authHeader } });
+      if (geoRes.ok) {
+        const g = await geoRes.json();
+        checks.uae_dialing.enabled = !!g.low_risk_numbers_enabled;
+        if (!g.low_risk_numbers_enabled) {
+          checks.uae_dialing.error = 'Calls to UAE (+971) are DISABLED in Twilio Geo Permissions — every call to a UAE number fails with error 13227. Run Auto-Fix to enable UAE dialing.';
+        }
+      } else {
+        checks.uae_dialing.error = `Could not read geo permissions (HTTP ${geoRes.status})`;
+      }
+    } catch (e) {
+      checks.uae_dialing.error = `Geo permission check failed: ${e.message}`;
+    }
+
     // Pull Twilio's own view of what went wrong: recent debugger alerts
     // (webhook failures, TwiML errors) and the last few call outcomes.
     checks.recent_alerts = [];
@@ -131,7 +151,7 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* best-effort */ }
 
-    const allOk = checks.api_key.valid && checks.twiml_app.valid && !checks.twiml_app.error;
+    const allOk = checks.api_key.valid && checks.twiml_app.valid && !checks.twiml_app.error && checks.uae_dialing.enabled;
 
     return Response.json({
       ok: allOk,
