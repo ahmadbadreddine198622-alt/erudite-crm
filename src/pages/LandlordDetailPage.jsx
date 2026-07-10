@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -694,7 +695,6 @@ class LandlordDetail extends React.Component {
     const L = this.cur();
     if(!L || this._chatSending) return;
     this._chatSending = true;
-    this.setState({ chatSending:true });
     const channel = this.state.streamFilter === 'business' ? 'business' : 'personal';
     // V3 Phase 0 (RECORD): AI-draft provenance, mirroring saveTask. created_from_ai is true when the
     // text was seeded from an AI message draft (even if edited); was_edited compares sent vs draft.
@@ -703,6 +703,17 @@ class LandlordDetail extends React.Component {
     const createdFromAi = !!messageAiSource;
     const wasEdited = createdFromAi ? (text !== (messageAiDraft || '')) : false;
     const aiDisposition = createdFromAi ? (wasEdited ? 'edited' : 'accepted') : undefined;
+
+    // ── Optimistic UI: show the message + clear the composer IMMEDIATELY ──
+    // The user sees their message the instant they hit send. The spinner clears
+    // at the same time. If the backend fails, we revert below.
+    const order = Date.now();
+    const optimisticItem = { t:'msg', dir:'out', mtype: attachment ? 'media' : 'text', text, wa:channel, time:'Just now', order };
+    this.setState(s=>({
+      landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, optimisticItem]} : l),
+      composerText:'', chatSending:true, messageAiSource:null, messageAiDraft:null, composerAttachment: null,
+    }), ()=>this.scrollBottom());
+
     try {
       const res = await base44.functions.invoke('sendMultiChannelWhatsApp', {
         landlord_id: L.id, text, channel,
@@ -719,16 +730,21 @@ class LandlordDetail extends React.Component {
       if (data?.error) throw new Error(data.error);
       toast.success('Sent ✓');
       tickOutreachStep('whatsapp_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
-      const order = Date.now();
-      const item = { t:'msg', dir:'out', mtype:'text', text, wa:channel, time:'Just now', order };
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l),
-        composerText:'', chatSending:false, messageAiSource:null, messageAiDraft:null, composerAttachment: null,
-      }), ()=>this.scrollBottom());
+      this.setState({ chatSending:false });
+      // Force a refetch so the real DB record replaces the optimistic bubble
+      queryClientInstance.invalidateQueries({ queryKey: ['wa_stream_msgs'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['wa_messages'] });
     } catch(e){
       const apiErr = e?.response?.data?.error || e?.message || 'unknown error';
+      // Revert: remove the optimistic message and restore the composer text
+      this.setState(s=>({
+        landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream: l.stream.filter(si => si.order !== order)} : l),
+        composerText: text, chatSending:false,
+        messageAiSource: createdFromAi ? messageAiSource : null,
+        messageAiDraft: createdFromAi ? messageAiDraft : null,
+        composerAttachment: attachment,
+      }));
       toast.error('Failed to send WhatsApp: ' + apiErr);
-      this.setState({ chatSending:false });
     } finally {
       this._chatSending = false;
     }

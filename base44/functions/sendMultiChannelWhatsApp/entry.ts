@@ -233,24 +233,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
 
-    // Connection check: if the Evolution instance is disconnected ("close"/"connecting"),
-    // the WhatsApp session is dead and the send will fail. Check up front and return a
-    // clear, actionable error instead of a cryptic Evolution failure.
-    let instanceState = null;
-    try {
-      const stResp = await fetchWithTimeout(`${apiUrl}/instance/connectionState/${instanceName}`, { headers: { apikey: apiKey } }, 15000);
-      const stBody = await stResp.json().catch(() => ({}));
-      instanceState = stBody?.instance?.state || stBody?.state || null;
-    } catch (_) { /* best-effort; proceed to attempt the send */ }
-    if (instanceState && instanceState !== 'open') {
-      const isOwn = !isAdmin && !!ownInstance;
-      return Response.json({
-        error: isOwn
-          ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected (${instanceState}). Re-scan your QR code in Profile → WhatsApp to send.`
-          : `WhatsApp instance "${instanceName}" is ${instanceState}.`,
-        instance: instanceName, state: instanceState,
-      }, { status: 503 });
-    }
+    // No pre-flight connection-state check — it adds up to 15s of latency on every send
+    // (a full round-trip to the Evolution API before the send even starts). The send
+    // endpoint itself fails fast when the instance is disconnected (Baileys returns
+    // immediately), so we attempt the send directly and surface the same helpful
+    // "re-scan QR" message if Evolution reports a connection error.
 
     // sendMedia when an attachment is present (caption = text); otherwise plain sendText.
     const isMedia = !!attachment_url;
@@ -270,12 +257,28 @@ Deno.serve(async (req) => {
       const raw = await resp.text();
       try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
       if (!resp.ok) {
+        // Detect connection/disconnection errors from Evolution and surface the
+        // same actionable "re-scan QR" message the old pre-check would have shown.
+        const errText = typeof evoBody === 'string' ? evoBody : JSON.stringify(evoBody || {});
+        const isDisconnected = /not.*connected|disconnected|session.*closed|qr.?code|instance.*(close|connecting|offline)/i.test(errText);
+        const isOwn = !isAdmin && !!ownInstance;
+        if (isDisconnected) {
+          return Response.json({
+            error: isOwn
+              ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected. Re-scan your QR code in Profile → WhatsApp to send.`
+              : `WhatsApp instance "${instanceName}" is disconnected. Re-scan the QR code.`,
+            instance: instanceName, evolution_status: evoStatus, evolution_response: evoBody,
+          }, { status: 503 });
+        }
         return Response.json({ error: 'Evolution send failed', evolution_status: evoStatus, evolution_response: evoBody, send_url: sendUrl }, { status: 502 });
       }
     } catch (e) {
       const timedOut = e?.name === 'AbortError';
+      const isOwn = !isAdmin && !!ownInstance;
       return Response.json({ error: timedOut
-        ? 'WhatsApp send timed out — the Evolution API did not respond. Your line may be disconnected; re-scan your QR code in Profile → WhatsApp.'
+        ? (isOwn
+          ? 'WhatsApp send timed out — your line may be disconnected. Re-scan your QR code in Profile → WhatsApp.'
+          : 'WhatsApp send timed out — the Evolution API did not respond. The instance may be disconnected.')
         : 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: timedOut ? 504 : 502 });
     }
   }
