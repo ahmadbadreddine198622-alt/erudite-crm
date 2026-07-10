@@ -2207,7 +2207,7 @@ export default function LandlordDetailPage() {
     emailMessages, waStreamMessages, iMessages, telegramMessages,
     callLogs, aircallCalls, aircallByPhone,
     notes, tasks, followups, directives, activityComments,
-    landlordEmail, L, resolveUserName, deriveWaChannel, tsOf,
+    landlordEmail, L, resolveUserName, resolveAgentByPhone, deriveWaChannel, tsOf,
   });
 
   const unit = {

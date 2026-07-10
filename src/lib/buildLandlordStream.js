@@ -11,7 +11,7 @@ export function buildLandlordStream({
   emailMessages = [], waStreamMessages = [], iMessages = [], telegramMessages = [],
   callLogs = [], aircallCalls = [], aircallByPhone = [],
   notes = [], tasks = [], followups = [], directives = [], activityComments = [],
-  landlordEmail = '', L = {}, resolveUserName = () => '', deriveWaChannel = () => 'business', tsOf = (v) => v ? new Date(v).getTime() : 0,
+  landlordEmail = '', L = {}, resolveUserName = () => '', resolveAgentByPhone = () => null, deriveWaChannel = () => 'business', tsOf = (v) => v ? new Date(v).getTime() : 0,
 }) {
   const stream = [];
 
@@ -37,6 +37,11 @@ export function buildLandlordStream({
     const hasImage = msg.media_type === 'image' && msg.media_url;
     const hasVoice = msg.media_type === 'audio' || msg.is_voice_note === true;
     const isOut = msg.direction === 'outbound';
+    // Resolve the actual sender by matching from_number to a user's WhatsApp number.
+    // This is more accurate than assigned_agent_email (which may be stamped with the
+    // landlord's assigned agent rather than the actual sender). Falls back to email.
+    const phoneSenderName = isOut ? (resolveAgentByPhone(msg.from_number) || '') : '';
+    const emailSenderName = isOut ? (resolveUserName(msg.assigned_agent_email) || '') : '';
     stream.push({
       t: 'msg', dir: isOut ? 'out' : 'in',
       mtype: hasImage ? 'media' : hasVoice ? 'voice' : 'text',
@@ -48,7 +53,7 @@ export function buildLandlordStream({
       wa: deriveWaChannel(msg),
       fromNumber: msg.from_number || '',
       senderEmail: isOut ? (msg.assigned_agent_email || '') : '',
-      senderName: isOut ? (resolveUserName(msg.assigned_agent_email) || '') : (L.full_name_en || L.full_name || 'Owner'),
+      senderName: isOut ? (phoneSenderName || emailSenderName || '') : (L.full_name_en || L.full_name || 'Owner'),
       _entityType: 'whatsapp', _entityId: msg.id,
     });
   });

@@ -350,12 +350,15 @@ Deno.serve(async (req) => {
     // Step 4: Create a new conversation for this channel if none found
     if (!conversation) {
       const now = new Date().toISOString();
+      // When an agent sends from their own line (!canUseShared), stamp the conversation
+      // with THEIR email — not the landlord's assigned agent. This ensures the UI
+      // shows the actual sender's name, not whoever was previously assigned.
       conversation = await svc.entities.WhatsAppConversation.create({
         wa_phone_e164: phoneE164,
         phone_number: phoneE164,
         landlord_id: landlord_id || null,
         lead_id: null,
-        assigned_agent_email: !isAdmin ? user.email : (landlord?.assigned_agent_email || landlord?.listing_manager_email || null),
+        assigned_agent_email: !canUseShared ? user.email : (landlord?.assigned_agent_email || landlord?.listing_manager_email || null),
         status: 'open',
         channel: recordChannel,
         first_message_at: now,
@@ -375,6 +378,9 @@ Deno.serve(async (req) => {
     // Use the channel from the conversation if available (source of truth), fall back to request channel
     const effectiveChannel = conversation?.channel || channel;
     if (!whatsAppMessageExists) {
+      // When an agent sends from their own line, stamp with THEIR email so the UI
+      // shows the correct sender name. Admins on shared lines keep the conversation's agent.
+      const msgAgentEmail = !canUseShared ? user.email : (conversation?.assigned_agent_email || landlord?.assigned_agent_email || landlord?.listing_manager_email || null);
       message = await svc.entities.WhatsAppMessage.create({
         conversation_id: conversation?.id || conversation_id || null,
         lead_id: null,
@@ -389,7 +395,7 @@ Deno.serve(async (req) => {
         channel: effectiveChannel,
         media_type: attachment_url ? attachmentMediaType : 'none',
         media_url: attachment_url || null,
-        assigned_agent_email: conversation?.assigned_agent_email || landlord?.assigned_agent_email || landlord?.listing_manager_email || null,
+        assigned_agent_email: msgAgentEmail,
       });
     } else {
       message = existingWAMsg[0];
