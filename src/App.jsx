@@ -107,10 +107,11 @@ import Appointments from '@/pages/Appointments';
 import AutomationsHub from '@/pages/AutomationsHub';
 import Flow from '@/pages/Flow';
 import AcademyHome from '@/pages/AcademyHome';
-import MyChiefAim from '@/pages/MyChiefAim';
-import PrincipleLibrary from '@/pages/PrincipleLibrary';
-import Reflections from '@/pages/Reflections';
-import Mastermind from '@/pages/Mastermind';
+import TheHall from '@/pages/TheHall';
+import TheMirror from '@/pages/TheMirror';
+import TheDojo from '@/pages/TheDojo';
+import TheField from '@/pages/TheField';
+import TheCouncil from '@/pages/TheCouncil';
 
 
 const AuthenticatedApp = () => {
@@ -238,10 +239,11 @@ const AuthenticatedApp = () => {
         <Route path="/automations-hub" element={<AutomationsHub />} />
         <Route path="/flow" element={<Flow />} />
         <Route path="/academy" element={<AcademyHome />} />
-        <Route path="/academy/chief-aim" element={<MyChiefAim />} />
-        <Route path="/academy/principles" element={<PrincipleLibrary />} />
-        <Route path="/academy/reflections" element={<Reflections />} />
-        <Route path="/academy/mastermind" element={<Mastermind />} />
+        <Route path="/academy/hall" element={<TheHall />} />
+        <Route path="/academy/mirror" element={<TheMirror />} />
+        <Route path="/academy/dojo" element={<TheDojo />} />
+        <Route path="/academy/field" element={<TheField />} />
+        <Route path="/academy/council" element={<TheCouncil />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />

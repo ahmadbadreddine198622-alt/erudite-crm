@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Flame, CheckCircle, Trophy, Loader2, BookOpen, ArrowRight, Target, Users, NotebookPen } from 'lucide-react';
+import { Flame, Loader2, ChevronRight } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
-import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, goldBtn, outlineBtn, rankPill } from '@/lib/academyStyles';
+import { CHAMBERS } from '@/lib/academyChambers';
+import { GOLD, GOLD_LITE, pageWrap, card, serif, label, goldBtn, rankPill } from '@/lib/academyStyles';
 
 export default function AcademyHome() {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
-  const [drillDone, setDrillDone] = useState({});
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['academy-enrollment', user?.email],
@@ -20,14 +20,10 @@ export default function AcademyHome() {
   });
   const enrollment = enrollments[0];
 
-  const { data: allEnrollments = [] } = useQuery({
-    queryKey: ['academy-leaderboard'],
-    queryFn: () => base44.entities.TrainingEnrollment.list('-created_date', 50),
-  });
-
   const { data: principles = [] } = useQuery({
     queryKey: ['academy-principles'],
     queryFn: () => base44.entities.TrainingPrinciple.list('week_number', 20),
+    enabled: !!enrollment,
   });
   const currentPrinciple = enrollment ? principles.find(p => p.week_number === enrollment.current_week) : null;
 
@@ -81,110 +77,55 @@ export default function AcademyHome() {
     );
   }
 
-  const leaderboard = [...allEnrollments].sort((a, b) =>
-    (b.weeks_completed?.length || 0) - (a.weeks_completed?.length || 0)
-  );
-
   return (
     <div style={pageWrap}>
       <AcademyNav />
 
-      {/* Header */}
-      <div style={{ marginBottom: 18 }}>
-        <p style={{ ...label, color: GOLD }}>THE 17 · Erudite Success Academy</p>
-        <h1 style={{ ...serif, fontSize: 26, color: 'rgba(255,255,255,0.95)', margin: '2px 0 0' }}>
-          Week {enrollment.current_week}{currentPrinciple ? ` — ${currentPrinciple.name}` : ''}
-        </h1>
+      {/* Current week header */}
+      <div style={card}>
+        <p style={{ ...label, color: GOLD }}>THE 17 · Week {enrollment.current_week}</p>
+        {currentPrinciple ? (
+          <>
+            <div style={{ ...serif, fontSize: 52, color: GOLD, lineHeight: 1, marginTop: 6 }}>{enrollment.current_week}</div>
+            <h1 style={{ ...serif, fontSize: 28, color: GOLD_LITE, margin: '4px 0 6px' }}>{currentPrinciple.name}</h1>
+            {currentPrinciple.tagline && <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 15 }}>{currentPrinciple.tagline}</p>}
+            {currentPrinciple.rank_title && <span style={{ ...rankPill, marginTop: 8, display: 'inline-flex' }}>{currentPrinciple.rank_title}</span>}
+
+            {/* Streak */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <Flame size={16} style={{ color: GOLD }} />
+              <span style={{ ...serif, fontSize: 28, color: GOLD_LITE, lineHeight: 1 }}>{streak}</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>day affirmation streak</span>
+            </div>
+          </>
+        ) : (
+          <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>Loading your week's principle…</p>
+        )}
       </div>
 
-      {currentPrinciple ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Principle name */}
-          <div style={card}>
-            <div style={{ ...serif, fontSize: 52, color: GOLD, lineHeight: 1 }}>{enrollment.current_week}</div>
-            <h2 style={{ ...serif, fontSize: 24, color: GOLD_LITE, margin: '4px 0 6px' }}>{currentPrinciple.name}</h2>
-            {currentPrinciple.tagline && <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>{currentPrinciple.tagline}</p>}
-            {currentPrinciple.rank_title && <span style={{ ...rankPill, marginTop: 8 }}>{currentPrinciple.rank_title}</span>}
-          </div>
-
-          {/* Directive strip */}
-          {currentPrinciple.directive_text && (
-            <div style={goldStrip}>
-              <p style={{ ...label, color: GOLD }}>Directive</p>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>{currentPrinciple.directive_text}</p>
-            </div>
-          )}
-
-          {/* Daily drills */}
-          {currentPrinciple.daily_drills?.length > 0 && (
-            <div style={card}>
-              <p style={label}>Daily Drills</p>
-              {currentPrinciple.daily_drills.map((drill, i) => {
-                const done = !!drillDone[i];
-                return (
-                  <button key={i} onClick={() => setDrillDone(d => ({ ...d, [i]: !d[i] }))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', width: '100%', textAlign: 'left', cursor: 'pointer', background: 'none', border: 'none' }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 5, border: done ? 'none' : '1px solid rgba(255,255,255,0.2)', background: done ? GOLD : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {done && <CheckCircle size={14} color="#0a0e1a" />}
-                    </div>
-                    <span style={{ fontSize: 14, color: done ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.82)', textDecoration: done ? 'line-through' : 'none' }}>{drill}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Reading + streak */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {currentPrinciple.reading_assignment && (
-              <div style={{ ...card, flex: '1 1 280px' }}>
-                <BookOpen size={16} style={{ color: GOLD }} />
-                <p style={{ ...label, marginTop: 8 }}>Reading Assignment</p>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.5 }}>{currentPrinciple.reading_assignment}</p>
+      {/* Five chamber cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginTop: 18 }}>
+        {CHAMBERS.map(c => {
+          const Icon = c.icon;
+          return (
+            <Link key={c.to} to={c.to} style={{
+              ...card, cursor: 'pointer', textAlign: 'left', textDecoration: 'none',
+              transition: 'all 0.15s ease', position: 'relative',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.12)'; }}
+            >
+              <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
+                <Icon size={22} style={{ color: GOLD }} />
               </div>
-            )}
-            <div style={{ ...card, flex: '1 1 180px', textAlign: 'center' }}>
-              <Flame size={16} style={{ color: GOLD }} />
-              <p style={{ ...label, marginTop: 8 }}>Affirmation Streak</p>
-              <p style={{ ...serif, fontSize: 36, color: GOLD_LITE, lineHeight: 1, margin: '2px 0' }}>{streak} <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>days</span></p>
-              <Link to="/academy/chief-aim" style={{ fontSize: 12, color: GOLD, textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>Morning Affirmation →</Link>
-            </div>
-          </div>
-
-          {/* Quick links */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/academy/principles" style={outlineBtn}><BookOpen size={13} /> Principle Library</Link>
-            <Link to="/academy/reflections" style={outlineBtn}><NotebookPen size={13} /> Submit Reflection</Link>
-            <Link to="/academy/mastermind" style={outlineBtn}><Users size={13} /> Mastermind</Link>
-          </div>
-        </div>
-      ) : (
-        <div style={{ ...card, textAlign: 'center' }}>
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>Loading your week's principle…</p>
-        </div>
-      )}
-
-      {/* Leaderboard */}
-      {leaderboard.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Trophy size={16} style={{ color: GOLD }} />
-            <h3 style={{ ...serif, fontSize: 18, color: 'rgba(255,255,255,0.9)' }}>Team Leaderboard</h3>
-          </div>
-          <div style={{ ...card, padding: 0 }}>
-            {leaderboard.map((e, i) => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < leaderboard.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                <span style={{ ...serif, fontSize: 20, color: i === 0 ? GOLD : 'rgba(255,255,255,0.35)', width: 28 }}>{i + 1}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>{e.agent_name || e.user_email}</p>
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Week {e.current_week} · {e.weeks_completed?.length || 0} completed</p>
-                </div>
-                {e.rank && <span style={rankPill}>{e.rank}</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <h3 style={{ ...serif, fontSize: 20, color: GOLD_LITE, margin: '12px 0 2px' }}>{c.name}</h3>
+              <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{c.motto}</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8, lineHeight: 1.5 }}>{c.desc}</p>
+              <ChevronRight size={16} style={{ color: GOLD, position: 'absolute', top: 20, right: 20, opacity: 0.5 }} />
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

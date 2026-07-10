@@ -1,0 +1,60 @@
+{
+  "name": "MentorProfile",
+  "properties": {
+    "agent_name": {
+      "type": "string"
+    },
+    "chief_aim_snapshot": {
+      "description": "Cached copy of the agent's current definite chief aim",
+      "type": "string"
+    },
+    "coaching_notes": {
+      "description": "The mentor's evolving model of this agent \u2014 patterns observed, what works, what fails; updated after interactions and weekly reviews",
+      "type": "string"
+    },
+    "communication_style_notes": {
+      "description": "How this agent best receives coaching \u2014 direct, story-driven, data-driven, gentle",
+      "type": "string"
+    },
+    "current_focus_principle": {
+      "description": "Principle slug the mentor is currently working on with this agent",
+      "type": "string"
+    },
+    "experiments": {
+      "description": "Active and past coaching experiments: tactic assigned, metric watched, outcome observed",
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "growth_edges": {
+      "description": "Observed weaknesses the mentor is developing",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "interaction_count": {
+      "default": 0,
+      "type": "integer"
+    },
+    "last_interaction_at": {
+      "type": "string"
+    },
+    "strengths": {
+      "description": "Observed strengths",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "user_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "type": "object"
+}

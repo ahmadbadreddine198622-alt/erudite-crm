@@ -67,7 +67,7 @@ function AffirmationModal({ open, onClose, text, userEmail, qc }) {
   );
 }
 
-export default function MyChiefAim() {
+export default function TheMirror() {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [form, setForm] = useState({ aim_statement: '', target_figure_aed: '', target_date: '', service_rendered: '' });
@@ -83,7 +83,6 @@ export default function MyChiefAim() {
   });
   const aim = aims[0];
 
-  // Sync form when aim loads
   useEffect(() => {
     if (aim) {
       setForm({
@@ -154,11 +153,11 @@ export default function MyChiefAim() {
   return (
     <div style={pageWrap}>
       <AcademyNav />
-      <p style={{ ...label, color: GOLD }}>THE 17 · Module 02</p>
-      <h1 style={{ ...serif, fontSize: 26, color: 'rgba(255,255,255,0.95)', margin: '2px 0 20px' }}>My Chief Aim</h1>
+      <p style={{ ...label, color: GOLD }}>where we become it</p>
+      <h1 style={{ ...serif, fontSize: 26, color: GOLD_LITE, margin: '2px 0 20px' }}>THE MIRROR</h1>
 
-      {/* Aim form */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Aim form */}
         <div style={card}>
           <label style={{ ...label, display: 'block', marginBottom: 6 }}>Definite Chief Aim</label>
           <textarea value={form.aim_statement} onChange={e => set('aim_statement', e.target.value)} rows={4}

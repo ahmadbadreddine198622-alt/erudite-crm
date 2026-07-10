@@ -4,10 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
 import { Loader2, Plus, Sparkles, X, Users, Calendar } from 'lucide-react';
-import AcademyNav from '@/components/academy/AcademyNav';
-import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, goldBtn, outlineBtn, input, rankPill } from '@/lib/academyStyles';
+import { GOLD, GOLD_LITE, card, serif, label, goldBtn, outlineBtn, input, rankPill } from '@/lib/academyStyles';
 
-export default function Mastermind() {
+export default function CouncilMastermind() {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -98,19 +97,15 @@ export default function Mastermind() {
   };
 
   if (isLoading) return (
-    <div style={{ ...pageWrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 className="animate-spin" style={{ color: GOLD }} size={32} />
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
+      <Loader2 className="animate-spin" style={{ color: GOLD }} size={24} />
     </div>
   );
 
   return (
-    <div style={pageWrap}>
-      <AcademyNav />
+    <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <div>
-          <p style={{ ...label, color: GOLD }}>THE 17 · Module 05</p>
-          <h1 style={{ ...serif, fontSize: 26, color: 'rgba(255,255,255,0.95)', margin: '2px 0 0' }}>Mastermind</h1>
-        </div>
+        <h3 style={{ ...serif, fontSize: 18, color: 'rgba(255,255,255,0.9)' }}>Mastermind Sessions</h3>
         <button onClick={() => setShowForm(s => !s)} style={goldBtn}>
           {showForm ? <X size={15} /> : <Plus size={15} />} {showForm ? 'Cancel' : 'New Session'}
         </button>
@@ -133,7 +128,6 @@ export default function Mastermind() {
             </div>
           </div>
 
-          {/* Attendees */}
           <div style={{ marginBottom: 12 }}>
             <label style={{ ...label, display: 'block', marginBottom: 6 }}>Attendees</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -154,7 +148,6 @@ export default function Mastermind() {
             </div>
           </div>
 
-          {/* Agenda */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
               <label style={label}>Agenda</label>
@@ -185,7 +178,6 @@ export default function Mastermind() {
         </div>
       )}
 
-      {/* Sessions list */}
       <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {sessions.length === 0 && !showForm && (
           <div style={card}>

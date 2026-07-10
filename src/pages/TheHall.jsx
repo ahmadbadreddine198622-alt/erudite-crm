@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
-import { Lock, Loader2, CheckCircle, XCircle, BookOpen, ArrowLeft } from 'lucide-react';
+import { Lock, Loader2, CheckCircle, XCircle, BookOpen, ArrowLeft, Headphones } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
 import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, outlineBtn, input, rankPill } from '@/lib/academyStyles';
 
@@ -108,7 +108,7 @@ function LessonView({ principle, onBack }) {
   );
 }
 
-export default function PrincipleLibrary() {
+export default function TheHall() {
   const { user } = useCurrentUser();
   const [selected, setSelected] = useState(null);
 
@@ -124,6 +124,7 @@ export default function PrincipleLibrary() {
     queryKey: ['academy-principles'],
     queryFn: () => base44.entities.TrainingPrinciple.list('week_number', 20),
   });
+  const currentPrinciple = enrollment ? principles.find(p => p.week_number === enrollment.current_week) : null;
 
   if (isLoading) return (
     <div style={{ ...pageWrap, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -136,12 +137,23 @@ export default function PrincipleLibrary() {
   return (
     <div style={pageWrap}>
       <AcademyNav />
-      <p style={{ ...label, color: GOLD }}>THE 17 · Module 03</p>
-      <h1 style={{ ...serif, fontSize: 26, color: 'rgba(255,255,255,0.95)', margin: '2px 0 20px' }}>Principle Library</h1>
+      <p style={{ ...label, color: GOLD }}>where we learn it</p>
+      <h1 style={{ ...serif, fontSize: 26, color: GOLD_LITE, margin: '2px 0 20px' }}>THE HALL</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+      {/* Current week reading & listening assignment */}
+      {currentPrinciple?.reading_assignment && (
+        <div style={goldStrip}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BookOpen size={16} style={{ color: GOLD }} />
+            <p style={{ ...label, color: GOLD }}>Week {enrollment.current_week} Reading & Listening</p>
+          </div>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)', marginTop: 6, lineHeight: 1.5 }}>{currentPrinciple.reading_assignment}</p>
+        </div>
+      )}
+
+      {/* Principle library card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginTop: 16 }}>
         {principles.map(p => {
-          const unlocked = enrollment && p.week_number <= currentWeek + 1;
           const isPreview = enrollment && p.week_number > currentWeek + 1;
           return (
             <button key={p.id} onClick={() => setSelected(p)} disabled={p.week_number > currentWeek + 1}
@@ -163,6 +175,13 @@ export default function PrincipleLibrary() {
             </button>
           );
         })}
+      </div>
+
+      {/* Hill's Voice placeholder */}
+      <div style={{ ...card, marginTop: 16, opacity: 0.55, textAlign: 'center', borderStyle: 'dashed' }}>
+        <Headphones size={22} style={{ color: GOLD }} />
+        <h3 style={{ ...serif, fontSize: 18, color: GOLD_LITE, marginTop: 8 }}>Hill's Voice</h3>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Daily listening segments — coming soon.</p>
       </div>
 
       {!enrollment && (

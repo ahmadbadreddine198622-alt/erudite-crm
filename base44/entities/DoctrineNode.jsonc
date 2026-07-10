@@ -1,0 +1,76 @@
+{
+  "name": "DoctrineNode",
+  "properties": {
+    "applications_real_estate": {
+      "description": "Concrete Dubai brokerage applications of this node",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "body": {
+      "description": "The distilled teaching in original Erudite words \u2014 the brain's own understanding, not book text",
+      "type": "string"
+    },
+    "depth_level": {
+      "default": "core",
+      "enum": [
+        "core",
+        "deep"
+      ],
+      "type": "string"
+    },
+    "node_type": {
+      "description": "Kind of knowledge this node holds",
+      "enum": [
+        "principle",
+        "concept",
+        "technique",
+        "story_lesson",
+        "maxim",
+        "application",
+        "warning"
+      ],
+      "type": "string"
+    },
+    "principle_slug": {
+      "description": "Parent principle slug e.g. definiteness-of-purpose",
+      "type": "string"
+    },
+    "related_slugs": {
+      "description": "Cross-links to related node slugs \u2014 the graph edges",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "slug": {
+      "description": "Unique node identifier e.g. dop-burning-desire",
+      "type": "string"
+    },
+    "source_ref": {
+      "description": "Pointer to source location e.g. Lecture 1, section on desire \u2014 reference only, no text",
+      "type": "string"
+    },
+    "tags": {
+      "description": "Retrieval tags e.g. rejection, pricing, cold-call, fear, negotiation",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "title": {
+      "type": "string"
+    },
+    "week_number": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "slug",
+    "node_type",
+    "title",
+    "body"
+  ],
+  "type": "object"
+}
