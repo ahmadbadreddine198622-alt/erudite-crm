@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
     const topChunks = scoreChunks(chunks, qTokens).slice(0, 2).map((x) => x.c);
 
     // ── COMPOSE PROMPT ──
-    const tier = resolveTier({ trigger, message, requestedTier: requested_tier });
+    const tier = resolveTier({ trigger, message, requested_tier: requested_tier });
     const kind = trigger === 'weekly_review' ? 'weekly_review' : trigger ? 'directive' : (tier === 'haiku' ? 'qa' : 'coaching');
     const history = recentMsgs.reverse().map((m) => `${m.role === 'mentor' ? 'MENTOR' : 'AGENT'}: ${String(m.message).slice(0, 400)}`).join('\n');
 
