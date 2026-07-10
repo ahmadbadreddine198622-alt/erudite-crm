@@ -84,7 +84,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
   useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
 
-  const TWIML_VOICE_URL = `${window.location.origin.replace(/^https?:\/\/[^.]+\./, 'https://functions.')}/twilioVoiceWebhook`;
+  const TWIML_VOICE_URL = 'https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook';
 
   const handleCall = async () => {
     const toPhone = dialNumber.trim();
