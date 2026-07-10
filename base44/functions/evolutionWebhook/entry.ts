@@ -345,21 +345,24 @@ Deno.serve(async (req) => {
   }
 
   const event = body?.event || '';
-  const instanceName = (body?.instance || '').toLowerCase();
-  // Instances: "erudite" (business), "erudite_whatsapp" (Ahmad personal), "Malik"/"malik" (Malik), "Samy"/"samy" (Sameie)
-  const channel = instanceName === 'erudite' ? 'business'
+  const instanceName = (body?.instance || '').toLowerCase().trim();
+  // Instances: "erudite"/"erudite_main"/"erudite real estate" (business), "erudite_whatsapp" (Ahmad personal),
+  // "Malik"/"malik" (Malik), "Samy"/"samy" (Sameie), "Dari"/"dari" (Dari), all other open instances → agent
+  const channel = instanceName === 'erudite' || instanceName === 'erudite_main' || instanceName === 'erudite real estate' ? 'business'
+    : instanceName === 'erudite_whatsapp' ? 'personal'
     : instanceName === 'malik' || instanceName === 'malik_whatsapp' ? 'malik'
     : instanceName === 'samy' ? 'sameie'
     : instanceName === 'dari' ? 'dari'
-    : 'personal';
+    : 'agent';
   const myNumber = channel === 'business' ? BUSINESS_NUMBER
     : channel === 'malik' ? MALIK_NUMBER
     : channel === 'sameie' ? SAMEIE_NUMBER
     : channel === 'dari' ? DARI_NUMBER
-    : PERSONAL_NUMBER;
+    : channel === 'personal' ? PERSONAL_NUMBER
+    : '';
   // Message entity channel is strictly 'business' or 'personal' per its enum.
   // The raw instance name is stored on Message.instance_name for traceability.
-  const messageChannel = instanceName === 'erudite' ? 'business' : 'personal';
+  const messageChannel = channel === 'business' ? 'business' : 'personal';
 
   try {
     // ---- Status updates ----
