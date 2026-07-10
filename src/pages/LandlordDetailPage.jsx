@@ -552,7 +552,7 @@ class LandlordDetail extends React.Component {
       await base44.entities.LandlordNote.create({
         landlord_id: L.id,
         author_email: user?.email || null,
-        author_name: user?.full_name || user?.email?.split('@')[0] || null,
+        author_name: user?.display_name || user?.full_name || user?.email?.split('@')[0] || null,
         body,
         created_from_ai: createdFromAi,
         ai_source: noteAiSource || null,
@@ -1953,7 +1953,7 @@ export default function LandlordDetailPage() {
   const resolveUserName = (email) => {
     if (!email) return null;
     const u = allUsers.find(u => u.email === email);
-    return u?.full_name || email.split('@')[0];
+    return u?.display_name || u?.full_name || email.split('@')[0];
   };
 
   // Connected Systems — live existence checks (read-only)
