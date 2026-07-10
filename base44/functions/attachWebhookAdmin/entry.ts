@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Evolution secrets missing', have_url: !!apiUrl, have_key: !!apiKey, have_secret: !!secret }, { status: 500 });
     }
 
-    const origin = new URL(req.url).origin;
+    // Use the app's public domain — not the internal dispatcher URL that
+    // new URL(req.url).origin returns when invoked from the test runner.
+    const origin = 'https://dubai-estate-pro.base44.app';
     const webhookUrl = `${origin}/functions/evolutionWebhook?secret=${secret}`;
     const events = [
       'APPLICATION_STARTUP','QRCODE_UPDATED','MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_EDITED',
