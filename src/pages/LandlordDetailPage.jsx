@@ -3,7 +3,7 @@
 // src/pages/LandlordDetailPage.jsx  (replace everything that's there).
 // No other files needed. The /landlord/:id route already points here.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -975,7 +975,7 @@ class LandlordDetail extends React.Component {
       openQuestions: arr(L.aiOpenQuestions),
     };
 
-    const sorted=[...L.stream].sort((a,b)=>(b.order||0)-(a.order||0));
+    const sorted=[...L.stream].sort((a,b)=>(a.order||0)-(b.order||0));
     const filterMode=S.streamFilter || 'all';
     const filtered = filterMode==='all' ? sorted
       : filterMode==='email' ? sorted.filter(s => s.channel==='email' || s.kind==='email')
@@ -992,7 +992,7 @@ class LandlordDetail extends React.Component {
           isText:s.mtype==='text', isVoice:s.mtype==='voice', isMedia:s.mtype==='media',
           subject:s.subject, emailBody:s.emailBody,
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
-          sender: s.senderName || (out ? (L.agent || 'Agent') : L.name),
+          sender: out ? (s.senderName || (s.fromNumber ? (this.props.resolveAgentByPhone?.(s.fromNumber) || L.agent || 'Agent') : (L.agent || 'Agent'))) : (s.senderName || L.name),
           channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : s.wa==='agent' ? 'WA Agent' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
             color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : s.wa==='agent' ? '#2dd4bf' : '#4ade80'),
@@ -2008,7 +2008,7 @@ export default function LandlordDetailPage() {
     const u = allUsers.find(u => u.email === email);
     return u?.display_name || u?.full_name || email.split('@')[0];
   };
-
+  const resolveAgentByPhone = (fn) => { const d=String(fn||'').replace(/\D/g,''); const u=allUsers.find(u=>{const ud=String(u.whatsapp_number||'').replace(/\D/g,'');return ud&&ud===d;}); return u?.display_name||u?.full_name||null; };
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
   const { data: waBusiness = [] } = useQ(['wa_conv_business', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'business' }, '-created_date', 5)), { enabled: !!phone });
@@ -2076,8 +2076,8 @@ export default function LandlordDetailPage() {
       safe(() => base44.entities.WhatsAppMessage.filter({ to_number: v }, 'timestamp', 100)),
     ]));
     return dedupeById(batches);
-  }, { enabled: !!phone, refetchInterval: 60000, refetchOnWindowFocus: false });
-
+  }, { enabled: !!phone, refetchInterval: 5000, refetchOnWindowFocus: false });
+  useEffect(() => { if(!phone) return; const unsub=base44.entities.WhatsAppMessage.subscribe(()=>qc.invalidateQueries({queryKey:['wa_stream_msgs']})); return ()=>{try{unsub()}catch{}}; }, [phone]);
   if (isLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(222 47% 6%)' }}>
@@ -2472,7 +2472,7 @@ export default function LandlordDetailPage() {
         toggleOwnerDrawer={toggleOwnerDrawer}
         onNavigate={navigate}
         formAContracts={formAContracts}
-        currentUser={currentUser}
+        currentUser={currentUser} resolveAgentByPhone={resolveAgentByPhone}
         isAdmin={isAdmin}
         canCoach={canCoach}
         comments={activityComments}

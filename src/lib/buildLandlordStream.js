@@ -46,8 +46,9 @@ export function buildLandlordStream({
       translation: msg.translations && typeof msg.translations === 'object' ? (msg.translations.en || '') : '',
       time: fmtMsgTime(msg.timestamp), order: tsOf(msg.timestamp) || 0,
       wa: deriveWaChannel(msg),
+      fromNumber: msg.from_number || '',
       senderEmail: isOut ? (msg.assigned_agent_email || '') : '',
-      senderName: isOut ? (resolveUserName(msg.assigned_agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
+      senderName: isOut ? (resolveUserName(msg.assigned_agent_email) || '') : (L.full_name_en || L.full_name || 'Owner'),
       _entityType: 'whatsapp', _entityId: msg.id,
     });
   });
