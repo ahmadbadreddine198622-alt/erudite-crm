@@ -6,6 +6,13 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // STRICT: only Ahmad's two emails may send from the Business WhatsApp line (Meta API).
+  // Every other user — admin or not — is blocked from business template sends.
+  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  if (!AUTHORIZED_SHARED_EMAILS.includes((user.email || '').toLowerCase())) {
+    return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
+  }
+
   const body = await req.json();
   const { template_name, template_components, template_body } = body;
   const conversation_id = body.conversation_id || null;

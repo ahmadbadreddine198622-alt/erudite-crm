@@ -100,7 +100,12 @@ Deno.serve(async (req) => {
     ownInstance = me?.whatsapp_instance || null;
     ownNumber = me?.whatsapp_number || null;
   } catch (_) { /* ignore */ }
-  if (!ownInstance && !isAdmin) {
+  // STRICT: only Ahmad's two emails may use shared company lines (personal/business).
+  // Every other user — admin or not — MUST have their own WhatsApp line configured
+  // (whatsapp_instance from Profile). No fallback to business/personal for anyone else.
+  const AUTHORIZED_SHARED_EMAILS_STRICT = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  const isAuthorizedShared = AUTHORIZED_SHARED_EMAILS_STRICT.includes((user.email || '').toLowerCase());
+  if (!ownInstance && !isAuthorizedShared) {
     return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
   }
   if (landlord_id) {
@@ -143,8 +148,7 @@ Deno.serve(async (req) => {
   // agent — admin or not — MUST send from their own configured WhatsApp line
   // (whatsapp_instance from Profile). Their messages are recorded on the
   // 'agent' channel so the thread is never confused with Ahmad's personal line.
-  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
-  const canUseShared = AUTHORIZED_SHARED_EMAILS.includes((user.email || '').toLowerCase());
+  const canUseShared = isAuthorizedShared;
   let instanceName = null;
   let useMetaBusiness = false;
   if (!canUseShared) {

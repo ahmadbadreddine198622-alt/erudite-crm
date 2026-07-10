@@ -91,7 +91,7 @@ const TAB_CHANNEL_MAP = {
   'Follow-up': ['followup'],
   Email:       ['email'],
   iMessage:    ['imessage'],
-  Chat:        ['whatsapp_personal', 'whatsapp_business'],
+  Chat:        ['whatsapp_personal', 'whatsapp_business', 'whatsapp_agent'],
   Telegram:    ['telegram'],
   Calls:       ['call'],
   SMS:         ['sms'],
@@ -117,10 +117,11 @@ export default function AllActivityTab({ items, landlordId, landlordName, commen
         // instead of `channel` — map to the normalized key so the Chat tab filter works.
         let chKey = s.channel || '';
         if (!chKey && s.wa) {
-          chKey = s.wa === 'personal' ? 'whatsapp_personal' : 'whatsapp_business';
+          chKey = s.wa === 'personal' ? 'whatsapp_personal' : s.wa === 'agent' ? 'whatsapp_agent' : 'whatsapp_business';
         }
         if (chKey === 'WA Personal') chKey = 'whatsapp_personal';
         else if (chKey === 'WA Business') chKey = 'whatsapp_business';
+        else if (chKey === 'WA Agent') chKey = 'whatsapp_agent';
         else if (chKey === 'iMessage') chKey = 'imessage';
         else if (chKey === 'Telegram') chKey = 'telegram';
         else if (chKey === 'Email') chKey = 'email';
