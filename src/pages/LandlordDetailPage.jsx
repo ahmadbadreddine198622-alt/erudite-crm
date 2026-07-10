@@ -725,7 +725,7 @@ class LandlordDetail extends React.Component {
     const L = this.cur();
     if(!L || this._chatSending) return;
     this._chatSending = true;
-    const channel = this.state.streamFilter === 'business' ? 'business' : 'personal';
+    const channel = ['ahmad@erudite-estate.com','ahmad.badreddine198622@gmail.com'].includes((this.props.currentUser?.email||'').toLowerCase()) ? (this.state.streamFilter === 'business' ? 'business' : 'personal') : 'agent';
     // V3 Phase 0 (RECORD): AI-draft provenance, mirroring saveTask. created_from_ai is true when the
     // text was seeded from an AI message draft (even if edited); was_edited compares sent vs draft.
     const { messageAiSource, messageAiDraft } = this.state;
@@ -993,10 +993,10 @@ class LandlordDetail extends React.Component {
           subject:s.subject, emailBody:s.emailBody,
           text:s.text, transcript:s.transcript, translation:s.translation, transcriptLang:s.transcriptLang, mediaLabel:s.mediaLabel, duration:s.duration, waveform, time:s.time,
           sender: s.senderName || (out ? (L.agent || 'Agent') : L.name),
-          channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : 'WA Business'),
+          channel: s.channel==='email' ? 'Email' : s.channel==='imessage' ? 'iMessage' : s.channel==='telegram' ? 'Telegram' : (s.wa==='personal' ? 'WA Personal' : s.wa==='agent' ? 'WA Agent' : 'WA Business'),
           channelStyle:{ fontSize:'8.5px', fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-            color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : '#4ade80'),
-            background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : s.channel==='imessage' ? 'rgba(10,132,255,0.14)' : s.channel==='telegram' ? 'rgba(41,182,246,0.14)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : 'rgba(37,211,102,0.12)'),
+            color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : s.wa==='agent' ? '#2dd4bf' : '#4ade80'),
+            background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : s.channel==='imessage' ? 'rgba(10,132,255,0.14)' : s.channel==='telegram' ? 'rgba(41,182,246,0.14)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : s.wa==='agent' ? 'rgba(45,212,191,0.14)' : 'rgba(37,211,102,0.12)'),
             padding:'1px 5px', borderRadius:'4px' },
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'96%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },

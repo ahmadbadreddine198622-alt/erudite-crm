@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
 
   const event = body?.event || '';
   const instanceName = (body?.instance || '').toLowerCase();
-  const channel = instanceName === 'erudite' ? 'business' : 'personal';
+  const prelimChannel = instanceName === 'erudite' ? 'business' : 'personal';
 
   try {
     if (event === 'messages.update' || event === 'messages.edit') {
@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     const timestamp = tsToIso(data.messageTimestamp);
     const parsed = parseMessage(data.message);
 
-    console.log(`[evolutionWebhookToWhatsAppMessage] event=upsert instance=${instanceName} channel=${channel} from=${digitsPhone} type=${parsed.msgType} msgId=${key.id}`);
+    console.log(`[evolutionWebhookToWhatsAppMessage] event=upsert instance=${instanceName} channel=${prelimChannel} from=${digitsPhone} type=${parsed.msgType} msgId=${key.id}`);
 
     if (parsed.reaction?.target_wa_id) {
       const tgt = await withRetry(() => serviceRole.entities.WhatsAppMessage.filter({ wa_message_id: parsed.reaction.target_wa_id }));
@@ -282,6 +282,9 @@ Deno.serve(async (req) => {
     const agent = await findAgentByInstance(serviceRole, instanceName);
     const agentEmail = agent?.email || null;
     const agentNumber = agent?.whatsapp_number || null;
+    // Agent-owned instances record on the 'agent' channel (distinct from Ahmad's
+    // 'personal' line) so the thread + badge never imply a shared company number.
+    const channel = instanceName === 'erudite' ? 'business' : (agentEmail ? 'agent' : 'personal');
     const conversation = await findOrCreateAgentConversation(serviceRole, digitsPhone, channel, agentEmail, landlord ? landlord.id : null);
 
     const mappedDirection = fromMe ? 'outbound' : 'inbound';
@@ -308,6 +311,7 @@ Deno.serve(async (req) => {
       timestamp: timestamp,
       from_number: fromNumber,
       to_number: toNumber,
+      channel: channel,
       assigned_agent_email: agentEmail || conversation.assigned_agent_email || null,
     };
 

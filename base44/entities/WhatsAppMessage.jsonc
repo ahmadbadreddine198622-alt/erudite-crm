@@ -91,10 +91,12 @@
       "type": "string",
       "enum": [
         "business",
-        "personal"
+        "personal",
+        "agent",
+        "malik"
       ],
       "default": "personal",
-      "description": "Which WhatsApp channel"
+      "description": "Which WhatsApp channel: business (Meta Cloud), personal (Ahmad's Evolution line), agent (an agent's own Evolution line), or malik"
     },
     "raw_payload": {
       "type": "object",

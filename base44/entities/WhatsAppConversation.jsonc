@@ -348,10 +348,11 @@
       "enum": [
         "business",
         "personal",
+        "agent",
         "malik"
       ],
       "default": "personal",
-      "description": "Which WhatsApp channel: business (Meta Cloud), personal (Evolution Ahmad), or malik (Evolution Malik)"
+      "description": "Which WhatsApp channel: business (Meta Cloud), personal (Ahmad's Evolution line), agent (an agent's own configured Evolution line), or malik"
     },
     "wa_labels": {
       "type": "array",

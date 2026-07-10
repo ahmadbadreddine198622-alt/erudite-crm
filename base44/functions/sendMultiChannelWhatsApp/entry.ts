@@ -138,13 +138,16 @@ Deno.serve(async (req) => {
   }
 
   // ---- Determine the sending instance ----
-  // Agents ALWAYS send from their own configured WhatsApp line (whatsapp_instance
-  // from Profile). They cannot use the shared company "personal" (Ahmad) or
-  // "business" (Meta Cloud API) numbers — only their own number.
-  // Admins/owner keep full channel-based routing for company-line management.
+  // Only the two authorized emails may send from the shared company lines
+  // (personal = Ahmad's Baileys line, business = Meta Cloud API). Every other
+  // agent — admin or not — MUST send from their own configured WhatsApp line
+  // (whatsapp_instance from Profile). Their messages are recorded on the
+  // 'agent' channel so the thread is never confused with Ahmad's personal line.
+  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  const canUseShared = AUTHORIZED_SHARED_EMAILS.includes((user.email || '').toLowerCase());
   let instanceName = null;
   let useMetaBusiness = false;
-  if (!isAdmin) {
+  if (!canUseShared) {
     instanceName = ownInstance;
     if (!instanceName) {
       return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
@@ -154,9 +157,9 @@ Deno.serve(async (req) => {
   } else {
     instanceName = ownInstance || INSTANCE_MAP[channel] || INSTANCE_MAP.personal;
   }
-  // Agents always record on the 'personal' channel (their own line is a Baileys instance);
-  // the frontend channel picker is ignored for routing.
-  const recordChannel = !isAdmin ? 'personal' : channel;
+  // Authorized emails record on their chosen shared channel; everyone else records
+  // on the 'agent' channel (their own line) — never 'personal'.
+  const recordChannel = canUseShared ? channel : 'agent';
 
   // ---- Send via appropriate API ----
   let evoStatus = 0;
