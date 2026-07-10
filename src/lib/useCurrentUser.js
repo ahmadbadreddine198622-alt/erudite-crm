@@ -16,9 +16,13 @@ export function useCurrentUser() {
       base44.auth.me().catch(() => null),
       base44.entities.Role.list().catch(() => []),
     ]).then(([u, r]) => {
-      cachedUser = u;
+      // Normalize: the built-in full_name is read-only, so users update their name
+      // via display_name in Profile. Expose display_name as full_name so every
+      // component reading user.full_name shows the current name everywhere.
+      const normalizedUser = u ? { ...u, full_name: u.display_name || u.full_name } : u;
+      cachedUser = normalizedUser;
       cachedRoles = r;
-      setUser(u);
+      setUser(normalizedUser);
       setRoles(r);
       setLoading(false);
     });
