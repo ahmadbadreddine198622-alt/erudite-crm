@@ -165,7 +165,7 @@ const MENTOR_SCHEMA = {
     },
     principle_slug: { type: 'string', description: 'The principle this reply centers on.' },
     context_slugs_used: { type: 'array', items: { type: 'string' }, description: 'Doctrine slugs actually drawn on.' },
-    coaching_note: { type: 'string', description: "ONE line for the mentor's private memory of this agent — observation, not summary." },
+    coaching_note: { type: 'string', description: "ONE line for the mentor's private memory of this agent — observation, not summary. Do NOT include any date; it is stamped automatically." },
     experiment: {
       type: ['object', 'null'],
       description: 'Only when assigning a NEW measurable tactic: {tactic, metric}. Else null.',
@@ -250,6 +250,7 @@ Deno.serve(async (req) => {
     const history = recentMsgs.reverse().map((m) => `${m.role === 'mentor' ? 'MENTOR' : 'AGENT'}: ${String(m.message).slice(0, 400)}`).join('\n');
 
     const prompt = [
+      `TODAY: ${new Date().toISOString().slice(0, 10)}`,
       `AGENT: ${enrollment?.agent_name || user_email} | training week ${week} of 17 (${weekPrinciple?.slug || 'unknown principle'})${weekPrinciple?.rank_title ? ` | current rank: ${weekPrinciple.rank_title}` : ''}`,
       aim ? `CHIEF AIM: "${aim.aim_statement}"${aim.target_figure_aed ? ` | target AED ${aim.target_figure_aed}` : ''}${aim.target_date ? ` by ${aim.target_date}` : ''}` : 'CHIEF AIM: none written yet — a standing gap worth addressing.',
       `LIVE CRM SIGNALS: ${out2str(signals)}`,
