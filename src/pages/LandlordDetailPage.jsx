@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryClientInstance } from '@/lib/query-client';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -167,7 +166,7 @@ class LandlordDetail extends React.Component {
   }
 
   componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); }
-  componentDidUpdate(prevProps){ if(prevProps.landlords!==this.props.landlords && this.props.landlords?.length) this.setState({landlords:this.props.landlords}); }
+  componentDidUpdate(prevProps){ if(prevProps.landlords!==this.props.landlords && this.props.landlords?.length) this.setState({landlords:this._mergePendingOutgoing(this.props.landlords)}); }
 
   // Auto-run AI analysis once when a V-card opens, only if never analysed (no ai_processed_at).
   // Already-analysed landlords are left to the manual "Analyse Now" — no reload, refetch in place.
@@ -232,7 +231,7 @@ class LandlordDetail extends React.Component {
       (prevCur && nextCur && (prevCur.phone !== nextCur.phone || prevCur.email !== nextCur.email || prevCur.aiRollingSummary !== nextCur.aiRollingSummary || prevCur.aiNextBestAction !== nextCur.aiNextBestAction || prevCur.aiCoaching !== nextCur.aiCoaching || prevCur.media !== nextCur.media || prevCur.valuation !== nextCur.valuation || prevCur.docs !== nextCur.docs || prevCur.scores !== nextCur.scores || prevCur.redFlags !== nextCur.redFlags || prevCur.buyingSignals !== nextCur.buyingSignals || prevCur.hasStrikeNow !== nextCur.hasStrikeNow || prevCur.mandate !== nextCur.mandate || prevCur.qualification !== nextCur.qualification || prevCur.passport !== nextCur.passport || prevCur.nationality !== nextCur.nationality || prevCur.residence !== nextCur.residence || prevCur.language !== nextCur.language || prevCur.residentUAE !== nextCur.residentUAE));
     
     if (needSync && nextCur) {
-      this.setState({ landlords: nextLandlords, analyzeError:'' });
+      this.setState({ landlords: this._mergePendingOutgoing(nextLandlords), analyzeError:'' });
     }
     // Auto-scroll when new messages arrive (count increased) or filter switched.
     // No setState here — just scroll — so no render loop.
@@ -246,6 +245,36 @@ class LandlordDetail extends React.Component {
     if (prevState.composerText !== this.state.composerText || prevState.composerType !== this.state.composerType) {
       this.autoGrowComposer();
     }
+  }
+  // Pending outgoing WhatsApp messages — kept in an instance ref so they survive prop
+  // overwrites from query refetches. Each entry: { order, text, wa, landlordId }.
+  // _mergePendingOutgoing re-injects any not-yet-fulfilled entries into the landlord's
+  // stream after the prop array is rebuilt from DB data. An entry is "fulfilled" once
+  // the real stream contains an outgoing WhatsApp msg with the same text — then it's
+  // dropped so the real DB record takes over seamlessly.
+  _mergePendingOutgoing(landlords){
+    if(!this._pendingOutgoing || !this._pendingOutgoing.length) return landlords;
+    const next = Array.isArray(landlords) ? landlords : [];
+    return next.map(l=>{
+      if(!l || !l.stream) return l;
+      const pending = this._pendingOutgoing.filter(p=>p.landlordId===l.id);
+      if(!pending.length) return l;
+      // Build a set of existing outgoing WA msg texts to detect fulfilment
+      const existing = new Set();
+      l.stream.forEach(si=>{ if(si && si.t==='msg' && si.dir==='out' && si.wa) existing.add(String(si.text||'').trim()); });
+      // Keep only pending entries whose text isn't in the real stream yet
+      const stillPending = pending.filter(p=>!existing.has(String(p.text||'').trim()));
+      // Remove fulfilled ones from the ref
+      this._pendingOutgoing = this._pendingOutgoing.filter(p=> p.landlordId!==l.id || stillPending.includes(p));
+      if(!stillPending.length) return l;
+      // Inject still-pending entries that aren't already in the stream (dedupe by order)
+      const streamOrders = new Set(l.stream.map(si=>si && si.order));
+      const toAdd = stillPending.filter(p=>!streamOrders.has(p.order)).map(p=>({
+        t:'msg', dir:'out', mtype: p.mtype || 'text', text: p.text, wa: p.wa, time:'Just now', order: p.order,
+      }));
+      if(!toAdd.length) return l;
+      return { ...l, stream: [...l.stream, ...toAdd].sort((a,b)=>(b.order||0)-(a.order||0)) };
+    });
   }
   scrollBottom(){
     const el=this.streamRef.current; if(!el) return;
@@ -705,12 +734,15 @@ class LandlordDetail extends React.Component {
     const aiDisposition = createdFromAi ? (wasEdited ? 'edited' : 'accepted') : undefined;
 
     // ── Optimistic UI: show the message + clear the composer IMMEDIATELY ──
-    // The user sees their message the instant they hit send. The spinner clears
-    // at the same time. If the backend fails, we revert below.
+    // Pending entries are tracked in an instance ref so they survive query refetches
+    // that rebuild the stream from the DB — the bubble stays until the real record arrives.
+    if(!this._pendingOutgoing) this._pendingOutgoing = [];
     const order = Date.now();
-    const optimisticItem = { t:'msg', dir:'out', mtype: attachment ? 'media' : 'text', text, wa:channel, time:'Just now', order };
+    const mtype = attachment ? 'media' : 'text';
+    this._pendingOutgoing.push({ order, text, wa:channel, landlordId: L.id, mtype });
+    const optimisticItem = { t:'msg', dir:'out', mtype, text, wa:channel, time:'Just now', order };
     this.setState(s=>({
-      landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, optimisticItem]} : l),
+      landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, optimisticItem].sort((a,b)=>(b.order||0)-(a.order||0))} : l),
       composerText:'', chatSending:true, messageAiSource:null, messageAiDraft:null, composerAttachment: null,
     }), ()=>this.scrollBottom());
 
@@ -731,12 +763,12 @@ class LandlordDetail extends React.Component {
       toast.success('Sent ✓');
       tickOutreachStep('whatsapp_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
       this.setState({ chatSending:false });
-      // Force a refetch so the real DB record replaces the optimistic bubble
-      queryClientInstance.invalidateQueries({ queryKey: ['wa_stream_msgs'] });
-      queryClientInstance.invalidateQueries({ queryKey: ['wa_messages'] });
+      // The optimistic bubble stays via _pendingOutgoing — the natural 60s refetch will
+      // pick up the real DB record and _mergePendingOutgoing will dedupe the pending entry out.
     } catch(e){
       const apiErr = e?.response?.data?.error || e?.message || 'unknown error';
-      // Revert: remove the optimistic message and restore the composer text
+      // Revert: drop the pending entry, remove the optimistic bubble, restore composer text
+      if(this._pendingOutgoing) this._pendingOutgoing = this._pendingOutgoing.filter(p=>p.order!==order);
       this.setState(s=>({
         landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream: l.stream.filter(si => si.order !== order)} : l),
         composerText: text, chatSending:false,
