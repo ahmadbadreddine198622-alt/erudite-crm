@@ -6,11 +6,12 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Flame, Loader2, ChevronRight } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import AcademyIngestBar from '@/components/academy/AcademyIngestBar';
 import { CHAMBERS } from '@/lib/academyChambers';
 import { GOLD, GOLD_LITE, pageWrap, card, serif, label, goldBtn, rankPill } from '@/lib/academyStyles';
 
 export default function AcademyHome() {
-  const { user } = useCurrentUser();
+  const { user, isAdmin } = useCurrentUser();
   const qc = useQueryClient();
 
   const { data: enrollments = [], isLoading } = useQuery({
@@ -83,6 +84,8 @@ export default function AcademyHome() {
   return (
     <div style={pageWrap}>
       <AcademyNav />
+
+      {isAdmin && <AcademyIngestBar />}
 
       {/* Current week header */}
       <div style={card}>

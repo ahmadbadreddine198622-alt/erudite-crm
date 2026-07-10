@@ -11,6 +11,10 @@
     "name": {
       "type": "string"
     },
+    "slug": {
+      "type": "string",
+      "description": "URL-safe slug e.g. 'week-01-burning-desire' \u2014 used to filter valid curriculum records from legacy dupes"
+    },
     "tagline": {
       "type": "string"
     },
