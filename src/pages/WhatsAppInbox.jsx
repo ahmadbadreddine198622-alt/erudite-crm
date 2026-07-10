@@ -1016,7 +1016,7 @@ export default function WhatsAppInbox() {
               onScheduleSend={handleScheduleSend}
               selectedChannel={selectedChannel}
               onChannelChange={setSelectedChannel}
-              isAgentOwnLine={currentUser?.role !== 'admin' && !permissions.view_all_whatsapp && !!currentUser?.whatsapp_instance}
+              isAgentOwnLine={!isAuthorizedShared && !!currentUser?.whatsapp_instance}
               ownNumber={currentUser?.whatsapp_number}
             />
           </div>
