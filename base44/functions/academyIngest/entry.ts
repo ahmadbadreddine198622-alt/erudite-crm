@@ -114,7 +114,12 @@ Deno.serve(async (req) => {
     // ── dry_run: provider health check, writes nothing ──
     if (body.dry_run === true) {
       const c = chunks[0];
-      const out = { dry_run: true, openai_key_present: openaiPresent, chunk_index: c.chunk_index };
+      const out = {
+        dry_run: true,
+        openai_key_present: openaiPresent,
+        deepgram_key_present: !!Deno.env.get('DEEPGRAM_API_KEY'),
+        chunk_index: c.chunk_index,
+      };
       out.sample_summary = await summarize(anthropic, c.chunk_text);
       if (openaiPresent) {
         const vector = await embed(c.chunk_text);
