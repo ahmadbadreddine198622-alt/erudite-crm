@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ALL_APPS } from '@/lib/navApps';
 import AppPickerModal from '@/components/mobile/AppPickerModal';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const SZ = 50;
 const HOME_SZ = 60;
@@ -45,7 +46,6 @@ const QUICK_ACTIONS = {
   whatsapp: [
     { label: 'New Message', icon: MessageCircle, path: '/whatsapp' },
     { label: 'Unread', icon: MessageCircle, path: '/whatsapp' },
-    { label: 'Broadcasts', icon: Star, path: '/broadcasts' },
   ],
   forma: [
     { label: 'New Form A', icon: FileSignature, path: '/form-a-referral' },
@@ -153,6 +153,7 @@ function QuickActionsPopover({ actions, position, onClose, navigate }) {
 export default function MobileDock() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useCurrentUser();
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth <= 1024;

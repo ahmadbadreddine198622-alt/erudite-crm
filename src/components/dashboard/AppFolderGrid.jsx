@@ -420,13 +420,18 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function AppFolderGrid({ badges = {}, tilt = { x: 0, y: 0 } }) {
   const navigate = useNavigate();
-  const { canViewPropertyFinder } = useCurrentUser();
+  const { canViewPropertyFinder, isAdmin } = useCurrentUser();
   const [openFolder, setOpenFolder] = useState(null);
 
   // Hide the Property Finder app for users who aren't on the allowlist.
-  const folders = canViewPropertyFinder
-    ? FOLDERS
-    : FOLDERS.map(f => ({ ...f, apps: f.apps.filter(a => a.label !== 'Property Finder') }));
+  // Hide admin-only WhatsApp management apps (WhatsApp Hub, WhatsApp Setup,
+  // Broadcasts) from non-admin agents — agents only use the main WhatsApp inbox.
+  const folders = FOLDERS
+    .map(f => ({ ...f, apps: f.apps.filter(a => {
+      if (!canViewPropertyFinder && a.label === 'Property Finder') return false;
+      if (!isAdmin && a.agentHidden) return false;
+      return true;
+    }) }));
 
   const activeFolder = openFolder ? folders.find(f => f.id === openFolder) : null;
 
