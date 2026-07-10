@@ -47,7 +47,7 @@ const json = (status, body) =>
 
 // ── module-scope caches (warm invocations skip refetch) ──
 let NODE_CACHE = { at: 0, nodes: [] };
-const CHUNK_CACHE = new Map(); // principle_number -> { at, chunks }
+let ALL_CHUNKS_CACHE = { at: 0, chunks: [] };
 const CACHE_MS = 10 * 60 * 1000;
 
 async function getNodes(svc) {
@@ -57,12 +57,13 @@ async function getNodes(svc) {
   return NODE_CACHE.nodes;
 }
 
-async function getChunks(svc, principleNumber) {
-  const hit = CHUNK_CACHE.get(principleNumber);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.chunks;
-  const chunks = await svc.entities.CorpusChunk.filter({ principle_number: principleNumber });
-  CHUNK_CACHE.set(principleNumber, { at: Date.now(), chunks });
-  return chunks;
+// Search across ALL corpus chunks — not just the current week — so the mentor
+// can ground its replies in the entire book, not just one chapter.
+async function getAllChunks(svc) {
+  if (Date.now() - ALL_CHUNKS_CACHE.at > CACHE_MS || !ALL_CHUNKS_CACHE.chunks.length) {
+    ALL_CHUNKS_CACHE = { at: Date.now(), chunks: await svc.entities.CorpusChunk.list('chunk_index', 500) };
+  }
+  return ALL_CHUNKS_CACHE.chunks;
 }
 
 const STOP = new Set(['the','a','an','and','or','but','is','are','was','be','to','of','in','on','for','with','my','i','me','you','your','it','this','that','what','how','do','does','about','can','at','as','not','no','so','we','our']);
@@ -241,8 +242,8 @@ Deno.serve(async (req) => {
       const pn = nodes.find((n) => n.node_type === 'principle' && n.week_number === week);
       if (pn) topNodes.unshift(pn);
     }
-    const chunks = await getChunks(svc, week);
-    const topChunks = scoreChunks(chunks, qTokens).slice(0, 2).map((x) => x.c);
+    const allChunks = await getAllChunks(svc);
+    const topChunks = scoreChunks(allChunks, qTokens).slice(0, 4).filter((x) => x.s > 0).map((x) => x.c);
 
     // ── COMPOSE PROMPT ──
     const tier = resolveTier({ trigger, message, requested_tier: requested_tier });
