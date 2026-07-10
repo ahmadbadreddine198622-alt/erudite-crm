@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, Send, Sparkles } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
-import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, goldBtn, input } from '@/lib/academyStyles';
+import { GOLD, GOLD_LITE, pageWrap, card, serif, label, goldBtn, input } from '@/lib/academyStyles';
 import { toast } from 'sonner';
 
 const KIND_BADGES = {
@@ -72,9 +72,9 @@ function TypingIndicator() {
 
 export default function TheMentor() {
   const { user } = useCurrentUser();
+  const qc = useQueryClient();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [extraReplies, setExtraReplies] = useState([]);
   const scrollRef = useRef(null);
 
   const { data: messages = [], isLoading } = useQuery({
@@ -83,15 +83,11 @@ export default function TheMentor() {
     enabled: !!user?.email,
   });
 
-  const allMessages = [...messages, ...extraReplies].sort((a, b) =>
-    new Date(a.created_date || a._ts || 0).getTime() - new Date(b.created_date || b._ts || 0).getTime()
-  );
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [allMessages.length, sending]);
+  }, [messages.length, sending]);
 
   const handleSend = async () => {
     const trimmed = text.trim();
@@ -99,36 +95,17 @@ export default function TheMentor() {
     const today = new Date().toISOString().split('T')[0];
     const sessionId = `${user.email}-${today}`;
 
-    // Optimistic: show agent message immediately
-    const optimistic = {
-      role: 'agent',
-      message: trimmed,
-      created_date: new Date().toISOString(),
-      _ts: Date.now(),
-      message_kind: 'chat',
-    };
-    setExtraReplies(prev => [...prev, optimistic]);
     setText('');
     setSending(true);
 
     try {
-      const res = await base44.functions.invoke('mentorOrchestrator', {
+      await base44.functions.invoke('mentorOrchestrator', {
         user_email: user.email,
         message: trimmed,
         session_id: sessionId,
       });
-      const reply = res?.data?.reply;
-      if (reply) {
-        setExtraReplies(prev => [...prev, {
-          role: 'mentor',
-          message: reply,
-          created_date: new Date().toISOString(),
-          _ts: Date.now(),
-          message_kind: res?.data?.trigger || 'chat',
-        }]);
-      } else {
-        toast.error('The mentor returned no reply.');
-      }
+      // Refresh the feed — mentorOrchestrator persists both messages
+      await qc.invalidateQueries({ queryKey: ['academy-mentor-messages', user.email] });
     } catch (e) {
       toast.error(e?.response?.data?.error || e?.message || 'Failed to reach the mentor');
     } finally {
@@ -161,14 +138,14 @@ export default function TheMentor() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
             <Loader2 className="animate-spin" style={{ color: GOLD }} size={24} />
           </div>
-        ) : allMessages.length === 0 ? (
+        ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 28 }}>
             <Sparkles size={26} style={{ color: GOLD, opacity: 0.5 }} />
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 10 }}>Your conversation with the mentor begins here.</p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Ask about a principle, a stuck deal, or a fear you're sitting on.</p>
           </div>
         ) : (
-          allMessages.map((m, i) => <MessageBubble key={i} msg={m} />)
+          messages.map((m, i) => <MessageBubble key={m.id || i} msg={m} />)
         )}
         {sending && <TypingIndicator />}
       </div>
