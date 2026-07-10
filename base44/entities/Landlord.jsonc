@@ -664,6 +664,52 @@
       "default": false,
       "description": "True when the branded signature banner has been sent to this landlord via iMessage. Prevents duplicate banner attachments on subsequent messages."
     },
+    "whatsapp_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "available",
+        "not_available",
+        "error"
+      ],
+      "default": "unknown",
+      "description": "Resolved WhatsApp capability \u2014 available if any of the landlord's phone numbers is a valid WhatsApp account"
+    },
+    "whatsapp_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the WhatsApp number availability check last ran"
+    },
+    "whatsapp_handles": {
+      "type": "array",
+      "description": "All of the landlord's phone numbers checked against WhatsApp, each with its validity. Written by checkLandlordWhatsApp.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "Normalized phone in E.164"
+          },
+          "source_field": {
+            "type": "string",
+            "description": "Which Landlord field this number came from (phone, whatsapp, additional_phones)"
+          },
+          "is_valid_whatsapp": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "whatsapp_handle": {
+      "type": "string",
+      "description": "The primary confirmed-valid WhatsApp number (E.164). Prefers the primary phone when valid. Empty when no number is WhatsApp-valid. Default send target for WhatsApp."
+    },
+    "whatsapp_resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When checkLandlordWhatsApp last checked all numbers"
+    },
     "telegram_chat_id": {
       "type": "string",
       "description": "Telegram numeric chat_id \u2014 set after the landlord starts a chat with the bot. Default send target for Telegram. Empty when not connected."

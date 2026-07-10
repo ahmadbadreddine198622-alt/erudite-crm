@@ -37,6 +37,7 @@ import NoteComposerBar from '@/components/landlord/NoteComposerBar';
 import NoteCard from '@/components/landlord/NoteCard';
 import ChatPinnedNotesStrip from '@/components/landlord/ChatPinnedNotesStrip';
 import UnifiedChatComposer from '@/components/landlord/UnifiedChatComposer';
+import WhatsAppNumberPicker from '@/components/landlord/WhatsAppNumberPicker';
 import ChatExtraTools from '@/components/landlord/ChatExtraTools';
 import AppointmentFeed from '@/components/landlord/AppointmentFeed';
 import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';

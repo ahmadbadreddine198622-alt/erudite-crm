@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
+import WhatsAppBadge from '@/components/landlord/WhatsAppBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
 import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
@@ -221,7 +222,7 @@ const addBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyConte
 const cancelBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 6px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' };
 const smallInputStyle = { fontSize: 11, padding: '4px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' };
 
-export default function LandlordIdentityHeader({ landlord, unit, imessageChecking, onCheckIMessage, landlordId }) {
+export default function LandlordIdentityHeader({ landlord, unit, imessageChecking, onCheckIMessage, whatsappChecking, onCheckWhatsApp, landlordId }) {
   const L = landlord || {};
   const U = unit || {};
   const queryClient = useQueryClient();
@@ -344,6 +345,11 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
   const handles = Array.isArray(L.imessage_handles) ? L.imessage_handles : [];
   const checkedShort = L.imessage_checked_at
     ? new Date(L.imessage_checked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : null;
+  // WhatsApp check micro-line
+  const waHandles = Array.isArray(L.whatsapp_handles) ? L.whatsapp_handles : [];
+  const waCheckedShort = L.whatsapp_checked_at
+    ? new Date(L.whatsapp_checked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
     : null;
 
   return (
@@ -532,6 +538,16 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                     handles={handles}
                   />
                   {checkedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {checkedShort}</span>}
+                  <Dot />
+                  <WhatsAppBadge
+                    status={L.whatsapp_status || 'unknown'}
+                    checkedAt={L.whatsapp_checked_at}
+                    checking={whatsappChecking}
+                    onCheck={onCheckWhatsApp}
+                    handle={L.whatsapp_handle}
+                    handles={waHandles}
+                  />
+                  {waCheckedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {waCheckedShort}</span>}
                 </>
               )}
             </div>
