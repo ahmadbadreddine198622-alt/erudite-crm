@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
@@ -30,6 +30,7 @@ export default function LandlordWhatsAppThread({ landlord }) {
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
   const [smartReplies, setSmartReplies] = useState([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [optimisticMsgs, setOptimisticMsgs] = useState([]);
   const messagesEndRef = useRef(null);
 
   const phone = toDigits(landlord?.phone);
@@ -79,12 +80,41 @@ export default function LandlordWhatsAppThread({ landlord }) {
         .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
     },
     enabled: conversationIds.length > 0,
-    refetchInterval: 8000,
+    refetchInterval: 4000,
   });
 
+  // Merge optimistic outbound messages so the user sees their send instantly
+  const allMessages = useMemo(() => {
+    if (!optimisticMsgs.length) return messages;
+    const realIds = new Set(messages.map(m => m.id));
+    const realKeys = new Set(messages.map(m => `${m.body}|${m.timestamp}`));
+    const pending = optimisticMsgs.filter(o => !realIds.has(o.id) && !realKeys.has(`${o.body}|${o.timestamp}`));
+    return [...messages, ...pending].sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+  }, [messages, optimisticMsgs]);
+
+  // Realtime: subscribe to WhatsAppMessage events so inbound/outbound show instantly (no delay)
+  useEffect(() => {
+    if (!conversationIds.length) return;
+    const unsubscribe = base44.entities.WhatsAppMessage.subscribe((event) => {
+      if (event?.data && conversationIds.includes(event.data.conversation_id)) {
+        qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
+      }
+    });
+    return () => { try { unsubscribe(); } catch {} };
+  }, [conversationIds.join(',')]);
+
+  // Auto-scroll to bottom whenever messages change (new inbound or outbound) — like real WhatsApp
+  const lastMsgKey = allMessages.length ? (allMessages[allMessages.length - 1]?.id || allMessages[allMessages.length - 1]?.timestamp) : '';
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [lastMsgKey, allMessages.length]);
+
+  // Clear optimistic messages once they appear in the real data
+  useEffect(() => {
+    if (!optimisticMsgs.length) return;
+    const realKeys = new Set(messages.map(m => `${m.body}|${m.timestamp}`));
+    setOptimisticMsgs(prev => prev.filter(o => !realKeys.has(`${o.body}|${o.timestamp}`)));
+  }, [messages]);
 
   // Auto-detect channel from last incoming message
   useEffect(() => {
@@ -102,16 +132,30 @@ export default function LandlordWhatsAppThread({ landlord }) {
       text: msg,
       channel: selectedChannel,
     }),
+    onMutate: (msg) => {
+      // Optimistic: show the outgoing message instantly, no waiting for refetch
+      const optimistic = {
+        id: `optimistic-${Date.now()}`,
+        direction: 'outbound',
+        body: msg,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        conversation_id: conversation?.id || null,
+      };
+      setOptimisticMsgs(prev => [...prev, optimistic]);
+    },
     onSuccess: (res) => {
       const data = res?.data ?? res;
-      if (data?.error) { toast.error(`Send failed: ${data.error}`); return; }
+      if (data?.error) { toast.error(`Send failed: ${data.error}`); setOptimisticMsgs([]); return; }
       setText('');
       setSmartReplies([]);
       qc.invalidateQueries({ queryKey: ['wa-thread-msgs'] });
       qc.invalidateQueries({ queryKey: ['wa-thread-conv', landlord?.id, selectedChannel] });
       toast.success('Message sent');
+      // Clear optimistic after the refetch picks up the real message
+      setTimeout(() => setOptimisticMsgs([]), 2000);
     },
-    onError: (e) => toast.error('Send failed: ' + (e?.response?.data?.error || e?.message)),
+    onError: (e) => { setOptimisticMsgs([]); toast.error('Send failed: ' + (e?.response?.data?.error || e?.message)); },
   });
 
   const handleSendTemplate = async (template, template_components, resolvedBody) => {
@@ -225,7 +269,7 @@ export default function LandlordWhatsAppThread({ landlord }) {
           <div className="text-sm text-muted-foreground text-center py-8 flex items-center justify-center gap-2">
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
           </div>
-        ) : !conversation ? (
+        ) : !conversation && allMessages.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-10">
             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-2">
               {selectedChannel === 'business' ? <Building2 className="w-5 h-5 opacity-40" /> : <User className="w-5 h-5 opacity-40" />}
@@ -233,13 +277,14 @@ export default function LandlordWhatsAppThread({ landlord }) {
             No {selectedChannel} conversation yet.<br />
             <span className="opacity-60">Send a message to start one.</span>
           </div>
-        ) : messages.length === 0 ? (
+        ) : allMessages.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-10">No messages in this channel yet.</div>
         ) : (
-          messages.map((m) => {
+          allMessages.map((m) => {
             const out = m.direction === 'outbound';
-            const StatusIcon = ['read', 'delivered'].includes(m.status) ? CheckCheck : Check;
-            const statusColor = m.status === 'read' ? 'text-blue-300' : m.status === 'delivered' ? 'text-emerald-300' : 'text-white/50';
+            const isPending = m.status === 'pending';
+            const StatusIcon = isPending ? Clock : ['read', 'delivered'].includes(m.status) ? CheckCheck : Check;
+            const statusColor = isPending ? 'text-amber-300' : m.status === 'read' ? 'text-blue-300' : m.status === 'delivered' ? 'text-emerald-300' : 'text-white/50';
             return (
               <div key={m.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-emerald-600/90 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
