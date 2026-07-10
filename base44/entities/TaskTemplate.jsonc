@@ -61,6 +61,11 @@
       "type": "boolean",
       "default": true,
       "description": "Inactive templates are hidden from the picker"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this task template (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

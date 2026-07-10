@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
@@ -75,6 +75,22 @@ Deno.serve(async (req) => {
       const existingLeads = await base44.asServiceRole.entities.Lead.filter({ email: fromEmail });
       let leadId = existingLeads.length > 0 ? existingLeads[0].id : null;
 
+      // Match to a Landlord — check the sender's email AND all recipients (to/cc).
+      // For inbound replies, the landlord is the sender. For outbound emails that
+      // pass through this webhook (sent folder), the landlord is in the To field.
+      const allAddresses = [fromEmail, ...String(toRaw).split(',').map(s => s.trim().replace(/<(.+?)>/, '$1').trim())]
+        .map(a => a.toLowerCase()).filter(Boolean);
+      let landlordId = null;
+      const landlords = await base44.asServiceRole.entities.Landlord.list('-updated_date', 5000);
+      for (const L of landlords) {
+        const landlordEmails = [L.email, ...(Array.isArray(L.additional_emails) ? L.additional_emails : [])]
+          .map(e => String(e || '').trim().toLowerCase()).filter(Boolean);
+        if (landlordEmails.some(e => allAddresses.includes(e))) {
+          landlordId = L.id;
+          break;
+        }
+      }
+
       // Auto-tag using LLM
       let autoTags = [];
       try {
@@ -93,11 +109,17 @@ Return only a JSON array of matching tags.`,
 
       const receivedAt = dateRaw ? new Date(dateRaw).toISOString() : new Date().toISOString();
 
+      // Determine direction: if the sender is one of our agents, it's outbound;
+      // otherwise it's inbound (a reply from a landlord/lead).
+      const isOutbound = /\@erudite-estate\.com$/i.test(fromEmail);
+
       // Save email entity
       const email = await base44.asServiceRole.entities.Email.create({
         gmail_message_id: messageId,
         gmail_thread_id: message.threadId,
+        landlord_id: landlordId,
         lead_id: leadId,
+        direction: isOutbound ? 'outbound' : 'inbound',
         from_email: fromEmail,
         from_name: fromName,
         to: toRaw,

@@ -1,15 +1,18 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import BlockedAccount from '@/components/BlockedAccount';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import ShortLinkRedirect from '@/pages/ShortLinkRedirect';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
@@ -38,6 +41,7 @@ import InstagramLeads from '@/pages/InstagramLeads';
 import DuplicateDetector from '@/pages/DuplicateDetector';
 import ClaudeAI from '@/pages/ClaudeAI';
 import PropertyFinderSync from '@/pages/PropertyFinderSync';
+import PFAgentBRN from '@/pages/PFAgentBRN';
 import PropertyFinderDashboard from '@/pages/PropertyFinderDashboard';
 import PropertyFinderLeads from '@/pages/PropertyFinderLeads';
 import Landlords from '@/pages/Landlords';
@@ -99,8 +103,20 @@ import OutreachLeaderboard from '@/pages/OutreachLeaderboard';
 import MyLeadsToday from '@/pages/MyLeadsToday';
 import TeamPerformance from '@/pages/TeamPerformance';
 import AgentIntelligence from '@/pages/AgentIntelligence';
+import Appointments from '@/pages/Appointments';
+import AutomationsHub from '@/pages/AutomationsHub';
+import Flow from '@/pages/Flow';
+import AcademyHome from '@/pages/AcademyHome';
+import TheHall from '@/pages/TheHall';
+import TheMirror from '@/pages/TheMirror';
+import TheDojo from '@/pages/TheDojo';
+import TheField from '@/pages/TheField';
+import TheCouncil from '@/pages/TheCouncil';
+import TheMentor from '@/pages/TheMentor';
+
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -118,16 +134,22 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
+  if (authError?.type === 'domain_not_allowed') {
+    return <BlockedAccount email={authError.email} />;
+  }
+
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/pipeline" element={<Pipeline />} />
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/u/:slug" element={<ShortLinkRedirect />} />
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/aurora-pipeline" element={<AuroraPipeline />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/contacts" element={<Contacts />} />
@@ -155,6 +177,7 @@ const AuthenticatedApp = () => {
         <Route path="/claude-ai" element={<ClaudeAI />} />
         <Route path="/property-finder" element={<PropertyFinderSync />} />
         <Route path="/property-finder-dashboard" element={<PropertyFinderDashboard />} />
+        <Route path="/pf-agent-brn" element={<PFAgentBRN />} />
         <Route path="/property-finder-leads" element={<PropertyFinderLeads />} />
         <Route path="/duplicates" element={<DuplicateDetector />} />
         <Route path="/email-automations" element={<EmailAutomations />} />
@@ -213,11 +236,21 @@ const AuthenticatedApp = () => {
         <Route path="/my-leads-today" element={<MyLeadsToday />} />
         <Route path="/team-performance" element={<TeamPerformance />} />
         <Route path="/agent-intelligence" element={<AgentIntelligence />} />
-        <Route path="/closing" element={<Closing />} />
-      </Route>
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/automations-hub" element={<AutomationsHub />} />
+        <Route path="/flow" element={<Flow />} />
+        <Route path="/academy" element={<AcademyHome />} />
+        <Route path="/academy/hall" element={<TheHall />} />
+        <Route path="/academy/mirror" element={<TheMirror />} />
+        <Route path="/academy/dojo" element={<TheDojo />} />
+        <Route path="/academy/field" element={<TheField />} />
+        <Route path="/academy/council" element={<TheCouncil />} />
+        <Route path="/academy/mentor" element={<TheMentor />} />
+          </Route>
+        </Route>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </AnimatePresence>
   );
 };
 

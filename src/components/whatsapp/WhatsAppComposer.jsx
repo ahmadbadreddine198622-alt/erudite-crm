@@ -5,10 +5,11 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 import TemplatesModal from "@/components/whatsapp/TemplatesModal";
+import TemplateField from "@/components/common/TemplateField";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord, selectedChannel, onChannelChange }) {
+export default function WhatsAppComposer({ conversation, suggestions, onSend, onSendProperty, onScheduleSend, lead, landlord, selectedChannel, onChannelChange, isAgentOwnLine, ownNumber }) {
   const [text, setText] = useState("");
   const [showAssistant, setShowAssistant] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -24,8 +25,10 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
   const lastInbound = conversation?.last_inbound_at;
   const effectiveChannel = selectedChannel || conversation?.channel || 'personal';
-  // 24h window only applies to business (Meta Cloud API) channel — personal (Evolution) has no restriction
-  const windowLocked = effectiveChannel === 'business' && lastInbound
+  // 24h window only applies to the business (Meta Cloud API) channel — personal (Evolution/Baileys)
+  // has no restriction. Agents sending from their OWN Baileys line are never locked, even if the
+  // conversation record was originally on the business channel.
+  const windowLocked = !isAgentOwnLine && effectiveChannel === 'business' && lastInbound
     ? (Date.now() - new Date(lastInbound).getTime()) >= 24 * 60 * 60 * 1000
     : false;
 
@@ -42,21 +45,28 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
 
   const handleSendTemplate = async (template, template_components, resolvedBody) => {
     if (!conversation?.id) return;
+    const body = resolvedBody || template.body || '';
     setIsSendingTemplate(true);
     try {
-      const res = await base44.functions.invoke('sendWhatsAppMessage', {
-        conversation_id: conversation.id,
-        template_name: template.name,
-        template_language: template.language || 'en',
-        template_components: template_components || [],
-        template_body: resolvedBody || template.body || '',
-      });
+      // Agents with their own line: send the resolved template text from their OWN
+      // WhatsApp number (Baileys has no 24h window, so no template-required restriction).
+      // Admins / business channel: use Meta Cloud API template messaging.
+      const res = isAgentOwnLine
+        ? await base44.functions.invoke('sendMultiChannelWhatsApp', { conversation_id: conversation.id, text: body })
+        : await base44.functions.invoke('sendWhatsAppMessage', {
+            conversation_id: conversation.id,
+            template_name: template.name,
+            template_language: template.language || 'en',
+            template_components: template_components || [],
+            template_body: body,
+          });
       if (res.data?.error) throw new Error(res.data.error);
-      toast.success(`Template "${template.name}" sent!`);
+      toast.success(isAgentOwnLine ? 'Template sent from your WhatsApp line' : `Template "${template.name}" sent!`);
     } catch (e) {
       toast.error(e.message || 'Failed to send template.');
     } finally {
       setIsSendingTemplate(false);
+      setShowTemplates(false);
     }
   };
 
@@ -74,7 +84,16 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       setIsInternalNote(false);
       return;
     }
-    // If no channel is set yet (new conversation), show the channel picker first
+    // Agents with their own configured line never choose a company channel — the
+    // backend routes through their own Evolution instance regardless of `channel`.
+    // Skip the channel picker so the send fires immediately on click.
+    if (isAgentOwnLine) {
+      onSend(text.trim());
+      setText("");
+      return;
+    }
+    // Admins / unconfigured users: if no channel is set yet (new conversation),
+    // show the channel picker first.
     if (!selectedChannel) {
       setShowChannelPicker(true);
       return;
@@ -164,6 +183,15 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
                 <span className="text-xs font-semibold" style={{ color: 'hsl(280 65% 70%)' }}>👤 Malik</span>
                 <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971529871277</span>
               </button>
+              <button
+                onClick={() => handleChannelSelect('sameie')}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl border transition hover:scale-105"
+                style={{ background: 'hsl(330 70% 55% / 0.1)', borderColor: 'hsl(330 70% 55% / 0.4)' }}
+              >
+                <User className="w-5 h-5" style={{ color: 'hsl(330 70% 70%)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'hsl(330 70% 70%)' }}>🌸 Sameie</span>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>+971522869064</span>
+              </button>
             </div>
             <button onClick={() => setShowChannelPicker(false)} className="w-full text-xs text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>Cancel</button>
           </div>
@@ -173,16 +201,25 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       {/* Action icons row — no channel switcher */}
       <div className="flex items-center gap-1 px-3 pt-1.5 pb-0.5 flex-wrap">
         {/* Small channel indicator (read-only, shows which number is active) */}
-        {selectedChannel && (
+        {selectedChannel && !isAgentOwnLine && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
             style={{
-              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : selectedChannel === 'malik' ? 'hsl(280 65% 55% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
-              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : selectedChannel === 'malik' ? '1px solid hsl(280 65% 55% / 0.3)' : '1px solid hsl(217 91% 60% / 0.3)',
-              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : selectedChannel === 'malik' ? 'hsl(280 65% 70%)' : 'hsl(217 91% 70%)',
+              background: selectedChannel === 'business' ? 'hsl(152 69% 40% / 0.12)' : selectedChannel === 'malik' ? 'hsl(280 65% 55% / 0.12)' : selectedChannel === 'sameie' ? 'hsl(330 70% 55% / 0.12)' : 'hsl(217 91% 60% / 0.12)',
+              border: selectedChannel === 'business' ? '1px solid hsl(152 69% 40% / 0.3)' : selectedChannel === 'malik' ? '1px solid hsl(280 65% 55% / 0.3)' : selectedChannel === 'sameie' ? '1px solid hsl(330 70% 55% / 0.4)' : '1px solid hsl(217 91% 60% / 0.3)',
+              color: selectedChannel === 'business' ? 'hsl(152 69% 55%)' : selectedChannel === 'malik' ? 'hsl(280 65% 70%)' : selectedChannel === 'sameie' ? 'hsl(330 70% 70%)' : 'hsl(217 91% 70%)',
             }}
           >
             {selectedChannel === 'business' ? <Building2 className="w-3 h-3 mr-0.5" /> : <User className="w-3 h-3 mr-0.5" />}
-            {selectedChannel === 'business' ? '🏢 Business' : selectedChannel === 'malik' ? '👤 Malik' : '👤 Ahmad'}
+            {selectedChannel === 'business' ? '🏢 Business' : selectedChannel === 'malik' ? '👤 Malik' : selectedChannel === 'sameie' ? '🌸 Sameie' : '👤 Ahmad'}
+          </div>
+        )}
+        {isAgentOwnLine && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg mr-1 text-[10px] font-semibold"
+            style={{ background: 'hsl(152 69% 40% / 0.12)', border: '1px solid hsl(152 69% 40% / 0.3)', color: 'hsl(152 69% 55%)' }}
+            title={`Sending from your own WhatsApp line${ownNumber ? ': ' + ownNumber : ''}`}
+          >
+            <User className="w-3 h-3 mr-0.5" />
+            My line{ownNumber ? ` · ${ownNumber}` : ''}
           </div>
         )}
 
@@ -271,7 +308,8 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
         <div className={`flex-1 rounded-2xl px-3 py-1.5 border transition-colors ${
           isInternalNote ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-white/7 border-white/10'
         }`}>
-          <Textarea
+          <TemplateField
+            multiline
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder={

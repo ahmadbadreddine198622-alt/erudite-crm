@@ -4,8 +4,12 @@ Deno.serve(async (req) => {
   const verifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
   const metaVerifyToken = Deno.env.get("META_VERIFY_TOKEN");
   const metaWebhookSecret = Deno.env.get("META_WEBHOOK_SECRET");
+  const bbUrl = Deno.env.get("BLUEBUBBLES_SERVER_URL");
 
   return Response.json({
+    BLUEBUBBLES_SERVER_URL: bbUrl || "❌ MISSING",
+    bb_url_length: bbUrl?.length || 0,
+    bb_url_raw: bbUrl,
     WHATSAPP_PHONE_NUMBER_ID: phoneId ? "✅ SET" : "❌ MISSING",
     WHATSAPP_ACCESS_TOKEN: token ? "✅ SET" : "❌ MISSING",
     WHATSAPP_VERIFY_TOKEN: verifyToken ? "✅ SET" : "❌ MISSING",

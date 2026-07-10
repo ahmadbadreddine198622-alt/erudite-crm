@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Activity, UserPlus, MessageCircle, CheckCircle, Clock, FileText, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -23,10 +23,19 @@ const COLOR_MAP = {
 };
 
 export default function ActivityFeed({ limit = 10 }) {
+  const queryClient = useQueryClient();
   const { data: activities = [] } = useQuery({
     queryKey: ['activities-feed'],
     queryFn: () => base44.entities.LeadActivity.list('-created_date', limit),
   });
+
+  // Realtime: refresh the instant any activity is created/updated/deleted — no refresh/wait needed.
+  useEffect(() => {
+    const unsubscribe = base44.entities.LeadActivity.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['activities-feed'] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const groupedActivities = useMemo(() => {
     const now = new Date();

@@ -79,6 +79,11 @@
     "last_reminder_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this document item (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

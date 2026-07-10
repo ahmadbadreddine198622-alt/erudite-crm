@@ -43,6 +43,7 @@ import LeadFinancePanel from '@/components/leads/LeadFinancePanel';
 import IntentToggle from '@/components/leads/IntentToggle';
 import AppointmentComposer from '@/components/leads/AppointmentComposer';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
+import EmailComposeButton from '@/components/shared/EmailComposeButton';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const { getPhotoForPhone } = usePhotoByPhone();
@@ -591,6 +592,7 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
             <MessageSquare className="w-4 h-4 mr-1" /> WhatsApp
           </Button>
           <TwilioCallDialog lead={lead} />
+          <EmailComposeButton toEmail={lead.email} toName={lead.full_name} />
           <VoiceMemoButton lead={lead} />
           <ScheduleViewingDialog 
             lead_id={lead.id} 

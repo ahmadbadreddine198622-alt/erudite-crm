@@ -18,6 +18,7 @@ const PIPELINE_STAGES = [
 ];
 const ACTION_TYPES = [
   { value: 'send_email', label: 'Send Email' },
+  { value: 'send_template', label: 'Send Welcome Templates' },
   { value: 'notify', label: 'Notify Agent' },
   { value: 'tag', label: 'Add Tag' },
   { value: 'schedule_followup', label: 'Schedule Follow-up' },
@@ -74,7 +75,7 @@ export default function RuleFormDialog({ open, onClose, editingRule }) {
   const updateAction = (i, field, value) => setForm(f => {
     const actions = [...f.actions];
     if (field === 'type') {
-      actions[i] = { type: value, payload: value === 'send_email' ? { subject: '', body: '', to_field: 'lead_email' } : {} };
+      actions[i] = { type: value, payload: value === 'send_email' ? { subject: '', body: '', to_field: 'lead_email' } : value === 'send_template' ? { channel: 'all' } : {} };
     } else {
       actions[i] = { ...actions[i], payload: { ...actions[i].payload, [field]: value } };
     }
@@ -93,7 +94,7 @@ export default function RuleFormDialog({ open, onClose, editingRule }) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingRule ? 'Edit Automation' : 'New Email Automation'}</DialogTitle>
+          <DialogTitle>{editingRule ? 'Edit Automation' : 'New Automation'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
@@ -120,6 +121,7 @@ export default function RuleFormDialog({ open, onClose, editingRule }) {
                   <SelectItem value="lead_status_change">Lead Status Change</SelectItem>
                   <SelectItem value="pipeline_stage_change">Pipeline Stage Change</SelectItem>
                   <SelectItem value="lead_created">New Lead Created</SelectItem>
+                  <SelectItem value="landlord_created">New Landlord Created</SelectItem>
                   <SelectItem value="days_no_activity">Days Without Activity</SelectItem>
                   <SelectItem value="lead_score_change">Lead Score Change</SelectItem>
                   <SelectItem value="tag_added">Tag Added</SelectItem>
@@ -225,6 +227,24 @@ export default function RuleFormDialog({ open, onClose, editingRule }) {
                       <Label className="text-xs">From Name (optional)</Label>
                       <Input value={action.payload?.from_name || ''} onChange={e => updateAction(i, 'from_name', e.target.value)} placeholder="e.g. Your Agent Name" />
                     </div>
+                  </div>
+                )}
+
+                {action.type === 'send_template' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Channel</Label>
+                    <Select value={action.payload?.channel || 'all'} onValueChange={v => updateAction(i, 'channel', v)}>
+                      <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All channels</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="imessage">iMessage</SelectItem>
+                        <SelectItem value="sms">SMS</SelectItem>
+                        <SelectItem value="telegram">Telegram</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Sends the active Welcome Sequence templates for the chosen channel when the trigger fires.</p>
                   </div>
                 )}
 

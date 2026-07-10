@@ -71,16 +71,47 @@ function parseNaturalLanguage(text) {
     targetDate = new Date(now);
   }
 
-  // Detect time (e.g., "4pm", "2:30pm", "14:00", "11am")
+  // Detect time (e.g., "4pm", "2:30pm", "14:00", "11am", "5:00 in the afternoon", "tonight 8").
+  // Resolution order: a literal am/pm suffix always wins; otherwise a spoken time-of-day
+  // phrase ("afternoon"/"evening"/"morning"/"noon"/"midnight") sets the meridiem; if neither
+  // is present we keep the literal hour as-is (existing default behavior). All Asia/Dubai.
   let hours = 14; // default 2pm
   let minutes = 0;
+
+  // Standalone "noon"/"midday"/"midnight" with no explicit number → fixed times.
+  const hasNoon = /\b(noon|midday)\b/.test(lower);
+  const hasMidnight = /\bmidnight\b/.test(lower);
+
+  // Spoken time-of-day phrases (checked only when no literal am/pm suffix is found).
+  const isAfternoon = /\b(afternoon)\b/.test(lower);
+  const isEvening = /\b(evening|tonight)\b/.test(lower);
+  const isMorning = /\b(morning)\b/.test(lower);
+
   const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
   if (timeMatch) {
     hours = parseInt(timeMatch[1], 10);
     minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
     const meridiem = timeMatch[3];
-    if (meridiem === 'pm' && hours < 12) hours += 12;
-    if (meridiem === 'am' && hours === 12) hours = 0;
+    if (meridiem === 'pm') {
+      if (hours < 12) hours += 12;
+    } else if (meridiem === 'am') {
+      if (hours === 12) hours = 0;
+    } else if (isAfternoon || isEvening) {
+      // PM phrases: 1–11 → hour+12; 12 stays 12.
+      if (hours >= 1 && hours <= 11) hours += 12;
+    } else if (isMorning) {
+      // AM phrases: keep 1–11 as-is; 12 → 0.
+      if (hours === 12) hours = 0;
+    } else if (hasNoon) {
+      hours = 12; minutes = 0;
+    } else if (hasMidnight) {
+      hours = 0; minutes = 0;
+    }
+    // else: no am/pm and no time-of-day word → keep literal hour (default behavior).
+  } else if (hasNoon) {
+    hours = 12; minutes = 0;
+  } else if (hasMidnight) {
+    hours = 0; minutes = 0;
   }
 
   targetDate.setHours(hours, minutes, 0, 0);

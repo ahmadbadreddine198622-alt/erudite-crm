@@ -4,7 +4,11 @@
   "properties": {
     "pf_listing_id": {
       "type": "string",
-      "description": "Property Finder listing ID (external)"
+      "description": "Property Finder reference number (e.g. erudite-3366406) \u2014 used for display and search"
+    },
+    "pf_internal_id": {
+      "type": "string",
+      "description": "Property Finder internal ULID (e.g. 01JP8XB5...) \u2014 used for API calls (PATCH, publish, unpublish)"
     },
     "reference_number": {
       "type": "string",
@@ -14,13 +18,25 @@
       "type": "string",
       "description": "FK to Project entity"
     },
+    "landlord_property_id": {
+      "type": "string",
+      "description": "FK to LandlordProperty entity"
+    },
     "title": {
       "type": "string",
-      "description": "Listing title"
+      "description": "Listing title (English)"
+    },
+    "title_ar": {
+      "type": "string",
+      "description": "Listing title (Arabic)"
     },
     "description": {
       "type": "string",
-      "description": "Full property description from Property Finder"
+      "description": "Full property description (English)"
+    },
+    "description_ar": {
+      "type": "string",
+      "description": "Full property description (Arabic)"
     },
     "property_type": {
       "type": "string",
@@ -38,6 +54,14 @@
         "hotel_apartment"
       ]
     },
+    "category": {
+      "type": "string",
+      "enum": [
+        "residential",
+        "commercial"
+      ],
+      "default": "residential"
+    },
     "listing_type": {
       "type": "string",
       "enum": [
@@ -53,34 +77,81 @@
     "price_per_sqft": {
       "type": "number"
     },
+    "price_on_request": {
+      "type": "boolean",
+      "default": false,
+      "description": "Price hidden, shown as 'on request'"
+    },
+    "downpayment": {
+      "type": "number",
+      "description": "Downpayment amount (for sale)"
+    },
+    "number_of_cheques": {
+      "type": "number",
+      "description": "Number of cheques for rent payment"
+    },
+    "rent_frequency": {
+      "type": "string",
+      "enum": [
+        "yearly",
+        "monthly",
+        "weekly",
+        "daily"
+      ],
+      "description": "Rent payment frequency (for rent listings)"
+    },
     "area_sqft": {
-      "type": "number"
+      "type": "number",
+      "description": "Built-up area (BUA) in sqft"
+    },
+    "plot_size_sqft": {
+      "type": "number",
+      "description": "Plot size in sqft (for villas/land)"
     },
     "bedrooms": {
-      "type": "number"
+      "type": "number",
+      "description": "0 = Studio"
     },
     "bathrooms": {
       "type": "number"
+    },
+    "floor_number": {
+      "type": "string",
+      "description": "Floor number (as string, e.g. '9' or 'G')"
+    },
+    "number_of_floors": {
+      "type": "number",
+      "description": "Total floors in the building"
+    },
+    "parking_slots": {
+      "type": "number",
+      "description": "Number of parking slots"
     },
     "location": {
       "type": "string",
       "description": "Community/area name"
     },
+    "community": {
+      "type": "string",
+      "description": "PF community field (sub-area)"
+    },
     "city": {
       "type": "string",
       "default": "Dubai"
     },
-    "building_name": {
+    "uae_emirate": {
       "type": "string",
-      "description": "Building name from Property Finder"
+      "default": "dubai",
+      "description": "UAE emirate slug"
+    },
+    "building_name": {
+      "type": "string"
     },
     "address": {
-      "type": "string",
-      "description": "Full address from Property Finder"
+      "type": "string"
     },
     "unit_number": {
-      "type": "string",
-      "description": "Unit number from Property Finder"
+      "type": "string"
     },
     "latitude": {
       "type": "number"
@@ -116,6 +187,15 @@
         "off_plan"
       ]
     },
+    "project_status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "completed_primary",
+        "off_plan"
+      ],
+      "description": "PF projectStatus field \u2014 maps from DLD compliance"
+    },
     "completion_date": {
       "type": "string",
       "format": "date"
@@ -123,6 +203,7 @@
     "status": {
       "type": "string",
       "enum": [
+        "publishing",
         "active",
         "inactive",
         "under_offer",
@@ -131,48 +212,50 @@
         "draft",
         "expired"
       ],
-      "default": "active"
+      "default": "draft",
+      "description": "CRM mirror of PF portal live status"
     },
     "permit_number": {
       "type": "string",
-      "description": "RERA/Trakheesi permit number"
+      "description": "RERA/Trakheesi permit number (listingAdvertisementNumber)"
+    },
+    "issuing_license_number": {
+      "type": "string",
+      "description": "Issuing client license number (BRN / DED)"
     },
     "developer": {
-      "type": "string",
-      "description": "Developer name from Property Finder"
+      "type": "string"
     },
     "agent_email": {
       "type": "string",
-      "format": "email",
-      "description": "Assigned agent email from Property Finder"
+      "format": "email"
     },
     "agent_name": {
-      "type": "string",
-      "description": "Assigned agent name from Property Finder"
+      "type": "string"
     },
     "agency_name": {
       "type": "string"
     },
+    "pf_agent_id": {
+      "type": "number",
+      "description": "PF internal agent/assignedTo ID"
+    },
     "views_count": {
       "type": "number",
-      "default": 0,
-      "description": "Portal views (requires separate PF analytics endpoint - not mapped in syncPFListings)"
+      "default": 0
     },
     "leads_count": {
       "type": "number",
-      "default": 0,
-      "description": "Number of leads generated from this listing (requires separate PF analytics endpoint)"
+      "default": 0
     },
     "inquiries_count": {
       "type": "number",
-      "default": 0,
-      "description": "Number of inquiries (requires separate PF analytics endpoint)"
+      "default": 0
     },
     "quality_score": {
       "type": "number",
       "minimum": 0,
-      "maximum": 100,
-      "description": "Property Finder quality score (0-100)"
+      "maximum": 100
     },
     "published_at": {
       "type": "string",
@@ -184,8 +267,7 @@
     },
     "last_synced_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Last time this record was synced from Property Finder"
+      "format": "date-time"
     },
     "sync_status": {
       "type": "string",
@@ -205,7 +287,7 @@
     },
     "pf_url": {
       "type": "string",
-      "description": "Public URL on Property Finder portal"
+      "description": "Public URL on Property Finder portal \u2014 from portals.propertyfinder.url"
     },
     "featured": {
       "type": "boolean",
@@ -220,10 +302,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "pf_location_id": {
+      "type": "number",
+      "description": "PF location ID (location.id from API)"
     }
   },
   "required": [
-    "pf_listing_id",
     "listing_type",
     "status"
   ]

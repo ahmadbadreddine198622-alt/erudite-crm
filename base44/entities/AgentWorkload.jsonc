@@ -67,6 +67,11 @@
       "type": "number",
       "default": 0,
       "description": "Total revenue from closed deals in AED"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this agent workload record (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

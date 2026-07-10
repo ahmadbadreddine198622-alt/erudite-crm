@@ -20,19 +20,21 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'skipped', reason: 'status_not_triggered' });
     }
 
-    // Check if event already exists to avoid duplicates
-    if (lead.calendar_event_id) {
-      console.log('Event already created for this lead:', lead.calendar_event_id);
-      return Response.json({ status: 'skipped', reason: 'event_already_exists' });
-    }
-
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
 
-    // Parse date and time
-    const [year, month, day] = lead.preferred_date.split('-');
-    const [hours, minutes] = lead.preferred_time.split(':');
-    const startTime = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
-    const endTime = new Date(startTime.getTime() + 30 * 60000); // 30 min duration
+    // Build a naive wall-clock datetime string directly from the stored fields — no
+    // server-local Date round-trip, no "Z". Combined with timeZone "Asia/Dubai" this
+    // fixes the +4h drift. Asia/Dubai is a fixed UTC+4 offset with no DST.
+    const startWall = `${lead.preferred_date}T${lead.preferred_time}:00`;
+    // Compute +30 minutes safely (handles hour/day rollover) via UTC arithmetic, then
+    // format back to a wall-clock string (the absolute UTC instant is irrelevant here —
+    // we only use it to advance the clock and re-read the calendar fields).
+    const [y, mo, d] = lead.preferred_date.split('-').map((n) => parseInt(n, 10));
+    const [h, mi] = lead.preferred_time.split(':').map((n) => parseInt(n, 10));
+    const endMs = Date.UTC(y, mo - 1, d, h, mi) + 30 * 60000;
+    const endDate = new Date(endMs);
+    const pad = (n) => String(n).padStart(2, '0');
+    const endWall = `${endDate.getUTCFullYear()}-${pad(endDate.getUTCMonth() + 1)}-${pad(endDate.getUTCDate())}T${pad(endDate.getUTCHours())}:${pad(endDate.getUTCMinutes())}:00`;
 
     // Build event description
     const description = [
@@ -47,41 +49,69 @@ Deno.serve(async (req) => {
       summary: `Lead - ${lead.full_name} - ${lead.project || 'Project'}`,
       description,
       start: {
-        dateTime: startTime.toISOString(),
-        timeZone: 'UTC'
+        dateTime: startWall,
+        timeZone: 'Asia/Dubai'
       },
       end: {
-        dateTime: endTime.toISOString(),
-        timeZone: 'UTC'
+        dateTime: endWall,
+        timeZone: 'Asia/Dubai'
       }
     };
 
-    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(event_data)
-    });
+    const authHeaders = {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    };
+    const createUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
-    if (!response.ok) {
-      const error = await response.text();
-      return Response.json({ error: 'Failed to create calendar event', details: error }, { status: 500 });
+    // Idempotency: reuse an existing event if we already created one for this lead.
+    // google_event_id is the source of truth; calendar_event_id is a legacy fallback.
+    const existingEventId = lead.google_event_id || lead.calendar_event_id || null;
+
+    const createEvent = async () => {
+      const response = await fetch(createUrl, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(event_data)
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to create calendar event: ${error}`);
+      }
+      const createdEvent = await response.json();
+      await base44.entities.Leads.update(leadId, { google_event_id: createdEvent.id });
+      return createdEvent.id;
+    };
+
+    if (existingEventId) {
+      // Update the existing event in place.
+      const patchRes = await fetch(`${createUrl}/${encodeURIComponent(existingEventId)}`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify(event_data)
+      });
+
+      if (patchRes.ok) {
+        const updatedEvent = await patchRes.json();
+        // Backfill google_event_id for legacy records that only had calendar_event_id.
+        if (!lead.google_event_id) {
+          await base44.entities.Leads.update(leadId, { google_event_id: updatedEvent.id });
+        }
+        return Response.json({ status: 'updated', event_id: updatedEvent.id });
+      }
+
+      // Stored event was deleted in Google — create a fresh one.
+      if (patchRes.status === 404 || patchRes.status === 410) {
+        const newId = await createEvent();
+        return Response.json({ status: 'created', event_id: newId });
+      }
+
+      const error = await patchRes.text();
+      return Response.json({ error: 'Failed to update calendar event', details: error }, { status: 500 });
     }
 
-    const createdEvent = await response.json();
-
-    // Store calendar event ID in lead to avoid duplicates
-    await base44.entities.Leads.update(leadId, {
-      calendar_event_id: createdEvent.id
-    });
-
-    return Response.json({ 
-      status: 'success', 
-      event_id: createdEvent.id,
-      message: 'Calendar event created and synced'
-    });
+    const newId = await createEvent();
+    return Response.json({ status: 'created', event_id: newId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

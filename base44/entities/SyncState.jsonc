@@ -2,6 +2,14 @@
   "name": "SyncState",
   "type": "object",
   "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique key identifying this sync state entry"
+    },
+    "value": {
+      "type": "string",
+      "description": "Stored value (parse as number or JSON as needed)"
+    },
     "sync_token": {
       "type": "string",
       "description": "Google Calendar sync token for incremental syncs"
@@ -15,7 +23,14 @@
       "type": "number",
       "default": 0,
       "description": "Total events synced"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this sync state (max 1000 chars)",
+      "maxLength": 1000
     }
   },
-  "required": []
+  "required": [
+    "key"
+  ]
 }

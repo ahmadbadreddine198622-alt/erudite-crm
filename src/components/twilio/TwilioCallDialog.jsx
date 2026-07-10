@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Phone, Loader2, PhoneOff, Clock, Mic, MicOff } from 'lucide-react';
+import { Phone, Loader2, PhoneOff, Clock, Mic, MicOff, Radio } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCurrentUser } from '@/lib/useCurrentUser';
 
 /**
  * Browser-based calling via Twilio Voice SDK.
@@ -19,6 +20,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [muted, setMuted] = useState(false);
+  const [copilotOn, setCopilotOn] = useState(true); // 🎙 Live Call Copilot (landlord calls)
 
   const deviceRef = useRef(null);
   const callRef = useRef(null);
@@ -33,6 +35,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
     contact?.full_name || contact?.name || defaultPhone;
   const leadId = lead?.id || null;
   const landlordId = landlord?.id || null;
+  const { user: currentUser } = useCurrentUser();
 
   // When dialog opens: populate number and load caller ID
   useEffect(() => {
@@ -81,7 +84,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
   useEffect(() => { if (!open) fullReset(); }, [open, fullReset]);
 
-  const TWIML_VOICE_URL = `${window.location.origin.replace(/^https?:\/\/[^.]+\./, 'https://functions.')}/twilioVoiceWebhook`;
+  const TWIML_VOICE_URL = 'https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook';
 
   const handleCall = async () => {
     const toPhone = dialNumber.trim();
@@ -143,26 +146,67 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
       device.on('error', handleDeviceError);
 
-      // 4. Connect directly — no register()
-      const call = await device.connect({ params: { To: toPhone } });
+      // 4. Create the call log BEFORE connecting when Copilot is on — the
+      // TwiML webhook needs the id to fork audio + tag the right log.
+      const useCopilot = copilotOn && !!landlordId;
+      const connectParams = { To: toPhone };
+
+      if (useCopilot) {
+        try {
+          const logRes = await base44.functions.invoke('twilioMakeCall', {
+            lead_id: leadId,
+            landlord_id: landlordId,
+            to_phone: toPhone,
+            from_phone: callerNumber,
+            lead_name: targetName,
+            browser_mode: true,
+          });
+          callLogIdRef.current = logRes.data?.call_log_id || '';
+        } catch (_) { callLogIdRef.current = ''; }
+        if (callLogIdRef.current) {
+          connectParams.copilot = 'true';
+          connectParams.call_log_id = callLogIdRef.current;
+          connectParams.landlord_id = landlordId;
+          connectParams.agent_email = currentUser?.email || '';
+        }
+      }
+
+      const call = await device.connect({ params: connectParams });
       callRef.current = call;
       setPhase('ringing');
 
-      // 5. Create call log (fire-and-forget)
-      base44.functions.invoke('twilioMakeCall', {
-        lead_id: leadId,
-        landlord_id: landlordId,
-        to_phone: toPhone,
-        from_phone: callerNumber,
-        lead_name: targetName,
-        browser_mode: true,
-      }).then(res => { callLogIdRef.current = res.data?.call_log_id || ''; }).catch(() => {});
+      // Tell the Calls-tab cockpit a copilot call just started.
+      if (useCopilot && callLogIdRef.current) {
+        window.dispatchEvent(new CustomEvent('copilot:call', {
+          detail: { callLogId: callLogIdRef.current, landlordId, phase: 'started' },
+        }));
+      }
+
+      // 5. Create call log (fire-and-forget) — non-copilot path keeps old behavior
+      if (!useCopilot) {
+        base44.functions.invoke('twilioMakeCall', {
+          lead_id: leadId,
+          landlord_id: landlordId,
+          to_phone: toPhone,
+          from_phone: callerNumber,
+          lead_name: targetName,
+          browser_mode: true,
+        }).then(res => { callLogIdRef.current = res.data?.call_log_id || ''; }).catch(() => {});
+      }
+
+      const notifyEnded = () => {
+        if (useCopilot && callLogIdRef.current) {
+          window.dispatchEvent(new CustomEvent('copilot:call', {
+            detail: { callLogId: callLogIdRef.current, landlordId, phase: 'ended' },
+          }));
+        }
+      };
 
       call.on('ringing', () => setPhase('ringing'));
       call.on('accept', () => setPhase('active'));
-      call.on('disconnect', () => { setPhase('ended'); destroyDevice(); });
-      call.on('cancel', () => { setPhase('ended'); destroyDevice(); });
-      call.on('reject', () => { setPhase('ended'); destroyDevice(); });
+      call.on('disconnect', () => { setPhase('ended'); destroyDevice(); notifyEnded(); });
+      call.on('cancel', () => { setPhase('ended'); destroyDevice(); notifyEnded(); });
+      call.on('reject', () => { setPhase('ended'); destroyDevice(); notifyEnded(); });
       call.on('error', handleDeviceError);
 
     } catch (err) {
@@ -207,7 +251,8 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
 
       <DialogContent
         className="p-0 overflow-hidden"
-        style={{ background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
+        overlayClassName="bg-black/30"
+        style={{ background: 'rgba(13,27,42,0.85)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.1)', maxWidth: 340, borderRadius: 24 }}
       >
         <DialogTitle className="sr-only">Call {targetName}</DialogTitle>
 
@@ -265,6 +310,26 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.95)' }}
               />
             </div>
+
+            {/* Copilot toggle — landlord calls only */}
+            {landlordId && (
+              <button
+                type="button"
+                onClick={() => setCopilotOn(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all"
+                style={{
+                  background: copilotOn ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${copilotOn ? 'rgba(212,175,55,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                }}
+              >
+                <span className="flex items-center gap-2 text-xs font-semibold" style={{ color: copilotOn ? '#d4af37' : 'rgba(255,255,255,0.45)' }}>
+                  <Radio className="w-3.5 h-3.5" /> 🎙 Live Call Copilot
+                </span>
+                <span className="relative inline-flex h-4 w-8 rounded-full transition-colors" style={{ background: copilotOn ? '#d4af37' : 'rgba(255,255,255,0.15)' }}>
+                  <span className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all" style={{ left: copilotOn ? 18 : 2 }} />
+                </span>
+              </button>
+            )}
 
             {errorMsg && (
               <div className="text-xs px-3 py-2 rounded-xl" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>

@@ -34,6 +34,11 @@
     "color": {
       "type": "string",
       "description": "Hex color for visual identification"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this commission slab (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

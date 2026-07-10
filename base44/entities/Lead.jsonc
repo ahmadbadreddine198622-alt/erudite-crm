@@ -806,11 +806,6 @@
   ],
   "rls": {
     "create": {},
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
     "read": {
       "$or": [
         {
@@ -819,7 +814,7 @@
           }
         },
         {
-          "assigned_agent_email": "{{user.email}}"
+          "data.assigned_agent_email": "{{user.email}}"
         }
       ]
     },
@@ -831,9 +826,14 @@
           }
         },
         {
-          "assigned_agent_email": "{{user.email}}"
+          "data.assigned_agent_email": "{{user.email}}"
         }
       ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }

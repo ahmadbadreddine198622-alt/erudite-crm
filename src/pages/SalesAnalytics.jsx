@@ -10,28 +10,37 @@ import { TrendingUp, Target, BarChart3, DollarSign } from 'lucide-react';
 export default function SalesAnalytics() {
   const currentMonth = new Date().toISOString().slice(0, 7);
 
+  // Read-only reporting page (no mutations), so a generous staleTime is safe — these aggregate
+  // whole tables (Lead/Commission/User unbounded) and don't need second-fresh data. Without it they
+  // refetched on every remount/focus. Shared keys (['leads']/['users']) still refetch when another
+  // page invalidates them.
+  const REPORT_STALE = 5 * 60 * 1000;
   // Fetch all leads
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list()
+    queryFn: () => base44.entities.Lead.list(),
+    staleTime: REPORT_STALE,
   });
 
   // Fetch all commissions
   const { data: commissions = [] } = useQuery({
     queryKey: ['commissions'],
-    queryFn: () => base44.entities.Commission.list()
+    queryFn: () => base44.entities.Commission.list(),
+    staleTime: REPORT_STALE,
   });
 
   // Fetch all users for agent names
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list()
+    queryFn: () => base44.entities.User.list(),
+    staleTime: REPORT_STALE,
   });
 
   // Fetch agent goals
   const { data: goals = [] } = useQuery({
     queryKey: ['agentGoals'],
-    queryFn: () => base44.entities.AgentGoal.filter({ month: currentMonth })
+    queryFn: () => base44.entities.AgentGoal.filter({ month: currentMonth }),
+    staleTime: REPORT_STALE,
   });
 
   // Calculate sales cycle duration by agent

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save, Upload } from "lucide-react";
+import { Loader2, Save, Upload, Wrench } from "lucide-react";
 
 const DEFAULTS = {
   company_name_en: "ERUDITE REAL ESTATE",
@@ -41,8 +41,47 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [fixRunning, setFixRunning] = useState(false);
+  const [fixTotals, setFixTotals] = useState(null);
+  const [fixComplete, setFixComplete] = useState(false);
+  const fixStopRef = useRef(false);
+  const fixCursorRef = useRef(null);
 
   useEffect(() => { load(); }, []);
+
+  async function runFixOrphans() {
+    setFixRunning(true);
+    setFixComplete(false);
+    fixStopRef.current = false;
+    fixCursorRef.current = null;
+    setFixTotals({ matched: 0, channel_fixed: 0, noise_removed: 0, duplicates_removed: 0 });
+    setMsg(null);
+    try {
+      while (!fixStopRef.current) {
+        const res = await base44.functions.invoke("fixOrphanMessages", { cursor: fixCursorRef.current });
+        const data = res?.data ?? res;
+        const p = data?.processed || {};
+        setFixTotals((t) => ({
+          matched: (t.matched || 0) + (p.matched || 0),
+          channel_fixed: (t.channel_fixed || 0) + (p.channel_fixed || 0),
+          noise_removed: (t.noise_removed || 0) + (p.noise_removed || 0),
+          duplicates_removed: (t.duplicates_removed || 0) + (p.duplicates_removed || 0),
+        }));
+        if (data?.cursor) fixCursorRef.current = data.cursor;
+        if (!data?.remaining) break;
+      }
+      if (fixStopRef.current) {
+        setMsg({ type: "info", text: "Stopped — partial progress saved." });
+      } else {
+        setFixComplete(true);
+        setMsg({ type: "success", text: "Orphan message cleanup complete." });
+      }
+    } catch (e) {
+      setMsg({ type: "error", text: "Fix failed: " + (e?.message ?? e) });
+    } finally { setFixRunning(false); }
+  }
+
+  function stopFixOrphans() { fixStopRef.current = true; }
 
   async function load() {
     setLoading(true);
@@ -136,6 +175,38 @@ export default function CompanySettingsPage() {
               </label>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border mb-6">
+        <CardHeader className="border-b border-border"><CardTitle className="text-foreground">Data Maintenance</CardTitle></CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Re-links orphaned WhatsApp messages to landlords, fixes invalid channel values, removes duplicates, and filters noise (own line numbers, shortcodes, landlines). Runs in batches of 300.
+            </p>
+            <div className="flex items-center gap-3">
+              {!fixRunning ? (
+                <Button onClick={runFixOrphans}>
+                  <Wrench className="w-4 h-4 mr-2" />{fixComplete ? "Run Again" : "Fix Orphan Messages"}
+                </Button>
+              ) : (
+                <Button onClick={stopFixOrphans} variant="destructive">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />Stop
+                </Button>
+              )}
+              {fixRunning && <span className="text-xs text-muted-foreground">Processing batch… (cursor-based)</span>}
+              {fixComplete && <span className="text-xs font-semibold text-primary">Complete</span>}
+            </div>
+          </div>
+          {fixTotals && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Linked to landlord/lead</div><div className="text-lg font-bold text-foreground">{fixTotals.matched ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Channels fixed</div><div className="text-lg font-bold text-foreground">{fixTotals.channel_fixed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Duplicates removed</div><div className="text-lg font-bold text-foreground">{fixTotals.duplicates_removed ?? 0}</div></div>
+              <div className="rounded-md bg-muted/50 p-3"><div className="text-xs text-muted-foreground">Noise removed</div><div className="text-lg font-bold text-foreground">{fixTotals.noise_removed ?? 0}</div></div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

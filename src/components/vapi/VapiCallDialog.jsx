@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
-export default function VapiCallDialog({ lead, landlord, iconOnly = false }) {
+export default function VapiCallDialog({ lead, landlord, iconOnly = false, label = null }) {
     const [open, setOpen]                   = useState(false);
     const [assistants, setAssistants]       = useState([]);
     const [phoneNumbers, setPhoneNumbers]   = useState([]); // VAPI phone numbers
@@ -202,11 +202,19 @@ export default function VapiCallDialog({ lead, landlord, iconOnly = false }) {
     const initial = (entityName || phoneNumber || '?').charAt(0).toUpperCase();
 
     const trigger = iconOnly ? (
-        <button title="AI Voice Call (VAPI)"
-            className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-105"
-            style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
-            <Mic className="w-4 h-4 text-violet-400" />
-        </button>
+        label ? (
+            <button title="AI Voice Call (VAPI)"
+                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>
+                {label}
+            </button>
+        ) : (
+            <button title="AI Voice Call (VAPI)"
+                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-105"
+                style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                <Mic className="w-4 h-4 text-violet-400" />
+            </button>
+        )
     ) : (
         <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105"
             style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#c4b5fd' }}>
@@ -220,8 +228,10 @@ export default function VapiCallDialog({ lead, landlord, iconOnly = false }) {
 
             <DialogContent
                 className="p-0 overflow-hidden"
+                overlayClassName="bg-black/30"
                 style={{
-                    background: 'linear-gradient(160deg, #12101f 0%, #0d1120 100%)',
+                    background: 'rgba(18,16,31,0.88)',
+                    backdropFilter: 'blur(6px)',
                     border: '1px solid rgba(139,92,246,0.3)',
                     borderRadius: 20,
                     maxWidth: 360,

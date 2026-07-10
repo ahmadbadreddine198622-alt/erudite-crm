@@ -1,0 +1,66 @@
+{
+  "name": "TrainingReflection",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "week_number": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 17
+    },
+    "reflection_text": {
+      "type": "string"
+    },
+    "ai_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ai_feedback": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "week_number",
+    "reflection_text"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

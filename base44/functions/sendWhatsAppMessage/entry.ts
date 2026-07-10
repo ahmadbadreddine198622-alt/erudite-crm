@@ -6,28 +6,62 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  const { conversation_id, template_name, template_components, template_body } = body;
-  const message = body.message || body.message_text;
-  // Normalize language: Meta requires locale codes like en_US, ar, en — map bare "en" to "en_US"
-  const rawLang = body.template_language || 'en';
-  const template_language = rawLang === 'en' ? 'en_US' : rawLang;
-
-  if (!conversation_id || (!message?.trim() && !template_name)) {
-    return Response.json({ error: 'conversation_id and message (or template_name) are required' }, { status: 400 });
+  // STRICT: only Ahmad's two emails may send from the Business WhatsApp line (Meta API).
+  // Every other user — admin or not — is blocked from business template sends.
+  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  if (!AUTHORIZED_SHARED_EMAILS.includes((user.email || '').toLowerCase())) {
+    return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
   }
 
-  // Get conversation
-  const convList = await base44.asServiceRole.entities.WhatsAppConversation.filter({ id: conversation_id });
-  const conv = convList[0];
-  if (!conv) return Response.json({ error: 'Conversation not found' }, { status: 404 });
+  const body = await req.json();
+  const { template_name, template_components, template_body } = body;
+  const conversation_id = body.conversation_id || null;
+  const message = body.message || body.message_text;
+  // Use language exactly as returned from Meta — do not remap
+  const template_language = body.template_language || 'en';
+
+  if (!conversation_id && !body.to_phone) {
+    return Response.json({ error: 'conversation_id or to_phone is required' }, { status: 400 });
+  }
+  if (!message?.trim() && !template_name) {
+    return Response.json({ error: 'message or template_name is required' }, { status: 400 });
+  }
 
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
 
-  // Ensure phone has + prefix — Meta requires E.164 with leading +
-  const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
-  const toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
+  // Resolve conversation and phone
+  let conv = null;
+  let toPhone = '';
+  const isAdmin = user.role === 'admin';
+
+  if (conversation_id) {
+    // User-scoped fetch — RLS ensures agents only see their own conversations
+    const convList = await base44.entities.WhatsAppConversation.filter({ id: conversation_id });
+    conv = convList[0];
+    if (!conv) return Response.json({ error: 'Conversation not found or not assigned to you' }, { status: 403 });
+    const rawPhone = conv.wa_phone_e164 || conv.phone_number || '';
+    toPhone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone.replace(/^\+/, '');
+  } else {
+    // Direct send to phone (no conversation) — admins only
+    if (!isAdmin) {
+      return Response.json({ error: 'Only admins can send to a phone number directly. Use an assigned conversation instead.' }, { status: 403 });
+    }
+    const channel = body.channel || 'business';
+    toPhone = body.to_phone.startsWith('+') ? body.to_phone : '+' + body.to_phone.replace(/^\+/, '');
+    const existing = await base44.asServiceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: toPhone, channel });
+    if (existing[0]) {
+      conv = existing[0];
+    } else {
+      conv = await base44.asServiceRole.entities.WhatsAppConversation.create({
+        wa_phone_e164: toPhone,
+        phone_number: toPhone,
+        channel,
+        status: 'open',
+        ...(body.landlord_id ? { landlord_id: body.landlord_id } : {}),
+      });
+    }
+  }
 
   // Build payload - either text or template
   let payload;
@@ -70,9 +104,9 @@ Deno.serve(async (req) => {
   // Use the actual template body text if provided, otherwise fall back to message or a label
   const bodyText = message || template_body || `[Template: ${template_name}]`;
 
-  // Save outbound message
+  // Save outbound message — always tag with the conversation's channel so the UI can label it correctly
   const msgRecord = {
-    conversation_id,
+    conversation_id: conv.id,
     wa_message_id: waMessageId || '',
     direction: 'outbound',
     body: bodyText,
@@ -81,6 +115,7 @@ Deno.serve(async (req) => {
     from_number: '',
     to_number: conv.wa_phone_e164 || conv.phone_number,
     media_type: 'none',
+    channel: channel || conv.channel || 'business',
   };
   if (conv.lead_id) msgRecord.lead_id = conv.lead_id;
   await base44.asServiceRole.entities.WhatsAppMessage.create(msgRecord);
@@ -94,7 +129,7 @@ Deno.serve(async (req) => {
     status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
   };
   if (!conv.wa_phone_e164 && phoneE164) updatePayload.wa_phone_e164 = phoneE164;
-  await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, updatePayload);
+  await base44.asServiceRole.entities.WhatsAppConversation.update(conv.id, updatePayload);
 
   // Log activity only if there's a lead
   if (conv.lead_id) {

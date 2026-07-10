@@ -7,11 +7,10 @@ import { PhoneCall } from 'lucide-react';
 export default function AircallButton({ phone, name, iconOnly = false, size = 'sm' }) {
   if (!phone) return null;
 
-  // Normalize phone: strip spaces/dashes, ensure + prefix
+  // Normalize phone: strip spaces/dashes/parens
   const normalized = phone.replace(/[\s\-()]/g, '');
-
-  // Aircall click-to-call deep link
-  const aircallUrl = `aircall://dial?phone=${encodeURIComponent(normalized)}`;
+  // tel: protocol is intercepted by Aircall's Chrome extension to auto-dial
+  const aircallUrl = `tel:${normalized}`;
 
   return (
     <a

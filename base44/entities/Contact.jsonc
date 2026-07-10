@@ -10,10 +10,13 @@
       "type": "string",
       "description": "Primary phone number"
     },
-    "email": {
-      "type": "string",
-      "format": "email",
-      "description": "Email address"
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "email"
+      },
+      "description": "List of email addresses for this contact (primary + additional)"
     },
     "whatsapp": {
       "type": "string",

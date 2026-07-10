@@ -1,0 +1,82 @@
+{
+  "name": "LandlordDirective",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "directive_text": {
+      "type": "string",
+      "description": "The directive or comment text"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "founder_directive",
+        "frank_comment"
+      ],
+      "default": "founder_directive",
+      "description": "founder_directive = boss instruction to the agent; frank_comment = AI assistant (Frank) observation/commentary"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "normal"
+      ],
+      "default": "normal"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "acknowledged",
+        "resolved"
+      ],
+      "default": "active"
+    },
+    "created_by_email": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    },
+    "acknowledged_by_email": {
+      "type": "string"
+    },
+    "acknowledged_by_name": {
+      "type": "string"
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent_response": {
+      "type": "string"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "landlord_id",
+    "directive_text"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

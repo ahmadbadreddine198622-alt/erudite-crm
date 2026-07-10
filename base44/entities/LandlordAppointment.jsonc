@@ -45,6 +45,34 @@
     "google_event_id": {
       "type": "string",
       "description": "Google Calendar event ID if synced"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "call",
+        "email"
+      ],
+      "description": "Follow-up channel (separate from the call/viewing/meeting type)"
+    },
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "true when the follow-up was created from an AI suggestion chip"
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Which FollowupTemplate seeded the follow-up, e.g. silence_nudge_24h"
+    },
+    "was_edited_after_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "true if the user changed the AI-drafted notes before saving"
+    },
+    "confirmation_email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the customer confirmation email has been sent"
     }
   },
   "required": [

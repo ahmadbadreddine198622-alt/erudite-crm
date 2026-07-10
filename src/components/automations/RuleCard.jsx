@@ -1,9 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Play, Pause, Mail, Tag, Bell, CalendarClock, Clock } from 'lucide-react';
+import { Pencil, Trash2, Play, Pause, Mail, Tag, Bell, CalendarClock, Clock, Send } from 'lucide-react';
 
 const ACTION_ICONS = {
   send_email: Mail,
+  send_template: Send,
   tag: Tag,
   notify: Bell,
   schedule_followup: CalendarClock,
@@ -12,6 +13,7 @@ const ACTION_ICONS = {
 
 const ACTION_LABELS = {
   send_email: 'Send Email',
+  send_template: 'Send Welcome Templates',
   tag: 'Add Tag',
   notify: 'Notify Agent',
   schedule_followup: 'Schedule Follow-up',

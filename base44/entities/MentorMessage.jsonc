@@ -1,0 +1,65 @@
+{
+  "name": "MentorMessage",
+  "properties": {
+    "context_used": {
+      "description": "Which doctrine nodes, corpus chunks, and CRM signals were injected to produce this message",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "message": {
+      "type": "string"
+    },
+    "message_kind": {
+      "default": "chat",
+      "description": "chat = conversational turn, proactive_directive = mentor-initiated nudge from live CRM signals, weekly_review = end-of-week assessment",
+      "enum": [
+        "chat",
+        "proactive_directive",
+        "weekly_review"
+      ],
+      "type": "string"
+    },
+    "model_tier": {
+      "description": "haiku, sonnet, or opus \u2014 which tier produced this",
+      "type": "string"
+    },
+    "principle_slug": {
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "agent",
+        "mentor"
+      ],
+      "type": "string"
+    },
+    "session_id": {
+      "description": "Groups messages into conversations",
+      "type": "string"
+    },
+    "status": {
+      "default": "sent",
+      "enum": [
+        "sent",
+        "read",
+        "acted"
+      ],
+      "type": "string"
+    },
+    "trigger": {
+      "description": "For proactive directives: the CRM signal that fired e.g. deal_silent_9_days, streak_broken, call_volume_drop",
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "role",
+    "message"
+  ],
+  "type": "object"
+}

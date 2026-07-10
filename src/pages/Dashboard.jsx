@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { format } from 'date-fns';
+
 import { cn } from '@/lib/utils';
 import { Search, Users, Bell, MessageCircle, TrendingUp, Building2, UserCheck, LogOut, Settings, Shield, Mail, FileText, BarChart3, ChevronDown, UserCircle, Camera } from 'lucide-react';
 import { ALL_APPS, MIN_ITEMS, MAX_ITEMS } from '@/lib/navApps';
@@ -14,15 +14,22 @@ import ActivityFeed from '@/components/shared/ActivityFeed';
 import PerformanceStreaks from '@/components/shared/PerformanceStreaks';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
 import PFListingsGrid from '@/components/properties/PFListingsGrid';
+import AudioWaveform from '@/components/shared/AudioWaveform';
 import EruditeCard from '@/components/erudite/EruditeCard';
 import EruditeSection from '@/components/erudite/EruditeSection';
 import EruditeBadge from '@/components/erudite/EruditeBadge';
-import { Brain } from 'lucide-react';
+import EruditeHeroBanner from '@/components/erudite/EruditeHeroBanner';
+import IOSLockScreenClock from '@/components/dashboard/IOSLockScreenClock';
+import { Brain, Zap } from 'lucide-react';
 import FormADashboardWidget from '@/components/dashboard/FormADashboardWidget';
 import EvaluationPanel from '@/components/dashboard/EvaluationPanel';
+import { QUOTES } from '@/components/dashboard/MotivationalQuote';
 import PipelineStrip from '@/components/dashboard/PipelineStrip';
 import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashboardWidget';
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
+import DashboardBackground from '@/components/dashboard/DashboardBackground';
+import DashboardTopBar from '@/components/dashboard/DashboardTopBar';
+import AcademyStrip from '@/components/dashboard/AcademyStrip';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -47,15 +54,26 @@ export default function Dashboard() {
   const [holdingPath, setHoldingPath] = useState(null);
   const [holdCueActive, setHoldCueActive] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState(0);
   const pressTimer = useRef(null);
   const cueTimer = useRef(null);
   const menuRef = useRef(null);
+  const dashboardRef = useRef(null);
+
+  // Rotate quotes every 30 seconds for continuous motivation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load user
   useEffect(() => {
     base44.auth.me().then(u => {
       if (u?.email) setUserEmail(u.email);
-      if (u?.full_name) setUserName(u.full_name);
+      if (u?.display_name || u?.full_name) setUserName(u.display_name || u.full_name);
       if (u?.role) setUserRole(u.role);
       if (u?.position) setUserPosition(u.position);
       if (u?.profile_image) setUserProfileImage(u.profile_image);
@@ -87,20 +105,31 @@ export default function Dashboard() {
         setTilt({ x: nx, y: ny });
       });
     };
+    // Device orientation - iOS Safari requires permission and can cause issues
     const handleOrientation = (e) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setTilt({
-          x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
-          y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+      try {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          setTilt({
+            x: Math.max(-1, Math.min(1, (e.gamma || 0) / 30)),
+            y: Math.max(-1, Math.min(1, (e.beta  || 0) / 40 - 0.3)),
+          });
         });
-      });
+      } catch (err) {
+        console.warn('[Dashboard] Orientation error:', err);
+      }
     };
     window.addEventListener('pointermove', handlePointer, { passive: true });
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    // Only add orientation listener if not on iOS (requires permission on iOS 13+)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (!isIOS) {
+      window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    }
     return () => {
       window.removeEventListener('pointermove', handlePointer);
-      window.removeEventListener('deviceorientation', handleOrientation);
+      if (!isIOS) {
+        window.removeEventListener('deviceorientation', handleOrientation);
+      }
       cancelAnimationFrame(rafId);
     };
   }, []);
@@ -171,45 +200,67 @@ export default function Dashboard() {
     saveOrder(next);
   };
 
-  const { data: leads = [] } = useQuery({
+  const { data: leads = [], error: leadsError } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: reminders = [] } = useQuery({
+  const { data: reminders = [], error: remindersError } = useQuery({
     queryKey: ['reminders-pending'],
     queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 50),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], error: conversationsError } = useQuery({
     queryKey: ['wa-conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+  const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
     refetchInterval: 30000,
+    retry: 2,
+    staleTime: 5000,
   });
   
-  const { data: formAData, isLoading: isLoadingFormA } = useQuery({
+  const { data: formAData, isLoading: isLoadingFormA, error: formAError } = useQuery({
     queryKey: ['form-a-contracts'],
     queryFn: () => base44.functions.invoke('getFormAContracts', {}),
     refetchInterval: 60000,
     staleTime: 0,
+    retry: 2,
   });
 
-  const { data: photoData } = useQuery({
+  const { data: photoData, error: photoError } = useQuery({
     queryKey: ['photography-dashboard'],
     queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
     refetchInterval: 60000,
+    retry: 2,
+    staleTime: 5000,
   });
 
-  const { data: docsData } = useQuery({
+  const { data: docsData, error: docsError } = useQuery({
     queryKey: ['documents-dashboard'],
     queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
     refetchInterval: 60000,
+    retry: 2,
+    staleTime: 5000,
   });
+
+  // Log errors for debugging
+  useEffect(() => {
+    const errors = { leads: leadsError, reminders: remindersError, conversations: conversationsError, dashboard: dashboardError, formA: formAError, photo: photoError, docs: docsError };
+    const hasError = Object.values(errors).some(e => e);
+    if (hasError) {
+      console.error('[Dashboard] Query errors:', errors);
+    }
+  }, [leadsError, remindersError, conversationsError, dashboardError, formAError, photoError, docsError]);
 
   const phaseCounts = dashboardData?.phaseCounts || {};
   const landlordsWithQuals = dashboardData?.landlordsWithQualifications || [];
@@ -238,202 +289,66 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 pb-8 pt-20"
-      style={{
-        background: 'radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, #0F1419 45%, #121821 100%)',
-      }}
+      ref={dashboardRef}
+      className="dashboard-skin relative min-h-screen flex flex-col px-3 sm:px-4 pb-[120px] sm:pb-[140px] pt-1 sm:pt-2"
     >
-      {/* Logo */}
-      {logoUrl && (
-        <div className="mb-6">
-          <img src={logoUrl} alt="Erudite" className="h-12 object-contain" />
-        </div>
-      )}
+      <DashboardBackground />
+      <div className="relative" style={{ zIndex: 1 }}>
+      {/* ERUDITE Top Bar — wordmark, search, clock, avatar */}
+      <DashboardTopBar
+        search={search}
+        setSearch={setSearch}
+        userName={userName}
+        userEmail={userEmail}
+        userRole={userRole}
+        userPosition={userPosition}
+        userProfileImage={userProfileImage}
+        navigate={navigate}
+      />
 
-      {/* Logged-in account badge with dropdown menu */}
-      {userEmail && (
-        <div className="absolute top-4 right-4 z-50" ref={menuRef}>
-          <div
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:scale-105"
-            style={{
-              background: showUserMenu ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              border: showUserMenu ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(12px)',
-              color: 'rgba(255,255,255,0.75)',
-            }}
+      {/* THE 17 — Erudite Success Academy strip */}
+      <div className="w-full max-w-5xl mx-auto">
+        <AcademyStrip />
+      </div>
+
+      {/* KPI Strip — live counts (compact) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+        {[
+          { label: 'Active', value: badges.leads, icon: Users, sub: 'leads', subColor: '#7ce8c4', subBg: 'rgba(45,212,167,.16)', onClick: () => navigate('/leads') },
+          { label: 'Reminders', value: badges.reminders, icon: Bell, sub: 'pending', subColor: '#f5c878', subBg: 'rgba(240,169,59,.16)', onClick: () => navigate('/reminders') },
+          { label: 'Unread', value: badges.whatsapp, icon: MessageCircle, sub: 'messages', subColor: '#9bb9ff', subBg: 'rgba(61,109,246,.16)', onClick: () => navigate('/whatsapp') },
+          { label: 'Hot', value: hotLeads, icon: TrendingUp, sub: 'score≥75', subColor: '#f7a9d0', subBg: 'rgba(244,114,182,.16)', onClick: () => navigate('/leads') },
+        ].map((kpi, i) => (
+          <button
+            key={i}
+            onClick={kpi.onClick}
+            className="relative overflow-hidden flex flex-col items-center transition-all hover:-translate-y-[2px]"
+            style={{ gap: '3px', padding: '6px 8px 8px', background: 'var(--ds-card, rgba(255,255,255,0.022))', border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))', borderRadius: '14px' }}
           >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
-              style={{ background: userProfileImage ? 'transparent' : 'hsl(38 92% 50% / 0.25)', color: 'hsl(38 92% 55%)' }}
-            >
-              {userProfileImage ? (
-                <img src={userProfileImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (userName || userEmail)[0].toUpperCase()
-              )}
+            {/* Gold hairline top */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,.5), transparent)', marginLeft: 14, marginRight: 14 }} />
+            {/* Icon chip */}
+            <div className="flex items-center justify-center" style={{ width: 18, height: 18, borderRadius: 7, background: 'rgba(212,175,55,.1)', border: '1px solid rgba(212,175,55,.2)' }}>
+              <kpi.icon style={{ width: 9, height: 9, color: 'var(--ds-gold-lite, #eccd72)' }} />
             </div>
-            <div className="flex flex-col items-start gap-0">
-              <span style={{ color: 'hsl(38 92% 55%)' }} className="font-semibold">{userName || userEmail}</span>
-              {userPosition && <span className="text-[9px] uppercase tracking-wider" style={{ color: 'hsl(38 92% 50%)', opacity: 0.7 }}>{userPosition}</span>}
-            </div>
-            <ChevronDown className={`w-3 h-3 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} style={{ color: 'hsl(38 92% 55%)' }} />
-          </div>
-
-          {/* Dropdown Menu */}
-          {showUserMenu && (
-            <div
-              className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                background: 'rgba(15,20,30,0.95)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(245,158,11,0.35)',
-              }}
-            >
-              <div className="p-3 border-b border-white/10">
-                <p className="text-sm font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>{userName || 'User'}</p>
-                <p className="text-xs text-white/50">{userEmail}</p>
-                {userRole && (
-                  <div className="mt-1.5">
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 55%)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-                      {userRole}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="py-2">
-                <button
-                  onClick={() => { navigate('/team'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Users className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Team Management</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/landlords'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Building2 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Landlord Pipeline</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/leads'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <UserCheck className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Assign Leads</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/analytics'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Analytics</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/finance'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <FileText className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Finance</span>
-                </button>
-                <button
-                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-white/5 transition-colors"
-                >
-                  <Settings className="w-4 h-4" style={{ color: 'hsl(38 92% 55%)' }} />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>Profile Settings</span>
-                </button>
-              </div>
-              <div className="py-2 border-t border-white/10">
-                <button
-                  onClick={() => base44.auth.logout()}
-                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" style={{ color: 'rgba(255,100,100,0.8)' }} />
-                  <span style={{ color: 'rgba(255,100,100,0.8)' }}>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Stats Row — compact single row of 4 */}
-      <div
-        className="grid grid-cols-4 w-full max-w-4xl"
-        style={{ gap: 10, marginBottom: 26 }}
-      >
-        {/* Active Leads */}
-        <button
-          onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(232,163,61,0.15)', border: '1px solid rgba(232,163,61,0.2)' }}>
-            <Users className="w-4 h-4" style={{ color: '#e8a33d' }} />
-          </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#e8a33d', lineHeight: 1 }}>{badges.leads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>ACTIVE</p>
-        </button>
-
-        {/* Reminders */}
-        <button
-          onClick={() => navigate('/reminders')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(232,163,61,0.15)', border: '1px solid rgba(232,163,61,0.2)' }}>
-            <Bell className="w-4 h-4" style={{ color: '#e8a33d' }} />
-          </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#e8a33d', lineHeight: 1 }}>{badges.reminders}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>REMINDERS</p>
-        </button>
-
-        {/* Unread */}
-        <button
-          onClick={() => navigate('/whatsapp')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(91,155,255,0.15)', border: '1px solid rgba(91,155,255,0.2)' }}>
-            <MessageCircle className="w-4 h-4" style={{ color: '#5b9bff' }} />
-          </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: 'rgba(255,255,255,0.95)', lineHeight: 1 }}>{badges.whatsapp}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>UNREAD</p>
-        </button>
-
-        {/* Hot Leads */}
-        <button
-          onClick={() => navigate('/leads')}
-          className="flex flex-col items-center justify-center py-3 px-2 transition-all active:scale-[0.96]"
-          style={{ borderRadius: 18, background: 'linear-gradient(160deg,#141b29,#101622)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <div className="flex items-center justify-center mb-2" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
-          </div>
-          <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#22c55e', lineHeight: 1 }}>{hotLeads}</p>
-          <p className="uppercase font-semibold mt-1" style={{ fontSize: 9.5, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.4)' }}>HOT</p>
-        </button>
+            {/* Number */}
+            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(14px, 3vw, 28px)', fontWeight: 600, lineHeight: 1, color: 'var(--ds-ink, #e8ecf6)' }}>{kpi.value}</p>
+            {/* Label */}
+            <p className="text-[6px] sm:text-[7px] uppercase tracking-widest font-medium" style={{ color: 'var(--ds-muted, #8a93ab)' }}>{kpi.label}</p>
+            {/* Sub-chip */}
+            <span className="text-[6px] font-semibold px-1 py-px rounded-full" style={{ background: kpi.subBg, color: kpi.subColor }}>{kpi.sub}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Pipeline Summary Strip */}
-      {isLoadingDashboard ? (
-        <div className="w-full max-w-4xl mb-8 flex justify-center">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
-        </div>
-      ) : (
-        <PipelineStrip phaseCounts={phaseCounts} />
-      )}
-
-      {/* Clock */}
-      <div className="text-center" style={{ marginBottom: 22 }}>
-        <p style={{ fontSize: 34, fontWeight: 300, color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
-          {format(new Date(), 'h:mm')}
-          <span style={{ fontSize: 16, color: '#e8a33d', marginLeft: 4 }}>{format(new Date(), 'a')}</span>
+      {/* WORKSPACES section header */}
+      <div className="w-full max-w-5xl mx-auto mb-2 sm:mb-3">
+        <p className="text-[9px] sm:text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--ds-gold-lite, #eccd72)', opacity: 0.6, fontWeight: 500, fontFamily: "'Space Grotesk', sans-serif" }}>
+          Workspaces
         </p>
-        <p style={{ fontSize: 13, fontWeight: 600, color: '#e8a33d', marginTop: 4 }}>{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
+
+
 
       {/* Done button — only visible in edit mode */}
       {editMode && (
@@ -445,37 +360,11 @@ export default function Dashboard() {
         </button>
       )}
 
-      {/* Search */}
-      <div className="relative mb-10 w-full max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search apps"
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: 'rgba(255,255,255,0.95)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'hsl(38 92% 50%)';
-            e.target.style.background = 'rgba(255,255,255,0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.target.style.background = 'rgba(255,255,255,0.07)';
-          }}
-        />
-      </div>
-
-      {/* App Grid — folder mode or flat search results */}
-      <div className="ios-grid-enter w-full flex flex-col items-center pb-44">
+      {/* App Grid — folder mode or flat search results - COMPACT */}
+      <div className="ios-grid-enter w-full max-w-6xl mx-auto pb-1" style={{ marginTop: -2 }}>
         {search.trim() ? (
           /* Flat search results — show matching apps directly across all folders */
-          <div className="w-full max-w-2xl grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-4 gap-y-7">
+          <div className="w-full grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-x-4 gap-y-6">
             {filtered.map((app, idx) => {
               const Icon = app.icon;
               const badgeCount = app.badgeKey ? badges[app.badgeKey] : 0;
@@ -504,95 +393,26 @@ export default function Dashboard() {
             })}
           </div>
         ) : (
-          /* Folder grid */
+          /* Folder grid - responsive command center layout */
           <AppFolderGrid badges={badges} tilt={tilt} />
         )}
       </div>
 
-      {/* Quick Navigation Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center w-full max-w-3xl mt-6 mb-2">
-        <button
-          onClick={() => {
-            console.log('Navigating to Landlord Pipeline');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: 'hsl(38 92% 55%)' }}
-        >
-          <Building2 className="w-4 h-4" />
-          Landlord Pipeline
-        </button>
-        <button
-          onClick={() => {
-            console.log('Navigating to Assign Leads');
-            navigate('/landlords');
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
-        >
-          <UserCheck className="w-4 h-4" />
-          Assign Leads
-        </button>
-        <button
-          onClick={() => {
-            window.open('https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264', '_blank', 'noopener,noreferrer');
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
-        >
-          <UserCircle className="w-4 h-4" />
-          PF Agent Profile
-        </button>
-        <button
-          onClick={() => navigate('/policies')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc' }}
-        >
-          <Shield className="w-4 h-4" />
-          Policies & HR
-        </button>
-      </div>
+
 
       {/* Property Finder Listings */}
-      <EruditeSection title="Property Finder" subtitle="My Active Listings" icon={Building2} className="w-full max-w-5xl mt-8">
+      <div className="w-full mx-auto" style={{ maxWidth: '1320px' }}>
         <PFListingsGrid />
-      </EruditeSection>
+      </div>
 
-      {/* Evaluation Panel */}
-      <EvaluationPanel 
-        landlords={landlordsWithQuals} 
-        onUploadFormA={() => navigate('/form-a-inbox')} 
-      />
-
-      {/* AI Insights + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mt-8">
-        <EruditeSection title="AI Insights" subtitle="Your Intelligence Hub" icon={Brain}>
-          <AIInsightsDashboard />
-        </EruditeSection>
-        <EruditeSection title="Form A Contracts" subtitle="Recent Mandates" icon={FileText}>
-          {isLoadingFormA ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
-            </div>
-          ) : (
-            <FormADashboardWidget forms={formAWithLandlords} />
-          )}
-        </EruditeSection>
-        <EruditeSection title="Photography" subtitle="Production Pipeline" icon={Camera}>
-          <PhotographyDashboardWidget stageCounts={photoStageCounts} totalTasks={photoData?.totalTasks || 0} />
-        </EruditeSection>
-        <EruditeSection title="Documents" subtitle="Checklist Status" icon={FileText}>
-          <DocumentsDashboardWidget 
-            statusCounts={docsStatusCounts} 
-            typeCounts={docsData?.typeCounts || {}} 
-            totalDocs={docsData?.totalDocs || 0}
-            completionRate={docsData?.completionRate || 0}
-          />
-        </EruditeSection>
+      {/* Activity */}
+      <div className="w-full max-w-5xl mx-auto mt-4">
         <EruditeSection title="Activity" subtitle="Recent Updates" icon={TrendingUp}>
           <ActivityFeed />
         </EruditeSection>
       </div>
+
+
 
       {/* No results */}
       {search.trim() && filtered.length === 0 && (
@@ -608,6 +428,8 @@ export default function Dashboard() {
           title="Add to Dashboard"
         />
       )}
+
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -24,6 +24,7 @@ div[id*="Base44"] {
 
 @layer base {
   :root {
+    color-scheme: dark;
     --font-sans: 'Inter', sans-serif;
     --font-display: 'Playfair Display', serif;
 
@@ -66,6 +67,25 @@ div[id*="Base44"] {
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
   }
+
+  /* Dashboard skin tokens — internal dashboard design system.
+     Prefixed --ds- to avoid collision with existing Tailwind-mapped tokens
+     (--muted, --card, etc. are HSL triples consumed by hsl(var(...))). */
+  .dashboard-skin {
+    --ds-gold: #d4af37;
+    --ds-gold-lite: #eccd72;
+    --ds-gold-deep: #b8862b;
+    --ds-ink: #e8ecf6;
+    --ds-muted: #8a93ab;
+    --ds-muted-dim: #5d6680;
+    --ds-card: rgba(255,255,255,0.022);
+    --ds-card-line: rgba(255,255,255,0.07);
+    --font-display: 'Space Grotesk', sans-serif;
+  }
+
+  html, body {
+    overscroll-behavior: none;
+  }
 }
 
 @keyframes ios-slide-down {
@@ -98,6 +118,12 @@ div[id*="Base44"] {
 }
 .animate-shimmer {
   animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmerSlide {
+  0% { background-position: 220% 0%; }
+  50% { background-position: -220% 0%; }
+  100% { background-position: 220% 0%; }
 }
 
 /* Liquid Glass material — iOS 26 / macOS Tahoe frosted glass */
@@ -163,6 +189,25 @@ div[id*="Base44"] {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
+/* ─── Pipeline horizontal scroll — taller, gold-tinted, always visible ─── */
+.pipeline-scroll::-webkit-scrollbar { height: 10px; }
+.pipeline-scroll::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 99px;
+  margin: 0 4px;
+}
+.pipeline-scroll::-webkit-scrollbar-thumb {
+  background: hsl(38 92% 50% / 0.5);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.pipeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(38 92% 50% / 0.7);
+  background-clip: padding-box;
+}
+.pipeline-scroll { scrollbar-width: thin; }
+
 /* ─── Glass Card / Surface ─── */
 .glass-card {
   background: rgba(255,255,255,0.06);
@@ -186,6 +231,7 @@ div[id*="Base44"] {
   min-height: 100dvh;
   padding: 1.5rem 1rem 6rem;
   position: relative;
+  overflow-x: clip;
   /* subtle radial vignette matching dashboard */
   background:
     radial-gradient(ellipse 80% 60% at 50% -10%, rgba(250,180,40,0.04) 0%, transparent 70%),
@@ -284,13 +330,42 @@ div[id*="Base44"] {
 /* ─── Numeric / Money ─── */
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
+/* ─── iOS Touch Optimizations ─── */
+.select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button, a, .cursor-pointer, nav, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Global: prevent text selection on interactive elements */
+button *, a *, nav *, [role="button"] * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Safe area insets for iOS devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
+  select {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     font-family: var(--font-sans);
+    overflow-x: clip;
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,6 +15,27 @@ import DnaClusters from "@/components/aurora/DnaClusters";
 import CreateDealDialog from "@/components/aurora/CreateDealDialog";
 import PFDealsTab from "@/components/aurora/PFDealsTab";
 
+// V3 Phase 1 (SEE-ACROSS) for Deals — mirrors landlordPriority on the landlord board. The list
+// already arrived sorted by raw aurora_score, but a blocked or at-risk deal needs attention even at a
+// middling score. Composite priority floats those up: needs_human_review dominates, then risk, then
+// temperature (time-sensitivity), then the base health score, with weighted_value as a faint
+// tiebreaker. Pure client-side ordering — no LLM/schema/send; weights are heuristic pre-calibration
+// (P3 LEARN will tune them).
+const TEMP_RANK = { blazing: 4, hot: 3, warming: 2, cold: 1, frozen: 0 };
+function dealPriority(d) {
+  if (!d) return -1;
+  const score = typeof d.aurora_score === "number" ? d.aurora_score : 0;          // 0-100 base health
+  const risk = typeof d.aurora_risk_score === "number" ? d.aurora_risk_score : 0;  // 0-100
+  const temp = TEMP_RANK[d.aurora_temperature] ?? 1;
+  const review = d.needs_human_review ? 1 : 0;
+  const ev = d.aurora_forecast?.weighted_value || 0;
+  return review * 500   // a blocked / review-needed deal must surface above healthy ones
+       + risk           // high risk = needs attention now
+       + temp * 25      // hot deals are time-sensitive
+       + score          // base health
+       + Math.min(ev / 2e7, 3); // weighted value, faint tiebreaker (capped so it can't dominate)
+}
+
 export default function AuroraPipeline() {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [view, setView] = useState("constellation");
@@ -30,7 +51,12 @@ export default function AuroraPipeline() {
     queryFn: () => base44.entities.Deal.list("-aurora_score", 500)
   });
 
-  const activeDeals = deals.filter(d => !["won","lost"].includes(d.stage));
+  // Active deals, ordered by triage priority (next-to-act first) — see dealPriority above.
+  const activeDeals = useMemo(
+    () => deals.filter(d => !["won", "lost"].includes(d.stage))
+               .sort((a, b) => dealPriority(b) - dealPriority(a)),
+    [deals]
+  );
   const pfDeals = activeDeals.filter(d => d.lead_source === "property_finder");
 
   async function runTimeMachine(deal) {

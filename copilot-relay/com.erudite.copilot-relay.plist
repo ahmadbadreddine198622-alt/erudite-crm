@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.erudite.copilot-relay</string>
+
+  <!-- Adjust paths for your Mac mini:
+       - node: `which node` (Homebrew Apple Silicon: /opt/homebrew/bin/node,
+         Intel: /usr/local/bin/node)
+       - WorkingDirectory: where this repo's copilot-relay/ folder lives.
+       Secrets stay in copilot-relay/.env (loaded by the server via dotenv),
+       so no credentials live in this plist. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>server.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/erudite/erudite-crm/copilot-relay</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+  </dict>
+
+  <!-- Auto-start at boot/login and restart on crash. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/erudite/erudite-crm/copilot-relay/logs/relay.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/erudite/erudite-crm/copilot-relay/logs/relay.err.log</string>
+</dict>
+</plist>

@@ -62,17 +62,19 @@ Deno.serve(async (req) => {
       description: descLines,
       start: { dateTime: startTime.toISOString(), timeZone: UAE_TZ },
       end:   { dateTime: endTime.toISOString(),   timeZone: UAE_TZ },
+      // Add the acting agent as an attendee so the event also lands on their personal calendar.
+      ...(activity.assigned_to ? { attendees: [{ email: activity.assigned_to }] } : {}),
     };
 
     const existingCalId = activity.meta?.calendar_event_id;
     let calendarEventId = existingCalId;
     let method = 'POST';
-    let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+    let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all';
 
     if (existingCalId) {
       // PATCH existing event
       method = 'PATCH';
-      url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingCalId}`;
+      url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingCalId}?sendUpdates=all`;
     }
 
     const calRes = await fetch(url, {
@@ -85,7 +87,7 @@ Deno.serve(async (req) => {
       const errText = await calRes.text();
       // If event not found on update, fall back to create
       if (method === 'PATCH' && calRes.status === 404) {
-        const createRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        const createRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(calEvent),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Phone, PhoneOff, Mic, MicOff, Clock, X, Loader2, Delete } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Clock, X, Loader2, Delete, Move } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -16,6 +16,48 @@ export default function FloatingDialer() {
   const [elapsed, setElapsed] = useState(0);
   const [muted, setMuted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Draggable position — persisted to localStorage
+  const [pos, setPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('floatingDialerPos_v2');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return { x: 16, y: window.innerHeight - 60 };
+  });
+  const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0, moved: false, startX: 0, startY: 0 });
+
+  const onPointerDown = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      dragging: true,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    if (!dragRef.current.dragging) return;
+    const dx = Math.abs(e.clientX - dragRef.current.startX);
+    const dy = Math.abs(e.clientY - dragRef.current.startY);
+    if (dx > 4 || dy > 4) dragRef.current.moved = true;
+    const newX = Math.max(0, Math.min(window.innerWidth - 36, e.clientX - dragRef.current.offsetX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 36, e.clientY - dragRef.current.offsetY));
+    setPos({ x: newX, y: newY });
+  };
+  const onPointerUp = (e) => {
+    if (!dragRef.current.dragging) return;
+    dragRef.current.dragging = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+    // Only persist if actually dragged
+    if (dragRef.current.moved) {
+      try { localStorage.setItem('floatingDialerPos_v2', JSON.stringify(pos)); } catch (_) {}
+    }
+  };
+  const wasDragged = () => dragRef.current.moved;
 
   const deviceRef = useRef(null);
   const callRef = useRef(null);
@@ -149,23 +191,36 @@ export default function FloatingDialer() {
 
   const DIALPAD = [['1','2','3'],['4','5','6'],['7','8','9'],['*','0','#']];
 
+  // When the 300px-wide dialog opens, clamp position so the panel stays fully on-screen.
+  const PANEL_W = 300;
+  const PANEL_H = 420;
+  const clampForPanel = (p) => ({
+    x: Math.max(8, Math.min(window.innerWidth - PANEL_W - 8, p.x)),
+    y: Math.max(8, Math.min(window.innerHeight - PANEL_H - 8, p.y)),
+  });
+  const panelPos = open ? clampForPanel(pos) : pos;
+
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
-        title="Open Dialer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95"
-        style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 24px rgba(34,197,94,0.5)' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onClick={(e) => { if (wasDragged()) { e.preventDefault(); return; } setOpen(true); }}
+        title="Open Dialer (drag to move)"
+        className="fixed z-30 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95 touch-none group"
+        style={{ left: pos.x, top: pos.y, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', backdropFilter: 'blur(8px)', cursor: 'grab' }}
       >
-        <Phone className="w-6 h-6 text-white" />
+        <Phone className="w-4 h-4 text-green-400" />
+        <Move className="w-2.5 h-2.5 text-green-300/60 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
       </button>
     );
   }
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 rounded-3xl overflow-hidden shadow-2xl"
-      style={{ background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: 300, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
+      className="fixed z-50 rounded-3xl overflow-hidden shadow-2xl"
+      style={{ left: panelPos.x, top: panelPos.y, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.12)', width: PANEL_W, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

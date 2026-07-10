@@ -31,7 +31,9 @@ export default function AddLandlordDialog({ open, onClose, onSuccess }) {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Landlord.create(data),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      // Cold-tier orchestration on creation (no conversation yet) — best-effort, fire-and-forget.
+      if (created?.id) base44.functions.invoke('landlordOrchestrator', { landlord_id: created.id, tier: 'cold' }).catch(() => {});
       onSuccess();
       setFormData({
         full_name_en: '',

@@ -1,6 +1,43 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
+
+async function getPFToken(base44) {
+  const creds = await base44.asServiceRole.entities.PFCredential.list();
+  if (!creds || creds.length === 0) {
+    throw new Error('No Property Finder credentials configured');
+  }
+  const cred = creds[0];
+  const now = Date.now();
+
+  if (cred.access_token && cred.token_expires_at) {
+    const expiresAtMs = new Date(cred.token_expires_at).getTime();
+    if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
+      return cred.access_token;
+    }
+  }
+
+  if (!cred.api_key || !cred.api_secret) {
+    throw new Error('PF API key or secret missing');
+  }
+  const res = await fetch(`${PF_BASE}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ apiKey: cred.api_key, apiSecret: cred.api_secret }),
+  });
+  if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
+  const data = await res.json();
+  const accessToken = data.accessToken;
+  if (!accessToken) throw new Error('PF auth returned no accessToken');
+
+  const expiresInSec = data.expiresIn || 1800;
+  const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
+  await base44.asServiceRole.entities.PFCredential.update(cred.id, {
+    access_token: accessToken, token_expires_at: expiresAt, api_environment: 'production',
+  });
+  return accessToken;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -8,36 +45,12 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get Property Finder credentials from env or stored credentials
-    let PF_API_KEY = Deno.env.get('PROPERTY_FINDER_API_KEY');
-    let PF_API_SECRET = Deno.env.get('PROPERTY_FINDER_API_SECRET');
-    
-    // Try to get from stored credentials first
+    let accessToken;
     try {
-      const creds = await base44.asServiceRole.entities.PFCredential.list();
-      if (creds && creds.length > 0 && creds[0].is_connected) {
-        PF_API_KEY = creds[0].api_key || PF_API_KEY;
-        PF_API_SECRET = creds[0].api_secret || PF_API_SECRET;
-      }
-    } catch (e) { /* fallback to env vars */ }
-    
-    if (!PF_API_KEY || !PF_API_SECRET) {
-      return Response.json({ error: 'Property Finder credentials not configured' }, { status: 500 });
+      accessToken = await getPFToken(base44);
+    } catch (err) {
+      return Response.json({ error: err.message }, { status: 500 });
     }
-
-    // Authenticate with Property Finder
-    const authResponse = await fetch(`${PF_BASE}/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ apiKey: PF_API_KEY, apiSecret: PF_API_SECRET }),
-    });
-
-    if (!authResponse.ok) {
-      const txt = await authResponse.text();
-      return Response.json({ error: 'Property Finder auth failed: ' + authResponse.status + ' ' + txt }, { status: 500 });
-    }
-
-    const { accessToken } = await authResponse.json();
 
     // Fetch listings from Property Finder
     const listingsResponse = await fetch(`${PF_BASE}/listings?perPage=50`, {

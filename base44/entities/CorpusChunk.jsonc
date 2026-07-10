@@ -1,0 +1,48 @@
+{
+  "name": "CorpusChunk",
+  "properties": {
+    "chunk_index": {
+      "description": "Sequential index within the source",
+      "type": "integer"
+    },
+    "chunk_text": {
+      "description": "Verbatim source passage \u2014 populated ONLY by the local ingestion pipeline on the Mac Pro from company-owned copies; internal retrieval use only, never displayed raw to users",
+      "type": "string"
+    },
+    "embedding": {
+      "description": "Embedding vector for semantic retrieval",
+      "items": {
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "line_end": {
+      "type": "integer"
+    },
+    "line_start": {
+      "description": "Line range in the canonical extracted text",
+      "type": "integer"
+    },
+    "principle_number": {
+      "description": "Lecture/principle 1-17, 0 for front matter",
+      "type": "integer"
+    },
+    "source": {
+      "default": "book",
+      "description": "book or audio_lecture_NN transcript",
+      "type": "string"
+    },
+    "summary": {
+      "description": "Original one-line summary of what this passage covers \u2014 used for citation display",
+      "type": "string"
+    },
+    "token_count": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "principle_number",
+    "chunk_index"
+  ],
+  "type": "object"
+}

@@ -95,9 +95,11 @@
         "under_offer",
         "sold",
         "rented",
-        "off_market"
+        "off_market",
+        "handover_done"
       ],
-      "default": "available"
+      "default": "available",
+      "description": "Listing status. handover_done = keys handed over to buyer (shown green on Properties page)."
     },
     "permit_number": {
       "type": "string",

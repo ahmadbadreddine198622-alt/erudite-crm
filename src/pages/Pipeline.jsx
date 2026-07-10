@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import PipelineBoard from '@/components/pipeline/PipelineBoard';
+import PipelineSummaryCard from '@/components/pipeline/PipelineSummaryCard';
 import LeadDetailSheet from '@/components/leads/LeadDetailSheet';
 import MobilePipeline from '@/components/mobile/MobilePipeline';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { STAGES } from '@/lib/pipeline';
+import { STAGES, getStagesForIntent } from '@/lib/pipeline';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 
@@ -41,6 +42,23 @@ function mostRecentSync(credRow) {
   return candidates.sort().reverse()[0];
 }
 
+// V3 Phase 1 (SEE-ACROSS) for Leads — mirrors landlordPriority / dealPriority. The list arrived by
+// stage_entered_at; this floats the leads worth working NOW to the top: active buying signals, then
+// conversion likelihood, then churn risk (act before losing them), then base lead score. Pure
+// client-side ordering — no LLM/schema/send; heuristic pre-calibration (P3 LEARN tunes the weights).
+function leadPriority(l) {
+  if (!l) return -1;
+  const n = (v) => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const score = n(l.ai_lead_score) ?? n(l.lead_score) ?? 0;        // 0-100 base health
+  const conv = n(l.ai_conversion_probability) ?? 0;                // 0-1 likelihood
+  const churn = n(l.ai_churn_prediction) ?? 0;                     // 0-1, high = at risk of loss
+  const signals = Array.isArray(l.ai_buying_signals) ? l.ai_buying_signals.length : 0;
+  return signals * 25   // active buying signals = hot, act now
+       + conv * 40      // most-likely-to-convert first
+       + churn * 35     // at-risk-of-loss floats up
+       + score;         // base lead health / tiebreaker
+}
+
 export default function Pipeline() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -59,19 +77,34 @@ export default function Pipeline() {
   const { user: currentUser, permissions } = useCurrentUser();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
 
+  // Clear any leftover body/html scroll locks left by Radix Dialog/Sheet components
+  // that didn't clean up on unmount — these prevent the board from scrolling.
+  useEffect(() => {
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.style.removeProperty('overflow');
+    document.body.removeAttribute('data-scroll-locked');
+  }, []);
+
+  // staleTime stops these heavy loads (two are 5000-row lists) from refetching on every
+  // remount/focus, matching the `users` query just below and the rest of the app. The drag-stage and
+  // bulk mutations invalidate ['pipeline-leads'] explicitly, so pipeline freshness is unaffected.
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['pipeline-leads'],
     queryFn: () => base44.entities.Lead.list('-stage_entered_at', 5000),
+    staleTime: 30_000,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list('name', 200),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: listings = [] } = useQuery({
     queryKey: ['pipeline-listings'],
     queryFn: () => base44.entities.PFListing.list('-updated_date', 5000),
+    staleTime: 60_000,
   });
 
   const { data: users = [] } = useQuery({
@@ -97,6 +130,13 @@ export default function Pipeline() {
     },
     onError: () => toast.error('Failed to delete lead'),
   });
+
+  const { data: commissions = [] } = useQuery({
+    queryKey: ['pipeline-commissions'],
+    queryFn: () => base44.entities.Commission.filter({ status: 'pending' }),
+    staleTime: 30_000,
+  });
+  const commissionPipelineTotal = commissions.reduce((s, c) => s + (c.commission_amount_aed || 0), 0);
 
   const { data: credRows = [] } = useQuery({
     queryKey: ['pf-credential'],
@@ -150,6 +190,8 @@ export default function Pipeline() {
       if (assignmentFilter === 'assigned') result = result.filter(l => !!l.assigned_agent_email);
       if (assignmentFilter === 'unassigned') result = result.filter(l => !l.assigned_agent_email);
       if (financeFilter) result = result.filter(l => l.financing_type === financeFilter);
+      // V3 P1 SEE: order by triage priority (next-to-act first). result is a fresh filtered array.
+      result.sort((a, b) => leadPriority(b) - leadPriority(a));
       return result;
     },
     [leads, projectFilter, searchQuery, agentFilter, languageFilter, assignmentFilter, financeFilter, currentUser, permissions],
@@ -241,13 +283,14 @@ export default function Pipeline() {
 
   return (
     <div
-      className="flex flex-col min-h-screen"
+      className="flex flex-col"
       style={{
+        minHeight: '100vh',
         background: 'radial-gradient(ellipse at 30% 10%, rgba(20,30,60,0.55) 0%, rgba(8,11,18,0.92) 45%, rgba(6,8,14,0.98) 100%)',
       }}
     >
       <div className="px-8 pb-4">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div
             className="rounded-xl p-3"
             style={{
@@ -305,6 +348,26 @@ export default function Pipeline() {
             <p className="text-xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
               {totalPipelineValue >= 1_000_000 ? `AED ${(totalPipelineValue / 1_000_000).toFixed(1)}M` : totalPipelineValue >= 1_000 ? `AED ${(totalPipelineValue / 1_000).toFixed(0)}K` : `AED ${totalPipelineValue}`}
             </p>
+          </div>
+          <div
+            className="rounded-xl p-3 flex items-center gap-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-none" style={{ background: 'hsl(38 92% 50% / 0.14)', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+              <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
+              <p className="text-sm font-bold truncate" style={{ color: commissionPipelineTotal > 0 ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.4)' }}>
+                {commissionPipelineTotal > 0
+                  ? (commissionPipelineTotal >= 1_000_000 ? `AED ${(commissionPipelineTotal / 1_000_000).toFixed(1)}M` : commissionPipelineTotal >= 1_000 ? `AED ${(commissionPipelineTotal / 1_000).toFixed(0)}K` : `AED ${commissionPipelineTotal}`)
+                  : 'No commission yet'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -429,7 +492,7 @@ export default function Pipeline() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-8 mt-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="px-8 mt-0 pb-4">
         <TabsList
           className="self-start"
           style={{
@@ -453,75 +516,87 @@ export default function Pipeline() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sale" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="sale" style={{ marginTop: '1rem' }}>
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <PipelineBoard
-              track="buyer"
-              leads={buckets.sale}
-              getListing={getListing}
-              getPhotoForPhone={getPhotoForPhone}
-              onLeadClick={(l) => setSelectedLeadId(l.id)}
-              onStageChange={handleStageChange}
-              users={users}
-              onAssign={(id, email) => assignMutation.mutate({ id, email })}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
+            <div>
+              <PipelineSummaryCard leads={buckets.sale} stages={getStagesForIntent('buyer')} />
+              <PipelineBoard
+                track="buyer"
+                leads={buckets.sale}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="rent" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="rent" style={{ marginTop: '1rem' }}>
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <PipelineBoard
-              track="tenant"
-              leads={buckets.rent}
-              getListing={getListing}
-              getPhotoForPhone={getPhotoForPhone}
-              onLeadClick={(l) => setSelectedLeadId(l.id)}
-              onStageChange={handleStageChange}
-              users={users}
-              onAssign={(id, email) => assignMutation.mutate({ id, email })}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
+            <div>
+              <PipelineSummaryCard leads={buckets.rent} stages={getStagesForIntent('tenant')} />
+              <PipelineBoard
+                track="tenant"
+                leads={buckets.rent}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="intake" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="intake" style={{ marginTop: '1rem' }}>
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <PipelineBoard
-              track="unknown"
-              leads={buckets.intake}
-              getListing={getListing}
-              getPhotoForPhone={getPhotoForPhone}
-              onLeadClick={(l) => setSelectedLeadId(l.id)}
-              onStageChange={handleStageChange}
-              users={users}
-              onAssign={(id, email) => assignMutation.mutate({ id, email })}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
+            <div>
+              <PipelineSummaryCard leads={buckets.intake} stages={getStagesForIntent('unknown')} />
+              <PipelineBoard
+                track="unknown"
+                leads={buckets.intake}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="whatsapp" className="flex-1 flex flex-col min-h-0 mt-4">
+        <TabsContent value="whatsapp" style={{ marginTop: '1rem' }}>
           {leadsLoading ? (
             <LoadingState />
           ) : (
-            <PipelineBoard
-              track="unknown"
-              leads={buckets.whatsapp}
-              getListing={getListing}
-              getPhotoForPhone={getPhotoForPhone}
-              onLeadClick={(l) => setSelectedLeadId(l.id)}
-              onStageChange={handleStageChange}
-              users={users}
-              onAssign={(id, email) => assignMutation.mutate({ id, email })}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
+            <div>
+              <PipelineSummaryCard leads={buckets.whatsapp} stages={getStagesForIntent('unknown')} />
+              <PipelineBoard
+                track="unknown"
+                leads={buckets.whatsapp}
+                getListing={getListing}
+                getPhotoForPhone={getPhotoForPhone}
+                onLeadClick={(l) => setSelectedLeadId(l.id)}
+                onStageChange={handleStageChange}
+                users={users}
+                onAssign={(id, email) => assignMutation.mutate({ id, email })}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            </div>
           )}
         </TabsContent>
       </Tabs>

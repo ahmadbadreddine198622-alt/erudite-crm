@@ -1,0 +1,78 @@
+{
+  "name": "ChiefAim",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "aim_statement": {
+      "type": "string",
+      "description": "The agent's definite chief aim \u2014 long text"
+    },
+    "target_figure_aed": {
+      "type": "number",
+      "description": "Target income figure in AED"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "service_rendered": {
+      "type": "string",
+      "description": "What service/value they will render to earn it"
+    },
+    "affirmation_text": {
+      "type": "string",
+      "description": "AI-forged or manually edited daily affirmation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active"
+      ],
+      "default": "draft"
+    },
+    "activated_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "user_email",
+    "aim_statement"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -13,6 +13,11 @@
     "sig_url": {
       "type": "string",
       "description": "Public URL of the Erudite signature PNG"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this Ejari setup configuration (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": []

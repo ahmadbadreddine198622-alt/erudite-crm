@@ -1,0 +1,72 @@
+{
+  "name": "MastermindSession",
+  "type": "object",
+  "properties": {
+    "session_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "title": {
+      "type": "string"
+    },
+    "week_number": {
+      "type": "number"
+    },
+    "attendees": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "agenda": {
+      "type": "string"
+    },
+    "wins": {
+      "type": "string"
+    },
+    "commitments": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "completed",
+        "cancelled"
+      ],
+      "default": "scheduled"
+    },
+    "created_by_email": {
+      "type": "string",
+      "format": "email"
+    }
+  },
+  "required": [
+    "title",
+    "session_date"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

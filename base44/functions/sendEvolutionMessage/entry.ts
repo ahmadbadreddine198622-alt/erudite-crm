@@ -41,6 +41,12 @@ Deno.serve(async (req) => {
   const landlord = llList && llList[0];
   if (!landlord) return Response.json({ error: 'Landlord not found', landlord_id }, { status: 404 });
 
+  // Ownership check — agents can only send to landlords assigned to them
+  const isAdmin = user.role === 'admin';
+  if (!isAdmin && landlord.assigned_agent_email !== user.email) {
+    return Response.json({ error: 'You can only send WhatsApp messages to landlords assigned to you' }, { status: 403 });
+  }
+
   const number = toDigits(landlord.phone);
   if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
 
@@ -76,6 +82,7 @@ Deno.serve(async (req) => {
       timestamp: new Date().toISOString(),
       status: 'sent',
       wa_message_id: waId,
+      agent_email: user.email,
     });
   } catch (e) {
     // The message WAS sent on WhatsApp, but we failed to record it — surface it.

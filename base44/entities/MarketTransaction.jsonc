@@ -59,6 +59,11 @@
       "type": "boolean",
       "default": false,
       "description": "True if flagged as a fractional/partial transfer outlier \u2014 excluded from valuations"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this market transaction (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

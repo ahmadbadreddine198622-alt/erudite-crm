@@ -8,23 +8,66 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * - Null-guard: skip any lead with no pf_lead_id
  */
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const PROD_BASE = 'https://atlas.propertyfinder.com/v1';
+const SANDBOX_BASE = 'https://sandbox.atlas.propertyfinder.com/v1';
+const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
 
-async function getPFToken() {
-  const key = Deno.env.get('PROPERTY_FINDER_API_KEY');
-  const secret = Deno.env.get('PROPERTY_FINDER_API_SECRET');
-  const res = await fetch(`${PF_BASE}/auth/token`, {
+/**
+ * getPFToken — reads active_environment from PFCredential, returns the right JWT.
+ * Returns { token, baseUrl, environment }.
+ */
+async function getPFToken(base44) {
+  const creds = await base44.asServiceRole.entities.PFCredential.list();
+  if (!creds || creds.length === 0) {
+    throw new Error('No Property Finder credentials configured. Set them in Property Finder Sync → Settings.');
+  }
+  const cred = creds[0];
+  const env = cred.active_environment || 'sandbox';
+  const isSandbox = env === 'sandbox';
+  const baseUrl = isSandbox ? SANDBOX_BASE : PROD_BASE;
+
+  const apiKey = isSandbox ? cred.sandbox_api_key : cred.api_key;
+  const apiSecret = isSandbox ? cred.sandbox_api_secret : cred.api_secret;
+  const cachedToken = isSandbox ? cred.sandbox_access_token : cred.access_token;
+  const cachedExpiry = isSandbox ? cred.sandbox_token_expires_at : cred.token_expires_at;
+
+  const now = Date.now();
+
+  // Return cached token if still valid
+  if (cachedToken && cachedExpiry) {
+    const expiresAtMs = new Date(cachedExpiry).getTime();
+    if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
+      return { token: cachedToken, baseUrl, environment: env };
+    }
+  }
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(`PF ${env} API key or secret missing in PFCredential record`);
+  }
+
+  const res = await fetch(`${baseUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey: key, apiSecret: secret }),
+    body: JSON.stringify({ apiKey, apiSecret }),
   });
   if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
   const data = await res.json();
-  return data.accessToken;
+  const accessToken = data.accessToken;
+  if (!accessToken) throw new Error('PF auth returned no accessToken');
+
+  const expiresInSec = data.expiresIn || 1800;
+  const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
+  const updateData = isSandbox
+    ? { sandbox_access_token: accessToken, sandbox_token_expires_at: expiresAt }
+    : { access_token: accessToken, token_expires_at: expiresAt };
+  if (data.scopes) updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
+  await base44.asServiceRole.entities.PFCredential.update(cred.id, updateData);
+
+  return { token: accessToken, baseUrl, environment: env };
 }
 
-async function fetchPFUsers(token) {
-  const res = await fetch(`${PF_BASE}/users`, {
+async function fetchPFUsers(token, baseUrl) {
+  const res = await fetch(`${baseUrl}/users`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('PF users failed: ' + res.status);
@@ -37,8 +80,8 @@ async function fetchPFUsers(token) {
   return map;
 }
 
-async function fetchPFLeadsPage(token, page, perPage) {
-  const res = await fetch(`${PF_BASE}/leads?page=${page}&perPage=${perPage}&sort=-createdAt`, {
+async function fetchPFLeadsPage(token, baseUrl, page, perPage) {
+  const res = await fetch(`${baseUrl}/leads?page=${page}&perPage=${perPage}&sort=-createdAt`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) throw new Error('PF leads fetch failed: ' + res.status + ' ' + await res.text());
@@ -83,6 +126,49 @@ function mapPFLeadToCRM(pfLead, agentMap) {
   };
 }
 
+async function notifyAgent(base44, lead, crmData) {
+  const agentEmail = crmData.assigned_agent_email;
+  const leadName = crmData.full_name || 'Unknown';
+  const listingRef = crmData.closing_property_ref || '';
+  const leadId = lead.id;
+
+  // 1. CRM in-app notification
+  try {
+    await base44.asServiceRole.entities.Notification.create({
+      type: 'lead_assigned',
+      title: '🎯 New PF Lead Assigned',
+      message: `${leadName} enquired about ${listingRef || 'your listing'} on Property Finder.`,
+      recipient_email: agentEmail,
+      lead_id: leadId,
+      is_read: false,
+    });
+  } catch (e) { console.error('[notify] CRM notification failed:', e.message); }
+
+  // 2. Email notification
+  try {
+    await base44.asServiceRole.integrations.Core.SendEmail({
+      to: agentEmail,
+      subject: `🎯 New Lead: ${leadName} — Property Finder`,
+      body: `Hi,\n\nYou have a new lead from Property Finder:\n\nName: ${leadName}\nPhone: ${crmData.phone || '—'}\nListing: ${listingRef || '—'}\n\nLog in to the CRM to follow up.\n\nErudite CRM`,
+    });
+  } catch (e) { console.error('[notify] Email failed:', e.message); }
+
+  // 3. WhatsApp notification — look up agent's phone
+  try {
+    const agentUsers = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
+    const agent = agentUsers[0];
+    if (agent?.phone) {
+      const waPhone = String(agent.phone).replace(/\D/g, '');
+      const waMsg = `🎯 *New Lead — Property Finder*\n\nName: ${leadName}\nPhone: ${crmData.phone || '—'}\nListing: ${listingRef || '—'}\n\nLog in to the CRM to follow up immediately.`;
+      await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+        to_phone: waPhone.startsWith('0') ? '971' + waPhone.slice(1) : waPhone,
+        message: waMsg,
+        message_text: waMsg,
+      });
+    }
+  } catch (e) { console.error('[notify] WhatsApp failed:', e.message); }
+}
+
 async function withRetry(fn, attempts = 4) {
   let lastErr;
   for (let i = 1; i <= attempts; i++) {
@@ -115,10 +201,10 @@ Deno.serve(async (req) => {
     };
 
     // Auth
-    let token;
+    let token, baseUrl, environment;
     try {
-      token = await getPFToken();
-      console.log('[syncPFLeads] Auth OK');
+      ({ token, baseUrl, environment } = await getPFToken(base44));
+      console.log(`[syncPFLeads] Auth OK — environment: ${environment}, baseUrl: ${baseUrl}`);
     } catch (err) {
       return Response.json({ ok: false, error: err.message, ...diag });
     }
@@ -126,7 +212,7 @@ Deno.serve(async (req) => {
     // Agent map
     let agentMap = {};
     try {
-      agentMap = await fetchPFUsers(token);
+      agentMap = await fetchPFUsers(token, baseUrl);
       console.log('[syncPFLeads] Agent map:', Object.keys(agentMap).length, 'users');
     } catch (err) {
       console.error('[syncPFLeads] Agent map failed:', err.message);
@@ -145,7 +231,7 @@ Deno.serve(async (req) => {
     while (diag.total_leads_from_pf < MAX_LEADS) {
       let data;
       try {
-        data = await fetchPFLeadsPage(token, page, perPage);
+        data = await fetchPFLeadsPage(token, baseUrl, page, perPage);
       } catch (err) {
         console.error('[syncPFLeads] Page fetch error:', err.message);
         diag.fetch_error = err.message;
@@ -199,6 +285,10 @@ Deno.serve(async (req) => {
             if (diag.samples.length < 5) {
               diag.samples.push({ full_name: crmData.full_name, phone: crmData.phone, pf_lead_id: pfLeadId, agent: crmData.assigned_agent_email });
             }
+            // Fire-and-forget: notify the assigned agent via email, WhatsApp, and CRM notification
+            if (crmData.assigned_agent_email) {
+              notifyAgent(base44, newLead, crmData).catch(e => console.error('[syncPFLeads] notify failed:', e.message));
+            }
           } catch (err) {
             console.error('[syncPFLeads] Create failed:', pfLeadId, err.message);
             diag.failed_count++;
@@ -213,7 +303,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('[syncPFLeads] Done:', JSON.stringify(diag));
-    return Response.json({ ok: true, ...diag });
+    return Response.json({ ok: true, environment, ...diag });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

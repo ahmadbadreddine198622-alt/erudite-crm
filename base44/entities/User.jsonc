@@ -12,6 +12,10 @@
       ],
       "default": "agent"
     },
+    "display_name": {
+      "type": "string",
+      "description": "User-editable display name. The built-in full_name cannot be overridden via updateMe, so this field is the editable name the user controls in their Profile. Falls back to full_name when empty."
+    },
     "custom_role_id": {
       "type": "string",
       "description": "Reference to Role entity for granular permissions"
@@ -35,6 +39,104 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this member is the team leader"
+    },
+    "brn": {
+      "type": "string",
+      "description": "Agent's RERA BRN (Broker Registration Number) \u2014 required by Property Finder per listing"
+    },
+    "pf_public_profile_id": {
+      "type": "string",
+      "description": "Cached Property Finder public profile.id for this agent \u2014 looked up once, then cached on the User record"
+    },
+    "position": {
+      "type": "string",
+      "description": "Job title / position e.g. CEO, Senior Agent"
+    },
+    "profile_image": {
+      "type": "string",
+      "description": "Public URL of the user's profile picture"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "Public URL of the user's handwritten signature image"
+    },
+    "signature_card_url": {
+      "type": "string",
+      "description": "Public URL of the user's branded signature card image (the dark card with photo, title & contact details) \u2014 auto-appended to every email they send. Each user uploads their own."
+    },
+    "gmail_connected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the agent has connected their Gmail via OAuth \u2014 must be true to send any email"
+    },
+    "gmail_address": {
+      "type": "string",
+      "description": "The connected Gmail address that emails are sent from"
+    },
+    "email_signature_html": {
+      "type": "string",
+      "description": "Rich HTML signature appended to the bottom of every email the agent sends"
+    },
+    "office_location": {
+      "type": "string",
+      "description": "Office address shown in the branded email signature card e.g. The Burlington Tower, Business Bay"
+    },
+    "pf_profile_url": {
+      "type": "string",
+      "description": "Property Finder agent profile URL for the branded email signature CTA card"
+    },
+    "pf_rating": {
+      "type": "number",
+      "description": "Property Finder star rating shown on the PF CTA card e.g. 4.3"
+    },
+    "pf_deals_count": {
+      "type": "number",
+      "description": "Number of Property Finder deals shown on the PF CTA card e.g. 56"
+    },
+    "pf_deals_value_label": {
+      "type": "string",
+      "description": "Property Finder deals value label e.g. AED 100M+"
+    },
+    "erudite_listings_url": {
+      "type": "string",
+      "description": "URL for the 'Erudite Listings' CTA card. Defaults to https://www.eruditeproperty.com (Ahmad's link)."
+    },
+    "meet_team_url": {
+      "type": "string",
+      "description": "URL for the 'Meet the Team' CTA card. Defaults to https://www.eruditeproperty.com (Ahmad's link)."
+    },
+    "signature_stat_label": {
+      "type": "string",
+      "description": "Trophy stat line above the CTA grid e.g. AED 100M+ closed in Peninsula"
+    },
+    "whatsapp_number": {
+      "type": "string",
+      "description": "The agent's OWN WhatsApp number in E.164 (e.g. +971529871277). Entered in Profile; configures a per-agent Evolution instance so all outbound WhatsApp sends come from this number, not the shared company line."
+    },
+    "whatsapp_instance": {
+      "type": "string",
+      "description": "The Evolution API instance name for this agent's own WhatsApp line (e.g. wa_971529871277). Set when the line is configured in Profile. WhatsApp sending is disabled for non-admins when this is empty."
+    },
+    "default_reminder_text": {
+      "type": "string",
+      "description": "Default reminder message text pre-filled in the booking dialog"
+    },
+    "default_reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "when_hours": {
+            "type": "number",
+            "description": "Hours before the appointment to send the reminder"
+          },
+          "text": {
+            "type": "string",
+            "description": "Reminder message text"
+          }
+        }
+      },
+      "description": "Default set of reminders pre-filled in the booking dialog, editable per booking"
     }
   },
   "required": []

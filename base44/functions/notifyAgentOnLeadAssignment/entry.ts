@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
@@ -17,12 +17,12 @@ Deno.serve(async (req) => {
     }
 
     // Get lead data
-    const lead = await base44.entities.Lead.get(lead_id);
+    const lead = await base44.asServiceRole.entities.Lead.get(lead_id);
     if (!lead) {
       return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const appUrl = window.location.origin;
+    const appUrl = 'https://app.erudite-estate.com';
     const notificationPayload = {
       agent_email: new_assigned_agent_email,
       agent_name: lead.assigned_agent_name || new_assigned_agent_email,
@@ -34,15 +34,18 @@ Deno.serve(async (req) => {
 
     // 1. Send WhatsApp notification
     try {
-      const users = await base44.entities.User.filter({ email: new_assigned_agent_email });
+      const users = await base44.asServiceRole.entities.User.filter({ email: new_assigned_agent_email });
       const agent = users[0];
       
       if (agent?.phone) {
+        const rawPhone = String(agent.phone).replace(/\D/g, '');
+        const toPhone = rawPhone.startsWith('0') ? '971' + rawPhone.slice(1) : rawPhone;
         const whatsappMessage = `🎯 New Lead Assigned\n\nLead: ${lead.full_name}\nSource: ${lead.source || 'Meta Ads'}\nScore: ${lead.ai_lead_score || 'N/A'}\n\nView: ${appUrl}/leads?id=${lead.id}`;
         
-        await base44.functions.invoke('sendWhatsAppMessage', {
-          phone: agent.phone,
+        await base44.asServiceRole.functions.invoke('sendWhatsAppMessage', {
+          to_phone: toPhone,
           message: whatsappMessage,
+          message_text: whatsappMessage,
         });
       }
     } catch (error) {

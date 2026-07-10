@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -30,8 +30,32 @@ import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDi
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
 
+// Lit-display-case palette tokens (presentation only — leave data / logic / enum keys untouched)
+const LDC = {
+  bodyBg: 'linear-gradient(165deg,#0a1020 0%,#080c16 46%,#06080f 100%)',
+  gold:   '#c9a24b',
+  glite:  '#e3c06a',
+  gdeep:  '#a07d2e',
+  blue:   '#5a93e0',
+  blite:  '#87b2f0',
+  green:  '#3fb98a',
+  grlite: '#7fdcb4',
+  ink:    '#e8ecf6',
+  slate:  '#8b96b0',
+  dim:    '#5f6a85',
+  periwinkle: '#9cc0f0',
+  accent:     '#c4b1ff',   // violet — media/video
+  cardBg: 'linear-gradient(180deg,rgba(255,255,255,.032) 0%,rgba(255,255,255,.007) 100%)',
+  cardBr: '1px solid rgba(255,255,255,.08)',
+  cardSh: '0 16px 34px -22px rgba(0,0,0,.85)',
+  cardGl: 'inset 0 1px 0 rgba(255,255,255,.11), inset 0 -18px 32px -28px rgba(0,0,0,.55)',
+  rr13:   '13px',
+  rr18:   '18px',
+};
+
 const STAGES = [
   'initial_contact',
+  'attempted_to_contact',
   'price_discovery',
   'listing_commitment',
   'form_a_initiation',
@@ -52,6 +76,7 @@ const STAGES = [
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery & Negotiation',
   listing_commitment: 'Listing Commitment Validation',
   form_a_initiation: 'Form A Initiation',
@@ -83,11 +108,25 @@ export default function Landlords() {
   const [showQueuePanel, setShowQueuePanel] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  // Project filter persists in localStorage so the user stays "locked in" to their
+  // selected project across page refreshes and navigation to/from landlord detail.
+  const [filterProject, setFilterProjectState] = useState(() => {
+    try { return localStorage.getItem('ldc_filter_project') || ''; } catch { return ''; }
+  });
+  const setFilterProject = (val) => {
+    const v = val || '';
+    setFilterProjectState(v);
+    try {
+      if (v) localStorage.setItem('ldc_filter_project', v);
+      else localStorage.removeItem('ldc_filter_project');
+    } catch {}
+  };
   const [filterFloor, setFilterFloor] = useState('');
   const [filterLayout, setFilterLayout] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
   const [filterAssignment, setFilterAssignment] = useState('');
+  const [filterHandover, setFilterHandover] = useState('');
+  const [filterUnitLayout, setFilterUnitLayout] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
@@ -95,38 +134,51 @@ export default function Landlords() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const queryClient = useQueryClient();
   const { getPhotoForPhone, isLoading: photosLoading } = usePhotoByPhone();
+  const rootRef = useRef(null);
 
 
 
-  // Fetch all landlords and projects
+  // Fetch all landlords and projects. staleTime keeps the board from refetching these (three of
+  // which are whole-table loads) on every remount/refocus — mutations below still invalidate
+  // explicitly, so freshness on user actions is unaffected. Values follow the codebase convention:
+  // board data ~30s, slow-moving reference data ~minutes.
   const { data: landlords = [], isLoading } = useQuery({
     queryKey: ['landlords'],
     queryFn: () => base44.entities.Landlord.list('-updated_date', 1000),
+    staleTime: 30_000,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: () => base44.entities.Project.list(),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getAssignableAgents', {});
+      return res?.data?.agents || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: landlordProperties = [] } = useQuery({
     queryKey: ['landlord_properties'],
     queryFn: () => base44.entities.LandlordProperty.list(),
+    staleTime: 60_000,
   });
 
   const { data: properties = [] } = useQuery({
     queryKey: ['properties'],
     queryFn: () => base44.entities.Property.list(),
+    staleTime: 60_000,
   });
 
   const { data: photographyTasks = [] } = useQuery({
     queryKey: ['photography_tasks'],
     queryFn: () => base44.entities.PhotographyTask.list(),
+    staleTime: 60_000,
   });
 
   // Derive floor number from a unit_no string
@@ -150,12 +202,15 @@ export default function Landlords() {
     return '21+';
   };
 
-  // Build a map: landlord_id → { floor, layout }
+  // Build a map: landlord_id → { floor, layout }. Index properties by id ONCE (O(1) lookups) instead
+  // of a linear properties.find() per landlordProperty — that was O(landlordProperties × properties)
+  // and re-ran on every refetch of either whole table.
   const landlordPropertyMap = useMemo(() => {
+    const propsById = new Map(properties.map(p => [p.id, p]));
     const map = {};
     landlordProperties.forEach(lp => {
       if (!lp.landlord_id) return;
-      const prop = properties.find(p => p.id === lp.property_id);
+      const prop = propsById.get(lp.property_id);
       if (!prop) return;
       const floor = deriveFloor(prop.unit_no);
       let layout = null;
@@ -187,6 +242,13 @@ export default function Landlords() {
     if (!currentUser || safePermissions.view_all_landlords) return landlords;
     return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
   }, [landlords, currentUser, safePermissions.view_all_landlords]);
+
+  // Unique unit_layout values from visible landlords (for the filter dropdown)
+  const unitLayoutOptions = useMemo(() => {
+    const set = new Set();
+    visibleLandlords.forEach(l => { if (l.unit_layout) set.add(l.unit_layout); });
+    return Array.from(set).sort();
+  }, [visibleLandlords]);
 
   // Group by stage
   const stageGroups = useMemo(() => {
@@ -233,10 +295,12 @@ export default function Landlords() {
           if (!filterLayout) return true;
           const info = landlordPropertyMap[l.id];
           return info?.layout === filterLayout;
-        });
+        })
+        .filter(l => !filterHandover || l.handover_status === filterHandover)
+        .filter(l => !filterUnitLayout || l.unit_layout === filterUnitLayout);
     });
     return result;
-  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, searchQuery, landlordPropertyMap]);
+  }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, filterHandover, filterUnitLayout, searchQuery, landlordPropertyMap]);
 
   // Calculate metrics
   const totalPipeline = visibleLandlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
@@ -375,149 +439,68 @@ export default function Landlords() {
   }
 
   return (
-    <div className="page-root">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <Building2 className="w-6 h-6" style={{ color: 'hsl(38 92% 50%)' }} />
+    <div
+      ref={rootRef}
+      className="h-[100dvh] w-full flex flex-col overflow-hidden"
+      style={{ background: LDC.bodyBg }}
+      id="ldc-landlords"
+    >
+      {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
+          so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
+      <div className="shrink-0 sticky top-0 z-20 pt-1.5 pb-1" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
+        <div className="flex items-center gap-3 flex-nowrap overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {/* Title + icon */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ border: '1px solid rgba(201,162,75,.45)', boxShadow: '0 0 20px rgba(201,162,75,.22), inset 0 0 14px rgba(255,255,255,.06)',
+                background: 'radial-gradient(130% 130% at 30% 18%, rgba(201,162,75,.18), transparent 64%)' }}>
+              <Building2 className="w-4 h-4" style={{ color: LDC.gold }} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold page-title">Landlord Pipeline</h1>
-              <p className="page-subtitle mt-0.5">Agent's A-to-Z Mandate Acquisition Engine</p>
-            </div>
+            <h1 className="text-lg whitespace-nowrap" style={{ fontFamily: "'Cormorant',serif", fontWeight: 700, color: LDC.ink }}>Landlord Pipeline</h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
-              <Upload className="w-4 h-4" />
-              <span className="hidden lg:inline">Import Owners</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
-              <Video className="w-4 h-4" />
-              <span className="hidden lg:inline">Virtual Viewing</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
-              <FileSignature className="w-4 h-4 text-amber-400" />
-              <span className="hidden lg:inline">Upload Form A</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span className="hidden lg:inline">Market Report</span>
-            </Button>
-            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
-              style={{ background: 'linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 45%))', color: 'hsl(222 47% 11%)' }}>
-              <Plus className="w-4 h-4" />
-              <span className="hidden lg:inline">New Landlord</span>
-            </Button>
-            {selectedProject?.image_url && (
-              <img
-                src={selectedProject.image_url}
-                alt={selectedProject.name}
-                className="w-[70px] h-[70px] rounded-lg object-cover border border-white/20 ml-auto"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <DollarSign className="w-4 h-4" style={{ color: 'hsl(38 92% 50%)' }} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Commission Pipeline</span>
-            </div>
-            <p className="text-2xl font-bold truncate" style={{ color: 'hsl(38 92% 50%)' }}>
+          {/* Inline commission stat — icon + value, no card */}
+          <div className="flex items-center gap-1.5 shrink-0 px-2.5 h-9 rounded-md"
+            style={{ background: 'rgba(201,162,75,.1)', border: '1px solid rgba(201,162,75,.25)', boxShadow: '0 0 12px rgba(201,162,75,.08)' }}>
+            <DollarSign className="w-3.5 h-3.5" style={{ color: LDC.gold }} />
+            <span className="text-sm font-bold tabular-nums gold-text" style={{ color: LDC.gold }}>
               {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
-            </p>
+            </span>
           </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                <FileCheck className="w-4 h-4 text-emerald-500" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Form A Signed</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{mandateCount}</p>
-          </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                <Clock className="w-4 h-4 text-purple-400" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Avg Days to Form A</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{avgDaysToFormA}d</p>
-          </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <TrendingUp className="w-4 h-4 text-amber-500" />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>Stalled &gt;21d</span>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.95)' }}>{stalledLeads}</p>
-          </div>
-        </div>
 
-        {/* Lead Queue */}
-        <div className="mb-4">
+          {/* My Lead Queue */}
           <button
             onClick={() => setShowQueuePanel(p => !p)}
-            className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors"
-            style={{ background: showQueuePanel ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: showQueuePanel ? 'hsl(38 92% 55%)' : 'rgba(255,255,255,0.55)' }}
+            className="flex items-center gap-1.5 text-xs px-2.5 h-9 rounded-md transition-colors shrink-0 whitespace-nowrap"
+            style={{ background: showQueuePanel ? 'rgba(201,162,75,.12)' : 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', color: showQueuePanel ? LDC.gold : 'rgba(255,255,255,.7)' }}
           >
             <ListOrdered className="w-3.5 h-3.5" />
             My Lead Queue
           </button>
-          {showQueuePanel && (
-            <div className="mt-2 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
-            </div>
-          )}
-        </div>
 
-        {/* Project Intelligence */}
-        {filterProject && filterProject !== 'unassigned' && (
-          <ProjectIntelStrip
-            landlords={allFilteredLandlords}
-            landlordPropertyMap={landlordPropertyMap}
-            properties={properties}
-            landlordProperties={landlordProperties}
-          />
-        )}
+          {/* Search — flexible width, fills the middle */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search name, unit, phone, email, project…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-8 h-9 text-xs rounded-md"
+              style={{ background: 'rgba(255,255,255,.033)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', outline: 'none' }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
-        {/* Search */}
-        <div className="relative mb-3 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by name, unit number, phone, email, project…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-8 py-2 text-xs rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.9)', outline: 'none' }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Filters + Bulk Actions */}
-        <div className="flex gap-2 flex-wrap items-center">
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+          {/* Select all + agent filter */}
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0 whitespace-nowrap">
             <input
               type="checkbox"
               checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
@@ -526,11 +509,59 @@ export default function Landlords() {
             />
             Select all ({allFilteredLandlords.length})
           </label>
+          {safePermissions.view_all_landlords && users.length > 0 && (
+            <select
+              value={filterAgent}
+              onChange={(e) => setFilterAgent(e.target.value)}
+              className="h-9 px-3 text-xs rounded-md shrink-0"
+              style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
+            >
+              <option value="">All Agents</option>
+              {users.map(u => (
+                <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
+              ))}
+            </select>
+          )}
 
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
+              <Upload className="w-4 h-4" />
+              <span className="hidden xl:inline">Import</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
+              <Video className="w-4 h-4" />
+              <span className="hidden xl:inline">Virtual</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
+              <FileSignature className="w-4 h-4 text-amber-400" />
+              <span className="hidden xl:inline">Form A</span>
+            </Button>
+            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
+              <FileText className="w-4 h-4 text-purple-400" />
+              <span className="hidden xl:inline">Report</span>
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
+              style={{ background: 'linear-gradient(135deg, #c9a24b, #b08c2e)', color: '#0a0e1a', border: '1px solid rgba(201,162,75,.5)', boxShadow: '0 0 16px rgba(201,162,75,.4)' }}>
+              <Plus className="w-4 h-4" />
+              <span className="hidden xl:inline">New</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Lead Queue panel (expands below the toolbar when toggled) */}
+        {showQueuePanel && (
+          <div className="mt-2 p-4 rounded-xl"               style={{ background: LDC.cardBg, border: LDC.cardBr, boxShadow: LDC.cardSh }}>
+            <LockedLeadQueue onSelectLandlord={(id) => navigate(`/landlord/${id}`)} />
+          </div>
+        )}
+
+        {/* Filters + Bulk Actions — second compact row: filters in a centered scroll track · count pill hard right */}
+        <div className="flex items-center gap-3 w-full mt-1">
           {selectedIds.size > 0 ? (
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}
+              style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.35)' }}
             >
               <UserCheck className="w-3.5 h-3.5 text-accent shrink-0" />
               <span className="text-xs font-semibold text-accent whitespace-nowrap">{selectedIds.size} selected</span>
@@ -538,11 +569,11 @@ export default function Landlords() {
                 value={bulkAgentEmail}
                 onChange={e => setBulkAgentEmail(e.target.value)}
                 className="px-2 py-1 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)', minWidth: 130 }}
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
               >
                 <option value="">Select agent…</option>
                 {users.map(u => (
-                  <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
                 ))}
               </select>
               <Button
@@ -572,106 +603,172 @@ export default function Landlords() {
             </div>
           ) : (
             <>
-              {safePermissions.view_all_landlords && users.length > 0 && (
+              {/* Centered filter track — scrolls horizontally on narrow viewports, stays one line */}
+              <div className="filter-track flex-1 min-w-0 flex items-center gap-2 overflow-x-auto">
+                {safePermissions.view_all_landlords && users.length > 0 && (
+                  <select
+                    value={filterAgent}
+                    onChange={(e) => setFilterAgent(e.target.value)}
+                    className="h-9 px-3 text-xs rounded-md shrink-0"
+                    style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 140 }}
+                  >
+                    <option value="">All Agents</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
+                    ))}
+                  </select>
+                )}
                 <select
-                  value={filterAgent}
-                  onChange={(e) => setFilterAgent(e.target.value)}
-                  className="px-3 py-2 text-xs rounded-md"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', minWidth: 140 }}
+                  value={filterArchetype}
+                  onChange={(e) => setFilterArchetype(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
                 >
-                  <option value="">All Agents</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  <option value="">All Archetypes</option>
+                  <option value="professional_investor">Professional Investor</option>
+                  <option value="individual_end_user_relocating">Individual Relocating</option>
+                  <option value="first_time_seller">First Time Seller</option>
+                  <option value="portfolio_optimizer">Portfolio Optimizer</option>
+                </select>
+                <div className="shrink-0">
+                  <ProjectSelectorWithUpload
+                    value={filterProject}
+                    onChange={(val) => setFilterProject(val || '')}
+                    projects={projects}
+                  />
+                </div>
+                <select
+                  value={filterFloor}
+                  onChange={(e) => setFilterFloor(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+                >
+                  <option value="">All Floors</option>
+                  <option value="1-10">Floors 1–10</option>
+                  <option value="11-20">Floors 11–20</option>
+                  <option value="21+">Floors 21+</option>
+                </select>
+                <select
+                  value={filterLayout}
+                  onChange={(e) => setFilterLayout(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Layouts</option>
+                  <option value="Studio">Studio</option>
+                  <option value="1BR">1BR</option>
+                  <option value="2BR">2BR</option>
+                  <option value="3BR">3BR</option>
+                  <option value="4BR+">4BR+</option>
+                </select>
+                <select
+                  value={filterHandover}
+                  onChange={(e) => setFilterHandover(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Handover</option>
+                  <option value="Handed Over">Handed Over</option>
+                  <option value="Not Handed Over">Not Handed Over</option>
+                </select>
+                <select
+                  value={filterUnitLayout}
+                  onChange={(e) => setFilterUnitLayout(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Unit Layouts</option>
+                  {unitLayoutOptions.map(layout => (
+                    <option key={layout} value={layout}>{layout}</option>
                   ))}
                 </select>
-              )}
-              <select
-                value={filterArchetype}
-                onChange={(e) => setFilterArchetype(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Archetypes</option>
-                <option value="professional_investor">Professional Investor</option>
-                <option value="individual_end_user_relocating">Individual Relocating</option>
-                <option value="first_time_seller">First Time Seller</option>
-                <option value="portfolio_optimizer">Portfolio Optimizer</option>
-              </select>
-              <ProjectSelectorWithUpload
-                value={filterProject}
-                onChange={(val) => setFilterProject(val || '')}
-                projects={projects}
-              />
-              <select
-                value={filterFloor}
-                onChange={(e) => setFilterFloor(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Floors</option>
-                <option value="1-10">Floors 1–10</option>
-                <option value="11-20">Floors 11–20</option>
-                <option value="21+">Floors 21+</option>
-              </select>
-              <select
-                value={filterLayout}
-                onChange={(e) => setFilterLayout(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Layouts</option>
-                <option value="Studio">Studio</option>
-                <option value="1BR">1BR</option>
-                <option value="2BR">2BR</option>
-                <option value="3BR">3BR</option>
-                <option value="4BR+">4BR+</option>
-              </select>
-              <select
-                value={filterLanguage}
-                onChange={(e) => setFilterLanguage(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Languages</option>
-                <option value="en">English</option>
-                <option value="ar">Arabic</option>
-                <option value="ru">Russian</option>
-                <option value="zh">Chinese</option>
-                <option value="hi">Hindi</option>
-              </select>
-              <select
-                value={filterAssignment}
-                onChange={(e) => setFilterAssignment(e.target.value)}
-                className="px-3 py-2 text-xs rounded-md"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-              >
-                <option value="">All Assignments</option>
-                <option value="unassigned">Unassigned</option>
-                <option value="assigned">Assigned</option>
-              </select>
+                <select
+                  value={filterLanguage}
+                  onChange={(e) => setFilterLanguage(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Languages</option>
+                  <option value="en">English</option>
+                  <option value="ar">Arabic</option>
+                  <option value="ru">Russian</option>
+                  <option value="zh">Chinese</option>
+                  <option value="hi">Hindi</option>
+                </select>
+                <select
+                  value={filterAssignment}
+                  onChange={(e) => setFilterAssignment(e.target.value)}
+                  className="h-9 px-3 text-xs rounded-md shrink-0"
+                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
+                >
+                  <option value="">All Assignments</option>
+                  <option value="unassigned">Unassigned</option>
+                  <option value="assigned">Assigned</option>
+                </select>
+                {(filterFloor || filterLayout || filterLanguage || filterAssignment || filterHandover || filterUnitLayout || searchQuery) && (
+                  <button
+                    onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setFilterHandover(''); setFilterUnitLayout(''); setSearchQuery(''); }}
+                    className="h-9 text-xs px-2.5 rounded-md transition-opacity opacity-70 hover:opacity-100 shrink-0 whitespace-nowrap"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+
+              {/* Count pill — pinned hard right */}
               <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: 'hsl(38 92% 50%)' }}
+                className="flex items-center gap-1.5 px-3 h-9 rounded-md text-xs font-semibold shrink-0 ml-auto"
+                style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.25)', color: LDC.gold }}
               >
                 <Users className="w-3.5 h-3.5" />
                 {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
               </div>
-              {(filterFloor || filterLayout || filterLanguage || filterAssignment || searchQuery) && (
-                <button
-                  onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setSearchQuery(''); }}
-                  className="text-xs px-2.5 py-1.5 rounded-lg transition-opacity opacity-70 hover:opacity-100"
-                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
-                >
-                  Clear filters
-                </button>
-              )}
             </>
           )}
         </div>
+
+        {/* Curved "valley" divider — full width, dip centered, fades to transparent at both ends */}
+        <div className="w-full mt-1 -mb-1 pointer-events-none" aria-hidden="true">
+          <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-2 block">
+            <defs>
+              <linearGradient id="valley-fade" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#c9a24b" stopOpacity="0" />
+                <stop offset="50%" stopColor="#c9a24b" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#c9a24b" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M0 4 Q 600 28 1200 4" fill="none" stroke="url(#valley-fade)" strokeWidth="1.5" />
+          </svg>
+        </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto pb-4" style={{ minHeight: '420px' }}>
+      {/* Project Intelligence — sits above the board, outside the sticky header so
+          the header height never shifts when a project filter is selected. */}
+      {filterProject && filterProject !== 'unassigned' && (
+        <div className="shrink-0 px-2 pt-1" style={{ paddingLeft: '4.5rem', paddingRight: '0.5rem' }}>
+          <ProjectIntelStrip
+            landlords={allFilteredLandlords}
+            landlordPropertyMap={landlordPropertyMap}
+            properties={properties}
+            landlordProperties={landlordProperties}
+          />
+        </div>
+      )}
+
+      {/* Kanban Board — unlocked 2D scrolling (horizontal + vertical).
+           dnd-kit owns drag + edge auto-scroll; native overflow owns manual scroll. */}
+      <style>{`
+        .flex-nowrap::-webkit-scrollbar { display: none; }
+        .flex-nowrap { -ms-overflow-style: none; scrollbar-width: none; }
+        .filter-track { scrollbar-width: thin; scrollbar-color: hsl(38 92% 50% / 0.35) transparent; }
+        .filter-track::-webkit-scrollbar { height: 6px; }
+        .filter-track::-webkit-scrollbar-track { background: transparent; }
+        .filter-track::-webkit-scrollbar-thumb { background: hsl(38 92% 50% / 0.3); border-radius: 99px; }
+        .filter-track::-webkit-scrollbar-thumb:hover { background: hsl(38 92% 50% / 0.55); }
+      `}</style>
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, padding: '0 0.5rem', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
@@ -685,7 +782,10 @@ export default function Landlords() {
           onSingleAssign={(id, email) => singleAssignMutation.mutate({ id, agentEmail: email })}
           photographyTasks={photographyTasks}
           getPhotoForPhone={getPhotoForPhone}
+          onDragActiveChange={() => {}}
+          style={{ height: '100%' }}
         />
+        </div>
       </div>
 
       {/* Dialogs */}

@@ -1,6 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const PROD_BASE = 'https://atlas.propertyfinder.com/v1';
+const SANDBOX_BASE = 'https://sandbox.atlas.propertyfinder.com/v1';
 
 Deno.serve(async (req) => {
   try {
@@ -10,70 +11,88 @@ Deno.serve(async (req) => {
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
     const body = await req.json();
-    const { api_key } = body;
-    let { api_secret } = body;
+    const environment = body.environment || 'sandbox';
+    const isSandbox = environment === 'sandbox';
+    const baseUrl = isSandbox ? SANDBOX_BASE : PROD_BASE;
+
+    const api_key = (body.api_key || '').trim();
     if (!api_key) return Response.json({ error: 'API key is required' }, { status: 400 });
 
-    // If no new secret provided, reuse the existing one
+    // Resolve api_secret — either new value or reuse existing from DB
+    let api_secret = (body.api_secret || '').trim();
+    const existing = await base44.asServiceRole.entities.PFCredential.list();
+    const existingCred = existing && existing.length > 0 ? existing[0] : null;
+
     if (!api_secret) {
-      const existing2 = await base44.asServiceRole.entities.PFCredential.list();
-      if (existing2 && existing2.length > 0 && existing2[0].api_secret) {
-        api_secret = existing2[0].api_secret;
-      } else {
-        // Fall back to env var
-        api_secret = Deno.env.get('PROPERTY_FINDER_API_SECRET') || '';
-        if (!api_secret) return Response.json({ error: 'API secret is required' }, { status: 400 });
-      }
+      // Try to reuse existing secret for this environment
+      api_secret = isSandbox
+        ? (existingCred?.sandbox_api_secret || '')
+        : (existingCred?.api_secret || '');
     }
 
-    // Test credentials using the correct PF atlas API
+    if (!api_secret) {
+      return Response.json({ error: 'API secret is required' }, { status: 400 });
+    }
+
+    // Test the credentials against the correct base URL
     let isConnected = false;
     let testMessage = '';
+    let accessToken = null;
     try {
-      const authRes = await fetch(`${PF_BASE}/auth/token`, {
+      const authRes = await fetch(`${baseUrl}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ apiKey: api_key, apiSecret: api_secret }),
       });
       if (authRes.ok) {
         const tokenData = await authRes.json();
-        if (tokenData.accessToken) {
+        accessToken = tokenData.accessToken;
+        if (accessToken) {
           isConnected = true;
-          testMessage = 'Connected successfully';
+          testMessage = `Connected to ${environment} successfully`;
         } else {
           testMessage = 'Auth responded but no token returned';
         }
       } else {
         const errBody = await authRes.text();
-        testMessage = `Authentication failed (HTTP ${authRes.status}): ${errBody.substring(0, 200)}`;
+        testMessage = `Authentication failed (HTTP ${authRes.status}): ${errBody.substring(0, 300)}`;
       }
     } catch (e) {
       testMessage = `Connection error: ${e.message}`;
     }
 
-    // Upsert
-    const existing = await base44.asServiceRole.entities.PFCredential.list();
     const now = new Date().toISOString();
+    const updateData = {
+      active_environment: environment,
+      last_tested_at: now,
+      test_message: testMessage,
+    };
 
-    if (existing && existing.length > 0) {
-      await base44.asServiceRole.entities.PFCredential.update(existing[0].id, {
-        api_key,
-        api_secret,
-        is_connected: isConnected,
-        last_tested_at: now,
-        test_message: testMessage,
-      });
+    if (isSandbox) {
+      updateData.sandbox_api_key = api_key;
+      updateData.sandbox_api_secret = api_secret;
+      updateData.sandbox_is_connected = isConnected;
+      if (accessToken) {
+        updateData.sandbox_access_token = accessToken;
+        updateData.sandbox_token_expires_at = new Date(Date.now() + 1740 * 1000).toISOString();
+      }
     } else {
-      await base44.asServiceRole.entities.PFCredential.create({
-        api_key,
-        api_secret,
-        is_connected: isConnected,
-        last_tested_at: now,
-        test_message: testMessage,
-      });
+      updateData.api_key = api_key;
+      updateData.api_secret = api_secret;
+      updateData.is_connected = isConnected;
+      if (accessToken) {
+        updateData.access_token = accessToken;
+        updateData.token_expires_at = new Date(Date.now() + 1740 * 1000).toISOString();
+      }
     }
 
-    return Response.json({ success: true, is_connected: isConnected, test_message: testMessage });
+    if (existingCred) {
+      await base44.asServiceRole.entities.PFCredential.update(existingCred.id, updateData);
+    } else {
+      await base44.asServiceRole.entities.PFCredential.create(updateData);
+    }
+
+    return Response.json({ success: true, is_connected: isConnected, test_message: testMessage, environment });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -2,9 +2,40 @@
   "name": "Message",
   "type": "object",
   "properties": {
+    "created_from_ai": {
+      "type": "boolean",
+      "default": false,
+      "description": "V3 Phase 0: true when the outgoing message text was pre-filled from an AI draft (even if edited before send)"
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Which AI feature produced the draft, e.g. landlordOrchestrator.ai_suggested_messages"
+    },
+    "ai_draft_text": {
+      "type": "string",
+      "description": "The original AI-proposed text, for edit-distance against the sent text"
+    },
+    "was_edited_after_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the sent text differs from ai_draft_text"
+    },
+    "ai_disposition": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "edited",
+        "ignored"
+      ],
+      "description": "accepted = sent unchanged from draft; edited = changed before send; ignored = draft generated but not used (the ignored case is derived in aggregation, not set at send time)"
+    },
     "landlord_id": {
       "type": "string",
       "description": "FK to Landlord entity (optional - null for unmatched numbers)"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "FK to Lead entity \u2014 set when no landlord matches but a lead's phone matches the sender"
     },
     "phone": {
       "type": "string",
@@ -51,6 +82,15 @@
       ],
       "default": "personal",
       "description": "Which WhatsApp channel: business (erudite / Meta Cloud / +971582806000) or personal (erudite_whatsapp / Baileys / +971581806000)"
+    },
+    "instance_name": {
+      "type": "string",
+      "description": "Raw Evolution instance name (e.g. 'erudite', 'erudite_whatsapp', 'malik', 'samy', 'dari'). Stored separately from channel which only records 'business' or 'personal'."
+    },
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Agent who owns this message \u2014 stamped from landlord.assigned_agent_email on incoming, from the sending user on outgoing. Used for RLS scoping."
     },
     "media_url": {
       "type": "string",
@@ -175,5 +215,37 @@
     "direction",
     "text",
     "timestamp"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

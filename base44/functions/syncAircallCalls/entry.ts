@@ -176,20 +176,65 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Also push CRM contacts back to Aircall (name enrichment)
-    // For each AircallCall without a lead_name, try to push contact to Aircall
+    // Push CRM contacts INTO Aircall so names show in Aircall app
+    // Build set of phone numbers already in Aircall contacts
+    const aircallContactPhones = new Set(
+      aircallContacts.flatMap(c => (c.phone_numbers || []).map(p => normalizePhone(p.value)).filter(Boolean))
+    );
+
     let contactsPushed = 0;
-    const unlabeled = await base44.asServiceRole.entities.AircallCall.filter({ lead_name: '' });
-    for (const call of unlabeled.slice(0, 20)) {
-      const phone = call.from_number;
-      const normalized = normalizePhone(phone);
-      if (!normalized) continue;
-      const lead = leadByPhone[normalized] || null;
-      const landlord = landlordByPhone[normalized] || null;
-      const name = lead?.full_name || landlord?.full_name_en || null;
-      if (name) {
-        await base44.asServiceRole.entities.AircallCall.update(call.id, { lead_name: name, lead_id: lead?.id || '' });
+
+    // Collect unique phones from all CRM leads and landlords that are NOT already in Aircall
+    const toPush = [];
+    for (const lead of leads) {
+      const p = normalizePhone(lead.phone);
+      if (p && !aircallContactPhones.has(p)) {
+        toPush.push({ name: lead.full_name || lead.phone, phone: p, type: 'lead' });
+        aircallContactPhones.add(p); // prevent dupes
+      }
+    }
+    for (const ll of landlords) {
+      const p = normalizePhone(ll.phone);
+      if (p && !aircallContactPhones.has(p)) {
+        toPush.push({ name: ll.full_name_en || ll.full_name || ll.phone, phone: p, type: 'landlord' });
+        aircallContactPhones.add(p);
+      }
+    }
+
+    // Push up to 50 contacts per sync to Aircall
+    for (const contact of toPush.slice(0, 50)) {
+      try {
+        const [firstName, ...rest] = contact.name.trim().split(' ');
+        const lastName = rest.join(' ') || '';
+        await fetch('https://api.aircall.io/v1/contacts', {
+          method: 'POST',
+          headers: { 'Authorization': `Basic ${basicAuth}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            phone_numbers: [{ label: 'mobile', value: contact.phone }],
+          }),
+        });
         contactsPushed++;
+      } catch (_) {}
+    }
+
+    // Also backfill lead_name on existing unlabeled AircallCall records
+    let enriched = 0;
+    const unlabeled = await base44.asServiceRole.entities.AircallCall.filter({ lead_name: '' });
+    for (const call of unlabeled.slice(0, 50)) {
+      const normalized = normalizePhone(call.from_number);
+      if (!normalized) continue;
+      const lead = leadByPhone[normalized];
+      const landlord = landlordByPhone[normalized];
+      const name = lead?.full_name || landlord?.full_name_en || landlord?.full_name || null;
+      if (name) {
+        await base44.asServiceRole.entities.AircallCall.update(call.id, {
+          lead_name: name,
+          lead_id: lead?.id || call.lead_id || '',
+          landlord_id: landlord?.id || call.landlord_id || '',
+        });
+        enriched++;
       }
     }
 
@@ -198,8 +243,9 @@ Deno.serve(async (req) => {
       synced,
       updated,
       contactsPushed,
+      enriched,
       total: aircallCalls.length,
-      message: `Synced ${synced} new calls, updated ${updated}, enriched ${contactsPushed} contacts`,
+      message: `Synced ${synced} new calls, pushed ${contactsPushed} contacts to Aircall, enriched ${enriched} records`,
     });
   } catch (error) {
     console.error('syncAircallCalls error:', error);

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, AlertCircle, TrendingUp, Users, CheckCircle2, Zap, Target, Brain, XCircle } from 'lucide-react';
+import DoctrineFourteenDayCard from '@/components/landlord/DoctrineFourteenDayCard';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -231,6 +232,11 @@ export default function TeamPerformance() {
             </div>
           </div>
         )}
+
+        {/* Sales Doctrine — 14-Day Law card */}
+        <div className="mt-6">
+          <DoctrineFourteenDayCard isAdmin={isAdmin} />
+        </div>
 
         {/* Footer summary */}
         {allocations.length > 0 && (

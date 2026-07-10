@@ -2,12 +2,26 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LiquidGlassIcon from '@/components/ui/LiquidGlassIcon';
+import EruditeLogo from '@/components/erudite/EruditeLogo';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList, Settings, Flame, Target, BookOpen, PenTool
 } from 'lucide-react';
+
+// Jewel hue per workspace section (R,G,B)
+const SECTION_HUES = {
+  'CEO & Admin': '212,175,55',
+  'Leads & Pipeline': '139,92,246',
+  'Landlords & Listings': '240,169,59',
+  'Deals & Money': '45,212,167',
+  'Comms': '61,109,246',
+  'Analytics & AI': '34,211,238',
+  'THE 17': '212,175,55',
+  'Team & HR': '244,114,182',
+  'Tools & Reference': '154,166,192',
+};
 
 import { cn } from '@/lib/utils';
 
@@ -78,12 +92,12 @@ const navSections = [
     items: [
       { label: 'Messages',            icon: MessageSquare,   path: '/messages',            gradient: 'from-green-600 to-emerald-800' },
       { label: 'Inbox',               icon: Inbox,           path: '/inbox',               gradient: 'from-blue-600 to-indigo-800' },
-      { label: 'WhatsApp Inbox',      icon: MessageCircle,   path: '/whatsapp',            gradient: 'from-green-500 to-green-800', permission: 'view_all_whatsapp' },
-      { label: 'WhatsApp Hub',        icon: Zap,             path: '/whatsapp-hub',        gradient: 'from-emerald-500 to-green-700', permission: 'view_all_whatsapp' },
-      { label: 'WhatsApp Setup',      icon: MessageCircle,   path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700' },
-      { label: 'Broadcasts',          icon: Megaphone,       path: '/broadcasts',          gradient: 'from-purple-500 to-violet-700' },
+      { label: 'WhatsApp Inbox',      icon: MessageCircle,   path: '/whatsapp',            gradient: 'from-green-500 to-green-800' },
+      { label: 'WhatsApp Hub',        icon: Zap,             path: '/whatsapp-hub',        gradient: 'from-emerald-500 to-green-700', adminOnly: true },
+      { label: 'WhatsApp Setup',      icon: MessageCircle,   path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700', adminOnly: true },
+      { label: 'Broadcasts',          icon: Megaphone,       path: '/broadcasts',          gradient: 'from-purple-500 to-violet-700', adminOnly: true },
       { label: 'Email Automations',   icon: Mail,            path: '/email-automations',   gradient: 'from-indigo-500 to-blue-800' },
-      { label: 'Email Templates',     icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
+      { label: 'Template Hub',        icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
       { label: 'Twilio Hub',          icon: PhoneCall,       path: '/twilio',              gradient: 'from-red-500 to-red-800' },
       { label: 'AI Voice',            icon: Mic,             path: '/vapi',                gradient: 'from-violet-500 to-purple-800' },
     ],
@@ -98,6 +112,16 @@ const navSections = [
       { label: 'Claude AI',           icon: Sparkles,        path: '/claude-ai',           gradient: 'from-violet-500 to-purple-800' },
       { label: 'Elite Desk',          icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-500 to-yellow-700' },
       { label: 'Leaderboard',         icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-500 to-amber-700' },
+    ],
+  },
+  {
+    section: 'THE 17',
+    items: [
+      { label: 'Academy Home',       icon: Flame,       path: '/academy',                 gradient: 'from-amber-400 to-yellow-700' },
+      { label: 'My Chief Aim',       icon: Target,      path: '/academy/chief-aim',       gradient: 'from-amber-500 to-orange-700' },
+      { label: 'Principle Library',  icon: BookOpen,    path: '/academy/principles',      gradient: 'from-yellow-500 to-amber-700' },
+      { label: 'Reflections',         icon: PenTool,     path: '/academy/reflections',     gradient: 'from-amber-500 to-yellow-700' },
+      { label: 'Mastermind',         icon: Users,       path: '/academy/mastermind',      gradient: 'from-orange-500 to-amber-700' },
     ],
   },
   {
@@ -119,7 +143,11 @@ const navSections = [
 
 export default function Sidebar({ open = false, onClose }) {
   const location = useLocation();
-  const { isAdmin, isCEO, permissions } = useCurrentUser();
+  const { user, isAdmin, isCEO, permissions } = useCurrentUser();
+  const logoUrl = typeof window !== 'undefined' ? localStorage.getItem('erudite_logo') : '';
+  const userInitial = (user?.full_name || user?.email || '?')[0].toUpperCase();
+  const userRoleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
+  const isHome = location.pathname === '/';
 
   // Build visible sections by filtering each item against role/permissions
   const visibleSections = navSections.map(section => ({
@@ -134,83 +162,181 @@ export default function Sidebar({ open = false, onClose }) {
 
   return (
     <aside className={cn(
-      "fixed top-0 left-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50 w-[260px] transition-transform duration-300",
+      "fixed top-0 left-0 h-screen flex flex-col z-50 w-[236px] transition-transform duration-300",
       open ? "translate-x-0" : "-translate-x-full"
-    )}>
-      {/* Logo + close */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-sidebar-border shrink-0">
-        <img
-          src="https://media.base44.com/images/public/69cabceaeeb8bb5e3a62ead3/af0e24497_EruditeLogoblack-Recovered2.png"
-          alt="Erudite Property"
-          className="h-10 w-auto object-contain invert"
-        />
+    )} style={{
+      background: 'rgba(255,255,255,0.012)',
+      borderRight: '1px solid rgba(255,255,255,0.07)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+    }}>
+      {/* ── Logo / wordmark ─────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center" style={{ padding: '26px 18px 18px', gap: '10px' }}>
+        {logoUrl && (
+          <img src={logoUrl} alt="Erudite" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
+        )}
+        <div className="flex flex-col">
+          <span style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            fontSize: '15px',
+            letterSpacing: '0.26em',
+            background: 'linear-gradient(92deg, #eccd72, #d4af37 55%, #b8862b)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            lineHeight: 1,
+          }}>ERUDITE</span>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '8px',
+            letterSpacing: '0.36em',
+            fontWeight: 700,
+            color: '#5d6680',
+            marginTop: '4px',
+          }}>REAL ESTATE · DUBAI</span>
+        </div>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+          className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+          style={{ color: '#5d6680' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#e8ecf6'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5d6680'; }}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {visibleSections.map((section, si) => (
-          <React.Fragment key={section.section}>
-            {si > 0 && <div className="h-px bg-sidebar-border/50 my-2 mx-2" />}
-            <div className="px-2 pt-1 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/35">
-              {section.section}
-            </div>
-            {section.items.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={onClose}
-                  className={cn(
-                    'group flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative',
-                    isActive
-                      ? 'text-white'
-                      : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/5'
-                  )}
-                  style={isActive ? {
-                    background: 'rgba(245,158,11,0.12)',
-                    borderLeft: '3px solid hsl(38 92% 50%)',
-                    paddingLeft: 'calc(0.5rem - 3px)',
-                    boxShadow: '0 2px 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
-                  } : {}}
-                >
-                  <LiquidGlassIcon
-                    icon={item.icon}
-                    gradient={item.gradient}
-                    size={32}
-                    active={isActive}
-                    className="flex-shrink-0"
-                  />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </React.Fragment>
-        ))}
+      {/* ── Navigation ─────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto" style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {/* Dashboard home item */}
+        <Link
+          to="/"
+          onClick={onClose}
+          className="group flex items-center transition-all duration-200 relative"
+          style={{
+            gap: '12px',
+            padding: '10px 12px',
+            borderRadius: '11px',
+            color: isHome ? '#eccd72' : '#8a93ab',
+            background: isHome ? 'rgba(212,175,55,0.10)' : 'transparent',
+            border: isHome ? '1px solid rgba(212,175,55,0.26)' : '1px solid transparent',
+            boxShadow: isHome ? '0 0 26px -10px rgba(212,175,55,0.7)' : 'none',
+          }}
+          onMouseEnter={e => { if (!isHome) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#e8ecf6'; } }}
+          onMouseLeave={e => { if (!isHome) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8a93ab'; } }}
+        >
+          {isHome && (
+            <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '3px', height: '60%', borderRadius: '2px', background: '#d4af37', boxShadow: '0 0 8px rgba(212,175,55,0.8)' }} />
+          )}
+          <LayoutDashboard style={{ width: '18px', height: '18px', strokeWidth: 1.6 }} />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500 }}>Dashboard</span>
+        </Link>
+
+        {visibleSections.map((section) => {
+          const hue = SECTION_HUES[section.section] || '154,166,192';
+          return (
+            <React.Fragment key={section.section}>
+              {/* Thin divider */}
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', margin: '6px 12px' }} />
+              {/* Section label */}
+              <div style={{
+                padding: '4px 12px 2px',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '9px',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: '#5d6680',
+              }}>{section.section}</div>
+              {/* Items */}
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={onClose}
+                    className="group flex items-center transition-all duration-200 relative"
+                    style={{
+                      gap: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '11px',
+                      color: isActive ? `rgb(${hue})` : '#8a93ab',
+                      background: isActive ? `rgba(${hue},0.10)` : 'transparent',
+                      border: isActive ? `1px solid rgba(${hue},0.26)` : '1px solid transparent',
+                      boxShadow: isActive ? `0 0 26px -10px rgba(${hue},0.7)` : 'none',
+                    }}
+                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#e8ecf6'; } }}
+                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8a93ab'; } }}
+                  >
+                    {isActive && (
+                      <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '3px', height: '60%', borderRadius: '2px', background: `rgb(${hue})`, boxShadow: `0 0 8px rgba(${hue},0.8)` }} />
+                    )}
+                    <Icon style={{ width: '18px', height: '18px', strokeWidth: 1.6 }} />
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500 }}>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
       </nav>
 
-      {/* Bottom */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
+      {/* ── Footer — user row + logout ─────────────────────────── */}
+      <div className="shrink-0" style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 18px' }}>
         <Link
           to="/profile"
           onClick={onClose}
-          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/40 w-full transition-all"
+          className="flex items-center transition-all duration-200"
+          style={{ gap: '12px', padding: '4px 0' }}
         >
-          <LiquidGlassIcon icon={User} gradient="from-slate-500 to-slate-700" size={32} className="flex-shrink-0" />
-          <span>My Profile</span>
+          {/* Avatar */}
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            background: user?.profile_image ? 'transparent' : 'linear-gradient(135deg, #eccd72, #b8862b)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}>
+            {user?.profile_image ? (
+              <img src={user.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ color: '#0a0e1a', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '14px' }}>{userInitial}</span>
+            )}
+          </div>
+          {/* Name + role */}
+          <div className="flex flex-col min-w-0 flex-1">
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '12.5px',
+              color: '#e8ecf6',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>{user?.full_name || user?.email || 'User'}</span>
+            {userRoleLabel && (
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: '#5d6680' }}>{userRoleLabel}</span>
+            )}
+          </div>
+          {/* Settings gear */}
+          <Settings style={{ width: '16px', height: '16px', color: '#5d6680', flexShrink: 0 }} />
         </Link>
+        {/* Logout */}
         <button
           onClick={() => base44.auth.logout()}
-          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm font-medium text-sidebar-foreground/60 hover:text-red-400 hover:bg-sidebar-accent/40 w-full transition-all"
+          className="flex items-center w-full transition-all duration-200"
+          style={{ gap: '12px', padding: '10px 12px', marginTop: '6px', borderRadius: '11px', color: '#5d6680', background: 'transparent' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#fda4af'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5d6680'; }}
         >
-          <LiquidGlassIcon icon={LogOut} gradient="from-red-500 to-rose-700" size={32} className="flex-shrink-0" />
-          <span>Logout</span>
+          <LogOut style={{ width: '18px', height: '18px', strokeWidth: 1.6 }} />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500 }}>Logout</span>
         </button>
       </div>
     </aside>

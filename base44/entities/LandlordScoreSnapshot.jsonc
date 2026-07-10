@@ -1,0 +1,68 @@
+{
+  "name": "LandlordScoreSnapshot",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this snapshot row was written"
+    },
+    "orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The landlordOrchestrator run timestamp (last_orchestrator_run_at) this snapshot reflects"
+    },
+    "ai_model_used": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string"
+    },
+    "sub_stage": {
+      "type": "string"
+    },
+    "days_in_stage": {
+      "type": "number"
+    },
+    "trust_score": {
+      "type": "number"
+    },
+    "responsiveness_score": {
+      "type": "number"
+    },
+    "mandate_win_probability": {
+      "type": "number"
+    },
+    "urgency_score": {
+      "type": "number"
+    },
+    "rapport_level": {
+      "type": "string"
+    },
+    "ai_momentum": {
+      "type": "string"
+    },
+    "ai_strike_now": {
+      "type": "boolean"
+    },
+    "needs_human_review": {
+      "type": "boolean"
+    },
+    "review_reason": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this landlord score snapshot (max 1000 chars)",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "landlord_id",
+    "captured_at"
+  ]
+}

@@ -65,6 +65,22 @@
     "residence_country": {
       "type": "string"
     },
+    "mailing_address": {
+      "type": "string",
+      "description": "Full one-line mailing address (e.g. 'Villa 34, Street 7, Springs 9, Dubai, United Arab Emirates'). Separate from residence_country; does not replace it."
+    },
+    "address_city": {
+      "type": "string",
+      "description": "City only from the mailing address (e.g. 'Dubai', 'London', 'Moscow')"
+    },
+    "address_postal_code": {
+      "type": "string",
+      "description": "Postal / ZIP code"
+    },
+    "address_country": {
+      "type": "string",
+      "description": "Country from the mailing address. Kept separate from residence_country."
+    },
     "is_resident_uae": {
       "type": "boolean",
       "default": false
@@ -125,6 +141,19 @@
     "unit_reference": {
       "type": "string"
     },
+    "unit_layout": {
+      "type": "string",
+      "description": "Unit layout shorthand (e.g. '2BHK', '3BHK', '4BHK', 'Penthouse', 'Studio')"
+    },
+    "handover_status": {
+      "type": "string",
+      "enum": [
+        "Handed Over",
+        "Not Handed Over"
+      ],
+      "default": "Not Handed Over",
+      "description": "Keys handed over to buyer. When 'Handed Over', a green badge is shown on the landlord card."
+    },
     "project_name": {
       "type": "string"
     },
@@ -138,6 +167,7 @@
       "type": "string",
       "enum": [
         "initial_contact",
+        "attempted_to_contact",
         "price_discovery",
         "listing_commitment",
         "form_a_initiation",
@@ -327,6 +357,25 @@
     "ai_rolling_summary": {
       "type": "string"
     },
+    "ai_deal_thesis": {
+      "type": "string",
+      "description": "V3 Phase 2 (REMEMBER): the persistent strategic narrative for winning this mandate \u2014 the durable 'where this deal is going and how we win it' plan that EVOLVES across orchestrator runs (distinct from ai_rolling_summary, which is the tactical current-state). Written by landlordOrchestrator (full tier); prior value is fed back in so it accrues rather than resets."
+    },
+    "ai_open_questions": {
+      "type": "array",
+      "description": "V3 Phase 2 (REMEMBER): ask-the-agent \u2014 specific uncertainties the brain wants a human to resolve (0-3). Only populated when the model is genuinely unsure about something a human can answer. Surfaced in the AI Intelligence card as 'Needs your input'.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ai_next_best_action": {
       "type": "object",
       "properties": {
@@ -358,6 +407,35 @@
         "properties": {
           "template_key": {
             "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ai_suggested_followups": {
+      "type": "array",
+      "description": "AI-suggested time-based follow-ups (2-4). Written by landlordOrchestrator; each item references a FollowupTemplate by template_key.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template_key": {
+            "type": "string"
+          },
+          "when_offset_days": {
+            "type": "number"
+          },
+          "suggested_hour": {
+            "type": "number"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "call",
+              "email"
+            ]
           },
           "reason": {
             "type": "string"
@@ -450,6 +528,195 @@
           }
         }
       }
+    },
+    "ai_model_used": {
+      "type": "string"
+    },
+    "last_orchestrator_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_processing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "needs_retry"
+      ]
+    },
+    "needs_human_review": {
+      "type": "boolean",
+      "default": false
+    },
+    "review_reason": {
+      "type": "string"
+    },
+    "stage_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "entered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_days": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "ai_suggested_messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "imessage_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "available",
+        "not_available",
+        "error"
+      ],
+      "default": "unknown",
+      "description": "Resolved iMessage capability for the primary handle (mirrors the best confirmed handle from imessage_handles)"
+    },
+    "imessage_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the iMessage availability check last ran"
+    },
+    "imessage_handles": {
+      "type": "array",
+      "description": "All candidate iMessage handles auto-derived from the landlord's contact data (phones + emails), each with its resolved availability. Written by resolveLandlordIMessage.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "Normalized handle \u2014 phone in E.164 or lowercased email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "phone",
+              "email"
+            ]
+          },
+          "source_field": {
+            "type": "string",
+            "description": "Which Landlord field this handle came from (e.g. phone, whatsapp, additional_phones, email, additional_emails)"
+          },
+          "imessage_status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "not_available",
+              "unknown",
+              "error"
+            ],
+            "default": "unknown"
+          }
+        }
+      }
+    },
+    "imessage_handle": {
+      "type": "string",
+      "description": "The primary confirmed-available iMessage handle (phones prioritized over emails). Empty when no handle is iMessage-available. Default send target for iMessage."
+    },
+    "imessage_resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When resolveLandlordIMessage last derived and checked all handles"
+    },
+    "imessage_banner_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the branded signature banner has been sent to this landlord via iMessage. Prevents duplicate banner attachments on subsequent messages."
+    },
+    "whatsapp_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "available",
+        "not_available",
+        "error"
+      ],
+      "default": "unknown",
+      "description": "Resolved WhatsApp capability \u2014 available if any of the landlord's phone numbers is a valid WhatsApp account"
+    },
+    "whatsapp_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the WhatsApp number availability check last ran"
+    },
+    "whatsapp_handles": {
+      "type": "array",
+      "description": "All of the landlord's phone numbers checked against WhatsApp, each with its validity. Written by checkLandlordWhatsApp.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "Normalized phone in E.164"
+          },
+          "source_field": {
+            "type": "string",
+            "description": "Which Landlord field this number came from (phone, whatsapp, additional_phones)"
+          },
+          "is_valid_whatsapp": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "whatsapp_handle": {
+      "type": "string",
+      "description": "The primary confirmed-valid WhatsApp number (E.164). Prefers the primary phone when valid. Empty when no number is WhatsApp-valid. Default send target for WhatsApp."
+    },
+    "whatsapp_resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When checkLandlordWhatsApp last checked all numbers"
+    },
+    "telegram_chat_id": {
+      "type": "string",
+      "description": "Telegram numeric chat_id \u2014 set after the landlord starts a chat with the bot. Default send target for Telegram. Empty when not connected."
+    },
+    "telegram_username": {
+      "type": "string",
+      "description": "Telegram @username of the landlord, if known (display/reference only \u2014 sending requires telegram_chat_id)"
     }
   },
   "required": [

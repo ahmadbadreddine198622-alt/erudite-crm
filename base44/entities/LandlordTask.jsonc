@@ -33,6 +33,11 @@
       "type": "boolean",
       "default": false,
       "description": "true if the user changed the AI draft before saving"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this landlord task (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

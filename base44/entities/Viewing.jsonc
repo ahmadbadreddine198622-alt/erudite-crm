@@ -6,6 +6,11 @@
       "type": "string",
       "description": "FK \u2192 Landlord"
     },
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Agent hosting the viewing"
+    },
     "title": {
       "type": "string",
       "description": "Viewing title"
@@ -18,6 +23,13 @@
       "type": "string",
       "format": "date-time",
       "description": "When the viewing is scheduled"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "default": 30
+    },
+    "location": {
+      "type": "string"
     },
     "status": {
       "type": "string",
@@ -32,6 +44,15 @@
       "type": "boolean",
       "default": false,
       "description": "True if created from an AI suggestion"
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID if synced"
+    },
+    "confirmation_email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the customer confirmation email has been sent"
     }
   },
   "required": [

@@ -10,6 +10,11 @@ const ORCHESTRATOR_SCHEMA = {
     aurora_temperature: { type: "string", enum: ["frozen","cold","warming","hot","blazing"] },
     aurora_risk_score: { type: "number", minimum: 0, maximum: 100 },
     aurora_risk_factors: { type: "array", items: { type: "string" }, maxItems: 5 },
+    aurora_thesis: { type: ["string", "null"] },
+    aurora_open_questions: {
+      type: "array", maxItems: 3,
+      items: { type: "object", properties: { question: { type: "string" }, why: { type: "string" } }, required: ["question"] }
+    },
     aurora_forecast: {
       type: "object",
       properties: {
@@ -81,6 +86,7 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are AURORA, an autonomous sales intelligence agent for a real-estate CRM in Dubai/GCC.
 You orchestrate deals end-to-end. Recompute: stage, score, velocity, temperature, risk, forecast (glass-box), DNA, next action.
+Also maintain aurora_thesis: a persistent 2-4 sentence strategy for winning THIS deal that EVOLVES across runs (you are given the prior thesis) — keep what still holds, revise only what changed; distinct from the forecast/next-action. And aurora_open_questions: 0-3 specific uncertainties a HUMAN could resolve that would materially sharpen the strategy (empty array when nothing is genuinely blocking — never invent questions to fill the slot).
 Rules: calibrated forecasts, infer DNA from behavior, ghosting (3+ silent days) → cold, competitor mentioned twice → red flag + escalate.
 Output STRICT JSON matching the schema exactly.`;
 
@@ -97,6 +103,7 @@ RECENT ACTIVITY:
 ${recentActivities.slice(0,10).map(a => `[${a.id}] ${a.created_date} | ${a.type}/${a.outcome||"—"} | ${a.title}`).join("\n")}
 
 PRIOR FORECAST: ${JSON.stringify(deal.aurora_forecast)}
+PRIOR THESIS (evolve it — keep what holds, revise what changed): ${deal.aurora_thesis || "(none yet — establish it)"}
 
 Emit orchestrator JSON.`;
 
@@ -138,6 +145,54 @@ Emit orchestrator JSON.`;
     }
 
     await base44.asServiceRole.entities.Deal.update(deal_id, update);
+
+    // V3 Phase 2 (REMEMBER): persistent deal thesis + ask-the-agent open questions, written in a
+    // SEPARATE non-fatal update — if these 2 fields aren't yet in the live Deal schema, a rejected write
+    // degrades here instead of bricking the orchestrator. Mirrors the landlordOrchestrator memory write.
+    try {
+      const memoryUpdate = {};
+      if (typeof result.aurora_thesis === "string" && result.aurora_thesis.trim()) {
+        memoryUpdate.aurora_thesis = result.aurora_thesis.trim();
+      }
+      if (Array.isArray(result.aurora_open_questions)) {
+        memoryUpdate.aurora_open_questions = result.aurora_open_questions
+          .filter(q => q && typeof q === "object" && typeof q.question === "string" && q.question.trim())
+          .slice(0, 3)
+          .map(q => ({ question: q.question.trim(), why: typeof q.why === "string" ? q.why.trim() : "" }));
+      }
+      if (Object.keys(memoryUpdate).length) {
+        await base44.asServiceRole.entities.Deal.update(deal_id, memoryUpdate);
+      }
+    } catch (memErr) {
+      console.error("aurora_thesis/aurora_open_questions write failed (non-fatal — apply live schema):", memErr?.message);
+    }
+
+    // V3 Phase 0 (RECORD): append-only Aurora score snapshot — exactly ONE per successful run, built
+    // from the same values just written. Pure instrumentation: it does NOT alter the update above or the
+    // terminal/debounce skip logic (those return earlier), and a failure here is non-fatal (must never
+    // break the orchestrator). Mirrors LandlordScoreSnapshot — the score time-series that V3 REMEMBER
+    // (trend, thesis) and LEARN build on. Deal scores are clobbered each run, so this is the only history.
+    try {
+      const fc = (result.aurora_forecast && typeof result.aurora_forecast === 'object') ? result.aurora_forecast : {};
+      await base44.asServiceRole.entities.DealScoreSnapshot.create({
+        deal_id: deal.id,
+        captured_at: now,
+        orchestrator_run_at: now,
+        stage: update.stage || deal.stage || null,
+        sub_stage: (update.sub_stage != null) ? update.sub_stage : (deal.sub_stage || null),
+        aurora_score: (typeof result.aurora_score === 'number') ? result.aurora_score : null,
+        aurora_velocity: (typeof result.aurora_velocity === 'number') ? result.aurora_velocity : null,
+        aurora_temperature: result.aurora_temperature || null,
+        aurora_risk_score: (typeof result.aurora_risk_score === 'number') ? result.aurora_risk_score : null,
+        close_probability: (typeof fc.close_probability === 'number') ? fc.close_probability : null,
+        weighted_value: (typeof fc.weighted_value === 'number') ? fc.weighted_value : null,
+        predicted_close_date: fc.predicted_close_date || null,
+        needs_human_review: (result.needs_human_review != null) ? result.needs_human_review : null,
+        review_reason: update.review_reason || null,
+      });
+    } catch (snapErr) {
+      console.error('DealScoreSnapshot create failed (non-fatal):', snapErr?.message);
+    }
 
     if (newSignals.length > 0) {
       await Promise.all(newSignals.map(s => base44.asServiceRole.entities.DealSignal.update(s.id, { consumed_by_orchestrator: true })));

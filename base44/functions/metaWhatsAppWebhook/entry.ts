@@ -29,6 +29,11 @@ function stripPlus(raw) {
   return String(raw).replace(/^\+/, '').trim();
 }
 
+// Own WhatsApp line numbers (digits-only) — used to filter self-echo and noise.
+const OWN_LINE_NUMBERS = new Set([
+  '971582806000', '971581806000', '971529871277', '971522869064', '971559508545',
+]);
+
 async function findLandlordByDigits(svc, digitsPhone) {
   const all = await svc.entities.Landlord.list('-created_date', 2000).catch(() => []);
   for (const landlord of all) {
@@ -109,6 +114,21 @@ Deno.serve(async (req) => {
             const senderProfile = value?.contacts?.find(c => c.wa_id === fromNumber);
             const waDisplayName = senderProfile?.profile?.name || '';
 
+            // ── Noise filter: skip own line numbers, shortcodes, UAE landlines ──
+            const senderDigits = digitsPhone.replace(/\D/g, '');
+            if (OWN_LINE_NUMBERS.has(senderDigits)) {
+              console.log(`[metaWhatsAppWebhook] Skipping self-echo from own line: ${senderDigits}`);
+              continue;
+            }
+            if (senderDigits.length < 9) {
+              console.log(`[metaWhatsAppWebhook] Skipping shortcode sender: ${senderDigits}`);
+              continue;
+            }
+            if (senderDigits.startsWith('9714')) {
+              console.log(`[metaWhatsAppWebhook] Skipping UAE landline: ${senderDigits}`);
+              continue;
+            }
+
             console.log(`[metaWhatsAppWebhook] INBOUND from=${e164Phone} type=${msg.type} msgId=${waMessageId}`);
 
             // ── Dedupe by wa_message_id ──────────────────────────────────────
@@ -166,20 +186,41 @@ Deno.serve(async (req) => {
             });
             console.log(`[metaWhatsAppWebhook] ✅ WhatsAppMessage saved id=${waMsg.id} conv=${conv.id}`);
 
-            // ── Landlord match (legacy backup write) ─────────────────────────
-            const matchedLandlord = await findLandlordByDigits(svc, digitsPhone).catch(() => null);
-            if (matchedLandlord) {
-              await svc.entities.Message.create({
-                landlord_id: matchedLandlord.id,
-                phone: digitsPhone,
-                direction: 'incoming',
-                text: bodyText,
-                timestamp,
-                status: 'received',
-                wa_message_id: waMessageId,
-                channel: 'business',
-              }).catch(() => {});
-              svc.functions.invoke('analyzeLandlordConversation', { landlord_id: matchedLandlord.id }).catch(() => {});
+            // ── Identity resolution + legacy Message write (with dedup) ──────
+            let landlordId = null, leadId = null, agentEmail = null;
+            try {
+              const idRes = await svc.functions.invoke('resolveMessageIdentity', { digits_phone: digitsPhone });
+              const idData = idRes?.data ?? idRes;
+              landlordId = idData?.landlord_id || null;
+              leadId = idData?.lead_id || null;
+              agentEmail = idData?.agent_email || null;
+            } catch (e) { console.warn('[metaWhatsAppWebhook] Identity resolution failed:', e?.message); }
+
+            if (landlordId) {
+              // Dedup: skip if a Message with this wa_message_id already exists
+              const existingMsg = waMessageId
+                ? await svc.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => [])
+                : [];
+              if (existingMsg?.length === 0) {
+                const brainMsg = await svc.entities.Message.create({
+                  landlord_id: landlordId,
+                  lead_id: leadId,
+                  phone: digitsPhone,
+                  direction: 'incoming',
+                  text: bodyText,
+                  timestamp,
+                  status: 'received',
+                  wa_message_id: waMessageId,
+                  channel: 'business',
+                  instance_name: 'erudite',
+                  agent_email: agentEmail || conv?.assigned_agent_email || null,
+                  ...(isVoice ? { media_type: 'audio', is_voice_note: true, media_mime: msg.audio?.mime_type || 'audio/ogg', media_status: 'pending_download' } : {}),
+                }).catch(() => null);
+                if (isVoice && brainMsg?.id && msg.audio?.id) {
+                  svc.functions.invoke('metaDownloadVoice', { message_id: brainMsg.id, media_id: msg.audio.id }).catch(() => {});
+                }
+              }
+              svc.functions.invoke('analyzeLandlordConversation', { landlord_id: landlordId }).catch(() => {});
             }
 
             // ── Background: enrich + routing (fire-and-forget) ───────────────

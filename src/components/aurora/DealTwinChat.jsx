@@ -13,6 +13,37 @@ const QUICK_PROMPTS = [
   "Who should we talk to next?"
 ];
 
+// V3 Phase 2 (REMEMBER): tiny auto-scaled sparkline + a labelled trend cell, for the deal trajectory.
+function Spark({ series, color }) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const w = 44, h = 14, pad = 2;
+  const lo = Math.min(...series), hi = Math.max(...series), span = (hi - lo) || 1;
+  const pts = series.map((v, i) => {
+    const x = pad + (i * (w - pad * 2)) / (series.length - 1);
+    const y = pad + (h - pad * 2) * (1 - (v - lo) / span);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: "block" }}><polyline points={pts} fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function TrendCell({ label, series, suffix, color, invert }) {
+  if (!Array.isArray(series) || series.length < 2) return null;
+  const latest = series[series.length - 1];
+  const delta = Math.round(latest - series[series.length - 2]);
+  const up = delta > 0;
+  const dColor = delta === 0 ? "#94a3b8" : invert ? (up ? "#fb7185" : "#34d399") : (up ? "#34d399" : "#fb7185");
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[8px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
+      <Spark series={series} color={color} />
+      <span className="flex items-baseline gap-1">
+        <span className="text-[11px] font-bold text-slate-700">{Math.round(latest)}{suffix || ""}</span>
+        {delta !== 0 && <span className="text-[9px] font-bold" style={{ color: dColor }}>{up ? "▲" : "▼"}{Math.abs(delta)}</span>}
+      </span>
+    </div>
+  );
+}
+
 export default function DealTwinChat({ deal, onClose }) {
   const [messages, setMessages] = useState([{
     role: "assistant",
@@ -25,6 +56,27 @@ export default function DealTwinChat({ deal, onClose }) {
   const bottomRef = useRef();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // V3 Phase 2 (REMEMBER): load this deal's append-only score history (degrades silently if the
+  // DealScoreSnapshot entity isn't live yet) and derive score/win/risk trajectories.
+  const [snaps, setSnaps] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    if (!deal?.id) return undefined;
+    (async () => {
+      try {
+        const rows = await base44.entities.DealScoreSnapshot.filter({ deal_id: deal.id }, "-captured_at", 30);
+        if (alive) setSnaps(Array.isArray(rows) ? rows : []);
+      } catch { /* entity not live yet — degrade silently */ }
+    })();
+    return () => { alive = false; };
+  }, [deal?.id]);
+
+  const chrono = [...snaps].reverse();
+  const scoreSeries = chrono.map(s => s.aurora_score).filter(v => typeof v === "number" && isFinite(v)).slice(-12);
+  const winSeries = chrono.map(s => (typeof s.close_probability === "number" ? s.close_probability * 100 : null)).filter(v => typeof v === "number" && isFinite(v)).slice(-12);
+  const riskSeries = chrono.map(s => s.aurora_risk_score).filter(v => typeof v === "number" && isFinite(v)).slice(-12);
+  const hasTrend = scoreSeries.length >= 2 || winSeries.length >= 2 || riskSeries.length >= 2;
 
   async function send(text) {
     const msg = text || input;
@@ -72,6 +124,16 @@ Respond as the Twin.`
             {deal ? `Deal Twin · ${deal.stage?.replace(/_/g," ")} · score ${deal.aurora_score ?? "?"}` : "Ask Aurora"}
           </DialogTitle>
         </DialogHeader>
+
+        {/* V3 P2 REMEMBER: deal trajectory across the orchestrator's run history (Risk inverted: up = bad) */}
+        {hasTrend && (
+          <div className="px-5 py-2 border-b flex items-center gap-4 bg-white">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Trajectory</span>
+            <TrendCell label="Score" series={scoreSeries} color="#8b5cf6" />
+            <TrendCell label="Win" series={winSeries} suffix="%" color="#3b82f6" />
+            <TrendCell label="Risk" series={riskSeries} color="#fbbf24" invert />
+          </div>
+        )}
 
         {/* Quick prompts */}
         <div className="px-4 py-2 flex gap-2 flex-wrap border-b bg-slate-50">

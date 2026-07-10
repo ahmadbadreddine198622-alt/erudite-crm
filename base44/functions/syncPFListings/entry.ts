@@ -1,35 +1,63 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const PF_BASE = 'https://atlas.propertyfinder.com/v1';
+const PROD_BASE = 'https://atlas.propertyfinder.com/v1';
+const SANDBOX_BASE = 'https://sandbox.atlas.propertyfinder.com/v1';
+const TOKEN_SAFETY_BUFFER_MS = 60 * 1000;
 
-async function getPFToken(apiKey, apiSecret) {
-  const key = apiKey || Deno.env.get('PROPERTY_FINDER_API_KEY');
-  const secret = apiSecret || Deno.env.get('PROPERTY_FINDER_API_SECRET');
-  const res = await fetch(`${PF_BASE}/auth/token`, {
+/**
+ * getPFToken — Environment-aware cached JWT.
+ * Reads active_environment from PFCredential, uses the right keys + base URL.
+ * Returns { token, baseUrl, environment }.
+ */
+async function getPFToken(base44) {
+  const creds = await base44.asServiceRole.entities.PFCredential.list();
+  if (!creds || creds.length === 0) {
+    throw new Error('No Property Finder credentials configured. Set them in Property Finder Sync → Settings.');
+  }
+  const cred = creds[0];
+  const env = cred.active_environment || 'production';
+  const isSandbox = env === 'sandbox';
+  const baseUrl = isSandbox ? SANDBOX_BASE : PROD_BASE;
+  const apiKey = isSandbox ? cred.sandbox_api_key : cred.api_key;
+  const apiSecret = isSandbox ? cred.sandbox_api_secret : cred.api_secret;
+  const cachedToken = isSandbox ? cred.sandbox_access_token : cred.access_token;
+  const cachedExpiry = isSandbox ? cred.sandbox_token_expires_at : cred.token_expires_at;
+  const now = Date.now();
+
+  // Return cached token if still valid
+  if (cachedToken && cachedExpiry) {
+    const expiresAtMs = new Date(cachedExpiry).getTime();
+    if (expiresAtMs - now > TOKEN_SAFETY_BUFFER_MS) {
+      return { token: cachedToken, baseUrl, environment: env };
+    }
+  }
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(`PF ${env} API key or secret missing in PFCredential record`);
+  }
+  const res = await fetch(`${baseUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ apiKey: key, apiSecret: secret }),
+    body: JSON.stringify({ apiKey, apiSecret }),
   });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error('PF auth failed: ' + res.status + ' ' + txt);
-  }
+  if (!res.ok) throw new Error('PF auth failed: ' + res.status + ' ' + await res.text());
   const data = await res.json();
-  return data.accessToken;
+  const accessToken = data.accessToken;
+  if (!accessToken) throw new Error('PF auth returned no accessToken');
+
+  const expiresInSec = data.expiresIn || 1800;
+  const expiresAt = new Date(now + expiresInSec * 1000 - TOKEN_SAFETY_BUFFER_MS).toISOString();
+  const updateData = isSandbox
+    ? { sandbox_access_token: accessToken, sandbox_token_expires_at: expiresAt }
+    : { access_token: accessToken, token_expires_at: expiresAt };
+  if (data.scopes) updateData.scopes_granted = Array.isArray(data.scopes) ? data.scopes : [data.scopes];
+  await base44.asServiceRole.entities.PFCredential.update(cred.id, updateData);
+
+  return { token: accessToken, baseUrl, environment: env };
 }
 
-async function getStoredCredentials(base44) {
-  try {
-    const creds = await base44.asServiceRole.entities.PFCredential.list();
-    if (creds && creds.length > 0 && creds[0].is_connected) {
-      return { apiKey: creds[0].api_key, apiSecret: creds[0].api_secret };
-    }
-  } catch (e) { /* fallback to env vars */ }
-  return { apiKey: null, apiSecret: null };
-}
-
-async function fetchPFListingsPage(token, page, perPage) {
-  const res = await fetch(`${PF_BASE}/listings?page=${page}&perPage=${perPage}`, {
+async function fetchPFListingsPage(token, baseUrl, page, perPage) {
+  const res = await fetch(`${baseUrl}/listings?page=${page}&perPage=${perPage}`, {
     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
   });
   if (!res.ok) {
@@ -38,6 +66,9 @@ async function fetchPFListingsPage(token, page, perPage) {
   }
   return await res.json();
 }
+
+// Keep PF_BASE for legacy references in the file
+const PF_BASE = PROD_BASE;
 
 function normalizeOffering(raw) {
   if (!raw) return null;
@@ -255,6 +286,10 @@ function mapPFListingToCRM(pfListing, urlStats) {
   // Get location details (community/area name)
   const communityName = pfListing.location?.name || location || '';
 
+  // Extract numeric location ID from raw PF listing response (workaround for broken /v1/locations search)
+  const pfLocationId = (typeof pfListing.location?.id === 'number') ? pfListing.location.id
+    : (typeof pfListing.location?.id === 'string' && /^\d+$/.test(pfListing.location.id) ? Number(pfListing.location.id) : null);
+
   // Get furnishing type
   const furnishingType = pfListing.furnishingType ? 
     (pfListing.furnishingType === 'furnished' ? 'furnished' : 
@@ -265,33 +300,71 @@ function mapPFListingToCRM(pfListing, urlStats) {
   const completionStatus = pfListing.projectStatus === 'ready' ? 'ready' : 
     (pfListing.projectStatus === 'offplan' ? 'off_plan' : undefined);
 
+  // Prefer portals.propertyfinder.url for the deep link (exact listing page)
+  const portalUrl = pfListing.portals?.propertyfinder?.url || null;
+  const resolvedPfUrl = portalUrl || pfUrl || undefined;
+
+  // New fields from full PF API shape
+  const parkingSlots = pfListing.parkingSlots != null ? Number(pfListing.parkingSlots) : undefined;
+  const numberOfFloors = pfListing.numberOfFloors != null ? Number(pfListing.numberOfFloors) : undefined;
+  const plotSize = pfListing.plotSize != null ? Number(pfListing.plotSize) : undefined;
+  const category = pfListing.category || undefined;
+  const projectStatus = pfListing.projectStatus || undefined;
+  const pfAgentId = pfListing.assignedTo?.id ? Number(pfListing.assignedTo.id) : undefined;
+  const titleAr = (typeof pfListing.title === 'object' && pfListing.title?.ar) ? pfListing.title.ar : undefined;
+  const descriptionAr = (typeof pfListing.description === 'object' && pfListing.description?.ar) ? pfListing.description.ar : undefined;
+  const rentFrequency = pfListing.price?.rentFrequency || undefined;
+  const priceOnRequest = pfListing.price?.onRequest || false;
+  const downpayment = pfListing.price?.downpayment != null ? Number(pfListing.price.downpayment) : undefined;
+  const numberOfCheques = pfListing.price?.numberOfCheques != null ? Number(pfListing.price.numberOfCheques) : undefined;
+  const issuingLicenseNumber = pfListing.issuingClientLicenseNumber || undefined;
+  const permitNumber = pfListing.listingAdvertisementNumber || undefined;
+
   return {
     pf_listing_id: listingId,
+    pf_internal_id: listingId !== listingRef ? listingId : undefined, // store internal ULID separately when different from reference
     reference_number: listingRef || undefined,
     title: title || undefined,
+    title_ar: titleAr,
     description: description || undefined,
+    description_ar: descriptionAr,
     images: imageUrl ? [imageUrl] : undefined,
     listing_type,
+    category,
     price: (typeof price === 'number') ? price : undefined,
+    price_on_request: priceOnRequest,
+    downpayment,
+    number_of_cheques: numberOfCheques,
+    rent_frequency: rentFrequency,
     location: communityName || undefined,
+    community: communityName || undefined,
     building_name: buildingName || undefined,
     address: unitNumber ? `${unitNumber}, ${communityName}` : undefined,
     unit_number: unitNumber || undefined,
     floor_number: floorNumber || undefined,
+    number_of_floors: numberOfFloors,
+    parking_slots: parkingSlots,
+    plot_size_sqft: plotSize || undefined,
     bedrooms,
     bathrooms,
     area_sqft: sizeSqft,
     property_type: propertyType || undefined,
     furnishing: furnishingType,
     completion_status: completionStatus,
+    project_status: projectStatus,
     developer: developer || undefined,
     agent_name: agentName || undefined,
     agent_email: agentEmail || undefined,
+    pf_agent_id: pfAgentId,
     status,
-    pf_url: pfUrl || undefined,
+    pf_url: resolvedPfUrl,
     featured: pfListing.featured || false,
     verified: pfListing.verified || false,
     last_synced_at: new Date().toISOString(),
+    pf_location_id: pfLocationId || undefined,
+    permit_number: permitNumber,
+    issuing_license_number: issuingLicenseNumber,
+    quality_score: pfListing.qualityScore != null ? Number(pfListing.qualityScore) : undefined,
   };
 }
 
@@ -326,16 +399,14 @@ Deno.serve(async (req) => {
 
     try { await base44.auth.me(); } catch (_) { /* gate degraded — proceed via service role */ }
 
-    const { apiKey, apiSecret } = await getStoredCredentials(base44);
-
-    let token;
+    let token, activeBaseUrl, activeEnvironment;
     let tokenAcquiredAt = Date.now();
     try {
       const tokenStart = Date.now();
-      token = await getPFToken(apiKey, apiSecret);
+      ({ token, baseUrl: activeBaseUrl, environment: activeEnvironment } = await getPFToken(base44));
       tokenAcquiredAt = Date.now();
       diagnostics.time_ms_fetch_total += (tokenAcquiredAt - tokenStart);
-      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart));
+      console.log('PF_LISTINGS_TOKEN: acquired_in_ms=' + (tokenAcquiredAt - tokenStart) + ' env=' + activeEnvironment);
     } catch (err) {
       diagnostics.terminated_reason = 'token_expired';
       diagnostics.first_error_message = 'token: ' + String((err && err.message) || err);
@@ -451,7 +522,7 @@ Deno.serve(async (req) => {
         const fetchStart = Date.now();
         let data;
         try {
-          data = await fetchPFListingsPage(token, page, PER_PAGE);
+          data = await fetchPFListingsPage(token, activeBaseUrl, page, PER_PAGE);
         } catch (err) {
           const msg = String((err && err.message) || err);
           if (!diagnostics.first_error_message) {
@@ -558,9 +629,7 @@ Deno.serve(async (req) => {
         }
         diagnostics.time_ms_write_total += (Date.now() - pageWriteStart);
 
-        if (midPageTimeout) break;
-
-        // Page fully attempted — advance & persist
+        // Always persist progress for this page (even on mid-page timeout, so we don't re-process it)
         totalListingsThisRun += items.length;
         diagnostics.pages_processed_this_run += 1;
         diagnostics.last_successful_page = page;
@@ -574,6 +643,8 @@ Deno.serve(async (req) => {
             console.error('PF_LISTINGS_PROGRESS: failed to update listings_sync_last_completed_page:', String((err && err.message) || err));
           }
         }
+
+        if (midPageTimeout) break;
 
         // Partial page = end of dataset
         if (items.length < PER_PAGE) {

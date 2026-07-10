@@ -14,14 +14,28 @@ function css(str) {
   return o;
 }
 
-export default function ContactEvaluation({ valuation, comps }) {
-  if (!valuation && (!comps || comps.length === 0)) {
+export default function ContactEvaluation({ valuation, comps, askingPrice, propertyName }) {
+  const hasComps = comps && comps.length > 0;
+  const hasValuation = !!valuation;
+  const hasAsking = !!askingPrice;
+
+  // Dedupe comps by ref — only show the first occurrence of each unit reference
+  const seenRefs = new Set();
+  const dedupedComps = (comps || []).filter((c) => {
+    const key = String(c?.ref || '').trim().toLowerCase();
+    if (!key) return true;
+    if (seenRefs.has(key)) return false;
+    seenRefs.add(key);
+    return true;
+  });
+
+  if (!hasValuation && !hasComps && !hasAsking) {
     return (
       <div style={css("margin-top:16px; border-radius:15px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.025); padding:16px 17px;")}>
         <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:10px;")}>
           <span style={css("font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.6);")}>Contact Evaluation</span>
         </div>
-        <p style={css("margin:0; font-size:13px; line-height:1.6; color:rgba(255,255,255,0.5);")}>No evaluation data available for Peninsula 2.</p>
+        <p style={css("margin:0; font-size:13px; line-height:1.6; color:rgba(255,255,255,0.5);")}>No evaluation data yet — run Analyse to generate an AI valuation.</p>
       </div>
     );
   }
@@ -35,28 +49,35 @@ export default function ContactEvaluation({ valuation, comps }) {
         )}
       </div>
       
-      {valuation && (
+      {(valuation || askingPrice) && (
         <React.Fragment>
           <div style={css("display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;")}>
             <div>
-              <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>AI Estimated Value</div>
+              <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{valuation ? 'AI Estimated Value' : 'Asking Price'}</div>
               <div style={css("display:flex; align-items:baseline; gap:9px; margin-top:4px;")}>
-                <span style={css("font-size:24px; font-weight:800; color:rgba(255,255,255,0.96);")}>{valuation.estValue}</span>
-                <span style={css("font-size:13px; color:hsl(38 92% 60%); font-weight:600;")}>{valuation.psf}</span>
+                <span style={css("font-size:24px; font-weight:800; color:rgba(255,255,255,0.96);")}>{valuation ? valuation.estValue : askingPrice}</span>
+                {valuation && valuation.psf && <span style={css("font-size:13px; color:hsl(38 92% 60%); font-weight:600;")}>{valuation.psf}</span>}
               </div>
             </div>
           </div>
-          <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.6); padding:9px 11px; border-radius:9px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); margin-bottom:13px;")}>
-            {valuation.basis} <span style={css("opacity:0.6;")}>· {valuation.updatedAt}</span>
-          </div>
+          {valuation && (
+            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.6); padding:9px 11px; border-radius:9px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); margin-bottom:13px;")}>
+              {valuation.basis} <span style={css("opacity:0.6;")}>· {valuation.updatedAt}</span>
+            </div>
+          )}
+          {!valuation && propertyName && (
+            <div style={css("font-size:12px; line-height:1.5; color:rgba(255,255,255,0.6); padding:9px 11px; border-radius:9px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); margin-bottom:13px;")}>
+              {propertyName} <span style={css("opacity:0.6;")}>· Run Analyse for AI valuation</span>
+            </div>
+          )}
         </React.Fragment>
       )}
 
-      {comps && comps.length > 0 && (
+      {dedupedComps.length > 0 && (
         <React.Fragment>
           <div style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:7px;")}>Comparable Units · DLD</div>
           <div style={css("display:flex; flex-direction:column; gap:6px;")}>
-            {comps.map((comp, i) => (
+            {dedupedComps.map((comp, i) => (
               <div key={i} style={css("display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);")}>
                 <div style={css("min-width:0;")}>
                   <div style={css("font-size:12.5px; font-weight:600; color:rgba(255,255,255,0.85);")}>{comp.ref}</div>

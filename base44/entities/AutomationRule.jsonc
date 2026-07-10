@@ -21,7 +21,9 @@
         "lead_created",
         "days_no_activity",
         "lead_score_change",
-        "tag_added"
+        "tag_added",
+        "landlord_created",
+        "appointment_created"
       ],
       "description": "What triggers this rule"
     },
@@ -43,10 +45,12 @@
             "type": "string",
             "enum": [
               "send_email",
+              "send_whatsapp",
               "tag",
               "assign",
               "notify",
-              "schedule_followup"
+              "schedule_followup",
+              "send_template"
             ]
           },
           "payload": {
@@ -55,6 +59,42 @@
         }
       },
       "description": "Actions to execute when rule matches"
+    },
+    "template_id": {
+      "type": "string",
+      "description": "FK to MessageTemplate \u2014 which template this automation sends"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "new_landlord",
+        "specific_landlord",
+        "all_matching",
+        "appointment_creator"
+      ],
+      "description": "Who receives the automated message"
+    },
+    "recipient_landlord_id": {
+      "type": "string",
+      "description": "Specific landlord ID when recipient_type=specific_landlord"
+    },
+    "recipient_role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin",
+        "all"
+      ],
+      "default": "all",
+      "description": "For internal-notification rules: who receives the notification \u2014 user (assigned agent), admin (admins only), or all"
+    },
+    "message_title": {
+      "type": "string",
+      "description": "Internal notification title (notify action)"
+    },
+    "message_body": {
+      "type": "string",
+      "description": "Internal notification body (notify action). Supports {{agent_name}}, {{lead_name}}, {{landlord_name}} placeholders."
     },
     "priority": {
       "type": "number",

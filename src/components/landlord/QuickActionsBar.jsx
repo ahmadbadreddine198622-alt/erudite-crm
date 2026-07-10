@@ -3,12 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format, addMonths, addYears } from 'date-fns';
 import { Calendar, Clock, CheckSquare, ChevronDown, Bell, Loader2 } from 'lucide-react';
+import EmailComposeButton from '@/components/shared/EmailComposeButton';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery',
   listing_commitment: 'Listing Commitment',
   form_a_initiation: 'Form A Initiation',
@@ -331,6 +333,9 @@ export default function QuickActionsBar({ landlord, onUpdate }) {
   const [modal, setModal] = useState(null); // 'followup' | 'appointment' | 'task' | 'stage' | 'renewal'
   const close = () => setModal(null);
 
+  // Resolve landlord email: primary or first of additional_emails
+  const landlordEmail = landlord?.email || (Array.isArray(landlord?.additional_emails) ? landlord.additional_emails[0] : '') || '';
+
   const actions = [
     { key: 'followup', label: '📅 Follow-Up', icon: Calendar },
     { key: 'appointment', label: '🗓 Appointment', icon: Clock },
@@ -352,6 +357,12 @@ export default function QuickActionsBar({ landlord, onUpdate }) {
             {a.label}
           </button>
         ))}
+        <EmailComposeButton
+          toEmail={landlordEmail}
+          toName={landlord?.full_name_en}
+          size="sm"
+          className="text-[11px] px-2.5 py-1 h-auto"
+        />
       </div>
 
       {modal === 'followup' && <FollowUpModal landlord={landlord} onClose={close} />}

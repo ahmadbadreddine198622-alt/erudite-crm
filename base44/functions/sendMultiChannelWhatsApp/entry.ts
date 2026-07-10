@@ -18,17 +18,29 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const INSTANCE_MAP = {
   business: 'erudite',
   personal: 'erudite_whatsapp',
-  malik: 'malik_whatsapp',
+  malik: 'Malik',
+  sameie: 'Samy',
+  dari: 'Dari',
 };
 
 const FROM_NUMBER_MAP = {
   business: '+971582806000',
   personal: '+971581806000',
   malik: '+971529871277',
+  sameie: '+971522869064',
+  dari: '+971559508545',
 };
 
 function toDigits(raw) {
   return String(raw || '').replace(/\D/g, '');
+}
+
+// fetch with an abort timeout so a hanging/unreachable Evolution API surfaces a
+// clear error fast instead of spinning the agent's Send button forever.
+function fetchWithTimeout(url, opts = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
 }
 
 Deno.serve(async (req) => {
@@ -44,14 +56,21 @@ Deno.serve(async (req) => {
   const conversation_id = body.conversation_id;
   const text = body.text;
   const channel = body.channel || 'personal';
+  // Optional attachment: { attachment_url, attachment_name, attachment_media_type }
+  // When set, the message is sent as media (image/document/video/audio) with the text as caption.
+  const attachment_url = body.attachment_url || null;
+  const attachment_name = body.attachment_name || 'attachment';
+  let attachmentMediaType = (body.attachment_media_type || 'document').toLowerCase();
+  if (!['image', 'document', 'video', 'audio'].includes(attachmentMediaType)) attachmentMediaType = 'document';
   
-  // Support both landlord_id OR conversation_id - at least one required
-  if ((!landlord_id && !conversation_id) || !text || !String(text).trim()) {
-    return Response.json({ error: 'landlord_id or conversation_id, and non-empty text are required' }, { status: 400 });
+  // Support both landlord_id OR conversation_id - at least one required.
+  // Text may be empty when sending a media-only message (caption is optional).
+  if ((!landlord_id && !conversation_id) || (!text || !String(text).trim()) && !attachment_url) {
+    return Response.json({ error: 'landlord_id or conversation_id, and (text or attachment) are required' }, { status: 400 });
   }
 
-  if (!['business', 'personal', 'malik'].includes(channel)) {
-    return Response.json({ error: 'Invalid channel. Must be "business", "personal", or "malik"' }, { status: 400 });
+  if (!['business', 'personal', 'malik', 'sameie', 'dari', 'agent'].includes(channel)) {
+    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", "sameie", "dari", or "agent"' }, { status: 400 });
   }
 
   const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
@@ -68,27 +87,89 @@ Deno.serve(async (req) => {
   let number = null;
   
   // If landlord_id provided, fetch landlord
+  const isAdmin = user.role === 'admin';
+
+  // Per-agent own WhatsApp line: each agent sends from their own Evolution instance
+  // (configured in Profile). Agents without a configured line cannot send. Admins bypass
+  // so the company keeps working during transition.
+  let ownInstance = null;
+  let ownNumber = null;
+  try {
+    const meList = await svc.entities.User.filter({ email: user.email });
+    const me = meList?.[0];
+    ownInstance = me?.whatsapp_instance || null;
+    ownNumber = me?.whatsapp_number || null;
+  } catch (_) { /* ignore */ }
+  // STRICT: only Ahmad's two emails may use shared company lines (personal/business).
+  // Every other user — admin or not — MUST have their own WhatsApp line configured
+  // (whatsapp_instance from Profile). No fallback to business/personal for anyone else.
+  const AUTHORIZED_SHARED_EMAILS_STRICT = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  const isAuthorizedShared = AUTHORIZED_SHARED_EMAILS_STRICT.includes((user.email || '').toLowerCase());
+  if (!ownInstance && !isAuthorizedShared) {
+    return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
+  }
   if (landlord_id) {
     const llList = await svc.entities.Landlord.filter({ id: landlord_id });
     landlord = llList && llList[0];
     if (!landlord) return Response.json({ error: 'Landlord not found', landlord_id }, { status: 404 });
+    // Ownership check — agents can only send to landlords assigned to them
+    if (!isAdmin && landlord.assigned_agent_email !== user.email) {
+      return Response.json({ error: 'You can only send WhatsApp messages to landlords assigned to you' }, { status: 403 });
+    }
     number = toDigits(landlord.phone);
     if (!number) return Response.json({ error: 'Landlord has no phone number to send to', landlord_id }, { status: 422 });
   } 
-  // If conversation_id provided, get phone from conversation
+  // If conversation_id provided, get phone from conversation (user-scoped — RLS enforces ownership)
   else if (conversation_id) {
-    const convList = await svc.entities.WhatsAppConversation.filter({ id: conversation_id });
+    const convList = await base44.entities.WhatsAppConversation.filter({ id: conversation_id });
     const conv = convList && convList[0];
-    if (!conv) return Response.json({ error: 'Conversation not found', conversation_id }, { status: 404 });
+    if (!conv) return Response.json({ error: 'Conversation not found or not assigned to you', conversation_id }, { status: 403 });
     number = toDigits(conv.wa_phone_e164 || conv.phone_number);
     if (!number) return Response.json({ error: 'Conversation has no phone number', conversation_id }, { status: 422 });
   }
 
-  // ---- Send via appropriate API depending on channel ----
+  // ---- GUARD: never send to one of our own instance numbers (self-send loop) ----
+  // Bug: replies were resolving the destination to the sending line itself
+  // (from === to === +971581806000), so the customer never received them.
+  // Reject any send where the recipient equals a known own-number.
+  const OWN_NUMBERS = [...Object.values(FROM_NUMBER_MAP).map(toDigits)];
+  if (ownNumber) OWN_NUMBERS.push(toDigits(ownNumber));
+  if (OWN_NUMBERS.includes(toDigits(number))) {
+    return Response.json({
+      error: 'Refusing to send: destination is one of our own WhatsApp numbers (self-send loop)',
+      destination: '+' + number,
+      channel,
+    }, { status: 422 });
+  }
+
+  // ---- Determine the sending instance ----
+  // Only the two authorized emails may send from the shared company lines
+  // (personal = Ahmad's Baileys line, business = Meta Cloud API). Every other
+  // agent — admin or not — MUST send from their own configured WhatsApp line
+  // (whatsapp_instance from Profile). Their messages are recorded on the
+  // 'agent' channel so the thread is never confused with Ahmad's personal line.
+  const canUseShared = isAuthorizedShared;
+  let instanceName = null;
+  let useMetaBusiness = false;
+  if (!canUseShared) {
+    instanceName = ownInstance;
+    if (!instanceName) {
+      return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
+    }
+  } else if (channel === 'business') {
+    useMetaBusiness = true;
+  } else {
+    instanceName = ownInstance || INSTANCE_MAP[channel] || INSTANCE_MAP.personal;
+  }
+  // Authorized emails record on their chosen shared channel; everyone else records
+  // on the 'agent' channel (their own line) — never 'personal'.
+  const recordChannel = canUseShared ? channel : 'agent';
+
+  // ---- Send via appropriate API ----
   let evoStatus = 0;
   let evoBody = null;
 
-  if (channel === 'business') {
+  if (useMetaBusiness) { // Meta Cloud API (company business line — admins only)
     // Business: send via Meta Cloud API
     const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -101,6 +182,43 @@ Deno.serve(async (req) => {
       type: 'text',
       text: { body: String(text), preview_url: false },
     };
+
+    // Meta Cloud API: send media by uploading the file to /media first, then referencing its id.
+    if (attachment_url) {
+      try {
+        const fileResp = await fetch(attachment_url);
+        if (!fileResp.ok) throw new Error('Could not fetch attachment from ' + attachment_url);
+        const fileBlob = await fileResp.blob();
+        const mime = fileResp.headers.get('content-type') || 'application/octet-stream';
+        const filename = attachment_name || 'attachment';
+        const form = new FormData();
+        form.append('messaging_product', 'whatsapp');
+        form.append('type', attachmentMediaType === 'image' ? 'image'
+          : attachmentMediaType === 'video' ? 'video'
+          : attachmentMediaType === 'audio' ? 'audio'
+          : 'document');
+        form.append('file', fileBlob, filename);
+        const upResp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/media`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+          body: form,
+        });
+        const upJson = await upResp.json().catch(() => ({}));
+        if (!upResp.ok || !upJson?.id) throw new Error('Meta media upload failed: ' + JSON.stringify(upJson));
+        const mediaId = upJson.id;
+        const typeKey = attachmentMediaType === 'image' ? 'image'
+          : attachmentMediaType === 'video' ? 'video'
+          : attachmentMediaType === 'audio' ? 'audio'
+          : 'document';
+        metaPayload.type = typeKey;
+        metaPayload[typeKey] = { id: mediaId, caption: (text && String(text).trim()) ? String(text) : undefined };
+        // remove the text block to avoid an invalid payload
+        delete metaPayload.text;
+      } catch (e) {
+        return Response.json({ error: 'Failed to prepare media for Meta', detail: String(e?.message || e) }, { status: 502 });
+      }
+    }
+
     try {
       const resp = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
         method: 'POST',
@@ -117,26 +235,58 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not reach Meta API', detail: String(e?.message || e) }, { status: 502 });
     }
   } else {
-    // Personal: send via Evolution API
+    // Evolution API — agent's own line, or admin's selected personal channel
     if (!apiUrl || !apiKey) {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
-    const instanceName = INSTANCE_MAP[channel];
-    const sendUrl = `${apiUrl}/message/sendText/${instanceName}`;
+
+    // No pre-flight connection-state check — it adds up to 15s of latency on every send
+    // (a full round-trip to the Evolution API before the send even starts). The send
+    // endpoint itself fails fast when the instance is disconnected (Baileys returns
+    // immediately), so we attempt the send directly and surface the same helpful
+    // "re-scan QR" message if Evolution reports a connection error.
+
+    // sendMedia when an attachment is present (caption = text); otherwise plain sendText.
+    const isMedia = !!attachment_url;
+    const sendUrl = isMedia
+      ? `${apiUrl}/message/sendMedia/${instanceName}`
+      : `${apiUrl}/message/sendText/${instanceName}`;
     try {
-      const resp = await fetch(sendUrl, {
+      const payload = isMedia
+        ? { number, media: attachment_url, mediatype: attachmentMediaType, caption: String(text || ''), fileName: attachment_name }
+        : { number, text: String(text) };
+      const resp = await fetchWithTimeout(sendUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: apiKey },
-        body: JSON.stringify({ number, text: String(text) }),
-      });
+        body: JSON.stringify(payload),
+      }, 30000);
       evoStatus = resp.status;
       const raw = await resp.text();
       try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
       if (!resp.ok) {
+        // Detect connection/disconnection errors from Evolution and surface the
+        // same actionable "re-scan QR" message the old pre-check would have shown.
+        const errText = typeof evoBody === 'string' ? evoBody : JSON.stringify(evoBody || {});
+        const isDisconnected = /not.*connected|disconnected|session.*closed|qr.?code|instance.*(close|connecting|offline)/i.test(errText);
+        const isOwn = !isAdmin && !!ownInstance;
+        if (isDisconnected) {
+          return Response.json({
+            error: isOwn
+              ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected. Re-scan your QR code in Profile → WhatsApp to send.`
+              : `WhatsApp instance "${instanceName}" is disconnected. Re-scan the QR code.`,
+            instance: instanceName, evolution_status: evoStatus, evolution_response: evoBody,
+          }, { status: 503 });
+        }
         return Response.json({ error: 'Evolution send failed', evolution_status: evoStatus, evolution_response: evoBody, send_url: sendUrl }, { status: 502 });
       }
     } catch (e) {
-      return Response.json({ error: 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: 502 });
+      const timedOut = e?.name === 'AbortError';
+      const isOwn = !isAdmin && !!ownInstance;
+      return Response.json({ error: timedOut
+        ? (isOwn
+          ? 'WhatsApp send timed out — your line may be disconnected. Re-scan your QR code in Profile → WhatsApp.'
+          : 'WhatsApp send timed out — the Evolution API did not respond. The instance may be disconnected.')
+        : 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: timedOut ? 504 : 502 });
     }
   }
 
@@ -148,8 +298,8 @@ Deno.serve(async (req) => {
     evoBody.message?.key?.id       // Evolution API (alt)
   )) || null;
   let message;
+  let conversation = null;
   try {
-    let conversation = null;
     
     // ALWAYS resolve the correct conversation for the requested channel.
     // Even when conversation_id is provided, we must check whether its channel
@@ -169,33 +319,48 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Step 2: Find the conversation that matches phone + channel (strict)
+    // Step 2: Find the conversation that matches phone + channel (strict).
+    // There may be duplicate threads — always reuse the MOST RECENTLY ACTIVE one
+    // so replies don't split across threads (which looks like the wrong number).
     const phoneE164 = '+' + number;
-    const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
-    conversation = byPhoneAndChannel[0] || null;
+    const pickNewest = (list) => {
+      if (!list || !list.length) return null;
+      return [...list].sort((a, b) =>
+        new Date(b.last_message_at || b.updated_date || 0) - new Date(a.last_message_at || a.updated_date || 0)
+      )[0];
+    };
+    // For agents, scope the lookup by their own email so they only reuse THEIR thread
+    // with this contact — never another agent's thread.
+    const ownerFilter = !isAdmin ? { assigned_agent_email: user.email } : {};
+    const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, wa_phone_e164: phoneE164, channel: recordChannel });
+    conversation = pickNewest(byPhoneAndChannel);
 
     // Fallback: try digits-only phone_number field
     if (!conversation) {
-      const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
-      conversation = byPhoneNumber[0] || null;
+      const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, phone_number: phoneE164, channel: recordChannel });
+      conversation = pickNewest(byPhoneNumber);
     }
 
     // Step 3: If landlord_id provided and still no match, try landlord + channel
     if (!conversation && landlord_id) {
-      const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
-      conversation = byLandlord[0] || null;
+      const byLandlord = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, landlord_id, channel: recordChannel });
+      conversation = pickNewest(byLandlord);
     }
 
     // Step 4: Create a new conversation for this channel if none found
     if (!conversation) {
       const now = new Date().toISOString();
+      // When an agent sends from their own line (!canUseShared), stamp the conversation
+      // with THEIR email — not the landlord's assigned agent. This ensures the UI
+      // shows the actual sender's name, not whoever was previously assigned.
       conversation = await svc.entities.WhatsAppConversation.create({
         wa_phone_e164: phoneE164,
         phone_number: phoneE164,
         landlord_id: landlord_id || null,
         lead_id: null,
+        assigned_agent_email: !canUseShared ? user.email : (landlord?.assigned_agent_email || landlord?.listing_manager_email || null),
         status: 'open',
-        channel,
+        channel: recordChannel,
         first_message_at: now,
         last_message_at: now,
         unread_count: 0,
@@ -213,20 +378,24 @@ Deno.serve(async (req) => {
     // Use the channel from the conversation if available (source of truth), fall back to request channel
     const effectiveChannel = conversation?.channel || channel;
     if (!whatsAppMessageExists) {
+      // When an agent sends from their own line, stamp with THEIR email so the UI
+      // shows the correct sender name. Admins on shared lines keep the conversation's agent.
+      const msgAgentEmail = !canUseShared ? user.email : (conversation?.assigned_agent_email || landlord?.assigned_agent_email || landlord?.listing_manager_email || null);
       message = await svc.entities.WhatsAppMessage.create({
         conversation_id: conversation?.id || conversation_id || null,
         lead_id: null,
         landlord_id: landlord_id || null,
         direction: 'outbound',
-        body: String(text),
+        body: String(text || ''),
         timestamp: new Date().toISOString(),
         status: 'sent',
         wa_message_id: waId,
-        from_number: FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
+        from_number: ownNumber || FROM_NUMBER_MAP[effectiveChannel] || FROM_NUMBER_MAP[channel] || '+971581806000',
         to_number: '+' + number,
         channel: effectiveChannel,
-        media_type: 'none',
-        assigned_agent_email: conversation?.assigned_agent_email || null,
+        media_type: attachment_url ? attachmentMediaType : 'none',
+        media_url: attachment_url || null,
+        assigned_agent_email: msgAgentEmail,
       });
     } else {
       message = existingWAMsg[0];
@@ -241,11 +410,22 @@ Deno.serve(async (req) => {
           landlord_id: landlord_id || null,
           phone: number,
           direction: 'outgoing',
-          text: String(text),
+          text: String(text || ''),
           timestamp: new Date().toISOString(),
           status: 'sent',
           wa_message_id: waId,
-          channel: channel,
+          channel: recordChannel,
+          agent_email: user.email,
+          media_url: attachment_url || null,
+          media_type: attachment_url ? attachmentMediaType : 'none',
+          // V3 Phase 0 (RECORD): AI-draft provenance, set ONLY when the send originated from an AI
+          // draft (passed by the composer). Non-AI messages keep created_from_ai:false and are otherwise
+          // unaffected. Instrumentation only — no behavior/wording/timing change.
+          created_from_ai: body.created_from_ai === true,
+          ai_source: body.created_from_ai === true ? (body.ai_source || null) : null,
+          ai_draft_text: body.created_from_ai === true ? (body.ai_draft_text || null) : null,
+          was_edited_after_draft: body.created_from_ai === true ? (body.was_edited_after_draft === true) : false,
+          ai_disposition: body.created_from_ai === true && ['accepted', 'edited', 'ignored'].includes(body.ai_disposition) ? body.ai_disposition : null,
         });
       }
     }
@@ -268,5 +448,5 @@ Deno.serve(async (req) => {
     }, { status: 207 });
   }
 
-  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel, conversation_id: conversation_id || conversation?.id });
+  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel: recordChannel, conversation_id: conversation_id || conversation?.id });
 });

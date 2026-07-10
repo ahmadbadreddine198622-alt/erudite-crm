@@ -7,9 +7,23 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { phone_number, message_text, media_url, media_type, conversation_id } = await req.json();
+    const isAdmin = user.role === 'admin';
+
+    // Non-admins must send through an assigned conversation — no direct phone sends
+    if (!isAdmin && !conversation_id) {
+      return Response.json({ error: 'Only admins can send to a phone number directly. Use an assigned conversation instead.' }, { status: 403 });
+    }
 
     if (!phone_number || (!message_text && !media_url)) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Ownership check: if conversation_id is provided, verify the agent owns it via user-scoped fetch
+    if (conversation_id) {
+      const owned = await base44.entities.WhatsAppConversation.filter({ id: conversation_id });
+      if (!owned?.[0]) {
+        return Response.json({ error: 'Conversation not found or not assigned to you' }, { status: 403 });
+      }
     }
 
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');

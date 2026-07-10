@@ -22,8 +22,16 @@ export default function WhatsAppHeader({ conversation, lead, landlord, agent, te
   const isMatched = !!(landlord || lead);
   
   // Channel attribution - show which of OUR lines the contact wrote to
-  const ourLineNumber = conversation.channel === 'business' ? '+971582806000' : '+971581806000';
-  const channelLabel = conversation.channel === 'business' ? 'Business' : 'Personal';
+  const CHANNEL_META = {
+    business: { label: 'Business', number: '+971582806000' },
+    personal:  { label: 'Ahmad',    number: '+971581806000' },
+    malik:     { label: 'Malik',    number: '+971529871277' },
+    sameie:    { label: 'Sameie',   number: '+971522869064' },
+    dari:      { label: 'Dari',     number: '' },
+  };
+  const ch = CHANNEL_META[conversation.channel] || CHANNEL_META.personal;
+  const ourLineNumber = ch.number;
+  const channelLabel = ch.label;
 
   const copyPhone = () => {
     navigator.clipboard.writeText(conversation.wa_phone_e164 || conversation.phone_number || '');

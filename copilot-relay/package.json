@@ -1,0 +1,20 @@
+{
+  "name": "erudite-call-copilot-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time Call Copilot relay for Erudite Real Estate — bridges Twilio Media Streams, Deepgram STT, Claude, and the Base44 CRM.",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "simulate": "node test/simulate-twilio.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2 } from 'lucide-react';
+import { Phone, MessageCircle, Mail, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2, GripVertical } from 'lucide-react';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -7,9 +7,11 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
-import { useState } from 'react';
+import { nextStepFor, getCaptureStatus } from '@/lib/landlordStageGuide';
+import StageArrows from './StageArrows';
+import { useState, memo } from 'react';
 
-const ARCHETYPE_COLORS = {
+export const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
   individual_end_user_relocating: 'bg-accent/10 text-accent border-accent/20',
   distressed_seller: 'bg-red-500/10 text-red-600 border-red-500/20',
@@ -22,7 +24,7 @@ const ARCHETYPE_COLORS = {
   speculator_flipping: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
 };
 
-const ARCHETYPE_LABELS = {
+export const ARCHETYPE_LABELS = {
   professional_investor: 'Pro Investor',
   individual_end_user_relocating: 'Relocating',
   distressed_seller: 'Distressed',
@@ -51,6 +53,7 @@ function getUrgencyDot(score) {
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery',
   listing_commitment: 'Listing Commitment',
   form_a_initiation: 'Form A Initiation',
@@ -64,12 +67,15 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-export default function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone }) {
+function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps, onStageChange }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
   const navigate = useNavigate();
   const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
+  // Stage guidance (static config) — next action line + capture-completeness dot.
+  const nextStep = nextStepFor(landlord.stage);
+  const capture = getCaptureStatus(landlord, landlord.stage);
 
   // Find the landlord's PhotographyTask (same logic as detail panel)
   const landlordTask = photographyTasks.find(task => task.landlord_id === landlord.id);
@@ -263,29 +269,47 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
   };
 
   return (
-    <div
+    <a
+      href={`/landlord/${landlord.id}`}
       onClick={(e) => {
         e.stopPropagation();
+        e.preventDefault();
         navigate(`/landlord/${landlord.id}`);
       }}
       className={cn(
-        'rounded-xl p-1.5 cursor-pointer transition-all duration-200',
+        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 border shadow-sm block',
         isDragging
-          ? 'shadow-2xl rotate-1'
-          : 'hover:shadow-lg',
+          ? 'scale-[1.03] shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-accent/60'
+          : 'hover:shadow-md border-border',
         isSelected ? 'ring-2 ring-accent/50' : '',
       )}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.07)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
-        borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        background: 'linear-gradient(158deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.026) 24%, rgba(255,255,255,.008) 100%)',
+        border: '1px solid rgba(255,255,255,.08)',
+        boxShadow: '0 16px 34px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.11), inset 0 -18px 32px -28px rgba(0,0,0,.55)',
+        position: 'relative',
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(201,162,75,.35)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)'; }}
     >
-      {/* Top row: checkbox + avatar + name */}
+      {/* Top-edge gold highlight line */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent)' }} />
+      {/* Diagonal sheen */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(157deg,rgba(255,255,255,.10) 0%, transparent 30%)', borderRadius: 'inherit' }} />
+      {/* Top row: grip handle + checkbox + avatar + name */}
       <div className="flex items-center gap-1.5">
+        {dragHandleProps && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 -ml-0.5 flex items-center justify-center w-4 h-5 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 cursor-grab active:cursor-grabbing touch-none transition-colors"
+            title="Drag to move stage"
+            aria-label="Drag to move stage"
+          >
+            <GripVertical className="w-3 h-3" />
+          </button>
+        )}
         <input
           type="checkbox"
           checked={!!isChecked}
@@ -294,45 +318,72 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           className="w-3.5 h-3.5 accent-amber-500 shrink-0 cursor-pointer"
         />
         {photoUrl ? (
-          <img src={photoUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+          <img src={photoUrl} alt="" className="w-[27px] h-[27px] rounded-full object-cover shrink-0" style={{ boxShadow: '0 0 0 1.5px rgba(201,162,75,.6)' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
         ) : null}
-        <div className={cn('w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0', photoUrl ? 'hidden' : 'flex')}>
+        <div className={cn('w-[27px] h-[27px] rounded-full flex items-center justify-center text-[11px] font-bold shrink-0', photoUrl ? 'hidden' : 'flex')} style={{
+          background: 'radial-gradient(circle at 30% 18%, #d99d3a, #b57f2a 55%, #8d6320)',
+          boxShadow: '0 0 0 1.5px rgba(201,162,75,.6)',
+          color: '#0a0e1a',
+        }}>
           {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
         </div>
-        <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
+        <p className="text-[11px] truncate flex-1" style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: '#e8ecf6' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
       </div>
 
       {/* Badges row: archetype + stage + urgency + media status (only for photographer_scheduling stage) */}
       <div className="flex items-center gap-1 mt-1 flex-wrap">
-        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', archetypeColor)}>
+        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold', archetypeColor)} style={{ fontWeight: 700 }}>
           {archetypeLabel}
         </span>
-        <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.3)', color: '#e3c06a' }}>
+          <span
+            className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')}
+            title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
+          />
           {stageLabel}
         </span>
+        {landlord.handover_status === 'Handed Over' && (
+          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30" style={{ fontWeight: 700 }}>
+            <CheckCircle2 className="w-2 h-2" />
+            HANDED OVER
+          </span>
+        )}
+        {landlord.unit_layout && (
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" style={{ fontWeight: 700 }}>
+            {landlord.unit_layout}
+          </span>
+        )}
         {landlord.urgency_score >= 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', fontWeight: 700 }}>
             URGENT
           </span>
         )}
         {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.45)', color: '#fbbf24', fontWeight: 700 }}>
             ATTENTION
           </span>
         )}
         {showMediaBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
             {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
             {mediaStatus.label}
           </span>
         )}
         {docBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
             <FileCheck className="w-2 h-2" />
             {docBadge.label}
           </span>
         )}
       </div>
+
+      {/* Next step — the one action that moves this landlord forward (from stage guide) */}
+      {nextStep && (
+        <div className="flex items-start gap-1 mt-1" style={{ background: 'rgba(0,0,0,.22)', padding: '.25rem .375rem', borderRadius: '.375rem' }}>
+          <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: '#c9a24b' }}>Next:</span>
+          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: '#e8ecf6', fontWeight: 600 }}>{nextStep}</span>
+        </div>
+      )}
 
       {/* Individual media badges - shown in ALL stages when links exist */}
       {landlordTask && (
@@ -344,7 +395,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             </span>
           )}
           {landlordTask.video_link && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-purple-500/15 text-purple-400 border-purple-500/30">
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(196,177,255,.14)', border: '1px solid rgba(196,177,255,.3)', color: '#c4b1ff' }}>
               <Film className="w-2 h-2" />
               Video
             </span>
@@ -353,6 +404,25 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
               <Image className="w-2 h-2" />
               Photos
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Additional contact indicators — compact badge for extra phones/emails */}
+      {((Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0) ||
+        (Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0)) && (
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
+          {Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" title={`${landlord.additional_phones.length} additional phone(s)`}>
+              <Phone className="w-2 h-2" />
+              +{landlord.additional_phones.length}
+            </span>
+          )}
+          {Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-cyan-500/15 text-cyan-400 border-cyan-500/30" title={`${landlord.additional_emails.length} additional email(s)`}>
+              <Mail className="w-2 h-2" />
+              +{landlord.additional_emails.length}
             </span>
           )}
         </div>
@@ -430,27 +500,27 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
       )}
 
       {/* Commission + Trust + Agent - single row */}
-      <div className="flex items-center gap-2 mt-1 flex-wrap">
+      <div className="flex items-center gap-2 mt-1 flex-wrap" style={{ borderTop: '1px solid rgba(201,162,75,0.15)', paddingTop: '0.375rem' }}>
         {commission > 0 && (
-          <span className="text-[10px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+          <span className="text-[10px] font-bold" style={{ color: '#c9a24b', textShadow: '0 1px 8px rgba(0,0,0,.3)' }}>
             {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
           </span>
         )}
         {askingPrice > 0 && (
-          <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <span className="text-[8px]" style={{ color: '#8b96b0' }}>
             AED {(askingPrice / 1000000).toFixed(1)}M
           </span>
         )}
-        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))}>
+        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))} style={{ fontWeight: 700 }}>
           T{landlord.trust_score || 0}
         </span>
         {landlord.assigned_agent_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
+          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', fontWeight: 700 }}>
             👤 {landlord.assigned_agent_email.split('@')[0]}
           </span>
         )}
         {landlord.listing_manager_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 flex items-center gap-0.5">
+          <span className="text-[7px] px-1 py-0.5 rounded border text-amber-400 flex items-center gap-0.5" style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', fontWeight: 700 }}>
             📋 {landlord.listing_manager_email.split('@')[0]}
           </span>
         )}
@@ -464,11 +534,17 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
       )}
 
       {/* Bottom row: time + assign + actions */}
-      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
         <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
           {landlord.days_in_stage ? `${landlord.days_in_stage}d` : 'New'}
         </span>
         <div className="flex items-center gap-0.5">
+          {onStageChange && (
+            <>
+              <StageArrows landlord={landlord} onStageChange={onStageChange} />
+              <span className="w-px h-4 mx-0.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            </>
+          )}
           {users.length > 0 && (
             <select
               title="Assign"
@@ -480,7 +556,7 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
             >
               <option value="">Assign</option>
               {users.map(u => (
-                <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
+                <option key={u.id} value={u.email}>{(u.display_name || u.full_name)?.split(' ')[0] || u.email.split('@')[0]}</option>
               ))}
             </select>
           )}
@@ -532,6 +608,24 @@ export default function LandlordCard({ landlord, isSelected, isDragging, onClick
           </button>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
+
+// Memoized so a drag (which re-renders the board on every pointer move) only repaints the
+// card whose props actually changed — not all ~600 cards. Without this, dragging hangs.
+export default memo(LandlordCard, (prev, next) => {
+  const a = prev.landlord, b = next.landlord;
+  return (
+    a === b &&
+    prev.isSelected === next.isSelected &&
+    prev.isDragging === next.isDragging &&
+    prev.isChecked === next.isChecked &&
+    prev.users === next.users &&
+    prev.photographyTasks === next.photographyTasks &&
+    prev.getPhotoForPhone === next.getPhotoForPhone &&
+    prev.onToggleCheck === next.onToggleCheck &&
+    prev.onSingleAssign === next.onSingleAssign &&
+    prev.onStageChange === next.onStageChange
+  );
+});

@@ -80,6 +80,15 @@ function StageRail({ current }) {
   );
 }
 
+// V3 Phase 1 (SEE-ACROSS) for Closing — mirrors landlordPriority / dealPriority. ai_risk_score is the
+// orchestrator's designed "0 = on track, 100 = critically blocked" metric, so sorting by it surfaces
+// the most-blocked closings (those needing action) first; unscored deals (null) sink below scored
+// ones. Pure client-side ordering — no LLM/schema/send.
+function closingPriority(d) {
+  if (!d) return -1;
+  return typeof d.ai_risk_score === 'number' ? d.ai_risk_score : -1;
+}
+
 export default function ClosingHub() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -130,7 +139,9 @@ export default function ClosingHub() {
         (d.trustee_office || '').toLowerCase().includes(q)
       );
     }
-    return r;
+    // V3 P1 SEE: most-blocked (highest ai_risk_score) first. Copy before sort — `r` may still be the
+    // `deals` cache reference when no filters are active, and .sort() mutates in place.
+    return [...r].sort((a, b) => closingPriority(b) - closingPriority(a));
   }, [deals, stageFilter, reprFilter, search]);
 
   const handleSaved = () => {

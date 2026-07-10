@@ -29,6 +29,11 @@
     "changed_by": {
       "type": "string",
       "description": "User email who made change"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or notes about this contact history entry (max 1000 chars)",
+      "maxLength": 1000
     }
   },
   "required": [

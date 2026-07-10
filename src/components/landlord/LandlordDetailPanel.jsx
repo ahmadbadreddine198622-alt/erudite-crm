@@ -4,15 +4,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic, Globe, FileText } from 'lucide-react';
+import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
 import CommentsThread from "@/components/photography/CommentsThread";
 import ListingNotesThread from './ListingNotesThread';
+import LandlordCommandCenter from './LandlordCommandCenter';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
+  attempted_to_contact: 'Attempted to Contact',
   price_discovery: 'Price Discovery',
   listing_commitment: 'Listing Commitment',
   form_a_initiation: 'Form A Initiation',
@@ -46,6 +49,7 @@ import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
 import ListingCopyManager from './ListingCopyManager';
 import GroupBlurbGenerator from './GroupBlurbGenerator';
+import PFPublishPanel from '@/components/propertyfinder/PFPublishPanel';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import FormAContractsList from './FormAContractsList';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
@@ -90,6 +94,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
   const STAGE_OPTIONS = [
     'initial_contact',
+    'attempted_to_contact',
     'price_discovery',
     'listing_commitment',
     'form_a_initiation',
@@ -386,127 +391,53 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
   const renderContent = () => {
     return (
       <>
-        {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between gap-4" style={{ background: 'hsl(222 47% 9%)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            {landlord.ai_strike_now && (
-              <Badge className="bg-red-500 text-white border-0 animate-pulse shrink-0">
-                <Flame className="w-3 h-3 mr-1" /> STRIKE NOW
-              </Badge>
-            )}
-            {/* Avatar */}
-            {photoUrl ? (
-              <>
-                <button
-                  onClick={() => {
-                    console.log('[LandlordDetailPanel] Avatar clicked, photoUrl:', photoUrl);
-                    setPhotoLightboxOpen(true);
-                  }}
-                  className="w-11 h-11 rounded-full overflow-hidden shrink-0 border border-white/20 hover:border-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer"
-                  title="View full-size photo"
-                >
-                  <img src={photoUrl} alt="" className="w-full h-full object-cover" />
-                </button>
-                <Dialog open={photoLightboxOpen} onOpenChange={setPhotoLightboxOpen}>
-                  <DialogContent className="max-w-3xl p-0 overflow-hidden" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-                    <div className="relative w-full h-[85vh] flex items-center justify-center bg-black/95 rounded-lg">
-                      <img src={photoUrl} alt="" className="max-h-full max-w-full object-contain" />
-                      <button
-                        onClick={() => setPhotoLightboxOpen(false)}
-                        className="absolute top-3 right-3 p-2 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
-                      >
-                        <X className="w-5 h-5 text-white" />
-                      </button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </>
+        {/* Header — Command Center (5 stacked zones) */}
+        <LandlordCommandCenter
+          landlord={landlord}
+          photoUrl={photoUrl}
+          onUpdate={onUpdate}
+          onAct={() => setWhisperOpen(true)}
+          actions={
+            <>
+              <TwilioCallDialog
+                lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
+                size="icon"
+                iconOnly
+              />
+              <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
+              <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
+              <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
+                <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
+              </Button>
+              <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
+                <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin text-accent' : 'text-muted-foreground'}`} />
+              </Button>
+              <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
+                <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-400' : 'text-muted-foreground'}`} />
+              </Button>
+            </>
+          }
+        />
+
+        {/* ── HANDOVER BADGE + UNIT LAYOUT PILL (top of card) ────── */}
+        {(landlord.handover_status || landlord.unit_layout) && (
+          <div className="px-6 pt-3 flex items-center gap-2 flex-wrap">
+            {landlord.handover_status === 'Handed Over' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)' }}>
+                <CheckCircle2 className="w-3 h-3" /> HANDED OVER
+              </span>
             ) : (
-              <div className="w-11 h-11 rounded-full bg-accent/20 flex items-center justify-center text-base font-bold text-accent shrink-0 border border-accent/30">
-                {(landlord.full_name_en || landlord.full_name || '?')[0]?.toUpperCase()}
-              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(148,163,184,0.25)' }}>
+                Not Handed Over
+              </span>
             )}
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display font-semibold text-lg truncate" style={{ color: 'rgba(255,255,255,0.95)', letterSpacing: '-0.01em' }}>
-                {landlord.full_name_en || landlord.full_name}
-              </h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {(landlord.unit_reference || landlord.project_name) && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0" style={{ background: 'rgba(250,180,40,0.12)', border: '1px solid rgba(250,180,40,0.3)' }}>
-                    {landlord.unit_reference && (
-                      <span className="text-xs font-bold tabular-nums" style={{ color: 'hsl(38 92% 60%)' }}>
-                        Unit {landlord.unit_reference}
-                      </span>
-                    )}
-                    {landlord.unit_reference && landlord.project_name && (
-                      <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                    )}
-                    {landlord.project_name && (
-                      <span className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'rgba(250,180,40,0.75)' }}>
-                        {landlord.project_name}
-                      </span>
-                    )}
-                    {unitTypeLabel && (
-                      <>
-                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                        <span className="text-xs font-bold" style={{ color: 'hsl(38 92% 70%)' }}>{unitTypeLabel}</span>
-                      </>
-                    )}
-                    {linkedProperty?.area_sqft && (
-                      <>
-                        <span className="text-xs" style={{ color: 'rgba(250,180,40,0.45)' }}>·</span>
-                        <span className="text-xs font-medium tabular-nums" style={{ color: 'rgba(250,180,40,0.8)' }}>
-                          {Math.round(linkedProperty.area_sqft).toLocaleString()} sqft
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">
-                  {STAGE_LABELS[landlord.stage] || landlord.stage}
-                </Badge>
-              </div>
-              {(landlord.landlord_archetype || landlord.ai_momentum) && (
-                <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  {landlord.landlord_archetype?.replace(/_/g, ' ')}
-                  {landlord.ai_momentum && ` · ${landlord.ai_momentum}`}
-                </p>
-              )}
-            </div>
-            <div className="shrink-0">
-              <Select value={landlord.stage} onValueChange={(value) => stageMutation.mutate(value)} disabled={stageMutation.isPending}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAGE_OPTIONS.map((stage) => (
-                    <SelectItem key={stage} value={stage} className="text-xs">
-                      {STAGE_LABELS[stage] || stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {landlord.unit_layout && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.35)' }}>
+                {landlord.unit_layout}
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <TwilioCallDialog
-              lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }}
-              size="icon"
-              iconOnly
-            />
-            <AircallButton phone={landlord.phone} name={landlord.full_name_en || landlord.full_name} iconOnly />
-            <VapiCallDialog lead={{ id: landlord.id, phone: landlord.phone, full_name: landlord.full_name_en || landlord.full_name }} iconOnly />
-            <Button variant="ghost" size="icon" title="Send Email" onClick={() => { setEmailOpen(!emailOpen); setEmailTo(landlord.email || ''); setEmailSubject(''); setEmailBody(''); }}>
-              <Mail className={`w-4 h-4 ${emailOpen ? 'text-accent' : 'text-muted-foreground'}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Run Aurora" onClick={() => orchestrateMutation.mutate()} disabled={orchestrateMutation.isPending}>
-              <RefreshCw className={`w-4 h-4 ${orchestrateMutation.isPending ? 'animate-spin text-accent' : 'text-muted-foreground'}`} />
-            </Button>
-            <Button variant="ghost" size="icon" title="Whisper Mode" onClick={() => setWhisperOpen(!whisperOpen)}>
-              <Sparkles className={`w-4 h-4 ${whisperOpen ? 'text-violet-400' : 'text-muted-foreground'}`} />
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* ── MARKET INTELLIGENCE CALL PANEL ─────────────────────── */}
         <MarketIntelligencePanel
@@ -781,6 +712,20 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         <div className="flex-1 overflow-y-auto">
           {/* Quick Info */}
           <div className="px-6 py-5 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* ── PROPERTY & LOCATION ── labeled rows, empty values hidden */}
+            {(landlord.unit_layout || landlord.handover_status || landlord.nationality || landlord.residence_country || landlord.mailing_address) && (
+              <div className="rounded-lg p-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Property &amp; Location</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                  {landlord.unit_layout && (<><span className="text-muted-foreground">Layout</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.unit_layout}</span></>)}
+                  {landlord.handover_status && (<><span className="text-muted-foreground">Handover</span><span style={{ color: landlord.handover_status === 'Handed Over' ? '#34d399' : 'rgba(255,255,255,0.7)' }}>{landlord.handover_status}</span></>)}
+                  {landlord.nationality && (<><span className="text-muted-foreground">Nationality</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.nationality}</span></>)}
+                  {landlord.residence_country && (<><span className="text-muted-foreground">Residency</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.residence_country}</span></>)}
+                  {landlord.mailing_address && (<><span className="text-muted-foreground">Address</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.mailing_address}</span></>)}
+                </div>
+              </div>
+            )}
+
             {/* Edit Contact */}
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Contact Info</p>
@@ -836,9 +781,11 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               </div>
             )}
 
+            {/* ── CONTACT SECTION ── full phone + email set with tappable actions */}
+            {/* Primary phone */}
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.phone || 'No phone'}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.phone || 'No phone'}</span>
               {landlord.phone && (
                 <div className="flex items-center gap-1.5">
                   <TwilioCallDialog
@@ -851,38 +798,70 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 </div>
               )}
             </div>
-            {landlord.additional_phones && landlord.additional_phones.length > 0 && (
-              <div className="space-y-2 pl-6">
+            {/* Additional phones — type-guarded: render nothing if missing/empty */}
+            {Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0 && (
+              <div className="space-y-1.5 pl-6">
                 {landlord.additional_phones.map((altPhone, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <a
-                      href={`tel:${altPhone}`}
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      <Phone className="w-3 h-3" />
-                      {altPhone}
-                    </a>
-                    <a
-                      href={`https://wa.me/${altPhone.startsWith('+') ? altPhone.slice(1) : altPhone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-green-600 hover:underline"
-                      title="Open WhatsApp"
-                    >
-                      <MessageCircle className="w-3 h-3" />
-                    </a>
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Phone className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{altPhone}</span>
+                    <div className="flex items-center gap-1.5">
+                      <TwilioCallDialog
+                        lead={{ id: landlord.id, phone: altPhone, full_name: landlord.full_name_en || landlord.full_name }}
+                        size="sm"
+                        iconOnly
+                      />
+                      <AircallButton phone={altPhone} name={landlord.full_name_en || landlord.full_name} iconOnly />
+                      <a
+                        href={waMeUrl(normalizePhone(altPhone))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-500 hover:text-green-400 transition-colors"
+                        title="Open WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+            {/* Primary email */}
             <div className="flex items-center gap-2 text-sm">
               <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.email || 'No email'}</span>
+              {landlord.email ? (
+                <a href={`mailto:${landlord.email}`} className="text-xs text-accent hover:underline">{landlord.email}</a>
+              ) : (
+                <span>No email</span>
+              )}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span>{landlord.residence_country || 'Unknown'}</span>
-            </div>
+            {/* Additional emails — type-guarded: render nothing if missing/empty */}
+            {Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0 && (
+              <div className="space-y-1.5 pl-6">
+                {landlord.additional_emails.map((altEmail, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Mail className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
+                    <a href={`mailto:${altEmail}`} className="text-xs text-accent hover:underline">{altEmail}</a>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* (Nationality + Residency now shown in the Property & Location block above) */}
+            {/* Passport number */}
+            {landlord.passport_no && (
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>Passport: {landlord.passport_no}</span>
+              </div>
+            )}
+            {/* Unit reference */}
+            {landlord.unit_reference && (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{landlord.unit_reference}</span>
+              </div>
+            )}
+            {/* Project name */}
             {landlord.project_name && (
               <div className="flex items-center gap-2">
                 <ProjectBadge name={landlord.project_name} />
@@ -1149,34 +1128,6 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             <LandlordIntelligenceTab landlord={landlord} />
           </div>
 
-          {/* Metrics Grid */}
-          <div className="px-6 py-5 grid grid-cols-4 gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            {[
-              { label: 'Trust', value: landlord.trust_score != null ? landlord.trust_score : '—', rationale: landlord.trust_score_rationale },
-              { label: 'Response', value: landlord.responsiveness_score != null ? landlord.responsiveness_score : '—', rationale: landlord.responsiveness_score ? 'Computed from average reply time & reply rate in the message thread.' : null },
-              { label: 'Mandate Win', value: landlord.mandate_win_probability != null ? `${(landlord.mandate_win_probability * 100).toFixed(0)}%` : '—', rationale: landlord.mandate_win_rationale },
-              { label: 'Urgency', value: landlord.urgency_score != null ? landlord.urgency_score : '—', rationale: landlord.urgency_score_rationale },
-            ].map(({ label, value, rationale }) => (
-              <div key={label} className="rounded-xl p-3 text-center relative" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.07em' }}>{label}</p>
-                <p className="text-xl font-bold tabular-nums" style={{ color: 'hsl(38 92% 55%)' }}>{value}</p>
-                {rationale && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="absolute top-1.5 right-1.5 p-0.5 rounded hover:bg-white/10 transition-colors">
-                        <Info className="w-2.5 h-2.5 text-muted-foreground" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3 text-xs" style={{ background: 'hsl(222 47% 13%)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}>
-                      <p className="text-[9px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'hsl(38 92% 55%)' }}>{label} Rationale</p>
-                      {rationale}
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-            ))}
-          </div>
-
           {/* Tabs */}
           <Tabs defaultValue="qualification" className="px-6 py-5">
             <TabsList className="grid w-full grid-cols-10 mb-5">
@@ -1313,6 +1264,10 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               >
                 <GroupBlurbGenerator landlordId={landlord.id} />
               </div>
+              <PFPublishPanel
+                landlordPropertyId={landlordPropertyId}
+                landlordProperty={landlordProperty}
+              />
             </TabsContent>
 
             <TabsContent value="negotiation" className="space-y-4">

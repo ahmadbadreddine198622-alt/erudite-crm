@@ -114,6 +114,62 @@ async function tagConversation(base44, conversation_id, agentEmail, department, 
   }).catch(() => null);
 }
 
+/**
+ * Send a WhatsApp notification ping to the owning agent's phone so they know a
+ * new inbound WhatsApp message arrived. Sent via the erudite_whatsapp (personal,
+ * +971581806000) Evolution instance to the agent's own phone. Fire-and-forget.
+ * Skips if the agent has no phone, or if their phone IS the personal line (self-send).
+ */
+async function sendWhatsAppPing(toDigits, senderName, messageText, entityType) {
+  if (!toDigits || toDigits === '971581806000') return;
+  const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+  const apiKey = Deno.env.get('EVOLUTION_API_KEY') || '';
+  if (!apiUrl || !apiKey) return;
+  const preview = String(messageText || '').slice(0, 200);
+  const label = entityType ? ` [${entityType}]` : '';
+  const text = `📲 New WhatsApp inbound${label}\nFrom: ${senderName || ''}\n\n"${preview}"\n\nOpen the CRM WhatsApp inbox to reply.`;
+  try {
+    const resp = await fetch(`${apiUrl}/message/sendText/erudite_whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: apiKey },
+      body: JSON.stringify({ number: toDigits, text }),
+    });
+    console.log(`[sendWhatsAppPing] to=${toDigits} status=${resp.status}`);
+  } catch (err) {
+    console.warn('[sendWhatsAppPing] failed', err?.message || err);
+  }
+}
+
+/**
+ * Route the inbound WhatsApp notification to the right phone.
+ *
+ * WhatsApp chats are per-line: a message to Malik's number lives on Malik's
+ * WhatsApp, a message to Ajwa's number lives on Ajwa's WhatsApp — these are
+ * separate threads and must NOT be mixed. CRM assignment (who owns the
+ * landlord/lead) is separate from which line received the chat.
+ *
+ * So:
+ *  - Agent-personal line (malik / sameie / dari): ping ONLY the line owner —
+ *    they have that chat on their phone; the CRM-assigned agent does not.
+ *  - Shared CRM line (business / personal, no single owner): ping the
+ *    CRM-assigned agent so they know a message came in.
+ */
+async function notifyLineOwnerOrAgent(base44, agentEmail, lineOwnerPhone, senderName, messageText, entityType) {
+  const lineDigits = lineOwnerPhone ? String(lineOwnerPhone).replace(/\D/g, '') : null;
+  if (lineDigits && lineDigits !== '971581806000') {
+    await sendWhatsAppPing(lineDigits, senderName, messageText, entityType);
+    return;
+  }
+  if (!agentEmail) return;
+  let agentDigits = null;
+  try {
+    const users = await base44.asServiceRole.entities.User.filter({ email: agentEmail });
+    const agent = users?.[0];
+    if (agent?.phone) agentDigits = String(agent.phone).replace(/\D/g, '');
+  } catch (err) { console.warn('[notifyLineOwnerOrAgent] user lookup failed', err?.message || err); }
+  if (agentDigits) await sendWhatsAppPing(agentDigits, senderName, messageText, entityType);
+}
+
 /** Create immediate reminder for assigned agent */
 async function createAgentReminder(base44, agentEmail, leadId, leadName, urgency, department, intent, messageText, suggestedReply) {
   if (!agentEmail) return;
@@ -137,7 +193,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [], wa_display_name } = await req.json();
+    const { phone_e164, message_text, message_id, timestamp, conversation_id, recent_thread = [], wa_display_name, line_owner_phone } = await req.json();
     if (!phone_e164 || !message_text) {
       return Response.json({ error: 'phone_e164 and message_text required' }, { status: 400 });
     }
@@ -179,6 +235,28 @@ Deno.serve(async (req) => {
         console.warn('update existing entity failed', err);
       }
 
+      // ── Propagate assigned_agent_email to conversation + messages (RLS fix) ──
+      // The webhook creates conversations with no assigned_agent_email, so
+      // non-admin users can't see them. Fix: stamp the entity's agent onto
+      // the conversation so RLS allows the assigned agent to read it.
+      const agentEmail = e.assigned_agent_email || e.listing_manager_email || null;
+      if (conversation_id && agentEmail) {
+        try {
+          await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {
+            assigned_agent_email: agentEmail,
+            lead_id: entityType === 'lead' ? e.id : undefined,
+          });
+          // Also stamp any unassigned WhatsAppMessage records in this conversation
+          const msgs = await base44.asServiceRole.entities.WhatsAppMessage.filter({ conversation_id });
+          for (const m of (msgs || [])) {
+            if (!m.assigned_agent_email) {
+              await base44.asServiceRole.entities.WhatsAppMessage.update(m.id, { assigned_agent_email: agentEmail }).catch(() => {});
+            }
+          }
+          console.log(`[routeWhatsAppMessage] Propagated assigned_agent_email=${agentEmail} to conversation ${conversation_id}`);
+        } catch (err) { console.warn('conversation agent propagation failed', err); }
+      }
+
       try {
         await base44.asServiceRole.entities.Activity.create({
           lead_id: e.id,
@@ -200,6 +278,9 @@ Deno.serve(async (req) => {
         base44.asServiceRole.functions.invoke('calculateLeadScore', { conversation_id }).catch(() => {});
         base44.asServiceRole.functions.invoke('analyzeConversation', { conversation_id }).catch(() => {});
       }
+
+      // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+      notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, e.full_name_en || e.full_name || e.name || normalized, message_text, entityType).catch(() => {});
 
       return Response.json({
         routed_entity_type: entityType,
@@ -275,10 +356,13 @@ Deno.serve(async (req) => {
         });
       } catch {}
 
-      base44.asServiceRole.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true }).catch(() => {});
+      base44.asServiceRole.functions.invoke('landlordOrchestrator', { landlord_id: landlord.id, force: true, tier: 'cold' }).catch(() => {});
 
       await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
       await createAgentReminder(base44, agentEmail, landlord.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
+
+      // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+      notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, name, message_text, 'landlord').catch(() => {});
 
       // Fire auto-reply (respects business hours, includes property link)
       base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {
@@ -364,6 +448,9 @@ Deno.serve(async (req) => {
 
     await tagConversation(base44, conversation_id, agentEmail, department, timestamp);
     await createAgentReminder(base44, agentEmail, lead.id, name, c?.urgency || 'medium', department, c?.intent, message_text, c?.suggested_first_reply);
+
+    // WhatsApp push notification: line owner (agent-personal line) or assigned agent (shared CRM line)
+    notifyLineOwnerOrAgent(base44, agentEmail, line_owner_phone, name, message_text, 'lead').catch(() => {});
 
     // Fire auto-reply (respects business hours, includes matching property link)
     base44.asServiceRole.functions.invoke('sendAutoWhatsAppReply', {

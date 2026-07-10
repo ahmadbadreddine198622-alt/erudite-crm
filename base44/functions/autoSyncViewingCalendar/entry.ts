@@ -58,12 +58,14 @@ Deno.serve(async (req) => {
         location,
         start: { dateTime: startTime.toISOString(), timeZone: UAE_TZ },
         end:   { dateTime: endTime.toISOString(),   timeZone: UAE_TZ },
+        // Add the acting agent as an attendee so the event also lands on their personal calendar.
+        ...(lead.assigned_agent_email ? { attendees: [{ email: lead.assigned_agent_email }] } : {}),
       };
 
       const isUpdate = !!existingCalId;
       const calUrl = isUpdate
-        ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingCalId}`
-        : 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+        ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingCalId}?sendUpdates=all`
+        : 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all';
 
       const res = await fetch(calUrl, {
         method: isUpdate ? 'PATCH' : 'POST',
@@ -77,7 +79,7 @@ Deno.serve(async (req) => {
         calendarAction = isUpdate ? 'updated' : 'created';
       } else if (isUpdate && res.status === 404) {
         // Event deleted externally — recreate
-        const retry = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        const retry = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(calEvent),

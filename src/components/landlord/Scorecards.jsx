@@ -19,7 +19,7 @@ export default function Scorecards({ scorecards }) {
   if (!scorecards || !scorecards.length) return null;
 
   return (
-    <div style={css("display:grid; grid-template-columns:repeat(4, 1fr); gap:11px; margin-top:14px; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
+    <div style={css("display:grid; grid-template-columns:1fr; gap:11px; margin-top:14px; animation: ld-rise 0.5s cubic-bezier(0.22,1,0.36,1) both;")}>
       {scorecards.map((sc,i)=>(
         <div key={i} style={css("border-radius:13px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.03); padding:12px 13px;")}>
           <div style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.42);")}>{sc.label}</div>

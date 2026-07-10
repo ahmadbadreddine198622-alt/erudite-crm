@@ -1,0 +1,71 @@
+{
+  "name": "IMessage",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Optional FK to Lead"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "default": "outbound"
+    },
+    "address": {
+      "type": "string",
+      "description": "Destination phone (E.164) or Apple ID email"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "read",
+        "failed"
+      ],
+      "default": "sent"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent_email": {
+      "type": "string",
+      "description": "Email of the agent who sent the message"
+    },
+    "bb_guid": {
+      "type": "string",
+      "description": "BlueBubbles message GUID for dedup/status updates"
+    }
+  },
+  "required": [
+    "direction",
+    "address",
+    "body"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

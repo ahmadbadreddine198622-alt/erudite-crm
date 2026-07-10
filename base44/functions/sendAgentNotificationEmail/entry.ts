@@ -1,5 +1,35 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// agentSignatureHtml — branded email signature + CTA link grid, appended to every email.
+function agentCtaHtml(u = {}) {
+  const fullName = u.full_name || '';
+  const firstName = fullName.split(' ').filter(Boolean)[0] || fullName || '';
+  const hasOwnPf = !!u.pf_profile_url;
+  const pfUrl = u.pf_profile_url || 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264';
+  const pfRating = u.pf_rating != null ? u.pf_rating : 4.3;
+  const pfDeals = u.pf_deals_count != null ? u.pf_deals_count : 56;
+  const pfValue = u.pf_deals_value_label || 'AED 100M+';
+  const statLabel = u.signature_stat_label || 'AED 100M+ closed in Peninsula';
+  const eruditeListingsUrl = u.erudite_listings_url || 'https://www.eruditeproperty.com';
+  const meetTeamUrl = u.meet_team_url || 'https://www.eruditeproperty.com';
+  const pfTitle = hasOwnPf ? `${firstName} on Property Finder` : 'Ahmad on Property Finder';
+  const pfSubtitle = `SuperAgent · ${pfRating}⭐ · ${pfDeals} deals · ${pfValue}`;
+  const stat = `<div style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:13px;font-weight:700;margin:14px 0 10px;">🏆 ${statLabel}</div>`;
+  const card = (bg, title, sub, href, darkText, right) => {
+    const tc = darkText ? '#1a1205' : '#ffffff';
+    const sc = darkText ? '#5a4a1a' : '#dbe6f5';
+    const pad = right ? 'padding:0 0 10px 5px;' : 'padding:0 5px 10px 0;';
+    return `<td width="50%" valign="top" style="${pad}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td bgcolor="${bg}" style="padding:14px 16px;border-radius:12px;"><a href="${href}" target="_blank" style="text-decoration:none;display:block;"><div style="font-family:Arial,Helvetica,sans-serif;color:${tc};font-size:14px;font-weight:700;">${title}</div><div style="font-family:Arial,Helvetica,sans-serif;color:${sc};font-size:11px;margin-top:3px;">${sub}</div></a></td></tr></table></td>`;
+  };
+  const cta = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;"><tr>${card('#233552', `⭐ ${pfTitle} →`, pfSubtitle, pfUrl, false, false)}${card('#C5A059', '🏛 Erudite Listings →', 'All live listings for sale', eruditeListingsUrl, true, true)}</tr><tr>${card('#10A492', '👥 Meet the Team →', 'eruditeproperty.com', meetTeamUrl, false, false)}${card('#D7338C', '📷 Instagram →', '@eruditeproperty7', 'https://instagram.com/eruditeproperty7', false, true)}</tr></table>`;
+  return [stat, cta].filter(Boolean).join('');
+}
+function agentSignatureHtml(u = {}) {
+  const fullName = u.full_name || '';
+  const cta = agentCtaHtml(u);
+  return `<div style="margin-top:18px;border-top:1px solid #eee;padding-top:14px;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 2px;color:#1e293b;font-size:14px;">Best regards,</p><p style="margin:0 0 2px;color:#1e293b;font-size:15px;font-weight:700;">${fullName || 'Erudite Real Estate'}</p><p style="margin:0 0 10px;color:#C5A059;font-size:13px;font-weight:600;">Erudite Real Estate</p>${cta}</div>`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,6 +60,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Fetch the agent's profile to build their branded signature + CTA links.
+    let agentUser = {};
+    try {
+      const users = await base44.asServiceRole.entities.User.filter({ email: agent_email });
+      if (users && users.length > 0) agentUser = users[0];
+    } catch (_) { /* best-effort */ }
+
     // Handle different notification types
     if (notification_type === 'conversation_assigned') {
       const subject = `💬 WhatsApp Conversation Assigned: ${lead_full_name || conversation_phone}`;
@@ -57,7 +94,7 @@ Deno.serve(async (req) => {
             Open WhatsApp Inbox
           </a>
         </p>
-        <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+        ${agentSignatureHtml(agentUser)}
       `;
 
       const result = await base44.integrations.Core.SendEmail({
@@ -103,7 +140,7 @@ Deno.serve(async (req) => {
             View Contact in CRM
           </a>
         </p>
-        <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+        ${agentSignatureHtml(agentUser)}
       `;
 
       const result = await base44.integrations.Core.SendEmail({
@@ -149,7 +186,7 @@ Deno.serve(async (req) => {
             View Lead in CRM
           </a>
         </p>
-        <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+        ${agentSignatureHtml(agentUser)}
       `;
 
       const result = await base44.integrations.Core.SendEmail({
@@ -191,7 +228,7 @@ Deno.serve(async (req) => {
           View Lead in CRM
         </a>
       </p>
-      <p style="color: #666; font-size: 12px;">Erudite Property CRM</p>
+      ${agentSignatureHtml(agentUser)}
     `;
 
     // Use Gmail integration (already authorized)

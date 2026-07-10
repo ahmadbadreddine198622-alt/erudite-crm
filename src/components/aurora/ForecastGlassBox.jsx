@@ -68,6 +68,27 @@ export default function ForecastGlassBox({ deals }) {
                     💡 {d.aurora_dna.playbook_recommendation}
                   </div>
                 )}
+                {/* V3 P2 REMEMBER: persistent strategy the brain carries across runs */}
+                {d.aurora_thesis && (
+                  <div className="mt-2 p-2 rounded text-xs" style={{ background: "rgba(139,92,246,0.08)", borderLeft: "2px solid rgba(139,92,246,0.6)" }}>
+                    <p className="font-semibold text-violet-700 mb-1">Strategy</p>
+                    <p className="text-slate-700 leading-relaxed">{d.aurora_thesis}</p>
+                  </div>
+                )}
+                {/* V3 P2 REMEMBER: ask-the-agent — uncertainties needing a human */}
+                {Array.isArray(d.aurora_open_questions) && d.aurora_open_questions.filter(q => q && q.question).length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-blue-700 mb-1">❓ Needs your input</p>
+                    <ul className="text-xs text-blue-800 space-y-1">
+                      {d.aurora_open_questions.filter(q => q && q.question).map((q, i) => (
+                        <li key={i}>
+                          <span className="font-medium">{q.question}</span>
+                          {q.why && <span className="text-blue-600/70"> — {q.why}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           ))}

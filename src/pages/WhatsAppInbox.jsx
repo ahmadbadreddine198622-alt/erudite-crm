@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -28,6 +28,7 @@ import WhatsAppSetupGuide from '@/components/whatsapp/WhatsAppSetupGuide';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
 import { normalizePhoneNumber } from '@/lib/phoneUtils';
+import { isOwner } from '@/lib/owners';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
@@ -61,10 +62,27 @@ export default function WhatsAppInbox() {
   const prevScrollPosition = useRef(0);
 
   // Internal numbers - our own lines that should never appear as leads
-  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277'];
+  const INTERNAL_NUMBERS = ['+971582806000', '+971581806000', '971582806000', '971581806000', '+971529871277', '971529871277', '+971559508545', '971559508545'];
   const isInternalNumber = (phone) => INTERNAL_NUMBERS.includes(phone) || INTERNAL_NUMBERS.includes(normalizePhoneNumber(phone));
 
   const isAdminUser = currentUser?.role === 'admin' || permissions.view_all_whatsapp;
+  // Sameie can see her own channel + business; admin sees everything
+  const isSameie = currentUser?.email === 'sameie@erudite-estate.com';
+  const isDari = currentUser?.email === 'dari@erudite-estate.com';
+  const isMalik = currentUser?.email === 'malik@erudite-estate.com';
+
+  // Only these two emails may use / view the shared company lines (business + personal).
+  // Every other user — admin or not — is restricted to their own WhatsApp channel only.
+  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  const isAuthorizedShared = isOwner(currentUser?.email) || AUTHORIZED_SHARED_EMAILS.includes((currentUser?.email || '').toLowerCase());
+
+  // Non-authorized users see ONLY their own configured WhatsApp channel — no business,
+  // personal, or other agents' channels. Named agents (Malik, Sameie, Dari) get their
+  // own named channel; everyone else (including non-authorized admins like Francis)
+  // gets the generic 'agent' channel.
+  const agentOwnChannel = !isAuthorizedShared
+    ? (isMalik ? 'malik' : isSameie ? 'sameie' : isDari ? 'dari' : 'agent')
+    : null;
 
   // Conversations list polling — 15s interval
   // RLS scopes: admins see all (role bypass), agents see only their assigned rows
@@ -75,8 +93,12 @@ export default function WhatsAppInbox() {
     enabled: !!currentUser,
   });
 
-  // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate
-  const normalizedConversations = (() => {
+  // Dedupe conversations — key on phone+channel so business and personal are ALWAYS separate.
+  // Memoized on `conversations`: this builds a 500-entry Map (with phone-normalize + Date parsing
+  // per row) and sorts — recomputing it on every render (search keystrokes, hovers, the 2s thread
+  // poll) was pure waste. Now it only re-runs when the conversation list actually changes (~15s
+  // poll), and returns a stable reference so useDesktopNotifications doesn't see a new array each render.
+  const normalizedConversations = useMemo(() => {
     const map = new Map();
     conversations.forEach(conv => {
       const normalizedPhone = normalizePhoneNumber(conv.wa_phone_e164 || conv.phone_number);
@@ -101,7 +123,7 @@ export default function WhatsAppInbox() {
       const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return tb - ta;
     });
-  })();
+  }, [conversations]);
 
   // Desktop notifications
   const notificationHook = useDesktopNotifications({
@@ -182,14 +204,19 @@ export default function WhatsAppInbox() {
   // });
   // return () => { unsubConv(); unsubMsg(); };
 
+  // Enrichment data for matching conversations → lead/landlord and the assignment menu. Slow-moving
+  // relative to the 15s conversation poll, so staleTime stops them refetching on every remount/focus.
+  // Mutations below invalidate ['leads'] explicitly where needed, so action freshness is unaffected.
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 500),
+    staleTime: 60_000,
   });
 
   const { data: landlords = [] } = useQuery({
     queryKey: ['landlords'],
     queryFn: () => base44.entities.Landlord.list('-created_date', 500),
+    staleTime: 60_000,
   });
 
   const { data: teamMembers = [] } = useQuery({
@@ -198,11 +225,23 @@ export default function WhatsAppInbox() {
       const users = await base44.entities.User.list();
       return Array.isArray(users) ? users : [];
     },
+    staleTime: 5 * 60 * 1000,
   });
+
+  // Agents with their own WhatsApp line — shown as filter pills for authorized shared users.
+  // Excludes named agents (Malik/Sameie/Dari, who have their own pills) and authorized shared emails (Ahmad).
+  const NAMED_AGENT_EMAILS_WA = ['malik@erudite-estate.com', 'sameie@erudite-estate.com', 'dari@erudite-estate.com'];
+  const agentsWithWhatsApp = teamMembers.filter(u =>
+    u.whatsapp_instance && u.email &&
+    !NAMED_AGENT_EMAILS_WA.includes(u.email.toLowerCase()) &&
+    !AUTHORIZED_SHARED_EMAILS.includes(u.email.toLowerCase()) &&
+    !isOwner(u.email)
+  );
 
   const { data: leadScores = [] } = useQuery({
     queryKey: ['lead_scores'],
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
+    staleTime: 60_000,
   });
 
   // Find lead by normalized phone match
@@ -295,25 +334,20 @@ export default function WhatsAppInbox() {
     const phone = c.wa_phone_e164 || c.phone_number || '';
     if (isInternalNumber(phone)) return false;
 
-    // Malik channel: only visible to admin or Malik himself
-    if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
-
-    // Malik account: can only see 'malik' and 'business' channels — not 'personal'
-    if (currentUser?.email === 'malik@erudite-estate.com' && (c.channel === 'personal' || !c.channel)) return false;
-
-    // Non-admin agents: RLS already restricts the API response, but enforce client-side too
-    // Skip entirely for admins — they see everything
-    if (!isAdminUser && currentUser?.email) {
-      if (c.assigned_agent_email !== currentUser.email) return false;
+    // Non-authorized users: see ONLY their own configured WhatsApp channel.
+    // No business, personal, or other agents' channels — strict isolation.
+    // Authorized shared emails (Ahmad) and owners bypass this entirely.
+    if (!isAuthorizedShared && agentOwnChannel) {
+      if (c.channel !== agentOwnChannel) return false;
     }
 
     // Admin scope: 'mine' filters to just the admin's own assigned chats
-    if (isAdminUser && adminScope === 'mine') {
+    if (isAuthorizedShared && adminScope === 'mine') {
       if (c.assigned_agent_email !== currentUser?.email) return false;
     }
 
-    // 'unassigned' filter tab — admins only: show only chats with no assigned_agent_email
-    if (isAdminUser && filter === 'unassigned') {
+    // 'unassigned' filter tab — authorized shared emails only: show only chats with no assigned_agent_email
+    if (isAuthorizedShared && filter === 'unassigned') {
       if (c.assigned_agent_email) return false;
       // still apply search + channel
       const lead = leads.find(l => l.id === c.lead_id);
@@ -323,17 +357,23 @@ export default function WhatsAppInbox() {
         : filterChannel === 'business' ? c.channel === 'business'
         : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
         : filterChannel === 'malik' ? c.channel === 'malik'
+        : filterChannel === 'sameie' ? c.channel === 'sameie'
+        : filterChannel === 'dari' ? c.channel === 'dari'
+        : filterChannel === 'agent' ? c.channel === 'agent'
         : true;
       return matchesSearch && matchesChannel;
     }
 
     // Admin agent filter dropdown (only when not in 'unassigned' tab)
-    const matchesAgent = isAdminUser ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
+    const matchesAgent = isAuthorizedShared ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
 
     const matchesChannel = filterChannel === 'all' ? true
       : filterChannel === 'business' ? c.channel === 'business'
       : filterChannel === 'personal' ? (c.channel === 'personal' || !c.channel)
       : filterChannel === 'malik' ? c.channel === 'malik'
+      : filterChannel === 'sameie' ? c.channel === 'sameie'
+      : filterChannel === 'dari' ? c.channel === 'dari'
+      : filterChannel === 'agent' ? c.channel === 'agent'
       : true;
 
     const lead = leads.find(l => l.id === c.lead_id);
@@ -349,7 +389,7 @@ export default function WhatsAppInbox() {
   });
 
   // Count unassigned for badge
-  const unassignedCount = isAdminUser
+  const unassignedCount = isAuthorizedShared
     ? normalizedConversations.filter(c => !isInternalNumber(c.wa_phone_e164 || c.phone_number || '') && !c.assigned_agent_email).length
     : 0;
 
@@ -756,8 +796,8 @@ export default function WhatsAppInbox() {
 
         {/* Search + Filter pills */}
         <div className="px-3 py-2 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Admin scope toggle */}
-          {isAdminUser && (
+          {/* Admin scope toggle — authorized shared emails only */}
+          {isAuthorizedShared && (
             <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <button
                 onClick={() => setAdminScope('all')}
@@ -796,7 +836,7 @@ export default function WhatsAppInbox() {
 
           {/* Status filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'unread', 'open', 'resolved', ...(isAdminUser ? ['unassigned'] : [])].map(f => (
+            {['all', 'unread', 'open', 'resolved', ...(isAuthorizedShared ? ['unassigned'] : [])].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -817,8 +857,8 @@ export default function WhatsAppInbox() {
             ))}
           </div>
 
-          {/* Agent filter dropdown — admin only, hidden in unassigned view */}
-          {isAdminUser && filter !== 'unassigned' && teamMembers.length > 0 && (
+          {/* Agent filter dropdown — authorized shared emails only, hidden in unassigned view */}
+          {isAuthorizedShared && filter !== 'unassigned' && teamMembers.length > 0 && (
             <select
               value={filterAssignedAgent}
               onChange={e => setFilterAssignedAgent(e.target.value)}
@@ -832,28 +872,52 @@ export default function WhatsAppInbox() {
             </select>
           )}
 
-          {/* Channel filter pills */}
-          <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : [])].map(c => {
-              const isSelected = filterChannel === c;
-              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : 'hsl(38 92% 50%)';
-              const bgColor = isSelected ? activeColor : 'rgba(255,255,255,0.05)';
+          {/* Channel filter pills — horizontally scrollable (authorized shared emails only; agents see only their own channel) */}
+          {isAuthorizedShared && (
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin flex-nowrap" style={{ scrollbarWidth: 'thin', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
+            {[
+              { key: 'all', label: 'All', color: 'hsl(38 92% 50%)' },
+              { key: 'business', label: '🏢 Biz', color: 'hsl(152 69% 40%)' },
+              { key: 'personal', label: '👤 Pers', color: 'hsl(217 91% 60%)' },
+              ...(permissions.view_malik_whatsapp ? [{ key: 'malik', label: '💜 Malik', color: 'hsl(280 65% 55%)' }] : []),
+              ...(isAdminUser || isSameie ? [{ key: 'sameie', label: '🌸 Sameie', color: 'hsl(340 75% 55%)' }] : []),
+              ...(isAdminUser || isDari ? [{ key: 'dari', label: '📸 Dari', color: 'hsl(25 95% 55%)' }] : []),
+              ...agentsWithWhatsApp.map(u => ({
+                key: 'agent:' + u.email,
+                label: (u.full_name || u.email).split(/[ @]/)[0],
+                color: 'hsl(199 89% 48%)',
+                agentEmail: u.email,
+              })),
+            ].map(p => {
+              const isSelected = p.agentEmail
+                ? (filterChannel === 'agent' && filterAssignedAgent === p.agentEmail)
+                : filterChannel === p.key;
+              const bgColor = isSelected ? p.color : 'rgba(255,255,255,0.05)';
               return (
                 <button
-                  key={c}
-                  onClick={() => setFilterChannel(c)}
-                  className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors border"
+                  key={p.key}
+                  onClick={() => {
+                    if (p.agentEmail) {
+                      if (isSelected) { setFilterChannel('all'); setFilterAssignedAgent(''); }
+                      else { setFilterChannel('agent'); setFilterAssignedAgent(p.agentEmail); }
+                    } else {
+                      setFilterChannel(p.key);
+                      setFilterAssignedAgent('');
+                    }
+                  }}
+                  className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors border shrink-0 whitespace-nowrap"
                   style={{
                     background: bgColor,
                     color: isSelected ? 'white' : 'rgba(255,255,255,0.55)',
-                    border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
+                    border: `1px solid ${isSelected ? p.color : 'transparent'}`,
                   }}
                 >
-                  {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : '💜 Malik'}
+                  {p.label}
                 </button>
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Conversation list */}
@@ -867,11 +931,11 @@ export default function WhatsAppInbox() {
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
               {filter === 'unassigned' ? 'No unassigned conversations' :
                search || filter !== 'all' ? 'No matching conversations' :
-               isAdminUser ? 'No conversations yet' : 'No conversations assigned to you yet'}
+               isAuthorizedShared ? 'No conversations yet' : 'No conversations assigned to you yet'}
               <p className="text-xs mt-1 opacity-60">
                 {filter === 'unassigned' ? 'All chats have been assigned to agents' :
-                 isAdminUser ? 'Messages will appear here when leads contact you on WhatsApp' :
-                 'An admin will assign conversations to you'}
+                 isAuthorizedShared ? 'Messages will appear here when leads contact you on WhatsApp' :
+                 'Conversations on your WhatsApp line will appear here'}
               </p>
             </div>
           ) : (
@@ -987,6 +1051,8 @@ export default function WhatsAppInbox() {
               onScheduleSend={handleScheduleSend}
               selectedChannel={selectedChannel}
               onChannelChange={setSelectedChannel}
+              isAgentOwnLine={!isAuthorizedShared && !!currentUser?.whatsapp_instance}
+              ownNumber={currentUser?.whatsapp_number}
             />
           </div>
 

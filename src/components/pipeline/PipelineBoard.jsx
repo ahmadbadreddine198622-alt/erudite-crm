@@ -27,13 +27,22 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
     onStageChange({ id: draggableId, newStage: destination.droppableId });
   };
 
+  // calc: 100vh minus KPI strip (~88px) minus PageHeader (~60px) minus filter row (~52px) minus tabs list (~48px) minus tab margin+padding (~40px)
+  const boardHeight = 'calc(100vh - 340px)';
+
   return (
     <div
-      className="overflow-x-auto overflow-y-hidden pb-4"
-      style={{ height: 'calc(100dvh - 200px)', minHeight: '420px' }}
+      className="overflow-x-auto overflow-y-hidden pb-3 pipeline-scroll"
+      style={{
+        height: boardHeight,
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
+        overscrollBehavior: 'contain',
+      }}
     >
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 min-w-max h-full">
+        <div style={{ display: 'flex', gap: '12px', width: 'max-content', height: '100%', paddingRight: '16px' }}>
           {stages.map((stage) => (
             <PipelineColumn
               key={stage.key}

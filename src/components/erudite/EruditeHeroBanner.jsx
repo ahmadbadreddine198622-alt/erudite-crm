@@ -1,0 +1,344 @@
+import React, { useEffect, useRef, useState } from 'react';
+
+/**
+ * ERUDITE Hero Banner V5 — Premium Motion Design
+ * Fully transparent container with animated logo, light sweep, particle effects, and walker line animation.
+ */
+export default function EruditeHeroBanner() {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
+  const [lineProgress, setLineProgress] = useState(0);
+  const [showWordmark, setShowWordmark] = useState(false);
+  const [showTaglines, setShowTaglines] = useState(false);
+  const animationRef = useRef(null);
+  const particlesRef = useRef([]);
+  const timeRef = useRef(0);
+
+  useEffect(() => {
+    setMounted(true);
+
+    // Entrance animation sequence
+    const lineTimer = setTimeout(() => setLineProgress(1), 100);
+    const wordmarkTimer = setTimeout(() => setShowWordmark(true), 800);
+    const taglinesTimer = setTimeout(() => setShowTaglines(true), 1400);
+
+    // Initialize particle system (gold dust motes)
+    particlesRef.current = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: 100 + Math.random() * 50,
+      size: Math.random() * 2 + 1,
+      speedY: (Math.random() * 0.3 + 0.2) * -1,
+      opacity: Math.random() * 0.5 + 0.2,
+      hue: 45,
+    }));
+
+    // Mouse parallax tracking - disabled on mobile for performance
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const handleMouseMove = !isMobile ? (e) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMousePos({
+          x: ((e.clientX - rect.left) / rect.width - 0.5) * 2,
+          y: ((e.clientY - rect.top) / rect.height - 0.5) * 2,
+        });
+      }
+    } : null;
+
+    if (handleMouseMove) {
+      window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    }
+
+    // Canvas animation loop - reduced on mobile
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      let animationFrameId;
+
+      const resizeCanvas = () => {
+        try {
+          const dpr = isMobile ? 1 : (window.devicePixelRatio || 1); // Use 1 DPR on mobile for performance
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (rect) {
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            ctx.scale(dpr, dpr);
+          }
+        } catch (err) {
+          console.warn('[EruditeHeroBanner] Resize error:', err);
+        }
+      };
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      const animate = () => {
+        try {
+          timeRef.current += 0.016;
+          const rect = containerRef.current?.getBoundingClientRect();
+          const width = rect?.width || 800;
+          const height = rect?.height || 140;
+
+          ctx.clearRect(0, 0, width, height);
+
+          // Subtle radial bloom behind wordmark (breathing) - skip on mobile
+          if (!isMobile) {
+            const bloomAlpha = 0.04 + 0.02 * Math.sin(timeRef.current * 0.5);
+            const bloomGradient = ctx.createRadialGradient(
+              width * 0.5,
+              height * 0.5,
+              0,
+              width * 0.5,
+              height * 0.5,
+              width * 0.6
+            );
+            bloomGradient.addColorStop(0, `rgba(212, 175, 55, ${bloomAlpha})`);
+            bloomGradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+            ctx.fillStyle = bloomGradient;
+            ctx.fillRect(0, 0, width, height);
+          }
+
+          // Gold dust motes drifting upward - reduced count on mobile
+          const particleCount = isMobile ? 15 : particlesRef.current.length;
+          for (let i = 0; i < particleCount; i++) {
+            const p = particlesRef.current[i];
+            p.y += p.speedY;
+            p.x += Math.sin(timeRef.current * 0.5 + p.id) * 0.2;
+
+            if (p.y < -10) {
+              p.y = height + 10;
+              p.x = Math.random() * width;
+            }
+
+            const screenX = (p.x / 100) * width;
+            const screenY = (p.y / 100) * height;
+
+            const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, p.size * 3);
+            gradient.addColorStop(0, `rgba(212, 175, 55, ${p.opacity})`);
+            gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, p.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+          }
+
+          // Metallic light sweep - skip on mobile for performance
+          if (!isMobile) {
+            const sweepCycle = (timeRef.current * 0.14) % 1;
+            if (sweepCycle > 0.3 && sweepCycle < 0.7) {
+              const sweepX = width * ((sweepCycle - 0.3) / 0.4);
+              const sweepGradient = ctx.createLinearGradient(sweepX - 100, 0, sweepX + 100, 0);
+              sweepGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+              sweepGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
+              sweepGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+              
+              ctx.save();
+              ctx.globalCompositeOperation = 'screen';
+              ctx.fillStyle = sweepGradient;
+              ctx.fillRect(sweepX - 100, 0, 200, height);
+              ctx.restore();
+            }
+          }
+
+          animationFrameId = requestAnimationFrame(animate);
+        } catch (err) {
+          console.warn('[EruditeHeroBanner] Animation error:', err);
+        }
+      };
+
+      animate();
+
+      return () => {
+        if (handleMouseMove) {
+          window.removeEventListener('mousemove', handleMouseMove);
+        }
+        window.removeEventListener('resize', resizeCanvas);
+        clearTimeout(lineTimer);
+        clearTimeout(wordmarkTimer);
+        clearTimeout(taglinesTimer);
+        cancelAnimationFrame(animationFrameId);
+      };
+    }
+  }, []);
+
+  if (!mounted) return null;
+
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden"
+      style={{
+        minHeight: 140,
+        maxHeight: 180,
+        background: 'transparent',
+        backdropFilter: 'none',
+        boxShadow: 'none',
+        border: 'none',
+        transform: `perspective(1000px) rotateX(${mousePos.y * 0.15}deg) rotateY(${mousePos.x * 0.15}deg)`,
+        transition: 'transform 0.12s ease-out',
+        position: 'relative',
+      }}
+    >
+      {/* Canvas for motion effects */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{ zIndex: 1 }}
+      />
+
+      {/* Logo and content container */}
+      <div
+        className="relative z-10 flex flex-col items-center justify-center h-full px-4"
+        style={{
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* ERUDITE wordmark - elegant with subtle motion */}
+        <div
+          className={`relative transition-all duration-1000 ease-out ${showWordmark ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+        >
+          <h1
+            className="text-5xl md:text-5xl lg:text-6xl font-medium tracking-wide"
+            style={{
+              fontFamily: "'Playfair Display', 'Cormorant Garamond', Georgia, serif",
+              background: 'linear-gradient(180deg, #F1E09C 0%, #D4B86E 25%, #B88D3C 50%, #D4B86E 75%, #F1E09C 100%)',
+              backgroundSize: '100% 200%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 4px 24px rgba(212,175,55,0.5))',
+              letterSpacing: '0.08em',
+              animation: 'metallicFlow 8s ease-in-out infinite',
+            }}
+          >
+            ERUDITE
+          </h1>
+        </div>
+
+        {/* REAL ESTATE CRM — elegant subtitle with continuous motion, stretched to match ERUDITE width */}
+        <p
+          className={`text-xs md:text-sm font-light uppercase transition-all duration-1000 delay-500 ${showTaglines ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+          style={{
+            color: '#E0E0E0',
+            textShadow: '0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15)',
+            animation: 'realEstateMove 8s ease-in-out infinite',
+            letterSpacing: '0.7em',
+            width: '100%',
+            textAlign: 'center',
+          }}
+        >
+          REAL ESTATE CRM
+        </p>
+
+        {/* Elegant decorative line with subtle gradient - positioned BELOW Real Estate */}
+        <div
+          className={`relative transition-opacity duration-1000 delay-700 ${lineProgress > 0 ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            width: 420,
+            marginTop: 14,
+          }}
+        >
+          <div
+            className="relative w-full h-1 rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(90deg, rgba(180,200,220,0.2) 0%, rgba(241,224,156,0.3) 15%, rgba(184,141,60,0.5) 35%, rgba(184,141,60,0.6) 50%, rgba(184,141,60,0.5) 65%, rgba(241,224,156,0.3) 85%, rgba(180,200,220,0.2) 100%)',
+              boxShadow: '0 0 20px rgba(212,175,55,0.35), 0 0 40px rgba(184,141,60,0.25), inset 0 0 10px rgba(255,255,255,0.15)',
+            }}
+          >
+            {/* Animated shimmer effect - slow, elegant */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                backgroundSize: '220% 100%',
+                animation: 'shimmerSlide 6s ease-in-out infinite',
+              }}
+            />
+            {/* Subtle particle glow underneath */}
+            <div
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2/3 h-2 rounded-full blur-md"
+              style={{
+                background: 'radial-gradient(ellipse, rgba(212,175,55,0.3) 0%, rgba(180,200,220,0.25) 50%, rgba(212,175,55,0.3) 100%)',
+                filter: 'blur(8px)',
+                opacity: 0.5,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes metallicFlow {
+          0%, 100% { background-position: 0% 0%; }
+          50% { background-position: 0% 100%; }
+          100% { background-position: 0% 0%; }
+        }
+        @keyframes shimmerGlow {
+          0%, 100% { filter: drop-shadow(0 6px 24px rgba(212,175,55,0.35)) drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+          50% { filter: drop-shadow(0 8px 32px rgba(212,175,55,0.5)) drop-shadow(0 0 16px rgba(255,255,255,0.4)); }
+        }
+        @keyframes shimmerSlide {
+          0% { background-position: 200% 0%; }
+          50% { background-position: -200% 0%; }
+          100% { background-position: 200% 0%; }
+        }
+        @keyframes energyRingRotate {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes particleFloat {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+          25% { transform: translateY(-30px) translateX(15px); opacity: 0.5; }
+          50% { transform: translateY(-20px) translateX(-10px); opacity: 0.4; }
+          75% { transform: translateY(-35px) translateX(8px); opacity: 0.55; }
+        }
+        @keyframes linePulse {
+          0% { left: -60px; opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { left: 160px; opacity: 0; }
+        }
+        @keyframes linePulseReverse {
+          0% { left: 160px; opacity: 0; }
+          30% { opacity: 0.5; }
+          70% { opacity: 0.5; }
+          100% { left: -40px; opacity: 0; }
+        }
+        @keyframes realEstateMove {
+          0%, 100% { 
+            transform: translateY(0) scale(1);
+            opacity: 0.85;
+            text-shadow: 0 2px 8px rgba(212,175,55,0.3), 0 0 12px rgba(255,255,255,0.15);
+            letterSpacing: '0.7em';
+          }
+          25% { 
+            transform: translateY(-1px) scale(1.01);
+            opacity: 0.95;
+            text-shadow: 0 3px 12px rgba(212,175,55,0.4), 0 0 18px rgba(255,255,255,0.25);
+            letterSpacing: '0.72em';
+          }
+          50% { 
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            text-shadow: 0 4px 16px rgba(212,175,55,0.5), 0 0 24px rgba(255,255,255,0.35);
+            letterSpacing: '0.75em';
+          }
+          75% { 
+            transform: translateY(1px) scale(0.99);
+            opacity: 0.95;
+            text-shadow: 0 3px 12px rgba(212,175,55,0.4), 0 0 18px rgba(255,255,255,0.25);
+            letterSpacing: '0.72em';
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
