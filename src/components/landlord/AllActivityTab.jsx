@@ -36,6 +36,7 @@ function css(str) {
 // `tab` maps the badge click to the matching LandlordDetailPage tab.
 const CHANNEL_META = {
   whatsapp_personal: { icon: '💬', color: '#25D366', bg: 'rgba(37,211,102,0.16)', label: 'WhatsApp', tab: 'Chat' },
+  whatsapp_agent:    { icon: '💬', color: '#22c55e', bg: 'rgba(34,197,94,0.16)', label: 'WA Agent', tab: 'Chat' },
   whatsapp_business: { icon: '💬', color: '#8b5cf6', bg: 'rgba(139,92,246,0.16)', label: 'WA Business', tab: 'Chat' },
   imessage:          { icon: '', color: '#0A84FF', bg: 'rgba(10,132,255,0.16)', label: 'iMessage', tab: 'iMessage' },
   telegram:          { icon: '✈', color: '#29b6f6', bg: 'rgba(41,182,246,0.16)', label: 'Telegram', tab: 'Telegram' },
