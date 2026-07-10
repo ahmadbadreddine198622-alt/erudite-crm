@@ -112,6 +112,7 @@ import TheMirror from '@/pages/TheMirror';
 import TheDojo from '@/pages/TheDojo';
 import TheField from '@/pages/TheField';
 import TheCouncil from '@/pages/TheCouncil';
+import TheMentor from '@/pages/TheMentor';
 
 
 const AuthenticatedApp = () => {
@@ -244,6 +245,7 @@ const AuthenticatedApp = () => {
         <Route path="/academy/dojo" element={<TheDojo />} />
         <Route path="/academy/field" element={<TheField />} />
         <Route path="/academy/council" element={<TheCouncil />} />
+        <Route path="/academy/mentor" element={<TheMentor />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
