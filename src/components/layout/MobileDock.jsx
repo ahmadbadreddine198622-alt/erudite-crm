@@ -156,7 +156,7 @@ export default function MobileDock() {
   const { isAdmin } = useCurrentUser();
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth <= 1024;
+    return window.innerWidth <= 768;
   });
   const [isPortrait, setIsPortrait] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -167,7 +167,7 @@ export default function MobileDock() {
 
   useEffect(() => {
     const check = () => {
-      setIsMobile(window.innerWidth <= 1024);
+      setIsMobile(window.innerWidth <= 768);
       setIsPortrait(window.innerWidth < window.innerHeight);
     };
     check();
