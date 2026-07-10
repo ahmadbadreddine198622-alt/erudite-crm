@@ -6,11 +6,12 @@
  * Query params: customer, caller, log, record
  */
 
-const PUBLIC_BASE = 'https://dubai-estate-pro.base44.app';
-
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
+    // Derive the public base from the incoming request so callbacks never
+    // point at a stale domain after the app is renamed or republished.
+    const base = url.origin;
     const customer = url.searchParams.get('customer') || '';
     const caller = url.searchParams.get('caller') || '';
     const logId = url.searchParams.get('log') || '';
@@ -26,8 +27,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${logId}`;
-    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${logId}`;
+    const statusCb = `${base}/functions/twilioVoiceWebhook?type=status&call_log_id=${logId}`;
+    const recordCb = `${base}/functions/twilioVoiceWebhook?type=recording&call_log_id=${logId}`;
 
     // Build <Dial> attributes
     let dialAttrs = `callerId="${caller}" timeout="60" timeLimit="14400" action="${statusCb}" method="POST"`;

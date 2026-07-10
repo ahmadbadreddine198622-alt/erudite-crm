@@ -23,7 +23,31 @@ Deno.serve(async (req) => {
   }
 
   const auth = 'Basic ' + btoa(`${accountSid}:${authToken}`);
-  const correctVoiceUrl = 'https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook';
+  // Derive from the incoming request so the TwiML App always points at the
+  // domain the app is actually served from (never a stale hardcoded one).
+  const correctVoiceUrl = `${new URL(req.url).origin}/functions/twilioVoiceWebhook`;
+
+  // This URL is persisted into durable Twilio config, so it must be one that
+  // Twilio's gateway can actually fetch TwiML from. Probe it exactly like
+  // Twilio would before writing anything — protects against running this from
+  // the Base44 editor/preview origin, where /functions/* does not serve this
+  // app and persisting the origin would re-break calling with error 31005.
+  const probe = await fetch(correctVoiceUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'To=',
+  }).catch(() => null);
+  const probeType = probe?.headers?.get('content-type') || '';
+  if (probe) await probe.text().catch(() => {});
+  if (!probe || !probe.ok || !probeType.includes('xml')) {
+    const status = probe ? `HTTP ${probe.status}` : 'network error';
+    return Response.json({
+      error: `The voice webhook is not reachable at ${correctVoiceUrl} (${status}). ` +
+        `Open the PUBLISHED app at its real domain and run Auto-Fix from there — ` +
+        `running it from the Base44 editor or a preview URL would break calling.`,
+    }, { status: 400 });
+  }
+
   const results = {};
 
   // ── Step 1: Update TwiML App Voice URL ───────────────────────────────────

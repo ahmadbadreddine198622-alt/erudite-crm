@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Phone, Settings, RefreshCw, Loader2, CheckCircle2, XCircle,
-  PhoneCall, PhoneIncoming, FileAudio, Clock, ExternalLink, Shield
+  Phone, RefreshCw, Loader2, CheckCircle2, XCircle,
+  PhoneCall, PhoneIncoming, FileAudio, Clock, ExternalLink, Shield, Stethoscope, Wrench
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -159,6 +159,121 @@ function ConnectionSetup({ onSaved, existingCredential }) {
             console.twilio.com
           </a>
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CallingDiagnostics() {
+  const [checking, setChecking] = useState(false);
+  const [fixing, setFixing] = useState(false);
+  const [report, setReport] = useState(null);
+  const [fixResult, setFixResult] = useState(null);
+
+  const runCheck = async () => {
+    setChecking(true);
+    setFixResult(null);
+    try {
+      const res = await base44.functions.invoke('checkTwilioConfig', {});
+      setReport(res.data);
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Health check failed');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const runFix = async () => {
+    setFixing(true);
+    try {
+      const res = await base44.functions.invoke('fixTwimlAppVoiceUrl', {});
+      if (res.data?.success) {
+        setFixResult(res.data);
+        toast.success('Calling setup repaired — TwiML App and number re-pointed');
+        // Re-run the health check to show the fixed state
+        const check = await base44.functions.invoke('checkTwilioConfig', {});
+        setReport(check.data);
+      } else {
+        toast.error(res.data?.error || 'Repair failed');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Repair failed');
+    } finally {
+      setFixing(false);
+    }
+  };
+
+  const CheckRow = ({ ok, label, detail }) => (
+    <div className="flex items-start gap-2.5 py-1.5">
+      {ok
+        ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        : <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />}
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        {detail && <p className="text-xs text-muted-foreground break-all">{detail}</p>}
+      </div>
+    </div>
+  );
+
+  return (
+    <Card className="liquid-glass">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Stethoscope className="w-5 h-5 text-cyan-400" /> Calling Diagnostics
+        </CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Getting Gateway error 31005 or dropped browser calls? Run the health check — if the TwiML App
+          points at the wrong URL, Auto-Fix re-points it and your phone number in one click.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={runCheck} disabled={checking || fixing} variant="outline" className="gap-2">
+            {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stethoscope className="w-4 h-4" />}
+            {checking ? 'Checking…' : 'Run Health Check'}
+          </Button>
+          <Button onClick={runFix} disabled={fixing || checking} className="gap-2">
+            {fixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+            {fixing ? 'Repairing…' : 'Auto-Fix Calling Setup'}
+          </Button>
+        </div>
+
+        {report && (
+          <div className="rounded-xl p-4 space-y-1" style={{
+            background: report.ok ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
+            border: `1px solid ${report.ok ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          }}>
+            <p className="text-sm font-semibold mb-2">{report.summary || report.error}</p>
+            {report.checks && (
+              <>
+                <CheckRow ok={!!report.checks.credentials} label="Twilio credentials saved" />
+                <CheckRow
+                  ok={!!report.checks.api_key?.valid}
+                  label="API Key valid"
+                  detail={report.checks.api_key?.error}
+                />
+                <CheckRow
+                  ok={!!report.checks.twiml_app?.valid && !report.checks.twiml_app?.error}
+                  label="TwiML App Voice URL"
+                  detail={report.checks.twiml_app?.error
+                    || (report.checks.twiml_app?.voice_url && `Voice URL: ${report.checks.twiml_app.voice_url}`)}
+                />
+              </>
+            )}
+          </div>
+        )}
+
+        {fixResult && (
+          <div className="rounded-xl p-4 space-y-1" style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.25)' }}>
+            <p className="text-sm font-semibold text-emerald-300">✅ Repaired</p>
+            {fixResult.twiml_app_voice_url && (
+              <p className="text-xs text-muted-foreground break-all">TwiML App Voice URL → {fixResult.twiml_app_voice_url}</p>
+            )}
+            {fixResult.phone_number && (
+              <p className="text-xs text-muted-foreground">Number {fixResult.phone_number} now routes through the TwiML App</p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -344,7 +459,8 @@ export default function TwilioHub() {
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="space-y-6">
+            <CallingDiagnostics />
             <ConnectionSetup existingCredential={credential} onSaved={() => { queryClient.invalidateQueries(['twilio-numbers']); refetch(); }} />
           </TabsContent>
         </Tabs>

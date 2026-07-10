@@ -56,8 +56,11 @@ Deno.serve(async (req) => {
       checks.api_key.error = 'API Key SID or Secret missing';
     }
 
-    // Check TwiML App
-    const expectedVoiceUrl = `https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook`;
+    // Check TwiML App. What actually matters is that Twilio's gateway can
+    // fetch TwiML from the stored Voice URL — so probe it like Twilio would,
+    // rather than string-comparing against this request's origin (which
+    // differs when the check is run from the editor or another alias domain).
+    const expectedVoiceUrl = `${new URL(req.url).origin}/functions/twilioVoiceWebhook`;
     if (twimlAppSid) {
       try {
         const appRes = await fetch(
@@ -69,8 +72,22 @@ Deno.serve(async (req) => {
           checks.twiml_app.valid = true;
           checks.twiml_app.voice_url = app.voice_url || '';
           checks.twiml_app.expected_voice_url = expectedVoiceUrl;
-          if (app.voice_url !== expectedVoiceUrl) {
-            checks.twiml_app.error = `Voice URL mismatch! Expected: ${expectedVoiceUrl}, Got: ${app.voice_url}`;
+          if (!app.voice_url) {
+            checks.twiml_app.error = `TwiML App has no Voice URL set. Run Auto-Fix to point it at ${expectedVoiceUrl}`;
+          } else if (!app.voice_url.endsWith('/functions/twilioVoiceWebhook')) {
+            checks.twiml_app.error = `Voice URL points somewhere unexpected: ${app.voice_url}. Run Auto-Fix to point it at ${expectedVoiceUrl}`;
+          } else {
+            const probe = await fetch(app.voice_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: 'To=',
+            }).catch(() => null);
+            const probeType = probe?.headers?.get('content-type') || '';
+            if (probe) await probe.text().catch(() => {});
+            if (!probe || !probe.ok || !probeType.includes('xml')) {
+              const status = probe ? `HTTP ${probe.status}` : 'network error';
+              checks.twiml_app.error = `Twilio cannot fetch TwiML from ${app.voice_url} (${status}) — this causes Gateway error 31005. Run Auto-Fix from the published app to repair it.`;
+            }
           }
         } else {
           const err = await appRes.text();
