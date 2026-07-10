@@ -109,7 +109,7 @@ function LessonView({ principle, onBack }) {
 }
 
 export default function TheHall() {
-  const { user } = useCurrentUser();
+  const { user, isAdmin } = useCurrentUser();
   const [selected, setSelected] = useState(null);
 
   const { data: enrollments = [] } = useQuery({
@@ -157,9 +157,9 @@ export default function TheHall() {
       {/* Principle library card grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginTop: 16 }}>
         {principles.map(p => {
-          const isPreview = enrollment && p.week_number > currentWeek + 1;
+          const isPreview = !isAdmin && enrollment && p.week_number > currentWeek + 1;
           return (
-            <button key={p.id} onClick={() => setSelected(p)} disabled={p.week_number > currentWeek + 1}
+            <button key={p.id} onClick={() => setSelected(p)} disabled={!isAdmin && p.week_number > currentWeek + 1}
               style={{
                 ...card, cursor: isPreview ? 'default' : 'pointer', textAlign: 'left',
                 opacity: isPreview ? 0.55 : 1, position: 'relative', transition: 'all 0.15s ease',
