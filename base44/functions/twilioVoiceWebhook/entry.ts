@@ -276,7 +276,13 @@ Deno.serve(async (req) => {
     const to = formParams.get('To') || url.searchParams.get('To') || '';
     const callSid = formParams.get('CallSid') || '';
 
-    console.log(`[twilioVoiceWebhook] dial: to=${to} callSid=${callSid}`);
+    // Live Call Copilot params (passed by the browser SDK via device.connect params)
+    const copilotOn = (formParams.get('copilot') || url.searchParams.get('copilot')) === 'true';
+    const copilotCallLogId = formParams.get('call_log_id') || '';
+    const copilotLandlordId = formParams.get('landlord_id') || '';
+    const copilotAgentEmail = formParams.get('agent_email') || '';
+
+    console.log(`[twilioVoiceWebhook] dial: to=${to} callSid=${callSid} copilot=${copilotOn} logId=${copilotCallLogId}`);
 
     if (!to) {
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
@@ -286,8 +292,29 @@ Deno.serve(async (req) => {
 
     const { voiceNumber, recordCalls } = await getCreds(serviceRole);
 
-    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status`;
-    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording`;
+    let statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status`;
+    let recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording`;
+
+    // ── Copilot: fork call audio to the relay via Media Streams ──────────
+    // Non-blocking <Start><Stream> — if the relay is down, the call is unaffected.
+    let copilotStreamXml = '';
+    if (copilotOn) {
+      const relayWs = Deno.env.get('COPILOT_RELAY_URL') || 'wss://copilot.peninsulabusinessbay.com';
+      if (copilotCallLogId) {
+        statusCb += `&call_log_id=${copilotCallLogId}`;
+        recordCb += `&call_log_id=${copilotCallLogId}`;
+        // Attach the parent CallSid to the pre-created log so status callbacks converge on it.
+        serviceRole.entities.CallLog.update(copilotCallLogId, {
+          twilio_call_sid: callSid,
+          status: 'ringing',
+          copilot_used: true,
+        }).catch((e) => console.warn('[twilioVoiceWebhook] copilot log update failed:', e?.message));
+      }
+      // Stream is attached to the browser (agent) leg: Twilio 'inbound' = agent mic,
+      // 'outbound' = landlord audio. inbound_speaker tells the relay how to map speakers.
+      copilotStreamXml = `\n  <Start>\n    <Stream url="${relayWs}/twilio" track="both_tracks">\n      <Parameter name="call_log_id" value="${copilotCallLogId}" />\n      <Parameter name="landlord_id" value="${copilotLandlordId}" />\n      <Parameter name="agent_email" value="${copilotAgentEmail}" />\n      <Parameter name="inbound_speaker" value="agent" />\n    </Stream>\n  </Start>`;
+      console.log(`[twilioVoiceWebhook] copilot stream attached → ${relayWs}/twilio (log=${copilotCallLogId})`);
+    }
 
     // callerId must be a verified number on the account
     let dialAttrs = `callerId="${voiceNumber}" timeout="60"`;
@@ -296,7 +323,7 @@ Deno.serve(async (req) => {
     }
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
+<Response>${copilotStreamXml}
   <Dial ${dialAttrs}>
     <Number statusCallback="${statusCb}" statusCallbackEvent="initiated ringing answered completed" statusCallbackMethod="POST">${to}</Number>
   </Dial>
