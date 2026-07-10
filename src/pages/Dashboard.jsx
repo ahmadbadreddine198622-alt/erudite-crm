@@ -29,6 +29,7 @@ import PhotographyDashboardWidget from '@/components/dashboard/PhotographyDashbo
 import DocumentsDashboardWidget from '@/components/dashboard/DocumentsDashboardWidget';
 import DashboardBackground from '@/components/dashboard/DashboardBackground';
 import DashboardTopBar from '@/components/dashboard/DashboardTopBar';
+import AcademyStrip from '@/components/dashboard/AcademyStrip';
 
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
@@ -304,6 +305,11 @@ export default function Dashboard() {
         userProfileImage={userProfileImage}
         navigate={navigate}
       />
+
+      {/* THE 17 — Erudite Success Academy strip */}
+      <div className="w-full max-w-5xl mx-auto">
+        <AcademyStrip />
+      </div>
 
       {/* KPI Strip — live counts (compact) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-5xl mx-auto gap-1.5 sm:gap-2 mb-3 sm:mb-4">

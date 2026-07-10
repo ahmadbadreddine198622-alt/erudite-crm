@@ -1,0 +1,68 @@
+{
+  "name": "TrainingEnrollment",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "agent_name": {
+      "type": "string"
+    },
+    "current_week": {
+      "type": "number",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 17
+    },
+    "weeks_completed": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "completed"
+      ],
+      "default": "active"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "rank": {
+      "type": "string",
+      "description": "Current rank title from the most recently completed week"
+    }
+  },
+  "required": [
+    "user_email",
+    "current_week",
+    "status"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

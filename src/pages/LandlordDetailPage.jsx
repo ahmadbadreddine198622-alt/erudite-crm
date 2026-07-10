@@ -2008,7 +2008,7 @@ export default function LandlordDetailPage() {
     const u = allUsers.find(u => u.email === email);
     return u?.display_name || u?.full_name || email.split('@')[0];
   };
-  const resolveAgentByPhone = (fn) => { const d=String(fn||'').replace(/\D/g,''); const u=allUsers.find(u=>{const ud=String(u.whatsapp_number||'').replace(/\D/g,'');return ud&&ud===d;}); return u?.display_name||u?.full_name||null; };
+  const qc = useQueryClient(); const resolveAgentByPhone = (fn) => { const d=String(fn||'').replace(/\D/g,''); const u=allUsers.find(u=>{const ud=String(u.whatsapp_number||'').replace(/\D/g,'');return ud&&ud===d;}); return u?.display_name||u?.full_name||null; };
   // Connected Systems — live existence checks (read-only)
   const phone = L?.phone;
   const { data: waBusiness = [] } = useQ(['wa_conv_business', phone], () => safe(() => base44.entities.WhatsAppConversation.filter({ wa_phone_e164: phone, channel: 'business' }, '-created_date', 5)), { enabled: !!phone });

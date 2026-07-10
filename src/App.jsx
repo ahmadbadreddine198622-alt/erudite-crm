@@ -106,6 +106,11 @@ import AgentIntelligence from '@/pages/AgentIntelligence';
 import Appointments from '@/pages/Appointments';
 import AutomationsHub from '@/pages/AutomationsHub';
 import Flow from '@/pages/Flow';
+import AcademyHome from '@/pages/AcademyHome';
+import MyChiefAim from '@/pages/MyChiefAim';
+import PrincipleLibrary from '@/pages/PrincipleLibrary';
+import Reflections from '@/pages/Reflections';
+import Mastermind from '@/pages/Mastermind';
 
 
 const AuthenticatedApp = () => {
@@ -232,6 +237,11 @@ const AuthenticatedApp = () => {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/automations-hub" element={<AutomationsHub />} />
         <Route path="/flow" element={<Flow />} />
+        <Route path="/academy" element={<AcademyHome />} />
+        <Route path="/academy/chief-aim" element={<MyChiefAim />} />
+        <Route path="/academy/principles" element={<PrincipleLibrary />} />
+        <Route path="/academy/reflections" element={<Reflections />} />
+        <Route path="/academy/mastermind" element={<Mastermind />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />

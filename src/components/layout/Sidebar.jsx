@@ -7,7 +7,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
   Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList, Settings
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList, Settings, Flame, Target, BookOpen, PenTool
 } from 'lucide-react';
 
 // Jewel hue per workspace section (R,G,B)
@@ -18,6 +18,7 @@ const SECTION_HUES = {
   'Deals & Money': '45,212,167',
   'Comms': '61,109,246',
   'Analytics & AI': '34,211,238',
+  'THE 17': '212,175,55',
   'Team & HR': '244,114,182',
   'Tools & Reference': '154,166,192',
 };
@@ -111,6 +112,16 @@ const navSections = [
       { label: 'Claude AI',           icon: Sparkles,        path: '/claude-ai',           gradient: 'from-violet-500 to-purple-800' },
       { label: 'Elite Desk',          icon: Crown,           path: '/elite-desk',          gradient: 'from-amber-500 to-yellow-700' },
       { label: 'Leaderboard',         icon: Trophy,          path: '/leaderboard',         gradient: 'from-yellow-500 to-amber-700' },
+    ],
+  },
+  {
+    section: 'THE 17',
+    items: [
+      { label: 'Academy Home',       icon: Flame,       path: '/academy',                 gradient: 'from-amber-400 to-yellow-700' },
+      { label: 'My Chief Aim',       icon: Target,      path: '/academy/chief-aim',       gradient: 'from-amber-500 to-orange-700' },
+      { label: 'Principle Library',  icon: BookOpen,    path: '/academy/principles',      gradient: 'from-yellow-500 to-amber-700' },
+      { label: 'Reflections',         icon: PenTool,     path: '/academy/reflections',     gradient: 'from-amber-500 to-yellow-700' },
+      { label: 'Mastermind',         icon: Users,       path: '/academy/mastermind',      gradient: 'from-orange-500 to-amber-700' },
     ],
   },
   {
