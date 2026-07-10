@@ -122,7 +122,10 @@ export default function TheHall() {
 
   const { data: principles = [], isLoading } = useQuery({
     queryKey: ['academy-principles'],
-    queryFn: () => base44.entities.TrainingPrinciple.list('week_number', 20),
+    queryFn: async () => {
+      const all = await base44.entities.TrainingPrinciple.list('week_number', 50);
+      return all.filter(p => p.slug);
+    },
   });
   const currentPrinciple = enrollment ? principles.find(p => p.week_number === enrollment.current_week) : null;
 

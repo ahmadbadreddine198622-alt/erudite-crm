@@ -19,7 +19,10 @@ export default function AcademyStrip() {
 
   const { data: principles = [] } = useQuery({
     queryKey: ['academy-principles'],
-    queryFn: () => base44.entities.TrainingPrinciple.list('week_number', 20),
+    queryFn: async () => {
+      const all = await base44.entities.TrainingPrinciple.list('week_number', 50);
+      return all.filter(p => p.slug);
+    },
     enabled: !!enrollment,
   });
   const principle = enrollment ? principles.find(p => p.week_number === enrollment.current_week) : null;
