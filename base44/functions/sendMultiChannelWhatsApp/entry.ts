@@ -69,8 +69,8 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'landlord_id or conversation_id, and (text or attachment) are required' }, { status: 400 });
   }
 
-  if (!['business', 'personal', 'malik', 'sameie', 'dari'].includes(channel)) {
-    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", "sameie", or "dari"' }, { status: 400 });
+  if (!['business', 'personal', 'malik', 'sameie', 'dari', 'agent'].includes(channel)) {
+    return Response.json({ error: 'Invalid channel. Must be "business", "personal", "malik", "sameie", "dari", or "agent"' }, { status: 400 });
   }
 
   const apiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
