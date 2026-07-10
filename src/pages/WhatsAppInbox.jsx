@@ -227,6 +227,16 @@ export default function WhatsAppInbox() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Agents with their own WhatsApp line — shown as filter pills for authorized shared users.
+  // Excludes named agents (Malik/Sameie/Dari, who have their own pills) and authorized shared emails (Ahmad).
+  const NAMED_AGENT_EMAILS_WA = ['malik@erudite-estate.com', 'sameie@erudite-estate.com', 'dari@erudite-estate.com'];
+  const agentsWithWhatsApp = teamMembers.filter(u =>
+    u.whatsapp_instance && u.email &&
+    !NAMED_AGENT_EMAILS_WA.includes(u.email.toLowerCase()) &&
+    !AUTHORIZED_SHARED_EMAILS.includes(u.email.toLowerCase()) &&
+    !isOwner(u.email)
+  );
+
   const { data: leadScores = [] } = useQuery({
     queryKey: ['lead_scores'],
     queryFn: () => base44.entities.LeadScore.list('-calculated_at', 200),
@@ -348,6 +358,7 @@ export default function WhatsAppInbox() {
         : filterChannel === 'malik' ? c.channel === 'malik'
         : filterChannel === 'sameie' ? c.channel === 'sameie'
         : filterChannel === 'dari' ? c.channel === 'dari'
+        : filterChannel === 'agent' ? c.channel === 'agent'
         : true;
       return matchesSearch && matchesChannel;
     }
@@ -361,6 +372,7 @@ export default function WhatsAppInbox() {
       : filterChannel === 'malik' ? c.channel === 'malik'
       : filterChannel === 'sameie' ? c.channel === 'sameie'
       : filterChannel === 'dari' ? c.channel === 'dari'
+      : filterChannel === 'agent' ? c.channel === 'agent'
       : true;
 
     const lead = leads.find(l => l.id === c.lead_id);
@@ -861,23 +873,45 @@ export default function WhatsAppInbox() {
 
           {/* Channel filter pills — horizontally scrollable (authorized shared emails only; agents see only their own channel) */}
           {isAuthorizedShared && (
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', paddingBottom: '2px' }}>
-            {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : []), ...(isAdminUser || isDari ? ['dari'] : [])].map(c => {
-              const isSelected = filterChannel === c;
-              const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : c === 'sameie' ? 'hsl(340 75% 55%)' : c === 'dari' ? 'hsl(25 95% 55%)' : 'hsl(38 92% 50%)';
-              const bgColor = isSelected ? activeColor : 'rgba(255,255,255,0.05)';
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin flex-nowrap" style={{ scrollbarWidth: 'thin', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
+            {[
+              { key: 'all', label: 'All', color: 'hsl(38 92% 50%)' },
+              { key: 'business', label: '🏢 Biz', color: 'hsl(152 69% 40%)' },
+              { key: 'personal', label: '👤 Pers', color: 'hsl(217 91% 60%)' },
+              ...(permissions.view_malik_whatsapp ? [{ key: 'malik', label: '💜 Malik', color: 'hsl(280 65% 55%)' }] : []),
+              ...(isAdminUser || isSameie ? [{ key: 'sameie', label: '🌸 Sameie', color: 'hsl(340 75% 55%)' }] : []),
+              ...(isAdminUser || isDari ? [{ key: 'dari', label: '📸 Dari', color: 'hsl(25 95% 55%)' }] : []),
+              ...agentsWithWhatsApp.map(u => ({
+                key: 'agent:' + u.email,
+                label: (u.full_name || u.email).split(/[ @]/)[0],
+                color: 'hsl(199 89% 48%)',
+                agentEmail: u.email,
+              })),
+            ].map(p => {
+              const isSelected = p.agentEmail
+                ? (filterChannel === 'agent' && filterAssignedAgent === p.agentEmail)
+                : filterChannel === p.key;
+              const bgColor = isSelected ? p.color : 'rgba(255,255,255,0.05)';
               return (
                 <button
-                  key={c}
-                  onClick={() => setFilterChannel(c)}
+                  key={p.key}
+                  onClick={() => {
+                    if (p.agentEmail) {
+                      if (isSelected) { setFilterChannel('all'); setFilterAssignedAgent(''); }
+                      else { setFilterChannel('agent'); setFilterAssignedAgent(p.agentEmail); }
+                    } else {
+                      setFilterChannel(p.key);
+                      setFilterAssignedAgent('');
+                    }
+                  }}
                   className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors border shrink-0 whitespace-nowrap"
                   style={{
                     background: bgColor,
                     color: isSelected ? 'white' : 'rgba(255,255,255,0.55)',
-                    border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
+                    border: `1px solid ${isSelected ? p.color : 'transparent'}`,
                   }}
-                    >
-                    {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : c === 'malik' ? '💜 Malik' : c === 'sameie' ? '🌸 Sameie' : '📸 Dari'}
+                >
+                  {p.label}
                 </button>
               );
             })}
