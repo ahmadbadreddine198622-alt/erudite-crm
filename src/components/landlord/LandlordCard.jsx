@@ -556,7 +556,7 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
             >
               <option value="">Assign</option>
               {users.map(u => (
-                <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
+                <option key={u.id} value={u.email}>{(u.display_name || u.full_name)?.split(' ')[0] || u.email.split('@')[0]}</option>
               ))}
             </select>
           )}
