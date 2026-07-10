@@ -573,7 +573,7 @@ export default function Landlords() {
               >
                 <option value="">Select agent…</option>
                 {users.map(u => (
-                  <option key={u.id} value={u.email}>{u.full_name || u.email}</option>
+                  <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
                 ))}
               </select>
               <Button
