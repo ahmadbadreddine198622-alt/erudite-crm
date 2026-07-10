@@ -93,6 +93,22 @@ export default function Profile() {
     setSaving(true);
     try {
       await base44.auth.updateMe({ display_name: form.display_name, phone: form.phone, position: form.position, profile_image: form.profile_image, signature_url: form.signature_url, signature_card_url: form.signature_card_url, email_signature_html: form.email_signature_html, default_reminder_text: form.default_reminder_text, default_reminders: form.default_reminders, office_location: form.office_location, pf_profile_url: form.pf_profile_url, pf_rating: form.pf_rating ? Number(form.pf_rating) : null, pf_deals_count: form.pf_deals_count ? Number(form.pf_deals_count) : null, pf_deals_value_label: form.pf_deals_value_label, erudite_listings_url: form.erudite_listings_url, meet_team_url: form.meet_team_url, signature_stat_label: form.signature_stat_label, whatsapp_number: form.whatsapp_number, whatsapp_instance: form.whatsapp_instance });
+
+      // Propagate the new display name to every entity that caches it (commissions,
+      // notes, activities, comments, workload, calls) so it updates everywhere.
+      const prevName = (user?.display_name || user?.full_name || '').trim();
+      if (form.display_name.trim() && form.display_name.trim() !== prevName && user?.email) {
+        try {
+          await base44.functions.invoke('propagateUserNameChange', {
+            email: user.email,
+            new_name: form.display_name.trim(),
+          });
+          toast.success('Name updated everywhere in the CRM');
+        } catch (_) {
+          // Non-fatal: profile already saved; propagation can be retried later.
+        }
+      }
+
       toast.success('Profile updated successfully');
       setUser(prev => ({ ...prev, ...form }));
     } catch (e) {
