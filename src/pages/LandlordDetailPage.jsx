@@ -1242,7 +1242,7 @@ class LandlordDetail extends React.Component {
     const tabStream = vm.stream.filter(s => {
       const ct = this.state.composerType;
       if (ct === 'Email') return s.isMsg && s.channel === 'Email';
-      if (ct === 'Chat') return s.isMsg && (s.channel === 'WA Personal' || s.channel === 'WA Business');
+      if (ct === 'Chat') return s.isMsg && (s.channel === 'WA Personal' || s.channel === 'WA Business' || s.channel === 'WA Agent');
       if (ct === 'iMessage') return s.isMsg && s.channel === 'iMessage';
       if (ct === 'Telegram') return s.isMsg && s.channel === 'Telegram';
       if (ct === 'Note') return s.isAct && s._kind === 'note';
@@ -2158,7 +2158,7 @@ export default function LandlordDetailPage() {
   // Build the Conversation & Activity stream from live WhatsApp messages + call logs
   const deriveWaChannel = (msg) => {
     // Check explicit channel field first (most reliable — set by sendWhatsAppMessage backend)
-    if (msg.channel === 'personal' || msg.channel === 'business' || msg.channel === 'malik') return msg.channel;
+    if (msg.channel === 'personal' || msg.channel === 'business' || msg.channel === 'agent' || msg.channel === 'malik') return msg.channel;
     // Fall back to inferring from our phone numbers in the message
     const eruditeSide = msg.direction === 'inbound' ? msg.to_number : msg.from_number;
     if (eruditeSide) {
