@@ -68,6 +68,14 @@ export default function WhatsAppInbox() {
   // Sameie can see her own channel + business; admin sees everything
   const isSameie = currentUser?.email === 'sameie@erudite-estate.com';
   const isDari = currentUser?.email === 'dari@erudite-estate.com';
+  const isMalik = currentUser?.email === 'malik@erudite-estate.com';
+
+  // Non-admin agents see ONLY their own configured WhatsApp channel — no business,
+  // personal, or other agents' channels. Named agents (Malik, Sameie, Dari) get their
+  // own named channel; everyone else gets the generic 'agent' channel.
+  const agentOwnChannel = !isAdminUser
+    ? (isMalik ? 'malik' : isSameie ? 'sameie' : isDari ? 'dari' : 'agent')
+    : null;
 
   // Conversations list polling — 15s interval
   // RLS scopes: admins see all (role bypass), agents see only their assigned rows
@@ -308,28 +316,11 @@ export default function WhatsAppInbox() {
     const phone = c.wa_phone_e164 || c.phone_number || '';
     if (isInternalNumber(phone)) return false;
 
-    // Malik channel: only visible to admin or Malik himself
-    if (c.channel === 'malik' && !permissions.view_malik_whatsapp) return false;
-
-    // Malik account: can only see 'malik' and 'business' channels — not 'personal' or 'sameie'
-    if (currentUser?.email === 'malik@erudite-estate.com' && (c.channel === 'personal' || c.channel === 'sameie' || !c.channel)) return false;
-
-    // Sameie channel: only visible to admin or Sameie herself
-    if (c.channel === 'sameie' && !isAdminUser && !isSameie) return false;
-
-    // Sameie account: can only see 'sameie' and 'business' channels
-    if (isSameie && !isAdminUser && c.channel !== 'sameie' && c.channel !== 'business') return false;
-
-    // Dari channel: only visible to admin or Dari herself
-    if (c.channel === 'dari' && !isAdminUser && !isDari) return false;
-
-    // Dari account: can only see 'dari' and 'business' channels
-    if (isDari && !isAdminUser && c.channel !== 'dari' && c.channel !== 'business') return false;
-
-    // Non-admin agents: RLS already restricts the API response, but enforce client-side too
-    // Skip entirely for admins — they see everything
-    if (!isAdminUser && currentUser?.email) {
-      if (c.assigned_agent_email !== currentUser.email) return false;
+    // Non-admin agents: see ONLY their own configured WhatsApp channel.
+    // No business, personal, or other agents' channels — strict isolation.
+    // Admins (and view_all_whatsapp) bypass this entirely.
+    if (!isAdminUser && agentOwnChannel) {
+      if (c.channel !== agentOwnChannel) return false;
     }
 
     // Admin scope: 'mine' filters to just the admin's own assigned chats
@@ -861,7 +852,8 @@ export default function WhatsAppInbox() {
             </select>
           )}
 
-          {/* Channel filter pills — horizontally scrollable */}
+          {/* Channel filter pills — horizontally scrollable (admin only; agents see only their own channel) */}
+          {isAdminUser && (
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', paddingBottom: '2px' }}>
             {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : []), ...(isAdminUser || isDari ? ['dari'] : [])].map(c => {
               const isSelected = filterChannel === c;
@@ -883,6 +875,7 @@ export default function WhatsAppInbox() {
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Conversation list */}
