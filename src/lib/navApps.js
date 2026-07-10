@@ -38,7 +38,6 @@ export const ALL_APPS = [
   { label: 'Instagram Leads',    icon: Instagram,      path: '/instagram',           gradient: 'from-purple-600 to-pink-600',      glowColor: 'rgba(192,38,211,0.40)' },
   { label: 'Property Finder',    icon: Link2,          path: '/property-finder',     gradient: 'from-red-500 to-rose-700',         glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'Duplicate Detector', icon: GitMerge,       path: '/duplicates',          gradient: 'from-orange-500 to-amber-700',     glowColor: 'rgba(249,115,22,0.40)' },
-  { label: 'Email Automations',  icon: Mail,           path: '/email-automations',   gradient: 'from-indigo-500 to-blue-700',      glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Claude AI',          icon: Sparkles,       path: '/claude-ai',           gradient: 'from-violet-500 to-purple-700',    glowColor: 'rgba(139,92,246,0.40)' },
   { label: 'WhatsApp Setup',     icon: MessageCircle,  path: '/whatsapp-setup',      gradient: 'from-slate-500 to-slate-700',      glowColor: 'rgba(148,163,184,0.40)', agentHidden: true },
   { label: 'Form A Referral',    icon: Handshake,      path: '/form-a-referral',     gradient: 'from-amber-500 to-orange-700',     glowColor: 'rgba(245,158,11,0.40)' },
@@ -76,7 +75,6 @@ export const ALL_APPS = [
   { label: 'PF Leads',           icon: UserSearch,     path: '/property-finder-leads', gradient: 'from-red-500 to-rose-700',             glowColor: 'rgba(239,68,68,0.40)' },
   { label: 'Appointments',       icon: CalendarCheck,  path: '/appointments',        gradient: 'from-indigo-500 to-blue-700',            glowColor: 'rgba(99,102,241,0.40)' },
   { label: 'Automations Hub',    icon: Zap,            path: '/automations-hub',     gradient: 'from-violet-500 to-purple-700',          glowColor: 'rgba(139,92,246,0.40)' },
-  { label: 'iMessage Templates', icon: MessageSquare,  path: '/imessage-templates',  gradient: 'from-blue-500 to-indigo-700',             glowColor: 'rgba(10,132,255,0.40)' },
 ];
 
 export const DEFAULT_NAV_LABELS = ['Pipeline', 'Leads', 'Contacts', 'Reminders'];

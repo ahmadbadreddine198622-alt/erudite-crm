@@ -1,66 +1,31 @@
-// Automations Hub — the SINGLE place to manage every communication template.
-// One MessageTemplate entity, one editor (EmailTemplateDialog with channel
-// selector + access control: private / everyone / specific agents).
-// Sections: Welcome Sequence · Follow-up Automations · Internal Notifications · Templates Library.
+// Automations Hub — the SINGLE place to manage every communication template
+// AND every automation rule. One MessageTemplate entity (channel + access
+// control) + one AutomationRule entity (create / edit / delete / toggle).
+// Sections: Welcome Sequence · Automations · Internal Notifications · Templates Library.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  Zap, Plus, ToggleLeft, ToggleRight, Users, RefreshCw, Clock, Loader2,
-  Sparkles, Repeat2, Bell,
+  Zap, Plus, RefreshCw, Clock, Loader2, Sparkles, Repeat2, Bell, GitBranch,
 } from 'lucide-react';
 import InternalNotificationsTab from '@/components/automations/InternalNotificationsTab';
 import TemplateRow from '@/components/automations/TemplateRow';
 import TemplateLibraryTab from '@/components/automations/TemplateLibraryTab';
+import RuleCard from '@/components/automations/RuleCard';
+import RuleFormDialog from '@/components/automations/RuleFormDialog';
 import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 
-function AutomationRuleRow({ rule, onToggle }) {
-  const [editing, setEditing] = useState(false);
-  const [delay, setDelay] = useState(rule.delay_hours || 0);
-  const [savingDelay, setSavingDelay] = useState(false);
-
-  const saveDelay = async () => {
-    setSavingDelay(true);
-    try {
-      await base44.entities.AutomationRule.update(rule.id, { delay_hours: Number(delay) });
-      toast.success('Timing updated');
-      setEditing(false);
-    } catch (e) {
-      toast.error('Failed to update');
-    } finally { setSavingDelay(false); }
-  };
-
-  return (
-    <div className="glass-card p-4 flex items-start gap-3">
-      <button onClick={() => onToggle(rule)} className="flex-none mt-0.5">
-        {rule.is_active ? <ToggleRight className="w-7 h-7 text-emerald-400" /> : <ToggleLeft className="w-7 h-7 text-muted-foreground" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">{rule.name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{rule.description || 'No description'}</p>
-        <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> {rule.trigger_type?.replace(/_/g, ' ')}</span>
-          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {rule.recipient_type?.replace(/_/g, ' ')}</span>
-          {editing ? (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <Input type="number" min="0" value={delay} onChange={(e) => setDelay(e.target.value)} className="glass-input w-16 h-6 text-xs px-1" /> hrs
-              <button onClick={saveDelay} disabled={savingDelay} className="text-emerald-400">✓</button>
-            </span>
-          ) : (
-            <button onClick={() => setEditing(true)} className="flex items-center gap-1 hover:text-foreground">
-              <Clock className="w-3 h-3" /> {rule.delay_hours || 0}h delay
-            </button>
-          )}
-          <span>· Executed {rule.execution_count || 0}×</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Trigger metadata shared with RuleCard (mirrors the old Email Automations page).
+const TRIGGER_LABELS = {
+  lead_status_change: { label: 'Lead Status Change', icon: GitBranch, color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  pipeline_stage_change: { label: 'Pipeline Stage Change', icon: Zap, color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  lead_created: { label: 'New Lead Created', icon: Plus, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  days_no_activity: { label: 'No Activity', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  lead_score_change: { label: 'Lead Score Change', icon: Zap, color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+  tag_added: { label: 'Tag Added', icon: Plus, color: 'bg-sky-500/10 text-sky-600 border-sky-500/20' },
+};
 
 export default function AutomationsHub() {
   const [templates, setTemplates] = useState([]);
@@ -70,6 +35,8 @@ export default function AutomationsHub() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTpl, setEditingTpl] = useState(null);
   const [createChannel, setCreateChannel] = useState('whatsapp');
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
   const [section, setSection] = useState('welcome');
 
   const loadData = useCallback(async () => {
@@ -77,7 +44,7 @@ export default function AutomationsHub() {
     try {
       const [tpls, rls] = await Promise.all([
         base44.entities.MessageTemplate.list('-updated_date', 200),
-        base44.entities.AutomationRule.list('-priority', 100),
+        base44.entities.AutomationRule.list('-created_date', 200),
       ]);
       setTemplates(tpls || []);
       setRules(rls || []);
@@ -104,6 +71,7 @@ export default function AutomationsHub() {
     } finally { setSeeding(false); }
   };
 
+  // --- Template handlers ---
   const handleToggleTpl = async (tpl) => {
     try {
       await base44.entities.MessageTemplate.update(tpl.id, { is_active: !tpl.is_active });
@@ -120,7 +88,6 @@ export default function AutomationsHub() {
     } catch (e) { toast.error('Failed to delete'); }
   };
 
-  // New template — optionally prefilled (e.g. welcome_sequence category).
   const openNew = (channel = 'whatsapp', prefill = null) => {
     setEditingTpl(prefill ? { ...prefill, channel } : null);
     setCreateChannel(channel);
@@ -133,27 +100,42 @@ export default function AutomationsHub() {
     setDialogOpen(true);
   };
 
-  const handleSaved = () => {
+  const handleSavedTpl = () => {
     setDialogOpen(false);
     setEditingTpl(null);
     loadData();
   };
 
+  // --- Automation rule handlers ---
   const handleToggleRule = async (rule) => {
     try {
       await base44.entities.AutomationRule.update(rule.id, { is_active: !rule.is_active });
-      setRules((prev) => prev.map((r) => r.id === rule.id ? { ...r, is_active: !rule.is_active } : r));
+      setRules((prev) => prev.map((r) => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
     } catch (e) { toast.error('Failed to toggle'); }
   };
 
+  const handleDeleteRule = async (rule) => {
+    if (!confirm(`Delete automation "${rule.name}"?`)) return;
+    try {
+      await base44.entities.AutomationRule.delete(rule.id);
+      setRules((prev) => prev.filter((r) => r.id !== rule.id));
+      toast.success('Automation deleted');
+    } catch (e) { toast.error('Failed to delete'); }
+  };
+
+  const openNewRule = () => { setEditingRule(null); setRuleDialogOpen(true); };
+  const openEditRule = (rule) => { setEditingRule(rule); setRuleDialogOpen(true); };
+  const closeRuleDialog = () => { setRuleDialogOpen(false); setEditingRule(null); loadData(); };
+
+  // --- Derived lists ---
   const welcomeTemplates = templates.filter((t) => t.category === 'welcome_sequence').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const otherTemplates = templates.filter((t) => t.category !== 'welcome_sequence');
-  const followupRules = rules.filter((r) => r.trigger_type === 'landlord_created' || r.trigger_type === 'days_no_activity' || r.actions?.some((a) => a.type === 'schedule_followup' || a.type === 'send_template'));
+  const automationRules = rules;
   const notifyRules = rules.filter((r) => r.actions?.some((a) => a.type === 'notify'));
 
   const TABS = [
     { key: 'welcome', label: 'Welcome Sequence', icon: Sparkles, count: welcomeTemplates.length },
-    { key: 'followups', label: 'Follow-up Automations', icon: Repeat2, count: followupRules.length },
+    { key: 'automations', label: 'Automations', icon: Repeat2, count: automationRules.length },
     { key: 'notifications', label: 'Internal Notifications', icon: Bell, count: notifyRules.length },
     { key: 'templates', label: 'Templates Library', icon: Zap, count: otherTemplates.length },
   ];
@@ -165,7 +147,7 @@ export default function AutomationsHub() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="page-title text-3xl flex items-center gap-2"><Zap className="w-7 h-7 text-accent" /> Automations Hub</h1>
-            <p className="page-subtitle mt-1">The single home for every template — pick a channel, set who can see it (private, everyone, or specific agents), and reuse it everywhere.</p>
+            <p className="page-subtitle mt-1">The single home for every template and every automation — pick a channel, set who can see it, and automate notifications, follow-ups, and assignments.</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSeed} disabled={seeding} variant="outline" size="sm" className="gap-1.5">
@@ -174,6 +156,11 @@ export default function AutomationsHub() {
             {section === 'welcome' && (
               <Button onClick={() => openNew('whatsapp', { category: 'welcome_sequence' })} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> New Welcome Message
+              </Button>
+            )}
+            {section === 'automations' && (
+              <Button onClick={openNewRule} size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> New Automation
               </Button>
             )}
           </div>
@@ -211,17 +198,24 @@ export default function AutomationsHub() {
               ))
             )}
           </div>
-        ) : section === 'followups' ? (
+        ) : section === 'automations' ? (
           <div className="space-y-3">
-            {followupRules.length === 0 ? (
+            {automationRules.length === 0 ? (
               <div className="glass-card p-8 text-center">
-                <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No follow-up automations yet.</p>
-                <p className="text-xs text-muted-foreground mt-1">Follow-up automations appear here once created.</p>
+                <Repeat2 className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No automations yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Create an automation to act on lead changes, inactivity, or tags — send email, notify, tag, schedule a follow-up, or assign an agent.</p>
               </div>
             ) : (
-              followupRules.map((rule) => (
-                <AutomationRuleRow key={rule.id} rule={rule} onToggle={handleToggleRule} />
+              automationRules.map((rule) => (
+                <RuleCard
+                  key={rule.id}
+                  rule={rule}
+                  triggerLabels={TRIGGER_LABELS}
+                  onEdit={() => openEditRule(rule)}
+                  onToggle={() => handleToggleRule(rule)}
+                  onDelete={() => handleDeleteRule(rule)}
+                />
               ))
             )}
           </div>
@@ -238,14 +232,21 @@ export default function AutomationsHub() {
         )}
       </div>
 
-      {/* Shared editor — channel selector + access control (private / everyone / specific agents) */}
+      {/* Shared template editor — channel selector + access control (private / everyone / specific agents) */}
       <EmailTemplateDialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingTpl(null); }}
         template={editingTpl}
         channel={createChannel}
         showChannelSelector
-        onSaved={handleSaved}
+        onSaved={handleSavedTpl}
+      />
+
+      {/* Automation rule editor (create / edit) */}
+      <RuleFormDialog
+        open={ruleDialogOpen}
+        onClose={closeRuleDialog}
+        editingRule={editingRule}
       />
     </div>
   );
