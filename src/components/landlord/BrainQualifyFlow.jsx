@@ -12,14 +12,19 @@ const inputStyle = { background: 'rgba(255,255,255,0.06)', border: '1px solid rg
 
 // ── Question Step (inline sub-component) ─────────────────────────────────────
 
-function QuestionStep({ q, form, onAnswer }) {
+function QuestionStep({ q, form, onAnswer, aiDetected }) {
   if (!q) return null;
   const Icon = q.Icon;
   const currentValue = form[q.field_key];
   const isAnswered = !!currentValue;
 
   return (
-    <div className="rounded-xl border p-3.5 space-y-2.5" style={{ background: `${AI_BLUE}0.05)`, borderColor: `${AI_BLUE}0.2)` }}>
+    <div className="rounded-xl border p-3.5 space-y-2.5" style={{
+      background: aiDetected ? 'rgba(212,175,55,0.06)' : `${AI_BLUE}0.05)`,
+      borderColor: aiDetected ? 'rgba(212,175,55,0.45)' : `${AI_BLUE}0.2)`,
+      boxShadow: aiDetected ? '0 0 14px rgba(212,175,55,0.15)' : 'none',
+      transition: 'all 0.4s ease',
+    }}>
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${AI_BLUE}0.15)` }}>
@@ -27,8 +32,8 @@ function QuestionStep({ q, form, onAnswer }) {
         </div>
         <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{q.area}</span>
         {isAnswered && (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400 ml-auto">
-            <CheckCircle2 className="w-3 h-3" /> Answered
+          <span className="flex items-center gap-1 text-[10px] font-semibold ml-auto" style={{ color: aiDetected ? '#d4af37' : '#34d399' }}>
+            <CheckCircle2 className="w-3 h-3" /> {aiDetected ? 'AI-detected — tap to confirm' : 'Answered'}
           </span>
         )}
       </div>
@@ -173,7 +178,7 @@ function FieldsSummary({ form, onJump }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export default function BrainQualifyFlow({ form, set, setForm, landlord, onSave, saving, reportLoading, saved }) {
+export default function BrainQualifyFlow({ form, set, setForm, landlord, aiKeys, onSave, saving, reportLoading, saved }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flash, setFlash] = useState(false);
 
@@ -245,7 +250,7 @@ export default function BrainQualifyFlow({ form, set, setForm, landlord, onSave,
             animation: 'page-rise 0.4s ease-out',
           }} />
         )}
-        <QuestionStep q={current} form={form} onAnswer={handleAnswer} />
+        <QuestionStep q={current} form={form} onAnswer={handleAnswer} aiDetected={!!(aiKeys && current && aiKeys.has(current.field_key) && form[current.field_key])} />
 
         {/* Navigation */}
         <div className="flex items-center gap-2 mt-2">
