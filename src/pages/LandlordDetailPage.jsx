@@ -1727,6 +1727,7 @@ class LandlordDetail extends React.Component {
                           onMode={(m)=> this.setState({ streamFilter: m })}
                           isAdmin={this.props.isAdmin}
                           userEmail={this.props.currentUser?.email}
+                          userWhatsApp={this.props.currentUser?.whatsapp_number}
                         />
                       ) : null}
                     />

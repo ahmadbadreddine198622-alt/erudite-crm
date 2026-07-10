@@ -20,12 +20,16 @@ const ALLOWED_EMAILS = [
   'ahmad.badreddine198622@gmail.com',
 ];
 
-export default function WhatsAppChannelSelector({ mode, onMode, isAdmin = false, userEmail }) {
+export default function WhatsAppChannelSelector({ mode, onMode, isAdmin = false, userEmail, userWhatsApp }) {
   const navigate = useNavigate();
   const canChoose = !!userEmail && ALLOWED_EMAILS.includes(userEmail.toLowerCase());
+  const hasOwnLine = !!(userWhatsApp && String(userWhatsApp).replace(/\D/g, ''));
 
-  // Non-authorized users: prompt to connect their WhatsApp in Profile settings.
+  // Non-authorized users who already configured their own WhatsApp line in
+  // Profile (and paired it in Evolution) are fully connected — render nothing.
+  // Only prompt users who haven't set up a number yet.
   if (!canChoose) {
+    if (hasOwnLine) return null;
     return (
       <button
         type="button"
