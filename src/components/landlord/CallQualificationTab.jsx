@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
@@ -101,6 +101,33 @@ export default function CallQualificationTab({ landlord, onReportSaved }) {
   const [form, setForm] = useState(EMPTY);
   const [saved, setSaved] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
+  const [aiKeys, setAiKeys] = useState(() => new Set()); // fields auto-filled live by the Call Copilot
+
+  // Live Call Copilot → auto-fill Brain Qualify as the landlord talks.
+  useEffect(() => {
+    const onQualify = (e) => {
+      const updates = e.detail?.updates || [];
+      if (!updates.length) return;
+      setForm(f => {
+        const next = { ...f };
+        for (const u of updates) {
+          if (!u?.field_key || u.value == null || u.value === '') continue;
+          next[u.field_key] = String(u.value);
+          if (u.quote && u.field_key === 'motivation' && !next.motivation_notes) {
+            next.motivation_notes = u.quote;
+          }
+        }
+        return next;
+      });
+      setAiKeys(prev => {
+        const next = new Set(prev);
+        for (const u of updates) if (u?.field_key) next.add(u.field_key);
+        return next;
+      });
+    };
+    window.addEventListener('copilot:qualify', onQualify);
+    return () => window.removeEventListener('copilot:qualify', onQualify);
+  }, []);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -180,6 +207,7 @@ export default function CallQualificationTab({ landlord, onReportSaved }) {
         set={set}
         setForm={setForm}
         landlord={landlord}
+        aiKeys={aiKeys}
         onSave={() => saveMutation.mutate()}
         saving={saveMutation.isPending}
         reportLoading={reportLoading}
