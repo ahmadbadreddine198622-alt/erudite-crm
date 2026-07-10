@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
     // Use the app's public domain — not the internal dispatcher URL that
     // new URL(req.url).origin returns when invoked from the test runner.
-    const origin = 'https://dubai-estate-pro.base44.app';
+    const origin = 'https://app.erudite-estate.com';
     const webhookUrl = `${origin}/functions/evolutionWebhook?secret=${secret}`;
     const events = [
       'APPLICATION_STARTUP','QRCODE_UPDATED','MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_EDITED',
