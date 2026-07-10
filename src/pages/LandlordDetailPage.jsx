@@ -517,7 +517,9 @@ class LandlordDetail extends React.Component {
     if(effType === 'Appointment'){ return; }
     // Accept text passed directly from NoteComposerBar (avoids stale-state on fast mobile taps);
     // fall back to this.state.composerText for other callers (keyboard Enter, etc.).
-    const txt=(directText || this.state.composerText || '').trim(); if(!txt) return;
+    // NOTE: the Send button passes the click MouseEvent as `directText` — ignore non-string
+    // args (MouseEvent has no .trim()) or the send silently crashes and nothing happens.
+    const txt=(typeof directText === 'string' ? directText : (this.state.composerText || '')).trim(); if(!txt) return;
     // Note/Task/Follow-up persist directly through their dedicated save methods,
     // which already handle provenance, optimistic stream updates and error recovery.
     if(effType === 'Note'){ this.saveNote(txt); return; }
