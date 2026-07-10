@@ -28,6 +28,7 @@ import WhatsAppSetupGuide from '@/components/whatsapp/WhatsAppSetupGuide';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
 import { normalizePhoneNumber } from '@/lib/phoneUtils';
+import { isOwner } from '@/lib/owners';
 
 export default function WhatsAppInbox() {
   const isMobile = useIsMobile();
@@ -70,10 +71,16 @@ export default function WhatsAppInbox() {
   const isDari = currentUser?.email === 'dari@erudite-estate.com';
   const isMalik = currentUser?.email === 'malik@erudite-estate.com';
 
-  // Non-admin agents see ONLY their own configured WhatsApp channel — no business,
+  // Only these two emails may use / view the shared company lines (business + personal).
+  // Every other user — admin or not — is restricted to their own WhatsApp channel only.
+  const AUTHORIZED_SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+  const isAuthorizedShared = isOwner(currentUser?.email) || AUTHORIZED_SHARED_EMAILS.includes((currentUser?.email || '').toLowerCase());
+
+  // Non-authorized users see ONLY their own configured WhatsApp channel — no business,
   // personal, or other agents' channels. Named agents (Malik, Sameie, Dari) get their
-  // own named channel; everyone else gets the generic 'agent' channel.
-  const agentOwnChannel = !isAdminUser
+  // own named channel; everyone else (including non-authorized admins like Francis)
+  // gets the generic 'agent' channel.
+  const agentOwnChannel = !isAuthorizedShared
     ? (isMalik ? 'malik' : isSameie ? 'sameie' : isDari ? 'dari' : 'agent')
     : null;
 
@@ -316,20 +323,20 @@ export default function WhatsAppInbox() {
     const phone = c.wa_phone_e164 || c.phone_number || '';
     if (isInternalNumber(phone)) return false;
 
-    // Non-admin agents: see ONLY their own configured WhatsApp channel.
+    // Non-authorized users: see ONLY their own configured WhatsApp channel.
     // No business, personal, or other agents' channels — strict isolation.
-    // Admins (and view_all_whatsapp) bypass this entirely.
-    if (!isAdminUser && agentOwnChannel) {
+    // Authorized shared emails (Ahmad) and owners bypass this entirely.
+    if (!isAuthorizedShared && agentOwnChannel) {
       if (c.channel !== agentOwnChannel) return false;
     }
 
     // Admin scope: 'mine' filters to just the admin's own assigned chats
-    if (isAdminUser && adminScope === 'mine') {
+    if (isAuthorizedShared && adminScope === 'mine') {
       if (c.assigned_agent_email !== currentUser?.email) return false;
     }
 
-    // 'unassigned' filter tab — admins only: show only chats with no assigned_agent_email
-    if (isAdminUser && filter === 'unassigned') {
+    // 'unassigned' filter tab — authorized shared emails only: show only chats with no assigned_agent_email
+    if (isAuthorizedShared && filter === 'unassigned') {
       if (c.assigned_agent_email) return false;
       // still apply search + channel
       const lead = leads.find(l => l.id === c.lead_id);
@@ -346,7 +353,7 @@ export default function WhatsAppInbox() {
     }
 
     // Admin agent filter dropdown (only when not in 'unassigned' tab)
-    const matchesAgent = isAdminUser ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
+    const matchesAgent = isAuthorizedShared ? (!filterAssignedAgent || c.assigned_agent_email === filterAssignedAgent) : true;
 
     const matchesChannel = filterChannel === 'all' ? true
       : filterChannel === 'business' ? c.channel === 'business'
@@ -369,7 +376,7 @@ export default function WhatsAppInbox() {
   });
 
   // Count unassigned for badge
-  const unassignedCount = isAdminUser
+  const unassignedCount = isAuthorizedShared
     ? normalizedConversations.filter(c => !isInternalNumber(c.wa_phone_e164 || c.phone_number || '') && !c.assigned_agent_email).length
     : 0;
 
@@ -776,8 +783,8 @@ export default function WhatsAppInbox() {
 
         {/* Search + Filter pills */}
         <div className="px-3 py-2 space-y-2" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Admin scope toggle */}
-          {isAdminUser && (
+          {/* Admin scope toggle — authorized shared emails only */}
+          {isAuthorizedShared && (
             <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <button
                 onClick={() => setAdminScope('all')}
@@ -816,7 +823,7 @@ export default function WhatsAppInbox() {
 
           {/* Status filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {['all', 'unread', 'open', 'resolved', ...(isAdminUser ? ['unassigned'] : [])].map(f => (
+            {['all', 'unread', 'open', 'resolved', ...(isAuthorizedShared ? ['unassigned'] : [])].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -837,8 +844,8 @@ export default function WhatsAppInbox() {
             ))}
           </div>
 
-          {/* Agent filter dropdown — admin only, hidden in unassigned view */}
-          {isAdminUser && filter !== 'unassigned' && teamMembers.length > 0 && (
+          {/* Agent filter dropdown — authorized shared emails only, hidden in unassigned view */}
+          {isAuthorizedShared && filter !== 'unassigned' && teamMembers.length > 0 && (
             <select
               value={filterAssignedAgent}
               onChange={e => setFilterAssignedAgent(e.target.value)}
@@ -852,8 +859,8 @@ export default function WhatsAppInbox() {
             </select>
           )}
 
-          {/* Channel filter pills — horizontally scrollable (admin only; agents see only their own channel) */}
-          {isAdminUser && (
+          {/* Channel filter pills — horizontally scrollable (authorized shared emails only; agents see only their own channel) */}
+          {isAuthorizedShared && (
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', paddingBottom: '2px' }}>
             {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : []), ...(isAdminUser || isDari ? ['dari'] : [])].map(c => {
               const isSelected = filterChannel === c;
@@ -889,11 +896,11 @@ export default function WhatsAppInbox() {
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
               {filter === 'unassigned' ? 'No unassigned conversations' :
                search || filter !== 'all' ? 'No matching conversations' :
-               isAdminUser ? 'No conversations yet' : 'No conversations assigned to you yet'}
+               isAuthorizedShared ? 'No conversations yet' : 'No conversations assigned to you yet'}
               <p className="text-xs mt-1 opacity-60">
                 {filter === 'unassigned' ? 'All chats have been assigned to agents' :
-                 isAdminUser ? 'Messages will appear here when leads contact you on WhatsApp' :
-                 'An admin will assign conversations to you'}
+                 isAuthorizedShared ? 'Messages will appear here when leads contact you on WhatsApp' :
+                 'Conversations on your WhatsApp line will appear here'}
               </p>
             </div>
           ) : (
