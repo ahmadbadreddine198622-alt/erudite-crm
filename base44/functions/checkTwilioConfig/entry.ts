@@ -77,16 +77,25 @@ Deno.serve(async (req) => {
           } else if (!app.voice_url.endsWith('/functions/twilioVoiceWebhook')) {
             checks.twiml_app.error = `Voice URL points somewhere unexpected: ${app.voice_url}. Run Auto-Fix to point it at ${expectedVoiceUrl}`;
           } else {
+            // Probe with a REALISTIC payload (like the browser SDK sends), not an
+            // empty To — an empty To short-circuits before the credential lookup
+            // and copilot code, and can pass while real calls crash.
             const probe = await fetch(app.voice_url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: 'To=',
+              body: new URLSearchParams({
+                To: '+15005550006',
+                CallSid: 'CAhealthcheckprobe00000000000000',
+                AccountSid: accountSid,
+              }).toString(),
             }).catch(() => null);
             const probeType = probe?.headers?.get('content-type') || '';
-            if (probe) await probe.text().catch(() => {});
+            const probeBody = probe ? await probe.text().catch(() => '') : '';
             if (!probe || !probe.ok || !probeType.includes('xml')) {
               const status = probe ? `HTTP ${probe.status}` : 'network error';
-              checks.twiml_app.error = `Twilio cannot fetch TwiML from ${app.voice_url} (${status}) — this causes Gateway error 31005. Run Auto-Fix from the published app to repair it.`;
+              checks.twiml_app.error = `The voice webhook fails on real call requests (${status}${probeBody ? ` — ${probeBody.slice(0, 200)}` : ''}). This causes Gateway error 31005.`;
+            } else if (!probeBody.includes('<Dial')) {
+              checks.twiml_app.error = `The voice webhook responds but returns no <Dial> TwiML for a real call. Response: ${probeBody.slice(0, 200)}`;
             }
           }
         } else {
