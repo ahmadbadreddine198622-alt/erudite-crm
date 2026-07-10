@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
   let evoStatus = 0;
   let evoBody = null;
 
-  if (channel === 'business' && !ownInstance) { // Meta Cloud API (company line — only when agent has no own instance)
+  if (channel === 'business') { // Meta Cloud API (company business line — always, for everyone)
     // Business: send via Meta Cloud API
     const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -204,6 +204,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
     const instanceName = ownInstance || INSTANCE_MAP[channel];
+
+    // Connection check: if the Evolution instance is disconnected ("close"/"connecting"),
+    // the WhatsApp session is dead and the send will fail. Check up front and return a
+    // clear, actionable error instead of a cryptic Evolution failure.
+    let instanceState = null;
+    try {
+      const stResp = await fetch(`${apiUrl}/instance/connectionState/${instanceName}`, { headers: { apikey: apiKey } });
+      const stBody = await stResp.json().catch(() => ({}));
+      instanceState = stBody?.instance?.state || stBody?.state || null;
+    } catch (_) { /* best-effort; proceed to attempt the send */ }
+    if (instanceState && instanceState !== 'open') {
+      const isOwn = !!ownInstance;
+      return Response.json({
+        error: isOwn
+          ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected (${instanceState}). Re-scan your QR code in Profile → WhatsApp, or switch to the Business channel to send now.`
+          : `WhatsApp instance "${instanceName}" is ${instanceState}. Try the Business channel instead.`,
+        instance: instanceName, state: instanceState,
+      }, { status: 503 });
+    }
+
     // sendMedia when an attachment is present (caption = text); otherwise plain sendText.
     const isMedia = !!attachment_url;
     const sendUrl = isMedia
