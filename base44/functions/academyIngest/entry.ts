@@ -34,12 +34,11 @@ const json = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
 async function embed(text) {
+  const key = Deno.env.get('OPENAI_API_KEY');
+  if (!key) throw new Error('OPENAI_API_KEY not set in function env');
   const res = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-    },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: EMBED_MODEL, input: text, dimensions: EMBED_DIMS }),
   });
   if (!res.ok) {
@@ -72,59 +71,63 @@ Deno.serve(async (req) => {
   }
   if (body?.token !== INGEST_TOKEN) return json(401, { error: 'unauthorized' });
 
-  const chunks = Array.isArray(body.chunks) ? body.chunks : [];
-  if (!chunks.length) return json(400, { error: 'chunks[] required' });
-  if (chunks.length > 10) return json(400, { error: 'max 10 chunks per call' });
+  try {
+    const chunks = Array.isArray(body.chunks) ? body.chunks : [];
+    if (!chunks.length) return json(400, { error: 'chunks[] required' });
+    if (chunks.length > 10) return json(400, { error: 'max 10 chunks per call' });
 
-  const base44 = createClientFromRequest(req);
-  const svc = base44.asServiceRole;
-  const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+    const base44 = createClientFromRequest(req);
+    const svc = base44.asServiceRole;
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
-  if (body.dry_run === true) {
-    const c = chunks[0];
-    const [vector, summary] = await Promise.all([embed(c.chunk_text), summarize(anthropic, c.chunk_text)]);
-    return json(200, {
-      dry_run: true,
-      embed_model: EMBED_MODEL,
-      embed_dims: vector.length,
-      sample_vector_head: vector.slice(0, 5),
-      sample_summary: summary,
-      chunk_index: c.chunk_index,
-    });
-  }
+    if (body.dry_run === true) {
+      const c = chunks[0];
+      const [vector, summary] = await Promise.all([embed(c.chunk_text), summarize(anthropic, c.chunk_text)]);
+      return json(200, {
+        dry_run: true,
+        embed_model: EMBED_MODEL,
+        embed_dims: vector.length,
+        sample_vector_head: vector.slice(0, 5),
+        sample_summary: summary,
+        chunk_index: c.chunk_index,
+      });
+    }
 
-  const results = await Promise.all(
-    chunks.map(async (c) => {
-      try {
-        for (const f of ['source', 'principle_number', 'chunk_index', 'chunk_text']) {
-          if (c[f] === undefined || c[f] === null) throw new Error(`missing field ${f}`);
+    const results = await Promise.all(
+      chunks.map(async (c) => {
+        try {
+          for (const f of ['source', 'principle_number', 'chunk_index', 'chunk_text']) {
+            if (c[f] === undefined || c[f] === null) throw new Error(`missing field ${f}`);
+          }
+          const existing = await svc.entities.CorpusChunk.filter({
+            source: c.source,
+            chunk_index: c.chunk_index,
+          });
+          if (existing.length > 0) return { chunk_index: c.chunk_index, status: 'skipped_existing' };
+
+          const [vector, summary] = await Promise.all([embed(c.chunk_text), summarize(anthropic, c.chunk_text)]);
+          const record = await svc.entities.CorpusChunk.create({
+            source: c.source,
+            principle_number: c.principle_number,
+            chunk_index: c.chunk_index,
+            line_start: c.line_start,
+            line_end: c.line_end,
+            token_count: c.token_count,
+            chunk_text: c.chunk_text,
+            embedding: vector,
+            summary,
+          });
+          return { chunk_index: c.chunk_index, status: 'created', id: record.id };
+        } catch (err) {
+          return { chunk_index: c.chunk_index, status: 'error', error: String(err?.message || err).slice(0, 300) };
         }
-        const existing = await svc.entities.CorpusChunk.filter({
-          source: c.source,
-          chunk_index: c.chunk_index,
-        });
-        if (existing.length > 0) return { chunk_index: c.chunk_index, status: 'skipped_existing' };
+      }),
+    );
 
-        const [vector, summary] = await Promise.all([embed(c.chunk_text), summarize(anthropic, c.chunk_text)]);
-        const record = await svc.entities.CorpusChunk.create({
-          source: c.source,
-          principle_number: c.principle_number,
-          chunk_index: c.chunk_index,
-          line_start: c.line_start,
-          line_end: c.line_end,
-          token_count: c.token_count,
-          chunk_text: c.chunk_text,
-          embedding: vector,
-          summary,
-        });
-        return { chunk_index: c.chunk_index, status: 'created', id: record.id };
-      } catch (err) {
-        return { chunk_index: c.chunk_index, status: 'error', error: String(err?.message || err).slice(0, 300) };
-      }
-    }),
-  );
-
-  const tally = { created: 0, skipped_existing: 0, error: 0 };
-  for (const r of results) tally[r.status] = (tally[r.status] || 0) + 1;
-  return json(200, { embed_model: EMBED_MODEL, embed_dims: EMBED_DIMS, tally, results });
+    const tally = { created: 0, skipped_existing: 0, error: 0 };
+    for (const r of results) tally[r.status] = (tally[r.status] || 0) + 1;
+    return json(200, { embed_model: EMBED_MODEL, embed_dims: EMBED_DIMS, tally, results });
+  } catch (err) {
+    return json(500, { error: String(err?.message || err).slice(0, 500) });
+  }
 });
