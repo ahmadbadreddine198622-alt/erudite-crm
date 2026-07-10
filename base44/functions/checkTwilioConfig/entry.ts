@@ -100,6 +100,37 @@ Deno.serve(async (req) => {
       checks.twiml_app.error = 'TwiML App SID missing';
     }
 
+    // Pull Twilio's own view of what went wrong: recent debugger alerts
+    // (webhook failures, TwiML errors) and the last few call outcomes.
+    checks.recent_alerts = [];
+    checks.recent_calls = [];
+    try {
+      const alertsRes = await fetch('https://monitor.twilio.com/v1/Alerts?PageSize=5', { headers: { Authorization: authHeader } });
+      if (alertsRes.ok) {
+        const a = await alertsRes.json();
+        checks.recent_alerts = (a.alerts || []).map(al => ({
+          code: al.error_code,
+          date: al.date_created,
+          text: (al.alert_text || '').slice(0, 300),
+          url: al.request_url || '',
+        }));
+      }
+    } catch (_) { /* alerts are best-effort */ }
+    try {
+      const callsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?PageSize=5`, { headers: { Authorization: authHeader } });
+      if (callsRes.ok) {
+        const cj = await callsRes.json();
+        checks.recent_calls = (cj.calls || []).map(c => ({
+          sid: c.sid,
+          to: c.to,
+          from: c.from,
+          status: c.status,
+          start: c.start_time,
+          duration: c.duration,
+        }));
+      }
+    } catch (_) { /* best-effort */ }
+
     const allOk = checks.api_key.valid && checks.twiml_app.valid && !checks.twiml_app.error;
 
     return Response.json({

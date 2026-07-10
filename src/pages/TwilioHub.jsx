@@ -258,6 +258,33 @@ function CallingDiagnostics() {
                   detail={report.checks.twiml_app?.error
                     || (report.checks.twiml_app?.voice_url && `Voice URL: ${report.checks.twiml_app.voice_url}`)}
                 />
+
+                {report.checks.recent_alerts?.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <p className="text-xs font-bold text-red-300 mb-1.5">⚠️ Recent Twilio errors (from Twilio's debugger)</p>
+                    {report.checks.recent_alerts.map((al, i) => (
+                      <div key={i} className="rounded-lg px-2.5 py-2 mb-1.5" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        <p className="text-xs font-semibold text-red-300">Error {al.code} · {al.date ? new Date(al.date).toLocaleString() : ''}</p>
+                        {al.url && <p className="text-[11px] text-muted-foreground break-all">URL: {al.url}</p>}
+                        {al.text && <p className="text-[11px] text-muted-foreground break-all mt-0.5">{al.text}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {report.checks.recent_calls?.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <p className="text-xs font-bold text-muted-foreground mb-1.5">Last calls (Twilio's view)</p>
+                    {report.checks.recent_calls.map((c, i) => (
+                      <p key={i} className="text-[11px] text-muted-foreground">
+                        <span className={c.status === 'completed' ? 'text-emerald-400' : ['failed', 'busy', 'no-answer', 'canceled'].includes(c.status) ? 'text-red-400' : 'text-amber-400'}>
+                          {c.status}
+                        </span>
+                        {' '}· {c.to} · {c.duration ? `${c.duration}s` : '—'} · {c.start ? new Date(c.start).toLocaleString() : ''}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
