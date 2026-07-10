@@ -54,6 +54,35 @@ Deno.serve(async (req) => {
       connectResp = { error: String(e?.message || e) };
     }
 
+    // 2b. Attach the CRM webhook so this instance's chat history syncs into the app.
+    // Without this, the agent's phone history never reaches the CRM (the exact bug
+    // that left wa_<number> instances with no synced history). We reuse the same
+    // event list the manually-configured instances (Adeyemi, Samy, …) already use.
+    const webhookSecret = Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || '';
+    let webhookResp = null;
+    if (webhookSecret) {
+      const origin = new URL(req.url).origin;
+      const webhookUrl = `${origin}/functions/evolutionWebhook?secret=${webhookSecret}`;
+      const events = [
+        'APPLICATION_STARTUP','QRCODE_UPDATED','MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_EDITED',
+        'MESSAGES_UPDATE','MESSAGES_DELETE','SEND_MESSAGE','SEND_MESSAGE_UPDATE','CONTACTS_SET',
+        'CONTACTS_UPSERT','CONTACTS_UPDATE','PRESENCE_UPDATE','CHATS_SET','CHATS_UPSERT','CHATS_UPDATE',
+        'CHATS_DELETE','GROUPS_UPSERT','GROUP_UPDATE','GROUP_PARTICIPANTS_UPDATE','CONNECTION_UPDATE',
+        'LABELS_EDIT','LABELS_ASSOCIATION','CALL','TYPEBOT_START','TYPEBOT_CHANGE_STATUS','REMOVE_INSTANCE',
+        'LOGOUT_INSTANCE','INSTANCE_CREATE','INSTANCE_DELETE','STATUS_INSTANCE',
+      ];
+      try {
+        const r = await fetch(`${apiUrl}/webhook/set/${encodeURIComponent(instanceName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: apiKey },
+          body: JSON.stringify({ webhook: { url: webhookUrl, enabled: true, events } }),
+        });
+        webhookResp = await r.json().catch(() => null);
+      } catch (e) {
+        webhookResp = { error: String(e?.message || e) };
+      }
+    }
+
     // 3. Persist the instance + number on the user so sends route here.
     try {
       const meList = await base44.asServiceRole.entities.User.filter({ email: user.email });
@@ -73,6 +102,7 @@ Deno.serve(async (req) => {
       qr_base64: qrBase64,
       create_response: createResp,
       connect_response: connectResp,
+      webhook_response: webhookResp,
     });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
