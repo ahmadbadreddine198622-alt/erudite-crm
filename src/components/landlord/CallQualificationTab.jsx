@@ -220,6 +220,8 @@ export default function CallQualificationTab({ landlord }) {
   const [form, setForm] = useState(EMPTY);
   const [saved, setSaved] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  // Bumped after each save to remount CallBrainPanel, clearing stale AI coaching
+  const [callSession, setCallSession] = useState(0);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -257,6 +259,7 @@ export default function CallQualificationTab({ landlord }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['call-qualifications', landlord.id] });
       setForm(EMPTY);
+      setCallSession(s => s + 1);
       setSaved(true);
       setIsExpanded(false); // Collapse after save
       setTimeout(() => setSaved(false), 3000);
@@ -305,13 +308,15 @@ export default function CallQualificationTab({ landlord }) {
         <div
           className="transition-all duration-300 ease-in-out overflow-hidden"
           style={{
-            maxHeight: isExpanded ? '2000px' : '0px',
+            // Large enough that the form + fully expanded Brain AI panel never clip
+            maxHeight: isExpanded ? '8000px' : '0px',
             opacity: isExpanded ? 1 : 0,
           }}
         >
           <div className="px-4 pb-4 pt-2 space-y-3 border-t" style={{ borderColor: 'rgba(250,180,40,0.1)' }}>
-            {/* Brain AI — live "what to ask" coach, reacts to the form state */}
-            <CallBrainPanel landlord={landlord} form={form} />
+            {/* Brain AI — live "what to ask" coach, reacts to the form state.
+                Keyed per call session so saved calls don't leave stale AI advice. */}
+            <CallBrainPanel key={callSession} landlord={landlord} form={form} />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Motivation">

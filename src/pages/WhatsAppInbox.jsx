@@ -113,7 +113,8 @@ export default function WhatsAppInbox() {
     },
   });
 
-  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/metaWhatsAppWebhook`;
+  // Derived from the current origin so it stays correct if the app domain changes
+  const webhookUrl = `${window.location.origin}/functions/metaWhatsAppWebhook`;
 
   // Fetch connection status
   React.useEffect(() => {

@@ -139,10 +139,14 @@ const AI_BLUE = 'rgba(96,165,250,';
 
 function QuestionRow({ text }) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard?.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable (insecure context / permission denied) — don't show a false success tick
+    }
   };
   return (
     <div className="group flex items-start gap-2 py-1">
