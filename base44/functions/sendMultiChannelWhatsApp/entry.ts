@@ -129,11 +129,32 @@ Deno.serve(async (req) => {
     }, { status: 422 });
   }
 
-  // ---- Send via appropriate API depending on channel ----
+  // ---- Determine the sending instance ----
+  // Agents ALWAYS send from their own configured WhatsApp line (whatsapp_instance
+  // from Profile). They cannot use the shared company "personal" (Ahmad) or
+  // "business" (Meta Cloud API) numbers — only their own number.
+  // Admins/owner keep full channel-based routing for company-line management.
+  let instanceName = null;
+  let useMetaBusiness = false;
+  if (!isAdmin) {
+    instanceName = ownInstance;
+    if (!instanceName) {
+      return Response.json({ error: 'Your WhatsApp line is not configured. Add your WhatsApp number in Profile to send.' }, { status: 403 });
+    }
+  } else if (channel === 'business') {
+    useMetaBusiness = true;
+  } else {
+    instanceName = ownInstance || INSTANCE_MAP[channel] || INSTANCE_MAP.personal;
+  }
+  // Agents always record on the 'personal' channel (their own line is a Baileys instance);
+  // the frontend channel picker is ignored for routing.
+  const recordChannel = !isAdmin ? 'personal' : channel;
+
+  // ---- Send via appropriate API ----
   let evoStatus = 0;
   let evoBody = null;
 
-  if (channel === 'business') { // Meta Cloud API (company business line — always, for everyone)
+  if (useMetaBusiness) { // Meta Cloud API (company business line — admins only)
     // Business: send via Meta Cloud API
     const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -199,11 +220,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not reach Meta API', detail: String(e?.message || e) }, { status: 502 });
     }
   } else {
-    // Personal: send via Evolution API
+    // Evolution API — agent's own line, or admin's selected personal channel
     if (!apiUrl || !apiKey) {
       return Response.json({ error: 'Evolution secrets missing' }, { status: 500 });
     }
-    const instanceName = ownInstance || INSTANCE_MAP[channel];
 
     // Connection check: if the Evolution instance is disconnected ("close"/"connecting"),
     // the WhatsApp session is dead and the send will fail. Check up front and return a
@@ -215,11 +235,11 @@ Deno.serve(async (req) => {
       instanceState = stBody?.instance?.state || stBody?.state || null;
     } catch (_) { /* best-effort; proceed to attempt the send */ }
     if (instanceState && instanceState !== 'open') {
-      const isOwn = !!ownInstance;
+      const isOwn = !isAdmin && !!ownInstance;
       return Response.json({
         error: isOwn
-          ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected (${instanceState}). Re-scan your QR code in Profile → WhatsApp, or switch to the Business channel to send now.`
-          : `WhatsApp instance "${instanceName}" is ${instanceState}. Try the Business channel instead.`,
+          ? `Your WhatsApp line (${ownNumber || instanceName}) is disconnected (${instanceState}). Re-scan your QR code in Profile → WhatsApp to send.`
+          : `WhatsApp instance "${instanceName}" is ${instanceState}.`,
         instance: instanceName, state: instanceState,
       }, { status: 503 });
     }
@@ -288,18 +308,21 @@ Deno.serve(async (req) => {
         new Date(b.last_message_at || b.updated_date || 0) - new Date(a.last_message_at || a.updated_date || 0)
       )[0];
     };
-    const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ wa_phone_e164: phoneE164, channel });
+    // For agents, scope the lookup by their own email so they only reuse THEIR thread
+    // with this contact — never another agent's thread.
+    const ownerFilter = !isAdmin ? { assigned_agent_email: user.email } : {};
+    const byPhoneAndChannel = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, wa_phone_e164: phoneE164, channel: recordChannel });
     conversation = pickNewest(byPhoneAndChannel);
 
     // Fallback: try digits-only phone_number field
     if (!conversation) {
-      const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ phone_number: phoneE164, channel });
+      const byPhoneNumber = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, phone_number: phoneE164, channel: recordChannel });
       conversation = pickNewest(byPhoneNumber);
     }
 
     // Step 3: If landlord_id provided and still no match, try landlord + channel
     if (!conversation && landlord_id) {
-      const byLandlord = await svc.entities.WhatsAppConversation.filter({ landlord_id, channel });
+      const byLandlord = await svc.entities.WhatsAppConversation.filter({ ...ownerFilter, landlord_id, channel: recordChannel });
       conversation = pickNewest(byLandlord);
     }
 
@@ -311,9 +334,9 @@ Deno.serve(async (req) => {
         phone_number: phoneE164,
         landlord_id: landlord_id || null,
         lead_id: null,
-        assigned_agent_email: landlord?.assigned_agent_email || landlord?.listing_manager_email || null,
+        assigned_agent_email: !isAdmin ? user.email : (landlord?.assigned_agent_email || landlord?.listing_manager_email || null),
         status: 'open',
-        channel,
+        channel: recordChannel,
         first_message_at: now,
         last_message_at: now,
         unread_count: 0,
@@ -364,7 +387,7 @@ Deno.serve(async (req) => {
           timestamp: new Date().toISOString(),
           status: 'sent',
           wa_message_id: waId,
-          channel: channel,
+          channel: recordChannel,
           agent_email: user.email,
           media_url: attachment_url || null,
           media_type: attachment_url ? attachmentMediaType : 'none',
@@ -398,5 +421,5 @@ Deno.serve(async (req) => {
     }, { status: 207 });
   }
 
-  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel, conversation_id: conversation_id || conversation?.id });
+  return Response.json({ status: 'ok', message_id: message.id, evolution_status: evoStatus, channel: recordChannel, conversation_id: conversation_id || conversation?.id });
 });
