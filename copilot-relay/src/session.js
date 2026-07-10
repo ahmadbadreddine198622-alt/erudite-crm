@@ -24,6 +24,10 @@ export class CallSession {
     this.callLogId = customParameters.call_log_id || `unknown-${streamSid}`;
     this.landlordId = customParameters.landlord_id || null;
     this.agentEmail = customParameters.agent_email || null;
+    // Who is on Twilio's "inbound" track depends on which leg the <Stream> is
+    // attached to. Browser-SDK calls attach it to the agent leg (inbound = agent
+    // mic); server-bridged calls would be inbound = landlord. The TwiML tells us.
+    this.inboundSpeaker = customParameters.inbound_speaker === "agent" ? "agent" : "landlord";
 
     this.startedAt = new Date().toISOString();
     this.endedAt = null;
@@ -103,8 +107,13 @@ export class CallSession {
 
   /** @param {"inbound"|"outbound"} track @param {Buffer} payload mulaw audio */
   onMedia(track, payload) {
-    // Twilio: inbound = landlord (far end), outbound = agent.
-    const speaker = track === "inbound" ? "landlord" : "agent";
+    // Speaker mapping is leg-dependent — see constructor (inbound_speaker param).
+    const speaker =
+      track === "inbound"
+        ? this.inboundSpeaker
+        : this.inboundSpeaker === "agent"
+          ? "landlord"
+          : "agent";
     this.tracks[speaker].sendAudio(payload);
   }
 
