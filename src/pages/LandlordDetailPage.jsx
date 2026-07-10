@@ -726,7 +726,8 @@ class LandlordDetail extends React.Component {
         composerText:'', chatSending:false, messageAiSource:null, messageAiDraft:null, composerAttachment: null,
       }), ()=>this.scrollBottom());
     } catch(e){
-      toast.error('Failed to send WhatsApp: ' + (e?.message || 'unknown error'));
+      const apiErr = e?.response?.data?.error || e?.message || 'unknown error';
+      toast.error('Failed to send WhatsApp: ' + apiErr);
       this.setState({ chatSending:false });
     } finally {
       this._chatSending = false;

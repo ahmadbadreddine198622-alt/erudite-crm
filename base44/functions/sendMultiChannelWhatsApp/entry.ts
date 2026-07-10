@@ -35,6 +35,14 @@ function toDigits(raw) {
   return String(raw || '').replace(/\D/g, '');
 }
 
+// fetch with an abort timeout so a hanging/unreachable Evolution API surfaces a
+// clear error fast instead of spinning the agent's Send button forever.
+function fetchWithTimeout(url, opts = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   let user = null;
@@ -230,7 +238,7 @@ Deno.serve(async (req) => {
     // clear, actionable error instead of a cryptic Evolution failure.
     let instanceState = null;
     try {
-      const stResp = await fetch(`${apiUrl}/instance/connectionState/${instanceName}`, { headers: { apikey: apiKey } });
+      const stResp = await fetchWithTimeout(`${apiUrl}/instance/connectionState/${instanceName}`, { headers: { apikey: apiKey } }, 15000);
       const stBody = await stResp.json().catch(() => ({}));
       instanceState = stBody?.instance?.state || stBody?.state || null;
     } catch (_) { /* best-effort; proceed to attempt the send */ }
@@ -253,11 +261,11 @@ Deno.serve(async (req) => {
       const payload = isMedia
         ? { number, media: attachment_url, mediatype: attachmentMediaType, caption: String(text || ''), fileName: attachment_name }
         : { number, text: String(text) };
-      const resp = await fetch(sendUrl, {
+      const resp = await fetchWithTimeout(sendUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: apiKey },
         body: JSON.stringify(payload),
-      });
+      }, 30000);
       evoStatus = resp.status;
       const raw = await resp.text();
       try { evoBody = JSON.parse(raw); } catch { evoBody = raw; }
@@ -265,7 +273,10 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Evolution send failed', evolution_status: evoStatus, evolution_response: evoBody, send_url: sendUrl }, { status: 502 });
       }
     } catch (e) {
-      return Response.json({ error: 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: 502 });
+      const timedOut = e?.name === 'AbortError';
+      return Response.json({ error: timedOut
+        ? 'WhatsApp send timed out — the Evolution API did not respond. Your line may be disconnected; re-scan your QR code in Profile → WhatsApp.'
+        : 'Could not reach Evolution API', detail: String(e?.message || e), send_url: sendUrl }, { status: timedOut ? 504 : 502 });
     }
   }
 
