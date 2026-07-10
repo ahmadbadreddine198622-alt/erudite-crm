@@ -217,7 +217,7 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
               landlord_name: l?.name || l?.full_name || '',
               property_name: l?.property_name || l?.unit_reference || '',
               project_name: l?.project_name || l?.project || '',
-              agent_name: user?.full_name || '',
+              agent_name: user?.display_name || user?.full_name || '',
             });
             setPreferredLanguage(l?.preferred_language || '');
           }

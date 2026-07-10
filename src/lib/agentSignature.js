@@ -16,7 +16,7 @@ const AHMAD_DEFAULTS = {
 };
 
 export function buildAgentCtaHtml(u = {}) {
-  const fullName = u.full_name || '';
+  const fullName = u.display_name || u.full_name || '';
   const firstName = fullName.split(' ').filter(Boolean)[0] || fullName || '';
   const hasOwnPf = !!u.pf_profile_url;
   const pfUrl = u.pf_profile_url || AHMAD_DEFAULTS.pf_profile_url;

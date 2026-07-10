@@ -64,7 +64,7 @@ function htmlToText(html) {
 
 // agentCtaHtml — branded CTA link grid built from the agent's profile.
 function agentCtaHtml(u = {}) {
-  const fullName = u.full_name || '';
+  const fullName = u.display_name || u.full_name || '';
   const firstName = fullName.split(' ').filter(Boolean)[0] || fullName || '';
   const hasOwnPf = !!u.pf_profile_url;
   const pfUrl = u.pf_profile_url || 'https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264';
@@ -87,7 +87,7 @@ function agentCtaHtml(u = {}) {
   return [stat, cta].filter(Boolean).join('');
 }
 function agentSignatureHtml(u = {}) {
-  const fullName = u.full_name || '';
+  const fullName = u.display_name || u.full_name || '';
   const cta = agentCtaHtml(u);
   // Uploaded handwritten signature image (PNG/JPG stored in the agent's Profile).
   const sigImg = u.signature_url
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const landlordId = String(body.landlord_id || '');
     const attachments = Array.isArray(body.attachments) ? body.attachments : [];
     const fromEmail = userEntity.gmail_address || user.email;
-    const fromName = userEntity.full_name || user.full_name || '';
+    const fromName = userEntity.display_name || userEntity.full_name || user.display_name || user.full_name || '';
 
     const toList = String(to).split(',').map((s) => s.trim()).filter(Boolean);
     if (toList.length === 0 || toList.some((e) => !EMAIL_RE.test(e))) return Response.json({ ok: false, error: 'invalid recipient' }, { status: 400 });
