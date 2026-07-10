@@ -72,7 +72,7 @@ export default function Dashboard() {
   useEffect(() => {
     base44.auth.me().then(u => {
       if (u?.email) setUserEmail(u.email);
-      if (u?.full_name) setUserName(u.full_name);
+      if (u?.display_name || u?.full_name) setUserName(u.display_name || u.full_name);
       if (u?.role) setUserRole(u.role);
       if (u?.position) setUserPosition(u.position);
       if (u?.profile_image) setUserProfileImage(u.profile_image);
