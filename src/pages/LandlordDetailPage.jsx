@@ -88,6 +88,7 @@ function css(str) {
 
 import { GLOBAL_CSS } from '@/components/landlord/landlordDetailStyles';
 import { fmtMsgTime, mapCallStatus, fmtDuration } from '@/lib/landlordStreamHelpers';
+import CopilotCockpit from '@/components/copilot/CopilotCockpit';
 import { useLandlordEmails } from '@/lib/useLandlordEmails';
 
 class LandlordDetail extends React.Component {
@@ -166,7 +167,16 @@ class LandlordDetail extends React.Component {
     this.formAContracts = this.props.formAContracts || [];
   }
 
-  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); }
+  componentDidMount(){ this.scrollBottom(); this.maybeAutoCheckIMessage(); this.maybeAutoAnalyse(); window.addEventListener('copilot:call', this.onCopilotCall); }
+  componentWillUnmount(){ window.removeEventListener('copilot:call', this.onCopilotCall); }
+  // A copilot call started for this landlord → jump to Calls tab and open the
+  // Brain Qualify form so live auto-fill lands in a mounted form.
+  onCopilotCall = (e) => {
+    const d = e.detail || {};
+    if (d.phase !== 'started') return;
+    if (d.landlordId && d.landlordId !== this.state.currentId) return;
+    this.setState({ composerType: 'Calls', showCallQualForm: true });
+  };
   componentDidUpdate(prevProps){ if(prevProps.landlords!==this.props.landlords && this.props.landlords?.length) this.setState({landlords:this._mergePendingOutgoing(this.props.landlords)}); }
 
   // Auto-run AI analysis once when a V-card opens, only if never analysed (no ai_processed_at).
@@ -1436,6 +1446,8 @@ class LandlordDetail extends React.Component {
                 </div>
               ) : this.state.composerType === 'Calls' ? (
                 <div className="ld-scroll" style={css("flex:1; min-height:0; overflow-y:auto; padding:8px 16px;")}>
+                  {/* Live Call Copilot — appears when a copilot call starts, debrief after */}
+                  <CopilotCockpit landlordId={L.id} landlord={this.props.rawLandlord || L} />
                   {/* Professional Dial bar — opens the AI call qualification form inline */}
                   <div style={css("display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:9px 12px; border-radius:11px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
                     <button
