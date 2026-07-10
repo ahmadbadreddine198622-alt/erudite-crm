@@ -10,12 +10,18 @@ export function useCurrentUser() {
   const [roles, setRoles] = useState(cachedRoles || []);
   const [loading, setLoading] = useState(!cachedUser);
 
+  // Always re-fetch me() on mount. The module-level cache gives an instant first
+  // render, but a stale cache (e.g. user configured their WhatsApp instance in
+  // Profile after the app first loaded) must not block features that gate on the
+  // latest profile fields — notably whatsapp_instance, which controls whether the
+  // landlord-detail WhatsApp send button is enabled.
   useEffect(() => {
-    if (cachedUser) return;
+    let mounted = true;
     Promise.all([
       base44.auth.me().catch(() => null),
-      base44.entities.Role.list().catch(() => []),
+      cachedRoles && cachedRoles.length ? Promise.resolve(cachedRoles) : base44.entities.Role.list().catch(() => []),
     ]).then(([u, r]) => {
+      if (!mounted) return;
       // Normalize: the built-in full_name is read-only, so users update their name
       // via display_name in Profile. Expose display_name as full_name so every
       // component reading user.full_name shows the current name everywhere.
@@ -26,6 +32,7 @@ export function useCurrentUser() {
       setRoles(r);
       setLoading(false);
     });
+    return () => { mounted = false; };
   }, []);
 
   const customRole = user?.custom_role_id
