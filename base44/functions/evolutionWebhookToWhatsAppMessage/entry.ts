@@ -40,9 +40,9 @@ async function findLeadByPhone(serviceRole, digitsPhone) {
 async function findOrCreateConversation(serviceRole, phoneNumber, channel) {
   const digits = stripPlus(phoneNumber);
   const e164 = '+' + digits;
-  
+
   const existing = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164 });
-  
+
   if (existing && existing.length > 0) {
     if (!existing[0].channel || existing[0].channel === 'unknown') {
       await serviceRole.entities.WhatsAppConversation.update(existing[0].id, { channel: channel || 'personal' });
@@ -50,14 +50,79 @@ async function findOrCreateConversation(serviceRole, phoneNumber, channel) {
     }
     return existing[0];
   }
-  
+
   const conversation = await serviceRole.entities.WhatsAppConversation.create({
     wa_phone_e164: e164,
     phone_number: e164,
     status: 'new',
     channel: channel || 'personal',
   });
-  
+
+  return conversation;
+}
+
+// Resolve the agent who owns a given Evolution instance. Each agent's Profile
+// stores whatsapp_instance (e.g. "wa_971529871277" or a named instance like "samy")
+// on their User record. Returns { email, whatsapp_number } or null.
+async function findAgentByInstance(serviceRole, instanceName) {
+  if (!instanceName) return null;
+  const inst = String(instanceName).toLowerCase();
+  try {
+    const users = await serviceRole.entities.User.list('-created_date', 500);
+    for (const u of users) {
+      if (u.whatsapp_instance && String(u.whatsapp_instance).toLowerCase() === inst) {
+        return { email: u.email, whatsapp_number: u.whatsapp_number || null, landlord_agent_email: u.email };
+      }
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
+// Per-agent conversation: each agent must have their OWN thread with a landlord so
+// RLS (assigned_agent_email == user.email) lets them see their own chats and hides
+// other agents' chats. Look up by phone + agent email; create if missing.
+async function findOrCreateAgentConversation(serviceRole, phoneNumber, channel, agentEmail, landlordId) {
+  const digits = stripPlus(phoneNumber);
+  const e164 = '+' + digits;
+
+  if (agentEmail) {
+    const byPhoneAgent = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164, assigned_agent_email: agentEmail });
+    if (byPhoneAgent && byPhoneAgent.length > 0) {
+      const c = byPhoneAgent[0];
+      if (!c.channel || c.channel === 'unknown') {
+        await serviceRole.entities.WhatsAppConversation.update(c.id, { channel: channel || 'personal' });
+      }
+      return c;
+    }
+  }
+
+  // Fallback: legacy shared conversation (pre agent-scoping). Only reuse it when it
+  // has no owner or is owned by this agent — never hijack another agent's thread.
+  const existing = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164 });
+  if (existing && existing.length > 0) {
+    for (const c of existing) {
+      if (!c.assigned_agent_email || (agentEmail && c.assigned_agent_email === agentEmail)) {
+        if (!c.channel || c.channel === 'unknown') {
+          await serviceRole.entities.WhatsAppConversation.update(c.id, { channel: channel || 'personal' });
+        }
+        if (agentEmail && !c.assigned_agent_email) {
+          await serviceRole.entities.WhatsAppConversation.update(c.id, { assigned_agent_email: agentEmail });
+          c.assigned_agent_email = agentEmail;
+        }
+        return c;
+      }
+    }
+  }
+
+  const conversation = await serviceRole.entities.WhatsAppConversation.create({
+    wa_phone_e164: e164,
+    phone_number: e164,
+    status: 'new',
+    channel: channel || 'personal',
+    assigned_agent_email: agentEmail || null,
+    landlord_id: landlordId || null,
+  });
+
   return conversation;
 }
 
@@ -211,11 +276,19 @@ Deno.serve(async (req) => {
 
     const landlord = await findLandlordByPhone(serviceRole, digitsPhone);
     const lead = landlord ? null : await findLeadByPhone(serviceRole, digitsPhone);
-    const conversation = await findOrCreateConversation(serviceRole, digitsPhone, channel);
+
+    // Resolve the agent who owns this Evolution instance so the message lands in
+    // THEIR thread (per-agent scoping). Falls back to the company lines below.
+    const agent = await findAgentByInstance(serviceRole, instanceName);
+    const agentEmail = agent?.email || null;
+    const agentNumber = agent?.whatsapp_number || null;
+    const conversation = await findOrCreateAgentConversation(serviceRole, digitsPhone, channel, agentEmail, landlord ? landlord.id : null);
 
     const mappedDirection = fromMe ? 'outbound' : 'inbound';
-    const fromNumber = fromMe ? (instanceName === 'erudite' ? '+971582806000' : '+971581806000') : ('+' + digitsPhone);
-    const toNumber = fromMe ? ('+' + digitsPhone) : (instanceName === 'erudite' ? '+971582806000' : '+971581806000');
+    // For per-agent instances, the agent's own number is the from (outbound) or to (inbound).
+    const companyLine = instanceName === 'erudite' ? '+971582806000' : '+971581806000';
+    const fromNumber = fromMe ? (agentNumber || companyLine) : ('+' + digitsPhone);
+    const toNumber = fromMe ? ('+' + digitsPhone) : (agentNumber || companyLine);
 
     let mappedMediaType = 'none';
     if (parsed.media) {
@@ -235,7 +308,7 @@ Deno.serve(async (req) => {
       timestamp: timestamp,
       from_number: fromNumber,
       to_number: toNumber,
-      assigned_agent_email: conversation.assigned_agent_email || null,
+      assigned_agent_email: agentEmail || conversation.assigned_agent_email || null,
     };
 
     if (parsed.caption) waMessage.body = parsed.caption;
