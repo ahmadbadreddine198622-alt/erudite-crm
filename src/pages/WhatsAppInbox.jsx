@@ -861,8 +861,8 @@ export default function WhatsAppInbox() {
             </select>
           )}
 
-          {/* Channel filter pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          {/* Channel filter pills — horizontally scrollable */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', paddingBottom: '2px' }}>
             {['all', 'business', 'personal', ...(permissions.view_malik_whatsapp ? ['malik'] : []), ...(isAdminUser || isSameie ? ['sameie'] : []), ...(isAdminUser || isDari ? ['dari'] : [])].map(c => {
               const isSelected = filterChannel === c;
               const activeColor = c === 'business' ? 'hsl(152 69% 40%)' : c === 'personal' ? 'hsl(217 91% 60%)' : c === 'malik' ? 'hsl(280 65% 55%)' : c === 'sameie' ? 'hsl(340 75% 55%)' : c === 'dari' ? 'hsl(25 95% 55%)' : 'hsl(38 92% 50%)';
@@ -871,12 +871,12 @@ export default function WhatsAppInbox() {
                 <button
                   key={c}
                   onClick={() => setFilterChannel(c)}
-                  className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors border"
+                  className="px-2 py-1 rounded-full text-[10px] font-medium transition-colors border shrink-0 whitespace-nowrap"
                   style={{
                     background: bgColor,
                     color: isSelected ? 'white' : 'rgba(255,255,255,0.55)',
                     border: `1px solid ${isSelected ? activeColor : 'transparent'}`,
-                    }}
+                  }}
                     >
                     {c === 'all' ? 'All' : c === 'business' ? '🏢 Biz' : c === 'personal' ? '👤 Pers' : c === 'malik' ? '💜 Malik' : c === 'sameie' ? '🌸 Sameie' : '📸 Dari'}
                 </button>
