@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, MessageSquare, Phone, ChevronDown } from 'lucide-react';
+import { Send, Loader2, MessageSquare, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -14,34 +14,8 @@ const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : '
 export default function LandlordSMSPanel({ landlord }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
-  const [fromNumber, setFromNumber] = useState('');
   const messagesEndRef = useRef(null);
   const phone = landlord?.phone;
-
-  // Fetch available Twilio numbers
-  const { data: twilioData } = useQuery({
-    queryKey: ['twilio-numbers'],
-    queryFn: () => base44.functions.invoke('getTwilioNumbers', {}),
-    select: (res) => res?.data,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const twilioNumbers = twilioData?.numbers || [];
-  const credential = twilioData?.credential;
-
-  // Auto-select first SMS-capable number
-  useEffect(() => {
-    if (twilioNumbers.length > 0 && !fromNumber) {
-      // Prefer the saved sms_number from credential, else first SMS-capable number
-      const savedSmsNum = credential?.sms_number;
-      if (savedSmsNum) {
-        setFromNumber(savedSmsNum);
-      } else {
-        const smsCapable = twilioNumbers.find(n => n.capabilities?.sms) || twilioNumbers[0];
-        if (smsCapable) setFromNumber(smsCapable.phone_number);
-      }
-    }
-  }, [twilioNumbers, credential]);
 
   // Fetch SMS history stored as Activity records
   const { data: smsList = [], isLoading, refetch } = useQuery({
@@ -81,10 +55,9 @@ export default function LandlordSMSPanel({ landlord }) {
 
   const sendMutation = useMutation({
     mutationFn: async (msg) => {
-      const res = await base44.functions.invoke('twilioSendSMS', {
+      const res = await base44.functions.invoke('sendNodeAISMS', {
         to_phone: phone,
         body: msg,
-        from_phone: fromNumber || undefined,
         landlord_id: landlord.id,
       });
       const data = res?.data ?? res;
@@ -106,7 +79,6 @@ export default function LandlordSMSPanel({ landlord }) {
     const t = text.trim();
     if (!t) return;
     if (!phone) { toast.error('No phone number on record'); return; }
-    if (!fromNumber) { toast.error('Please select a number to send from'); return; }
     sendMutation.mutate(t);
   };
 
@@ -122,40 +94,14 @@ export default function LandlordSMSPanel({ landlord }) {
           <MessageSquare className="w-4 h-4 text-blue-400" />
         </div>
         <div>
-          <p className="text-xs font-semibold text-foreground">SMS via Twilio</p>
+          <p className="text-xs font-semibold text-foreground">SMS via NodeAI</p>
           {phone && (
             <p className="text-[10px] flex items-center gap-1" style={{ color: 'hsl(38 92% 55%)' }}>
               <Phone className="w-2.5 h-2.5" /> To: {phone}
             </p>
           )}
         </div>
-        <p className="ml-auto text-[10px] text-muted-foreground">Inbound SMS appear when Twilio webhook is configured</p>
       </div>
-
-      {/* From number selector — compact inline */}
-      {twilioNumbers.length > 0 && (
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[9px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.38)' }}>From</span>
-          <div className="relative flex-1">
-            <select
-              value={fromNumber}
-              onChange={e => setFromNumber(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs rounded-lg appearance-none pr-7"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}
-            >
-              {twilioNumbers.map(n => (
-                <option key={n.phone_number} value={n.phone_number} style={{ background: '#0d1b2a' }}>
-                  {n.friendly_name || n.phone_number}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
-          </div>
-        </div>
-      )}
-      {twilioNumbers.length === 0 && (
-        <p className="text-[10px] text-muted-foreground mb-2">No Twilio numbers configured — set up in Twilio Hub</p>
-      )}
 
       {/* SMS thread */}
       <div className="flex-1 overflow-y-auto space-y-2 pr-1 mb-2">
@@ -203,7 +149,7 @@ export default function LandlordSMSPanel({ landlord }) {
           onKeyDown={handleKeyDown}
           onSend={handleSend}
           sending={sendMutation.isPending}
-          sendDisabled={!phone || !fromNumber || twilioNumbers.length === 0}
+          sendDisabled={!phone}
           placeholder={phone ? 'Type SMS… (Enter to send)' : 'No phone number on file'}
           channel="sms"
           voiceEnabled={true}

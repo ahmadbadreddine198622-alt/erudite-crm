@@ -26,6 +26,7 @@ import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
 import AuroraProposalsStrip from '@/components/landlord/AuroraProposalsStrip';
 import AICallScript from '@/components/landlord/AICallScript';
+import MandateDossierCard from '@/components/landlord/MandateDossierCard';
 import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
@@ -1828,6 +1829,11 @@ class LandlordDetail extends React.Component {
                 aiCallScriptAt={this.props.rawLandlord?.ai_call_script_at || null}
                 aiProcessedAt={this.props.rawLandlord?.ai_processed_at || null}
                 onGenerated={this.props.onAnalysed}
+              />
+
+              <MandateDossierCard
+                landlordId={this.state.currentId}
+                landlord={this.props.rawLandlord}
               />
 
               <LandlordMockTabs

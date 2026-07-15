@@ -1,0 +1,106 @@
+{
+  "name": "MandateDossier",
+  "properties": {
+    "data_snapshot": {
+      "description": "Verified figures frozen at forge time: unit facts, AI valuation (value/sqft/confidence/basis), market medians, comps table rows from MarketTransaction. The PDF renders numbers ONLY from here \u2014 the fabrication firewall for documents.",
+      "type": "object"
+    },
+    "drive_file_id": {
+      "type": "string"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "focus": {
+      "default": "both",
+      "description": "Sale mandate, rent listing, or both \u2014 auto-derived from Landlord.lead_type, agent can override at forge time",
+      "enum": [
+        "sale",
+        "rent",
+        "both"
+      ],
+      "type": "string"
+    },
+    "forged_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "generated_by_email": {
+      "type": "string"
+    },
+    "generated_by_name": {
+      "type": "string"
+    },
+    "landlord_id": {
+      "description": "FK to Landlord",
+      "type": "string"
+    },
+    "language": {
+      "default": "en",
+      "description": "Dossier language. v1 supports English and Russian.",
+      "enum": [
+        "en",
+        "ru"
+      ],
+      "type": "string"
+    },
+    "model": {
+      "description": "Claude model used for the forge",
+      "type": "string"
+    },
+    "narrative": {
+      "description": "AI-forged dossier narrative JSON (opening letter, property position, market read, pricing strategy, why-Erudite blocks, process steps, exclusive case, closing). Written by forgeMandateDossier. Prose only \u2014 every number in the PDF comes from data_snapshot, never from this object.",
+      "type": "object"
+    },
+    "pdf_url": {
+      "description": "Stored PDF URL (Base44 storage or Google Drive)",
+      "type": "string"
+    },
+    "sent_at": {
+      "description": "Phase 2: when the dossier was delivered to the owner",
+      "format": "date-time",
+      "type": "string"
+    },
+    "sent_channel": {
+      "description": "Phase 2: delivery channel",
+      "enum": [
+        "whatsapp",
+        "email",
+        "imessage",
+        "telegram",
+        "manual"
+      ],
+      "type": "string"
+    },
+    "status": {
+      "default": "forged",
+      "description": "forged = narrative ready; pdf_ready = branded PDF built and stored; sent = delivered to owner",
+      "enum": [
+        "forged",
+        "pdf_ready",
+        "sent",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "description": "Sequential per landlord \u2014 v1, v2, v3...",
+      "type": "number"
+    }
+  },
+  "required": [
+    "landlord_id"
+  ],
+  "rls": {
+    "create": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {}
+  },
+  "type": "object"
+}

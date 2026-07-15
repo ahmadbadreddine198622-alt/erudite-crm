@@ -1,0 +1,56 @@
+{
+  "description": "One record per distinct floor-plate layout of a tower (level band). Source of truth for which unit positions exist on which floors, their unit type codes, and the view each position faces per the developer plan. Powers the interactive stacking-plan schematic on the Landlord V-Card and the unit resolver.",
+  "name": "FloorPlate",
+  "properties": {
+    "band_key": {
+      "description": "Stable machine key for the band, e.g. L2447, L45, P2, L51",
+      "type": "string"
+    },
+    "band_label": {
+      "description": "Brochure label, e.g. 'Levels 24-47'",
+      "type": "string"
+    },
+    "floor_max": {
+      "description": "Highest ACTUAL floor this plate covers",
+      "type": "number"
+    },
+    "floor_min": {
+      "description": "Lowest ACTUAL floor (DLD/unit-reference numbering) this plate covers. Null for podium plates (ref prefix AP2/AP3).",
+      "type": "number"
+    },
+    "label": {
+      "description": "Human explanation incl. actual floor mapping, e.g. 'Levels 24-47 (brochure) = floors 21-44'",
+      "type": "string"
+    },
+    "position_types": {
+      "description": "Map position -> unit type code, e.g. {'01':'1A','09':'2A'}",
+      "type": "object"
+    },
+    "position_views": {
+      "description": "Map position -> view per developer plan, e.g. {'01':'Burj Khalifa'}",
+      "type": "object"
+    },
+    "project_id": {
+      "description": "FK to Project",
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "sides": {
+      "description": "Plate geometry for the schematic: {top|left|right|bottom: {view, pos[]}} with positions listed in drawing order",
+      "type": "object"
+    },
+    "tower": {
+      "description": "Tower letter, e.g. A",
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "tower",
+    "band_key",
+    "band_label"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,126 @@
+{
+  "description": "The floor-plan library: one record per distinct unit plan (type code x level band) per tower. Landlords link via Landlord.unit_plan_id. Sizes come from the developer floor-plan brochure (area_source=developer_plan) or DLD deed records (dld_deed). position_views gives the view per unit position per the developer plan - never claim a view as verified fact unless the landlord record says agent_verified. Used by the Landlord V-Card Unit Intelligence block, landlordOrchestrator (V4 brain), call script forge, approach drafts and the live call copilot.",
+  "name": "UnitPlan",
+  "properties": {
+    "apartment_sqft": {
+      "type": "number"
+    },
+    "apartment_sqm": {
+      "type": "number"
+    },
+    "area_source": {
+      "description": "Where the sizes come from",
+      "enum": [
+        "developer_plan",
+        "dld_deed",
+        "estimated",
+        "pending"
+      ],
+      "type": "string"
+    },
+    "balcony_sqft": {
+      "type": "number"
+    },
+    "balcony_sqm": {
+      "type": "number"
+    },
+    "band_key": {
+      "description": "FK to FloorPlate.band_key",
+      "type": "string"
+    },
+    "band_label": {
+      "description": "Brochure band, e.g. 'Levels 24-47'",
+      "type": "string"
+    },
+    "bedrooms": {
+      "description": "0 = studio",
+      "type": "number"
+    },
+    "display_name": {
+      "description": "e.g. '1 Bedroom - Type E'",
+      "type": "string"
+    },
+    "floor_max": {
+      "type": "number"
+    },
+    "floor_min": {
+      "description": "Lowest ACTUAL floor (unit-reference numbering). Brochure level = actual floor + 3 for tower bands. Null for podium.",
+      "type": "number"
+    },
+    "notes": {
+      "description": "Provenance notes, e.g. which DLD deeds confirm the size",
+      "type": "string"
+    },
+    "plan_code": {
+      "description": "Unique code, e.g. P4A-1E-L2447",
+      "type": "string"
+    },
+    "plan_image_url": {
+      "description": "Hosted image of the developer floor plan (fill when assets are uploaded; UI falls back to the interactive plate schematic)",
+      "type": "string"
+    },
+    "plan_pdf_page": {
+      "description": "Page number of this plan in the P4 Tower A floor-plan brochure PDF",
+      "type": "number"
+    },
+    "podium": {
+      "default": false,
+      "description": "True for Podium 2/3 plans (unit references AP2xx / AP3xx)",
+      "type": "boolean"
+    },
+    "position_views": {
+      "description": "Map position -> view per developer plan",
+      "type": "object"
+    },
+    "project_id": {
+      "description": "FK to Project",
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "stack_count_per_floor": {
+      "type": "number"
+    },
+    "talking_points": {
+      "description": "Agent-ready selling angles for this plan (rarity, balcony size, exclusivity)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "total_sqft": {
+      "type": "number"
+    },
+    "total_sqm": {
+      "type": "number"
+    },
+    "tower": {
+      "type": "string"
+    },
+    "type_code": {
+      "description": "Developer type code: 1A..1G, STA..STG, 2A..2C, 3BED, 4A, 4B, PHA, PHB",
+      "type": "string"
+    },
+    "unit_layout_label": {
+      "description": "Matches Landlord.unit_layout convention: Studio / 1 Bedroom / 2 Bedroom / 3 Bedroom / 4 Bedroom / Penthouse",
+      "type": "string"
+    },
+    "unit_positions": {
+      "description": "2-digit stack positions this plan occupies on the plate, e.g. ['01','07']",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "project_id",
+    "tower",
+    "plan_code",
+    "type_code",
+    "unit_layout_label",
+    "band_key"
+  ],
+  "type": "object"
+}
