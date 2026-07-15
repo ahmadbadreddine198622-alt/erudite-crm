@@ -25,7 +25,7 @@ import EmailTemplateDialog from '@/components/landlord/EmailTemplateDialog';
 import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { STAGES, getStagesForIntent } from '@/lib/pipeline';
-import HighlightedText from '@/components/shared/HighlightedText';
+import InlineKaraokeBody from '@/components/shared/InlineKaraokeBody';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function phoneVariants(phone) {
@@ -107,12 +107,15 @@ function StreamItem({ item }) {
             {item.wa && <span style={{ fontSize: 8.5, textTransform: 'uppercase', color: SLATE }}>{item.wa}</span>}
           </div>
           {item.subject && <div style={{ fontSize: 12, fontWeight: 600, color: NAME, marginBottom: 2 }}>{item.subject}</div>}
-          {item.text && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-              <HighlightedText text={item.text} style={{ fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.9)', flex: 1 }} />
-              <ReadAloudButton text={item.text} size={18} style={{ flex: 'none', marginTop: -2 }} />
-            </div>
-          )}
+          {item.text && (() => {
+            const speakTitle = `${item.channel || 'Message'} · ${item.sender || (isOut ? 'Agent' : 'Lead')}${item.time ? ' · ' + item.time : ''}`;
+            return (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                <InlineKaraokeBody text={item.text} title={speakTitle} style={{ fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.9)', flex: 1 }} activeColor={isOut ? '#D8B26A' : '#93c5fd'} />
+                <ReadAloudButton text={item.text} title={speakTitle} size={18} style={{ flex: 'none', marginTop: -2 }} />
+              </div>
+            );
+          })()}
           {item.transcript && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4, fontStyle: 'italic' }}>{item.transcript}</div>}
           {item.mediaUrl && (
             <a href={item.mediaUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 4, borderRadius: 8, overflow: 'hidden', border: `1px solid ${HAIR2}` }}>

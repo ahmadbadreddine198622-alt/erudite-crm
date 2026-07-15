@@ -17,7 +17,7 @@ import ActivityCommentThread from './ActivityCommentThread';
 import FounderMemoriesPanel from './FounderMemoriesPanel';
 import { base44 } from '@/api/base44Client';
 import ReadAloudButton from '@/components/shared/ReadAloudButton';
-import HighlightedText from '@/components/shared/HighlightedText';
+import InlineKaraokeBody from '@/components/shared/InlineKaraokeBody';
 import { toast } from 'sonner';
 
 function css(str) {
@@ -402,8 +402,8 @@ ${timeline}`,
               </div>
               {/* Expanded body — tinted with the channel color for instant identification */}
               {isOpen && hasBody && (
-                <div style={{ margin: '0 8px 8px 52px', padding: '9px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.82)', whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', background: item.iconBg, borderLeft: '3px solid ' + item.iconColor }}>
-                  <HighlightedText text={item.body} title={`${item.channelLabel} · ${item.direction || item.title}${item.sender ? ' · ' + item.sender : ''}`} />
+                <div style={{ margin: '0 8px 8px 52px', padding: '9px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.82)', maxHeight: 280, overflow: 'auto', background: item.iconBg, borderLeft: '3px solid ' + item.iconColor }}>
+                  <InlineKaraokeBody text={item.body} title={`${item.channelLabel} · ${item.direction || item.title}${item.sender ? ' · ' + item.sender : ''}`} activeColor={item.iconColor} />
                 </div>
               )}
               {/* Founder coaching comments — always visible, distinct color */}

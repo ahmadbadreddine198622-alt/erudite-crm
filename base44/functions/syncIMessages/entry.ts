@@ -22,42 +22,163 @@ function landlordAddresses(L) {
   return out;
 }
 
+const INSTANCES = ['bb1', 'bb2'];
+
+function instanceConfig(inst) {
+  const serverUrl = (inst === 'bb2'
+    ? (Deno.env.get('BB2_URL') || '')
+    : (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '')).replace(/\/+$/, '');
+  const password = inst === 'bb2'
+    ? (Deno.env.get('BB2_PASSWORD') || '')
+    : (Deno.env.get('BLUEBUBBLES_PASSWORD') || '');
+  return { serverUrl, password };
+}
+
+// Sync a single BlueBubbles instance. Returns { instance, scanned, matched, imported, skipped, error }.
+async function syncInstance(inst, lookbackDays, limit, addressToLandlord, base44) {
+  const { serverUrl, password } = instanceConfig(inst);
+  if (!serverUrl || !password) {
+    return { instance: inst, scanned: 0, matched: 0, imported: 0, skipped: 0, error: 'server not configured' };
+  }
+
+  const afterTs = Date.now() - lookbackDays * 24 * 60 * 60 * 1000;
+  const queryUrl = `${serverUrl}/api/v1/message/query?password=${encodeURIComponent(password)}`;
+  let resp;
+  try {
+    resp = await fetch(queryUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
+      body: JSON.stringify({
+        limit,
+        with: ['handle', 'chats'],
+        sort: 'DESC',
+        after: afterTs,
+      }),
+    });
+  } catch (e) {
+    return { instance: inst, scanned: 0, matched: 0, imported: 0, skipped: 0, error: `fetch failed: ${e.message}` };
+  }
+
+  const raw = await resp.text();
+  let data;
+  try { data = JSON.parse(raw); } catch { data = { raw }; }
+  if (!resp.ok) {
+    return { instance: inst, scanned: 0, matched: 0, imported: 0, skipped: 0, error: `BlueBubbles ${resp.status}: ${raw.slice(0, 200)}` };
+  }
+
+  const messages = Array.isArray(data?.data) ? data.data : [];
+
+  const candidates = [];
+  for (const m of messages) {
+    const guid = m?.guid;
+    if (!guid) continue;
+    const text = m?.text || '';
+    if (!text.trim()) continue;
+
+    let counterparty = m?.handle?.address || (Array.isArray(m?.chats) && m.chats[0]?.chatIdentifier) || '';
+    counterparty = normalizeAddress(counterparty);
+    const landlordId = addressToLandlord.get(counterparty);
+    if (!landlordId) continue;
+
+    const isFromMe = m?.isFromMe === true || m?.isFromMe === 1;
+    const tsMs = m?.dateCreated || m?.dateDelivered || Date.now();
+
+    candidates.push({
+      bb_guid: guid,
+      landlord_id: landlordId,
+      direction: isFromMe ? 'outbound' : 'inbound',
+      address: counterparty,
+      body: text,
+      status: 'delivered',
+      sent_at: new Date(tsMs).toISOString(),
+      instance: inst,
+    });
+  }
+
+  if (candidates.length === 0) {
+    return { instance: inst, scanned: messages.length, matched: 0, imported: 0, skipped: 0 };
+  }
+
+  // Dedup by GUID — fail CLOSED to avoid duplicate import.
+  const guids = candidates.map((c) => c.bb_guid);
+  const existingGuids = new Set();
+  try {
+    for (let i = 0; i < guids.length; i += 200) {
+      const slice = guids.slice(i, i + 200);
+      const existing = await base44.asServiceRole.entities.IMessage.filter({ bb_guid: { $in: slice } }, '-sent_at', slice.length);
+      for (const e of (existing || [])) { if (e.bb_guid) existingGuids.add(e.bb_guid); }
+    }
+  } catch (dedupErr) {
+    return { instance: inst, scanned: messages.length, matched: candidates.length, imported: 0, skipped: 0, error: `dedup failed: ${dedupErr.message}` };
+  }
+
+  const toCreate = candidates.filter((c) => !existingGuids.has(c.bb_guid));
+
+  let imported = 0;
+  for (let i = 0; i < toCreate.length; i += 100) {
+    const chunk = toCreate.slice(i, i + 100);
+    if (chunk.length === 0) continue;
+    await base44.asServiceRole.entities.IMessage.bulkCreate(chunk);
+    imported += chunk.length;
+  }
+
+  // Mirror to the unified Message entity (best-effort).
+  const messageRows = toCreate.map((c) => ({
+    landlord_id: c.landlord_id,
+    phone: c.address,
+    direction: c.direction === 'outbound' ? 'outgoing' : 'incoming',
+    text: c.body,
+    timestamp: c.sent_at,
+    status: c.status,
+    channel: 'imessage',
+    wa_message_id: c.bb_guid,
+  }));
+  for (let i = 0; i < messageRows.length; i += 100) {
+    const chunk = messageRows.slice(i, i + 100);
+    if (chunk.length === 0) continue;
+    try { await base44.asServiceRole.entities.Message.bulkCreate(chunk); } catch (_) { /* best-effort */ }
+  }
+
+  // BRAIN V4 P3 LEARN: inbound replies → outcome ledger (best-effort).
+  for (const c of toCreate) {
+    if (c.direction !== 'inbound' || !c.landlord_id) continue;
+    try {
+      await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+        landlord_id: c.landlord_id,
+        kind: 'reply_received',
+        channel: 'imessage',
+        source_ref: `IMessage:${c.bb_guid}`,
+        text: c.body || '',
+        responded_at: c.sent_at,
+      }).catch(() => {});
+    } catch (_) { /* best-effort */ }
+  }
+
+  return { instance: inst, scanned: messages.length, matched: candidates.length, imported, skipped: candidates.length - toCreate.length };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Scheduled automations run with no user context — allow them through (the automation is
-    // admin-controlled). For interactive calls, require admin. This matches the pattern used
-    // by other scheduled sync functions (e.g. processDueScheduledMessages).
     const user = await base44.auth.me().catch(() => null);
     if (user && user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    // How far back to pull, in days (default 30). Scheduled runs pass a small window.
     const lookbackDays = Number(body.lookback_days) > 0 ? Number(body.lookback_days) : 30;
     const limit = Number(body.limit) > 0 ? Math.min(Number(body.limit), 1000) : 500;
 
-    // BlueBubbles server instance — bb2 pulls from the second (Operations) server; bb1/absent
-    // uses the primary server exactly as before. Accepted as a URL query param (?instance=bb2)
-    // or in the JSON body.
-    let instance = 'bb1';
+    // Which instance(s) to sync: 'bb1', 'bb2', or 'both' (default). The scheduled
+    // automation runs with no body, so it syncs BOTH — tolerating either being down.
+    let requested = 'both';
     try {
       const qp = new URL(req.url).searchParams.get('instance');
-      if (qp === 'bb2' || qp === 'bb1') instance = qp;
-      else if (body.instance === 'bb2' || body.instance === 'bb1') instance = body.instance;
-    } catch (_) { /* ignore malformed URL */ }
+      if (qp === 'bb2' || qp === 'bb1') requested = qp;
+      else if (body.instance === 'bb2' || body.instance === 'bb1') requested = body.instance;
+    } catch (_) { /* ignore */ }
+    const instances = requested === 'both' ? INSTANCES : [requested];
 
-    const serverUrl = (instance === 'bb2'
-      ? (Deno.env.get('BB2_URL') || '')
-      : (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '')).replace(/\/+$/, '');
-    const password = instance === 'bb2'
-      ? (Deno.env.get('BB2_PASSWORD') || '')
-      : (Deno.env.get('BLUEBUBBLES_PASSWORD') || '');
-    if (!serverUrl || !password) {
-      return Response.json({ error: instance === 'bb2' ? 'BlueBubbles bb2 server is not configured (BB2_URL / BB2_PASSWORD)' : 'BlueBubbles server is not configured' }, { status: 500 });
-    }
-
-    // 1. Build a phone → landlord_id lookup across all landlords.
+    // Build phone → landlord_id lookup once (shared across instances).
     const landlords = await base44.asServiceRole.entities.Landlord.list('-updated_date', 5000);
     const addressToLandlord = new Map();
     for (const L of landlords) {
@@ -66,134 +187,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Query BlueBubbles for recent messages (newest first), with the handle/chat included.
-    const afterTs = Date.now() - lookbackDays * 24 * 60 * 60 * 1000;
-    const queryUrl = `${serverUrl}/api/v1/message/query?password=${encodeURIComponent(password)}`;
-    const resp = await fetch(queryUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'skip_zrok_interstitial': 'true' },
-      body: JSON.stringify({
-        // NOTE: do NOT send `offset` — the Zrok share's request filter rejects the
-        // { sort, after, offset } combination with a 403 (offset defaults to 0 anyway).
-        limit,
-        with: ['handle', 'chats'],
-        sort: 'DESC',
-        after: afterTs,
-      }),
-    });
-
-    const raw = await resp.text();
-    let data;
-    try { data = JSON.parse(raw); } catch { data = { raw }; }
-    if (!resp.ok) {
-      return Response.json({ error: 'BlueBubbles query failed', status: resp.status, detail: raw?.slice(0, 500) }, { status: 502 });
-    }
-
-    const messages = Array.isArray(data?.data) ? data.data : [];
-
-    // 3. Map each message to a landlord and prepare records to import.
-    const candidates = [];
-    for (const m of messages) {
-      const guid = m?.guid;
-      if (!guid) continue;
-      const text = m?.text || '';
-      if (!text.trim()) continue; // skip attachment-only / empty for now
-
-      // Counterparty address: the handle on the message (sender for inbound), or chat participant.
-      let counterparty = m?.handle?.address || (Array.isArray(m?.chats) && m.chats[0]?.chatIdentifier) || '';
-      counterparty = normalizeAddress(counterparty);
-      const landlordId = addressToLandlord.get(counterparty);
-      if (!landlordId) continue;
-
-      const isFromMe = m?.isFromMe === true || m?.isFromMe === 1;
-      const tsMs = m?.dateCreated || m?.dateDelivered || Date.now();
-
-      candidates.push({
-        bb_guid: guid,
-        landlord_id: landlordId,
-        direction: isFromMe ? 'outbound' : 'inbound',
-        address: counterparty,
-        body: text,
-        status: 'delivered',
-        sent_at: new Date(tsMs).toISOString(),
-        instance,
-      });
-    }
-
-    if (candidates.length === 0) {
-      return Response.json({ success: true, scanned: messages.length, matched: 0, imported: 0 });
-    }
-
-    // 4. Dedup against already-imported messages by GUID. Fail CLOSED: there is no DB unique
-    // constraint on bb_guid, so this lookup is the ONLY idempotency gate — if it errors we must NOT
-    // proceed, because an empty "existing" set would re-import the entire batch as duplicates. Chunk
-    // the $in to stay well under backend query-size limits.
-    const guids = candidates.map((c) => c.bb_guid);
-    const existingGuids = new Set();
-    try {
-      for (let i = 0; i < guids.length; i += 200) {
-        const slice = guids.slice(i, i + 200);
-        const existing = await base44.asServiceRole.entities.IMessage.filter({ bb_guid: { $in: slice } }, '-sent_at', slice.length);
-        for (const e of (existing || [])) { if (e.bb_guid) existingGuids.add(e.bb_guid); }
-      }
-    } catch (dedupErr) {
-      return Response.json({ error: 'Dedup lookup failed — aborting to avoid duplicate import', detail: String(dedupErr?.message || dedupErr) }, { status: 502 });
-    }
-
-    const toCreate = candidates.filter((c) => !existingGuids.has(c.bb_guid));
-
-    let imported = 0;
-    // Bulk create in chunks of 100.
-    for (let i = 0; i < toCreate.length; i += 100) {
-      const chunk = toCreate.slice(i, i + 100);
-      if (chunk.length === 0) continue;
-      await base44.asServiceRole.entities.IMessage.bulkCreate(chunk);
-      imported += chunk.length;
-    }
-
-    // Mirror the newly-imported iMessages (both directions) into the unified Message entity so
-    // landlordOrchestrator — which reads conversation history ONLY from Message — sees iMessages
-    // (especially inbound landlord replies). Same GUID dedup as above (only `toCreate`); best-effort.
-    const messageRows = toCreate.map((c) => ({
-      landlord_id: c.landlord_id,
-      phone: c.address,
-      direction: c.direction === 'outbound' ? 'outgoing' : 'incoming',
-      text: c.body,
-      timestamp: c.sent_at,
-      status: c.status,
-      channel: 'imessage',
-      wa_message_id: c.bb_guid,
-    }));
-    for (let i = 0; i < messageRows.length; i += 100) {
-      const chunk = messageRows.slice(i, i + 100);
-      if (chunk.length === 0) continue;
-      try { await base44.asServiceRole.entities.Message.bulkCreate(chunk); } catch (_) { /* best-effort mirror */ }
-    }
-
-    // BRAIN V4 P3 LEARN: inbound landlord replies → outcome ledger (non-fatal). Batch poll:
-    // one event per newly-imported inbound message; recordOutcomeEvent dedupes by source_ref
-    // and links each reply to the last outbound before its own sent_at (72h window).
-    for (const c of toCreate) {
-      if (c.direction !== 'inbound' || !c.landlord_id) continue;
+    const results = [];
+    for (const inst of instances) {
       try {
-        await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
-          landlord_id: c.landlord_id,
-          kind: 'reply_received',
-          channel: 'imessage',
-          source_ref: `IMessage:${c.bb_guid}`,
-          text: c.body || '',
-          responded_at: c.sent_at,
-        }).catch(() => {});
-      } catch (_) { /* best-effort */ }
+        const r = await syncInstance(inst, lookbackDays, limit, addressToLandlord, base44);
+        results.push(r);
+      } catch (e) {
+        results.push({ instance: inst, scanned: 0, matched: 0, imported: 0, skipped: 0, error: e.message });
+      }
     }
 
-    return Response.json({
-      success: true,
-      scanned: messages.length,
-      matched: candidates.length,
-      imported,
-      skipped_existing: candidates.length - toCreate.length,
-    });
+    const totalImported = results.reduce((s, r) => s + (r.imported || 0), 0);
+    const totalScanned = results.reduce((s, r) => s + (r.scanned || 0), 0);
+    const hasError = results.every((r) => r.error);
+    const summary = {
+      success: !hasError,
+      results,
+      total_scanned: totalScanned,
+      total_imported: totalImported,
+    };
+    return Response.json(summary, { status: hasError ? 502 : 200 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -149,6 +149,15 @@ only — never to leads. Respect quiet hours.
   live; run on 3 real leads (one cold, one engaged, one hot) and verify every field via
   `query_entities`.
 - **B1 — SURFACE**: Lead Command Center panels + composer drafts + proposals rendering.
+- **B1.5 — AGENT PARITY** (from the CEO's agent-walkthrough audit, 15 Jul): (a) ON-OPEN
+  TRIGGER — LeadCommandCenter must invoke `buyerOrchestrator` (+ draft forging) once per
+  visit exactly as LandlordDetailPage invokes its brain; today the card never wakes the
+  engine. (b) BUYER CALL SCRIPT — mirror `generateLandlordCallScript` for leads: opener,
+  discovery questions, value hooks from the INVENTORY PACK, objection handlers, cheat
+  sheet. (c) RENT-TRACK SEMANTICS — on the rent track, money is ANNUAL RENT (with cheques
+  preference), not sale budget; move-in date drives urgency; card, command center, and
+  brain prompts must respect the active track. (d) COLD AUTO-OUTREACH for buyers mirroring
+  `winBranchAutoOutreach` — drafts/dry-run first, sends only on human approval.
 - **B2 — SWEEP**: `backfillBuyerBrain` daemon (KEEP-IN-SYNC blocks marked), tiered batch
   over the classified lead base; watch cost; report counts.
 - **B3 — MORNING**: buyer section in `morningPowerSchedule`.

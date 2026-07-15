@@ -38,18 +38,29 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PropCRM" />
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet CSS: loaded async (media=print → all on load) so this third-party
+         stylesheet never render-blocks pages that don't even show a map. -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Unregister any stale service workers that may be caching old JS/React chunks -->
+    <!-- Unregister any stale service workers that may be caching old JS/React chunks.
+         PERF FIX: cache deletion is now CONDITIONAL — previously this deleted ALL
+         browser caches on EVERY page load, destroying repeat-visit caching of JS
+         chunks (a one-time stale-SW fix that became a permanent slowdown). Caches
+         are only cleared when a stale service worker is actually found. -->
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (var reg of registrations) { reg.unregister(); }
-        });
-        caches.keys().then(function(names) {
-          for (var name of names) { caches.delete(name); }
+          if (registrations.length > 0) {
+            for (var reg of registrations) { reg.unregister(); }
+            if (window.caches) {
+              caches.keys().then(function(names) {
+                for (var name of names) { caches.delete(name); }
+              });
+            }
+          }
         });
       }
     </script>

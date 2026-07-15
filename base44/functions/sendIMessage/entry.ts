@@ -169,6 +169,24 @@ Deno.serve(async (req) => {
 
     console.log('[sendIMessage] final body:', JSON.stringify(messageBody));
 
+    // Log a FAILED send attempt so the agent can see what went wrong in the
+    // activity feed (otherwise failed sends vanish with zero audit trail).
+    const logFailure = async (detail: string) => {
+      if (!landlord_id) return;
+      try {
+        await base44.entities.IMessage.create({
+          landlord_id,
+          direction: 'outbound',
+          address,
+          body: messageBody || text || '',
+          status: 'failed',
+          sent_at: new Date().toISOString(),
+          agent_email: user.email || null,
+          instance,
+        });
+      } catch (_) { /* best-effort audit */ }
+    };
+
     let data = null;
     if (hasText) {
       // Send text message via BlueBubbles.
@@ -220,17 +238,21 @@ Deno.serve(async (req) => {
             raw = chatRaw;
             data = chatData;
           } else {
+            const failDetail = chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500);
+            await logFailure(failDetail);
             return Response.json({
               error: 'BlueBubbles send failed',
               status: chatResp.status,
-              detail: chatData?.message || chatData?.error?.message || chatRaw?.slice(0, 500),
+              detail: failDetail,
             }, { status: 502 });
           }
         } else {
+          const failDetail2 = errMsg || raw?.slice(0, 500);
+          await logFailure(failDetail2);
           return Response.json({
             error: 'BlueBubbles send failed',
             status: resp.status,
-            detail: errMsg || raw?.slice(0, 500),
+            detail: failDetail2,
           }, { status: 502 });
         }
       }
@@ -334,6 +356,21 @@ Deno.serve(async (req) => {
       attachmentSent,
     });
   } catch (error) {
+    // Log unexpected crashes too so the agent sees the attempt.
+    try {
+      if (landlord_id) {
+        await base44.entities.IMessage.create({
+          landlord_id,
+          direction: 'outbound',
+          address: address || '',
+          body: (typeof text === 'string' ? text : '') || '',
+          status: 'failed',
+          sent_at: new Date().toISOString(),
+          agent_email: user?.email || null,
+          instance,
+        });
+      }
+    } catch (_) { /* best-effort */ }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

@@ -98,7 +98,6 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
   const handles = Array.isArray(imessageHandles) ? imessageHandles : [];
   const availableHandles = handles.filter((h) => h && h.imessage_status === 'available');
   const [selectedAddress, setSelectedAddress] = useState('all');
-  const [instance, setInstance] = useState('bb1');
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
   const [buyerDetail, setBuyerDetail] = useState('');
@@ -241,7 +240,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
       for (let i = 0; i < targets.length; i++) {
         const addr = targets[i];
-        const payload = { landlord_id: landlordId, text, origin: window.location.origin, instance };
+        const payload = { landlord_id: landlordId, text, origin: window.location.origin };
         if (addr) payload.address = addr;
         if (i > 0) payload.skip_banner = true; // attach the first-contact banner only once
         if (attachment) payload.attachment = attachment; // voice note / file attachment
@@ -292,22 +291,6 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         {!blocked && availableHandles.length > 0 && <span style={css("font-size:9px; color:rgba(255,255,255,0.35); margin-left:auto; font-family:'Inter',sans-serif;")}>{availableHandles.length} handle{availableHandles.length === 1 ? '' : 's'}</span>}
       </div>
 
-      {/* iMessage line selector — Erudite Main (bb1) vs Operations Line (bb2) */}
-      <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:8px;")}>
-        <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); flex:none;")}>Line</span>
-        {[
-          { key: 'bb1', label: 'Erudite Main' },
-          { key: 'bb2', label: 'Operations' },
-        ].map((opt) => {
-          const on = instance === opt.key;
-          return (
-            <button key={opt.key} type="button" onClick={() => setInstance(opt.key)} title={opt.key === 'bb1' ? 'Erudite Main (bb1)' : 'Operations Line (bb2)'}
-              style={{ ...css("padding:3px 9px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: on ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
 
       {justSent && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'imc-flash-out 0.4s ease forwards 1.3s' }}>

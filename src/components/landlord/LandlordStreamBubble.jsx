@@ -2,8 +2,7 @@
 // thread (WhatsApp / iMessage / Telegram / SMS tabs in LandlordDetailPage).
 // Extracted so the bubble + a gold read-aloud button live in their own file.
 import React from 'react';
-import ReadAloudButton from '@/components/shared/ReadAloudButton';
-import HighlightedText from '@/components/shared/HighlightedText';
+import LandlordStreamKaraokeBubble from '@/components/landlord/LandlordStreamKaraokeBubble';
 
 function css(str) {
   const o = {};
@@ -33,10 +32,7 @@ export default function LandlordStreamBubble({ s }) {
         </div>
 
         {s.isText && (
-          <div style={css("display:flex; align-items:flex-start; gap:6px; font-size:14px; line-height:1.5; color:rgba(255,255,255,0.9);")}>
-            <HighlightedText text={s.text} title={`${s.channel || 'Message'} · ${s.sender || ''}${s.time ? ' · ' + s.time : ''}`} style={css("flex:1;")} />
-            <ReadAloudButton text={s.text} title={`${s.channel || 'Message'} · ${s.sender || ''}${s.time ? ' · ' + s.time : ''}`} size={20} style={{ flex: 'none', marginTop: -2 }} />
-          </div>
+          <LandlordStreamKaraokeBubble s={s} />
         )}
 
         {s.isVoice && (

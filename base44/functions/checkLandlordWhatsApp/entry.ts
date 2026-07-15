@@ -1,11 +1,15 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
 /**
  * Checks every phone number on a Landlord (primary phone, whatsapp, additional_phones)
- * against the WhatsApp Graph API and persists the result on the Landlord record.
+ * against the Evolution API (the live WhatsApp messaging line) and persists the
+ * result on the Landlord record.
  *
- * Mirrors resolveLandlordIMessage. Caches each number in the WhatsAppNumberCache entity
- * (reusing the same TTL strategy as bulkCheckWhatsAppNumbers) so repeat checks are free.
+ * The Meta Graph `contacts` endpoint that this previously used returns a 400 for the
+ * configured phone-number-ID, which silently marked EVERY number invalid — so every
+ * landlord card showed "0 of N on WhatsApp" even for confirmed-WhatsApp numbers.
+ * Evolution's `/chat/whatsappNumbers/{instance}` endpoint is the authoritative presence
+ * check (same line used to send messages) and is used here instead.
  *
  * Input:  { landlord_id: string }
  * Output:  { whatsapp_status, whatsapp_handles, whatsapp_handle, whatsapp_checked_at, whatsapp_resolved_at }
@@ -61,6 +65,68 @@ function heuristicHasWhatsApp(e164: string, country: string | null): boolean {
   return true;
 }
 
+// ── Evolution presence check ──────────────────────────────────────────────────
+// Module-level cache of a working instance name so we don't re-discover on every call.
+let workingInstance: string | null = null;
+
+async function discoverOpenInstance(apiUrl: string, apiKey: string): Promise<string | null> {
+  try {
+    const r = await fetch(`${apiUrl.replace(/\/$/, '')}/instance/fetchInstances`, {
+      headers: { apikey: apiKey },
+    });
+    const list = await r.json();
+    if (!Array.isArray(list)) return null;
+    // Prefer a connected (open) instance with a real WhatsApp owner — that's a live line.
+    // Evolution's raw instance shape uses `connectionStatus` + `ownerJid`.
+    const open = list.find((i: any) => i && (i.connectionStatus === 'open' || i.status === 'open') && (i.ownerJid || i.owner));
+    if (open) return String(open.name || '').trim() || null;
+    return null;
+  } catch (e) { console.error('[wa-discover] err', e); return null; }
+}
+
+async function evolutionCheck(numbers: string[], apiUrl: string, apiKey: string): Promise<Map<string, boolean> | null> {
+  // numbers: plain digits (no '+'). Returns Map<digits, exists> or null if the check was unreachable.
+  if (!numbers.length) return new Map();
+  const instance = (workingInstance || Deno.env.get('EVOLUTION_INSTANCE') || '').trim();
+  const tryInstances: string[] = [];
+  if (instance) tryInstances.push(instance);
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let inst = tryInstances[attempt];
+    if (attempt === 1) {
+      const discovered = await discoverOpenInstance(apiUrl, apiKey);
+      if (!discovered) return null;
+      inst = discovered;
+    }
+    if (!inst) continue;
+    try {
+      const r = await fetch(`${apiUrl.replace(/\/$/, '')}/chat/whatsappNumbers/${encodeURIComponent(inst)}`, {
+        method: 'POST',
+        headers: { apikey: apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numbers }),
+      });
+      const j: any = await r.json();
+      // 404 = instance gone → fall through to discovery on the next attempt.
+      if (r.status === 404 || j?.status === 404) { tryInstances.push(''); continue; }
+      if (!Array.isArray(j)) {
+        // Whole-call failure — caller falls back to heuristic.
+        return null;
+      }
+      const out = new Map<string, boolean>();
+      for (const item of j) {
+        if (item && typeof item.number === 'string') {
+          out.set(String(item.number).replace(/\D/g, ''), !!item.exists);
+        }
+      }
+      workingInstance = inst;
+      return out;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -84,7 +150,6 @@ Deno.serve(async (req) => {
         if (p && p !== landlord.phone) candidates.push({ raw: p, source: 'additional_phones' });
       }
     }
-    // Normalize + dedupe (keep first source for each E.164)
     const byE164 = new Map<string, string>();
     const ordered: string[] = [];
     for (const c of candidates) {
@@ -105,69 +170,66 @@ Deno.serve(async (req) => {
       return Response.json(payload);
     }
 
-    // Read cache for all numbers in one query.
     const now = new Date().toISOString();
     let cached: any[] = [];
     try {
       cached = await svc.entities.WhatsAppNumberCache.filter({ phone_e164: { $in: ordered } });
     } catch (_) { cached = []; }
     const cacheMap = new Map<string, any>(cached.map((c) => [c.phone_e164, c]));
+
+    // A cached entry is reusable only if it's fresh AND was produced by the Evolution
+    // check. Entries written by the old broken Graph-API path (check_source === 'graph_api')
+    // are treated as expired so they get re-checked and corrected.
     const toFetch: string[] = [];
     for (const e164 of ordered) {
       const entry = cacheMap.get(e164);
-      if (entry && entry.expires_at && entry.expires_at > now) continue;
+      const fresh = entry && entry.expires_at && entry.expires_at > now;
+      const trustworthy = entry && entry.check_source !== 'graph_api';
+      if (fresh && trustworthy) continue;
       toFetch.push(e164);
     }
 
-    // Batch-fetch uncached against the WhatsApp Graph API.
-    let waValidSet = new Set<string>();
-    let waApiAvailable = false;
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-    if (toFetch.length > 0 && phoneNumberId && accessToken) {
-      waApiAvailable = true;
-      try {
-        const waCheck = await fetch(
-          `https://graph.facebook.com/v18.0/${phoneNumberId}/contacts`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ blocking: 'wait', contacts: toFetch, force_check: true }),
-          }
-        ).then((r) => r.json());
-        if (Array.isArray(waCheck?.contacts)) {
-          for (const c of waCheck.contacts) {
-            if (c.status === 'valid') waValidSet.add(c.input);
-          }
-        }
-      } catch (err) {
-        console.error('Graph contacts check failed:', err);
-        waApiAvailable = false;
-      }
+    const apiUrl = Deno.env.get('EVOLUTION_API_URL');
+    const apiKey = Deno.env.get('EVOLUTION_API_KEY');
+    let evoMap: Map<string, boolean> | null = null;
+    let evolutionReached = false;
+    if (toFetch.length > 0 && apiUrl && apiKey) {
+      evoMap = await evolutionCheck(toFetch.map((e) => e.replace(/^\+/, '')), apiUrl, apiKey);
+      evolutionReached = !!evoMap;
     }
 
-    // Persist each uncached result + build the handles list.
     const handles: any[] = [];
     for (const e164 of ordered) {
       const source = byE164.get(e164)!;
       const entry = cacheMap.get(e164);
+      const fresh = entry && entry.expires_at && entry.expires_at > now;
+      const trustworthy = entry && entry.check_source !== 'graph_api';
       let isValid: boolean;
       let checkedAt: string;
-      if (entry && entry.expires_at && entry.expires_at > now) {
+      let checkSource: string;
+      if (fresh && trustworthy) {
         isValid = !!entry.is_valid_whatsapp;
         checkedAt = entry.checked_at;
+        checkSource = entry.check_source;
       } else {
-        const country = inferCountry(e164);
-        isValid = waApiAvailable ? waValidSet.has(e164) : heuristicHasWhatsApp(e164, country);
+        if (evolutionReached && evoMap) {
+          isValid = !!evoMap.get(e164.replace(/^\+/, ''));
+          checkSource = 'evolution';
+        } else {
+          // Evolution unreachable — fall back to the country heuristic so we don't
+          // false-negative a valid number. Mark the row so the caller can surface 'error'.
+          isValid = heuristicHasWhatsApp(e164, inferCountry(e164));
+          checkSource = 'heuristic';
+        }
         checkedAt = new Date().toISOString();
         const cachePayload = {
           phone_e164: e164,
           is_valid_whatsapp: isValid,
           checked_at: checkedAt,
           expires_at: ttlExpiry(isValid),
-          country_code: country,
+          country_code: inferCountry(e164),
           spam_score: 0,
-          check_source: waApiAvailable ? 'graph_api' : 'heuristic',
+          check_source: checkSource,
         };
         try {
           if (entry) await svc.entities.WhatsAppNumberCache.update(entry.id, cachePayload);
@@ -178,15 +240,13 @@ Deno.serve(async (req) => {
     }
 
     const validHandles = handles.filter((h) => h.is_valid_whatsapp);
-    // Primary WhatsApp number: prefer the one sourced from the primary `phone` field when valid,
-    // otherwise the first valid handle, otherwise ''.
     let primaryHandle = '';
     const phoneSourced = validHandles.find((h) => h.source_field === 'phone');
     if (phoneSourced) primaryHandle = phoneSourced.handle;
     else if (validHandles[0]) primaryHandle = validHandles[0].handle;
 
     let status: string;
-    if (!waApiAvailable && toFetch.length > 0) status = 'error';
+    if (toFetch.length > 0 && !evolutionReached) status = 'error';
     else if (validHandles.length > 0) status = 'available';
     else status = 'not_available';
 

@@ -34,6 +34,8 @@ export default function WritingField({
   disabled, className, style, dir,
   landlordId, channel, landlordContext,
   targetLanguage,
+  toolbarLeftExtra,            // extra icons rendered after dictation (e.g. templates / AI / save / emoji)
+  toolbarRightExtra,           // right-aligned controls (e.g. word count + Clear + Send)
   inputRef, ...rest
 }) {
   const taRef = useRef(null);
@@ -251,8 +253,9 @@ export default function WritingField({
         {...rest}
       />
 
-      {/* Slim toolbar */}
-      <div style={css("display:flex; align-items:center; gap:4px; margin-top:5px;")}>
+      {/* Slim toolbar — left cluster (magic / translate / tone / dictation + extra) · right cluster (extra controls) */}
+      <div style={css("display:flex; align-items:center; gap:4px; margin-top:5px; justify-content:space-between;")}>
+        <div style={css("display:flex; align-items:center; gap:3px;")}>
         {/* Magic reshape — only when landlordId is provided */}
         {landlordId && (
           <button type="button" onClick={runMagic} disabled={magicBusy || !hasContent}
@@ -336,6 +339,9 @@ export default function WritingField({
           disabled={disabled}
           focusTargetRef={ref}
         />
+        {toolbarLeftExtra}
+        </div>
+        {toolbarRightExtra}
       </div>
     </div>
   );

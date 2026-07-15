@@ -254,6 +254,42 @@ export default function ModernComposerField({
         landlordContext={landlordContext}
         targetLanguage={targetLanguage}
         inputRef={ref}
+        toolbarLeftExtra={children}
+        toolbarRightExtra={
+          <div style={css("display:flex; align-items:center; gap:7px;")}>
+            <span style={css("font-size:10px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif; white-space:nowrap;")}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
+            <button type="button" onClick={clearAll} disabled={!hasContent && !translation}
+              title="Clear"
+              className="h-8 px-3 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)',
+                border: '1px solid rgba(255,255,255,0.16)',
+                cursor: (hasContent || translation) ? 'pointer' : 'not-allowed',
+                opacity: (hasContent || translation) ? 1 : 0.4, fontFamily: "'Inter',sans-serif",
+              }}>
+              Clear
+            </button>
+            <button type="button" onClick={onSend} disabled={!canSend}
+              title="Send"
+              className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg transition-all"
+              style={{
+                background: canSend ? accent : 'rgba(255,255,255,0.08)',
+                color: canSend ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: '1px solid ' + (canSend ? accent : 'rgba(255,255,255,0.1)'),
+                cursor: canSend ? 'pointer' : 'not-allowed',
+                fontSize: '11.5px', fontWeight: 700, fontFamily: "'Inter',sans-serif",
+              }}>
+              {sending ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <>
+                  {sendLabel}
+                  <History size={12} style={{ opacity: 0.85 }} />
+                </>
+              )}
+            </button>
+          </div>
+        }
         style={css(
           "display:block; width:100%; resize:none; min-height:"+minHeight+"px; max-height:220px; "+
           "padding:9px 11px; border-radius:9px; "+
@@ -261,48 +297,6 @@ export default function ModernComposerField({
           "color:rgba(255,255,255,0.92); font-size:13px; font-family:'Inter',sans-serif; line-height:1.5; overflow-y:auto; outline:none;"
         )}
       />
-
-      {/* Bottom row — left toolbar (children) + translate + mic ; right: word count + Clear + Send */}
-      <div style={css("display:flex; align-items:center; gap:4px; margin-top:7px; justify-content:space-between;")}>
-        <div style={css("display:flex; align-items:center; gap:3px;")}>
-          {children}
-        </div>
-
-        {/* Right cluster: word count + Clear + Send */}
-        <div style={css("display:flex; align-items:center; gap:7px;")}>
-          <span style={css("font-size:10px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif; white-space:nowrap;")}>{wordCount} word{wordCount === 1 ? '' : 's'}</span>
-          <button type="button" onClick={clearAll} disabled={!hasContent && !translation}
-            title="Clear"
-            className="h-8 px-3 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)',
-              border: '1px solid rgba(255,255,255,0.16)',
-              cursor: (hasContent || translation) ? 'pointer' : 'not-allowed',
-              opacity: (hasContent || translation) ? 1 : 0.4, fontFamily: "'Inter',sans-serif",
-            }}>
-            Clear
-          </button>
-          <button type="button" onClick={onSend} disabled={!canSend}
-            title="Send"
-            className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg transition-all"
-            style={{
-              background: canSend ? accent : 'rgba(255,255,255,0.08)',
-              color: canSend ? '#fff' : 'rgba(255,255,255,0.4)',
-              border: '1px solid ' + (canSend ? accent : 'rgba(255,255,255,0.1)'),
-              cursor: canSend ? 'pointer' : 'not-allowed',
-              fontSize: '11.5px', fontWeight: 700, fontFamily: "'Inter',sans-serif",
-            }}>
-            {sending ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <>
-                {sendLabel}
-                <History size={12} style={{ opacity: 0.85 }} />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

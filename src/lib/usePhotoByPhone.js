@@ -51,6 +51,29 @@ export function usePhotoByPhone() {
           }
         }
 
+        // Also index photos synced directly onto Landlord records —
+        // syncPeninsulaProfilePics writes Landlord.wa_profile_pic_url; cold owners
+        // with no WhatsAppConversation would otherwise never show a photo on cards.
+        try {
+          const landlords = await base44.entities.Landlord.filter(
+            { wa_profile_pic_url: { $nin: [null, 'no_photo'] } },
+            null,
+            2000
+          );
+          if (!mounted) return;
+          for (const l of landlords) {
+            const url = l.wa_profile_pic_url;
+            if (!url || url === 'no_photo' || url.includes('drive.google.com')) continue;
+            const phones = [l.phone, l.whatsapp].filter(Boolean);
+            for (const phone of phones) {
+              const normalized = normalizePhone(phone);
+              if (normalized) map[normalized] = url; // landlord-synced pic wins — deliberate, freshest
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load landlord profile photos:', e);
+        }
+
         setPhotoMap(map);
       } catch (err) {
         // Silent fail — all cards will fall back to letter circles
