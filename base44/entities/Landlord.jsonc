@@ -145,6 +145,39 @@
       "type": "string",
       "description": "Unit layout shorthand (e.g. '2BHK', '3BHK', '4BHK', 'Penthouse', 'Studio')"
     },
+    "unit_plan_code": {
+      "type": "string",
+      "description": "FK code \u2192 UnitPlan.plan_code. Links this landlord's unit to the floor-plan library. When set, the Unit Intelligence block renders on the V-Card."
+    },
+    "unit_plan_id": {
+      "type": "string",
+      "description": "FK \u2192 UnitPlan entity (preferred lookup key; falls back to plan_code)."
+    },
+    "unit_view": {
+      "type": "string",
+      "description": "The unit's view (e.g. 'Burj Khalifa', 'Canal'). Verified or assigned value \u2014 provenance in unit_view_source."
+    },
+    "unit_view_source": {
+      "type": "string",
+      "enum": [
+        "agent_verified",
+        "developer_plan"
+      ],
+      "description": "Provenance of unit_view. 'agent_verified' = confirmed by an agent (green check); 'developer_plan' = per the developer floor-plan brochure (amber tag)."
+    },
+    "unit_view_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once an agent has verified the view via the Verify-view control."
+    },
+    "unit_floor": {
+      "type": "number",
+      "description": "Actual floor (unit-reference / DLD numbering). Brochure level = unit_floor + 3 for tower bands; null/omitted for podium plans."
+    },
+    "unit_position": {
+      "type": "string",
+      "description": "2-digit stack position on the floor plate (e.g. '01'). Highlights the landlord's own cell on the schematic."
+    },
     "handover_status": {
       "type": "string",
       "enum": [

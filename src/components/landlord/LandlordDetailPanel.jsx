@@ -44,6 +44,7 @@ import WhisperPanel from './WhisperPanel';
 import LandlordWhatsAppPanel from './LandlordWhatsAppPanel';
 import LandlordSMSPanel from './LandlordSMSPanel';
 import UnitPassport from './UnitPassport';
+import UnitIntelligence from './UnitIntelligence';
 import PreShootForm from './PreShootForm';
 import DocumentChecklist from './DocumentChecklist';
 import ListingReadiness from './ListingReadiness';
@@ -277,18 +278,28 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         throw new Error('No property record found for this landlord');
       }
       if (existingTask) {
-        return await base44.entities.PhotographyTask.update(existingTask.id, {
+        const updated = await base44.entities.PhotographyTask.update(existingTask.id, {
           assigned_photographer_email: photographerEmail,
           assigned_at: new Date().toISOString(),
         });
+        // Instant WhatsApp + Email to the photographer (fire-and-forget)
+        if (photographerEmail) {
+          base44.functions.invoke('notifyPhotographyEvent', { task_id: existingTask.id, event: 'task_assigned' }).catch(() => {});
+        }
+        return updated;
       } else {
-        return await base44.entities.PhotographyTask.create({
+        const created = await base44.entities.PhotographyTask.create({
           landlord_id: landlord.id,
           landlord_property_id: landlordPropertyId,
           assigned_photographer_email: photographerEmail,
           assigned_at: new Date().toISOString(),
           task_stage: 'inquiry',
         });
+        // Instant WhatsApp + Email to the photographer (fire-and-forget)
+        if (photographerEmail && created?.id) {
+          base44.functions.invoke('notifyPhotographyEvent', { task_id: created.id, event: 'task_assigned' }).catch(() => {});
+        }
+        return created;
       }
     },
     onSuccess: () => {
@@ -422,7 +433,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
         />
 
         {/* ── HANDOVER BADGE + UNIT LAYOUT PILL (top of card) ────── */}
-        {(landlord.handover_status || landlord.unit_layout) && (
+        {(landlord.handover_status || landlord.unit_layout || landlord.unit_plan_code) && (
           <div className="px-6 pt-3 flex items-center gap-2 flex-wrap">
             {landlord.handover_status === 'Handed Over' ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)' }}>
@@ -446,6 +457,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 {landlord.unit_layout}
               </span>
             )}
+            <UnitIntelligence landlord={landlord} onUpdate={onUpdate} compact />
           </div>
         )}
 
@@ -1123,6 +1135,15 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                         Floor Plan
                       </a>
                     )}
+                    {!existingTask?.tour_3d_link && (
+                      <a
+                        href="/matterport-sync"
+                        className="text-[11px] text-muted-foreground hover:text-accent flex items-center gap-1 italic"
+                      >
+                        <Camera className="w-3 h-3" />
+                        No 3D tour yet — pull it from Matterport Sync
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
@@ -1270,6 +1291,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
             </TabsContent>
 
             <TabsContent value="unit" className="space-y-3">
+              <UnitIntelligence landlord={landlord} onUpdate={onUpdate} />
               <UnitPassport landlordId={landlord.id} />
               <div
                 className="rounded-xl p-4 border"

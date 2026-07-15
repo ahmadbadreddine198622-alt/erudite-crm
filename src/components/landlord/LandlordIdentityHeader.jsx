@@ -10,7 +10,7 @@ import IMessageBadge from '@/components/landlord/IMessageBadge';
 import WhatsAppBadge from '@/components/landlord/WhatsAppBadge';
 import TelegramBadge from '@/components/landlord/TelegramBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
-import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2, Video } from 'lucide-react';
+import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2, Video, Users } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import IMessageCheckIcon from '@/components/landlord/IMessageCheckIcon';
@@ -224,12 +224,35 @@ function PhoneContactRow({ phone, landlord, landlordId, handles }) {
   );
 }
 
-// Combined row for ONE email — the address on the left, iMessage check + mail icon on the right.
+// Combined row for ONE email — the address on the left, iMessage check + mail icon + instant
+// Google Meet button on the right. The instant-meeting button creates a Google Meet right now,
+// invites the landlord + the agent, and drops a calendar event + in-app notifications.
 function EmailContactRow({ email, landlordId, handles }) {
+  const [meetBusy, setMeetBusy] = useState(false);
   if (!email) return null;
   const copyEmail = (e) => {
     e.preventDefault();
     if (navigator.clipboard) navigator.clipboard.writeText(email).then(() => toast.success('Email copied')).catch(() => {});
+  };
+  const handleInstantMeeting = async (e) => {
+    e.preventDefault();
+    if (meetBusy) return;
+    setMeetBusy(true);
+    try {
+      const res = await base44.functions.invoke('createInstantMeeting', { landlord_id: landlordId, email });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      if (data?.meet_link) {
+        toast.success('Instant meeting created — opening Google Meet');
+        window.open(data.meet_link, '_blank', 'noopener,noreferrer');
+      } else {
+        toast.success('Instant meeting created · calendar event sent');
+      }
+    } catch (err) {
+      toast.error('Meeting failed: ' + (err?.message || 'unknown error'));
+    } finally {
+      setMeetBusy(false);
+    }
   };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
@@ -242,6 +265,19 @@ function EmailContactRow({ email, landlordId, handles }) {
         <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
           <Mail size={12} />
         </ChIcon>
+        <button
+          type="button"
+          onClick={handleInstantMeeting}
+          disabled={meetBusy}
+          title={meetBusy ? 'Creating instant meeting…' : 'Create an instant Google Meet now (invites landlord + agent, adds calendar event)'}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 26, height: 26, borderRadius: 999, flex: 'none', cursor: meetBusy ? 'wait' : 'pointer',
+            background: 'rgba(52,211,153,0.14)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399',
+          }}
+        >
+          {meetBusy ? <Loader2 size={12} className="animate-spin" /> : <Users size={12} />}
+        </button>
       </div>
     </div>
   );

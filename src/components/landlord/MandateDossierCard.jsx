@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, RefreshCw, Send } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 import { buildMandateDossierPDF, dossierFileName } from '@/lib/buildMandateDossierPDF';
 
 // MandateDossierCard — THE MANDATE DOSSIER.
@@ -59,6 +60,11 @@ export default function MandateDossierCard({ landlordId, landlord }) {
   const [working, setWorking] = useState(false);
   const [phase, setPhase] = useState('');
   const [history, setHistory] = useState([]);
+  const [sendForId, setSendForId] = useState(null);
+  const [sendChannel, setSendChannel] = useState('whatsapp');
+  const [waLine, setWaLine] = useState('personal');
+  const [coverText, setCoverText] = useState('');
+  const [sending, setSending] = useState(false);
 
   // Defaults follow the record; the agent can override per forge.
   useEffect(() => {
@@ -120,6 +126,38 @@ export default function MandateDossierCard({ landlordId, landlord }) {
     }
   };
 
+  const openSend = (d) => {
+    if (sendForId === d.id) { setSendForId(null); return; }
+    setSendForId(d.id);
+    setSendChannel('whatsapp');
+    setWaLine('personal');
+    setCoverText(String(d?.narrative?.send_cover_message || ''));
+  };
+
+  const sendDossier = async () => {
+    if (!sendForId || sending) return;
+    if (!coverText.trim()) { toast.error('Write a short cover message — the owner never receives a bare file.'); return; }
+    setSending(true);
+    try {
+      const res = await base44.functions.invoke('sendMandateDossier', {
+        dossier_id: sendForId,
+        channel: sendChannel,
+        cover_message: coverText.trim(),
+        whatsapp_channel: waLine,
+      });
+      const data = res?.data || res;
+      if (!data?.ok) throw new Error(data?.error || 'send failed');
+      toast.success(`Dossier sent via ${sendChannel}`);
+      setSendForId(null);
+      await loadHistory();
+    } catch (e) {
+      console.error('Dossier send failed:', e);
+      toast.error('Send failed: ' + (e?.message || 'unknown error'));
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div style={css('background:#fff; border:1px solid #e7eaf1; border-radius:14px; padding:13px 14px; margin-top:10px; box-shadow:0 1px 2px rgba(16,24,40,0.04);')}>
       <div style={css('display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;')}>
@@ -162,26 +200,80 @@ export default function MandateDossierCard({ landlordId, landlord }) {
       {history.length > 0 && (
         <div style={css('margin-top:10px; border-top:1px solid #eef1f6; padding-top:8px;')}>
           {history.map((d) => (
-            <div key={d.id} style={css('display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3.5px 0;')}>
-              <div style={css('font-size:10px; color:#5b6474; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;')}>
-                <span style={css('font-weight:800; color:' + NAVY + ';')}>v{d.version || 1}</span>
-                {'  ·  '}{String(d.language || 'en').toUpperCase()}{'  ·  '}{d.focus || 'both'}
-                {'  ·  '}{relTime(d.forged_at || d.created_date)}
-                {d.generated_by_name ? `  ·  ${d.generated_by_name}` : ''}
+            <React.Fragment key={d.id}>
+              <div style={css('display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3.5px 0;')}>
+                <div style={css('font-size:10px; color:#5b6474; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;')}>
+                  <span style={css('font-weight:800; color:' + NAVY + ';')}>v{d.version || 1}</span>
+                  {'  ·  '}{String(d.language || 'en').toUpperCase()}{'  ·  '}{d.focus || 'both'}
+                  {'  ·  '}{relTime(d.forged_at || d.created_date)}
+                  {d.generated_by_name ? `  ·  ${d.generated_by_name}` : ''}
+                  {d.status === 'sent' && (
+                    <span style={css('margin-left:6px; font-size:8.5px; font-weight:800; color:#0b7a3e; background:#e8f6ee; border-radius:6px; padding:1.5px 6px;')}>
+                      SENT · {String(d.sent_channel || '').toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div style={css('display:flex; align-items:center; gap:5px; flex-shrink:0;')}>
+                  {d.pdf_url && (
+                    <a
+                      href={d.pdf_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={css('display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:' + NAVY + '; text-decoration:none; border:1px solid #e2e6ee; border-radius:7px; padding:2.5px 8px;')}
+                    >
+                      <ExternalLink size={11} color={GOLD} /> Open
+                    </a>
+                  )}
+                  {d.pdf_url ? (
+                    <button
+                      onClick={() => openSend(d)}
+                      style={css('display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:' + NAVY + '; background:#fdf7e8; border:1px solid ' + GOLD + '; border-radius:7px; padding:2.5px 9px; cursor:pointer;')}
+                    >
+                      <Send size={11} color={GOLD} /> {sendForId === d.id ? 'Close' : 'Send'}
+                    </button>
+                  ) : (
+                    <span style={css('font-size:9.5px; color:#a7aebc;')}>{d.status || 'forged'}</span>
+                  )}
+                </div>
               </div>
-              {d.pdf_url ? (
-                <a
-                  href={d.pdf_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={css('display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:' + NAVY + '; text-decoration:none; border:1px solid #e2e6ee; border-radius:7px; padding:2.5px 8px; flex-shrink:0;')}
-                >
-                  <ExternalLink size={11} color={GOLD} /> Open
-                </a>
-              ) : (
-                <span style={css('font-size:9.5px; color:#a7aebc; flex-shrink:0;')}>{d.status || 'forged'}</span>
+
+              {sendForId === d.id && (
+                <div style={css('margin:4px 0 8px; background:#fbfcfe; border:1px solid #e7eaf1; border-radius:10px; padding:9px 10px;')}>
+                  <div style={css('display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px;')}>
+                    <select value={sendChannel} onChange={(e) => setSendChannel(e.target.value)} disabled={sending} style={selStyle}>
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="imessage">iMessage</option>
+                      <option value="telegram">Telegram</option>
+                      <option value="email">Email</option>
+                    </select>
+                    {sendChannel === 'whatsapp' && (
+                      <select value={waLine} onChange={(e) => setWaLine(e.target.value)} disabled={sending} style={selStyle}>
+                        <option value="personal">Personal line</option>
+                        <option value="business">Business line</option>
+                      </select>
+                    )}
+                    <span style={css('font-size:8.5px; color:#8a93a6;')}>AI cover message — review, edit, send. The dossier PDF attaches automatically.</span>
+                  </div>
+                  <WritingField
+                    value={coverText}
+                    onChange={(e) => setCoverText(e.target.value)}
+                    rows={4}
+                    placeholder="Cover message the owner receives with the dossier…"
+                    style={{ width: '100%', fontSize: 11, lineHeight: 1.45, color: '#1f2937', border: '1px solid #e2e6ee', borderRadius: 8, padding: '7px 9px', outline: 'none', resize: 'vertical', background: '#fff', boxSizing: 'border-box' }}
+                  />
+                  <div style={css('display:flex; justify-content:flex-end; margin-top:6px;')}>
+                    <button
+                      onClick={sendDossier}
+                      disabled={sending || !coverText.trim()}
+                      style={css('display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:800; padding:6px 13px; border-radius:8px; border:1px solid ' + GOLD + '; background:linear-gradient(135deg,#c9a84a,#e2c56d); color:' + NAVY + '; cursor:' + (sending ? 'wait' : 'pointer') + ';' + (sending || !coverText.trim() ? 'opacity:0.7;' : ''))}
+                    >
+                      {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      {sending ? 'Sending…' : 'Send Dossier'}
+                    </button>
+                  </div>
+                </div>
               )}
-            </div>
+            </React.Fragment>
           ))}
         </div>
       )}

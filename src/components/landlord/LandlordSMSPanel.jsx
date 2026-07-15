@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, MessageSquare, Phone } from 'lucide-react';
+import { Send, Loader2, MessageSquare, Phone, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -14,6 +14,11 @@ const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : '
 export default function LandlordSMSPanel({ landlord }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
+  // Tracks the NodeAI delivery outcome per message body: { [body]: { status, error? } }
+  const [deliveryStatus, setDeliveryStatus] = useState({});
+  // Locally-tracked failed sends — NodeAI rejections produce no DB record, so we
+  // keep them here so the failure stays visible in the thread (with its error) for the session.
+  const [failedSends, setFailedSends] = useState([]);
   const messagesEndRef = useRef(null);
   const phone = landlord?.phone;
 
@@ -55,6 +60,7 @@ export default function LandlordSMSPanel({ landlord }) {
 
   const sendMutation = useMutation({
     mutationFn: async (msg) => {
+      setDeliveryStatus((prev) => ({ ...prev, [msg]: { status: 'pending' } }));
       const res = await base44.functions.invoke('sendNodeAISMS', {
         to_phone: phone,
         body: msg,
@@ -64,14 +70,19 @@ export default function LandlordSMSPanel({ landlord }) {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, msg) => {
+      setDeliveryStatus((prev) => ({ ...prev, [msg]: { status: 'sent' } }));
       setText('');
       qc.invalidateQueries({ queryKey: ['landlord-sms', landlord?.id] });
       refetch();
       toast.success('SMS sent');
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     },
-    onError: (e) => toast.error('SMS failed: ' + (e?.message || 'Unknown error')),
+    onError: (e, msg) => {
+      setDeliveryStatus((prev) => ({ ...prev, [msg]: { status: 'failed', error: e?.message || 'Unknown error' } }));
+      setFailedSends((prev) => [...prev, { id: `fail_${Date.now()}`, body: msg, started_at: new Date().toISOString(), error: e?.message || 'Unknown error' }]);
+      toast.error('SMS failed: ' + (e?.message || 'Unknown error'));
+    },
   });
 
   const handleSend = (e) => {
@@ -120,8 +131,14 @@ export default function LandlordSMSPanel({ landlord }) {
             <span className="opacity-60">Send your first message below.</span>
           </div>
         ) : (
-          smsList.map((sms) => {
+          smsList.concat(failedSends).map((sms) => {
             const out = sms.direction !== 'inbound';
+            const isLocalFail = !!sms.error;
+            // NodeAI appends " OPTOUT5258" to every outgoing message, so the persisted
+            // CallLog body carries the suffix while our local status map is keyed by the
+            // original typed text — strip it for the lookup so the pill matches.
+            const lookupBody = out ? String(sms.body || '').replace(/\s*OPTOUT5258\s*$/, '') : '';
+            const st = isLocalFail ? { status: 'failed', error: sms.error } : (out ? deliveryStatus[lookupBody] : null);
             return (
               <div key={sms.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-blue-600/80 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
@@ -132,6 +149,21 @@ export default function LandlordSMSPanel({ landlord }) {
                   <div className={`mt-1 text-[10px] flex items-center gap-1.5 ${out ? 'text-white/60 justify-end' : 'text-muted-foreground'}`}>
                     {sms.from_number && out && <span className="truncate max-w-[120px]">from {sms.from_number}</span>}
                     <span>{fmt(sms.started_at)}</span>
+                    {out && st && (
+                      <span
+                        title={st.status === 'failed' ? st.error : st.status === 'sent' ? 'Delivered via NodeAI' : 'Sending…'}
+                        className="inline-flex items-center gap-1 px-1.5 rounded-full border"
+                        style={{
+                          borderColor: st.status === 'failed' ? 'rgba(248,113,113,0.5)' : st.status === 'sent' ? 'rgba(74,222,128,0.5)' : 'rgba(251,191,36,0.5)',
+                          color: st.status === 'failed' ? '#fca5a5' : st.status === 'sent' ? '#86efac' : '#fde68a',
+                        }}
+                      >
+                        {st.status === 'pending' && <Clock className="w-2.5 h-2.5" />}
+                        {st.status === 'sent' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                        {st.status === 'failed' && <AlertCircle className="w-2.5 h-2.5" />}
+                        {st.status === 'pending' ? 'Sending' : st.status === 'sent' ? 'Sent' : 'Failed'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

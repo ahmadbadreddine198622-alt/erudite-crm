@@ -49,6 +49,12 @@ Deno.serve(async (req) => {
           assigned_photographer_email: DEFAULT_PHOTOGRAPHER,
           assigned_at: new Date().toISOString(),
         });
+        // Instant WhatsApp + Email to the photographer (non-fatal)
+        try {
+          await base44.functions.invoke('notifyPhotographyEvent', { task_id: existingTask.id, event: 'task_assigned' });
+        } catch (notifyErr) {
+          console.error('notifyPhotographyEvent failed:', notifyErr.message);
+        }
         return Response.json({ ok: true, action: 'assigned_existing', task_id: existingTask.id, photographer: DEFAULT_PHOTOGRAPHER });
       }
       // Already has a photographer — don't override
@@ -63,6 +69,13 @@ Deno.serve(async (req) => {
       assigned_at: new Date().toISOString(),
       task_stage: 'inquiry',
     });
+
+    // Instant WhatsApp + Email to the photographer (non-fatal)
+    try {
+      await base44.functions.invoke('notifyPhotographyEvent', { task_id: newTask.id, event: 'task_assigned' });
+    } catch (notifyErr) {
+      console.error('notifyPhotographyEvent failed:', notifyErr.message);
+    }
 
     return Response.json({ ok: true, action: 'created', task_id: newTask.id, photographer: DEFAULT_PHOTOGRAPHER });
   } catch (error) {

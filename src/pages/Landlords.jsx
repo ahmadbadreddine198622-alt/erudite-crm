@@ -221,7 +221,7 @@ export default function Landlords() {
   // which are whole-table loads) on every remount/refocus — mutations below still invalidate
   // explicitly, so freshness on user actions is unaffected. Values follow the codebase convention:
   // board data ~30s, slow-moving reference data ~minutes.
-  const { data: landlords = [], isLoading } = useQuery({
+  const { data: landlords = [], isLoading, isError: landlordsError, error: landlordsErrorObj, refetch: refetchLandlords } = useQuery({
     queryKey: ['landlords', currentUser?.email, !!safePermissions.view_all_landlords],
     queryFn: async () => {
       // Load every landlord the caller may see via the paginated loadAllLandlords
@@ -238,7 +238,12 @@ export default function Landlords() {
       const fetchPage = async (skip) => {
         const res = await base44.functions.invoke('loadAllLandlords', { skip, limit });
         const data = res?.data ?? res;
-        return { page: data?.landlords || [], hasMore: !!data?.hasMore };
+        // A failing backend function must surface as an error, never as an empty board.
+        if (data?.error) throw new Error(`loadAllLandlords failed: ${data.error}`);
+        if (!data || !Array.isArray(data.landlords)) {
+          throw new Error('loadAllLandlords returned an unexpected response (' + JSON.stringify(data).slice(0, 200) + ')');
+        }
+        return { page: data.landlords, hasMore: !!data.hasMore };
       };
       // Page 0 alone first (small tables finish here), then the rest in parallel rounds.
       // Pages are contiguous, so the LAST page of a round says whether more exist beyond it.
@@ -588,6 +593,28 @@ export default function Landlords() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['landlords'] }),
     onError: (e) => toast.error('Assign failed: ' + e.message),
   });
+
+  if (landlordsError) {
+    return (
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24 }}>
+        <div style={{ maxWidth: 620, textAlign: 'center' }}>
+          <div style={{ color: '#f87171', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Landlord board failed to load</div>
+          <div style={{ color: '#8b96b0', fontSize: 13, lineHeight: 1.6, wordBreak: 'break-word' }}>
+            Your leads are safe in the database — the board's data loader hit an error. Show this message to support/Claude:
+          </div>
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.06)', color: '#fca5a5', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-word' }}>
+            {String(landlordsErrorObj?.message || landlordsErrorObj)}
+          </div>
+        </div>
+        <button
+          onClick={() => refetchLandlords()}
+          style={{ padding: '9px 22px', borderRadius: 10, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.08)', color: '#c9a24b', fontSize: 13, cursor: 'pointer' }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (userLoading || !currentUser || isLoading) {
     return (

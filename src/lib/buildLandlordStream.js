@@ -86,7 +86,13 @@ export function buildLandlordStream({
   });
 
   // ── Calls (for the Calls tab) ──
-  const calls = callLogs.map(c => ({
+  // SMS sends are logged as CallLog records whose notes end with the mandatory
+  // OPTOUT5258 opt-out tag — split them out so they render as SMS messages in the
+  // stream, not as voice-call entries.
+  const isSmsLog = (c) => /OPTOUT5258\s*$/.test(c.notes || c.transcript || '');
+  const smsLogs = callLogs.filter(c => isSmsLog(c));
+  const realCallLogs = callLogs.filter(c => !isSmsLog(c));
+  const calls = realCallLogs.map(c => ({
     provider: 'twilio', dir: c.direction === 'outbound' ? 'out' : 'in', title: 'Call',
     who: (resolveUserName(c.agent_email) || '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
     dur: fmtDuration(c.duration_seconds, c.status), status: mapCallStatus(c.status),
@@ -116,8 +122,17 @@ export function buildLandlordStream({
   aircallCalls.forEach(call => {
     stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Aircall`, body: call.from_number || call.to_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0, _entityType: 'call', _entityId: call.id });
   });
-  callLogs.forEach(call => {
+  realCallLogs.forEach(call => {
     stream.push({ t: 'act', kind: 'call', title: `${call.direction === 'inbound' ? 'Inbound' : 'Outbound'} call · Twilio`, body: call.to_number || call.from_number || '', time: fmtMsgTime(call.started_at || call.created_date), order: tsOf(call.started_at || call.created_date) || 0, _entityType: 'call', _entityId: call.id });
+  });
+  // ── SMS messages (CallLog rows carrying the OPTOUT5258 opt-out tag) ──
+  smsLogs.forEach(c => {
+    const body = String(c.notes || c.transcript || '').replace(/\s*OPTOUT5258\s*$/, '').trim();
+    stream.push({
+      t: 'msg', dir: c.direction === 'outbound' ? 'out' : 'in', mtype: 'text', channel: 'sms',
+      text: body, time: fmtMsgTime(c.started_at || c.created_date),
+      order: tsOf(c.started_at || c.created_date) || 0, _entityType: 'sms', _entityId: c.id,
+    });
   });
 
   // ── Notes ──

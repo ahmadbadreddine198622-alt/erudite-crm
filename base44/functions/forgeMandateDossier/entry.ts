@@ -69,7 +69,7 @@ const DOSSIER_SCHEMA = {
     cover_tagline: { type: 'string', description: 'One elegant line for the cover, max 14 words, in the dossier language. No numbers.' },
     opening_letter: { type: 'string', description: "Personal letter from the writer to the owner. 120-180 words. Starts with a salutation using the owner's name. References their ACTUAL situation from the intelligence. Warm, senior, zero pressure. No sign-off block (the layout adds it)." },
     property_position: { type: 'string', description: "80-130 words interpreting the unit's position today — layout, building, tenancy reality. Interpret ONLY supplied facts; if the valuation block is absent, state plainly that a formal written valuation is prepared within 48 hours of engagement. NEVER write a number in this text — the layout prints the verified figures beside it." },
-    market_read: { type: 'string', description: '90-140 words reading the market data supplied (medians, transaction count, trend). Reference the data qualitatively ("the recorded transactions in the building show…") — the layout prints the exact figures and the comps table. If no market block is supplied, write an honest paragraph on how Erudite builds the pricing picture from DLD transaction data. No invented numbers.' },
+    market_read: { type: 'string', description: '90-140 words reading the market supplied. The layout prints the medians and the comps table — do not restate those. You MAY quote specific verified figures from the VERIFIED MARKET INTELLIGENCE block exactly as written (gain stories, record prints, yield) — this is the persuasive core. If no market block is supplied, write an honest paragraph on how Erudite builds the pricing picture from DLD transaction data. No invented numbers.' },
     pricing_narrative: { type: 'string', description: '60-100 words explaining the three-scenario pricing strategy philosophy (premium positioning vs market pace vs velocity) and how the recommended anchor was derived from verified data. No numbers in the text.' },
     scenario_premium: { type: 'string', description: 'Descriptor for the Premium scenario, max 18 words, no numbers.' },
     scenario_market: { type: 'string', description: 'Descriptor for the Market scenario, max 18 words, no numbers.' },
@@ -86,9 +86,10 @@ const DOSSIER_SCHEMA = {
     },
     exclusive_case: { type: 'string', description: '80-120 words making the case for an exclusive mandate — additive, confident, never attacking other brokers. If known objections are supplied, quietly pre-empt them without naming them as objections.' },
     closing_line: { type: 'string', description: '1-2 sentences. The dignified close: the single concrete next step.' },
+    send_cover_message: { type: 'string', description: "The chat message that accompanies the dossier when it is sent (WhatsApp/iMessage/Telegram/Email). 40-70 words in the dossier language: tell the owner a private dossier prepared for their specific unit is attached, one line on what is inside (their valuation and the building's verified market record), one easy ask. No links, no emojis, no signature block." },
     language: { type: 'string', description: 'Language code actually used ("en" or "ru").' },
   },
-  required: ['cover_tagline', 'opening_letter', 'property_position', 'market_read', 'pricing_narrative', 'scenario_premium', 'scenario_market', 'scenario_fast', 'why_erudite', 'process_steps', 'exclusive_case', 'closing_line', 'language'],
+  required: ['cover_tagline', 'opening_letter', 'property_position', 'market_read', 'pricing_narrative', 'scenario_premium', 'scenario_market', 'scenario_fast', 'why_erudite', 'process_steps', 'exclusive_case', 'closing_line', 'send_cover_message', 'language'],
 };
 
 const clean = (v) => (v == null ? '' : String(v).trim());
@@ -166,21 +167,28 @@ Deno.serve(async (req) => {
 
     let property = null;
     if (lp?.property_id) property = await svc.entities.Property.get(lp.property_id).catch(() => null);
-    const sizeSqft = property?.size_sqft || property?.area_sqft || property?.built_up_area_sqft || null;
+    const sizeSqft = property?.area_sqft || property?.size_sqft || property?.built_up_area_sqft || null;
 
     // ── Market data: latest DXB Interact report for this project (exact then fuzzy) ──
     const projName = clean(landlord.project_name) || clean(project?.name);
     let report = null;
     if (projName) {
-      const exact = await svc.entities.MarketReport.filter({ project_name: projName }, '-report_date', 1).catch(() => []);
-      if (Array.isArray(exact) && exact.length) report = exact[0];
+      // Prefer deed-database reports (with medians) over portal knowledge pages, then anything with analysis.
+      const pickBest = (rows) => {
+        const list = (rows || []).filter(Boolean);
+        return list.find((r) => r.median_price_aed || r.median_price_sqft)
+          || list.find((r) => clean(r.analysis_summary))
+          || list[0] || null;
+      };
+      const exact = await svc.entities.MarketReport.filter({ project_name: projName }, '-report_date', 6).catch(() => []);
+      report = pickBest(exact);
       if (!report) {
-        const all = await svc.entities.MarketReport.filter({}, '-report_date', 50).catch(() => []);
+        const all = await svc.entities.MarketReport.filter({}, '-report_date', 80).catch(() => []);
         const pl = projName.toLowerCase();
-        report = (all || []).find((r) => {
+        report = pickBest((all || []).filter((r) => {
           const rn = clean(r.project_name).toLowerCase();
           return rn && (rn.includes(pl) || pl.includes(rn));
-        }) || null;
+        }));
       }
     }
 
@@ -274,7 +282,7 @@ ${langLaw}
 ${focusLaw}
 
 DOCUMENT LAWS:
-- PROSE ONLY. You never write a price, valuation, median, percentage or comp figure inside any narrative field — the layout engine prints every verified number beside your text. Write around the numbers, never the numbers.
+- FIREWALL: you never INVENT a figure. The layout engine prints the valuation, the market medians, the comps table and the pricing scenarios — never restate those specific numbers in your text. You MAY cite a figure ONLY if it appears verbatim in the VERIFIED MARKET INTELLIGENCE or REAL VALUE HOOKS blocks below (capital-gain stories, record prints, yield figures) — quoted exactly as written, never rounded up, never extrapolated.
 - Interpret ONLY the verified data supplied. Where a data block is absent, be honest and confident about how it will be produced (formal written valuation within 48 hours of engagement) — never bluff.
 - The owner keeps this document. Every sentence must survive being re-read a week later in front of a competing broker.
 - No emojis, no exclamation-heavy hype, no "I hope this finds you well", no pleading.
@@ -297,6 +305,9 @@ VERIFIED DATA THE LAYOUT WILL PRINT (write AROUND these; do not restate the figu
 - Market block: ${report ? `PRESENT — DXB Interact report dated ${report.report_date || 'n/a'}, ${report.transactions_count || comps.length || 'several'} recorded transactions in the building` : 'ABSENT'}
 - Comps table: ${comps.length ? `${comps.length} recorded transactions${bucket ? ` (prioritized ${bucket})` : ''}` : 'none'}
 - Pricing scenarios: ${pricing ? `PRESENT (anchored on ${pricing.anchor_source === 'ai_valuation' ? 'the AI valuation' : "the owner's asking price"})` : 'ABSENT — pricing follows the formal valuation'}
+${report && clean(report.analysis_summary) ? `
+VERIFIED MARKET INTELLIGENCE (deed-level analysis for this building — the persuasive core of this dossier; every figure here is verified and may be quoted exactly as written):
+${clean(report.analysis_summary).slice(0, 3000)}` : ''}
 
 BRAIN INTELLIGENCE (calibrate the letter and the exclusivity case from this; reference situations, never scores):
 - Rolling summary: ${clean(landlord.ai_rolling_summary).slice(0, 700) || '(none)'}

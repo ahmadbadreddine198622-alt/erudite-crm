@@ -39,7 +39,18 @@ Deno.serve(async (req) => {
 
     await base44.entities.PhotographyTask.update(task_id, sanitizedUpdates);
 
-    return Response.json({ ok: true, task_id });
+    // If media links were delivered, ping the landlord's assigned agent (non-fatal)
+    const linkFields = ['tour_3d_link', 'video_link', 'photos_link'];
+    const deliveredLinks = linkFields.filter((f) => sanitizedUpdates[f]);
+    if (deliveredLinks.length > 0) {
+      try {
+        await base44.functions.invoke('notifyPhotographyEvent', { task_id, event: 'links_saved' });
+      } catch (notifyErr) {
+        console.error('notifyPhotographyEvent failed:', notifyErr.message);
+      }
+    }
+
+    return Response.json({ ok: true, task_id, links_delivered: deliveredLinks });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

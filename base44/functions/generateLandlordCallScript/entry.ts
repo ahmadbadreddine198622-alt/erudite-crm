@@ -311,7 +311,7 @@ Output ONLY the structured script via the tool. The opener and close are verbati
     const prompt = `LANDLORD: ${landlord.full_name_en || landlord.full_name || `${landlord.first_name || ''} ${landlord.last_name || ''}`}
 Phone: ${landlord.phone || '?'} | Preferred language: ${landlord.preferred_language || 'en'} | Nationality: ${landlord.nationality || '?'}
 Archetype: ${landlord.landlord_archetype || 'unknown'} | Rapport: ${landlord.rapport_level || 'cold'} | Stage: ${landlord.stage || 'initial_contact'}
-Unit: ${landlord.unit_reference || '?'} | Project: ${landlord.project_name || '?'} | Layout: ${landlord.unit_layout || '?'}
+Unit: ${landlord.unit_reference || '?'} | Project: ${landlord.project_name || '?'} | Layout: ${landlord.unit_layout || '?'}${landlord.unit_plan_code ? `\nUNIT PLAN (${landlord.unit_plan_code}): ${landlord.unit_total_sqft ? `${landlord.unit_total_sqft} sqft total` : 'developer plan on file'}${landlord.unit_floor != null ? ` | floor ${landlord.unit_floor} (brochure level ${landlord.unit_floor + 3})` : ''}${landlord.unit_view ? ` | view: ${landlord.unit_view}${landlord.unit_view_source === 'agent_verified' ? ' (agent-verified — may be stated as fact)' : ' (per developer plan — on the call say "the plan shows", NEVER state the view as verified fact)'}` : ''} — anchor the opener, value hooks and cheat sheet on THIS exact unit.` : ''}
 Asking price: ${landlord.asking_price_aed != null ? landlord.asking_price_aed + ' AED' : 'NONE SET'} | Mandate: ${landlord.mandate_type || 'none'}/${landlord.mandate_status || '?'}
 Listed with competitors: ${landlord.is_currently_listed_with_others ? 'YES' : 'no'} | Competing brokers: ${landlord.competing_brokers_count || 0}
 

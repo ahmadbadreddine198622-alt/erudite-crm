@@ -52,8 +52,25 @@ Deno.serve(async (req) => {
     let data: any = raw;
     try { data = JSON.parse(raw); } catch { /* plain-text response */ }
 
-    if (!res.ok) {
-      return Response.json({ error: 'NodeAI SMS failed: ' + (raw.slice(0, 300)), status: res.status }, { status: res.status });
+    // NodeAI (like most HTTP→SMS gateways) returns HTTP 200 even on failure and
+    // encodes the error in the BODY — e.g. "ERR: 101 Invalid Sender" or
+    // {"status":"error","message":"..."}. The old check (res.ok only) treated
+    // those as success, so the UI said "sent" while the SMS silently dropped.
+    // Detect common failure signatures so the real reason reaches the agent.
+    const bodyStr = typeof data === 'string' ? data : JSON.stringify(data);
+    const looksError =
+      !res.ok ||
+      /\b(ERR|ERROR|FAILED|INVALID|REJECTED|DENIED|UNAUTHORIZED|BAD|BLOCKED)\b/i.test(bodyStr) ||
+      (data && typeof data === 'object' &&
+        (data.status === 'error' || data.error || data.success === false ||
+         (typeof data.code === 'number' && data.code < 0)));
+
+    if (looksError) {
+      return Response.json({
+        error: 'NodeAI SMS rejected: ' + bodyStr.slice(0, 400),
+        http_status: res.status,
+        raw: data,
+      }, { status: 502 });
     }
 
     // Log as CallLog for the landlord SMS thread (mirrors the old twilioSendSMS behaviour).

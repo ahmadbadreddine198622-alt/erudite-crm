@@ -52,6 +52,15 @@ Deno.serve(async (req) => {
       ...timestampUpdates 
     });
 
+    // Light WhatsApp ping to the landlord's assigned agent about the stage move (non-fatal)
+    if (new_stage !== 'inquiry') {
+      try {
+        await base44.functions.invoke('notifyPhotographyEvent', { task_id, event: 'stage_advanced', meta: { new_stage } });
+      } catch (notifyErr) {
+        console.error('notifyPhotographyEvent failed:', notifyErr.message);
+      }
+    }
+
     // Automation: When task reaches "handed_to_listing", sync media to LandlordProperty and advance landlord
     if (new_stage === 'handed_to_listing' && task.landlord_id) {
       // Sync media links to LandlordProperty

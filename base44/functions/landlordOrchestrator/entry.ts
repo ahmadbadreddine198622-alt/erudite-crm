@@ -1041,6 +1041,87 @@ async function gatherProjectBriefPack(svc, landlord, prop) {
   } catch (_) { return ''; }
 }
 
+// ── UNIT PLAN INTELLIGENCE PACK ────────────────────────────────────────
+// Resolves the landlord's exact developer floor plan from the UnitPlan library (type code ×
+// level band, keyed by tower + floor + 2-digit stack position; P4A brochure level = actual
+// floor + 3) and injects a UNIT PLAN INTELLIGENCE block: deed-cross-checked sizes, the
+// stack's view with provenance discipline (developer-plan views are NEVER stated as
+// verified fact until an agent confirms on the card), per-floor rarity and the plan's
+// selling angles. SELF-HEALING: when the landlord record has no unit_plan_id yet, the
+// resolved plan is stamped back onto the Landlord (unit_plan_id/code, unit_layout when
+// empty, unit_view + source, floor, position, total sqft) so the brain completes its own
+// memory as it runs. Reasoning grounds cite plan:<plan_code>. Module-cached 10 min per
+// project. Never throws — degrades to '' on any error or no match.
+let UNIT_PLAN_CACHE = { at: 0, byProject: {} };
+const UNIT_PLAN_CACHE_MS = 10 * 60 * 1000;
+function p4aBandKeyForUnit(u) {
+  if (!u) return null;
+  if (u.podium) return u.floor === 2 ? 'P2' : (u.floor === 3 ? 'P3' : null);
+  const f = u.floor;
+  if (f == null) return null;
+  if (f >= 1 && f <= 2) return 'L45';
+  if (f === 3) return 'L6';
+  if (f >= 4 && f <= 19) return 'L722';
+  if (f === 20) return 'L23';
+  if (f >= 21 && f <= 44) return 'L2447';
+  if (f === 46 || f === 47) return 'L4950';
+  if (f === 48) return 'L51';
+  return null;
+}
+async function gatherUnitPlanPack(svc, landlord, prop) {
+  try {
+    const projectId = landlord.project_id || prop?.project_id || '';
+    if (!projectId) return '';
+    if (Date.now() - UNIT_PLAN_CACHE.at > UNIT_PLAN_CACHE_MS) UNIT_PLAN_CACHE = { at: Date.now(), byProject: {} };
+    if (!UNIT_PLAN_CACHE.byProject[projectId]) {
+      const rows = await svc.entities.UnitPlan.filter({ project_id: projectId }, '-updated_date', 200).catch(() => []);
+      UNIT_PLAN_CACHE.byProject[projectId] = Array.isArray(rows) ? rows : [];
+    }
+    const plans = UNIT_PLAN_CACHE.byProject[projectId];
+    if (!plans.length) return '';
+
+    const unit = parseP4UnitRef(landlord.unit_reference || prop?.unit_reference);
+    let plan = landlord.unit_plan_id ? plans.find(p => p.id === landlord.unit_plan_id) : null;
+    if (!plan && unit) {
+      const bandKey = p4aBandKeyForUnit(unit);
+      if (bandKey) plan = plans.find(p => p.band_key === bandKey && Array.isArray(p.unit_positions) && p.unit_positions.includes(unit.stack));
+    }
+    if (!plan) return '';
+
+    const verified = landlord.unit_view_source === 'agent_verified' && !!landlord.unit_view;
+    const view = verified
+      ? landlord.unit_view
+      : ((plan.position_views && unit && plan.position_views[unit.stack]) || landlord.unit_view || '');
+
+    // SELF-HEAL: stamp the resolution back onto the Landlord (fire-and-forget, never blocks).
+    if (landlord.unit_plan_id !== plan.id || (unit && !unit.podium && landlord.unit_floor == null)) {
+      const patch = {
+        unit_plan_id: plan.id,
+        unit_plan_code: plan.plan_code,
+        ...(plan.total_sqft ? { unit_total_sqft: plan.total_sqft } : {}),
+        ...(unit ? { unit_position: unit.stack, ...(unit.podium ? {} : { unit_floor: unit.floor }) } : {}),
+        ...(!verified && view ? { unit_view: view, unit_view_source: 'developer_plan' } : {}),
+        ...(!landlord.unit_layout && plan.unit_layout_label ? { unit_layout: plan.unit_layout_label } : {}),
+      };
+      svc.entities.Landlord.update(landlord.id, patch).catch(() => {});
+    }
+
+    const sizeBits = [];
+    if (plan.total_sqft) sizeBits.push(`${plan.total_sqft} sqft total`);
+    if (plan.apartment_sqft && plan.balcony_sqft) sizeBits.push(`(${plan.apartment_sqft} sqft internal + ${plan.balcony_sqft} sqft balcony)`);
+    const SRC = { developer_plan: 'developer floor plan', dld_deed: 'DLD deed records', estimated: 'estimated from stack comps — confirm before quoting', pending: 'spec pending — do NOT quote a size' };
+    const brochure = (unit && !unit.podium && unit.floor != null) ? ` (brochure level ${unit.floor + 3})` : '';
+    const whereLine = unit ? `${unit.podium ? `podium level ${unit.floor}` : `floor ${unit.floor}${brochure}`}, stack ${unit.stack}` : (landlord.unit_reference || '');
+    const angles = Array.isArray(plan.talking_points) && plan.talking_points.length ? `\nSELLING ANGLES: ${plan.talking_points.map(t => `• ${t}`).join(' ')}` : '';
+    const viewLine = view
+      ? (verified
+        ? `\nVIEW: ${view} — AGENT-VERIFIED (may be stated as fact).`
+        : `\nVIEW: ${view} — PER DEVELOPER FLOOR PLAN, NOT AGENT-VERIFIED: phrase as "per the developer plan" / "the plan shows the ${view} exposure"; NEVER state the view as confirmed fact, and never promise what can be seen from the balcony, until an agent verifies it on the card.`)
+      : '';
+    return `\nUNIT PLAN INTELLIGENCE (${plan.plan_code} — resolved from the developer floor-plan library; ground plan-based claims as plan:${plan.plan_code}):\nTHIS UNIT: ${landlord.unit_reference || '?'} → ${whereLine} — ${plan.display_name}${sizeBits.length ? `\nSIZE: ${sizeBits.join(' ')} — source: ${SRC[plan.area_source] || plan.area_source || '?'}` : ''}${viewLine}\nSTACK: ${plan.stack_count_per_floor === 1 ? 'only 1 of this plan per floor' : `${plan.stack_count_per_floor} per floor`} on ${plan.band_label} (brochure)${angles}\nUSE THE PLAN: anchor every size/layout line in drafts, scripts and valuations on THIS block (it is the developer's own plan, deed-cross-checked); pair it with the MARKET PACK's same-stack deeds for the full unit story; obey the view provenance discipline above word-for-word.\n`;
+  } catch (_) { return ''; }
+}
+
 // ── OWNER PORTFOLIO PACK ───────────────────────────────────────────────────────
 // Fetches the owner's FULL unit portfolio from the synced OwnerPortfolioUnit registry
 // (the "search history" / owner-registry data) so the brain is aware of EVERY unit the
@@ -1589,6 +1670,11 @@ ${activeDirective.status === 'acknowledged' && activeDirective.agent_response ? 
     // objection handlers, and the mandate-winning playbook for this project.
     const projectBrief = await gatherProjectBriefPack(svc, landlord, prop);
 
+    // UNIT PLAN INTELLIGENCE: the landlord's exact developer floor plan (type × band),
+    // deed-cross-checked sizes, stack view with provenance discipline, per-floor rarity.
+    // Self-heals unit_plan_id / unit_layout / view onto the Landlord record as it resolves.
+    const unitPlanPack = await gatherUnitPlanPack(svc, landlord, prop);
+
     // Owner's FULL unit portfolio (synced owner registry) — every unit this person holds, so the
     // brain reasons over the whole portfolio and suggests asking the owner about their other units.
     const ownerPortfolio = await gatherOwnerPortfolio(svc, landlord);
@@ -1608,6 +1694,7 @@ ${activeDirective.status === 'acknowledged' && activeDirective.agent_response ? 
         market_pack_present: !!p3Pack,
         intel_pack_present: !!intelPack,
         project_brief_present: !!projectBrief,
+        unit_plan_pack_present: !!unitPlanPack,
         owner_portfolio_present: !!ownerPortfolio,
       });
     }
@@ -1640,7 +1727,7 @@ Archetype hint: ${landlord.landlord_archetype || 'unknown'}
 Project/unit: ${landlord.project_name || prop.project_name || '?'} ${landlord.unit_reference || prop.unit_reference || ''}
 Currently listed with others: ${landlord.is_currently_listed_with_others ? 'YES' : 'no'} | Competing brokers: ${landlord.competing_brokers_count || 0}
 Property: ${prop.id ? `unit known${valuation ? `, AI valuation ${valuation} AED` : ''}` : 'none linked yet'}
-${ownerPortfolio}${p3Pack}${intelPack}${projectBrief}${priorsPack}No conversation, notes, tasks, or calls exist yet. Emit the cold-tier assessment.${p3Pack ? ' Every cold-open draft MUST weave in exactly ONE real figure from the MARKET PACK above (a stack deed with unit + date, the building median, or the owner-gain median) — naturally, as the value hook; never invent a figure.' : ''}${intelPack ? ' When PROJECT INTELLIGENCE SOURCES are present, ONE cold-open draft may lead with a brand/lifestyle hook from that block instead (resort now open, residence-count scarcity, the first registered rental) — one fact, stated naturally, never a data dump.' : ''}${ownerPortfolio ? ' Where the OWNER PORTFOLIO shows the owner holds OTHER units besides this one, weave a natural line into ONE cold-open draft acknowledging you can help across their whole portfolio (not a hard ask) — it signals you have done your homework on their holdings and opens the door to a wider mandate.' : ''}`;
+${unitPlanPack}${ownerPortfolio}${p3Pack}${intelPack}${projectBrief}${priorsPack}No conversation, notes, tasks, or calls exist yet. Emit the cold-tier assessment.${p3Pack ? ' Every cold-open draft MUST weave in exactly ONE real figure from the MARKET PACK above (a stack deed with unit + date, the building median, or the owner-gain median) — naturally, as the value hook; never invent a figure.' : ''}${intelPack ? ' When PROJECT INTELLIGENCE SOURCES are present, ONE cold-open draft may lead with a brand/lifestyle hook from that block instead (resort now open, residence-count scarcity, the first registered rental) — one fact, stated naturally, never a data dump.' : ''}${ownerPortfolio ? ' Where the OWNER PORTFOLIO shows the owner holds OTHER units besides this one, weave a natural line into ONE cold-open draft acknowledging you can help across their whole portfolio (not a hard ask) — it signals you have done your homework on their holdings and opens the door to a wider mandate.' : ''}${unitPlanPack ? ' When the UNIT PLAN INTELLIGENCE block is present, every cold-open draft speaks to THIS exact unit — its type name, real size, balcony, per-floor rarity — never a generic unit; any view line obeys the plan provenance discipline word-for-word.' : ''}`;
       result = await callClaude(coldSystem, coldPrompt, COLD_MODEL, COLD_SCHEMA);
     } else {
       // FULL: reason over the entire landlord picture.
@@ -1709,7 +1796,7 @@ asking_price_aed = ${askingPrice ?? 'NONE SET'}
 AI valuation = ${valuation ?? '?'} AED${prop.ai_estimated_price_sqft ? ` (${prop.ai_estimated_price_sqft}/sqft)` : ''} | confidence: ${prop.ai_valuation_confidence || '?'}
 valuation basis: ${prop.ai_valuation_basis || '?'}
 price gap vs valuation: ${priceGapPct != null ? `${priceGapPct}%` : '(cannot compute — missing asking or valuation)'}
-${projectBrief}${p3Pack}${intelPack}${ownerPortfolio}${priorsPack}
+${unitPlanPack}${projectBrief}${p3Pack}${intelPack}${ownerPortfolio}${priorsPack}
 LATEST CALL QUALIFICATION: ${qualBlock}
 
 CONVERSATION (last ${messages.length} messages, oldest→newest):

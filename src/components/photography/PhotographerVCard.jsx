@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
+import CommentsThread from '@/components/photography/CommentsThread';
 
 const STAGE_LABELS = {
   inquiry: 'Inquiry',
@@ -227,6 +228,16 @@ export default function PhotographerVCard({ item, refetch }) {
           </div>
         )}
 
+        {/* Scheduled shoot */}
+        {item.photoshoot_scheduled_at && (
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-medium text-xs" style={{ color: 'hsl(38 92% 55%)' }}>📅 Shoot:</span>
+            <span className="text-xs text-foreground">
+              {new Date(item.photoshoot_scheduled_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        )}
+
         {/* Readiness */}
         {(item.has_bedsheets !== undefined || item.has_pillows !== undefined || item.electricity_on !== undefined || item.water_on !== undefined) && (
           <div>
@@ -355,6 +366,15 @@ export default function PhotographerVCard({ item, refetch }) {
             {updateFieldsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save fields'}
           </Button>
         )}
+      </div>
+
+      {/* Agent ⇄ Photographer chat — exchange 3D tour / media links here */}
+      <div className="pt-3 mt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <CommentsThread
+          photographyTaskId={item.task_id}
+          landlordPropertyId={item.landlord_property_id}
+          defaultOpen={false}
+        />
       </div>
     </div>
   );

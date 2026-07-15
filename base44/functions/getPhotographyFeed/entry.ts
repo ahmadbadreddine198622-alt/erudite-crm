@@ -47,10 +47,12 @@ Deno.serve(async (req) => {
         completion_notes: task.completion_notes || null,
         video_link: task.video_link || null,
         photos_link: task.photos_link || null,
+        tour_3d_link: task.tour_3d_link || null,
 
         // Access info (from LandlordProperty — safe operational fields):
         keys_location: lp.keys_location || null,
         key_access_instructions: lp.key_access_instructions || null,
+        photoshoot_scheduled_at: lp.photoshoot_scheduled_at || null,
 
         // Media flags (from LandlordProperty):
         photography_status: lp.photography_status || 'none',

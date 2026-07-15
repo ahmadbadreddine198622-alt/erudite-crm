@@ -420,7 +420,7 @@ SITUATION: ${SITUATION_LINES[situation]}
 OWNER & UNIT (real facts only):
 - Owner: ${landlord.full_name_en} (first name: ${firstName})
 - Nationality: ${landlord.nationality || 'unknown'} · Archetype: ${landlord.landlord_archetype || 'unknown'} (context for tone; never name it back to them)
-- Project: ${landlord.project_name || '(unknown — do not invent)'} · Unit: ${landlord.unit_reference || '(unknown — do not invent)'}${landlord.unit_layout ? ` · Layout: ${landlord.unit_layout}` : ''}
+- Project: ${landlord.project_name || '(unknown — do not invent)'} · Unit: ${landlord.unit_reference || '(unknown — do not invent)'}${landlord.unit_layout ? ` · Layout: ${landlord.unit_layout}` : ''}${landlord.unit_plan_code ? `\n- UNIT PLAN (${landlord.unit_plan_code}): ${landlord.unit_total_sqft ? `${landlord.unit_total_sqft} sqft total` : 'developer plan on file'}${landlord.unit_view ? ` · view: ${landlord.unit_view}${landlord.unit_view_source === 'agent_verified' ? ' (agent-verified — may be stated as fact)' : ' (per developer plan — phrase as "per the developer plan", NEVER as verified fact)'}` : ''} — every draft speaks to THIS exact unit, never a generic one.` : ''}
 - Asking price: ${landlord.asking_price_aed ? landlord.asking_price_aed + ' AED' : '(none set)'}
 - Stage: ${landlord.stage || 'unknown'} · Rapport: ${landlord.rapport_level || 'cold'} · Mandate: ${landlord.mandate_status || 'none'}
 - Listed with another broker: ${landlord.is_currently_listed_with_others ? 'YES — be additive, never attack the other broker' : 'no/unknown'}
