@@ -5,6 +5,13 @@
 
 import { base44 } from '@/api/base44Client';
 
+// Every new task/note/follow-up is CONNECTED to the V3 brain: nudge the orchestrator so it
+// regenerates from the fresh information. Fire-and-forget — the orchestrator's own smart
+// debounce makes duplicate nudges a no-op, and a failure never blocks the commit.
+const nudgeBrain = (landlordId) => {
+  try { base44.functions.invoke('landlordOrchestrator', { landlord_id: landlordId }).catch(() => {}); } catch (_) {}
+};
+
 // type: 'note' | 'task' | 'followup'. draft: the (edited) composerBrain draft. user: current user.
 // landlord: the in-memory landlord VM (needs id + agentEmail). Returns the stream item to append.
 export async function commitComposerDraft({ type, draft, user, landlord }) {
@@ -33,6 +40,7 @@ export async function commitComposerDraft({ type, draft, user, landlord }) {
         } catch (_) { /* action-item tasks are best-effort */ }
       }
     }
+    nudgeBrain(landlord.id);
     return { t: 'act', kind: 'note', title: 'Note · AI', body: draft.body, time: 'Just now', order };
   }
 
@@ -47,6 +55,7 @@ export async function commitComposerDraft({ type, draft, user, landlord }) {
       ai_source: 'composer_brain',
       was_edited_after_draft: !!draft._edited,
     });
+    nudgeBrain(landlord.id);
     return { t: 'act', kind: 'task', title: 'Task · AI' + (draft.due_date ? ' · due ' + draft.due_date : ''), body: draft.title, time: 'Just now', order };
   }
 
@@ -62,5 +71,6 @@ export async function commitComposerDraft({ type, draft, user, landlord }) {
     agent_email: user?.email || landlord.agentEmail || undefined,
     created_from_ai: true,
   });
+  nudgeBrain(landlord.id);
   return { t: 'act', kind: 'followup', title: 'Follow-up · AI' + (draft.kind ? ' · ' + draft.kind : ''), body: draft.title, time: 'Just now', order };
 }

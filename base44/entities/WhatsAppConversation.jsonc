@@ -349,10 +349,12 @@
         "business",
         "personal",
         "agent",
-        "malik"
+        "malik",
+        "sameie",
+        "dari"
       ],
       "default": "personal",
-      "description": "Which WhatsApp channel: business (Meta Cloud), personal (Ahmad's Evolution line), agent (an agent's own configured Evolution line), or malik"
+      "description": "Which WhatsApp channel: business (Meta Cloud), personal (Ahmad's Evolution line), agent (an agent's own configured Evolution line), malik, sameie, or dari"
     },
     "wa_labels": {
       "type": "array",

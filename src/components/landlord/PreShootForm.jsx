@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 export default function PreShootForm({ photographyTask, landlordProperty }) {
   const queryClient = useQueryClient();
@@ -134,7 +135,7 @@ export default function PreShootForm({ photographyTask, landlordProperty }) {
         {/* Staging Notes */}
         <div>
           <label className="text-[10px] text-muted-foreground mb-1.5 block">Staging Requirements</label>
-          <textarea
+          <WritingField
             value={formData.staging_needed}
             onChange={(e) => setFormData(prev => ({ ...prev, staging_needed: e.target.value }))}
             placeholder="What staging is needed before the shoot?"
@@ -147,7 +148,7 @@ export default function PreShootForm({ photographyTask, landlordProperty }) {
         {/* What to Bring */}
         <div>
           <label className="text-[10px] text-muted-foreground mb-1.5 block">What Photographer Should Bring</label>
-          <textarea
+          <WritingField
             value={formData.what_to_bring}
             onChange={(e) => setFormData(prev => ({ ...prev, what_to_bring: e.target.value }))}
             placeholder="Equipment, props, or anything else needed"

@@ -67,6 +67,7 @@ export function buildLandlordStream({
       order: tsOf(msg.sent_at || msg.created_date) || 0,
       senderEmail: isOut ? (msg.agent_email || '') : '',
       senderName: isOut ? (resolveUserName(msg.agent_email) || 'Agent') : (L.full_name_en || L.full_name || 'Owner'),
+      instance: msg.instance || 'bb1',
       _entityType: 'imessage', _entityId: msg.id,
     });
   });
@@ -90,6 +91,7 @@ export function buildLandlordStream({
     who: (resolveUserName(c.agent_email) || '—') + ' · ' + fmtMsgTime(c.started_at || c.created_date),
     dur: fmtDuration(c.duration_seconds, c.status), status: mapCallStatus(c.status),
     recording: !!c.recording_url, recordingUrl: c.recording_url || null,
+    callId: c.id || null, transcript: c.transcript || '', entityType: 'CallLog',
     _ts: tsOf(c.started_at || c.created_date),
   }));
   const seenCallIds = new Set();
@@ -104,6 +106,7 @@ export function buildLandlordStream({
       dur: fmtDuration(c.duration, c.status),
       status: ['done', 'ended', 'completed'].includes(c.status) ? 'done' : mapCallStatus(c.status),
       recording: !!(c.recording_url || c.voicemail_url), recordingUrl: c.recording_url || c.voicemail_url || null,
+      callId: c.id || null, transcript: c.transcript || '', entityType: 'AircallCall',
       _ts: tsOf(c.started_at || c.created_date),
     });
   });

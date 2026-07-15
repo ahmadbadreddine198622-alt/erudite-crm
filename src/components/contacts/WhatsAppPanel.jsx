@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Send, Loader2, Phone, ExternalLink, Upload, Mic } from 'lucide-react';
 import { toast } from 'sonner';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 export default function WhatsAppPanel({ lead }) {
   const [selectedPhone, setSelectedPhone] = useState(null);
@@ -174,42 +175,19 @@ export default function WhatsAppPanel({ lead }) {
           </div>
 
           {/* Message input */}
-          <div className="p-3 border-t space-y-2">
-            <Textarea
+          <div className="p-3 border-t">
+            <ModernComposerField
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onSend={handleSend}
+              sending={sendMutation.isPending}
+              sendDisabled={!selectedPhone}
               placeholder="Type a message..."
-              className="min-h-[60px] max-h-24 text-xs resize-none"
+              channel="whatsapp"
+              accent="#10b981"
+              voiceEnabled={true}
+              minHeight={44}
             />
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-8"
-              >
-                <Upload className="w-3 h-3" /> File
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-8"
-              >
-                <Mic className="w-3 h-3" /> Voice
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSend}
-                disabled={(!message.trim() && !mediaUrl) || sendMutation.isPending}
-                className="ml-auto gap-1 h-8 text-xs bg-green-600 hover:bg-green-700"
-              >
-                {sendMutation.isPending ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-                Send
-              </Button>
-            </div>
           </div>
         </>
       )}

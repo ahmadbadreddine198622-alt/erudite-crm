@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { GRANT_CARDONE_PERSONA_COMPACT } from '@/lib/grantCardoneVoice';
 import { Loader2, Mic, Square, Sparkles, Zap, CheckCircle2 } from 'lucide-react';
 import useVoiceRecorder from '@/hooks/useVoiceRecorder';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 import { toast } from 'sonner';
 
 // QuickQualifyBox — the FAST path for logging a qualification call.
@@ -227,6 +228,13 @@ ${text}`;
               {vr.recording ? `${vr.seconds}s` : 'Record'}
             </span>
           </button>
+
+          {/* Live dictation */}
+          <DictationMicButton
+            value={text}
+            onChange={setText}
+            size={16}
+          />
 
           {/* AI Auto-Fill */}
           <button

@@ -258,6 +258,20 @@ Deno.serve(async (req) => {
       });
     } catch (_) { /* best-effort mirror */ }
 
+    // BRAIN V4 P3 LEARN: outcome ledger (non-fatal, never blocks the send). Body text is used
+    // for draft-angle attribution; the appended signature is tolerated by containment matching.
+    try {
+      await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+        landlord_id: landlordId || null,
+        kind: 'draft_sent',
+        channel: 'email',
+        source_ref: data.id ? `Email:${data.id}` : '',
+        text: subject ? `${subject}\n${htmlToText(finalBodyHtml)}` : htmlToText(finalBodyHtml),
+        sent_at: new Date().toISOString(),
+        writer_email: fromEmail || user?.email || null,
+      }).catch(() => {});
+    } catch (_) { /* ledger must never break a send */ }
+
     return Response.json({
       ok: true,
       message_id: data.id,

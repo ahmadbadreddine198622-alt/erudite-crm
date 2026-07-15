@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, Trash2, X, Phone, Mail, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const PHONE_LABELS = ['mobile', 'whatsapp', 'work', 'home', 'other'];
 const EMAIL_LABELS = ['personal', 'work', 'other'];
@@ -225,7 +226,7 @@ export default function AddContactDialog({ isOpen, onClose }) {
           {/* Notes */}
           <div>
             <label className="text-xs font-semibold text-muted-foreground">Notes</label>
-            <Textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Any additional notes..." className="mt-1 text-sm min-h-16" />
+            <WritingField value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Any additional notes..." className="mt-1 text-sm min-h-16" />
           </div>
 
           {/* Submit */}

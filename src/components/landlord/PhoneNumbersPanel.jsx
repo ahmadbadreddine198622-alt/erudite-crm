@@ -4,6 +4,7 @@ import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import AircallButton from '@/components/shared/AircallButton';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import StraightDivider from '@/components/landlord/StraightDivider';
+import CopyButton from '@/components/shared/CopyButton';
 
 function css(str) {
   const o = {};
@@ -44,7 +45,8 @@ function PhoneRow({ phone, label, landlord }) {
         {label && <span style={css("font-size:8.5px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>{label}</span>}
         <a href={`tel:${phone}`} style={css("font-size:12px; font-weight:600; color:rgba(255,255,255,0.9); text-decoration:none; margin-left:auto;")}>{phone}</a>
       </div>
-      <div style={css("display:flex; flex-wrap:wrap; gap:4px;")}>
+      <div style={css("display:flex; flex-wrap:wrap; gap:4px; align-items:center;")}>
+        <CopyButton value={phone} label="Phone" size={12} />
         <TwilioCallDialog landlord={landlord} phoneOverride={phone} iconOnly={true}>
           <div style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:600; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#4ade80; cursor:pointer;")}>
             Twilio

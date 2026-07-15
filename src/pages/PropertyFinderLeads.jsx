@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAllLandlords } from '@/api/sharedData';
 import EruditePage from '@/components/erudite/EruditePage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,10 +114,9 @@ export default function PropertyFinderLeads() {
     return map;
   }, [conversations]);
 
-  const { data: landlords = [] } = useQuery({
-    queryKey: ['landlords-for-link'],
-    queryFn: () => base44.entities.Landlord.list('-created_date', 500),
-  });
+  // Shared ['landlords','all'] cache (src/api/sharedData.js) — replaces the
+  // page-private 'landlords-for-link' copy of the same full table.
+  const { data: landlords = [] } = useAllLandlords();
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users-for-assign'],

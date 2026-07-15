@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function AddNotePanel({ leadId, agentName }) {
   const [text, setText] = useState('');
@@ -35,15 +36,18 @@ export default function AddNotePanel({ leadId, agentName }) {
         rows={3}
         className="text-sm resize-none"
       />
-      <Button
-        size="sm"
-        disabled={!text.trim() || mutation.isPending}
+      <div className="flex items-center gap-2">
+        <DictationMicButton value={text} onChange={(val) => setText(val)} />
+        <Button
+          size="sm"
+          disabled={!text.trim() || mutation.isPending}
         onClick={() => mutation.mutate(text.trim())}
         className="bg-accent text-accent-foreground hover:bg-accent/90 h-8 text-xs"
       >
         <StickyNote className="w-3.5 h-3.5 mr-1.5" />
         Save Note
-      </Button>
+        </Button>
+      </div>
     </div>
   );
 }

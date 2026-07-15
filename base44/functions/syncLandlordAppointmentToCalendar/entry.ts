@@ -85,7 +85,13 @@ Deno.serve(async (req) => {
       `Status: ${appt.status || 'scheduled'}`,
     ].join('\n');
 
-    // Pull the landlord's email so they're invited too (lands on their calendar + Google invite).
+    // Follow-ups (records with a `channel` field) are internal-only tasks for the CRM
+    // user — NOT calendar invites to the client. We only add the agent as an attendee
+    // (so it lands on their calendar) and use sendUpdates=none so Google sends no
+    // invitation email to anyone. Regular appointments (no `channel`) still invite the
+    // landlord as before.
+    const isFollowup = !!appt.channel;
+
     let landlordEmail = null;
     if (appt.landlord_id) {
       try {
@@ -93,11 +99,11 @@ Deno.serve(async (req) => {
         landlordEmail = ll2?.email || null;
       } catch (_) { /* best-effort */ }
     }
+
     const attendees = [];
     if (appt.agent_email) attendees.push({ email: appt.agent_email });
-    if (landlordEmail) attendees.push({ email: landlordEmail });
+    if (!isFollowup && landlordEmail) attendees.push({ email: landlordEmail });
 
-    // Add the acting agent + landlord as attendees so the event lands on both calendars.
     const event_data = {
       summary: `${(appt.type || 'meeting')} — ${landlordName}`,
       description,
@@ -106,6 +112,8 @@ Deno.serve(async (req) => {
       ...(attendees.length ? { attendees } : {}),
     };
 
+    const sendUpdates = isFollowup ? 'none' : 'all';
+
     const authHeaders = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
@@ -113,7 +121,7 @@ Deno.serve(async (req) => {
     const baseUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
     const createEvent = async () => {
-      const response = await fetch(`${baseUrl}?sendUpdates=all`, {
+      const response = await fetch(`${baseUrl}?sendUpdates=${sendUpdates}`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(event_data),
@@ -130,7 +138,7 @@ Deno.serve(async (req) => {
     const existingEventId = appt.google_event_id || null;
 
     if (existingEventId) {
-      const patchRes = await fetch(`${baseUrl}/${encodeURIComponent(existingEventId)}?sendUpdates=all`, {
+      const patchRes = await fetch(`${baseUrl}/${encodeURIComponent(existingEventId)}?sendUpdates=${sendUpdates}`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify(event_data),
@@ -150,8 +158,9 @@ Deno.serve(async (req) => {
 
     const newId = await createEvent();
 
-    // Send a confirmation email to the landlord on first creation.
-    if (landlordEmail && !appt.confirmation_email_sent) {
+    // Only send a confirmation email for regular appointments (not follow-ups).
+    // Follow-ups are internal CRM tasks — no external communication to the client.
+    if (!isFollowup && landlordEmail && !appt.confirmation_email_sent) {
       const dateFormatted = new Date(appt.datetime).toLocaleString('en-GB', {
         timeZone: 'Asia/Dubai', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
       });

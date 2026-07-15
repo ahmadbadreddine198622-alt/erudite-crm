@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 export default function EmailThread({ emails, currentEmailId }) {
   const [expanded, setExpanded] = useState(false);
@@ -22,9 +23,12 @@ export default function EmailThread({ emails, currentEmailId }) {
             <div key={e.id} className="px-4 py-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">{e.from_name || e.from_email}</span>
-                <span className="text-xs text-muted-foreground">
-                  {e.received_at && format(new Date(e.received_at), 'MMM d, h:mm a')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <ReadAloudButton text={e.snippet || e.body_text || ''} title={`Email · ${e.from_name || e.from_email}`} size={20} />
+                  <span className="text-xs text-muted-foreground">
+                    {e.received_at && format(new Date(e.received_at), 'MMM d, h:mm a')}
+                  </span>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2">{e.snippet}</p>
             </div>

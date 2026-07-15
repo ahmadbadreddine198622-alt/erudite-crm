@@ -17,6 +17,7 @@ import WorkflowBuilder from '@/components/whatsapp/WorkflowBuilder';
 import AutomationDashboard from '@/components/whatsapp/AutomationDashboard';
 import TemplateManager from '@/components/whatsapp/TemplateManager';
 import WhatsAppSetupGuide from '@/components/whatsapp/WhatsAppSetupGuide';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const SETUP_STEPS = [
   {
@@ -55,7 +56,8 @@ export default function WhatsAppHub() {
   const [copied, setCopied] = useState(false);
   const [currentPhoneNumberId, setCurrentPhoneNumberId] = useState(null);
 
-  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/whatsappWebhook`;
+  // Derived from the current origin so it stays correct if the app domain changes
+  const webhookUrl = `${window.location.origin}/functions/whatsappWebhook`;
 
   // Fetch connection status on mount
   React.useEffect(() => {

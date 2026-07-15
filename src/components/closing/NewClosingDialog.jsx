@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { X, Loader2, Building2, User } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 import { format } from 'date-fns';
 
 const EMPTY = {
@@ -32,13 +34,13 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('full_name', 500),
+    queryFn: () => fetchAllRecords(base44.entities.Lead, 'full_name'),
     enabled: open,
   });
 
   const { data: landlords = [] } = useQuery({
     queryKey: ['landlords'],
-    queryFn: () => base44.entities.Landlord.list('full_name_en', 500),
+    queryFn: () => fetchAllRecords(base44.entities.Landlord, 'full_name_en'),
     enabled: open,
   });
 
@@ -258,7 +260,7 @@ export default function NewClosingDialog({ open, onClose, onSaved, prefillLeadId
               </div>
               <div>
                 <label className="field-label">Notes</label>
-                <textarea value={form.notes} onChange={sf('notes')} rows={3} placeholder="Any additional notes…" className="field-input resize-none" />
+                <WritingField value={form.notes} onChange={sf('notes')} rows={3} placeholder="Any additional notes…" className="field-input resize-none" />
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Send, ArrowLeft } from 'lucide-react';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 export default function MobileInbox() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -87,25 +88,18 @@ export default function MobileInbox() {
         </div>
 
         {/* Reply Box */}
-        <div className="border-t bg-card p-3 space-y-2">
-          <Textarea
+        <div className="border-t bg-card p-3">
+          <ModernComposerField
             value={reply}
             onChange={e => setReply(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (reply.trim()) { sendMutation.mutate({ conversation_id: selectedConvId, message: reply.trim() }); } } }}
+            onSend={() => { if (reply.trim()) { sendMutation.mutate({ conversation_id: selectedConvId, message: reply.trim() }); } }}
+            sending={sendMutation.isPending}
             placeholder="Type message..."
-            className="min-h-16 text-sm resize-none"
+            channel="whatsapp"
+            voiceEnabled={true}
+            minHeight={48}
           />
-          <Button
-            onClick={() => {
-              if (reply.trim()) {
-                sendMutation.mutate({ conversation_id: selectedConvId, message: reply.trim() });
-              }
-            }}
-            disabled={!reply.trim() || sendMutation.isPending}
-            className="w-full gap-2"
-          >
-            <Send className="w-4 h-4" />
-            Send
-          </Button>
         </div>
       </div>
     );

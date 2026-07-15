@@ -237,7 +237,7 @@ async function withRetry(fn, attempts = 6) {
  * Find or create a WhatsAppConversation for the given phone + channel.
  * Returns the conversation record.
  */
-async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel, bodyText, timestamp, waDisplayName }) {
+async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel, bodyText, timestamp, waDisplayName, assignedAgentEmail, leadId }) {
   // Try to find existing conversation for this phone on this channel
   let conv = null;
   try {
@@ -249,7 +249,9 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
   // (avoids business messages being swallowed by an old personal conversation)
 
   if (!conv) {
-    // Create new
+    // Create new — stamp assigned_agent_email immediately so RLS allows the
+    // owning agent to see the conversation (and its messages) without waiting
+    // for the async routeWhatsAppMessage background job.
     try {
       conv = await serviceRole.entities.WhatsAppConversation.create({
         wa_phone_e164: e164Phone,
@@ -257,6 +259,8 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
         wa_display_name: waDisplayName,
         status: 'new',
         channel,
+        assigned_agent_email: assignedAgentEmail || null,
+        lead_id: leadId || null,
         first_message_at: timestamp,
         last_inbound_at: timestamp,
         last_message: bodyText,
@@ -272,7 +276,7 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
     }
   } else {
     try {
-      await serviceRole.entities.WhatsAppConversation.update(conv.id, {
+      const updateFields = {
         status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
         wa_display_name: conv.wa_display_name || waDisplayName, // Only fill if empty, never overwrite
         last_inbound_at: timestamp,
@@ -281,7 +285,15 @@ async function upsertConversation(serviceRole, { e164Phone, digitsPhone, channel
         last_message_channel: channel,
         channel: conv.channel || channel,
         unread_count: (conv.unread_count || 0) + 1,
-      });
+      };
+      // If conversation has no agent but we resolved one, stamp it now (RLS fix)
+      if (!conv.assigned_agent_email && assignedAgentEmail) {
+        updateFields.assigned_agent_email = assignedAgentEmail;
+      }
+      if (!conv.lead_id && leadId) {
+        updateFields.lead_id = leadId;
+      }
+      await serviceRole.entities.WhatsAppConversation.update(conv.id, updateFields);
     } catch (err) {
       console.warn('[evolutionWebhook] conversation update failed:', err?.message);
     }
@@ -427,6 +439,31 @@ Deno.serve(async (req) => {
       // Don't return yet — let it fall through so we can see if it needs special handling
     }
 
+    // ---- Auto-reconnect on connection.update (state=close) ----
+    // When Evolution fires a CONNECTION_UPDATE webhook with state "close",
+    // immediately call /instance/connect to restore the Baileys session from
+    // persisted auth files — no QR rescan needed. Fire-and-forget (non-blocking)
+    // so the webhook returns instantly.
+    if (event === 'connection.update') {
+      const connState = body?.data?.state || body?.data?.status || '';
+      console.log(`[evolutionWebhook][CONNECTION_UPDATE] instance=${instanceName} state=${connState}`);
+      if (connState === 'close' || connState === 'closed' || connState === 'disconnected') {
+        const apiUrl2 = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+        const apiKey2 = Deno.env.get('EVOLUTION_API_KEY') || '';
+        if (apiUrl2 && apiKey2 && instanceName) {
+          fetch(`${apiUrl2}/instance/connect/${instanceName}`, {
+            method: 'GET',
+            headers: { apikey: apiKey2 },
+          }).then((r) => {
+            console.log(`[evolutionWebhook][AUTO_RECONNECT] instance=${instanceName} status=${r.status}`);
+          }).catch((e) => {
+            console.warn(`[evolutionWebhook][AUTO_RECONNECT] instance=${instanceName} error=${e?.message || e}`);
+          });
+        }
+      }
+      return Response.json({ status: 'connection_update', state: connState });
+    }
+
     if (event !== 'messages.upsert') {
       return Response.json({ status: 'ignored', event });
     }
@@ -503,15 +540,87 @@ Deno.serve(async (req) => {
       if (existingWA?.length > 0) return Response.json({ status: 'duplicate', wa_message_id: waMessageId });
     }
 
+    // ---- Resolve sender identity BEFORE creating conversation (RLS fix) ----
+    // This stamps assigned_agent_email on the conversation at creation time so
+    // the owning agent can see it immediately — no waiting for the async
+    // routeWhatsAppMessage background job (which can be slow or fail).
+    let resolvedAgentEmail = null;
+    let resolvedLandlordId = null;
+    let resolvedLeadId = null;
+    if (!fromMe) {
+      try {
+        const idRes = await serviceRole.functions.invoke('resolveMessageIdentity', { digits_phone: digitsPhone });
+        const idData = idRes?.data ?? idRes;
+        resolvedAgentEmail = idData?.agent_email || null;
+        resolvedLandlordId = idData?.landlord_id || null;
+        resolvedLeadId = idData?.lead_id || null;
+        console.log(`[evolutionWebhook] Identity resolved: agent=${resolvedAgentEmail} landlord=${resolvedLandlordId} lead=${resolvedLeadId}`);
+      } catch (e) { console.warn('[evolutionWebhook] Pre-conversation identity resolution failed:', e?.message); }
+    }
+
+    // ---- For agent-channel instances, resolve the LINE OWNER (User.whatsapp_instance) ----
+    // so messages on an agent's own line are assigned to THAT agent (RLS visibility) and
+    // the from_number is correct for outbound messages typed on the phone.
+    let lineOwnerEmail = null;
+    let effectiveMyNumber = myNumber;
+    if (channel === 'agent') {
+      try {
+        const owners = await serviceRole.entities.User.filter({ whatsapp_instance: instanceName });
+        const owner = owners?.[0];
+        if (owner) {
+          lineOwnerEmail = owner.email || null;
+          if (owner.whatsapp_number) {
+            const d = String(owner.whatsapp_number).replace(/\D/g, '');
+            if (d) effectiveMyNumber = '+' + d;
+          }
+        }
+      } catch (e) { console.warn('[evolutionWebhook] line owner lookup failed:', e?.message); }
+    }
+
     // ---- Find/create WhatsAppConversation ----
-    // For outbound (fromMe), still find conv by e164 but don't bump unread
+    // Both inbound AND outbound (fromMe) are recorded so messages typed on the phone
+    // sync to the CRM in real time. The wa_message_id dedup above prevents double-counting
+    // for messages already stored by sendMultiChannelWhatsApp.
     let conv = null;
     if (fromMe) {
-      // For sent messages, find the conversation matching this exact channel only
+      // Outbound (sent from the phone) — find the existing thread for this contact+channel
       try {
         const convs = await serviceRole.entities.WhatsAppConversation.filter({ wa_phone_e164: e164Phone, channel });
         conv = convs?.[0] || null;
       } catch {}
+      if (!conv) {
+        // No prior thread — create one assigned to the line owner (agent lines) so the
+        // agent's own sent messages are visible to them under RLS. No unread bump.
+        try {
+          conv = await serviceRole.entities.WhatsAppConversation.create({
+            wa_phone_e164: e164Phone,
+            phone_number: e164Phone,
+            wa_display_name: waDisplayName || '',
+            status: 'open',
+            channel,
+            assigned_agent_email: lineOwnerEmail || resolvedAgentEmail || null,
+            first_message_at: timestamp,
+            last_message_at: timestamp,
+            last_outbound_at: timestamp,
+            last_message: parsed.text,
+            unread_count: 0,
+          });
+        } catch (err) { console.warn('[evolutionWebhook] outbound conv create failed:', err?.message); }
+      } else {
+        // Update the existing thread with the outbound message (no unread bump)
+        try {
+          const upd = {
+            status: conv.status === 'resolved' ? 'open' : (conv.status || 'open'),
+            last_message: parsed.text,
+            last_message_at: timestamp,
+            last_outbound_at: timestamp,
+            last_message_channel: channel,
+            channel: conv.channel || channel,
+          };
+          if (lineOwnerEmail && !conv.assigned_agent_email) upd.assigned_agent_email = lineOwnerEmail;
+          await serviceRole.entities.WhatsAppConversation.update(conv.id, upd);
+        } catch (err) { console.warn('[evolutionWebhook] outbound conv update failed:', err?.message); }
+      }
     } else {
       conv = await upsertConversation(serviceRole, {
         e164Phone,
@@ -520,16 +629,16 @@ Deno.serve(async (req) => {
         bodyText: parsed.text,
         timestamp,
         waDisplayName,
+        assignedAgentEmail: resolvedAgentEmail || lineOwnerEmail,
+        leadId: resolvedLeadId,
       });
     }
 
-    if (!conv && fromMe) {
-      // Outbound without a conversation — skip recording in WhatsAppMessage
-      // (sendMultiChannelWhatsApp already records outbound)
-      console.log('[evolutionWebhook] Outbound message, no conversation found — skipping WA record');
-    }
-
     // ---- Persist WhatsAppMessage (the main inbox record) ----
+    // Record BOTH inbound and outbound. Outbound (fromMe) = messages typed on the
+    // phone, which must sync to the CRM. The wa_message_id dedup above already
+    // returned early for messages sendMultiChannelWhatsApp stored, so anything
+    // reaching here is a phone-originated message that needs recording.
     let waMessage = null;
     if (conv) {
       try {
@@ -540,11 +649,11 @@ Deno.serve(async (req) => {
           body: parsed.text,
           status: fromMe ? 'sent' : 'delivered',
           timestamp,
-          from_number: fromMe ? myNumber : e164Phone,
-          to_number: fromMe ? e164Phone : myNumber,
+          from_number: fromMe ? effectiveMyNumber : e164Phone,
+          to_number: fromMe ? e164Phone : effectiveMyNumber,
           channel,
           media_type: parsed.media?.kind || 'none',
-          assigned_agent_email: conv.assigned_agent_email || null,
+          assigned_agent_email: conv.assigned_agent_email || resolvedAgentEmail || lineOwnerEmail || null,
         };
         if (parsed.media?.kind === 'audio') {
           waRecord.is_voice_note = parsed.media.isVoiceNote === true;
@@ -555,7 +664,7 @@ Deno.serve(async (req) => {
         if (parsed.caption) {
           waRecord.caption = parsed.caption;
         }
-        // Store raw Evolution payload for ALL inbound messages (for debugging unsupported types)
+        // Store raw Evolution payload for inbound messages (debugging unsupported types)
         if (!fromMe && data) {
           waRecord.raw_payload = {
             messageType: data.messageType || parsed.msgType,
@@ -564,59 +673,46 @@ Deno.serve(async (req) => {
             pushName: data.pushName || '',
           };
         }
-        // Skip recording outbound if sendMultiChannelWhatsApp already stored it
-        if (!fromMe) {
-          waMessage = await serviceRole.entities.WhatsAppMessage.create(waRecord);
-          console.log(`[evolutionWebhook] ✅ WhatsAppMessage created: ${waMessage.id} conv=${conv.id} channel=${channel}`);
-          // Download media (images/video/audio) for inline rendering in the inbox/landlord thread.
-          // Fire-and-forget — processWhatsAppMedia fetches from Evolution, uploads, stamps media_url.
-          if (parsed.media?.kind && parsed.media.kind !== 'none') {
-            serviceRole.functions.invoke('processWhatsAppMedia', {
-              message_id: waMessage.id,
-              instance: instanceName,
-            }).catch(() => {});
-          }
+        waMessage = await serviceRole.entities.WhatsAppMessage.create(waRecord);
+        console.log(`[evolutionWebhook] ✅ WhatsAppMessage created: ${waMessage.id} conv=${conv.id} channel=${channel} dir=${fromMe ? 'out' : 'in'}`);
+        // Download media (images/video/audio) for inline rendering in the inbox/landlord thread.
+        // Fire-and-forget — processWhatsAppMedia fetches from Evolution, uploads, stamps media_url.
+        if (parsed.media?.kind && parsed.media.kind !== 'none') {
+          serviceRole.functions.invoke('processWhatsAppMedia', {
+            message_id: waMessage.id,
+            instance: instanceName,
+          }).catch(() => {});
         }
       } catch (err) {
         console.error('[evolutionWebhook] WhatsAppMessage create failed:', err?.message);
       }
     }
 
-    // ---- Legacy Message record (backward compat) — with identity resolution + dedup ----
+    // ---- Legacy Message record (backward compat) — inbound AND outbound ----
     let legacyMessage = null;
-    if (!fromMe) {
-      try {
-        const existing = waMessageId
-          ? await serviceRole.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => [])
-          : [];
-        if (!existing?.length) {
-          // Identity resolution: match landlord by phone → additional_phones → WhatsAppNumberCache → lead
-          let landlordId = null, leadId = null, agentEmail = conv?.assigned_agent_email || null;
-          try {
-            const idRes = await serviceRole.functions.invoke('resolveMessageIdentity', { digits_phone: digitsPhone });
-            const idData = idRes?.data ?? idRes;
-            landlordId = idData?.landlord_id || null;
-            leadId = idData?.lead_id || null;
-            if (idData?.agent_email) agentEmail = agentEmail || idData.agent_email;
-          } catch (e) { console.warn('[evolutionWebhook] Identity resolution failed:', e?.message); }
-          legacyMessage = await serviceRole.entities.Message.create({
-            landlord_id: landlordId,
-            lead_id: leadId,
-            phone: digitsPhone,
-            direction: 'incoming',
-            text: parsed.text,
-            timestamp,
-            status: 'received',
-            wa_message_id: waMessageId || null,
-            channel: messageChannel,
-            instance_name: instanceName,
-            message_type: parsed.msgType,
-            agent_email: agentEmail,
-          });
-        }
-      } catch (err) {
-        console.warn('[evolutionWebhook] Legacy Message create failed:', err?.message);
+    try {
+      const existing = waMessageId
+        ? await serviceRole.entities.Message.filter({ wa_message_id: waMessageId }).catch(() => [])
+        : [];
+      if (!existing?.length) {
+        const agentEmail = conv?.assigned_agent_email || resolvedAgentEmail || lineOwnerEmail || null;
+        legacyMessage = await serviceRole.entities.Message.create({
+          landlord_id: resolvedLandlordId,
+          lead_id: resolvedLeadId,
+          phone: digitsPhone,
+          direction: fromMe ? 'outgoing' : 'incoming',
+          text: parsed.text,
+          timestamp,
+          status: fromMe ? 'sent' : 'received',
+          wa_message_id: waMessageId || null,
+          channel: messageChannel,
+          instance_name: instanceName,
+          message_type: parsed.msgType,
+          agent_email: agentEmail,
+        });
       }
+    } catch (err) {
+      console.warn('[evolutionWebhook] Legacy Message create failed:', err?.message);
     }
 
     // ---- Background: route + enrich for inbound messages ----
@@ -636,7 +732,20 @@ Deno.serve(async (req) => {
         line_owner_phone: lineOwnerPhone,
       }).catch(() => {});
       serviceRole.functions.invoke('enrichConversation', { conversation_id: conv.id }).catch(() => {});
-      
+
+      // BRAIN V4 P3 LEARN: inbound reply → outcome ledger (non-fatal). recordOutcomeEvent
+      // links it to the last outbound within 72h and inherits that send's angle attribution.
+      if (resolvedLandlordId) {
+        serviceRole.functions.invoke('recordOutcomeEvent', {
+          landlord_id: resolvedLandlordId,
+          kind: 'reply_received',
+          channel: 'whatsapp',
+          source_ref: legacyMessage?.id ? `Message:${legacyMessage.id}` : (waMessageId ? `wa:${waMessageId}` : ''),
+          text: parsed.text || '',
+          responded_at: timestamp,
+        }).catch(() => {});
+      }
+
       // NOTE: Property Finder Lead auto-creation DISABLED — replaced with direct PF API poll.
       // Template message parsing (parsePropertyFinderLead) remains active for display purposes.
     }

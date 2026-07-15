@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles, Copy, Check, Mail, MessageSquare, Phone, Lightbulb, ChevronRight, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const ActionCard = ({ icon: Icon, iconColor, bgColor, title, children }) => (
   <div className={`rounded-xl p-4 space-y-2.5 ${bgColor} border border-white/60 shadow-sm`}>
@@ -157,6 +158,7 @@ ${extraInput ? `Additional context: ${extraInput}` : ''}`,
                   onChange={(e) => setCustomInput(e.target.value)}
                   className="min-h-20 text-xs bg-white border-[#E5E7EB] rounded-xl resize-none"
                 />
+                <DictationMicButton value={customInput} onChange={(val) => setCustomInput(val)} />
               </div>
 
               {/* Action Buttons */}

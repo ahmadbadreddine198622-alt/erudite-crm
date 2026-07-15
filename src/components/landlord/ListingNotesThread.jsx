@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { MessageSquare, Send, Loader2, ChevronDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function ListingNotesThread({ landlordProperty, landlordPropertyId, onRefetch }) {
   const [open, setOpen] = useState(false);
@@ -111,6 +112,7 @@ export default function ListingNotesThread({ landlordProperty, landlordPropertyI
                     color: 'rgba(255,255,255,0.9)',
                   }}
                 />
+                <DictationMicButton value={body} onChange={(val) => setBody(val)} />
                 <button
                   onClick={handlePost}
                   disabled={posting || !body.trim()}

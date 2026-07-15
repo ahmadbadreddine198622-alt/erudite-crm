@@ -29,7 +29,7 @@ export default function MyLeadsToday() {
     queryKey: ['queue-landlords', queue.join(','), TODAY],
     queryFn: async () => {
       if (!queue.length) return [];
-      const all = await base44.entities.Landlord.list('-updated_date', 200);
+      const all = await base44.entities.Landlord.filter({ assigned_agent_email: user.email }, '-updated_date');
       return queue.map(id => all.find(l => l.id === id)).filter(Boolean);
     },
     enabled: queue.length > 0,

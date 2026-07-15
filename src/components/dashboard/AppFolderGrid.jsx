@@ -31,6 +31,7 @@ const FOLDER_DEFS = [
     icon: Building2,
     jewelColor: '#f5c878',
     jewelAura: 'rgba(240,169,59,.58)',
+    prominent: true,
     appLabels: ['Landlords', 'Listing Production', 'Photography', 'Matterport Sync', 'Property Finder', 'Find Property', 'Property Intel', 'Form A Referral', 'Form I Generator'],
   },
   {
@@ -104,18 +105,7 @@ export const MISSING_APP_LABELS = FOLDER_DEFS
   .filter(l => !APP_BY_LABEL[l]);
 
 // ── Icon case (small flat lit-case, matching the app‑icon style) ───────────────
-const hueParts = glowColor => {
-  const m = (glowColor || '').match(/rgba?\(([^)]+)\)/);
-  if (!m) return { rgb: '154,166,192', light: 'rgb(195,204,221)' };
-  const parts = m[1].split(',').map(s => parseInt(s.trim(), 10));
-  const [r, g, b] = parts.length >= 3 ? parts : [154, 166, 192];
-  const lr = Math.min(255, Math.round(r + (255 - r) * 0.65));
-  const lg = Math.min(255, Math.round(g + (255 - g) * 0.65));
-  const lb = Math.min(255, Math.round(b + (255 - b) * 0.65));
-  return { rgb: `${r},${g},${b}`, light: `rgb(${lr},${lg},${lb})` };
-};
 function IconCase({ folder }) {
-  const hue = hueParts(folder.jewelAura);
   return (
     <div
       className="flex items-center justify-center transition-all duration-200"
@@ -123,12 +113,12 @@ function IconCase({ folder }) {
         width: '80px',
         height: '80px',
         borderRadius: '19px',
-        background: `radial-gradient(130% 130% at 30% 18%, rgba(${hue.rgb},0.20), rgba(${hue.rgb},0.04))`,
-        border: '1px solid rgba(212,175,55,0.20)',
-        boxShadow: `0 0 28px -6px rgba(${hue.rgb},0.35), inset 0 1px 0 rgba(255,255,255,0.14)`,
+        background: 'var(--ds-card, rgba(255,255,255,0.022))',
+        border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+        boxShadow: '0 0 18px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      {folder.icon && <folder.icon style={{ width: 38, height: 38, color: folder.jewelColor, strokeWidth: 1.7 }} />}
+      {folder.icon && <folder.icon style={{ width: 38, height: 38, color: folder.prominent ? '#eccd72' : '#e8ecf6', strokeWidth: 1.6 }} />}
     </div>
   );
 }
@@ -138,7 +128,6 @@ function IconCase({ folder }) {
 function FolderAppIcon({ app, badges, onNavigate }) {
   const Icon = app.icon;
   const badgeCount = app.badgeKey ? (badges[app.badgeKey] || 0) : 0;
-  const hue = hueParts(app.glowColor);
 
   return (
     <button
@@ -153,23 +142,23 @@ function FolderAppIcon({ app, badges, onNavigate }) {
           width: '66px',
           height: '66px',
           borderRadius: '19px',
-          background: `radial-gradient(130% 130% at 30% 18%, rgba(${hue.rgb},0.22), rgba(${hue.rgb},0.05))`,
-          border: '1px solid rgba(212,175,55,0.24)',
-          boxShadow: `0 0 32px -8px rgba(${hue.rgb},0.55), inset 0 1px 0 rgba(255,255,255,0.16)`,
+          background: 'var(--ds-card, rgba(255,255,255,0.022))',
+          border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+          boxShadow: '0 8px 22px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.boxShadow = `0 0 40px -6px rgba(${hue.rgb},0.7), inset 0 1px 0 rgba(255,255,255,0.2)`;
-          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)';
+          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.35)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = `0 0 32px -8px rgba(${hue.rgb},0.55), inset 0 1px 0 rgba(255,255,255,0.16)`;
-          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.24)';
+          e.currentTarget.style.boxShadow = '0 8px 22px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)';
+          e.currentTarget.style.borderColor = 'var(--ds-card-line, rgba(255,255,255,0.07))';
         }}
       >
         {Icon ? (
-          <Icon style={{ width: '30px', height: '30px', strokeWidth: 1.5, color: hue.light }} />
+          <Icon style={{ width: '30px', height: '30px', strokeWidth: 1.5, color: '#e8ecf6' }} />
         ) : (
           <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>?</span>
         )}
@@ -221,25 +210,38 @@ function FolderTile({ folder, badges, onOpen }) {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Tile — glass card with jewel aura */}
+      {/* Tile — glass card with jewel aura. The Landlords & Listings tile is marked
+          `prominent` so it carries a permanent gold ring + glow, making it the one
+          easy-to-find landlord icon on the dashboard. */}
       <div
-        className="relative overflow-hidden flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200"
+        className={`relative overflow-hidden flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200${folder.prominent ? ' landlords-tile' : ''}`}
         style={{
           width: '100%',
           minHeight: '116px',
-          background: 'var(--ds-card, rgba(255,255,255,0.022))',
-          border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+          background: folder.prominent
+            ? 'radial-gradient(130% 130% at 50% 0%, rgba(212,175,55,0.10), var(--ds-card, rgba(255,255,255,0.022)))'
+            : 'var(--ds-card, rgba(255,255,255,0.022))',
+          border: folder.prominent
+            ? '1px solid rgba(212,175,55,0.55)'
+            : '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
           borderRadius: '18px',
+          boxShadow: folder.prominent
+            ? `0 0 26px -4px rgba(212,175,55,0.45), inset 0 1px 0 rgba(255,255,255,0.12)`
+            : 'none',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-6px)';
-          e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)';
-          e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.4), 0 0 24px ${folder.jewelAura}`;
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.borderColor = folder.prominent ? 'rgba(212,175,55,0.75)' : 'rgba(255,255,255,0.14)';
+          e.currentTarget.style.boxShadow = folder.prominent
+            ? '0 14px 40px rgba(0,0,0,0.45), 0 0 26px -4px rgba(212,175,55,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+            : '0 12px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.borderColor = 'var(--ds-card-line, rgba(255,255,255,0.07))';
-          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.borderColor = folder.prominent ? 'rgba(212,175,55,0.55)' : 'var(--ds-card-line, rgba(255,255,255,0.07))';
+          e.currentTarget.style.boxShadow = folder.prominent
+            ? '0 0 26px -4px rgba(212,175,55,0.45), inset 0 1px 0 rgba(255,255,255,0.12)'
+            : 'none';
         }}
       >
         {/* Aggregate badge */}
@@ -253,14 +255,17 @@ function FolderTile({ folder, badges, onOpen }) {
         )}
         <IconCase folder={folder} />
       </div>
-      {/* Label */}
+      {/* Label — prominent folders get the gold treatment so the icon + name read together
+          as the one easy-to-find landlord entry. */}
       <span
         className="text-[10px] text-center font-medium mt-1.5 block"
         style={{
           fontFamily: 'var(--font-sans)',
-          color: 'rgba(255,255,255,0.7)',
+          color: folder.prominent ? '#eccd72' : 'rgba(255,255,255,0.7)',
+          fontWeight: folder.prominent ? 700 : 500,
           letterSpacing: '0.03em',
           lineHeight: '1.2',
+          textShadow: folder.prominent ? '0 0 12px rgba(212,175,55,0.45)' : 'none',
         }}
       >
         {folder.name}
@@ -343,7 +348,7 @@ function FolderOverlay({ folder, badges, tilt, onClose, onNavigate }) {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 600,
                 fontSize: '24px',
-                color: folder.jewelColor,
+                color: '#e8ecf6',
                 lineHeight: 1.1,
               }}
             >

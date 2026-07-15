@@ -18,8 +18,10 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { FileText, Sparkles, Paperclip, Save, Send, Lock, ChevronDown, Plus, X, Globe, Loader2, Wand2 } from 'lucide-react';
 import { TRANSLATE_LANGS, TONE_OPTIONS } from './ModernComposerField';
 import EmojiPicker from './EmojiPicker';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 import TemplateField from '@/components/common/TemplateField';
 import { buildAgentCtaHtml } from '@/lib/agentSignature';
+import ApproachDraftStrip from './ApproachDraftStrip';
 
 /* ── helpers ── */
 function css(str) {
@@ -107,7 +109,7 @@ const DELIVERY_META = {
   failed:    { label: 'Failed to send', color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)' },
 };
 
-export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged }) {
+export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged, approachDrafts, approachForging, onRegenerateApproach }) {
   const { user } = useCurrentUser();
 
   const [gmailConnected, setGmailConnected] = useState(false);
@@ -342,6 +344,16 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
     }
   };
 
+  // Approach Forge — load the auto-forged email draft into the editor (agent reviews, then sends).
+  const loadApproachDraft = (d) => {
+    if (!d || !d.body_native) return;
+    setSubject(d.subject || '');
+    setBodyHtml(plainTextToHtml(d.body_native || ''));
+    setBodyGloss(d.body_english_gloss || '');
+    setLanguage((approachDrafts && approachDrafts.language) || '');
+    toast.success('Approach draft loaded — review, then send');
+  };
+
   const handleTemplateSelect = ({ subject: s, body: b }) => {
     setSubject(replaceMergeFields(s, mergeVars));
     setBodyHtml(plainTextToHtml(replaceMergeFields(b, mergeVars)));
@@ -563,6 +575,15 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
         </div>
       )}
 
+      {/* Approach Forge — the auto-forged email draft, one tap to load (never auto-sent) */}
+      <ApproachDraftStrip
+        channel="email"
+        drafts={approachDrafts}
+        forging={approachForging}
+        onLoad={loadApproachDraft}
+        onRegenerate={onRegenerateApproach}
+      />
+
       <div style={css("margin-bottom:6px;")}>
         <TemplateField multiline={false} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" style={css(fieldSm)} />
       </div>
@@ -747,6 +768,11 @@ export default function EmailComposer({ landlordId, toEmail, allEmails, onLogged
               </div>
             </PopoverContent>
           </Popover>
+          {/* Live dictation — streams speech into the email body */}
+          <DictationMicButton
+            value={bodyPlainText}
+            onChange={(val) => { skipAutoGloss.current = false; setBodyHtml(plainTextToHtml(val)); }}
+          />
         </div>
         {/* Send icon */}
         <button type="button" onClick={sendEmail} disabled={!canSend}

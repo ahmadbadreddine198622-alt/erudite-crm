@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Sparkles, Copy, Check, Mail, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import WritingField from '@/components/shared/WritingField';
 
 export default function AIInsightsPanel({ selectedContactId = null }) {
   const [input, setInput] = useState('');
@@ -139,7 +140,7 @@ Be concise but comprehensive. Use clear formatting.`,
             <label className="text-xs font-semibold text-muted-foreground block mb-2">
               Paste contact information for AI analysis
             </label>
-            <Textarea
+            <WritingField
               placeholder={`Example:
 Ahmed Al Mansouri, 00971501234567
 Looking for 3BR villa in Dubai Marina
@@ -313,7 +314,7 @@ Insights: ${insights.insights}
                 <label className="text-xs font-semibold text-muted-foreground block mb-2">
                   Contact & Unit Details
                 </label>
-                <Textarea
+                <WritingField
                   placeholder={`Example:
 Ahmed Al Mansouri, +971501234567
 3BR Villa, Marina, 2500 sqft

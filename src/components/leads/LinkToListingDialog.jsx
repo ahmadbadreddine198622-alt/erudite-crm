@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAllLandlords } from '@/api/sharedData';
 import {
   Dialog, DialogContent, DialogTitle
 } from '@/components/ui/dialog';
@@ -32,12 +33,13 @@ export default function LinkToListingDialog({ lead, trigger }) {
   const [linking, setLinking] = useState(false);
   const queryClient = useQueryClient();
 
-  // Load landlords + their properties
-  const { data: landlords = [] } = useQuery({
-    queryKey: ['landlords-for-link'],
-    queryFn: () => base44.entities.Landlord.list('full_name_en', 500),
-    enabled: open,
-  });
+  // Load landlords + their properties — shared ['landlords','all'] cache
+  // (instant when warm), sorted alphabetically client-side for the picker.
+  const { data: landlordsRaw = [] } = useAllLandlords({ enabled: open });
+  const landlords = useMemo(
+    () => [...landlordsRaw].sort((a, b) => (a.full_name_en || '').localeCompare(b.full_name_en || '')),
+    [landlordsRaw]
+  );
 
   const { data: units = [] } = useQuery({
     queryKey: ['landlord-properties-for-link'],

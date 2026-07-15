@@ -39,21 +39,28 @@ function normalizePhone(raw) {
 
 async function findExistingEntity(base44, phoneE164) {
   const phoneAlt = phoneE164.replace(/^\+/, '');
+  // Query both format variants: E.164 with '+' and digits-only
+  const variants = [phoneE164, phoneAlt];
 
   try {
-    const landlords = await base44.asServiceRole.entities.Landlord.filter({});
-    const matched = landlords.find(l =>
-      [l.phone, l.whatsapp].some(p => p && (p === phoneE164 || p === phoneAlt || p.replace(/[^\d]/g, '') === phoneAlt))
-    );
-    if (matched) return { type: 'landlord', entity: matched };
+    const landlords = await base44.asServiceRole.entities.Landlord.filter({
+      $or: [
+        { phone: { $in: variants } },
+        { whatsapp: { $in: variants } },
+        { additional_phones: { $in: variants } },
+      ],
+    }, '-created_date', 10).catch(() => []);
+    if (landlords.length > 0) return { type: 'landlord', entity: landlords[0] };
   } catch {}
 
   try {
-    const leads = await base44.asServiceRole.entities.Lead.filter({});
-    const matched = leads.find(l =>
-      [l.phone, l.whatsapp].some(p => p && (p === phoneE164 || p === phoneAlt || p.replace(/[^\d]/g, '') === phoneAlt))
-    );
-    if (matched) return { type: 'lead', entity: matched };
+    const leads = await base44.asServiceRole.entities.Lead.filter({
+      $or: [
+        { phone: { $in: variants } },
+        { whatsapp: { $in: variants } },
+      ],
+    }, '-created_date', 10).catch(() => []);
+    if (leads.length > 0) return { type: 'lead', entity: leads[0] };
   } catch {}
 
   return null;
@@ -239,7 +246,19 @@ Deno.serve(async (req) => {
       // The webhook creates conversations with no assigned_agent_email, so
       // non-admin users can't see them. Fix: stamp the entity's agent onto
       // the conversation so RLS allows the assigned agent to read it.
-      const agentEmail = e.assigned_agent_email || e.listing_manager_email || null;
+      let agentEmail = e.assigned_agent_email || e.listing_manager_email || null;
+      // Fallback: if the matched entity has no assigned agent, auto-pick one by
+      // capacity so the conversation is visible to someone (not just admins).
+      if (!agentEmail) {
+        const fallbackDept = entityType === 'landlord' ? 'Listing Acquisition' : 'Sales';
+        agentEmail = await pickAgent(base44, e.preferred_language, fallbackDept);
+        if (agentEmail && entityType === 'lead') {
+          await base44.asServiceRole.entities.Lead.update(e.id, { assigned_agent_email: agentEmail }).catch(() => {});
+        } else if (agentEmail && entityType === 'landlord') {
+          await base44.asServiceRole.entities.Landlord.update(e.id, { assigned_agent_email: agentEmail }).catch(() => {});
+        }
+        console.log(`[routeWhatsAppMessage] Entity had no agent — auto-assigned ${agentEmail}`);
+      }
       if (conversation_id && agentEmail) {
         try {
           await base44.asServiceRole.entities.WhatsAppConversation.update(conversation_id, {

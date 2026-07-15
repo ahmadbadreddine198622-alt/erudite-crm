@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
 import { Loader2, Send, Sparkles } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 import { GOLD, GOLD_LITE, card, goldStrip, serif, label, goldBtn, input, rankPill } from '@/lib/academyStyles';
 
 export default function CouncilReflections() {
@@ -111,13 +113,19 @@ export default function CouncilReflections() {
           </div>
           {currentPrinciple.reflection_prompt && (
             <div style={goldStrip}>
-              <p style={{ ...label, color: GOLD }}>Reflection Prompt</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ ...label, color: GOLD }}>Reflection Prompt</p>
+                <ReadAloudButton text={currentPrinciple.reflection_prompt} title={`Reflection: ${currentPrinciple.name}`} />
+              </div>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.88)', marginTop: 4, fontStyle: 'italic' }}>{currentPrinciple.reflection_prompt}</p>
             </div>
           )}
-          <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
-            placeholder="Write your reflection here. Be honest about what you did, what worked, what didn't..."
-            style={{ ...input, resize: 'vertical', lineHeight: 1.6, marginTop: 12 }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
+              placeholder="Write your reflection here. Be honest about what you did, what worked, what didn't..."
+              style={{ ...input, resize: 'vertical', lineHeight: 1.6, marginTop: 12, flex: 1 }} />
+            <DictationMicButton value={text} onChange={setText} size={16} style={{ marginBottom: 4 }} />
+          </div>
           <button onClick={handleSubmit} disabled={submitting} style={{ ...goldBtn, marginTop: 12 }}>
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Submit & Complete Week
           </button>
@@ -142,7 +150,10 @@ export default function CouncilReflections() {
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)', lineHeight: 1.5, marginBottom: 8 }}>{r.reflection_text}</p>
               {r.ai_feedback && (
                 <div style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 8, padding: '8px 12px' }}>
-                  <p style={{ ...label, color: GOLD, display: 'flex', alignItems: 'center', gap: 4 }}><Sparkles size={11} /> Mentor Feedback</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <p style={{ ...label, color: GOLD, display: 'flex', alignItems: 'center', gap: 4 }}><Sparkles size={11} /> Mentor Feedback</p>
+                    <ReadAloudButton text={r.ai_feedback} title={`Feedback: Week ${r.week_number}`} size={12} />
+                  </div>
                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4, lineHeight: 1.5 }}>{r.ai_feedback}</p>
                 </div>
               )}

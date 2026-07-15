@@ -4,6 +4,7 @@ import { Loader2, Building2, User, Play, Pause, FileText, MapPin, Download, X, C
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import VoiceMessageBubble from './VoiceMessageBubble';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 export default function ChatThread({ conversationId, allConversationIds, contactName, optimisticMessage, conversationChannel }) {
   const bottomRef = useRef(null);
@@ -376,7 +377,11 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel, is
 
   // Location
   if (msg.location_json) {
-    const location = typeof msg.location_json === 'string' ? JSON.parse(msg.location_json) : msg.location_json;
+    let location = msg.location_json;
+    if (typeof location === 'string') {
+      try { location = location.trim() ? JSON.parse(location) : null; } catch { location = null; }
+    }
+    if (!location) return null;
     return (
       <div className={cn('flex mb-1', isOutbound ? 'justify-end' : 'justify-start')}>
         <div className="max-w-[70%]">
@@ -422,9 +427,12 @@ function MessageBubble({ msg, contactName, onImageClick, conversationChannel, is
             borderBottomLeftRadius: isLastInRun && !isOutbound ? '0.5rem' : undefined,
           }}
         >
-          <p className="text-white/95" style={{ fontSize: '13px', lineHeight: '1.35' }}>
-            <MessageText text={msg.body} isOutbound={isOutbound} />
-          </p>
+          <div className="flex items-start gap-1">
+            <p className="text-white/95 flex-1" style={{ fontSize: '13px', lineHeight: '1.35' }}>
+              <MessageText text={msg.body} isOutbound={isOutbound} />
+            </p>
+            <SpeechifyPlayer text={msg.body} title={`WhatsApp · ${isOutbound ? 'You' : (contactName || 'Contact')}${msg.timestamp ? ' · ' + format(new Date(msg.timestamp), 'dd MMM HH:mm') : ''}`} size={11} color="rgba(255,255,255,0.5)" style={{ flex: 'none', marginTop: 2 }} />
+          </div>
           <MessageFooter msg={msg} isOutbound={isOutbound} ChannelIcon={ChannelIcon} channel={channel} />
         </div>
       </div>

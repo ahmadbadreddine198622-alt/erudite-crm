@@ -17,6 +17,7 @@ import { Sparkles, Send, Save, X } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
 import ModernComposerField from './ModernComposerField';
 import TemplateField from '@/components/common/TemplateField';
+import ApproachDraftStrip from './ApproachDraftStrip';
 
 function playSentSound() {
   try {
@@ -92,11 +93,12 @@ const PSYCHOLOGY_OPTIONS = [
 const fieldSm = "padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); font-size:11px; font-family:'Inter',sans-serif; width:100%; outline:none;";
 const labelSm = "font-size:8px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:2px;";
 
-export default function IMessageComposer({ landlordId, onSent, onFallback, imessageStatus = 'unknown', imessageHandles = [] }) {
+export default function IMessageComposer({ landlordId, onSent, onFallback, imessageStatus = 'unknown', imessageHandles = [], approachDrafts, approachForging, onRegenerateApproach }) {
   const blocked = imessageStatus === 'not_available' || imessageStatus === 'error';
   const handles = Array.isArray(imessageHandles) ? imessageHandles : [];
   const availableHandles = handles.filter((h) => h && h.imessage_status === 'available');
   const [selectedAddress, setSelectedAddress] = useState('all');
+  const [instance, setInstance] = useState('bb1');
   const [mode, setMode] = useState('asset_proof');
   const [psychology, setPsychology] = useState('');
   const [buyerDetail, setBuyerDetail] = useState('');
@@ -124,6 +126,16 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
   const [attachment, setAttachment] = useState(null);
 
   const taRef = useRef(null);
+
+  // Approach Forge — load the auto-forged iMessage draft into the text area (agent reviews, then sends).
+  const loadApproachDraft = (d) => {
+    if (!d || !d.body_native) return;
+    setText(d.body_native || '');
+    setDraftGloss(d.body_english_gloss || '');
+    setLanguage((approachDrafts && approachDrafts.language) || '');
+    setHasDraft(true);
+    toast.success('Approach draft loaded — review, then send');
+  };
 
   // Insert an emoji at the cursor position in the textarea.
   const insertEmoji = (emoji) => {
@@ -229,7 +241,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
 
       for (let i = 0; i < targets.length; i++) {
         const addr = targets[i];
-        const payload = { landlord_id: landlordId, text, origin: window.location.origin };
+        const payload = { landlord_id: landlordId, text, origin: window.location.origin, instance };
         if (addr) payload.address = addr;
         if (i > 0) payload.skip_banner = true; // attach the first-contact banner only once
         if (attachment) payload.attachment = attachment; // voice note / file attachment
@@ -265,7 +277,7 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
   };
 
   return (
-    <div style={{ ...css("margin-bottom:9px; border-radius:12px; border:1px solid rgba(10,132,255,0.28); background:rgba(10,132,255,0.05); padding:10px 12px;"), position: 'relative', overflow: 'hidden' }}>
+    <div className="glass-card" style={{ ...css("margin-bottom:9px; border-radius:14px; padding:12px 14px 10px;"), position: 'relative', overflow: 'hidden', borderTopColor: 'rgba(10,132,255,0.35)', boxShadow: '0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(10,132,255,0.12), inset 0 1px 0 rgba(255,255,255,0.08)' }}>
       <style>{`
         @keyframes imc-spin { to { transform: rotate(360deg); } }
         @keyframes imc-flash-in { 0% { opacity:0; transform:scale(0.6); } 55% { opacity:1; transform:scale(1.08); } 70% { transform:scale(0.97); } 100% { opacity:1; transform:scale(1); } }
@@ -273,6 +285,29 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
         @keyframes imc-plane { 0% { transform:translate(-6px,4px) rotate(-8deg); opacity:0; } 30% { opacity:1; } 100% { transform:translate(70px,-46px) rotate(12deg); opacity:0; } }
         @keyframes imc-ring { 0% { transform:scale(0.4); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
       `}</style>
+      {/* iMessage header strip */}
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:7px; border-bottom:1px solid rgba(10,132,255,0.15);")}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#0A84FF', boxShadow: '0 0 8px rgba(10,132,255,0.5)', flex: 'none' }} />
+        <span style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#60a5fa; font-family:'Inter',sans-serif;")}>iMessage</span>
+        {!blocked && availableHandles.length > 0 && <span style={css("font-size:9px; color:rgba(255,255,255,0.35); margin-left:auto; font-family:'Inter',sans-serif;")}>{availableHandles.length} handle{availableHandles.length === 1 ? '' : 's'}</span>}
+      </div>
+
+      {/* iMessage line selector — Erudite Main (bb1) vs Operations Line (bb2) */}
+      <div style={css("display:flex; align-items:center; gap:5px; margin-bottom:8px;")}>
+        <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); flex:none;")}>Line</span>
+        {[
+          { key: 'bb1', label: 'Erudite Main' },
+          { key: 'bb2', label: 'Operations' },
+        ].map((opt) => {
+          const on = instance === opt.key;
+          return (
+            <button key={opt.key} type="button" onClick={() => setInstance(opt.key)} title={opt.key === 'bb1' ? 'Erudite Main (bb1)' : 'Operations Line (bb2)'}
+              style={{ ...css("padding:3px 9px; border-radius:99px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;"), background: on ? 'rgba(10,132,255,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#60a5fa' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (on ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.12)') }}>
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
 
       {justSent && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(180deg, rgba(10,132,255,0.24), rgba(10,132,255,0.08))', backdropFilter: 'blur(3px)', borderRadius: 12, animation: 'imc-flash-out 0.4s ease forwards 1.3s' }}>
@@ -328,6 +363,17 @@ export default function IMessageComposer({ landlordId, onSent, onFallback, imess
       {blocked && (
         <div style={css("margin-bottom:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ No iMessage handle for this landlord</div>
       )}
+
+      {/* Approach Forge — the auto-forged iMessage draft, one tap to load (never auto-sent).
+          ALWAYS shown when a draft exists — channel availability gates SENDING, never the draft. */}
+      <ApproachDraftStrip
+        channel="imessage"
+        drafts={approachDrafts}
+        forging={approachForging}
+        onLoad={loadApproachDraft}
+        onRegenerate={onRegenerateApproach}
+        accent="#0A84FF"
+      />
 
       {/* Signature + link preview — appended automatically on send */}
       {signatureText && (

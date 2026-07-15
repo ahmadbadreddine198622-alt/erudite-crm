@@ -50,12 +50,17 @@ Deno.serve(async (req) => {
       unitRef = unitNos.join(', ');
     }
 
-    // Update the Landlord record
-    await base44.asServiceRole.entities.Landlord.update(landlord_id, {
-      unit_reference: unitRef || null,
-    });
+    // Update the Landlord record — but NEVER wipe an existing unit_reference when this
+    // landlord has no linked properties. Many landlords (e.g. the Peninsula 3 import) carry
+    // their unit in unit_reference WITHOUT LandlordProperty rows; writing null here erased
+    // 200 of them on 2026-07-14. Sync only writes when it actually has a unit to write.
+    if (unitRef) {
+      await base44.asServiceRole.entities.Landlord.update(landlord_id, {
+        unit_reference: unitRef,
+      });
+    }
 
-    return Response.json({ success: true, landlord_id, unit_reference: unitRef || null });
+    return Response.json({ success: true, landlord_id, unit_reference: unitRef || null, skipped_empty: !unitRef });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

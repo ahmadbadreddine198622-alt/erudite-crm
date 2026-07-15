@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EmailThread from '@/components/inbox/EmailThread';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const TAG_COLORS = {
   sales: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -189,9 +190,12 @@ export default function EmailDetailPanel({ email, onClose, onLeadCreated }) {
               title="email-html"
             />
           ) : (
-            <pre className="whitespace-pre-wrap font-sans text-sm text-foreground/90">
-              {email.body_text || email.snippet || '(No content)'}
-            </pre>
+            <div className="flex items-start gap-2">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-foreground/90 flex-1">
+                {email.body_text || email.snippet || '(No content)'}
+              </pre>
+              <SpeechifyPlayer text={email.body_text || email.snippet || ''} size={12} color="rgba(255,255,255,0.55)" />
+            </div>
           )}
         </div>
 

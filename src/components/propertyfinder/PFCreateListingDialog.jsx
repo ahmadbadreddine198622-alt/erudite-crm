@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, X, Image as ImageIcon } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 
 const PROPERTY_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'duplex', 'studio', 'office', 'shop', 'warehouse', 'land', 'building', 'compound', 'factory', 'hotel_apartment', 'bulk_units'];
 const CATEGORIES = ['residential', 'commercial'];
@@ -256,11 +257,11 @@ export default function PFCreateListingDialog({ open, onClose, onSuccess, editLi
             <TextField label="Title (Arabic)" value={form.title_ar} onChange={v => set('title_ar', v)} placeholder="شقة 2 غرف نوم رائعة في وسط دبي" />
             <div className="space-y-1.5">
               <Label>Description (English)<span className="text-red-500 ml-1">*</span></Label>
-              <Textarea value={form.description_en} onChange={e => set('description_en', e.target.value)} placeholder="Describe the property..." rows={4} />
+              <WritingField value={form.description_en} onChange={e => set('description_en', e.target.value)} placeholder="Describe the property..." rows={4} />
             </div>
             <div className="space-y-1.5">
               <Label>Description (Arabic)</Label>
-              <Textarea value={form.description_ar} onChange={e => set('description_ar', e.target.value)} placeholder="وصف العقار..." rows={3} dir="rtl" />
+              <WritingField value={form.description_ar} onChange={e => set('description_ar', e.target.value)} placeholder="وصف العقار..." rows={3} dir="rtl" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <TextField label="Reference / ID" value={form.reference} onChange={v => set('reference', v)} placeholder="EE-2024-001" />

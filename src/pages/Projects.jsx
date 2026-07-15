@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { Building2, ChevronLeft, Users, LayoutList, TrendingUp, MapPin, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +31,7 @@ export default function Projects() {
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 2000),
+    queryFn: () => fetchAllRecords(base44.entities.Lead, '-created_date'),
   });
 
   const { data: listings = [] } = useQuery({

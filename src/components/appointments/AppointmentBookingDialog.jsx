@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { toast } from 'sonner';
 import TemplateField from '@/components/common/TemplateField';
 import { Calendar, Clock, Mail, Plus, X, Bell, Loader2, Globe, User } from 'lucide-react';
@@ -73,7 +74,7 @@ export default function AppointmentBookingDialog({ open, onOpenChange, onBooked,
     setLoading(true);
     Promise.all([
       base44.auth.me().catch(() => null),
-      base44.entities.Landlord.list('-created_date', 200).catch(() => []),
+      fetchAllRecords(base44.entities.Landlord, '-created_date').catch(() => []),
     ]).then(([me, llList]) => {
       setLandlords(llList || []);
       const defaultReminders = (me?.default_reminders || []).map((r) => ({

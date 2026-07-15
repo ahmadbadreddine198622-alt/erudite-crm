@@ -1,15 +1,95 @@
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Mail, Trash2, UserMinus, ExternalLink, CheckCircle2, Camera, Film, Image, Box, FileCheck, Loader2, GripVertical } from 'lucide-react';
+import { Phone, MessageCircle, Mail, Trash2, UserMinus, ExternalLink, CheckCircle2, CalendarClock, Camera, Film, Image, Box, FileText, Loader2, GripVertical, Sparkles, MapPin, ArrowRight, ChevronRight } from 'lucide-react';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
+import ChannelAvailabilityIcons from './ChannelAvailabilityIcons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
-import { ProjectBadge } from '@/lib/projectColors.jsx';
-import { nextStepFor, getCaptureStatus } from '@/lib/landlordStageGuide';
+import { nextStepFor, getCaptureStatus, STAGE_ORDER } from '@/lib/landlordStageGuide';
 import StageArrows from './StageArrows';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
+
+// ── Private Bank design tokens ──────────────────────────────────────────────
+const GOLD = '#D8B26A';
+const NAME = '#E9EDF6';
+const SLATE = '#A7B0C4';
+const MONEY = '#8A93A8';
+const CLARET = '#B4463F';
+const CLARET_TEXT = '#C86F66';
+const CLARET_BG = 'rgba(180,70,63,0.08)';
+const CLARET_BORDER = 'rgba(180,70,63,0.35)';
+const HAIR = 'rgba(255,255,255,0.07)';
+const HAIR2 = 'rgba(255,255,255,0.10)';
+const WELL = '#111A33';
+const SAGE = '#A9C6B0';
+const SAGE_BORDER = 'rgba(147,180,155,0.35)';
+const CHAMPAGNE = 'linear-gradient(115deg,#F0D89E,#D8B26A 55%,#AA8140)';
+
+// One chip language — hairline ghost chip. Differentiate by text, not color.
+function Chip({ children, dot, style, title }) {
+  return (
+    <span title={title} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '2px 8px', borderRadius: 999,
+      background: 'transparent', border: `1px solid ${HAIR2}`,
+      color: SLATE, fontSize: 9.5, fontWeight: 500,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      whiteSpace: 'nowrap', lineHeight: 1.1, ...style,
+    }}>
+      {dot}{children}
+    </span>
+  );
+}
+
+// Footer action icon button — 1.5px stroke, muted, rising on hover.
+function ActBtn({ onClick, title, disabled, children, danger }) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 28, height: 28, borderRadius: 8,
+        background: 'transparent', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        color: disabled ? 'rgba(255,255,255,0.25)' : danger && h ? CLARET_TEXT : h ? NAME : 'rgba(233,237,246,0.45)',
+        transition: 'color 150ms ease',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Trust-ring avatar — 29px, 1.5px hairline track + gold arc (claret when trust < 40), initial on a gold-tint fill.
+function TrustRing({ score, size = 29, children }) {
+  const stroke = 1.5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const s = Math.max(0, Math.min(100, score || 0));
+  const arc = (s / 100) * circ;
+  const arcColor = s < 40 ? CLARET_TEXT : GOLD;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)', overflow: 'visible' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={arcColor} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${arc} ${circ - arc}`} />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ position: 'absolute', width: size - 6, height: size - 6, borderRadius: 999, background: 'rgba(216,178,106,0.06)' }} />
+        <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {children}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export const ARCHETYPE_COLORS = {
   professional_investor: 'bg-accent/10 text-accent border-accent/20',
@@ -37,20 +117,6 @@ export const ARCHETYPE_LABELS = {
   speculator_flipping: 'Speculator',
 };
 
-function getTrustColor(score) {
-  if (!score) return 'text-muted-foreground';
-  if (score >= 80) return 'text-emerald-600';
-  if (score >= 60) return 'text-amber-600';
-  return 'text-red-600';
-}
-
-function getUrgencyDot(score) {
-  if (!score) return 'bg-slate-300';
-  if (score >= 80) return 'bg-red-500 animate-pulse';
-  if (score >= 60) return 'bg-amber-500';
-  return 'bg-emerald-500';
-}
-
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
   attempted_to_contact: 'Attempted to Contact',
@@ -67,10 +133,16 @@ const STAGE_LABELS = {
   final_confirmation: 'Final Confirmation',
 };
 
-function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps, onStageChange }) {
+function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, onToggleCheck, users = [], onSingleAssign, photographyTasks = [], getPhotoForPhone, dragHandleProps, onStageChange, isColumnSiren = true }) {
   const [twilioCalling, setTwilioCalling] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [photoBroken, setPhotoBroken] = useState(false);
+  const [dealFoldOpen, setDealFoldOpen] = useState(false);
+  const [dealPreview, setDealPreview] = useState(false);
   const navigate = useNavigate();
-  const archetypeColor = ARCHETYPE_COLORS[landlord.landlord_archetype] || ARCHETYPE_COLORS.individual_end_user_relocating;
+
+  useEffect(() => { setPhotoBroken(false); }, [landlord.id, landlord.phone, landlord.whatsapp]);
+
   const archetypeLabel = ARCHETYPE_LABELS[landlord.landlord_archetype] || 'Landlord';
   const stageLabel = STAGE_LABELS[landlord.stage] || landlord.stage;
   // Stage guidance (static config) — next action line + capture-completeness dot.
@@ -79,7 +151,7 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
 
   // Find the landlord's PhotographyTask (same logic as detail panel)
   const landlordTask = photographyTasks.find(task => task.landlord_id === landlord.id);
-  
+
   // Media status logic - EXACT same as "Media for listing" section in detail panel
   const getMediaStatus = () => {
     if (!landlordTask) return { complete: false, label: 'No task' };
@@ -91,14 +163,14 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
       label: isComplete ? 'Media complete' : 'Media incomplete',
     };
   };
-  
+
   const mediaStatus = getMediaStatus();
   const showMediaBadge = landlord.stage === 'photographer_scheduling';
   const isDocStage = landlord.stage === 'photographer_scheduling';
 
   // Get WhatsApp profile photo if available (matched by phone)
   const phoneForLookup = landlord.phone || landlord.whatsapp;
-  const photoUrl = getPhotoForPhone ? getPhotoForPhone(phoneForLookup) : null;
+  const photoUrl = !photoBroken && getPhotoForPhone ? getPhotoForPhone(phoneForLookup) : null;
 
   // Fetch documents directly from entity for cards in the photographer_scheduling stage
   const { data: rawDocs = [] } = useQuery({
@@ -217,6 +289,15 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
 
   const showMandateWarning = daysUntilMandateExpiry !== null && daysUntilMandateExpiry <= 14 && daysUntilMandateExpiry >= 0;
 
+  // Card-level urgency (drives the NEXT well claret rail + quiet dot).
+  const strikeNow = (landlord.urgency_score >= 60) || showMandateWarning;
+  const strikeDays = landlord.days_in_stage;
+  // ONE SIREN PER COLUMN — only the most-overdue urgent card in a column carries the
+  // full claret left rail + "STRIKE NOW · nD" chip; every other urgent card downgrades to
+  // a quiet 6px claret dot beside its aging chip. isColumnSiren defaults true (e.g. the
+  // DragOverlay card, which isn't attached to a column) so the dragged card keeps its alert.
+  const showSiren = strikeNow && isColumnSiren;
+
   // Get contracts from form_a_contracts array, fallback to legacy single field
   const contracts = (() => {
     if (landlord.form_a_contracts && landlord.form_a_contracts.length > 0) {
@@ -232,25 +313,11 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
     return [];
   })();
 
-  // Helper to calculate expiry color and days remaining
-  const getExpiryColor = (expiryDate) => {
-    if (!expiryDate) return 'rgba(255,255,255,0.45)';
-    const expiry = new Date(expiryDate).getTime();
-    const now = new Date().getTime();
-    const daysRemaining = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-    if (daysRemaining < 0) return 'rgb(239, 68, 68)'; // red - expired
-    if (daysRemaining <= 30) return 'rgb(217, 119, 6)'; // amber - expiring soon
-    return 'hsl(38 92% 50%)'; // gold - normal
-  };
-
-  // Format date as "DD Mon YYYY"
-  const formatExpiryDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = date.toLocaleDateString('en-GB', { month: 'short' });
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
+  // Helper to calculate expiry days remaining (for the EXP chip)
+  const expiryDays = (expiryDate) => {
+    if (!expiryDate) return null;
+    const d = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
+    return isNaN(d) ? null : d;
   };
 
   // Format price with commas
@@ -262,11 +329,44 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
   // Calculate and format commission
   const getCommissionInfo = (contract) => {
     const commissionPct = contract.commission_pct_negotiated || landlord.commission_pct_negotiated;
-    const askingPrice = contract.asking_price_aed || landlord.asking_price_aed;
-    if (!commissionPct || !askingPrice) return null;
-    const commissionAmount = askingPrice * (commissionPct / 100);
+    const contractAsking = contract.asking_price_aed || landlord.asking_price_aed;
+    if (!commissionPct || !contractAsking) return null;
+    const commissionAmount = contractAsking * (commissionPct / 100);
     return { pct: commissionPct, amount: commissionAmount };
   };
+
+  // Valuation delta vs ask (gold text)
+  const valuationDelta = (() => {
+    if (!landlord.ai_estimated_value_aed || !askingPrice) return null;
+    const diff = landlord.ai_estimated_value_aed - askingPrice;
+    const pct = Math.round((diff / askingPrice) * 100);
+    if (pct === 0) return null;
+    return { pct, sign: pct > 0 ? '+' : '' };
+  })();
+
+  // Journey hairline — stage position across the 13-stage mandate→confirmation arc.
+  const stageIndex = STAGE_ORDER.indexOf(landlord.stage);
+  const journeyN = Math.min(Math.max(stageIndex + 1, 1), 13);
+  const journeyFill = Math.min(Math.max(stageIndex, 0), 13) / 13 * 100;
+
+  // Deal-intelligence fold — only when BOTH a Form A block and a valuation strip exist.
+  const hasFormA = contracts.length > 0;
+  const hasValuation = !!landlord.ai_estimated_value_aed;
+  const dealFoldable = hasFormA || hasValuation;
+  const dealOpen = dealFoldable ? (dealFoldOpen || dealPreview) : true;
+
+  // Root shadow / border / transform — motionless luxury, light does the work.
+  const baseShadow = '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)';
+  let boxShadow = showSiren ? `inset 2px 0 0 0 ${CLARET}, ${baseShadow}` : baseShadow;
+  if (isDragging) boxShadow = '0 22px 48px rgba(0,0,0,0.6)';
+  else if (hovered) boxShadow = (showSiren ? `inset 2px 0 0 0 ${CLARET}, ` : '') + '0 14px 30px rgba(0,0,0,0.5)';
+  const border = isDragging
+    ? 'rgba(216,178,106,0.3)'
+    : isSelected
+      ? 'rgba(216,178,106,0.5)'
+      : hovered
+        ? 'rgba(216,178,106,0.22)'
+        : HAIR;
 
   return (
     <a
@@ -276,26 +376,27 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         e.preventDefault();
         navigate(`/landlord/${landlord.id}`);
       }}
-      className={cn(
-        'rounded-xl p-1.5 cursor-pointer transition-all duration-200 border shadow-sm block',
-        isDragging
-          ? 'scale-[1.03] shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-accent/60'
-          : 'hover:shadow-md border-border',
-        isSelected ? 'ring-2 ring-accent/50' : '',
-      )}
+      className={cn('rounded-2xl p-2 cursor-pointer transition-all duration-200 block')}
       style={{
-        background: 'linear-gradient(158deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.026) 24%, rgba(255,255,255,.008) 100%)',
-        border: '1px solid rgba(255,255,255,.08)',
-        boxShadow: '0 16px 34px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.11), inset 0 -18px 32px -28px rgba(0,0,0,.55)',
+        background: '#0E1428',
+        border: `1px solid ${border}`,
+        borderRadius: 14,
+        boxShadow,
         position: 'relative',
+        transform: hovered && !isDragging ? 'translateY(-1px)' : 'none',
+        transition: 'transform 180ms ease-out, border-color 180ms ease-out, box-shadow 180ms ease-out',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(201,162,75,.35)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)'; }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setDealPreview(false); }}
     >
-      {/* Top-edge gold highlight line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent)' }} />
-      {/* Diagonal sheen */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(157deg,rgba(255,255,255,.10) 0%, transparent 30%)', borderRadius: 'inherit' }} />
+      {/* Hover gold top-edge gradient line — fades in on hover. */}
+      <div style={{
+        position: 'absolute', top: 0, left: 14, right: 14, height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(216,178,106,0.55), transparent)',
+        opacity: hovered ? 1 : 0, transition: 'opacity 180ms ease',
+        pointerEvents: 'none', borderRadius: '14px 14px 0 0',
+      }} />
+
       {/* Top row: grip handle + checkbox + avatar + name */}
       <div className="flex items-center gap-1.5">
         {dragHandleProps && (
@@ -303,11 +404,12 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
             type="button"
             {...dragHandleProps}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 -ml-0.5 flex items-center justify-center w-4 h-5 rounded text-muted-foreground/50 hover:text-accent hover:bg-accent/10 cursor-grab active:cursor-grabbing touch-none transition-colors"
+            className="shrink-0 -ml-0.5 flex items-center justify-center w-4 h-5 rounded cursor-grab active:cursor-grabbing touch-none transition-colors"
             title="Drag to move stage"
             aria-label="Drag to move stage"
+            style={{ color: 'rgba(255,255,255,0.3)', background: 'transparent', border: 'none' }}
           >
-            <GripVertical className="w-3 h-3" />
+            <GripVertical className="w-3 h-3" strokeWidth={1.5} />
           </button>
         )}
         <input
@@ -317,212 +419,340 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
           onClick={(e) => e.stopPropagation()}
           className="w-3.5 h-3.5 accent-amber-500 shrink-0 cursor-pointer"
         />
-        {photoUrl ? (
-          <img src={photoUrl} alt="" className="w-[27px] h-[27px] rounded-full object-cover shrink-0" style={{ boxShadow: '0 0 0 1.5px rgba(201,162,75,.6)' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-        ) : null}
-        <div className={cn('w-[27px] h-[27px] rounded-full flex items-center justify-center text-[11px] font-bold shrink-0', photoUrl ? 'hidden' : 'flex')} style={{
-          background: 'radial-gradient(circle at 30% 18%, #d99d3a, #b57f2a 55%, #8d6320)',
-          boxShadow: '0 0 0 1.5px rgba(201,162,75,.6)',
-          color: '#0a0e1a',
-        }}>
-          {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
-        </div>
-        <p className="text-[11px] truncate flex-1" style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: '#e8ecf6' }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
+        <TrustRing score={landlord.trust_score}>
+          {photoUrl ? (
+            <img src={photoUrl} alt="" className="w-[20px] h-[20px] rounded-full object-cover" onError={() => setPhotoBroken(true)} />
+          ) : (
+            <span style={{ fontSize: 12, fontWeight: 600, color: GOLD, fontFamily: "'Montserrat',sans-serif" }}>
+              {landlord.full_name_en?.[0]?.toUpperCase() || '?'}
+            </span>
+          )}
+        </TrustRing>
+        <p className="text-[13px] truncate flex-1" style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAME }} title={landlord.full_name_en || 'Unknown'}>{landlord.full_name_en || 'Unknown'}</p>
+        {landlord.phone && (
+          <span className="shrink-0 text-[9px] flex items-center gap-0.5" style={{ color: SLATE, fontVariantNumeric: 'tabular-nums' }} title={`Primary: ${landlord.phone}`}>
+            <Phone className="w-2.5 h-2.5" strokeWidth={1.5} />
+            {landlord.phone}
+          </span>
+        )}
+        <ChannelAvailabilityIcons landlord={landlord} />
       </div>
 
-      {/* Badges row: archetype + stage + urgency + media status (only for photographer_scheduling stage) */}
-      <div className="flex items-center gap-1 mt-1 flex-wrap">
-        <span className={cn('shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold', archetypeColor)} style={{ fontWeight: 700 }}>
-          {archetypeLabel}
-        </span>
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.3)', color: '#e3c06a' }}>
-          <span
-            className={cn('w-1.5 h-1.5 rounded-full shrink-0', capture.complete ? 'bg-emerald-400' : 'bg-amber-400')}
-            title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
-          />
+      {/* Badges row — one chip language, ghost hairline. Stage chip keeps a gold status dot with a still halo. */}
+      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+        <Chip>{archetypeLabel}</Chip>
+        <Chip
+          dot={<span style={{ width: 6, height: 6, borderRadius: 999, background: GOLD, flex: 'none', boxShadow: '0 0 7px rgba(216,178,106,0.8)' }} title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`} />}
+          title={capture.complete ? 'Stage data captured' : `Missing: ${capture.missing.join(', ')}`}
+        >
           {stageLabel}
-        </span>
+        </Chip>
         {landlord.handover_status === 'Handed Over' && (
-          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30" style={{ fontWeight: 700 }}>
-            <CheckCircle2 className="w-2 h-2" />
-            HANDED OVER
-          </span>
+          <Chip dot={<CheckCircle2 className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SAGE, flex: 'none' }} />} title="Handed over">
+            Handed Over
+          </Chip>
+        )}
+        {landlord.handover_status === 'Handover Booked' && (
+          <Chip
+            dot={<CalendarClock className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: GOLD, flex: 'none' }} />}
+            title={landlord.handover_appointment_at ? `Handover appointment: ${new Date(landlord.handover_appointment_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Handover booked'}
+          >
+            HO Booked{landlord.handover_appointment_at ? ` · ${new Date(landlord.handover_appointment_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+          </Chip>
         )}
         {landlord.unit_layout && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" style={{ fontWeight: 700 }}>
-            {landlord.unit_layout}
-          </span>
-        )}
-        {landlord.urgency_score >= 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', fontWeight: 700 }}>
-            URGENT
-          </span>
-        )}
-        {landlord.urgency_score >= 60 && landlord.urgency_score < 80 && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.45)', color: '#fbbf24', fontWeight: 700 }}>
-            ATTENTION
-          </span>
+          <Chip>{landlord.unit_layout}</Chip>
         )}
         {showMediaBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', mediaStatus.complete ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
-            {mediaStatus.complete ? <CheckCircle2 className="w-2 h-2" /> : <Camera className="w-2 h-2" />}
+          <Chip
+            dot={mediaStatus.complete
+              ? <span style={{ width: 6, height: 6, borderRadius: 999, background: SAGE, flex: 'none' }} />
+              : <Camera className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />}
+          >
             {mediaStatus.label}
-          </span>
+          </Chip>
         )}
         {docBadge && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border', docBadge.green ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30')} style={{ fontWeight: 700 }}>
-            <FileCheck className="w-2 h-2" />
+          <Chip
+            dot={docBadge.green
+              ? <span style={{ width: 6, height: 6, borderRadius: 999, background: SAGE, flex: 'none' }} />
+              : <FileText className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />}
+          >
             {docBadge.label}
-          </span>
+          </Chip>
         )}
       </div>
 
-      {/* Next step — the one action that moves this landlord forward (from stage guide) */}
+      {/* NEXT action ledger — gold "Next" tag + action text in a hairline well, with a 2px inner-left rail (claret when urgent) and a hover → arrow. */}
       {nextStep && (
-        <div className="flex items-start gap-1 mt-1" style={{ background: 'rgba(0,0,0,.22)', padding: '.25rem .375rem', borderRadius: '.375rem' }}>
-          <span className="text-[7px] font-bold uppercase tracking-wide shrink-0 mt-px" style={{ color: '#c9a24b' }}>Next:</span>
-          <span className="text-[8px] leading-tight line-clamp-2" style={{ color: '#e8ecf6', fontWeight: 600 }}>{nextStep}</span>
+        <div className="flex items-start gap-1.5 mt-1.5 pl-2.5 pr-2 py-1.5 rounded-md relative" style={{ background: WELL, border: `1px solid ${strikeNow ? 'rgba(180,70,63,0.25)' : HAIR}` }}>
+          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: strikeNow ? 'rgba(180,70,63,0.65)' : 'rgba(216,178,106,0.55)', borderRadius: '2px 0 0 2px' }} />
+          <span className="shrink-0" style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: GOLD }}>Next</span>
+          <span className="text-[11.5px] leading-snug line-clamp-2" style={{ color: '#D7DDEA', lineHeight: 1.5 }}>{nextStep}</span>
+          <ArrowRight
+            className="w-3.5 h-3.5"
+            strokeWidth={1.5}
+            style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', color: GOLD, opacity: hovered ? 0.7 : 0, transition: 'opacity 180ms ease', flex: 'none' }}
+          />
         </div>
       )}
 
       {/* Individual media badges - shown in ALL stages when links exist */}
       {landlordTask && (
-        <div className="flex items-center gap-1 mt-1 flex-wrap">
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
           {landlordTask.tour_3d_link && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
-              <Box className="w-2 h-2" />
-              360
-            </span>
+            <Chip dot={<Box className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />}>360</Chip>
           )}
           {landlordTask.video_link && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border" style={{ background: 'rgba(196,177,255,.14)', border: '1px solid rgba(196,177,255,.3)', color: '#c4b1ff' }}>
-              <Film className="w-2 h-2" />
-              Video
-            </span>
+            <Chip dot={<Film className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />}>Video</Chip>
           )}
           {landlordTask.photos_link && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-              <Image className="w-2 h-2" />
-              Photos
-            </span>
+            <Chip dot={<Image className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />}>Photos</Chip>
           )}
         </div>
       )}
 
-      {/* Additional contact indicators — compact badge for extra phones/emails */}
+      {/* Additional contact indicators */}
       {((Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0) ||
         (Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0)) && (
-        <div className="flex items-center gap-1 mt-1 flex-wrap">
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
           {Array.isArray(landlord.additional_phones) && landlord.additional_phones.length > 0 && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30" title={`${landlord.additional_phones.length} additional phone(s)`}>
-              <Phone className="w-2 h-2" />
+            <Chip dot={<Phone className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />} title={`${landlord.additional_phones.length} additional phone(s)`}>
               +{landlord.additional_phones.length}
-            </span>
+            </Chip>
           )}
           {Array.isArray(landlord.additional_emails) && landlord.additional_emails.length > 0 && (
-            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-cyan-500/15 text-cyan-400 border-cyan-500/30" title={`${landlord.additional_emails.length} additional email(s)`}>
-              <Mail className="w-2 h-2" />
+            <Chip dot={<Mail className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: SLATE, flex: 'none' }} />} title={`${landlord.additional_emails.length} additional email(s)`}>
               +{landlord.additional_emails.length}
-            </span>
+            </Chip>
           )}
         </div>
       )}
 
-      {/* Project/ref tags */}
+      {/* Project (ghost) + unit reference (ghost-gold chip with map-pin) */}
       {(landlord.project_name || landlord.unit_reference) && (
-        <div className="flex items-center gap-1 mt-1 flex-wrap">
-          {landlord.project_name && <ProjectBadge name={landlord.project_name} />}
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+          {landlord.project_name && (
+            <Chip title={landlord.project_name}>{landlord.project_name}</Chip>
+          )}
           {landlord.unit_reference && (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30">
-              📍 {landlord.unit_reference}
-            </span>
+            <Chip
+              dot={<MapPin className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: GOLD, flex: 'none' }} />}
+              style={{ color: GOLD, borderColor: 'rgba(216,178,106,0.35)', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}
+              title={landlord.unit_reference}
+            >
+              {landlord.unit_reference}
+            </Chip>
           )}
         </div>
       )}
 
-      {/* Form A contracts - compressed */}
-      {contracts.length > 0 && (
-        <div className="mt-1 space-y-0.5">
-          {contracts.map((contract, idx) => (
-            <div key={contract.contract_number || idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.375rem', borderRadius: '0.25rem' }}>
-              <p className="text-[9px] font-semibold" style={{ color: 'hsl(38 92% 55%)' }}>
-                {contract.contract_number || 'Unknown'}
-              </p>
-              <p className="text-[8px] font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                AED {formatPrice(contract.asking_price_aed)} · <span style={{ color: getExpiryColor(contract.mandate_expires_at), fontWeight: 600 }}>exp {formatExpiryDate(contract.mandate_expires_at)}</span>
-              </p>
-              {(() => {
-                const commission = getCommissionInfo(contract);
-                if (!commission) return null;
+      {/* Deal intelligence — fold Form A + valuation into one summary line when both exist. */}
+      {dealFoldable ? (
+        <div className="mt-1.5">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDealFoldOpen((v) => !v); }}
+            onMouseEnter={() => setDealPreview(true)}
+            onMouseLeave={() => setDealPreview(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setDealFoldOpen((v) => !v); } }}
+            title={dealOpen ? 'Click to fold' : 'Click to expand deal details'}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', borderRadius: 8, background: WELL, border: `1px solid ${HAIR}`, cursor: 'pointer' }}
+          >
+            {hasFormA && (
+              <>
+                <FileText className="w-3 h-3 shrink-0" strokeWidth={1.5} style={{ color: SLATE }} />
+                <span style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: SLATE, fontVariantNumeric: 'tabular-nums' }}>
+                  {contracts[0]?.contract_number || 'Form A'}
+                </span>
+                <span style={{ fontSize: 9.5, color: NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  AED {formatPrice(contracts[0]?.asking_price_aed)}
+                </span>
+                {expiryDays(contracts[0]?.mandate_expires_at) != null && (
+                  <span style={{ fontSize: 8.5, padding: '1px 5px', borderRadius: 999, border: '1px solid rgba(216,178,106,0.35)', color: GOLD, fontVariantNumeric: 'tabular-nums' }}>
+                    EXP {expiryDays(contracts[0]?.mandate_expires_at)}D
+                  </span>
+                )}
+              </>
+            )}
+            {hasValuation && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: hasFormA ? 6 : 0, fontSize: 9.5, color: NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                <Sparkles className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: GOLD }} />
+                {(landlord.ai_estimated_value_aed / 1e6).toFixed(2)}M
+              </span>
+            )}
+            {valuationDelta && (
+              <span style={{ fontSize: 8.5, color: GOLD, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                {valuationDelta.sign}{valuationDelta.pct}%
+              </span>
+            )}
+            <ChevronRight
+              className="shrink-0"
+              strokeWidth={1.5}
+              style={{ marginLeft: 'auto', width: 13, height: 13, color: SLATE, transform: dealOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}
+            />
+          </div>
+          <div style={{ maxHeight: dealOpen ? 600 : 0, opacity: dealOpen ? 1 : 0, overflow: 'hidden', transition: 'max-height 180ms ease, opacity 180ms ease' }}>
+            <div className="mt-1 space-y-1">
+              {contracts.map((contract, idx) => {
+                const expD = expiryDays(contract.mandate_expires_at);
+                const comm = getCommissionInfo(contract);
                 return (
-                  <p className="text-[8px] font-medium leading-tight" style={{ color: 'hsl(38 92% 55%)' }}>
-                    {commission.pct}% · AED {commission.amount.toLocaleString('en-US')}
-                  </p>
+                  <div key={contract.contract_number || idx} style={{ background: WELL, border: `1px solid ${HAIR}`, borderRadius: 8, padding: '5px 7px' }}>
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-3 h-3 shrink-0" strokeWidth={1.5} style={{ color: SLATE }} />
+                      <span className="text-[9px] font-medium" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', color: SLATE, fontVariantNumeric: 'tabular-nums' }}>
+                        {contract.contract_number || 'Unknown'}
+                      </span>
+                      {expD != null && (
+                        <Chip style={{ marginLeft: 'auto', color: GOLD, borderColor: 'rgba(216,178,106,0.35)', fontSize: 8.5, padding: '1px 6px' }}>
+                          EXP {expD}D
+                        </Chip>
+                      )}
+                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                      AED {formatPrice(contract.asking_price_aed)}
+                    </p>
+                    {comm && (
+                      <p className="text-[9px] mt-0.5" style={{ color: GOLD, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {comm.pct}% · AED {comm.amount.toLocaleString('en-US')}
+                      </p>
+                    )}
+                  </div>
                 );
-              })()}
+              })}
+              {landlord.ai_estimated_value_aed && (
+                <div className="px-2 py-1.5 rounded-md" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: NAME, fontVariantNumeric: 'tabular-nums' }}>
+                      <Sparkles className="w-3 h-3" strokeWidth={1.5} style={{ color: GOLD }} />
+                      {(landlord.ai_estimated_value_aed / 1e6).toFixed(2)}M
+                    </span>
+                    {landlord.ai_estimated_price_sqft && (
+                      <span className="text-[9px]" style={{ color: MONEY, fontVariantNumeric: 'tabular-nums' }}>
+                        {landlord.ai_estimated_price_sqft.toLocaleString()} /sqft
+                      </span>
+                    )}
+                    {landlord.ai_valuation_confidence && (
+                      <Chip style={{ color: SAGE, borderColor: SAGE_BORDER, fontSize: 8.5, padding: '1px 6px' }}>
+                        {landlord.ai_valuation_confidence}
+                      </Chip>
+                    )}
+                  </div>
+                  {valuationDelta && (
+                    <p className="text-[9px] mt-1" style={{ color: GOLD, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                      {valuationDelta.sign}{valuationDelta.pct}% vs ask
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Form A expiry warning */}
-      {showMandateWarning && (
-        <div className="mt-0.5">
-          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">
-            ⚠️ {daysUntilMandateExpiry}d
-          </span>
-        </div>
-      )}
-
-      {/* AI Valuation */}
-      {landlord.ai_estimated_value_aed && (
-        <div className="mt-1 px-1.5 py-1 rounded" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[9px] font-bold" style={{ color: '#34d399' }}>
-              🤖 {(landlord.ai_estimated_value_aed / 1e6).toFixed(2)}M
-            </span>
-            {landlord.ai_estimated_price_sqft && (
-              <span className="text-[8px]" style={{ color: 'rgba(52,211,153,0.8)' }}>
-                {landlord.ai_estimated_price_sqft.toLocaleString()} /sqft
-              </span>
-            )}
-            {landlord.ai_valuation_confidence && (
-              <span className={`text-[7px] font-bold px-1 py-0.5 rounded border ${
-                landlord.ai_valuation_confidence === 'high' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                landlord.ai_valuation_confidence === 'medium' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
-                'bg-slate-500/15 text-slate-400 border-slate-500/30'
-              }`}>
-                {landlord.ai_valuation_confidence}
-              </span>
-            )}
           </div>
         </div>
+      ) : (
+        <>
+          {/* Form A wells (only when no valuation to fold with) */}
+          {hasFormA && (
+            <div className="mt-1.5 space-y-1">
+              {contracts.map((contract, idx) => {
+                const expD = expiryDays(contract.mandate_expires_at);
+                const comm = getCommissionInfo(contract);
+                return (
+                  <div key={contract.contract_number || idx} style={{ background: WELL, border: `1px solid ${HAIR}`, borderRadius: 8, padding: '5px 7px' }}>
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-3 h-3 shrink-0" strokeWidth={1.5} style={{ color: SLATE }} />
+                      <span className="text-[9px] font-medium" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', color: SLATE, fontVariantNumeric: 'tabular-nums' }}>
+                        {contract.contract_number || 'Unknown'}
+                      </span>
+                      {expD != null && (
+                        <Chip style={{ marginLeft: 'auto', color: GOLD, borderColor: 'rgba(216,178,106,0.35)', fontSize: 8.5, padding: '1px 6px' }}>
+                          EXP {expD}D
+                        </Chip>
+                      )}
+                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                      AED {formatPrice(contract.asking_price_aed)}
+                    </p>
+                    {comm && (
+                      <p className="text-[9px] mt-0.5" style={{ color: GOLD, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {comm.pct}% · AED {comm.amount.toLocaleString('en-US')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* AI Valuation (only when no Form A to fold with) */}
+          {hasValuation && (
+            <div className="mt-1.5 px-2 py-1.5 rounded-md" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+              <div className="flex items-center justify-between gap-1">
+                <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: NAME, fontVariantNumeric: 'tabular-nums' }}>
+                  <Sparkles className="w-3 h-3" strokeWidth={1.5} style={{ color: GOLD }} />
+                  {(landlord.ai_estimated_value_aed / 1e6).toFixed(2)}M
+                </span>
+                {landlord.ai_estimated_price_sqft && (
+                  <span className="text-[9px]" style={{ color: MONEY, fontVariantNumeric: 'tabular-nums' }}>
+                    {landlord.ai_estimated_price_sqft.toLocaleString()} /sqft
+                  </span>
+                )}
+                {landlord.ai_valuation_confidence && (
+                  <Chip style={{ color: SAGE, borderColor: SAGE_BORDER, fontSize: 8.5, padding: '1px 6px' }}>
+                    {landlord.ai_valuation_confidence}
+                  </Chip>
+                )}
+              </div>
+              {valuationDelta && (
+                <p className="text-[9px] mt-1" style={{ color: GOLD, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  {valuationDelta.sign}{valuationDelta.pct}% vs ask
+                </p>
+              )}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Commission + Trust + Agent - single row */}
-      <div className="flex items-center gap-2 mt-1 flex-wrap" style={{ borderTop: '1px solid rgba(201,162,75,0.15)', paddingTop: '0.375rem' }}>
+      {/* Strike-now claret chip — only the column's single siren carries the full alert. */}
+      {showSiren && (
+        <div className="mt-1.5">
+          <Chip
+            style={{ color: CLARET_TEXT, borderColor: CLARET_BORDER, background: CLARET_BG, fontSize: 9 }}
+            title={showMandateWarning ? `Mandate expires in ${daysUntilMandateExpiry}d` : 'High urgency'}
+          >
+            STRIKE NOW{strikeDays != null ? ` · ${strikeDays}D` : ''}
+          </Chip>
+        </div>
+      )}
+
+      {/* Commission + deal value + tier + agent — single row. Commission in champagne gradient ink. */}
+      <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ borderTop: `1px solid ${HAIR}`, paddingTop: '0.4rem' }}>
         {commission > 0 && (
-          <span className="text-[10px] font-bold" style={{ color: '#c9a24b', textShadow: '0 1px 8px rgba(0,0,0,.3)' }}>
+          <span className="text-[11px] font-bold" style={{
+            backgroundImage: CHAMPAGNE, WebkitBackgroundClip: 'text', backgroundClip: 'text',
+            color: 'transparent', WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
+          }}>
             {commission >= 1000 ? `AED ${(commission / 1000).toFixed(0)}K` : `AED ${commission}`}
           </span>
         )}
         {askingPrice > 0 && (
-          <span className="text-[8px]" style={{ color: '#8b96b0' }}>
+          <span className="text-[9px]" style={{ color: MONEY, fontVariantNumeric: 'tabular-nums' }}>
             AED {(askingPrice / 1000000).toFixed(1)}M
           </span>
         )}
-        <span className={cn('text-[7px] font-bold px-1 py-0.5 rounded border', getTrustColor(landlord.trust_score))} style={{ fontWeight: 700 }}>
+        <Chip style={landlord.trust_score >= 80 ? { color: GOLD, borderColor: 'rgba(216,178,106,0.4)' } : undefined}>
           T{landlord.trust_score || 0}
-        </span>
+        </Chip>
         {landlord.assigned_agent_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', fontWeight: 700 }}>
-            👤 {landlord.assigned_agent_email.split('@')[0]}
-          </span>
+          <Chip title={landlord.assigned_agent_email}>
+            {landlord.assigned_agent_email.split('@')[0]}
+          </Chip>
         )}
         {landlord.listing_manager_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded border text-amber-400 flex items-center gap-0.5" style={{ background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.35)', fontWeight: 700 }}>
-            📋 {landlord.listing_manager_email.split('@')[0]}
-          </span>
+          <Chip title={`Listing manager: ${landlord.listing_manager_email}`}>
+            LM · {landlord.listing_manager_email.split('@')[0]}
+          </Chip>
         )}
       </div>
 
@@ -533,16 +763,32 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
         </div>
       )}
 
-      {/* Bottom row: time + assign + actions */}
-      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
-        <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          {landlord.days_in_stage ? `${landlord.days_in_stage}d` : 'New'}
-        </span>
+      {/* Bottom row: aging chip (+ quiet claret dot for non-siren urgent cards) + assign + actions */}
+      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${HAIR}` }}>
+        <div className="flex items-center gap-1.5">
+          <Chip
+            style={
+              landlord.days_in_stage != null && landlord.days_in_stage >= 14
+                ? { color: CLARET_TEXT, borderColor: CLARET_BORDER, background: CLARET_BG }
+                : undefined
+            }
+            title="Days in stage"
+          >
+            {landlord.days_in_stage ? `${landlord.days_in_stage}D` : 'New'}
+          </Chip>
+          {/* Quiet claret dot — the downgraded urgency signal for non-siren urgent cards. */}
+          {strikeNow && !showSiren && (
+            <span
+              title={`Urgent${strikeDays != null ? ` · ${strikeDays}D in stage` : ''} — the most-overdue card in this column carries the full alert`}
+              style={{ width: 6, height: 6, borderRadius: 999, background: CLARET, flex: 'none', boxShadow: '0 0 6px rgba(180,70,63,0.4)' }}
+            />
+          )}
+        </div>
         <div className="flex items-center gap-0.5">
           {onStageChange && (
             <>
               <StageArrows landlord={landlord} onStageChange={onStageChange} />
-              <span className="w-px h-4 mx-0.5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              <span className="w-px h-4 mx-0.5" style={{ background: HAIR }} />
             </>
           )}
           {users.length > 0 && (
@@ -551,8 +797,8 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
               value={landlord.assigned_agent_email || ''}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => { e.stopPropagation(); onSingleAssign?.(landlord.id, e.target.value); }}
-              className="text-[7px] rounded px-0.5 py-0.5 max-w-[60px]"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}
+              className="text-[9px] rounded-full px-1.5 py-1 max-w-[64px] cursor-pointer"
+              style={{ background: 'transparent', border: `1px solid ${HAIR2}`, color: SLATE }}
             >
               <option value="">Assign</option>
               {users.map(u => (
@@ -560,53 +806,39 @@ function LandlordCard({ landlord, isSelected, isDragging, onClick, isChecked, on
               ))}
             </select>
           )}
-          <button
-            type="button"
-            onClick={handleCall}
-            disabled={twilioCalling || !e164}
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-blue-500/15 transition-colors disabled:opacity-40"
-            title={e164 ? 'Call via Twilio' : 'No phone number'}
-            style={{ color: twilioCalling ? '#60a5fa' : '#3b82f6' }}
-          >
+          <ActBtn onClick={handleCall} disabled={twilioCalling || !e164} title={e164 ? 'Call via Twilio' : 'No phone number'}>
             {twilioCalling
-              ? <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              : <Phone className="w-2.5 h-2.5" />
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} style={{ color: GOLD }} />
+              : <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />
             }
-          </button>
-          <button
-            type="button"
-            onClick={handleWhatsApp}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors"
-            title="WhatsApp"
-          >
-            <MessageCircle className="w-2.5 h-2.5" />
-          </button>
+          </ActBtn>
+          <ActBtn onClick={handleWhatsApp} title="WhatsApp">
+            <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
           <Link
             to={`/whatsapp?phone=${encodeURIComponent(e164 || landlord.phone || '')}`}
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-green-400 hover:bg-green-500/15 transition-colors"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, color: 'rgba(233,237,246,0.45)', transition: 'color 150ms ease' }}
+            className="hover:!text-[#E9EDF6]"
             title="Open in CRM"
           >
-            <ExternalLink className="w-2.5 h-2.5" />
+            <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
           </Link>
-          <button
-            type="button"
-            onClick={handleExportVCard}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-blue-400 hover:bg-blue-500/15 transition-colors"
-            title="vCard"
-          >
-            <UserMinus className="w-2.5 h-2.5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            className="flex items-center justify-center w-5 h-5 rounded text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-50"
-            title="Delete"
-          >
-            <Trash2 className="w-2.5 h-2.5" />
-          </button>
+          <ActBtn onClick={handleExportVCard} title="vCard">
+            <UserMinus className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
+          <ActBtn onClick={handleDelete} disabled={deleteMutation.isPending} title="Delete" danger>
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
         </div>
+      </div>
+
+      {/* Journey hairline — stage position across the 13-stage arc, gold fill + n/13 label. */}
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 1, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${journeyFill}%`, background: showSiren ? CLARET : GOLD, borderRadius: 1, transition: 'width 180ms ease' }} />
+        </div>
+        <span style={{ fontSize: 9, color: SLATE, fontVariantNumeric: 'tabular-nums', flex: 'none' }}>{journeyN}/13</span>
       </div>
     </a>
   );
@@ -621,6 +853,7 @@ export default memo(LandlordCard, (prev, next) => {
     prev.isSelected === next.isSelected &&
     prev.isDragging === next.isDragging &&
     prev.isChecked === next.isChecked &&
+    prev.isColumnSiren === next.isColumnSiren &&
     prev.users === next.users &&
     prev.photographyTasks === next.photographyTasks &&
     prev.getPhotoForPhone === next.getPhotoForPhone &&

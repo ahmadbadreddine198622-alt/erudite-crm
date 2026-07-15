@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { X, Save, Loader2, CheckCircle2, XCircle, RefreshCw, FileText, Clock, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const STATUS_CONFIG = {
   draft:     { label: 'Draft',     color: 'bg-slate-100 text-slate-600 border-slate-200' },
@@ -202,11 +203,11 @@ export default function OfferDetailPanel({ offer, onClose, onUpdate }) {
 
           <div>
             <label className="text-[10px] text-[#9CA3AF] font-medium block mb-1">Notes</label>
-            <textarea
+            <WritingField
               value={draft.notes || ''}
               onChange={e => set('notes', e.target.value)}
               placeholder="Notes, terms, special conditions…"
-              className="w-full text-xs px-3 py-2 rounded-lg border border-[#E5E7EB] focus:outline-none focus:border-indigo-400 min-h-[72px] resize-none"
+              className="text-xs px-3 py-2 rounded-lg border border-[#E5E7EB] focus:outline-none focus:border-indigo-400 min-h-[72px] resize-none"
             />
           </div>
         </div>

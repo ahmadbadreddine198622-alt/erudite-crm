@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import WritingField from '@/components/shared/WritingField';
 import {
   Dialog,
   DialogContent,
@@ -80,7 +81,7 @@ export default function AddAutomationDialog({ open, onOpenChange }) {
 
           <div>
             <label className="text-sm font-medium">Description</label>
-            <Textarea
+            <WritingField
               placeholder="What does this rule do?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}

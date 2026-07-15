@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import WritingField from '@/components/shared/WritingField';
 import {
   Dialog,
   DialogContent,
@@ -89,7 +90,7 @@ export default function AddTemplateDialog({ open, onOpenChange }) {
 
           <div>
             <label className="text-sm font-medium">Message Body</label>
-            <Textarea
+            <WritingField
               placeholder="Type your template. Use {name}, {property}, {date}, {time}, {price} as placeholders"
               value={body}
               onChange={(e) => setBody(e.target.value)}

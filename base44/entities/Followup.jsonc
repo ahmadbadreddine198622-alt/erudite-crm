@@ -54,6 +54,33 @@
       "type": "boolean",
       "default": false,
       "description": "True if created from an AI suggestion"
+    },
+    "reminder_15_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once the 15-minutes-before reminder notification has been sent. Guards against duplicate reminders from the sendFollowupReminders daemon."
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "Template key that seeded this follow-up (e.g. rule5_day2_value_drop) when AI-created. Read by landlordOrchestrator's state-aware dedupe so the brain never re-suggests a key that already has a live row."
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "human",
+        "aurora"
+      ],
+      "default": "human",
+      "description": "BRAIN V4 P6 (ACT): who created this follow-up. 'aurora' rows are brain proposals materialized by landlordOrchestrator/enforceFourteenDayLaw; 'human' rows are user-created. Aurora NEVER sends: a proposal only becomes outreach when a human approves it and presses Send."
+    },
+    "proposal_status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "approved",
+        "dismissed"
+      ],
+      "description": "BRAIN V4 P6 (ACT): lifecycle of an origin='aurora' proposal. 'proposed' renders in the Aurora-proposes strip; approve/dismiss writes an OutcomeEvent (proposal_approved / proposal_dismissed) so the brain LEARNS which proposals earn trust. Dismissing also cancels the row. Absent on human rows."
     }
   },
   "required": [

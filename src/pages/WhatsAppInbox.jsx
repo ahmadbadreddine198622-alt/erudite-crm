@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
+import { useAllLeads, useAllLandlords } from '@/api/sharedData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,7 +91,8 @@ export default function WhatsAppInbox() {
   const { data: conversations = [], isLoading, refetch } = useQuery({
     queryKey: ['wa_conversations', currentUser?.id],
     queryFn: () => base44.entities.WhatsAppConversation.list('-last_message_at', 500),
-    refetchInterval: 15000,
+    refetchInterval: 4000,
+    refetchOnWindowFocus: true,
     enabled: !!currentUser,
   });
 
@@ -135,7 +138,8 @@ export default function WhatsAppInbox() {
     },
   });
 
-  const webhookUrl = `https://dubai-estate-pro.base44.app/functions/metaWhatsAppWebhook`;
+  // Derived from the current origin so it stays correct if the app domain changes
+  const webhookUrl = `${window.location.origin}/functions/metaWhatsAppWebhook`;
 
   // Fetch connection status
   React.useEffect(() => {
@@ -206,17 +210,11 @@ export default function WhatsAppInbox() {
   // Enrichment data for matching conversations → lead/landlord and the assignment menu. Slow-moving
   // relative to the 15s conversation poll, so staleTime stops them refetching on every remount/focus.
   // Mutations below invalidate ['leads'] explicitly where needed, so action freshness is unaffected.
-  const { data: leads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 500),
-    staleTime: 60_000,
-  });
+  // Shared full-table caches (see src/api/sharedData.js) — one download reused
+  // across WhatsAppInbox / Leads / Messages / PF Leads instead of per-page copies.
+  const { data: leads = [] } = useAllLeads();
 
-  const { data: landlords = [] } = useQuery({
-    queryKey: ['landlords'],
-    queryFn: () => base44.entities.Landlord.list('-created_date', 500),
-    staleTime: 60_000,
-  });
+  const { data: landlords = [] } = useAllLandlords();
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team_members'],

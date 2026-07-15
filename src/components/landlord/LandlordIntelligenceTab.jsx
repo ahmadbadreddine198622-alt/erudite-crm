@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const TEMP_CONFIG = {
   hot:  { label: 'Hot',  className: 'bg-red-500/15 text-red-400 border-red-500/30' },
@@ -141,7 +142,10 @@ export default function LandlordIntelligenceTab({ landlord }) {
           {insight.summary && (
             <div className="rounded-xl p-4 space-y-1" style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.2)' }}>
               <p className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: 'rgb(167,139,250)' }}>Summary</p>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{insight.summary}</p>
+              <div className="flex items-start gap-2">
+                <p className="text-sm leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>{insight.summary}</p>
+                <SpeechifyPlayer text={insight.summary} size={12} color="rgba(255,255,255,0.55)" />
+              </div>
             </div>
           )}
 
@@ -149,7 +153,10 @@ export default function LandlordIntelligenceTab({ landlord }) {
           {insight.key_facts && (
             <div className="rounded-xl p-4 space-y-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <p className="text-[11px] uppercase tracking-widest font-semibold text-amber-400">Key Facts</p>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{insight.key_facts}</p>
+              <div className="flex items-start gap-2">
+                <p className="text-sm leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.75)' }}>{insight.key_facts}</p>
+                <SpeechifyPlayer text={insight.key_facts} size={12} color="rgba(255,255,255,0.55)" />
+              </div>
             </div>
           )}
 
@@ -157,7 +164,10 @@ export default function LandlordIntelligenceTab({ landlord }) {
           {insight.outstanding_items && (
             <div className="rounded-xl p-4 space-y-1" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <p className="text-[11px] uppercase tracking-widest font-semibold text-red-400">Outstanding Items</p>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{insight.outstanding_items}</p>
+              <div className="flex items-start gap-2">
+                <p className="text-sm leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.75)' }}>{insight.outstanding_items}</p>
+                <SpeechifyPlayer text={insight.outstanding_items} size={12} color="rgba(255,255,255,0.55)" />
+              </div>
             </div>
           )}
 
@@ -196,13 +206,19 @@ export default function LandlordIntelligenceTab({ landlord }) {
                       {s.reason && (
                         <div className="pt-3">
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Why</p>
-                          <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{s.reason}</p>
+                          <div className="flex items-start gap-1.5">
+                            <p className="text-xs leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.7)' }}>{s.reason}</p>
+                            <SpeechifyPlayer text={s.reason} size={10} color="rgba(255,255,255,0.4)" />
+                          </div>
                         </div>
                       )}
                       {s.suggested_message && (
                         <div>
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Suggested Message</p>
-                          <p className="text-xs leading-relaxed whitespace-pre-wrap p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)' }}>{s.suggested_message}</p>
+                          <div className="flex items-start gap-1.5 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                            <p className="text-xs leading-relaxed whitespace-pre-wrap flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>{s.suggested_message}</p>
+                            <SpeechifyPlayer text={s.suggested_message} size={10} color="rgba(255,255,255,0.4)" />
+                          </div>
                         </div>
                       )}
                       {s.suggested_datetime && (

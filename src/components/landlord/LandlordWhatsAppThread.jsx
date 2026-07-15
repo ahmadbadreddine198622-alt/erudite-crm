@@ -2,30 +2,43 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, MessageSquare, Clock, Check, CheckCheck, Building2, User, RefreshCw, Bot, FileText, Zap } from 'lucide-react';
+import { Send, Loader2, MessageSquare, Clock, Check, CheckCheck, Building2, User, RefreshCw, Bot, FileText, Zap, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import TemplatesModal from '@/components/whatsapp/TemplatesModal';
+import { useCurrentUser } from '@/lib/useCurrentUser';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 function toDigits(raw) { return String(raw || '').replace(/\D/g, ''); }
 const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ''; } };
+
+const SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
 
 const CHANNELS = [
   { id: 'business', label: 'Business', phone: '+971 58 280 6000', color: 'emerald', icon: Building2 },
   { id: 'personal', label: 'Ahmad',    phone: '+971 58 180 6000', color: 'blue',    icon: User },
   { id: 'malik',   label: 'Malik',     phone: '+971 52 987 1277', color: 'purple',  icon: User },
+  { id: 'agent',   label: 'My Line',   phone: '',                   color: 'amber',   icon: Smartphone },
 ];
 
 const CHANNEL_COLORS = {
   emerald: { active: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400', text: 'text-emerald-400' },
   blue:    { active: 'bg-blue-500/15 border-blue-500/40 text-blue-400',          text: 'text-blue-400' },
   purple:  { active: 'bg-purple-500/15 border-purple-500/40 text-purple-400',    text: 'text-purple-400' },
+  amber:   { active: 'bg-amber-500/15 border-amber-500/40 text-amber-400',      text: 'text-amber-400' },
 };
 
 export default function LandlordWhatsAppThread({ landlord }) {
   const qc = useQueryClient();
+  const { user } = useCurrentUser();
+  const isAuthorizedShared = SHARED_EMAILS.includes((user?.email || '').toLowerCase());
+  const hasOwnLine = !!(user?.whatsapp_instance);
+  // Agents with their own WhatsApp line default to their own "My Line" tab —
+  // the backend records their messages on the 'agent' channel, not 'personal'.
+  // Without this, their sends succeed but are invisible (wrong channel tab).
+  const defaultChannel = (!isAuthorizedShared && hasOwnLine) ? 'agent' : 'personal';
   const [text, setText] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('personal');
+  const [selectedChannel, setSelectedChannel] = useState(defaultChannel);
   const [showTemplates, setShowTemplates] = useState(false);
   const [isSendingTemplate, setIsSendingTemplate] = useState(false);
   const [smartReplies, setSmartReplies] = useState([]);
@@ -199,7 +212,7 @@ export default function LandlordWhatsAppThread({ landlord }) {
   };
 
   const submit = (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     const t = text.trim();
     if (!t) return;
     if (!landlord?.phone) { toast.error('This landlord has no phone number.'); return; }
@@ -212,21 +225,29 @@ export default function LandlordWhatsAppThread({ landlord }) {
     <div className="flex flex-col" style={{ height: 500 }}>
       {/* Channel tabs + actions */}
       <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        {CHANNELS.map(({ id, label, phone, color, icon: Icon }) => {
+        {CHANNELS.filter(c => {
+          // "My Line" (agent) tab — only for non-Ahmad users who configured their own line
+          if (c.id === 'agent') return !isAuthorizedShared && hasOwnLine;
+          // Shared company lines — only for Ahmad (authorized shared emails)
+          if (c.id === 'business' || c.id === 'personal' || c.id === 'malik') return isAuthorizedShared;
+          return true;
+        }).map(({ id, label, phone, color, icon: Icon }) => {
           const colors = CHANNEL_COLORS[color];
+          const displayPhone = id === 'agent' ? (user?.whatsapp_number || '') : phone;
           return (
             <button
               key={id}
               onClick={() => { setSelectedChannel(id); setSmartReplies([]); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${selectedChannel === id ? colors.active : 'border-white/15 text-muted-foreground hover:bg-white/8'}`}
-              title={phone}
+              title={displayPhone || label}
             >
               <Icon className="w-3 h-3" /> {label}
-              <span className="text-[9px] opacity-60">{phone}</span>
+              {displayPhone && <span className="text-[9px] opacity-60">{displayPhone}</span>}
             </button>
           );
         })}
         <div className="ml-auto flex gap-1.5">
+          {isAuthorizedShared && (
           <button
             onClick={() => setShowTemplates(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
@@ -235,6 +256,7 @@ export default function LandlordWhatsAppThread({ landlord }) {
             <FileText className="w-3 h-3" />
             Templates{displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}
           </button>
+          )}
           <button
             onClick={() => refetch()}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border border-white/15 text-muted-foreground hover:bg-white/8 transition-colors"
@@ -272,9 +294,9 @@ export default function LandlordWhatsAppThread({ landlord }) {
         ) : !conversation && allMessages.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-10">
             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-2">
-              {selectedChannel === 'business' ? <Building2 className="w-5 h-5 opacity-40" /> : <User className="w-5 h-5 opacity-40" />}
+              {selectedChannel === 'business' ? <Building2 className="w-5 h-5 opacity-40" /> : selectedChannel === 'agent' ? <Smartphone className="w-5 h-5 opacity-40" /> : <User className="w-5 h-5 opacity-40" />}
             </div>
-            No {selectedChannel} conversation yet.<br />
+            No {selectedChannel === 'agent' ? 'My Line' : selectedChannel} conversation yet.<br />
             <span className="opacity-60">Send a message to start one.</span>
           </div>
         ) : allMessages.length === 0 ? (
@@ -319,33 +341,29 @@ export default function LandlordWhatsAppThread({ landlord }) {
       )}
 
       {/* Composer */}
-      <form onSubmit={submit} className="space-y-1.5 pt-2 border-t border-white/10">
-        <div className="flex items-end gap-2">
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); } }}
-            placeholder={landlord?.phone ? `Message via ${CHANNELS.find(c => c.id === selectedChannel)?.label}… (Enter to send)` : 'No phone number on file'}
-            disabled={!landlord?.phone || sendMutation.isPending}
-            rows={2}
-            className="flex-1 text-sm resize-none rounded-lg px-3 py-2"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!text.trim() || !landlord?.phone || sendMutation.isPending}
-            className="h-[60px] w-10 shrink-0"
-          >
-            {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
-        </div>
+      <div className="pt-2 border-t border-white/10">
+        <ModernComposerField
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); } }}
+          onSend={submit}
+          sending={sendMutation.isPending}
+          sendDisabled={!landlord?.phone}
+          placeholder={landlord?.phone ? `Message via ${selectedChannel === 'agent' ? 'My Line' : (CHANNELS.find(c => c.id === selectedChannel)?.label || selectedChannel)}… (Enter to send)` : 'No phone number on file'}
+          channel="whatsapp"
+          accent="#10b981"
+          voiceEnabled={true}
+          landlordId={landlord?.id}
+          landlordContext={{ name: landlord?.full_name_en || landlord?.full_name || '', unit: landlord?.unit_reference || '', project: landlord?.project_name || '', asking: landlord?.asking_price_aed || '', agentName: landlord?.assigned_agent_email || '' }}
+          targetLanguage={landlord?.preferred_language}
+          minHeight={44}
+        />
         {selectedChannel === 'business' && (
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[10px] text-muted-foreground mt-1">
             Business channel · use <span className="text-amber-400">Templates</span> to re-open 24h window
           </p>
         )}
-      </form>
+      </div>
 
       <TemplatesModal
         open={showTemplates}

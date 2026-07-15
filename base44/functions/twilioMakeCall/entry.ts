@@ -15,7 +15,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Body: { lead_id?, landlord_id?, to_phone, from_phone?, lead_name?, browser_mode? }
  */
 
-const PUBLIC_BASE = 'https://dubai-estate-pro.base44.app';
+// Derive the public base from the incoming request so callbacks never point
+// at a stale domain after the app is renamed or republished.
+const publicBase = (req) => new URL(req.url).origin;
 
 Deno.serve(async (req) => {
   try {
@@ -96,12 +98,13 @@ Deno.serve(async (req) => {
     });
 
     // Callbacks all go to twilioVoiceWebhook (public, no auth required)
-    const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLog.id}`;
-    const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
+    const base = publicBase(req);
+    const statusCb = `${base}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLog.id}`;
+    const recordCb = `${base}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
 
     // Bridge URL: when agent answers their phone, Twilio executes this TwiML
     // which immediately dials the customer and connects audio
-    const bridgeUrl = `${PUBLIC_BASE}/functions/twilioMakeBridge` +
+    const bridgeUrl = `${base}/functions/twilioMakeBridge` +
       `?customer=${encodeURIComponent(to_phone)}` +
       `&caller=${encodeURIComponent(voiceNumber)}` +
       `&log=${callLog.id}` +

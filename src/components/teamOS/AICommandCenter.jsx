@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Send, Loader2, Brain, Sparkles, User } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 
 const QUICK_COMMANDS = [
   'Who should handle the next unassigned lead?',
@@ -141,14 +142,16 @@ Respond as a sharp, data-driven real estate team manager. Be concise but actiona
       {/* Input */}
       <div className="px-6 pb-6 flex-shrink-0">
         <div className="flex gap-3 items-end bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-indigo-500/50 transition-all">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder="Ask anything about your team, leads, or deals…"
-            rows={1}
-            className="flex-1 bg-transparent text-white text-sm placeholder-white/30 outline-none resize-none leading-relaxed"
-          />
+          <div className="flex-1 min-w-0">
+            <WritingField
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              placeholder="Ask anything about your team, leads, or deals…"
+              rows={1}
+              className="bg-transparent text-white text-sm placeholder-white/30 outline-none resize-none leading-relaxed"
+            />
+          </div>
           <button
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}

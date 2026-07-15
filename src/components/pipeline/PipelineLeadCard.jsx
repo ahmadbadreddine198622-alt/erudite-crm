@@ -1,36 +1,80 @@
-import React from 'react';
+import React, { memo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ProjectBadge } from '@/lib/projectColors.jsx';
-import { STAGES, DEFAULT_HEALTH_THRESHOLDS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
-import { Phone, MessageCircle, Trash2, ExternalLink } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, ExternalLink, Building2, ArrowRight, ChevronRight, Flame, Zap } from 'lucide-react';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import IntentToggle from '@/components/leads/IntentToggle';
+import {
+  PB, champagneInk, isAtRisk, daysInStage, isHot, hasSignals, leadScore,
+  formatDealValue, formatAEDCompact, nextStepFor,
+} from '@/lib/buyerPipelineTokens';
 
-function formatTimeInStage(stageEnteredAt) {
-  if (!stageEnteredAt) return '';
-  const ms = Date.now() - new Date(stageEnteredAt).getTime();
-  if (isNaN(ms) || ms < 0) return '';
-  const minutes = ms / 60_000;
-  const hours = minutes / 60;
-  const days = hours / 24;
-  if (days >= 7) return `${Math.floor(days / 7)}w`;
-  if (days >= 1) return `${Math.floor(days)}d`;
-  if (hours >= 1) return `${Math.floor(hours)}h`;
-  if (minutes >= 1) return `${Math.floor(minutes)}m`;
-  return 'just now';
+// One chip language — hairline ghost chip. Differentiate by text, not color.
+function Chip({ children, dot, style, title }) {
+  return (
+    <span title={title} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '2px 8px', borderRadius: 999,
+      background: 'transparent', border: `1px solid ${PB.HAIR2}`,
+      color: PB.SLATE, fontSize: 9.5, fontWeight: 500,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      whiteSpace: 'nowrap', lineHeight: 1.1, ...style,
+    }}>
+      {dot}{children}
+    </span>
+  );
 }
 
-function getHealthColor(stageKey, stageEnteredAt) {
-  if (!stageEnteredAt) return null;
-  const meta = STAGES[stageKey];
-  const thresholds = (meta && meta.health_thresholds) || DEFAULT_HEALTH_THRESHOLDS;
-  const hoursInStage = (Date.now() - new Date(stageEnteredAt).getTime()) / 3_600_000;
-  if (isNaN(hoursInStage) || hoursInStage < 0) return null;
-  if (hoursInStage < thresholds.stalling_hours) return 'green';
-  if (hoursInStage < thresholds.critical_hours) return 'yellow';
-  return 'red';
+// Footer action icon button — 1.5px stroke, muted, rising on hover.
+function ActBtn({ onClick, title, disabled, children, danger }) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 26, height: 26, borderRadius: 7,
+        background: 'transparent', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        color: disabled ? 'rgba(255,255,255,0.25)' : danger && h ? PB.CLARET_TEXT : h ? PB.NAME : 'rgba(233,237,246,0.45)',
+        transition: 'color 150ms ease',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Score-ring avatar — 28px, 1.5px hairline track + gold arc (claret when score < 40),
+// initial or photo on a gold-tint fill.
+function ScoreRing({ score, size = 28, children }) {
+  const stroke = 1.5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const s = Math.max(0, Math.min(100, score || 0));
+  const arc = (s / 100) * circ;
+  const arcColor = s < 40 ? PB.CLARET_TEXT : PB.GOLD;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)', overflow: 'visible' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        {s > 0 && (
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={arcColor} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${arc} ${circ - arc}`} />
+        )}
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ position: 'absolute', width: size - 6, height: size - 6, borderRadius: 999, background: 'rgba(198,161,91,0.06)' }} />
+        <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: size - 8, height: size - 8, borderRadius: 999, overflow: 'hidden' }}>
+          {children}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function formatCompactPrice(price, offeringType, period) {
@@ -46,215 +90,350 @@ function formatCompactPrice(price, offeringType, period) {
   }
   let suffix = '';
   if (offeringType === 'rent') {
-    if (period === 'month') suffix = '/mo';
-    else suffix = '/yr';
+    suffix = period === 'month' ? '/mo' : '/yr';
   }
   return `${num} AED${suffix}`;
 }
 
-function formatDealValue(val) {
-  if (!val || val <= 0) return '';
-  if (val >= 1_000_000) {
-    const m = val / 1_000_000;
-    return `AED ${m >= 10 ? Math.round(m) : m.toFixed(1).replace(/\.0$/, '')}M`;
-  }
-  if (val >= 1_000) return `AED ${Math.round(val / 1_000)}K`;
-  return `AED ${val}`;
-}
-
-const OFFERING_BADGE_COLORS = {
-  sale: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  rent: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-};
-
-const SOURCE_BADGE = {
-  property_finder:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  whatsapp_campaign: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  bayut:             'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  website:           'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-  referral:          'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  instagram:         'bg-pink-500/15 text-pink-400 border-pink-500/30',
-  facebook:          'bg-blue-700/15 text-blue-300 border-blue-700/30',
-  tiktok:            'bg-slate-400/10 text-slate-200 border-slate-400/25',
-  google_ads:        'bg-red-500/15 text-red-400 border-red-500/30',
-  dubizzle:          'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  cold_call:         'bg-violet-500/15 text-violet-400 border-violet-500/30',
-  walk_in:           'bg-teal-500/15 text-teal-400 border-teal-500/30',
-  event:             'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-  portal_inquiry:    'bg-sky-500/15 text-sky-400 border-sky-500/30',
-};
-const SOURCE_BADGE_DEFAULT = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
-
-const FINANCE_BADGE = {
-  cash:        { label: 'Cash',     style: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  mortgage:    { label: 'Mortgage', style: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  pre_approved:{ label: 'Pre-app',  style: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-  mixed:       { label: 'Mixed',    style: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
-};
-
-export default function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete, getPhotoForPhone }) {
+function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAssign, onDelete, getPhotoForPhone, isColumnSiren = true, trackStages = [] }) {
   const queryClient = useQueryClient();
+  const [hovered, setHovered] = useState(false);
+  const [photoBroken, setPhotoBroken] = useState(false);
+  const [listingFoldOpen, setListingFoldOpen] = useState(false);
+
   const projects = queryClient.getQueryData(['projects']) || [];
   const project = projects.find((p) => p.id === lead.project_id);
   const projectName = project?.name;
-  const timeInStage = formatTimeInStage(lead.stage_entered_at || lead.created_date);
-  const healthColor = getHealthColor(lead.stage, lead.stage_entered_at || lead.created_date);
-  const offering = listing && listing.offering_type;
-  const showOfferingBadge = offering === 'sale' || offering === 'rent';
-  const price = listing && formatCompactPrice(listing.price, offering, listing.price_period);
-  const hasListingBlock = listing && (listing.image_url || showOfferingBadge || price);
 
-  // Health status mapping
-  const healthStatus = healthColor === 'green' ? 'active' : healthColor === 'yellow' ? 'attention' : healthColor === 'red' ? 'stalled' : null;
-  const healthColors = { active: 'bg-emerald-500', attention: 'bg-amber-500', stalled: 'bg-red-500' };
-
+  const score = leadScore(lead);
   const e164 = normalizePhone(lead.phone);
+  const photoUrl = !photoBroken && getPhotoForPhone ? getPhotoForPhone(lead.phone || lead.whatsapp) : null;
 
-  // Get WhatsApp profile photo if available (matched by phone)
-  const photoUrl = getPhotoForPhone ? getPhotoForPhone(lead.phone || lead.whatsapp) : null;
+  const atRisk = isAtRisk(lead);
+  const dInStage = daysInStage(lead);
+  const hot = isHot(lead);
+  const signals = lead.ai_buying_signals || [];
+  const showSiren = atRisk && isColumnSiren;
+  const nextStep = nextStepFor(lead);
+
+  // Journey hairline — stage position across the active track.
+  const stageIndex = trackStages.findIndex((s) => s.key === lead.stage);
+  const total = trackStages.length || 1;
+  const journeyN = Math.min(Math.max(stageIndex + 1, 1), total);
+  const journeyFill = total > 1 ? Math.min(Math.max(stageIndex, 0), total - 1) / (total - 1) * 100 : 0;
+
+  // Listing fold summary
+  const hasListing = !!listing;
+  const listingRef = listing && (listing.reference_number || listing.pf_listing_id || listing.title || listing.building_name || 'Listing');
+  const listingPrice = listing && formatCompactPrice(listing.price, listing.offering_type || listing.listing_type, listing.price_period);
+  const listingBeds = listing && listing.bedrooms != null
+    ? (listing.bedrooms === 0 ? 'Studio' : `${listing.bedrooms}BR`)
+    : '';
 
   const handleCall = (e) => {
     e.stopPropagation();
     if (e164) window.open(`tel:${e164}`, '_self');
   };
-
   const handleWhatsApp = (e) => {
     e.stopPropagation();
     if (e164) window.open(waMeUrl(e164), '_blank', 'noopener,noreferrer');
   };
 
+  // Root shadow / border / transform — motionless luxury, light does the work.
+  const baseShadow = '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)';
+  let boxShadow = showSiren ? `inset 2px 0 0 0 ${PB.CLARET}, ${baseShadow}` : baseShadow;
+  if (isDragging) boxShadow = '0 24px 48px rgba(0,0,0,0.55)';
+  else if (hovered) boxShadow = (showSiren ? `inset 2px 0 0 0 ${PB.CLARET}, ` : '') + '0 12px 32px rgba(0,0,0,0.45)';
+  const border = isDragging
+    ? 'rgba(198,161,91,0.3)'
+    : hovered
+      ? 'rgba(198,161,91,0.22)'
+      : PB.HAIR;
+
   return (
     <div
       onClick={onClick}
-      className={cn('rounded-xl p-1.5 cursor-pointer transition-all duration-200', isDragging ? 'shadow-2xl rotate-1' : 'hover:shadow-lg')}
+      className={cn('rounded-2xl p-2 cursor-pointer block')}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.07)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: isDragging ? '2px solid rgba(245,159,10,0.6)' : '1px solid rgba(255,255,255,0.12)',
-        borderTopColor: isDragging ? 'rgba(245,159,10,0.8)' : 'rgba(255,255,255,0.18)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        background: PB.CARD,
+        border: `1px solid ${border}`,
+        borderRadius: 14,
+        boxShadow,
+        position: 'relative',
+        transform: isDragging ? 'rotate(1.2deg)' : hovered ? 'translateY(-1px)' : 'none',
+        transition: 'transform 180ms ease-out, border-color 180ms ease-out, box-shadow 180ms ease-out',
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {/* Header: avatar + name */}
+      {/* Hover gold top-edge gradient line */}
+      <div style={{
+        position: 'absolute', top: 0, left: 14, right: 14, height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(198,161,91,0.55), transparent)',
+        opacity: hovered ? 1 : 0, transition: 'opacity 180ms ease',
+        pointerEvents: 'none', borderRadius: '14px 14px 0 0',
+      }} />
+
+      {/* Top row: score ring + name + phone + HOT chip */}
       <div className="flex items-center gap-1.5">
-        {photoUrl ? (
-          <img src={photoUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 border border-white/20" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-        ) : null}
-        <div className={cn('w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-bold text-accent shrink-0', photoUrl ? 'hidden' : 'flex')}>
-          {lead.full_name?.[0]?.toUpperCase() || '?'}
-        </div>
-        <p className="text-[11px] font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.95)' }} title={lead.full_name || lead.phone || 'Unknown'}>
+        <ScoreRing score={score ?? 0}>
+          {photoUrl ? (
+            <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 999 }} onError={() => setPhotoBroken(true)} />
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 600, color: PB.GOLD, fontFamily: "'Montserrat',sans-serif" }}>
+              {lead.full_name?.[0]?.toUpperCase() || '?'}
+            </span>
+          )}
+        </ScoreRing>
+        <p className="text-[12px] truncate flex-1" style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: PB.NAME }} title={lead.full_name || lead.phone || 'Unknown'}>
           {lead.full_name || lead.phone || 'Unknown'}
         </p>
+        {hot && (
+          <Chip dot={<Flame className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: PB.GOLD, flex: 'none' }} />} style={{ color: PB.GOLD, borderColor: 'rgba(198,161,91,0.35)' }} title="High conversion probability (≥70%)">
+            HOT
+          </Chip>
+        )}
+        {lead.phone && (
+          <span className="shrink-0 text-[9px] flex items-center gap-0.5" style={{ color: PB.SLATE, fontVariantNumeric: 'tabular-nums' }} title={`Primary: ${lead.phone}`}>
+            <Phone className="w-2.5 h-2.5" strokeWidth={1.5} />
+            {lead.phone}
+          </span>
+        )}
       </div>
 
-      {/* Badges: source + stage + health + finance */}
-      <div className="flex items-center gap-1 mt-1 flex-wrap">
+      {/* Chips row — one chip language, ghost hairline */}
+      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
         {lead.source && (
-          <span className={`inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border ${SOURCE_BADGE[lead.source] || SOURCE_BADGE_DEFAULT}`}>
-            {lead.source.replace(/_/g, ' ')}
-          </span>
+          <Chip title={lead.source}>{lead.source.replace(/_/g, ' ')}</Chip>
         )}
-        <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-slate-500/10 text-slate-300 border-slate-500/30">
+        <Chip
+          dot={<span style={{ width: 6, height: 6, borderRadius: 999, background: PB.GOLD, flex: 'none', boxShadow: '0 0 6px rgba(198,161,91,0.7)' }} />}
+        >
           {lead.stage?.replace(/_/g, ' ') || 'unknown'}
-        </span>
-        {healthStatus === 'stalled' && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-red-500/15 text-red-400 border-red-500/30">STALLED</span>
+        </Chip>
+        {lead.financing_type && (
+          <Chip title={`Finance: ${lead.financing_type}`}>{lead.financing_type}</Chip>
         )}
-        {healthStatus === 'attention' && (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/30">ATTENTION</span>
-        )}
-        {lead.financing_type && FINANCE_BADGE[lead.financing_type] && (
-          <span className={`inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border ${FINANCE_BADGE[lead.financing_type].style}`}>
-            {FINANCE_BADGE[lead.financing_type].label}
-          </span>
+        {hasSignals(lead) && (
+          <Chip
+            dot={<Zap className="w-2.5 h-2.5" strokeWidth={1.5} style={{ color: PB.GOLD, flex: 'none' }} />}
+            style={{ color: PB.GOLD, borderColor: 'rgba(198,161,91,0.3)' }}
+            title={`Buying signals: ${signals.join(', ')}`}
+          >
+            {signals.length} SIGNAL{signals.length !== 1 ? 'S' : ''}
+          </Chip>
         )}
       </div>
 
       {/* Intent toggle */}
-      <div className="mt-1">
+      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
         <IntentToggle lead={lead} size="sm" />
       </div>
 
-      {/* Project + listing offering */}
-      {(projectName || hasListingBlock) && (
-        <div className="flex items-center gap-1 mt-1 flex-wrap">
-          {projectName && <ProjectBadge name={projectName} />}
-          {showOfferingBadge && (
-            <span className={cn('inline-flex items-center px-1 py-0.5 rounded text-[7px] font-bold border', OFFERING_BADGE_COLORS[offering])}>
-              {offering}
-            </span>
-          )}
-          {price && <span className="text-[8px] font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{price}</span>}
+      {/* NEXT action ledger — gold "Next" tag + action text in a hairline well, 2px inner-left rail (claret when at risk). */}
+      {nextStep && (
+        <div className="flex items-start gap-1.5 mt-1.5 pl-2.5 pr-2 py-1.5 rounded-md relative" style={{ background: PB.WELL, border: `1px solid ${atRisk ? 'rgba(180,70,63,0.25)' : PB.HAIR}` }}>
+          <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: atRisk ? 'rgba(180,70,63,0.65)' : 'rgba(198,161,91,0.55)', borderRadius: '2px 0 0 2px' }} />
+          <span className="shrink-0" style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: PB.GOLD }}>Next</span>
+          <span className="text-[11px] leading-snug line-clamp-2" style={{ color: '#D7DDEA', lineHeight: 1.5 }}>{nextStep}</span>
+          <ArrowRight
+            className="w-3.5 h-3.5"
+            strokeWidth={1.5}
+            style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', color: PB.GOLD, opacity: hovered ? 0.7 : 0, transition: 'opacity 180ms ease', flex: 'none' }}
+          />
         </div>
       )}
 
-      {/* Deal value + agent */}
-      <div className="flex items-center gap-2 mt-1 flex-wrap">
+      {/* Project (ghost chip) */}
+      {projectName && (
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+          <Chip title={projectName}>{projectName}</Chip>
+        </div>
+      )}
+
+      {/* Deal intelligence fold — matched listing collapsed to one hairline summary line. */}
+      {hasListing && (
+        <div className="mt-1.5">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); setListingFoldOpen((v) => !v); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setListingFoldOpen((v) => !v); } }}
+            title={listingFoldOpen ? 'Click to fold' : 'Click to expand listing'}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', borderRadius: 8, background: PB.WELL, border: `1px solid ${PB.HAIR}`, cursor: 'pointer' }}
+          >
+            <Building2 className="w-3 h-3 shrink-0" strokeWidth={1.5} style={{ color: PB.SLATE }} />
+            <span style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: PB.SLATE, fontVariantNumeric: 'tabular-nums' }}>
+              {listingRef}
+            </span>
+            {listingPrice && (
+              <span style={{ fontSize: 9.5, color: PB.NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                {listingPrice}
+              </span>
+            )}
+            {listingBeds && (
+              <span style={{ fontSize: 9, color: PB.SLATE, fontVariantNumeric: 'tabular-nums' }}>
+                {listingBeds}
+              </span>
+            )}
+            <ChevronRight
+              className="shrink-0"
+              strokeWidth={1.5}
+              style={{ marginLeft: 'auto', width: 13, height: 13, color: PB.SLATE, transform: listingFoldOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}
+            />
+          </div>
+          <div style={{ maxHeight: listingFoldOpen ? 400 : 0, opacity: listingFoldOpen ? 1 : 0, overflow: 'hidden', transition: 'max-height 180ms ease, opacity 180ms ease' }}>
+            <div className="mt-1 px-2 py-1.5 rounded-md" style={{ background: PB.WELL, border: `1px solid ${PB.HAIR}` }}>
+              <div className="flex items-center justify-between gap-1">
+                <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: PB.NAME, fontVariantNumeric: 'tabular-nums' }}>
+                  <Building2 className="w-3 h-3" strokeWidth={1.5} style={{ color: PB.GOLD }} />
+                  {listing.title || listingRef}
+                </span>
+                {(listing.offering_type || listing.listing_type) && (
+                  <Chip style={{ fontSize: 8.5, padding: '1px 6px' }}>
+                    {listing.offering_type || listing.listing_type}
+                  </Chip>
+                )}
+              </div>
+              {listingPrice && (
+                <p className="text-[10px] mt-1" style={{ color: PB.NAME, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  {listingPrice}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {listingBeds && <span className="text-[9px]" style={{ color: PB.SLATE }}>{listingBeds}</span>}
+                {listing.area_sqft != null && <span className="text-[9px]" style={{ color: PB.SLATE, fontVariantNumeric: 'tabular-nums' }}>{listing.area_sqft.toLocaleString()} sqft</span>}
+                {listing.location && <span className="text-[9px]" style={{ color: PB.SLATE }}>{listing.location}</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AT RISK siren chip — only the column's single most at-risk card. */}
+      {showSiren && (
+        <div className="mt-1.5">
+          <Chip
+            style={{ color: PB.CLARET_TEXT, borderColor: PB.CLARET_BORDER, background: PB.CLARET_BG, fontSize: 9 }}
+            title="High churn risk or stale beyond critical threshold"
+          >
+            AT RISK{dInStage != null ? ` · ${dInStage}D` : ''}
+          </Chip>
+        </div>
+      )}
+
+      {/* Money + agent + L-score row — deal value in champagne gradient ink. */}
+      <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ borderTop: `1px solid ${PB.HAIR}`, paddingTop: '0.4rem' }}>
         {lead.deal_value_aed > 0 && (
-          <span className="text-[10px] font-bold" style={{ color: 'hsl(38 92% 50%)' }}>
+          <span className="text-[11px] font-bold" style={champagneInk}>
             {formatDealValue(lead.deal_value_aed)}
           </span>
         )}
+        {score != null && (
+          <Chip style={score >= 80 ? { color: PB.GOLD, borderColor: 'rgba(198,161,91,0.4)' } : undefined}>
+            L{Math.round(score)}
+          </Chip>
+        )}
         {lead.assigned_agent_email && (
-          <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: 'hsl(38 92% 60%)' }}>
-            👤 {lead.assigned_agent_email.split('@')[0]}
-          </span>
+          <Chip title={lead.assigned_agent_email}>
+            {lead.assigned_agent_email.split('@')[0]}
+          </Chip>
         )}
       </div>
 
       {/* Send to Closing — only at closing_dld stage */}
       {lead.stage === 'closing_dld' && (
-        <div className="mt-1.5" onClick={e => e.stopPropagation()}>
+        <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
           <SendToClosingButton leadId={lead.id} propertyRef={lead.closing_property_ref} projectId={lead.closing_project_id} size="xs" />
         </div>
       )}
 
-      {/* Footer: time in stage + compact actions */}
-      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} onClick={e => e.stopPropagation()}>
-        <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>
-          {timeInStage || 'New'}
-        </span>
+      {/* Footer: aging chip (+ quiet claret dot for non-siren at-risk cards) + actions */}
+      <div className="flex items-center justify-between gap-1 mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${PB.HAIR}` }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5">
+          <Chip
+            style={
+              atRisk && dInStage != null && dInStage >= 14
+                ? { color: PB.CLARET_TEXT, borderColor: PB.CLARET_BORDER, background: PB.CLARET_BG }
+                : undefined
+            }
+            title="Days in stage"
+          >
+            {dInStage != null ? `${dInStage}D` : 'New'}
+          </Chip>
+          {/* Quiet claret dot — downgraded urgency signal for non-siren at-risk cards. */}
+          {atRisk && !showSiren && (
+            <span
+              title={`At risk${dInStage != null ? ` · ${dInStage}D in stage` : ''} — the most at-risk card in this column carries the full alert`}
+              style={{ width: 6, height: 6, borderRadius: 999, background: PB.CLARET, flex: 'none', boxShadow: '0 0 6px rgba(180,70,63,0.4)' }}
+            />
+          )}
+        </div>
         <div className="flex items-center gap-0.5">
           {users.length > 0 && (
             <select
               title="Assign"
               value={lead.assigned_agent_email || ''}
-              onClick={e => e.stopPropagation()}
-              onChange={e => { e.stopPropagation(); onAssign?.(lead.id, e.target.value); }}
-              className="text-[7px] rounded px-0.5 py-0.5 max-w-[60px]"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => { e.stopPropagation(); onAssign?.(lead.id, e.target.value); }}
+              className="text-[9px] rounded-full px-1.5 py-1 max-w-[64px] cursor-pointer"
+              style={{ background: 'transparent', border: `1px solid ${PB.HAIR2}`, color: PB.SLATE }}
             >
               <option value="">Assign</option>
-              {users.map(u => (
-                <option key={u.id} value={u.email}>{u.full_name?.split(' ')[0] || u.email.split('@')[0]}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.email}>{(u.full_name)?.split(' ')[0] || u.email.split('@')[0]}</option>
               ))}
             </select>
           )}
-          <button type="button" onClick={handleCall} disabled={!e164}
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-blue-500/15 transition-colors disabled:opacity-40"
-            title="Call" style={{ color: '#3b82f6' }}>
-            <Phone className="w-2.5 h-2.5" />
-          </button>
-          <button type="button" onClick={handleWhatsApp} disabled={!e164}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors disabled:opacity-40"
-            title="WhatsApp">
-            <MessageCircle className="w-2.5 h-2.5" />
-          </button>
-          <a href={`/whatsapp?leadId=${lead.id}`} onClick={e => e.stopPropagation()}
-            className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-green-400 hover:bg-green-500/15 transition-colors"
-            title="Open in CRM">
-            <ExternalLink className="w-2.5 h-2.5" />
+          <ActBtn onClick={handleCall} disabled={!e164} title={e164 ? 'Call' : 'No phone number'}>
+            <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
+          <ActBtn onClick={handleWhatsApp} disabled={!e164} title="WhatsApp">
+            <MessageCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
+          <a
+            href={`/whatsapp?leadId=${lead.id}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 7, color: 'rgba(233,237,246,0.45)', transition: 'color 150ms ease', textDecoration: 'none' }}
+            className="hover:!text-[#E9EDF6]"
+            title="Open in CRM"
+          >
+            <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
           </a>
-          <button type="button"
+          <ActBtn
             onClick={() => { if (window.confirm(`Delete ${lead.full_name || lead.phone || 'this lead'}? This can't be undone.`)) onDelete?.(lead.id); }}
-            className="flex items-center justify-center w-5 h-5 rounded text-red-400 hover:bg-red-500/15 transition-colors"
-            title="Delete">
-            <Trash2 className="w-2.5 h-2.5" />
-          </button>
+            title="Delete"
+            danger
+          >
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </ActBtn>
         </div>
+      </div>
+
+      {/* Journey hairline — stage position across the active track, gold fill + n/total label. */}
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 1, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${journeyFill}%`, background: showSiren ? PB.CLARET : PB.GOLD, borderRadius: 1, transition: 'width 180ms ease' }} />
+        </div>
+        <span style={{ fontSize: 9, color: PB.SLATE, fontVariantNumeric: 'tabular-nums', flex: 'none' }}>{journeyN}/{total}</span>
       </div>
     </div>
   );
 }
+
+// Memoized so a drag (which re-renders the board on every pointer move) only repaints the
+// card whose props actually changed — not all cards.
+export default memo(PipelineLeadCard, (prev, next) => {
+  const a = prev.lead, b = next.lead;
+  return (
+    a === b &&
+    prev.listing === next.listing &&
+    prev.isDragging === next.isDragging &&
+    prev.isColumnSiren === next.isColumnSiren &&
+    prev.trackStages === next.trackStages &&
+    prev.users === next.users &&
+    prev.getPhotoForPhone === next.getPhotoForPhone &&
+    prev.onAssign === next.onAssign &&
+    prev.onDelete === next.onDelete
+  );
+});

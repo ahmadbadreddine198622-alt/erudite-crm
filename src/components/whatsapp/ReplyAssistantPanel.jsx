@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Sparkles, Copy, Check, Loader2, Wand2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function ReplyAssistantPanel({ conversation, lead, landlord, onInsertMessage }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -145,6 +146,7 @@ Please provide 2-3 draft options with brief reasoning for each.
             onChange={(e) => setDraftPrompt(e.target.value)}
             className="h-20 text-sm"
           />
+          <DictationMicButton value={draftPrompt} onChange={(val) => setDraftPrompt(val)} />
         </div>
 
         {/* Tone Selection */}

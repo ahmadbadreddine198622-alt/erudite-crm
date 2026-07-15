@@ -7,6 +7,7 @@ import EmailComposeButton from '@/components/shared/EmailComposeButton';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import WritingField from '@/components/shared/WritingField';
 
 const STAGE_LABELS = {
   initial_contact: 'Initial Contact',
@@ -95,7 +96,7 @@ function FollowUpModal({ landlord, onClose }) {
         </select>
       </FieldRow>
       <FieldRow label="Note">
-        <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={3} className={`${inputCls} resize-none`} style={inputStyle} placeholder="What needs to happen…" />
+        <WritingField value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={3} className={`${inputCls} resize-none`} style={inputStyle} placeholder="What needs to happen…" landlordId={landlord?.id} channel="note" />
       </FieldRow>
       <div className="flex justify-end gap-2 pt-1">
         <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -158,7 +159,7 @@ function AppointmentModal({ landlord, onClose }) {
         <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className={inputCls} style={inputStyle} placeholder={form.type === 'viewing' ? landlord?.unit_reference || 'Property address…' : 'Office / link…'} />
       </FieldRow>
       <FieldRow label="Notes">
-        <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className={`${inputCls} resize-none`} style={inputStyle} placeholder="Additional notes…" />
+        <WritingField value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className={`${inputCls} resize-none`} style={inputStyle} placeholder="Additional notes…" landlordId={landlord?.id} channel="appointment" />
       </FieldRow>
       <div className="flex justify-end gap-2 pt-1">
         <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>

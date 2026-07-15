@@ -183,6 +183,13 @@ div[id*="Base44"] {
   .page-enter { animation: none; }
 }
 
+/* ─── Dictation pulse ─── */
+@keyframes dmb-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(212,175,55,0.4), 0 2px 12px rgba(212,175,55,0.35); }
+  70%  { box-shadow: 0 0 0 8px rgba(212,175,55,0), 0 2px 12px rgba(212,175,55,0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(212,175,55,0), 0 2px 12px rgba(212,175,55,0.35); }
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

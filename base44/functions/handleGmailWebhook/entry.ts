@@ -167,6 +167,20 @@ Return only a JSON array of matching tags.`,
         },
       });
 
+      // BRAIN V4 P3 LEARN: inbound landlord reply → outcome ledger (non-fatal).
+      if (!isOutbound && landlordId) {
+        try {
+          await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+            landlord_id: landlordId,
+            kind: 'reply_received',
+            channel: 'email',
+            source_ref: `Email:${email.id}`,
+            text: subject ? `${subject}\n${bodyText.substring(0, 500)}` : bodyText.substring(0, 500),
+            responded_at: receivedAt,
+          }).catch(() => {});
+        } catch (_) { /* best-effort */ }
+      }
+
       processed.push(messageId);
     }
 

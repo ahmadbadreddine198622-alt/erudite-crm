@@ -9,6 +9,7 @@ import EruditeButton from '@/components/erudite/EruditeButton';
 import ClientBriefForm from '@/components/propertyintel/ClientBriefForm';
 import DeepLinkResults from '@/components/propertyintel/DeepLinkResults';
 import { Building, Search, TrendingUp, MapPin, X, MessageCircle } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { toast } from 'sonner';
 
 export default function PropertyIntel() {
@@ -138,6 +139,9 @@ export default function PropertyIntel() {
               <button onClick={() => setWhatsappDraft(null)} className="text-white/30 hover:text-white/60">
                 <X className="w-4 h-4" />
               </button>
+            </div>
+            <div className="flex items-center justify-end mb-2">
+              <ReadAloudButton text={whatsappDraft} title="WhatsApp Draft" size={14} />
             </div>
             <textarea
               className="w-full h-48 px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white/80 resize-none outline-none focus:border-amber-500/40 font-mono"

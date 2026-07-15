@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, CheckCircle2, Star, TrendingUp, Users, RefreshCw, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const ANGLE_CONFIG = {
   luxury: {
@@ -233,20 +234,22 @@ export default function ListingCopyManager({ landlordId, landlordPropertyId, lan
                 {/* Editable description */}
                 <div>
                   <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Description</p>
-                  <textarea
+                  <WritingField
                     rows={5}
                     value={editedDesc}
                     onChange={(e) => setEdits(prev => ({
                       ...prev,
                       [opt.angle]: { ...prev[opt.angle], description: e.target.value }
                     }))}
-                    className="w-full px-3 py-2 text-xs leading-relaxed rounded-lg resize-none"
+                    className="px-3 py-2 text-xs leading-relaxed rounded-lg resize-none"
                     style={{
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.12)',
                       color: 'rgba(255,255,255,0.82)',
                       outline: 'none',
                     }}
+                    landlordId={landlordId}
+                    channel="listing"
                   />
                 </div>
               </div>

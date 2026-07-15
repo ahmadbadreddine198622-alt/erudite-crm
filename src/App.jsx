@@ -1,119 +1,141 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import PageNotFound from './lib/PageNotFound';
+import { ReadAloudProvider } from '@/lib/ReadAloudContext';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import BlockedAccount from '@/components/BlockedAccount';
 import ProtectedRoute from '@/components/ProtectedRoute';
+
+// ── Eager imports — the critical path only ──────────────────────────────────
+// Auth pages (tiny, needed before anything else), the app shell, and the
+// Dashboard (post-login landing page → instant first paint, no chunk wait).
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ShortLinkRedirect from '@/pages/ShortLinkRedirect';
-
 import AppLayout from '@/components/layout/AppLayout';
 import Dashboard from '@/pages/Dashboard';
-import AuroraPipeline from '@/pages/AuroraPipeline';
-import Pipeline from '@/pages/Pipeline';
-import Leads from '@/pages/Leads';
 
-import MapView from '@/pages/MapView';
-import Commissions from '@/pages/Commissions';
-import Reminders from './pages/Reminders';
-import WhatsAppInbox from '@/pages/WhatsAppInbox';
-import Inbox from '@/pages/Inbox';
-import Analytics from '@/pages/Analytics';
-import Team from '@/pages/Team';
-import Contacts from '@/pages/Contacts';
-import Offers from '@/pages/Offers';
-import TeamOS from '@/pages/TeamOS';
-import Finance from '@/pages/Finance';
-import TeamDashboard from '@/pages/TeamDashboard';
-import MyDashboard from '@/pages/MyDashboard';
-import SalesAnalytics from '@/pages/SalesAnalytics';
-import Calendar from '@/pages/Calendar';
-import MetaAdsLeads from '@/pages/MetaAdsLeads';
-import WhatsAppHub from '@/pages/WhatsAppHub';
-import InstagramLeads from '@/pages/InstagramLeads';
-import DuplicateDetector from '@/pages/DuplicateDetector';
-import ClaudeAI from '@/pages/ClaudeAI';
-import PropertyFinderSync from '@/pages/PropertyFinderSync';
-import PFAgentBRN from '@/pages/PFAgentBRN';
-import PropertyFinderDashboard from '@/pages/PropertyFinderDashboard';
-import PropertyFinderLeads from '@/pages/PropertyFinderLeads';
-import Landlords from '@/pages/Landlords';
-import LandlordDetailPage from '@/pages/LandlordDetailPage';
-import Messages from '@/pages/Messages';
-import EmailAutomations from '@/pages/EmailAutomations';
-import Projects from '@/pages/Projects';
-import FormAReferral from '@/pages/FormAReferral';
-import FormAInbox from '@/pages/FormAInbox';
-import KeyHandover from '@/pages/KeyHandover';
-import TransferFeeCalculator from '@/pages/TransferFeeCalculator';
-import FormIGenerator from '@/pages/FormIGenerator';
-import DubaiIntelligence from '@/pages/DubaiIntelligence';
-import EliteDesk from '@/pages/EliteDesk';
-import WhatsAppScheduler from '@/pages/WhatsAppScheduler';
-import Leaderboard from '@/pages/Leaderboard';
-import LeadScoringDashboard from '@/pages/LeadScoringDashboard';
-import DealRiskMonitor from '@/pages/DealRiskMonitor';
-import TaskCenter from '@/pages/TaskCenter';
-import WhatsAppAnalytics from '@/pages/WhatsAppAnalytics';
-import AISyncHub from '@/pages/AISyncHub';
-import IOSRemindersSync from '@/pages/iOSRemindersSync';
-import TeamManagement from '@/pages/TeamManagement';
-import LeaseAgreement from '@/pages/LeaseAgreement';
-import TenancyContracts from '@/pages/TenancyContracts';
-import Profile from '@/pages/Profile';
-import VapiDashboard from '@/pages/VapiDashboard';
-import VapiWorkflow from '@/pages/VapiWorkflow';
-import GoogleDrive from '@/pages/GoogleDrive';
-import Notes from '@/pages/Notes';
-import Negotiations from '@/pages/Negotiations';
-import FollowUps from '@/pages/FollowUps';
-import Viewings from '@/pages/Viewings';
-import EmailTemplates from '@/pages/EmailTemplates';
-import Broadcasts from '@/pages/Broadcasts';
-import PropertyIntel from '@/pages/PropertyIntel';
-import MarketIntelligence from '@/pages/MarketIntelligence';
-import BuyerMatchAI from '@/pages/BuyerMatchAI';
-import ClosingAI from '@/pages/ClosingAI';
-import BrandSettings from '@/pages/BrandSettings';
-import TeamActivityLog from '@/pages/TeamActivityLog';
-import InviteAgents from '@/pages/InviteAgents';
-import Photography from '@/pages/Photography';
-import ListingProduction from '@/pages/ListingProduction';
-import CommandCenter from '@/pages/CommandCenter';
-import Closing from '@/pages/Closing';
-import TwilioHub from '@/pages/TwilioHub';
-import AircallHub from '@/pages/AircallHub';
-import MatterportSync from '@/pages/MatterportSync';
-import Policies from '@/pages/Policies';
-import ApiInbox from '@/pages/ApiInbox';
-import Acknowledgements from '@/pages/Acknowledgements';
-import DesignSystem from '@/pages/DesignSystem';
-import CompanySettings from '@/pages/CompanySettings';
-import Cheques from '@/pages/Cheques';
-import ClosingHub from '@/pages/ClosingHub';
-import ChequeRegister from '@/pages/ChequeRegister';
-import OutreachLeaderboard from '@/pages/OutreachLeaderboard';
-import MyLeadsToday from '@/pages/MyLeadsToday';
-import TeamPerformance from '@/pages/TeamPerformance';
-import AgentIntelligence from '@/pages/AgentIntelligence';
-import Appointments from '@/pages/Appointments';
-import AutomationsHub from '@/pages/AutomationsHub';
-import Flow from '@/pages/Flow';
-import AcademyHome from '@/pages/AcademyHome';
-import TheHall from '@/pages/TheHall';
-import TheMirror from '@/pages/TheMirror';
-import TheDojo from '@/pages/TheDojo';
-import TheField from '@/pages/TheField';
-import TheCouncil from '@/pages/TheCouncil';
-import TheMentor from '@/pages/TheMentor';
+// ── Lazy routes — code splitting ─────────────────────────────────────────────
+// PERFORMANCE-CRITICAL: every page below is its own chunk, downloaded only
+// when the user navigates to it. Previously ALL ~110 pages were imported
+// eagerly, so the browser had to download + parse the ENTIRE app (multiple MB,
+// incl. a 170KB landlord detail page) before the first screen rendered — the
+// root cause of slow initial loads. Do NOT convert these back to static
+// imports. New pages should be added here as lazy() too.
+const AuroraPipeline = lazy(() => import('@/pages/AuroraPipeline'));
+const Pipeline = lazy(() => import('@/pages/Pipeline'));
+const LeadCommandCenter = lazy(() => import('@/pages/LeadCommandCenter'));
+const Leads = lazy(() => import('@/pages/Leads'));
+const MapView = lazy(() => import('@/pages/MapView'));
+const Commissions = lazy(() => import('@/pages/Commissions'));
+const Reminders = lazy(() => import('./pages/Reminders'));
+const WhatsAppInbox = lazy(() => import('@/pages/WhatsAppInbox'));
+const Inbox = lazy(() => import('@/pages/Inbox'));
+const Analytics = lazy(() => import('@/pages/Analytics'));
+const Team = lazy(() => import('@/pages/Team'));
+const Contacts = lazy(() => import('@/pages/Contacts'));
+const Offers = lazy(() => import('@/pages/Offers'));
+const TeamOS = lazy(() => import('@/pages/TeamOS'));
+const Finance = lazy(() => import('@/pages/Finance'));
+const TeamDashboard = lazy(() => import('@/pages/TeamDashboard'));
+const MyDashboard = lazy(() => import('@/pages/MyDashboard'));
+const SalesAnalytics = lazy(() => import('@/pages/SalesAnalytics'));
+const Calendar = lazy(() => import('@/pages/Calendar'));
+const MetaAdsLeads = lazy(() => import('@/pages/MetaAdsLeads'));
+const WhatsAppHub = lazy(() => import('@/pages/WhatsAppHub'));
+const InstagramLeads = lazy(() => import('@/pages/InstagramLeads'));
+const DuplicateDetector = lazy(() => import('@/pages/DuplicateDetector'));
+const ClaudeAI = lazy(() => import('@/pages/ClaudeAI'));
+const PropertyFinderSync = lazy(() => import('@/pages/PropertyFinderSync'));
+const PFAgentBRN = lazy(() => import('@/pages/PFAgentBRN'));
+const PropertyFinderDashboard = lazy(() => import('@/pages/PropertyFinderDashboard'));
+const PropertyFinderLeads = lazy(() => import('@/pages/PropertyFinderLeads'));
+const Landlords = lazy(() => import('@/pages/Landlords'));
+const LandlordDetailPage = lazy(() => import('@/pages/LandlordDetailPage'));
+const Messages = lazy(() => import('@/pages/Messages'));
+const EmailAutomations = lazy(() => import('@/pages/EmailAutomations'));
+const Projects = lazy(() => import('@/pages/Projects'));
+const FormAReferral = lazy(() => import('@/pages/FormAReferral'));
+const FormAInbox = lazy(() => import('@/pages/FormAInbox'));
+const KeyHandover = lazy(() => import('@/pages/KeyHandover'));
+const TransferFeeCalculator = lazy(() => import('@/pages/TransferFeeCalculator'));
+const FormIGenerator = lazy(() => import('@/pages/FormIGenerator'));
+const DubaiIntelligence = lazy(() => import('@/pages/DubaiIntelligence'));
+const EliteDesk = lazy(() => import('@/pages/EliteDesk'));
+const WhatsAppScheduler = lazy(() => import('@/pages/WhatsAppScheduler'));
+const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const LeadScoringDashboard = lazy(() => import('@/pages/LeadScoringDashboard'));
+const DealRiskMonitor = lazy(() => import('@/pages/DealRiskMonitor'));
+const TaskCenter = lazy(() => import('@/pages/TaskCenter'));
+const WhatsAppAnalytics = lazy(() => import('@/pages/WhatsAppAnalytics'));
+const AISyncHub = lazy(() => import('@/pages/AISyncHub'));
+const IOSRemindersSync = lazy(() => import('@/pages/iOSRemindersSync'));
+const TeamManagement = lazy(() => import('@/pages/TeamManagement'));
+const LeaseAgreement = lazy(() => import('@/pages/LeaseAgreement'));
+const TenancyContracts = lazy(() => import('@/pages/TenancyContracts'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const VapiDashboard = lazy(() => import('@/pages/VapiDashboard'));
+const VapiWorkflow = lazy(() => import('@/pages/VapiWorkflow'));
+const GoogleDrive = lazy(() => import('@/pages/GoogleDrive'));
+const Notes = lazy(() => import('@/pages/Notes'));
+const Negotiations = lazy(() => import('@/pages/Negotiations'));
+const FollowUps = lazy(() => import('@/pages/FollowUps'));
+const Viewings = lazy(() => import('@/pages/Viewings'));
+const EmailTemplates = lazy(() => import('@/pages/EmailTemplates'));
+const Broadcasts = lazy(() => import('@/pages/Broadcasts'));
+const PropertyIntel = lazy(() => import('@/pages/PropertyIntel'));
+const MarketIntelligence = lazy(() => import('@/pages/MarketIntelligence'));
+const BuyerMatchAI = lazy(() => import('@/pages/BuyerMatchAI'));
+const ClosingAI = lazy(() => import('@/pages/ClosingAI'));
+const BrandSettings = lazy(() => import('@/pages/BrandSettings'));
+const TeamActivityLog = lazy(() => import('@/pages/TeamActivityLog'));
+const InviteAgents = lazy(() => import('@/pages/InviteAgents'));
+const Photography = lazy(() => import('@/pages/Photography'));
+const ListingProduction = lazy(() => import('@/pages/ListingProduction'));
+const CommandCenter = lazy(() => import('@/pages/CommandCenter'));
+const Closing = lazy(() => import('@/pages/Closing'));
+const TwilioHub = lazy(() => import('@/pages/TwilioHub'));
+const AircallHub = lazy(() => import('@/pages/AircallHub'));
+const MatterportSync = lazy(() => import('@/pages/MatterportSync'));
+const Policies = lazy(() => import('@/pages/Policies'));
+const ApiInbox = lazy(() => import('@/pages/ApiInbox'));
+const Acknowledgements = lazy(() => import('@/pages/Acknowledgements'));
+const DesignSystem = lazy(() => import('@/pages/DesignSystem'));
+const CompanySettings = lazy(() => import('@/pages/CompanySettings'));
+const Cheques = lazy(() => import('@/pages/Cheques'));
+const ClosingHub = lazy(() => import('@/pages/ClosingHub'));
+const ChequeRegister = lazy(() => import('@/pages/ChequeRegister'));
+const OutreachLeaderboard = lazy(() => import('@/pages/OutreachLeaderboard'));
+const MyLeadsToday = lazy(() => import('@/pages/MyLeadsToday'));
+const TeamPerformance = lazy(() => import('@/pages/TeamPerformance'));
+const AgentIntelligence = lazy(() => import('@/pages/AgentIntelligence'));
+const Appointments = lazy(() => import('@/pages/Appointments'));
+const AutomationsHub = lazy(() => import('@/pages/AutomationsHub'));
+const Flow = lazy(() => import('@/pages/Flow'));
+const AcademyHome = lazy(() => import('@/pages/AcademyHome'));
+const TheHall = lazy(() => import('@/pages/TheHall'));
+const TheMirror = lazy(() => import('@/pages/TheMirror'));
+const TheDojo = lazy(() => import('@/pages/TheDojo'));
+const TheField = lazy(() => import('@/pages/TheField'));
+const TheCouncil = lazy(() => import('@/pages/TheCouncil'));
+const TheMentor = lazy(() => import('@/pages/TheMentor'));
+const TelegramSettings = lazy(() => import('@/pages/TelegramSettings'));
+const OwnerRegistryImport = lazy(() => import('@/pages/OwnerRegistryImport'));
+const TrainingVideos = lazy(() => import('@/pages/TrainingVideos'));
 
+// Lightweight fallback shown while a route chunk downloads (usually <300ms).
+const PageLoader = () => (
+  <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+    <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const location = useLocation();
@@ -139,7 +161,9 @@ const AuthenticatedApp = () => {
   }
 
   return (
+    <ReadAloudProvider>
     <AnimatePresence mode="wait">
+      <Suspense fallback={<PageLoader />}>
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -150,6 +174,7 @@ const AuthenticatedApp = () => {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/pipeline" element={<Pipeline />} />
+        <Route path="/lead/:id" element={<LeadCommandCenter />} />
         <Route path="/aurora-pipeline" element={<AuroraPipeline />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/contacts" element={<Contacts />} />
@@ -246,11 +271,16 @@ const AuthenticatedApp = () => {
         <Route path="/academy/field" element={<TheField />} />
         <Route path="/academy/council" element={<TheCouncil />} />
         <Route path="/academy/mentor" element={<TheMentor />} />
-          </Route>
+        <Route path="/telegram-settings" element={<TelegramSettings />} />
+        <Route path="/owner-registry-import" element={<OwnerRegistryImport />} />
+        <Route path="/training-videos" element={<TrainingVideos />} />
+        </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      </Suspense>
     </AnimatePresence>
+    </ReadAloudProvider>
   );
 };
 

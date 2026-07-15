@@ -1,0 +1,123 @@
+{
+  "name": "OutcomeEvent",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "draft_sent",
+        "reply_received",
+        "call_connected",
+        "qualification_logged",
+        "appointment_kept",
+        "appointment_noshow",
+        "mandate_signed",
+        "mandate_lost",
+        "listing_published",
+        "deal_closed",
+        "went_dark",
+        "proposal_approved",
+        "proposal_dismissed"
+      ],
+      "description": "What actually happened. Append-only ground truth for BRAIN V4 P3 LEARN \u2014 never edited, never deleted. proposal_approved/proposal_dismissed are P4 ACT training signals from the Aurora-proposes strip."
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "imessage",
+        "telegram",
+        "sms",
+        "email",
+        "call",
+        "other"
+      ],
+      "description": "Communication channel this event happened on"
+    },
+    "angle_used": {
+      "type": "string",
+      "description": "The forge angle of the draft involved (e.g. value_drop, direct_principal) \u2014 from ai_approach_drafts.angle_used when the sent text matches a loaded draft; empty when the human wrote freeform"
+    },
+    "mode": {
+      "type": "string",
+      "description": "Forge mode of the draft involved: approach | followup (empty for freeform sends)"
+    },
+    "situation": {
+      "type": "string",
+      "description": "Forge situation at send time: first_contact | owner_replied_last | awaiting_first_reply | active_thread_pending | after_call"
+    },
+    "writer_email": {
+      "type": "string",
+      "description": "The logged-in user who performed/owns the action (identity engine writer)"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the outbound was sent (kind=draft_sent) or when the referenced action happened"
+    },
+    "responded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reply landed (kind=reply_received)"
+    },
+    "latency_hours": {
+      "type": "number",
+      "description": "Hours between the linked outbound and this reply (kind=reply_received)"
+    },
+    "source_ref": {
+      "type": "string",
+      "description": "Id of the underlying record (Message/Email/IMessage/TelegramMessage row, CallQualification, Followup, LandlordTask, ...) this event was derived from \u2014 for audit and idempotency"
+    },
+    "linked_event_id": {
+      "type": "string",
+      "description": "For reply_received: the id of the draft_sent OutcomeEvent this reply answers (attribution link, outbound within 72h)"
+    },
+    "template_key": {
+      "type": "string",
+      "description": "Followup/Task template key involved, when the event stems from a cadence item (e.g. rule5_day2_value_drop)"
+    },
+    "landlord_archetype": {
+      "type": "string",
+      "description": "Snapshot of Landlord.landlord_archetype at event time \u2014 makes the ledger self-contained for prior compilation"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Snapshot of the landlord's project at event time"
+    },
+    "nationality": {
+      "type": "string",
+      "description": "Snapshot of Landlord.nationality at event time (bucketed later by compileBrainPriors)"
+    },
+    "stage": {
+      "type": "string",
+      "description": "Snapshot of Landlord.stage at event time"
+    },
+    "hour_dubai": {
+      "type": "number",
+      "description": "Hour of day (0-23, Asia/Dubai) the event happened \u2014 for send-hour priors"
+    },
+    "text_head": {
+      "type": "string",
+      "description": "First 120 normalized characters of the sent/received text \u2014 fan-out dedupe fingerprint and debugging aid; never the full message",
+      "maxLength": 140
+    },
+    "backfilled": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this row was derived from historical Message/Email/IMessage/Telegram history by the backfill rather than recorded live"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional free-text detail (max 1000 chars)",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "landlord_id",
+    "kind"
+  ]
+}

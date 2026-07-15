@@ -6,6 +6,8 @@ import { Send, Loader2, MessageSquare, Phone, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ''; } };
 
@@ -177,7 +179,10 @@ export default function LandlordSMSPanel({ landlord }) {
             return (
               <div key={sms.id} className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm ${out ? 'bg-blue-600/80 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
-                  <div className="whitespace-pre-wrap break-words">{sms.body}</div>
+                  <div className="flex items-start gap-1.5">
+                    <div className="whitespace-pre-wrap break-words flex-1">{sms.body}</div>
+                    <ReadAloudButton text={sms.body} title={`SMS · ${out ? 'Out' : 'In'}${sms.started_at ? ' · ' + fmt(sms.started_at) : ''}`} size={20} style={{ flex: 'none', marginTop: 1 }} />
+                  </div>
                   <div className={`mt-1 text-[10px] flex items-center gap-1.5 ${out ? 'text-white/60 justify-end' : 'text-muted-foreground'}`}>
                     {sms.from_number && out && <span className="truncate max-w-[120px]">from {sms.from_number}</span>}
                     <span>{fmt(sms.started_at)}</span>
@@ -191,34 +196,24 @@ export default function LandlordSMSPanel({ landlord }) {
       </div>
 
       {/* Composer */}
-      <form onSubmit={handleSend} className="pt-2 border-t border-white/10">
-        <div className="flex gap-2 items-end">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={phone ? 'Type SMS… (Enter to send)' : 'No phone number on file'}
-            disabled={!phone || sendMutation.isPending || twilioNumbers.length === 0}
-            rows={1}
-            className="flex-1 text-sm resize-none min-h-[36px]"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim() || !phone || !fromNumber || sendMutation.isPending}
-            title="Send SMS"
-            className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg transition-all border"
-            style={{
-              background: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))',
-              color: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.4)' : '#1a1205',
-              border: `1px solid ${!text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50% / 0.5)'}`,
-              cursor: !text.trim() || sendMutation.isPending ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {sendMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-      </form>
+      <div className="pt-2 border-t border-white/10">
+        <ModernComposerField
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onSend={handleSend}
+          sending={sendMutation.isPending}
+          sendDisabled={!phone || !fromNumber || twilioNumbers.length === 0}
+          placeholder={phone ? 'Type SMS… (Enter to send)' : 'No phone number on file'}
+          channel="sms"
+          voiceEnabled={true}
+          voiceCanSendAudio={false}
+          landlordId={landlord?.id}
+          landlordContext={{ name: landlord?.full_name_en || landlord?.full_name || '', unit: landlord?.unit_reference || '', project: landlord?.project_name || '', asking: landlord?.asking_price_aed || '', agentName: landlord?.assigned_agent_email || '' }}
+          targetLanguage={landlord?.preferred_language}
+          minHeight={36}
+        />
+      </div>
     </div>
   );
 }

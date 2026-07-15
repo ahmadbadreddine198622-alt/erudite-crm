@@ -1,4 +1,5 @@
 import React from 'react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 /* Convert a CSS declaration string into a React style object (matches the LandlordDetail design). */
 function css(str) {
@@ -55,7 +56,10 @@ export default function SuggestedMessages({ messages, onPick, activeText }) {
                 {m.tone && <span style={css("flex:none; font-size:9px; font-weight:600; color:rgba(255,255,255,0.4);")}>{m.tone}</span>}
                 {m.language && m.language !== 'en' && <span style={css("flex:none; margin-left:auto; font-size:9px; font-weight:600; color:rgba(255,255,255,0.35); text-transform:uppercase;")}>{m.language}</span>}
               </span>
-              <span style={css("font-size:12px; line-height:1.45; color:"+(isActive ? "#dcfce7" : "rgba(255,255,255,0.85)")+";")}>{m.text.trim()}</span>
+              <div style={css("display:flex; align-items:flex-start; gap:4px; width:100%;")}>
+                <span style={css("flex:1; font-size:12px; line-height:1.45; color:"+(isActive ? "#dcfce7" : "rgba(255,255,255,0.85)")+";")}>{m.text.trim()}</span>
+                <SpeechifyPlayer text={m.text.trim()} size={10} color="rgba(255,255,255,0.5)" style={{ flex: 'none' }} />
+              </div>
             </button>
           );
         })}

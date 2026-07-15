@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import MobileDock from './MobileDock';
 import ControlRail from '@/components/ui/ControlRail';
 import FloatingDialer from '@/components/twilio/FloatingDialer';
+import KaraokeReader from '@/components/shared/KaraokeReader';
 import MouseGlowBackground from '@/components/dashboard/MouseGlowBackground';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -40,6 +41,7 @@ export default function AppLayout() {
 
       <AddLeadDialog open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
       <FloatingDialer />
+      <KaraokeReader />
       <MobileDock />
     </div>
   );

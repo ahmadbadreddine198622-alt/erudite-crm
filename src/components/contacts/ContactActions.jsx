@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function ContactActions({ contact, onClose }) {
   const [showWhatsApp, setShowWhatsApp] = useState(false);
@@ -130,6 +131,7 @@ export default function ContactActions({ contact, onClose }) {
               className="min-h-24"
             />
             <div className="flex gap-2 justify-end">
+              <DictationMicButton value={emailBody} onChange={(val) => setEmailBody(val)} />
               <Button
                 variant="outline"
                 size="sm"

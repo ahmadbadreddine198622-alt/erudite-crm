@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Users, Building2, UserCheck, BarChart3, FileText, Settings, LogOut } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -126,6 +127,9 @@ export default function DashboardTopBar({
             }}
           />
         </div>
+
+        {/* Notification bell */}
+        <NotificationCenter userEmail={userEmail} />
 
         {/* Avatar + account menu */}
         <div ref={menuRef} className="relative">

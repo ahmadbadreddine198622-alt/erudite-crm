@@ -6,8 +6,8 @@ import EruditeLogo from '@/components/erudite/EruditeLogo';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, KanbanSquare, DollarSign,
-  Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic, ScrollText, NotebookPen,
-  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList, Settings, Flame, Target, BookOpen, PenTool
+  Bell, ChevronLeft, LogOut, MessageCircle, MessageSquare, Inbox, BarChart3, UserCheck, FileSignature, Brain, Calculator, Trophy, UserCircle, Zap, Instagram, Sparkles, Link2, GitMerge, Mail, FolderOpen, Key, Percent, TrendingUp, Crown, User, FileText, Mic,   ScrollText, NotebookPen, Send,
+  Handshake, Repeat, Eye, FileBox, Megaphone, LineChart, UserSearch, CheckCircle, CheckCircle2, Camera, PhoneCall, Shield, Palette, ReceiptText, ClipboardList, Database, Settings, Flame, Target, BookOpen, PenTool
 } from 'lucide-react';
 
 // Jewel hue per workspace section (R,G,B)
@@ -43,6 +43,7 @@ const navSections = [
       { label: 'Analytics',           icon: BarChart3,       path: '/analytics',           gradient: 'from-purple-500 to-fuchsia-800' },
       { label: 'Dubai Intelligence',  icon: TrendingUp,      path: '/dubai-intelligence',  gradient: 'from-amber-500 to-orange-700' },
       { label: 'Cheque Register',     icon: ClipboardList,   path: '/cheque-register',     gradient: 'from-emerald-500 to-teal-700' },
+      { label: 'Owner Registry Import', icon: Database,       path: '/owner-registry-import', gradient: 'from-amber-500 to-orange-700' },
     ],
   },
   {
@@ -100,6 +101,7 @@ const navSections = [
       { label: 'Template Hub',        icon: FileBox,         path: '/email-templates',     gradient: 'from-sky-500 to-cyan-700' },
       { label: 'Twilio Hub',          icon: PhoneCall,       path: '/twilio',              gradient: 'from-red-500 to-red-800' },
       { label: 'AI Voice',            icon: Mic,             path: '/vapi',                gradient: 'from-violet-500 to-purple-800' },
+      { label: 'Telegram Settings',   icon: Send,            path: '/telegram-settings',   gradient: 'from-sky-500 to-blue-700' },
     ],
   },
   {

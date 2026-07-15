@@ -12,11 +12,12 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import {
   Sparkles, Loader2, Send, Eraser, MessageCircle,
-  Save, Paperclip, Globe, Mic, Square, X, FileText,
+  Save, Paperclip, Globe, Mic, Square, X, FileText, AudioLines,
 } from 'lucide-react';
 import EmailTemplatePicker from './EmailTemplatePicker';
 import EmojiPicker from './EmojiPicker';
 import useVoiceRecorder from '@/hooks/useVoiceRecorder';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const GOLD = '#d4b483';
 
@@ -33,14 +34,19 @@ function css(str) {
   return o;
 }
 
-const iconBtn = (active, color = 'rgba(255,255,255,0.6)', activeColor = GOLD) => ({
-  flex: 'none', width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
+const iconBtn = (active, color = 'rgba(255,255,255,0.55)', activeColor = GOLD) => ({
+  flex: 'none', width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   background: active ? (activeColor + '22') : 'transparent',
   color: active ? activeColor : color,
   border: '1px solid ' + (active ? (activeColor + '55') : 'transparent'),
-  transition: 'background 0.15s, border-color 0.15s',
+  transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
 });
+
+// Thinner, taller divider for cleaner visual separation between tool groups
+const toolDivider = {
+  flex: 'none', width: 1, height: 20, background: 'rgba(255,255,255,0.07)', margin: '0 2px',
+};
 
 function detectMediaType(filename) {
   const ext = String(filename || '').toLowerCase().split('.').pop();
@@ -224,7 +230,7 @@ export default function NoteComposerBar({
 
   return (
     <div style={css("display:flex; flex-direction:column; gap:6px;")}>
-      {/* Full-width textarea */}
+      {/* Full-width textarea — premium windowed look */}
       <textarea
         ref={composerRef}
         value={value}
@@ -233,12 +239,16 @@ export default function NoteComposerBar({
         placeholder={placeholder || 'Type a message'}
         rows={2}
         style={{
-          width: '100%', resize: 'none', minHeight: 48, maxHeight: 140,
-          padding: '10px 12px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+          width: '100%', resize: 'none', minHeight: 52, maxHeight: 140,
+          padding: '12px 14px', borderRadius: 12,
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
           color: 'rgba(255,255,255,0.9)', fontSize: '13px',
-          fontFamily: "'Inter',sans-serif", lineHeight: 1.45, overflowY: 'auto', outline: 'none',
+          fontFamily: "'Inter',sans-serif", lineHeight: 1.5, overflowY: 'auto', outline: 'none',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+          transition: 'border-color 0.2s ease, background 0.2s ease',
         }}
+        onFocus={e => { e.target.style.borderColor = 'rgba(212,175,55,0.25)'; e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+        onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.background = 'rgba(255,255,255,0.03)'; }}
       />
 
       {/* Pending attachment chip */}
@@ -344,14 +354,32 @@ export default function NoteComposerBar({
             </button>
           )}
 
-          {/* Voice input — fast smart AI transcription */}
+          {/* Divider — separates editing tools from voice tools */}
+          <span style={toolDivider} />
+
+          {/* Voice memo — record → upload → AI transcribe (small, outlined, secondary) */}
           {isNote && (
             <button type="button" onClick={handleMicClick} disabled={anyBusy && !vr.recording}
-              title={vr.recording ? 'Stop & transcribe' : '🎤 Voice input — AI transcript'}
-              style={iconBtn(vr.recording, 'rgba(239,68,68,0.8)', '#ef4444')}>
-              {vr.recording ? <Square size={11} /> : <Mic size={13} />}
+              title={vr.recording ? 'Stop & transcribe' : 'Voice note'}
+              style={{
+                flex: 'none', width: 28, height: 28, borderRadius: 7, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: vr.recording ? 'rgba(239,68,68,0.15)' : 'transparent',
+                color: vr.recording ? '#fca5a5' : 'rgba(255,255,255,0.45)',
+                border: '1px solid ' + (vr.recording ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.14)'),
+                transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
+              }}>
+              {vr.recording ? <Square size={12} /> : <Mic size={13} />}
             </button>
           )}
+
+          {/* Live dictation — streams words into the textarea as you speak (every composer) */}
+          <DictationMicButton
+            value={value}
+            onChange={(val) => onChange({ target: { value: val } })}
+            size={14}
+            style={{ marginLeft: 2 }}
+          />
         </div>
 
         {/* Right: fixed action cluster — always visible, isolated stacking context so the

@@ -78,6 +78,9 @@ Deno.serve(async (req) => {
     const attachment = body.attachment || null; // { file_url, file_name, media_type }
     let address = body.address;
     const appOrigin = body.origin || '';
+    // iMessage server instance — bb2 = Operations Line (second server); bb1 = Erudite Main.
+    // Routing is enforced below: bb1 is Ahmad-only, every other agent is forced to bb2.
+    let instance = body.instance === 'bb2' ? 'bb2' : 'bb1';
 
     if ((!text || !String(text).trim()) && !attachment) {
       return Response.json({ error: 'Message text or attachment is required' }, { status: 400 });
@@ -106,10 +109,24 @@ Deno.serve(async (req) => {
 
     address = normalizeAddress(address);
 
-    const serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');
-    const password = Deno.env.get('BLUEBUBBLES_PASSWORD') || '';
+    // Route to the correct BlueBubbles server by caller: Ahmad's two emails use the
+    // primary server (his Apple ID); every other agent uses the secondary server.
+    const AHMAD_EMAILS = new Set(['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com']);
+    const isAhmad = AHMAD_EMAILS.has(String(user.email || '').toLowerCase());
+    // bb1 (Erudite Main) is Ahmad-only. Every other agent is routed to bb2 (Operations Line)
+    // regardless of the requested instance — non-Ahmad callers cannot send via bb1.
+    const useBb2 = instance === 'bb2' || !isAhmad;
+    instance = useBb2 ? 'bb2' : 'bb1';
+    let serverUrl, password;
+    if (useBb2) {
+      serverUrl = (Deno.env.get('BB2_URL') || '').replace(/\/+$/, '');
+      password = Deno.env.get('BB2_PASSWORD') || '';
+    } else {
+      serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');
+      password = Deno.env.get('BLUEBUBBLES_PASSWORD') || '';
+    }
     if (!serverUrl || !password) {
-      return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
+      return Response.json({ error: useBb2 ? 'BlueBubbles bb2 server is not configured (BB2_URL / BB2_PASSWORD)' : 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
     // Get plain-text signature (no image — never included in iMessage)
@@ -141,8 +158,10 @@ Deno.serve(async (req) => {
     // Append the branded CTA URL. eruditeproperty.com is already in the signature
     // text, so we only append the Property Finder agent-profile link here (avoids
     // the duplicate URL the user reported).
+    // Ahmad's hardcoded Property Finder agent link is personal branding — only append
+    // it when the sender is Ahmad. Other agents send plain text (no auto CTA).
     let shortUrl = null;
-    if (hasText && !body.skip_signature) {
+    if (hasText && !body.skip_signature && isAhmad) {
       const fixedUrls = ['https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264'];
       messageBody = messageBody.trimEnd() + '\n\n' + fixedUrls.join('\n');
       shortUrl = fixedUrls[0];
@@ -271,6 +290,7 @@ Deno.serve(async (req) => {
           sent_at: nowIso,
           agent_email: user.email || null,
           bb_guid: guid,
+          instance,
         });
         logged = true;
       } catch (_) { logged = false; }
@@ -287,6 +307,21 @@ Deno.serve(async (req) => {
           agent_email: user.email || null,
         });
       } catch (_) { /* best-effort */ }
+
+      // BRAIN V4 P3 LEARN: outcome ledger (non-fatal). The composer sends once per confirmed
+      // handle — recordOutcomeEvent's 10-min same-text fan-out guard collapses those to ONE
+      // draft_sent event. Signature/CTA appended above is tolerated by containment matching.
+      try {
+        await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+          landlord_id,
+          kind: 'draft_sent',
+          channel: 'imessage',
+          source_ref: guid ? `IMessage:${guid}` : `IMessage:${landlord_id}:${nowIso}`,
+          text: messageBody,
+          sent_at: nowIso,
+          writer_email: user.email || null,
+        }).catch(() => {});
+      } catch (_) { /* ledger must never break a send */ }
     }
 
     return Response.json({

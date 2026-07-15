@@ -117,6 +117,28 @@ async function handleInboundSMS(serviceRole, params) {
     source: 'twilio'
   });
 
+  // BRAIN V4 P3 LEARN: if the sender is a known landlord, record the SMS reply in the
+  // outcome ledger (non-fatal). Landlord match by last-9 digits across all phone fields.
+  try {
+    const last9 = String(from || '').replace(/[^0-9]/g, '').slice(-9);
+    if (last9.length >= 7) {
+      const cands = await serviceRole.entities.Landlord.filter(
+        { $or: [{ phone: { $regex: last9 } }, { whatsapp: { $regex: last9 } }] }, '-updated_date', 1
+      ).catch(() => []);
+      const landlord = Array.isArray(cands) ? cands[0] : null;
+      if (landlord?.id) {
+        await serviceRole.functions.invoke('recordOutcomeEvent', {
+          landlord_id: landlord.id,
+          kind: 'reply_received',
+          channel: 'sms',
+          source_ref: params.get('MessageSid') ? `TwilioSMS:${params.get('MessageSid')}` : '',
+          text: body || '',
+          responded_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+    }
+  } catch (_) { /* best-effort */ }
+
   return new Response(
     `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
     { headers: { 'Content-Type': 'text/xml' } }

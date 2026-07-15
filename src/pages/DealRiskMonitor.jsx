@@ -8,6 +8,7 @@ import {
   Phone, Users, CreditCard, FileWarning, Building2, Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { toast } from 'sonner';
 
 // Active deal stages to monitor
@@ -254,7 +255,10 @@ Return JSON:
       {/* Instant recovery action */}
       {instantAction && (
         <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <p className="text-[10px] uppercase tracking-wider text-white/35 mb-1">Immediate Action</p>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="text-[10px] uppercase tracking-wider text-white/35">Immediate Action</p>
+            <ReadAloudButton text={instantAction} title={`Recovery: ${lead?.full_name || deal?.lead_name}`} size={12} />
+          </div>
           <p className="text-xs text-white/75 leading-relaxed">{instantAction}</p>
         </div>
       )}
@@ -283,16 +287,25 @@ Return JSON:
           {expanded && (
             <div className="space-y-3 pt-1 border-t border-white/8">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-white/35 mb-1">Situation</p>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-[10px] uppercase tracking-wider text-white/35">Situation</p>
+                  <ReadAloudButton text={aiPlan.situation_assessment} title="Situation Assessment" size={11} />
+                </div>
                 <p className="text-xs text-white/70 leading-relaxed">{aiPlan.situation_assessment}</p>
               </div>
               <div className="rounded-xl p-3" style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.20)' }}>
-                <p className="text-[10px] uppercase tracking-wider text-violet-400/70 mb-1">Immediate Action Today</p>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-[10px] uppercase tracking-wider text-violet-400/70">Immediate Action Today</p>
+                  <ReadAloudButton text={aiPlan.immediate_action} title="Immediate Action" size={11} />
+                </div>
                 <p className="text-xs text-white/85 leading-relaxed">{aiPlan.immediate_action}</p>
               </div>
               {aiPlan.recovery_steps?.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/35 mb-1.5">Recovery Steps</p>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="text-[10px] uppercase tracking-wider text-white/35">Recovery Steps</p>
+                    <ReadAloudButton text={aiPlan.recovery_steps.map((s, i) => `${i + 1}. ${s}`).join('. ')} title="Recovery Steps" size={11} />
+                  </div>
                   <ol className="space-y-1">
                     {aiPlan.recovery_steps.map((step, i) => (
                       <li key={i} className="flex gap-2 text-xs text-white/65">

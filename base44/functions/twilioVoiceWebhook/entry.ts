@@ -9,7 +9,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Also handles server-side outbound calls (type=outbound) via Twilio REST API.
  */
 
-const PUBLIC_BASE = 'https://dubai-estate-pro.base44.app';
+// Derive the public base from the incoming request so callbacks never point
+// at a stale domain after the app is renamed or republished.
+const publicBase = (req) => new URL(req.url).origin;
 
 async function getCreds(serviceRole) {
   const list = await serviceRole.entities.TwilioCredential.list();
@@ -189,9 +191,10 @@ Deno.serve(async (req) => {
         twilio_number_used: creds.voiceNumber,
       });
 
-      const statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLog.id}`;
-      const recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
-      const bridgeUrl = `${PUBLIC_BASE}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(creds.voiceNumber)}&log=${callLog.id}&base=${encodeURIComponent(PUBLIC_BASE)}&record=${creds.recordCalls ? 'true' : 'false'}`;
+      const base = publicBase(req);
+      const statusCb = `${base}/functions/twilioVoiceWebhook?type=status&call_log_id=${callLog.id}`;
+      const recordCb = `${base}/functions/twilioVoiceWebhook?type=recording&call_log_id=${callLog.id}`;
+      const bridgeUrl = `${base}/functions/twilioMakeBridge?customer=${encodeURIComponent(to_phone)}&caller=${encodeURIComponent(creds.voiceNumber)}&log=${callLog.id}&record=${creds.recordCalls ? 'true' : 'false'}`;
 
       // Twilio calls agent_phone first, when answered → bridges to customer
       const callParams = new URLSearchParams({
@@ -292,8 +295,9 @@ Deno.serve(async (req) => {
 
     const { voiceNumber, recordCalls } = await getCreds(serviceRole);
 
-    let statusCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=status`;
-    let recordCb = `${PUBLIC_BASE}/functions/twilioVoiceWebhook?type=recording`;
+    const base = publicBase(req);
+    let statusCb = `${base}/functions/twilioVoiceWebhook?type=status`;
+    let recordCb = `${base}/functions/twilioVoiceWebhook?type=recording`;
 
     // ── Copilot: fork call audio to the relay via Media Streams ──────────
     // Non-blocking <Start><Stream> — if the relay is down, the call is unaffected.

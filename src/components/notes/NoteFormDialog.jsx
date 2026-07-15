@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const CATEGORIES = ['deal', 'reference', 'personal', 'idea', 'other'];
 const SOURCES = ['manual', 'imported_text', 'other'];
@@ -83,13 +84,16 @@ export default function NoteFormDialog({ note, onClose, onSaved }) {
 
           <div className="space-y-1.5">
             <Label className="text-white/60 text-xs uppercase tracking-wide">Note Body</Label>
-            <textarea
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              placeholder="Paste or type your note content here…"
-              rows={10}
-              className="glass-input w-full rounded-md px-3 py-2 text-sm resize-y min-h-[160px] leading-relaxed"
-            />
+            <div className="flex gap-2 items-start">
+              <textarea
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                placeholder="Paste or type your note content here…"
+                rows={10}
+                className="glass-input w-full rounded-md px-3 py-2 text-sm resize-y min-h-[160px] leading-relaxed"
+              />
+              <DictationMicButton value={body} onChange={setBody} size={16} style={{ marginTop: 4 }} />
+            </div>
           </div>
         </div>
 

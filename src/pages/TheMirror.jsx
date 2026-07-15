@@ -3,22 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
-import { Flame, Loader2, Sparkles, X, Save } from 'lucide-react';
+import { Flame, Loader2, Sparkles, X, Save, Volume2 } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, goldBtn, outlineBtn, input } from '@/lib/academyStyles';
 
 function AffirmationModal({ open, onClose, text, userEmail, qc }) {
   const [affirming, setAffirming] = useState(false);
-
-  useEffect(() => {
-    if (open && text && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 0.82;
-      utter.pitch = 1;
-      window.speechSynthesis.speak(utter);
-      return () => window.speechSynthesis.cancel();
-    }
-  }, [open, text]);
 
   const handleAffirm = async () => {
     setAffirming(true);
@@ -60,6 +53,9 @@ function AffirmationModal({ open, onClose, text, userEmail, qc }) {
       </button>
       <p style={{ ...label, color: GOLD, textAlign: 'center' }}>Morning Affirmation</p>
       <p style={{ ...serif, fontSize: 'clamp(22px, 4vw, 38px)', color: GOLD_LITE, textAlign: 'center', maxWidth: 680, lineHeight: 1.45, margin: '28px 0' }}>{text}</p>
+      <div style={{ marginBottom: 20 }}>
+        <SpeechifyPlayer text={text} size={20} style={{ width: 40, height: 40, borderRadius: 10 }} />
+      </div>
       <button onClick={handleAffirm} disabled={affirming} style={{ ...goldBtn, fontSize: 16, padding: '14px 36px' }}>
         {affirming ? <Loader2 size={18} className="animate-spin" /> : <Flame size={18} />} I AFFIRM
       </button>
@@ -159,10 +155,16 @@ export default function TheMirror() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Aim form */}
         <div style={card}>
-          <label style={{ ...label, display: 'block', marginBottom: 6 }}>Definite Chief Aim</label>
-          <textarea value={form.aim_statement} onChange={e => set('aim_statement', e.target.value)} rows={4}
-            placeholder="State your definite chief aim in clear, specific terms..."
-            style={{ ...input, resize: 'vertical', lineHeight: 1.5 }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ ...label, display: 'block' }}>Definite Chief Aim</label>
+            {form.aim_statement.trim() && <ReadAloudButton text={form.aim_statement} title="Chief Aim" />}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <textarea value={form.aim_statement} onChange={e => set('aim_statement', e.target.value)} rows={4}
+              placeholder="State your definite chief aim in clear, specific terms..."
+              style={{ ...input, resize: 'vertical', lineHeight: 1.5, flex: 1 }} />
+            <DictationMicButton value={form.aim_statement} onChange={(v) => set('aim_statement', v)} size={16} style={{ marginBottom: 4 }} />
+          </div>
 
           <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 180px' }}>
@@ -185,13 +187,19 @@ export default function TheMirror() {
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <label style={label}>Daily Affirmation</label>
-            <button onClick={handleForge} disabled={forgeLoading} style={{ ...outlineBtn, borderColor: 'rgba(212,175,55,0.35)', color: GOLD }}>
-              {forgeLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Forge Affirmation
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {affirmation.trim() && <ReadAloudButton text={affirmation} title="Daily Affirmation" />}
+              <button onClick={handleForge} disabled={forgeLoading} style={{ ...outlineBtn, borderColor: 'rgba(212,175,55,0.35)', color: GOLD }}>
+                {forgeLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Forge Affirmation
+              </button>
+            </div>
           </div>
-          <textarea value={affirmation} onChange={e => setAffirmation(e.target.value)} rows={5}
-            placeholder="Your AI-forged affirmation will appear here. Edit before saving."
-            style={{ ...input, resize: 'vertical', lineHeight: 1.6 }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <textarea value={affirmation} onChange={e => setAffirmation(e.target.value)} rows={5}
+              placeholder="Your AI-forged affirmation will appear here. Edit before saving."
+              style={{ ...input, resize: 'vertical', lineHeight: 1.6, flex: 1 }} />
+            <DictationMicButton value={affirmation} onChange={setAffirmation} size={16} style={{ marginBottom: 4 }} />
+          </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button onClick={handleSave} disabled={saving} style={goldBtn}>

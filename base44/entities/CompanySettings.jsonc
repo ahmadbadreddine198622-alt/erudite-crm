@@ -90,6 +90,16 @@
       "type": "string",
       "description": "Optional description or notes about this company settings configuration (max 1000 chars)",
       "maxLength": 1000
+    },
+    "brain_autonomy": {
+      "type": "string",
+      "enum": [
+        "off",
+        "propose",
+        "act_scheduling"
+      ],
+      "default": "propose",
+      "description": "BRAIN V4 P6: the autonomy dial. off = the brain only writes suggestions onto the Landlord record (V3 behavior). propose = the brain materializes its suggested tasks/follow-ups as origin='aurora' proposal rows awaiting human approve/dismiss on the Aurora-proposes strip. act_scheduling = the brain's SCHEDULING proposals are auto-approved (calendar/follow-up rows only). At EVERY level nothing is ever sent to a landlord without a human pressing Send."
     }
   },
   "required": []

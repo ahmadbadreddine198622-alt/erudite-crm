@@ -93,6 +93,19 @@ Deno.serve(async (req) => {
       } catch (_) { /* non-fatal */ }
     }
 
+    // BRAIN V4 P3 LEARN: outcome ledger (non-fatal; recordOutcomeEvent no-ops without landlord_id).
+    try {
+      await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+        landlord_id: landlord_id || null,
+        kind: 'draft_sent',
+        channel: 'sms',
+        source_ref: `TwilioSMS:${data.sid}`,
+        text: msgBody,
+        sent_at: new Date().toISOString(),
+        writer_email: user.email,
+      }).catch(() => {});
+    } catch (_) { /* ledger must never break a send */ }
+
     return Response.json({ ok: true, message_sid: data.sid, status: data.status, from: fromNumber });
   } catch (error) {
     console.error('twilioSendSMS error:', error);

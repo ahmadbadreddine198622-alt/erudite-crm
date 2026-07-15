@@ -12,9 +12,22 @@
         "invitation_sent",
         "member_joined",
         "lead_assigned",
+        "landlord_assigned",
         "deal_won",
         "whatsapp_message",
+        "whatsapp_sent",
         "email_received",
+        "email_sent",
+        "call",
+        "viewing",
+        "meeting",
+        "note",
+        "offer",
+        "stage_change",
+        "task_due",
+        "followup_due",
+        "document_received",
+        "activity",
         "general"
       ],
       "default": "general"
@@ -38,5 +51,37 @@
     "recipient_email",
     "title",
     "type"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.recipient_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.recipient_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

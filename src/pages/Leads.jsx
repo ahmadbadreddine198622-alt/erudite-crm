@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
+import { useAllLeads } from '@/api/sharedData';
 import {
   Plus, Search, Wand2, GitMerge, ChevronUp, ChevronDown,
   ChevronsUpDown, X, CalendarDays, SlidersHorizontal, Clock, TrendingUp, DollarSign,
@@ -105,10 +107,9 @@ export default function Leads() {
   const [showIngestion, setShowIngestion] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 2000),
-  });
+  // Shared full-table cache (src/api/sharedData.js) — same ['leads'] key as before,
+  // now with a 2-min staleTime so navigating back here is instant from cache.
+  const { data: leads = [], isLoading } = useAllLeads();
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],

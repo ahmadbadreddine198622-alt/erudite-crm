@@ -37,8 +37,11 @@ Deno.serve(async (req) => {
     }
     address = normalizeAddress(address);
 
-    const serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');
-    const password = Deno.env.get('BLUEBUBBLES_PASSWORD') || '';
+    // Route to the correct BlueBubbles server by caller (Ahmad → primary, others → secondary).
+    const AHMAD_EMAILS = new Set(['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com']);
+    const isAhmad = AHMAD_EMAILS.has(String(user.email || '').toLowerCase());
+    const serverUrl = (Deno.env.get(isAhmad ? 'BLUEBUBBLES_SERVER_URL' : 'BB2_URL') || '').replace(/\/+$/, '');
+    const password = Deno.env.get(isAhmad ? 'BLUEBUBBLES_PASSWORD' : 'BB2_PASSWORD') || '';
 
     const checkedAt = new Date().toISOString();
     let status = 'error';

@@ -200,25 +200,29 @@ export default function Dashboard() {
     saveOrder(next);
   };
 
+  // KEY FIX: was ['leads'] — colliding with the FULL-table ['leads'] query used
+  // by Leads.jsx/WhatsAppInbox.jsx (different queryFn, same key → cache bug that
+  // could leave the Leads page showing only 200 records). ['leads','recent'] is
+  // still prefix-invalidated by invalidateQueries({queryKey:['leads']}).
   const { data: leads = [], error: leadsError } = useQuery({
-    queryKey: ['leads'],
+    queryKey: ['leads', 'recent'],
     queryFn: () => base44.entities.Lead.list('-created_date', 200),
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
 
   const { data: reminders = [], error: remindersError } = useQuery({
     queryKey: ['reminders-pending'],
     queryFn: () => base44.entities.Reminder.filter({ status: 'pending' }, '-due_date', 50),
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
 
   const { data: conversations = [], error: conversationsError } = useQuery({
     queryKey: ['wa-conversations'],
     queryFn: () => base44.entities.WhatsAppConversation.filter({ status: 'open' }, '-last_message_at', 50),
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
 
   const { data: dashboardData, isLoading: isLoadingDashboard, error: dashboardError } = useQuery({
@@ -226,14 +230,14 @@ export default function Dashboard() {
     queryFn: () => base44.functions.invoke('getDashboardSummary', {}),
     refetchInterval: 30000,
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
   
   const { data: formAData, isLoading: isLoadingFormA, error: formAError } = useQuery({
     queryKey: ['form-a-contracts'],
     queryFn: () => base44.functions.invoke('getFormAContracts', {}),
     refetchInterval: 60000,
-    staleTime: 0,
+    staleTime: 30_000,
     retry: 2,
   });
 
@@ -242,7 +246,7 @@ export default function Dashboard() {
     queryFn: () => base44.functions.invoke('getPhotographyDashboardSummary', {}),
     refetchInterval: 60000,
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
 
   const { data: docsData, error: docsError } = useQuery({
@@ -250,7 +254,7 @@ export default function Dashboard() {
     queryFn: () => base44.functions.invoke('getDocumentsDashboardSummary', {}),
     refetchInterval: 60000,
     retry: 2,
-    staleTime: 5000,
+    staleTime: 30_000,
   });
 
   // Log errors for debugging

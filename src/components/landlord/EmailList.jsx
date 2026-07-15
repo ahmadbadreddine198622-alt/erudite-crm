@@ -4,6 +4,8 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Mail } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import HighlightedText from '@/components/shared/HighlightedText';
 
 function css(str) {
   const o = {};
@@ -36,9 +38,10 @@ export default function EmailList({ items, emptyLabel = 'No emails yet' }) {
         const border = isOpen ? 'hsl(38 92% 50% / 0.5)' : 'rgba(255,255,255,0.08)';
         return (
           <div key={item.key} style={css("border-radius:10px; border:1px solid " + border + "; background:rgba(255,255,255,0.03); overflow:hidden; transition:border-color 0.12s ease;")}>
+            <div style={css("width:100%; display:flex; align-items:center; gap:6px; padding:10px 12px;")}>
             <button
               onClick={() => setExpandedKey(isOpen ? null : item.key)}
-              style={css("width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px; background:none; border:none; cursor:pointer; text-align:left; font-family:'Inter',sans-serif;")}
+              style={css("flex:1; display:flex; align-items:center; gap:10px; background:none; border:none; cursor:pointer; text-align:left; font-family:'Inter',sans-serif;")}
             >
               <span style={{ flex: 'none', width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(38 92% 50% / 0.15)' }}>
                 <Mail size={15} style={{ color: 'hsl(38 92% 62%)' }} />
@@ -52,9 +55,11 @@ export default function EmailList({ items, emptyLabel = 'No emails yet' }) {
               <span style={css("flex:none; font-size:10px; color:rgba(255,255,255,0.4); white-space:nowrap;")}>{item.time}</span>
               <ChevronDown size={14} style={{ flex: 'none', color: 'rgba(255,255,255,0.4)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
             </button>
+            <ReadAloudButton text={item.body || item.subject || ''} title={`Email · ${item.subject || ''}${item.sender ? ' · ' + item.sender : ''}`} size={20} style={{ flex: 'none' }} />
+            </div>
             {isOpen && (
               <div style={css("padding:2px 12px 12px 52px; font-size:12px; line-height:1.55; color:rgba(255,255,255,0.78); white-space:pre-wrap;")}>
-                {item.body || '(empty body)'}
+                <HighlightedText text={item.body || item.subject || ''} title={`Email · ${item.subject || ''}${item.sender ? ' · ' + item.sender : ''}`} style={css("display:block;")} />
               </div>
             )}
           </div>

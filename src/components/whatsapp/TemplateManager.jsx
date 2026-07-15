@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import WritingField from '@/components/shared/WritingField';
 import {
   Dialog,
   DialogContent,
@@ -299,7 +300,7 @@ function TemplateForm({ template, onSave, onCancel }) {
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Message Body</label>
-        <Textarea
+        <WritingField
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder="Hi {name}, your viewing for {property} is scheduled on {date} at {time}..."

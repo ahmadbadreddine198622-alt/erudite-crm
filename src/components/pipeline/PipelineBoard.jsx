@@ -20,6 +20,12 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
     return map;
   }, [stages, leads]);
 
+  // Board total value — same formula PipelineSummaryCard uses (Σ deal_value_aed).
+  const boardTotalValue = useMemo(
+    () => leads.reduce((sum, l) => sum + (l.deal_value_aed || 0), 0),
+    [leads],
+  );
+
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const { draggableId, source, destination } = result;
@@ -27,17 +33,14 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
     onStageChange({ id: draggableId, newStage: destination.droppableId });
   };
 
-  // calc: 100vh minus KPI strip (~88px) minus PageHeader (~60px) minus filter row (~52px) minus tabs list (~48px) minus tab margin+padding (~40px)
-  const boardHeight = 'calc(100vh - 340px)';
-
   return (
     <div
       className="overflow-x-auto overflow-y-hidden pb-3 pipeline-scroll"
       style={{
-        height: boardHeight,
+        height: '100%',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'thin',
-        scrollbarColor: 'hsl(38 92% 50% / 0.5) transparent',
+        scrollbarColor: 'rgba(198,161,91,0.4) transparent',
         overscrollBehavior: 'contain',
       }}
     >
@@ -54,6 +57,8 @@ export default function PipelineBoard({ track, leads, getListing, getPhotoForPho
               users={users}
               onAssign={onAssign}
               onDelete={onDelete}
+              trackStages={stages}
+              boardTotalValue={boardTotalValue}
             />
           ))}
         </div>

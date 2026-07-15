@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import ReplyAssistantPanel from "@/components/whatsapp/ReplyAssistantPanel";
 import TemplatesModal from "@/components/whatsapp/TemplatesModal";
 import TemplateField from "@/components/common/TemplateField";
+import ModernComposerField from "@/components/landlord/ModernComposerField";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -300,44 +301,27 @@ export default function WhatsAppComposer({ conversation, suggestions, onSend, on
       </div>
 
       {/* Composer input row */}
-      <div className="flex items-end gap-2 px-3 pb-2">
-        <button type="button" className="mb-1.5 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          <Paperclip className="w-4 h-4" />
-        </button>
-
-        <div className={`flex-1 rounded-2xl px-3 py-1.5 border transition-colors ${
-          isInternalNote ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-white/7 border-white/10'
-        }`}>
-          <TemplateField
-            multiline
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder={
-              isInternalNote ? "Write an internal note (saved to timeline, not sent)…" :
-              windowLocked ? "Window closed — use a template to message…" : "Type a message…"
-            }
-            rows={1}
-            className="border-0 bg-transparent resize-none p-0 shadow-none focus-visible:ring-0 min-h-0 text-sm w-full"
-            style={{ color: isInternalNote ? 'hsl(38 92% 50%)' : (windowLocked ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.9)') }}
-            dir={["ar", "ur", "fa"].includes(conversation?.detected_language) ? "rtl" : "ltr"}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!text.trim() || windowLocked}
-          title={isInternalNote ? "Save internal note" : (windowLocked ? "24-hour window closed" : "Send")}
-          className={`mb-0.5 w-9 h-9 rounded-full flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ${isInternalNote ? 'animate-pulse' : ''}`}
-          style={{ background: isInternalNote ? 'hsl(38 92% 50%)' : ((!text.trim() || windowLocked) ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50%)') }}
-        >
-          {isInternalNote
-            ? <FileText className="w-3.5 h-3.5" style={{ color: 'hsl(222 47% 11%)' }} />
-            : windowLocked
-            ? <Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            : <Send className="w-3.5 h-3.5" style={{ color: 'hsl(222 47% 11%)' }} />}
-        </button>
+      <div className="px-3 pb-2" dir={["ar", "ur", "fa"].includes(conversation?.detected_language) ? "rtl" : "ltr"}>
+        <ModernComposerField
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          onSend={handleSend}
+          sending={false}
+          sendDisabled={windowLocked}
+          sendLabel={isInternalNote ? 'Save' : 'Send'}
+          placeholder={
+            isInternalNote ? "Write an internal note (saved to timeline, not sent)…" :
+            windowLocked ? "Window closed — use a template to message…" : "Type a message…"
+          }
+          channel="whatsapp"
+          accent="#10b981"
+          voiceEnabled={true}
+          landlordId={landlord?.id}
+          landlordContext={{ name: landlord?.full_name_en || landlord?.full_name || '', unit: landlord?.unit_reference || '', project: landlord?.project_name || '', asking: landlord?.asking_price_aed || '', agentName: landlord?.assigned_agent_email || '' }}
+          targetLanguage={landlord?.preferred_language}
+          minHeight={44}
+        />
       </div>
 
       {/* AI Reply Assistant panel */}

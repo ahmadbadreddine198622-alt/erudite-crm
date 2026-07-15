@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 import WhatsAppPhone from '@/components/WhatsAppPhone';
+import WritingField from '@/components/shared/WritingField';
 
 const PHONE_LABEL_COLORS = {
   mobile: 'bg-blue-500/10 text-blue-600',
@@ -264,7 +265,7 @@ export default function ContactDetail({ contactId, onClose }) {
 
         {/* Notes */}
         <Section title="Notes">
-          <Textarea value={c.notes || ''} onChange={e => isEditing && set('notes', e.target.value)} disabled={!isEditing} placeholder="No notes yet..." className="min-h-20 text-sm" />
+          <WritingField value={c.notes || ''} onChange={e => isEditing && set('notes', e.target.value)} disabled={!isEditing} placeholder="No notes yet..." className="min-h-20 text-sm" />
         </Section>
 
         {/* Custom Fields */}

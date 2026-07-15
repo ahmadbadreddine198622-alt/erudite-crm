@@ -23,7 +23,31 @@ Deno.serve(async (req) => {
   }
 
   const auth = 'Basic ' + btoa(`${accountSid}:${authToken}`);
-  const correctVoiceUrl = 'https://dubai-estate-pro.base44.app/functions/twilioVoiceWebhook';
+  // Derive from the incoming request so the TwiML App always points at the
+  // domain the app is actually served from (never a stale hardcoded one).
+  const correctVoiceUrl = `${new URL(req.url).origin}/functions/twilioVoiceWebhook`;
+
+  // This URL is persisted into durable Twilio config, so it must be one that
+  // Twilio's gateway can actually fetch TwiML from. Probe it exactly like
+  // Twilio would before writing anything — protects against running this from
+  // the Base44 editor/preview origin, where /functions/* does not serve this
+  // app and persisting the origin would re-break calling with error 31005.
+  const probe = await fetch(correctVoiceUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'To=',
+  }).catch(() => null);
+  const probeType = probe?.headers?.get('content-type') || '';
+  if (probe) await probe.text().catch(() => {});
+  if (!probe || !probe.ok || !probeType.includes('xml')) {
+    const status = probe ? `HTTP ${probe.status}` : 'network error';
+    return Response.json({
+      error: `The voice webhook is not reachable at ${correctVoiceUrl} (${status}). ` +
+        `Open the PUBLISHED app at its real domain and run Auto-Fix from there — ` +
+        `running it from the Base44 editor or a preview URL would break calling.`,
+    }, { status: 400 });
+  }
+
   const results = {};
 
   // ── Step 1: Update TwiML App Voice URL ───────────────────────────────────
@@ -93,6 +117,35 @@ Deno.serve(async (req) => {
   results.phone_number_sid = numData.sid;
   results.voice_application_sid = numData.voice_application_sid;
   console.log(`[fixTwimlAppVoiceUrl] ✅ Phone number ${numData.phone_number} now uses TwiML App: ${numData.voice_application_sid}`);
+
+  // ── Step 3: Enable calls to UAE (+971) in Voice Geo Permissions ─────────
+  // Disabled by default on new Twilio accounts — every call to a UAE number
+  // fails with error 13227 until this is switched on.
+  try {
+    const geoRes = await fetch('https://voice.twilio.com/v1/DialingPermissions/BulkCountryUpdates', {
+      method: 'POST',
+      headers: { 'Authorization': auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        UpdateRequest: JSON.stringify([{
+          iso_code: 'AE',
+          low_risk_numbers_enabled: true,
+          high_risk_special_numbers_enabled: false,
+          high_risk_tollfraud_numbers_enabled: false,
+        }]),
+      }).toString(),
+    });
+    const geoData = await geoRes.json().catch(() => ({}));
+    results.uae_dialing_enabled = geoRes.ok;
+    if (!geoRes.ok) {
+      results.uae_dialing_error = geoData?.message || `HTTP ${geoRes.status}`;
+      console.warn('[fixTwimlAppVoiceUrl] UAE geo-permission update failed:', results.uae_dialing_error);
+    } else {
+      console.log('[fixTwimlAppVoiceUrl] ✅ UAE (+971) dialing enabled');
+    }
+  } catch (e) {
+    results.uae_dialing_enabled = false;
+    results.uae_dialing_error = e.message;
+  }
 
   return Response.json({
     success: true,

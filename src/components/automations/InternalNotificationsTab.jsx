@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import WritingField from '@/components/shared/WritingField';
 import { toast } from 'sonner';
 import {
   Bell, Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Save, X, Loader2,
@@ -106,7 +107,7 @@ function NotifyEditor({ rule, onSave, onCancel }) {
 
       <div>
         <Label className="text-xs mb-1">Notification body</Label>
-        <Textarea value={form.message_body} onChange={(e) => set('message_body', e.target.value)} placeholder="Message… Use {{agent_name}}, {{lead_name}}, {{landlord_name}}" className="glass-input min-h-[90px] text-xs" />
+        <WritingField value={form.message_body} onChange={(e) => set('message_body', e.target.value)} placeholder="Message… Use {{agent_name}}, {{lead_name}}, {{landlord_name}}" className="glass-input min-h-[90px] text-xs" />
         <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{agent_name}}'}, {'{{lead_name}}'}, {'{{landlord_name}}'}</p>
       </div>
 

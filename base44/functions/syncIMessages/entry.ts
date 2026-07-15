@@ -37,10 +37,24 @@ Deno.serve(async (req) => {
     const lookbackDays = Number(body.lookback_days) > 0 ? Number(body.lookback_days) : 30;
     const limit = Number(body.limit) > 0 ? Math.min(Number(body.limit), 1000) : 500;
 
-    const serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');
-    const password = Deno.env.get('BLUEBUBBLES_PASSWORD') || '';
+    // BlueBubbles server instance — bb2 pulls from the second (Operations) server; bb1/absent
+    // uses the primary server exactly as before. Accepted as a URL query param (?instance=bb2)
+    // or in the JSON body.
+    let instance = 'bb1';
+    try {
+      const qp = new URL(req.url).searchParams.get('instance');
+      if (qp === 'bb2' || qp === 'bb1') instance = qp;
+      else if (body.instance === 'bb2' || body.instance === 'bb1') instance = body.instance;
+    } catch (_) { /* ignore malformed URL */ }
+
+    const serverUrl = (instance === 'bb2'
+      ? (Deno.env.get('BB2_URL') || '')
+      : (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '')).replace(/\/+$/, '');
+    const password = instance === 'bb2'
+      ? (Deno.env.get('BB2_PASSWORD') || '')
+      : (Deno.env.get('BLUEBUBBLES_PASSWORD') || '');
     if (!serverUrl || !password) {
-      return Response.json({ error: 'BlueBubbles server is not configured' }, { status: 500 });
+      return Response.json({ error: instance === 'bb2' ? 'BlueBubbles bb2 server is not configured (BB2_URL / BB2_PASSWORD)' : 'BlueBubbles server is not configured' }, { status: 500 });
     }
 
     // 1. Build a phone → landlord_id lookup across all landlords.
@@ -102,6 +116,7 @@ Deno.serve(async (req) => {
         body: text,
         status: 'delivered',
         sent_at: new Date(tsMs).toISOString(),
+        instance,
       });
     }
 
@@ -153,6 +168,23 @@ Deno.serve(async (req) => {
       const chunk = messageRows.slice(i, i + 100);
       if (chunk.length === 0) continue;
       try { await base44.asServiceRole.entities.Message.bulkCreate(chunk); } catch (_) { /* best-effort mirror */ }
+    }
+
+    // BRAIN V4 P3 LEARN: inbound landlord replies → outcome ledger (non-fatal). Batch poll:
+    // one event per newly-imported inbound message; recordOutcomeEvent dedupes by source_ref
+    // and links each reply to the last outbound before its own sent_at (72h window).
+    for (const c of toCreate) {
+      if (c.direction !== 'inbound' || !c.landlord_id) continue;
+      try {
+        await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+          landlord_id: c.landlord_id,
+          kind: 'reply_received',
+          channel: 'imessage',
+          source_ref: `IMessage:${c.bb_guid}`,
+          text: c.body || '',
+          responded_at: c.sent_at,
+        }).catch(() => {});
+      } catch (_) { /* best-effort */ }
     }
 
     return Response.json({

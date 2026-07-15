@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, RefreshCw, Compass, Building, User, Sparkles } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, outlineBtn } from '@/lib/academyStyles';
 
 const OPEN_DEAL_STAGES = ['discovery', 'qualified', 'viewing', 'offer_drafting', 'offer_submitted', 'negotiating', 'agreement', 'diligence', 'noc_signing', 'closing'];
@@ -118,7 +119,10 @@ Generate ONE specific, actionable move the agent should make TODAY, framed throu
           {/* Directive gold strip */}
           {currentPrinciple.directive_text && (
             <div style={goldStrip}>
-              <p style={{ ...label, color: GOLD }}>Week {enrollment.current_week} Directive</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ ...label, color: GOLD }}>Week {enrollment.current_week} Directive</p>
+                <ReadAloudButton text={currentPrinciple.directive_text} title={`Directive: Week ${enrollment.current_week}`} />
+              </div>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>{currentPrinciple.directive_text}</p>
             </div>
           )}
@@ -158,7 +162,8 @@ Generate ONE specific, actionable move the agent should make TODAY, framed throu
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Sparkles size={13} style={{ color: GOLD, flexShrink: 0, marginTop: 2 }} />
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>{s.suggestion}</p>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, flex: 1 }}>{s.suggestion}</p>
+                  <ReadAloudButton text={s.suggestion} title={`Move: ${s.name}`} size={13} />
                 </div>
               </div>
             ))}

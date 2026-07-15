@@ -1,0 +1,73 @@
+{
+  "name": "ProjectIntelSource",
+  "properties": {
+    "auto_inject": {
+      "default": true,
+      "description": "When true, the landlordOrchestrator and call-script forge inject this source into their AI prompts",
+      "type": "boolean"
+    },
+    "key_facts": {
+      "description": "Short punchy facts shown in the UI card and fed to the AI",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "last_checked": {
+      "description": "When this source was last fetched/verified",
+      "format": "date",
+      "type": "string"
+    },
+    "project_name": {
+      "description": "Project this source belongs to (matched by normalized name against Landlord.project_name, e.g. 'Six Senses')",
+      "type": "string"
+    },
+    "show_in_ui": {
+      "default": true,
+      "description": "When true, the source appears as a clickable card on the landlord detail view",
+      "type": "boolean"
+    },
+    "sort_order": {
+      "default": 10,
+      "description": "Display/injection order (lower first)",
+      "type": "number"
+    },
+    "source_name": {
+      "description": "Human-readable source name, e.g. 'Property Finder Tower Insights'",
+      "type": "string"
+    },
+    "source_type": {
+      "default": "other",
+      "description": "Kind of source: portal insights page, official brand site, live transactions feed, live listings search, DLD report, other",
+      "enum": [
+        "portal_insights",
+        "brand_official",
+        "portal_transactions",
+        "portal_listings",
+        "dld_report",
+        "other"
+      ],
+      "type": "string"
+    },
+    "source_url": {
+      "description": "Clickable URL to open the live source",
+      "type": "string"
+    },
+    "summary": {
+      "description": "Deep cached intelligence extract from this source \u2014 injected into the AI brain and call-script prompts",
+      "type": "string"
+    },
+    "talking_points": {
+      "description": "Sales angles derived from this source \u2014 how to weaponize the facts on a call",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "project_name",
+    "source_name"
+  ],
+  "type": "object"
+}

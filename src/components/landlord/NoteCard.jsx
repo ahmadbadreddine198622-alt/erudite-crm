@@ -12,6 +12,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { FilePen, MessageSquare } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import HighlightedText from '@/components/shared/HighlightedText';
 import ActivityCommentThread from './ActivityCommentThread';
 
 const GOLD = '#d4b483';
@@ -74,7 +76,12 @@ export default function NoteCard({ note, landlordId, comments, isAdmin, canCoach
 
       {/* Body container */}
       <div style={css("margin:6px 14px 0; padding:9px 12px; border-radius:9px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05);")}>
-        <p style={css("margin:0; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); white-space:pre-wrap; word-break:break-word; font-family:'Inter',sans-serif;")}>{body}</p>
+        <div style={css("display:flex; align-items:flex-start; gap:5px;")}>
+          <HighlightedText text={body} title={`Note · ${author || 'Unknown'} · ${timeLabel}`} style={css("flex:1; margin:0; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); white-space:pre-wrap; word-break:break-word; font-family:'Inter',sans-serif;")} />
+          <div style={{ flex: 'none', display: 'flex', marginTop: 1 }}>
+            <ReadAloudButton text={body} title={`Note · ${author || 'Unknown'} · ${timeLabel}`} size={22} />
+          </div>
+        </div>
       </div>
 
       {/* Footer: Comment button */}

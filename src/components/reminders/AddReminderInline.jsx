@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function AddReminderInline({ defaultListName, onClose }) {
   const qc = useQueryClient();
@@ -49,6 +50,7 @@ export default function AddReminderInline({ defaultListName, onClose }) {
           className="w-full bg-transparent text-sm text-[#1C1C1E] placeholder:text-[#8E8E93] outline-none"
         />
       </form>
+      <DictationMicButton value={title} onChange={setTitle} size={14} color="#3b82f6" />
       <button onClick={onClose} className="text-[#C7C7CC] hover:text-[#8E8E93] transition-colors">
         <X className="w-4 h-4" />
       </button>

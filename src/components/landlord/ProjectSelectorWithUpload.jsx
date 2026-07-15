@@ -6,7 +6,33 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Camera, ImageIcon, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function ProjectSelectorWithUpload({ value, onChange, projects }) {
+// Lead-count badge for the dropdown rows — ghost hairline pill, near-white tabular number,
+// gold-tinted when the row is the active selection. Matches the board's chip language.
+function CountBadge({ n, active }) {
+  const count = typeof n === 'number' ? n : 0;
+  if (!count) return null;
+  return (
+    <span
+      className="flex-shrink-0 tabular-nums"
+      style={{
+        minWidth: 22,
+        textAlign: 'center',
+        padding: '1px 6px',
+        borderRadius: 999,
+        fontSize: 9.5,
+        fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
+        background: 'transparent',
+        border: `1px solid ${active ? 'rgba(198,161,91,0.4)' : 'rgba(255,255,255,0.12)'}`,
+        color: active ? '#C6A15B' : '#A7B0C4',
+      }}
+    >
+      {count.toLocaleString()}
+    </span>
+  );
+}
+
+export default function ProjectSelectorWithUpload({ value, onChange, projects, counts = {} }) {
   const queryClient = useQueryClient();
   const inputRefs = useRef({});
   const [uploadingProject, setUploadingProject] = useState(null);
@@ -89,68 +115,81 @@ export default function ProjectSelectorWithUpload({ value, onChange, projects })
     }
   };
 
+  const active = !!value;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className="h-8 px-3 text-xs gap-2"
-          style={{ 
-            background: 'rgba(255,255,255,0.05)', 
-            border: '1px solid rgba(255,255,255,0.12)', 
-            color: 'rgba(255,255,255,0.9)' 
+        <button
+          className="flex items-center gap-1.5 px-2.5 text-xs shrink-0 whitespace-nowrap"
+          style={{
+            height: 32,
+            background: 'transparent',
+            border: `1px solid ${active ? 'rgba(198,161,91,0.35)' : 'rgba(255,255,255,0.10)'}`,
+            color: active ? '#C6A15B' : '#A7B0C4',
+            borderRadius: 10,
+            transition: 'border-color 150ms ease, color 150ms ease',
           }}
+          onMouseEnter={(e) => { if (!active) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.color = '#E9EDF6'; } }}
+          onMouseLeave={(e) => { if (!active) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#A7B0C4'; } }}
         >
+          {active && <span style={{ width: 5, height: 5, borderRadius: 999, background: '#C6A15B', flex: 'none' }} />}
           {isUnassigned ? (
-            <div className="w-5 h-5 rounded bg-white/5 flex items-center justify-center border border-dashed border-white/20">
-              <span className="text-[10px] font-bold text-muted-foreground">∅</span>
+            <div className="w-4 h-4 rounded flex items-center justify-center" style={{ border: '1px dashed rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px] font-bold" style={{ color: '#A7B0C4' }}>∅</span>
             </div>
           ) : (
-            <ImageIcon className="w-4 h-4" />
+            <ImageIcon className="w-3.5 h-3.5" strokeWidth={1.5} />
           )}
           <span className="max-w-[120px] truncate">
             {isUnassigned ? 'Unassigned' : selectedProject?.name || 'All Projects'}
           </span>
-        </Button>
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
+      <DropdownMenuContent
         className="w-64 max-h-80 overflow-y-auto"
-        style={{ 
-          background: 'hsl(222 47% 11%)', 
-          border: '1px solid rgba(255,255,255,0.12)' 
-        }}
+        style={{ background: '#0E1428', border: '1px solid rgba(255,255,255,0.12)' }}
       >
         {/* All Projects option */}
         <DropdownMenuItem
           onClick={() => onChange?.('')}
           className="text-xs cursor-pointer"
-          style={{ color: !value ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.9)' }}
+          style={{ color: !value ? '#C6A15B' : '#E9EDF6' }}
         >
-          <ImageIcon className="w-3.5 h-3.5 mr-2" />
-          All Projects
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <ImageIcon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+              <span>All Projects</span>
+            </div>
+            <CountBadge n={counts.__all} />
+          </div>
         </DropdownMenuItem>
-        
+
         {/* Unassigned option */}
         <DropdownMenuItem
           onClick={() => onChange?.('unassigned')}
           className="text-xs cursor-pointer"
-          style={{ color: isUnassigned ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.9)' }}
+          style={{ color: isUnassigned ? '#C6A15B' : '#E9EDF6' }}
         >
-          <div className="w-5 h-5 rounded bg-white/5 flex items-center justify-center mr-2 border border-dashed border-white/20">
-            <span className="text-[8px] font-bold text-muted-foreground">∅</span>
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                <span className="text-[8px] font-bold" style={{ color: '#A7B0C4' }}>∅</span>
+              </div>
+              <span>Unassigned</span>
+            </div>
+            <CountBadge n={counts.__unassigned} />
           </div>
-          Unassigned
         </DropdownMenuItem>
-        
+
         {/* Project list with upload controls */}
         {projects.map(p => (
           <DropdownMenuItem
             key={p.id}
             onClick={() => onChange?.(p.id)}
             className="text-xs cursor-pointer px-2 py-1.5"
-            style={{ 
-              color: value === p.id ? 'hsl(38 92% 50%)' : 'rgba(255,255,255,0.9)',
-              background: value === p.id ? 'rgba(245,158,11,0.1)' : 'transparent'
+            style={{
+              color: value === p.id ? '#C6A15B' : '#E9EDF6',
+              background: value === p.id ? 'rgba(198,161,91,0.1)' : 'transparent',
             }}
           >
             <div className="flex items-center justify-between gap-2 w-full">
@@ -173,6 +212,7 @@ export default function ProjectSelectorWithUpload({ value, onChange, projects })
                 <span className="truncate">{p.name}</span>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <CountBadge n={counts[p.id]} active={value === p.id} />
                 {p.image_url && (
                   <button
                     onClick={(e) => {

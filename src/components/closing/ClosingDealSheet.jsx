@@ -5,6 +5,7 @@ import { X, Loader2, CheckCircle2, ArrowRight, Sparkles, AlertTriangle } from 'l
 import EmailComposeButton from '@/components/shared/EmailComposeButton';
 import { toast } from 'sonner';
 import { CLOSING_STAGES } from '@/pages/ClosingHub';
+import WritingField from '@/components/shared/WritingField';
 
 const fmtAed = (n) => n ? `AED ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}` : '—';
 
@@ -372,7 +373,7 @@ export default function ClosingDealSheet({ deal, open, onClose, onSaved }) {
           {/* Notes */}
           <div>
             <label className="field-label">Notes</label>
-            <textarea value={form.notes} onChange={sf('notes')} rows={3} placeholder="Closing notes…" className="field-input resize-none" />
+            <WritingField value={form.notes} onChange={sf('notes')} rows={3} placeholder="Closing notes…" className="field-input resize-none" />
           </div>
         </div>
 

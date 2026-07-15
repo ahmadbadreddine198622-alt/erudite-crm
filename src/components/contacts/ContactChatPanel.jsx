@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Send, Sparkles, User, Phone, Mail, Tag, Building2, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 const QUICK_PROMPTS = [
   'Summarize this contact',
@@ -205,25 +206,18 @@ Respond helpfully and concisely. If generating templates (email/WhatsApp), forma
 
       {/* Input */}
       <div className="px-5 py-4 border-t border-[#E5E7EB] bg-white">
-        <div className="flex items-end gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything about this contact…"
-            className="flex-1 bg-transparent text-sm text-[#111827] placeholder:text-[#9CA3AF] resize-none outline-none min-h-[20px] max-h-24"
-            style={{ lineHeight: '1.5' }}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isLoading}
-            className="w-8 h-8 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors"
-          >
-            <Send className="w-3.5 h-3.5 text-white" />
-          </button>
-        </div>
+        <ModernComposerField
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onSend={() => sendMessage()}
+          sending={isLoading}
+          placeholder="Ask anything about this contact…"
+          channel="whatsapp"
+          voiceEnabled={true}
+          inputRef={inputRef}
+          minHeight={20}
+        />
         <p className="text-[10px] text-[#9CA3AF] mt-1.5 ml-1">Press Enter to send · Shift+Enter for new line</p>
       </div>
     </div>

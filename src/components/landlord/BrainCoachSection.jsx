@@ -7,6 +7,7 @@ import {
   Brain, Sparkles, Loader2, ChevronDown, ChevronUp,
   MessageCircle, ShieldAlert, Languages, Lightbulb,
 } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const AI_BLUE = 'rgba(96,165,250,';
 const LANGS = [
@@ -193,7 +194,10 @@ Be concise — this is real-time. Do NOT repeat info already captured.`;
           {ai.opening && (
             <div>
               <p className="text-[9px] uppercase tracking-wider font-bold mb-1" style={{ color: `${AI_BLUE}0.6)` }}>Say this now</p>
-              <p className="text-[11px] italic leading-snug" style={{ color: 'rgba(255,255,255,0.8)' }}>"{ai.opening}"</p>
+              <div className="flex items-start gap-1.5">
+                <p className="text-[11px] italic leading-snug flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>"{ai.opening}"</p>
+                <SpeechifyPlayer text={ai.opening} size={10} color="rgba(255,255,255,0.5)" />
+              </div>
             </div>
           )}
 

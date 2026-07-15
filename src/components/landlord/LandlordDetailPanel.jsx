@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectBadge } from '@/lib/projectColors.jsx';
 import { base44 } from '@/api/base44Client';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
-import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic, Globe, FileText } from 'lucide-react';
+import { X, Eye, MapPin, Phone, Mail, Sparkles, Zap, RefreshCw, Flame, MessageCircle, FileSignature, Loader2, Upload, FileCheck, ExternalLink, Download, FolderOpen, CheckCircle2, CalendarClock, Send, ChevronDown, ChevronUp, Camera, Film, Image, MessageSquare, LayoutTemplate, Pencil, Info, Mic, Globe, FileText } from 'lucide-react';
 import { normalizePhone, waMeUrl } from '@/lib/phone';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
@@ -53,11 +53,13 @@ import PFPublishPanel from '@/components/propertyfinder/PFPublishPanel';
 import LandlordIntelligenceTab from './LandlordIntelligenceTab';
 import FormAContractsList from './FormAContractsList';
 import MarketIntelligencePanel from './MarketIntelligencePanel';
+import ProjectIntelSources from './ProjectIntelSources';
 import CallQualificationTab from './CallQualificationTab';
 import CallQualificationSummaryPanel from './CallQualificationSummaryPanel';
 import OutreachChecklistPanel from './OutreachChecklistPanel';
 import LandlordCallHistory from './LandlordCallHistory';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 
 export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate, fullScreenOnMobile = false }) {
@@ -426,6 +428,14 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.35)' }}>
                 <CheckCircle2 className="w-3 h-3" /> HANDED OVER
               </span>
+            ) : landlord.handover_status === 'Handover Booked' ? (
+              <span
+                title={landlord.handover_appointment_at ? `Handover appointment: ${new Date(landlord.handover_appointment_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Handover booked with developer'}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.4)' }}
+              >
+                <CalendarClock className="w-3 h-3" /> HO Booked{landlord.handover_appointment_at ? ` · ${new Date(landlord.handover_appointment_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(148,163,184,0.1)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(148,163,184,0.25)' }}>
                 Not Handed Over
@@ -444,7 +454,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
           landlordProperty={landlordProperty}
           unitReference={landlord.unit_reference}
           projectName={landlord.project_name}
+          unitLayout={landlord.unit_layout}
+          askingPriceAed={landlord.asking_price_aed}
         />
+
+        {/* ── PROJECT INTELLIGENCE SOURCES (live links feeding the brain) ── */}
+        <ProjectIntelSources projectName={landlord.project_name} />
 
         {/* ── AI SUMMARY PANEL ───────────────────────────────────── */}
         <div className="px-6 py-4" style={{ background: 'rgba(139,92,246,0.04)', borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
@@ -472,11 +487,13 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
 
           {landlord.ai_rolling_summary ? (
             <>
-              {/* Main summary */}
               <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.7' }}>
-                  {landlord.ai_rolling_summary}
-                </p>
+                <div className="flex items-start gap-2">
+                  <p className="text-xs leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.7' }}>
+                    {landlord.ai_rolling_summary}
+                  </p>
+                  <SpeechifyPlayer text={landlord.ai_rolling_summary} size={12} color="rgba(255,255,255,0.55)" />
+                </div>
               </div>
 
               {/* Two column: What to focus on + Next step */}
@@ -486,9 +503,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                     <p className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'rgb(167,139,250)' }}>
                       What to focus on
                     </p>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
-                      {landlord.ai_coaching_for_agent}
-                    </p>
+                    <div className="flex items-start gap-1.5">
+                      <p className="text-xs leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                        {landlord.ai_coaching_for_agent}
+                      </p>
+                      <SpeechifyPlayer text={landlord.ai_coaching_for_agent} size={11} color="rgba(255,255,255,0.5)" />
+                    </div>
                   </div>
                 )}
                 {landlord.ai_next_best_action?.action && (
@@ -496,9 +516,12 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                     <p className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: 'hsl(38 92% 60%)' }}>
                       Next step
                     </p>
-                    <p className="text-xs font-semibold leading-relaxed" style={{ color: 'rgba(255,255,255,0.9)', lineHeight: '1.6' }}>
-                      {landlord.ai_next_best_action.action}
-                    </p>
+                    <div className="flex items-start gap-1.5">
+                      <p className="text-xs font-semibold leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.9)', lineHeight: '1.6' }}>
+                        {landlord.ai_next_best_action.action}
+                      </p>
+                      <SpeechifyPlayer text={landlord.ai_next_best_action.action} size={11} color="rgba(255,255,255,0.5)" />
+                    </div>
                     {landlord.ai_next_best_action.reasoning && (
                       <p className="text-[10px] mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         {landlord.ai_next_best_action.reasoning}
@@ -718,7 +741,7 @@ export default function LandlordDetailPanel({ landlord, open, onClose, onUpdate,
                 <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>Property &amp; Location</p>
                 <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
                   {landlord.unit_layout && (<><span className="text-muted-foreground">Layout</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.unit_layout}</span></>)}
-                  {landlord.handover_status && (<><span className="text-muted-foreground">Handover</span><span style={{ color: landlord.handover_status === 'Handed Over' ? '#34d399' : 'rgba(255,255,255,0.7)' }}>{landlord.handover_status}</span></>)}
+                  {landlord.handover_status && (<><span className="text-muted-foreground">Handover</span><span style={{ color: landlord.handover_status === 'Handed Over' ? '#34d399' : landlord.handover_status === 'Handover Booked' ? '#fbbf24' : 'rgba(255,255,255,0.7)' }}>{landlord.handover_status}{landlord.handover_status === 'Handover Booked' && landlord.handover_appointment_at ? ` · ${new Date(landlord.handover_appointment_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</span></>)}
                   {landlord.nationality && (<><span className="text-muted-foreground">Nationality</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.nationality}</span></>)}
                   {landlord.residence_country && (<><span className="text-muted-foreground">Residency</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.residence_country}</span></>)}
                   {landlord.mailing_address && (<><span className="text-muted-foreground">Address</span><span style={{ color: 'rgba(255,255,255,0.9)' }}>{landlord.mailing_address}</span></>)}

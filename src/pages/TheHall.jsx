@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Lock, Loader2, CheckCircle, XCircle, BookOpen, ArrowLeft, Headphones } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import AcademyAudioPlayer from '@/components/academy/AcademyAudioPlayer';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, outlineBtn, input, rankPill } from '@/lib/academyStyles';
 
 function QuizQuestion({ q, index }) {
@@ -47,6 +49,9 @@ function LessonView({ principle, onBack }) {
     <div>
       <button onClick={onBack} style={{ ...outlineBtn, marginBottom: 14 }}><ArrowLeft size={13} /> Back to Library</button>
 
+      {/* Full audio player — listen to the entire lesson */}
+      <AcademyAudioPlayer principle={principle} lessonId={`academy-principle-${principle.id || principle.week_number}`} />
+
       <div style={card}>
         <div style={{ ...serif, fontSize: 48, color: GOLD, lineHeight: 1 }}>{principle.week_number}</div>
         <h2 style={{ ...serif, fontSize: 24, color: GOLD_LITE, margin: '4px 0 6px' }}>{principle.name}</h2>
@@ -56,14 +61,20 @@ function LessonView({ principle, onBack }) {
 
       {principle.essence && (
         <div style={{ ...goldStrip, marginTop: 14 }}>
-          <p style={{ ...label, color: GOLD }}>Essence</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ ...label, color: GOLD }}>Essence</p>
+            <ReadAloudButton text={principle.essence} title={`Essence: ${principle.name}`} />
+          </div>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.9)', marginTop: 4, lineHeight: 1.5 }}>{principle.essence}</p>
         </div>
       )}
 
       {principle.erudite_lesson && (
         <div style={{ ...card, marginTop: 14 }}>
-          <p style={label}>The Lesson</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={label}>The Lesson</p>
+            <ReadAloudButton text={principle.erudite_lesson} title={`Lesson: ${principle.name}`} />
+          </div>
           <div style={{ marginTop: 8 }}>
             {principle.erudite_lesson.split('\n').filter(Boolean).map((para, i) => (
               <p key={i} style={{ fontSize: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.65, marginBottom: 10 }}>{para}</p>
@@ -74,15 +85,23 @@ function LessonView({ principle, onBack }) {
 
       {principle.reading_assignment && (
         <div style={{ ...card, marginTop: 14 }}>
-          <BookOpen size={16} style={{ color: GOLD }} />
-          <p style={{ ...label, marginTop: 8 }}>Reading Assignment</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <BookOpen size={16} style={{ color: GOLD }} />
+              <p style={{ ...label, marginTop: 8 }}>Reading Assignment</p>
+            </div>
+            <ReadAloudButton text={principle.reading_assignment} title={`Reading: ${principle.name}`} />
+          </div>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.5 }}>{principle.reading_assignment}</p>
         </div>
       )}
 
       {principle.daily_drills?.length > 0 && (
         <div style={{ ...card, marginTop: 14 }}>
-          <p style={label}>Daily Drills</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={label}>Daily Drills</p>
+            <ReadAloudButton text={principle.daily_drills.join('. ')} title={`Drills: ${principle.name}`} />
+          </div>
           <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
             {principle.daily_drills.map((d, i) => (
               <li key={i} style={{ fontSize: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.6, marginBottom: 4 }}>{d}</li>
@@ -93,7 +112,10 @@ function LessonView({ principle, onBack }) {
 
       {principle.reflection_prompt && (
         <div style={{ ...card, marginTop: 14 }}>
-          <p style={label}>Reflection Prompt</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={label}>Reflection Prompt</p>
+            <ReadAloudButton text={principle.reflection_prompt} title={`Reflection: ${principle.name}`} />
+          </div>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.5, fontStyle: 'italic' }}>{principle.reflection_prompt}</p>
         </div>
       )}

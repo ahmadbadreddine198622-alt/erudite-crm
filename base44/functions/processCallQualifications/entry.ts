@@ -237,6 +237,19 @@ Rules:
     } catch (e) {
       console.warn(`[processCallQualifications] Could not mark qualification ${q.id} processed:`, e?.message);
     }
+    // BRAIN V4 P3 LEARN: qualification logged → outcome ledger (non-fatal). Both creation
+    // paths (copilot + manual tab) converge here; deduped by source_ref.
+    try {
+      await svc.functions.invoke('recordOutcomeEvent', {
+        landlord_id: landlord.id,
+        kind: 'qualification_logged',
+        channel: 'call',
+        source_ref: `CallQualification:${q.id}`,
+        sent_at: q.call_date || new Date().toISOString(),
+        writer_email: q.agent_email || null,
+        description: q.call_outcome || '',
+      }).catch(() => {});
+    } catch (_) { /* best-effort */ }
   }
 
   // ── 9. Hand off to the V2 brain ───────────────────────────────────────────

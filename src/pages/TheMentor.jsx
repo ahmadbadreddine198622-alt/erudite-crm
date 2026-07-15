@@ -4,6 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, Send, Sparkles } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 import { GOLD, GOLD_LITE, pageWrap, card, serif, label, goldBtn, input } from '@/lib/academyStyles';
 import { toast } from 'sonner';
 
@@ -35,6 +38,10 @@ function MessageBubble({ msg }) {
                 background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color,
               }}>{badge.label}</span>
             )}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 3 }}>
+              <ReadAloudButton text={msg.message} title="The Mentor" size={12} />
+              <SpeechifyPlayer text={msg.message} />
+            </div>
           </div>
         )}
         {!isMentor && badge && (
@@ -162,6 +169,7 @@ export default function TheMentor() {
             placeholder="Speak to your mentor…"
             style={{ ...input, resize: 'none', lineHeight: 1.5, flex: 1 }}
           />
+          <DictationMicButton value={text} onChange={setText} size={16} />
           <button onClick={handleSend} disabled={sending || !text.trim()} style={goldBtn}>
             {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Send
           </button>

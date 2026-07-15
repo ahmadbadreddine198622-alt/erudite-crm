@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -272,7 +273,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
 
     let existing = [];
     try {
-      const landlords = await base44.entities.Landlord.list('-created_date', 5000);
+      const landlords = await fetchAllRecords(base44.entities.Landlord, '-created_date');
       existing = landlords.map((l) => cleanPhone(l.phone)).filter(Boolean);
     } catch (e) {
       console.warn('Could not load existing landlords for dupe check:', e.message);
@@ -360,7 +361,7 @@ export default function ImportOwnersDialog({ open, onClose }) {
   const importMutation = useMutation({
     mutationFn: async () => {
       const stats = { created: 0, duplicates: 0, errored: 0, errors: [], createdIds: [] };
-      const existingLandlords = await base44.entities.Landlord.list('-created_date', 5000);
+      const existingLandlords = await fetchAllRecords(base44.entities.Landlord, '-created_date');
       const existingProjects = await base44.entities.Project.list().catch(() => []);
 
       const phoneSet = new Set(existingLandlords.map((l) => cleanPhone(l.phone)).filter(Boolean));

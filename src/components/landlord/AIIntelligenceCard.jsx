@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 /* Convert a CSS declaration string into a React style object. */
 function css(str) {
@@ -125,7 +126,11 @@ function TrendCell({ label, metric, suffix, sparkColor, invert }) {
   );
 }
 
+/* Channel shorthand for campaign-plan touch rows. */
+const CHANNEL_LABEL = { whatsapp: 'WhatsApp', imessage: 'iMessage', telegram: 'Telegram', sms: 'SMS', email: 'Email', call: 'Call' };
+
 export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collapsed, onToggle, children }) {
+  const [showTrace, setShowTrace] = useState(false);
   const hasSummary = !!ai.summary;
   const nba = ai.nextBestAction;
   const hasNba = nba && typeof nba === 'object' && (nba.action || nba.reasoning);
@@ -143,6 +148,18 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
   const priority = nba && typeof nba.priority === 'string' ? nba.priority.toLowerCase() : '';
   const pMeta = PRIORITY_META[priority] || PRIORITY_META.medium;
   const isCollapsed = collapsed === true;
+
+  // BRAIN V4 (CORTEX): calibrated confidence, key unknown, Why? trace, campaign, council.
+  const conf = ai.confidence && typeof ai.confidence === 'object' ? ai.confidence : null;
+  const confOverall = conf && typeof conf.overall === 'number' ? Math.round(conf.overall * 100) : null;
+  const confDetail = conf ? ['trust', 'urgency', 'win_prob'].filter(k => typeof conf[k] === 'number')
+    .map(k => `${k === 'win_prob' ? 'Win' : k.charAt(0).toUpperCase() + k.slice(1)} ${Math.round(conf[k] * 100)}%`).join(' · ') : '';
+  const hasLeverage = typeof ai.leverageUnknown === 'string' && ai.leverageUnknown.trim().length > 0;
+  const traceEntries = Array.isArray(ai.reasoningTrace)
+    ? ai.reasoningTrace.filter(t => t && t.claim && Array.isArray(t.grounds) && t.grounds.length) : [];
+  const plan = ai.campaignPlan && typeof ai.campaignPlan === 'object' && Array.isArray(ai.campaignPlan.touches) && ai.campaignPlan.touches.length >= 2
+    ? ai.campaignPlan : null;
+  const council = ai.council && typeof ai.council === 'object' && ai.council.verdict ? ai.council : null;
 
   return (
     <div style={css("flex:none; margin:0 16px 6px; border-radius:12px; border:1px solid hsl(38 92% 50% / 0.28); background:linear-gradient(180deg, hsl(38 92% 50% / 0.07), rgba(255,255,255,0.02)); overflow:hidden; animation: ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both;")}>
@@ -185,20 +202,49 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                     {ai.momentum}
                   </span>
                 )}
-
+                {confOverall != null && (
+                  <ScorePill label="Conf" value={confOverall} suffix="%" rationale={confDetail ? `How sure the brain is, given evidence depth — ${confDetail}` : 'Overall confidence given the depth of evidence.'} />
+                )}
               </div>
             </div>
 
             {/* Summary */}
             {hasSummary && (
-              <p style={css("margin:0 0 8px; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{ai.summary}</p>
+              <div style={css("display:flex; align-items:flex-start; gap:5px; margin:0 0 8px;")}>
+                <p style={css("flex:1; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.82); margin:0;")}>{ai.summary}</p>
+                <SpeechifyPlayer text={ai.summary} size={11} color="hsl(38 92% 62%)" style={{ flex: 'none', marginTop: 1 }} />
+              </div>
             )}
 
             {/* Deal thesis — the persistent strategy the brain carries across runs (V3 P2 REMEMBER) */}
             {hasThesis && (
               <div style={css("margin:0 0 8px; padding:7px 10px; border-radius:9px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.22); border-left:2px solid rgba(139,92,246,0.7);")}>
                 <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#c4b5fd; margin-bottom:3px;")}>Strategy</span>
-                <p style={css("margin:0; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.78);")}>{ai.dealThesis}</p>
+                <div style={css("display:flex; align-items:flex-start; gap:5px;")}>
+                  <p style={css("flex:1; margin:0; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.78);")}>{ai.dealThesis}</p>
+                  <SpeechifyPlayer text={ai.dealThesis} size={11} color="rgba(255,255,255,0.55)" style={{ flex: 'none', marginTop: 1 }} />
+                </div>
+              </div>
+            )}
+
+            {/* THE COUNCIL — high-stakes second opinion: verdict + dissent (BRAIN V4 P5) */}
+            {council && (
+              <div style={css("margin:0 0 8px; padding:7px 10px; border-radius:9px; background:rgba(139,92,246,0.09); border:1px solid rgba(139,92,246,0.3); border-left:2px solid #a78bfa;")}>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:3px;")}>
+                  <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#c4b5fd;")}>⚖ The Council</span>
+                  {council.convened_at && <span style={css("font-size:9px; color:rgba(255,255,255,0.35);")}>{relativeTime(council.convened_at)}</span>}
+                </div>
+                <div style={css("display:flex; align-items:flex-start; gap:5px;")}>
+                  <p style={css("flex:1; margin:0; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{council.verdict}</p>
+                  <SpeechifyPlayer text={council.verdict} size={11} color="rgba(255,255,255,0.55)" style={{ flex: 'none', marginTop: 1 }} />
+                </div>
+                {Array.isArray(council.dissent) && council.dissent.length > 0 && (
+                  <div style={css("margin-top:5px; display:flex; flex-direction:column; gap:3px;")}>
+                    {council.dissent.map((d, i) => (
+                      <p key={i} style={css("margin:0; font-size:10.5px; line-height:1.4; color:rgba(255,255,255,0.55); font-style:italic;")}>↯ {d}</p>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -210,10 +256,19 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                   {priority && (
                     <span style={css("display:inline-flex; align-items:center; padding:1px 6px; borderRadius:99px; fontSize:8.5px; fontWeight:700; text-transform:uppercase; letter-spacing:0.04em; background:"+pMeta.bg+"; border:1px solid "+pMeta.border+"; color:"+pMeta.color+";")}>{priority}</span>
                   )}
+                  <SpeechifyPlayer text={`${nba.action || ''}. ${nba.reasoning || ''}`} size={10} color="rgba(255,255,255,0.5)" style={{ flex: 'none', marginLeft: 'auto' }} />
                 </div>
                 {nba.reasoning && nba.action && (
                   <p style={css("margin:4px 0 0; font-size:11px; line-height:1.4; color:rgba(255,255,255,0.55);")}>{nba.reasoning}</p>
                 )}
+              </div>
+            )}
+
+            {/* Highest-leverage unknown — the ONE fact that would most change the conclusion (V4 CORTEX) */}
+            {hasLeverage && (
+              <div style={css("margin-bottom:8px; padding:6px 10px; border-radius:9px; background:hsl(38 92% 50% / 0.06); border:1px dashed hsl(38 92% 50% / 0.35);")}>
+                <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:hsl(38 92% 62%); margin-bottom:2px;")}>Key unknown</span>
+                <p style={css("margin:0; font-size:11px; line-height:1.45; color:rgba(255,255,255,0.72);")}>{ai.leverageUnknown}</p>
               </div>
             )}
 
@@ -224,7 +279,10 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                 <div style={css("display:flex; flex-direction:column; gap:6px;")}>
                   {openQuestions.map((q, i) => (
                     <div key={i}>
-                      <p style={css("margin:0; font-size:11.5px; line-height:1.4; color:rgba(255,255,255,0.85); font-weight:600;")}>? {q.question}</p>
+                      <div style={css("display:flex; align-items:flex-start; gap:4px;")}>
+                        <p style={css("flex:1; margin:0; font-size:11.5px; line-height:1.4; color:rgba(255,255,255,0.85); font-weight:600;")}>? {q.question}</p>
+                        <SpeechifyPlayer text={`${q.question}. ${q.why || ''}`} size={10} color="rgba(255,255,255,0.5)" style={{ flex: 'none' }} />
+                      </div>
                       {q.why && <p style={css("margin:1px 0 0; font-size:10px; line-height:1.4; color:rgba(255,255,255,0.5);")}>{q.why}</p>}
                     </div>
                   ))}
@@ -247,11 +305,45 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
               </div>
             )}
 
+            {/* Campaign plan — the 14-30 day multi-touch plan; every send stays human-approved (V4 P5) */}
+            {plan && (
+              <div style={css("margin-bottom:8px; padding:8px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07);")}>
+                <div style={css("display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px;")}>
+                  <span style={css("font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.4);")}>Campaign</span>
+                  {plan.generated_at && <span style={css("font-size:9px; color:rgba(255,255,255,0.35);")}>{relativeTime(plan.generated_at)}</span>}
+                </div>
+                {plan.objective && (
+                  <p style={css("margin:0 0 6px; font-size:11px; line-height:1.4; color:rgba(255,255,255,0.75); font-weight:600;")}>{plan.objective}</p>
+                )}
+                <div style={css("display:flex; flex-direction:column; gap:4px;")}>
+                  {plan.touches.map((t, i) => (
+                    <div key={i} style={css("display:flex; align-items:flex-start; gap:7px;")}>
+                      <span style={css("flex:none; min-width:34px; text-align:center; padding:1px 5px; borderRadius:6px; font-size:9px; font-weight:800; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); color:#93c5fd;")}>
+                        {t.day_offset === 0 ? 'Today' : `D+${t.day_offset}`}
+                      </span>
+                      <p style={css("flex:1; margin:0; font-size:10.5px; line-height:1.45; color:rgba(255,255,255,0.68);")}>
+                        <span style={css("color:rgba(255,255,255,0.45); font-weight:600;")}>{CHANNEL_LABEL[t.channel] || t.channel}{typeof t.hour === 'number' ? ` · ${t.hour}:00` : ''}{t.angle ? ` · ${t.angle}` : ''} — </span>
+                        {t.freeform_intent}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                {Array.isArray(plan.exit_conditions) && plan.exit_conditions.length > 0 && (
+                  <p style={css("margin:6px 0 0; font-size:9.5px; line-height:1.4; color:rgba(255,255,255,0.42);")}>
+                    Stops when: {plan.exit_conditions.join(' · ')}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Coaching */}
             {hasCoaching && (
               <div style={css("margin-bottom:8px;")}>
                 <span style={css("display:block; font-size:8.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.38); margin-bottom:3px;")}>Coaching</span>
-                <p style={css("margin:0; font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.72);")}>{ai.coaching}</p>
+                <div style={css("display:flex; align-items:flex-start; gap:5px;")}>
+                  <p style={css("flex:1; margin:0; font-size:11.5px; line-height:1.45; color:rgba(255,255,255,0.72);")}>{ai.coaching}</p>
+                  <SpeechifyPlayer text={ai.coaching} size={11} color="rgba(255,255,255,0.55)" style={{ flex: 'none', marginTop: 1 }} />
+                </div>
               </div>
             )}
 
@@ -269,6 +361,30 @@ export default function AIIntelligenceCard({ ai, analyzing, onReanalyse, collaps
                     <span key={i} style={css("display:inline-flex; align-items:center; gap:3px; padding:3px 7px; borderRadius:99px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); font-size:9.5px; color:#fca5a5;")}>⚑ {ob}</span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Why? — the grounded reasoning trace behind the major outputs (V4 CORTEX) */}
+            {traceEntries.length > 0 && (
+              <div style={css("margin-bottom:7px;")}>
+                <button onClick={() => setShowTrace(s => !s)} style={css("display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; padding:0; font-family:'Inter',sans-serif;")}>
+                  <ChevronDown size={11} style={chevronStyle(!showTrace)} />
+                  <span style={css("font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.45);")}>Why? · {traceEntries.length} grounded claims</span>
+                </button>
+                {showTrace && (
+                  <div style={css("margin-top:5px; padding:7px 10px; border-radius:9px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); display:flex; flex-direction:column; gap:6px;")}>
+                    {traceEntries.map((t, i) => (
+                      <div key={i}>
+                        <p style={css("margin:0 0 2px; font-size:10.5px; line-height:1.45; color:rgba(255,255,255,0.75);")}>{t.claim}</p>
+                        <div style={css("display:flex; flex-wrap:wrap; gap:3px;")}>
+                          {t.grounds.map((g, j) => (
+                            <span key={j} style={css("display:inline-flex; align-items:center; padding:1px 6px; borderRadius:99px; font-size:8.5px; font-weight:600; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; whiteSpace:nowrap;")}>{g}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { filterVisibleTemplates } from '@/lib/templateVisibility';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const CATEGORY_LABELS = {
   initial_contact: '👋 Initial Contact',
@@ -126,6 +127,9 @@ function TemplateModal({ open, onClose }) {
                   className="w-full px-3 py-2 text-sm rounded-lg resize-none"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
                 />
+                <div className="mt-1">
+                  <DictationMicButton value={form.body} onChange={(val) => setForm(f => ({ ...f, body: val }))} />
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <label className="text-[11px] text-muted-foreground">Sort order</label>

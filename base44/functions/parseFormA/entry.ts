@@ -333,6 +333,24 @@ Deno.serve(async (req) => {
       await svc.Landlord.update(match.landlord_id, proposed_landlord_updates);
       written.landlord_updated = true;
       written.stage_advanced_to = proposed_landlord_updates.stage || null;
+
+      // BRAIN V4 P3 LEARN: mandate lifecycle → outcome ledger (non-fatal). parseFormA is the
+      // only backend mandate_status transition writer; deduped per contract by source_ref.
+      try {
+        const ms = proposed_landlord_updates.mandate_status;
+        const outcomeKind = ms === 'form_a_signed' ? 'mandate_signed'
+          : (ms === 'expired' || ms === 'cancelled') ? 'mandate_lost' : null;
+        if (outcomeKind) {
+          await base44.asServiceRole.functions.invoke('recordOutcomeEvent', {
+            landlord_id: match.landlord_id,
+            kind: outcomeKind,
+            channel: 'other',
+            source_ref: `FormA:${c.contract_number || 'unknown'}:${ms}`,
+            sent_at: proposed_landlord_updates.mandate_start_date || new Date().toISOString(),
+            description: `Form A ${c.contract_number || ''} → ${ms}`.trim(),
+          }).catch(() => {});
+        }
+      } catch (_) { /* ledger must never break the write */ }
     } catch (e) {
       return Response.json({
         parser_version: 'v9-form-a-contracts-list',

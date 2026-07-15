@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const LANGUAGE_BADGES = {
   'en': { label: 'EN', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
@@ -117,6 +118,12 @@ export default function VoiceMessageBubble({ message, isOutbound }) {
                   {showTranslation ? 'Show original' : 'See translation'}
                 </button>
               )}
+              <SpeechifyPlayer
+                text={showTranslation && translatedText ? translatedText : transcript}
+                language={showTranslation && translatedText ? 'en' : transcriptLang}
+                size={11}
+                color="#C9A24B"
+              />
             </div>
             
             <p className="text-sm text-white/90 leading-relaxed">

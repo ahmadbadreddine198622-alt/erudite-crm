@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Loader2, AlertCircle, TrendingUp, Users, CheckCircle2, Target, Brain, XCircle, Zap, Building2 } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -225,9 +226,12 @@ export default function AgentIntelligence() {
                     <div className="space-y-2">
                       {alloc.ai_slacking_reason && (
                         <div className="p-3 rounded-xl" style={{ background: DESIGN_TOKENS.red, border: `2px solid ${DESIGN_TOKENS.redBorder.replace('0.5', '0.3')}` }}>
-                          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: DESIGN_TOKENS.redText }}>
-                            ⚠ Why
-                          </p>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: DESIGN_TOKENS.redText }}>
+                              ⚠ Why
+                            </p>
+                            <ReadAloudButton text={alloc.ai_slacking_reason} title={`Why: ${agentName}`} size={12} />
+                          </div>
                           <p className="text-sm leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>
                             {alloc.ai_slacking_reason}
                           </p>
@@ -236,9 +240,12 @@ export default function AgentIntelligence() {
                       
                       {alloc.ai_coaching_note && (
                         <div className="p-3 rounded-xl" style={{ background: DESIGN_TOKENS.goldBg, border: `2px solid ${DESIGN_TOKENS.goldBorder.replace('0.4', '0.3')}` }}>
-                          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: DESIGN_TOKENS.gold }}>
-                            📋 Coaching
-                          </p>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: DESIGN_TOKENS.gold }}>
+                              📋 Coaching
+                            </p>
+                            <ReadAloudButton text={alloc.ai_coaching_note} title={`Coaching: ${agentName}`} size={12} />
+                          </div>
                           <p className="text-sm font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>
                             {alloc.ai_coaching_note}
                           </p>
@@ -257,18 +264,24 @@ export default function AgentIntelligence() {
                             {targetStyle.label}
                           </p>
                           {alloc.ai_target_reasoning && (
-                            <p className="text-xs mt-1 leading-tight" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                              {alloc.ai_target_reasoning}
-                            </p>
+                            <div className="flex items-start gap-2 mt-1">
+                              <p className="text-xs leading-tight flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                                {alloc.ai_target_reasoning}
+                              </p>
+                              <ReadAloudButton text={alloc.ai_target_reasoning} title={`Target: ${agentName}`} size={11} />
+                            </div>
                           )}
                         </div>
                       )}
                       
                       {alloc.ai_agent_rolling_summary && (
                         <div className="p-3 rounded-xl" style={{ background: DESIGN_TOKENS.purple, border: `2px solid ${DESIGN_TOKENS.purpleBorder}` }}>
-                          <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: DESIGN_TOKENS.purpleText }}>
-                            📊 Summary
-                          </p>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: DESIGN_TOKENS.purpleText }}>
+                              📊 Summary
+                            </p>
+                            <ReadAloudButton text={alloc.ai_agent_rolling_summary} title={`Summary: ${agentName}`} size={12} />
+                          </div>
                           <p className="text-sm leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>
                             {alloc.ai_agent_rolling_summary}
                           </p>

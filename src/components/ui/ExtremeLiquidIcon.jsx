@@ -87,12 +87,12 @@ export default function ExtremeLiquidIcon({
           transition: 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
       >
-        {/* Vibrant jewel base — saturated, iOS-grade */}
+        {/* Neutral navy base — white-on-navy hairline */}
         <div
-          className={cn('absolute inset-0 bg-gradient-to-br', gradient)}
+          className="absolute inset-0"
           style={{
             borderRadius: radius,
-            filter: 'saturate(1.5) brightness(1.05)',
+            background: 'var(--ds-card, rgba(255,255,255,0.022))',
           }}
         />
 
@@ -108,11 +108,11 @@ export default function ExtremeLiquidIcon({
               : 'rgba(255,255,255,0.05)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1.5px solid rgba(255,255,255,0.18)',
-            borderTopColor: 'rgba(255,255,255,0.42)',
+            border: '1px solid var(--ds-card-line, rgba(255,255,255,0.07))',
+            borderTopColor: 'rgba(255,255,255,0.14)',
             boxShadow: pressed
-              ? `0 4px 12px rgba(0,0,0,0.45), 0 0 0 0 ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.20)`
-              : `0 10px 32px rgba(0,0,0,0.5), 0 0 28px ${glowColor}, 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18)`,
+              ? '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)'
+              : '0 10px 32px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
             transition: 'background 0.18s ease, box-shadow 0.18s ease',
           }}
         />
@@ -122,7 +122,7 @@ export default function ExtremeLiquidIcon({
           className="absolute inset-0"
           style={{
             borderRadius: radius,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0) 60%)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 38%, rgba(255,255,255,0) 60%)',
             pointerEvents: 'none',
           }}
         />
@@ -177,9 +177,9 @@ export default function ExtremeLiquidIcon({
             top: '50%',
             left: '50%',
             transform: `translate(-50%, -50%) ${pressed ? 'scale(0.93)' : 'scale(1)'}`,
-            color: 'rgba(255, 255, 255, 0.95)',
-            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.70)) drop-shadow(0 3px 8px rgba(0,0,0,0.45))',
-            strokeWidth: 2.2,
+            color: '#e8ecf6',
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))',
+            strokeWidth: 1.7,
             zIndex: 2,
             transition: 'transform 0.15s ease',
           }}

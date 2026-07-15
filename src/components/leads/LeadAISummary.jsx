@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 export default function LeadAISummary({ lead }) {
   const [expanded, setExpanded] = useState(true);
@@ -107,9 +108,12 @@ Be direct, specific, and actionable. No bullet points, just 3 flowing sentences.
               ))}
             </div>
           ) : summary ? (
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
-              {summary}
-            </p>
+            <div className="flex items-start gap-2">
+              <p className="text-sm leading-relaxed flex-1" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                {summary}
+              </p>
+              <SpeechifyPlayer text={typeof summary === 'string' ? summary : ''} size={12} color="hsl(38 92% 60%)" />
+            </div>
           ) : (
             <p className="text-xs text-white/30 italic">No summary available — try refreshing.</p>
           )}

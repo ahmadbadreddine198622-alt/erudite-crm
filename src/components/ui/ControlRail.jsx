@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Menu, Command, ChevronRight, Sparkles, X, MoreVertical } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Home, ArrowLeft, Command, MoreVertical, LayoutGrid } from 'lucide-react';
 
 // ── Color tokens from design system ───────────────────────────────────────────
 const COLORS = {
@@ -13,18 +13,6 @@ const COLORS = {
   card: 'rgba(255,255,255,0.022)',
   cardLine: 'rgba(255,255,255,0.07)',
 };
-
-// ── Workspace definitions with jewel hues ─────────────────────────────────────
-const WORKSPACES = [
-  { name: 'CEO & Admin', path: '/company-settings', hueRgb: '212,175,55', hue: '#d4af37' },
-  { name: 'Leads & Pipeline', path: '/pipeline', hueRgb: '139,92,246', hue: '#8b5cf6' },
-  { name: 'Landlords & Listings', path: '/landlords', hueRgb: '240,169,59', hue: '#f0a93b' },
-  { name: 'Deals & Money', path: '/closing', hueRgb: '45,212,167', hue: '#2dd4a7' },
-  { name: 'Comms', path: '/whatsapp', hueRgb: '61,109,246', hue: '#3d6df6' },
-  { name: 'Analytics & AI', path: '/analytics', hueRgb: '34,211,238', hue: '#22d3ee' },
-  { name: 'Team & HR', path: '/team', hueRgb: '244,114,182', hue: '#f472b6' },
-  { name: 'Tools & Reference', path: '/map', hueRgb: '154,166,192', hue: '#9aa6c0' },
-];
 
 // ── Helper: extract RGB from rgba string or return default ───────────────────
 function hueParts(glowColor) {
@@ -39,7 +27,7 @@ function hueParts(glowColor) {
 }
 
 // ── Lit Display Case Button ───────────────────────────────────────────────────
-function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isActive, isHero }) {
+function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isHero }) {
   const [hovered, setHovered] = useState(false);
   const hue = hueParts(`rgba(${hueRgb},1)`);
   
@@ -51,8 +39,8 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         onMouseLeave={() => setHovered(false)}
         className="relative flex items-center justify-center transition-all duration-200 focus:outline-none"
         style={{
-          width: isHero ? 38 : 34,
-          height: isHero ? 38 : 34,
+          width: 34,
+          height: 34,
           borderRadius: 11,
           background: `radial-gradient(130% 130% at 30% 18%, ${gradient[0]}, ${gradient[1]} 70%, ${gradient[2]})`,
           border: `1px solid rgba(212,175,55,0.30)`,
@@ -78,10 +66,7 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         <div
           className="absolute pointer-events-none"
           style={{
-            top: 7,
-            left: 7,
-            right: 7,
-            height: 1,
+            top: 7, left: 7, right: 7, height: 1,
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
           }}
         />
@@ -98,10 +83,7 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         {isHero && (
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{
-              borderRadius: 11,
-              animation: 'heroPulse 3s ease-in-out infinite',
-            }}
+            style={{ borderRadius: 11, animation: 'heroPulse 3s ease-in-out infinite' }}
           />
         )}
         
@@ -141,148 +123,13 @@ function LitButton({ icon: Icon, label, shortcut, hueRgb, gradient, onClick, isA
         >
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>{label}</span>
           {shortcut && (
-            <kbd
-              style={{
-                fontSize: 10,
-                padding: '1px 5px',
-                borderRadius: 4,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: COLORS.muted,
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
+            <kbd style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: COLORS.muted, fontFamily: "'Inter', sans-serif" }}>
               {shortcut}
             </kbd>
           )}
         </div>
       )}
     </div>
-  );
-}
-
-// ── Menu Flyout (Workspaces) ─────────────────────────────────────────────────
-function MenuFlyout({ isOpen, onClose }) {
-  const navigate = useNavigate();
-  const flyoutRef = useRef(null);
-  
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (flyoutRef.current && !flyoutRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEsc);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEsc);
-    };
-  }, [isOpen, onClose]);
-  
-  if (!isOpen) return null;
-  
-  return (
-    <>
-      {/* Scrim */}
-      <div
-        className="fixed inset-0 z-[59]"
-        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
-        onClick={onClose}
-      />
-      
-      {/* Flyout panel */}
-      <div
-        ref={flyoutRef}
-        className="fixed z-[60] p-5 overflow-hidden"
-        style={{
-          left: 56,
-          top: 12,
-          width: 288,
-          background: 'rgba(16,20,32,0.82)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(212,175,55,0.16)',
-          borderRadius: 20,
-          boxShadow: '0 40px 90px -40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)',
-          animation: 'flyoutSlide 0.18s ease-out',
-        }}
-      >
-        {/* Gold hairline top */}
-        <div
-          className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
-            marginLeft: 26,
-            marginRight: 26,
-          }}
-        />
-        
-        {/* Eyebrow */}
-        <div className="flex items-center gap-2 mb-3">
-          <span
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 600,
-              fontSize: 10,
-              letterSpacing: '0.28em',
-              color: COLORS.goldLite,
-              textTransform: 'uppercase',
-            }}
-          >
-            Workspaces
-          </span>
-        </div>
-        
-        {/* Workspace rows */}
-        <div className="flex flex-col gap-1.5">
-          {WORKSPACES.map((ws) => (
-            <button
-              key={ws.path}
-              onClick={() => { navigate(ws.path); onClose(); }}
-              className="w-full flex items-center gap-3 px-2 py-2 rounded-xl transition-all hover:bg-white/5"
-              style={{
-                cursor: 'pointer',
-              }}
-            >
-              {/* Hue chip */}
-              <div
-                className="shrink-0 rounded-lg flex items-center justify-center"
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: `radial-gradient(130% 130% at 30% 18%, rgba(${ws.hueRgb},0.35), rgba(${ws.hueRgb},0.12) 70%, rgba(${ws.hueRgb},0.06))`,
-                  border: '1px solid rgba(212,175,55,0.25)',
-                  boxShadow: `0 0 16px -6px rgba(${ws.hueRgb},0.5)`,
-                }}
-              />
-              {/* Name */}
-              <span
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 13,
-                  color: COLORS.ink,
-                  fontWeight: 500,
-                }}
-              >
-                {ws.name}
-              </span>
-              {/* Chevron */}
-              <ChevronRight
-                className="ml-auto shrink-0"
-                style={{ width: 14, height: 14, color: COLORS.muted }}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -366,158 +213,41 @@ function CommandFlyout({ isOpen, onClose, onAddLead, onNewListing }) {
             }}
           />
           <div className="flex items-center gap-1 mt-2">
-            <kbd
-              style={{
-                fontSize: 9,
-                padding: '1px 5px',
-                borderRadius: 4,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: COLORS.muted,
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              esc
-            </kbd>
+            <kbd style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: COLORS.muted, fontFamily: "'Inter', sans-serif" }}>esc</kbd>
             <span style={{ fontSize: 10, color: COLORS.mutedDim }}>to close</span>
           </div>
         </div>
         
         {/* Quick actions */}
         <div className="mb-4">
-          <p
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 9,
-              letterSpacing: '0.25em',
-              color: COLORS.muted,
-              textTransform: 'uppercase',
-              marginBottom: 8,
-            }}
-          >
+          <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.25em', color: COLORS.muted, textTransform: 'uppercase', marginBottom: 8 }}>
             Quick Actions
           </p>
           <div className="flex flex-col gap-2">
             <button
               onClick={() => { onAddLead(); onClose(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                cursor: 'pointer',
-              }}
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
             >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{
-                  background: 'radial-gradient(130% 130% at 30% 18%, rgba(45,212,167,0.35), rgba(45,212,167,0.12))',
-                  border: '1px solid rgba(212,175,55,0.25)',
-                }}
-              >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'radial-gradient(130% 130% at 30% 18%, rgba(45,212,167,0.35), rgba(45,212,167,0.12))', border: '1px solid rgba(212,175,55,0.25)' }}>
                 <span style={{ fontSize: 16, color: '#2dd4a7' }}>+</span>
               </div>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>
-                Add a lead
-              </span>
-              <kbd
-                style={{
-                  fontSize: 9,
-                  padding: '1px 5px',
-                  borderRadius: 4,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: COLORS.muted,
-                  fontFamily: "'Inter', sans-serif",
-                  marginLeft: 'auto',
-                }}
-              >
-                ⌘L
-              </kbd>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>Add a lead</span>
+              <kbd style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: COLORS.muted, fontFamily: "'Inter', sans-serif", marginLeft: 'auto' }}>⌘L</kbd>
             </button>
             
             <button
               onClick={() => { onNewListing(); onClose(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                cursor: 'pointer',
-              }}
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
             >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{
-                  background: 'radial-gradient(130% 130% at 30% 18%, rgba(240,169,59,0.35), rgba(240,169,59,0.12))',
-                  border: '1px solid rgba(212,175,55,0.25)',
-                }}
-              >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'radial-gradient(130% 130% at 30% 18%, rgba(240,169,59,0.35), rgba(240,169,59,0.12))', border: '1px solid rgba(212,175,55,0.25)' }}>
                 <span style={{ fontSize: 16, color: '#f0a93b' }}>🏠</span>
               </div>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>
-                New listing
-              </span>
-              <kbd
-                style={{
-                  fontSize: 9,
-                  padding: '1px 5px',
-                  borderRadius: 4,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: COLORS.muted,
-                  fontFamily: "'Inter', sans-serif",
-                  marginLeft: 'auto',
-                }}
-              >
-                ⌘N
-              </kbd>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>New listing</span>
+              <kbd style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: COLORS.muted, fontFamily: "'Inter', sans-serif", marginLeft: 'auto' }}>⌘N</kbd>
             </button>
           </div>
-        </div>
-        
-        {/* Ask ERUDITE */}
-        <div>
-          <p
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 9,
-              letterSpacing: '0.25em',
-              color: COLORS.muted,
-              textTransform: 'uppercase',
-              marginBottom: 8,
-            }}
-          >
-            Ask ERUDITE
-          </p>
-          <button
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5"
-            style={{
-              background: 'rgba(212,175,55,0.06)',
-              border: '1px solid rgba(212,175,55,0.15)',
-              cursor: 'pointer',
-            }}
-          >
-            <Sparkles
-              className="shrink-0"
-              style={{ width: 18, height: 18, color: COLORS.goldLite }}
-            />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: COLORS.ink }}>
-              Summarize today's hot leads
-            </span>
-            <kbd
-              style={{
-                fontSize: 9,
-                padding: '1px 5px',
-                borderRadius: 4,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: COLORS.muted,
-                fontFamily: "'Inter', sans-serif",
-                marginLeft: 'auto',
-              }}
-            >
-              ↵
-            </kbd>
-          </button>
         </div>
       </div>
     </>
@@ -527,8 +257,6 @@ function CommandFlyout({ isOpen, onClose, onAddLead, onNewListing }) {
 // ── Main Control Rail Component ──────────────────────────────────────────────
 export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const railRef = useRef(null);
@@ -552,7 +280,6 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCommandOpen(prev => !prev);
-        setMenuOpen(false);
       }
       // ⌘L / Ctrl+L: Add lead
       if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
@@ -566,8 +293,8 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
       }
       // Esc: close flyouts
       if (e.key === 'Escape') {
-        setMenuOpen(false);
         setCommandOpen(false);
+        setExpanded(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -579,8 +306,8 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
       {/* CSS animations */}
       <style>{`
         @keyframes heroPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.4); }
-          50% { box-shadow: 0 0 0 8px rgba(139,92,246,0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(212,175,55,0); }
         }
         @keyframes labelSlide {
           from { opacity: 0; transform: translateX(-8px); }
@@ -624,7 +351,7 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
           </button>
         )}
 
-        {/* Expanded: full rail with all 3 buttons */}
+        {/* Expanded: full rail with 3 buttons — Back · Home · Command */}
         {expanded && (
           <div
             className="p-1.5 relative"
@@ -646,7 +373,19 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
 
             {/* Buttons column */}
             <div className="flex flex-col items-center gap-1.5 relative" style={{ paddingTop: 4, paddingBottom: 4 }}>
-              {/* HOME */}
+              {/* BACK — go to previous page */}
+              <LitButton
+                icon={ArrowLeft}
+                label="Go Back"
+                hueRgb="96,165,250"
+                gradient={['#1e2a3d', '#121a26', '#0a0f16']}
+                onClick={() => { navigate(-1); setExpanded(false); }}
+              />
+
+              {/* Divider */}
+              <div style={{ width: '100%', height: 1, background: 'rgba(212,175,55,0.12)' }} />
+
+              {/* HOME — go to main dashboard */}
               <LitButton
                 icon={Home}
                 label="Dashboard"
@@ -658,23 +397,26 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
               {/* Divider */}
               <div style={{ width: '100%', height: 1, background: 'rgba(212,175,55,0.12)' }} />
 
-              {/* MENU */}
+              {/* V-CARDS — go to landlord pipeline */}
               <LitButton
-                icon={Menu}
-                label="Workspaces"
-                hueRgb="96,124,170"
-                gradient={['#222f45', '#151d2b', '#0b111c']}
-                onClick={() => { setMenuOpen(true); setCommandOpen(false); setExpanded(false); }}
+                icon={LayoutGrid}
+                label="V-Cards"
+                hueRgb="240,169,59"
+                gradient={['#3a2e18', '#221a0e', '#120d06']}
+                onClick={() => { navigate('/landlords'); setExpanded(false); }}
               />
+
+              {/* Divider */}
+              <div style={{ width: '100%', height: 1, background: 'rgba(212,175,55,0.12)' }} />
 
               {/* COMMAND (hero) */}
               <LitButton
                 icon={Command}
                 label="Command"
                 shortcut="⌘K"
-                hueRgb="139,92,246"
-                gradient={['#372563', '#221540', '#120a26']}
-                onClick={() => { setCommandOpen(true); setMenuOpen(false); setExpanded(false); }}
+                hueRgb="212,175,55"
+                gradient={['#4a3a14', '#2a1f0a', '#160f05']}
+                onClick={() => { setCommandOpen(true); setExpanded(false); }}
                 isHero
               />
             </div>
@@ -682,8 +424,7 @@ export default function ControlRail({ onAddLead, onNewListing, hideOnMobile }) {
         )}
       </div>
       
-      {/* Flyouts */}
-      <MenuFlyout isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      {/* Flyout */}
       <CommandFlyout
         isOpen={commandOpen}
         onClose={() => setCommandOpen(false)}

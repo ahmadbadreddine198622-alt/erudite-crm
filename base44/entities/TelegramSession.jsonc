@@ -1,0 +1,82 @@
+{
+  "name": "TelegramSession",
+  "type": "object",
+  "properties": {
+    "agent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the agent who owns this Telegram session"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Telegram session identifier from the relay"
+    },
+    "login_id": {
+      "type": "string",
+      "description": "Relay login flow ID \u2014 used to submit the Telegram login code / 2FA password"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number used to connect (E.164)"
+    },
+    "label": {
+      "type": "string",
+      "description": "Display label (agent's full name)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "connecting",
+        "connected",
+        "error",
+        "disconnected"
+      ],
+      "default": "connecting",
+      "description": "Connection status of the Telegram session"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session was successfully connected"
+    },
+    "telegram_username": {
+      "type": "string",
+      "description": "Telegram @username of the connected account"
+    }
+  },
+  "required": [
+    "agent_email"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.agent_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

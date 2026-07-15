@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Sparkles, FileText, Trash2, ChevronRight, Loader2, Tag } from 'lucide-react';
 import NoteFormDialog from '@/components/notes/NoteFormDialog';
 import NoteDetailSheet from '@/components/notes/NoteDetailSheet';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const CATEGORY_STYLES = {
   deal:      { label: 'Deal',      cls: 'jewel-gold' },
@@ -135,6 +136,9 @@ export default function Notes() {
                 {/* AI summary preview */}
                 {hasAI && (
                   <div className="rounded-lg bg-accent/10 border border-accent/20 px-3 py-2">
+                    <div className="flex items-center justify-end mb-1">
+                      <ReadAloudButton text={note.ai_summary} title={`AI Summary: ${note.title}`} size={12} />
+                    </div>
                     <p className="text-xs text-accent/80 line-clamp-2">{note.ai_summary}</p>
                   </div>
                 )}

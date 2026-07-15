@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 const nanoid = (n = 8) => Math.random().toString(36).slice(2, 2 + n);
 
 const PRIORITIES = [
@@ -130,7 +131,7 @@ export default function ReminderDetailPanel({ reminder, onClose, onDelete }) {
           <label className="text-[10px] text-[#8E8E93] font-semibold uppercase tracking-wider flex items-center gap-1">
             <FileText className="w-3 h-3" /> Notes
           </label>
-          <Textarea
+          <WritingField
             value={draft.notes || ''}
             onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))}
             onBlur={() => updateMutation.mutate(draft)}

@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { MessageSquarePlus, X, Loader2, Trash2, Crown } from 'lucide-react';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 function css(str) {
   const o = {};
@@ -139,6 +140,7 @@ export default function ActivityCommentThread({ comments, landlordId, activityTy
                 {meta.label}
               </button>
             ))}
+            <DictationMicButton value={text} onChange={(val) => setText(val)} />
             <button onClick={handleSave} disabled={saving || !text.trim()}
               style={css("margin-left:auto; display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:7px; font-size:10px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%)); color:#1a1205; border:1px solid hsl(38 92% 50% / 0.5); opacity:"+(saving || !text.trim() ? 0.4 : 1)+";")}>
               {saving ? <Loader2 size={10} className="animate-spin" /> : null}

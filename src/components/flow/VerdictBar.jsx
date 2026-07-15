@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Check, Clock, AlertTriangle, X, Loader2 } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 
 function css(str) {
   const o = {};
@@ -115,8 +116,8 @@ export default function VerdictBar({ landlord, onDone, onSnooze, onEscalate }) {
             <span style={css("font-size:11px; font-weight:700; color:rgba(255,255,255,0.8); font-family:'Inter',sans-serif;")}>Escalation reason</span>
             <button type="button" onClick={() => setEscalateOpen(false)} style={css("background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.4); padding:0; display:flex;")}><X size={13} /></button>
           </div>
-          <textarea value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} rows={2} placeholder="Why does this need human review?"
-            style={css("width:100%; resize:none; padding:6px 9px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; outline:none; margin-bottom:7px;")} />
+          <WritingField value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} rows={2} placeholder="Why does this need human review?"
+            style={css("resize:none; padding:6px 9px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:12px; font-family:'Inter',sans-serif; outline:none; margin-bottom:7px;")} />
           <button type="button" onClick={handleEscalate} disabled={busy}
             style={css("width:100%; padding:6px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); opacity:" + (busy ? '0.5;' : '1;'))}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : 'Flag for review & advance'}

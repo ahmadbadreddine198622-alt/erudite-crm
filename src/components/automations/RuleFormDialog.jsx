@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import WritingField from '@/components/shared/WritingField';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
@@ -220,7 +221,7 @@ export default function RuleFormDialog({ open, onClose, editingRule }) {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Email Body *</Label>
-                      <Textarea rows={4} value={action.payload?.body || ''} onChange={e => updateAction(i, 'body', e.target.value)} placeholder="Hi {{lead_name}}, thank you for your interest..." />
+                      <WritingField rows={4} value={action.payload?.body || ''} onChange={e => updateAction(i, 'body', e.target.value)} placeholder="Hi {{lead_name}}, thank you for your interest..." />
                       <p className="text-xs text-muted-foreground">Use &#123;&#123;lead_name&#125;&#125;, &#123;&#123;agent_name&#125;&#125;, &#123;&#123;stage&#125;&#125; as placeholders</p>
                     </div>
                     <div className="space-y-1">

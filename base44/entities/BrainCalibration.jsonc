@@ -1,0 +1,58 @@
+{
+  "name": "BrainCalibration",
+  "type": "object",
+  "properties": {
+    "computed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When compileBrainPriors computed this calibration record"
+    },
+    "resolved_n": {
+      "type": "number",
+      "description": "Number of resolved predictions (LandlordScoreSnapshot.mandate_win_probability rows whose landlord reached a terminal outcome: mandate_signed/deal_closed vs mandate_lost/went_dark)"
+    },
+    "brier_score": {
+      "type": "number",
+      "description": "Mean squared error of predicted win probability vs realized binary outcome (lower is better; 0.25 = coin flip)"
+    },
+    "deciles": {
+      "type": "array",
+      "description": "Predicted-vs-actual per probability decile",
+      "items": {
+        "type": "object",
+        "properties": {
+          "decile": {
+            "type": "string",
+            "description": "e.g. '0.6-0.7'"
+          },
+          "predicted_avg": {
+            "type": "number"
+          },
+          "actual_rate": {
+            "type": "number"
+          },
+          "n": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "calibration_line": {
+      "type": "string",
+      "description": "The ready-to-inject one-line correction for the orchestrator prompt, e.g. 'Your 0.6-0.8 predictions have historically converted at 0.41 \u2014 correct accordingly.' Empty until resolved_n >= 50."
+    },
+    "is_current": {
+      "type": "boolean",
+      "default": false,
+      "description": "True on the latest record only \u2014 the orchestrator reads the current one; superseded records keep the calibration trend history"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes (max 1000 chars)",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "computed_at"
+  ]
+}

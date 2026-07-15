@@ -15,6 +15,7 @@ import EmojiPicker from './EmojiPicker';
 import ModernComposerField from './ModernComposerField';
 import TemplateField from '@/components/common/TemplateField';
 import ChatTemplatePanel from './ChatTemplatePanel';
+import ApproachDraftStrip from './ApproachDraftStrip';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 // Infer a coarse media type from filename / mime so the backend can pick the
@@ -74,6 +75,10 @@ export default function UnifiedChatComposer({
   targetLanguage,     // landlord's preferred language code — enables bidirectional EN↔target editing
   extraToolbarChildren, // additional React nodes rendered in the ModernComposerField toolbar (e.g. EruditeToneButton)
   inputRef,            // optional external ref to the composer textarea (e.g. jump-to-composer from the notes strip)
+  approachDrafts,      // landlord.ai_approach_drafts — the Approach Forge output (all channels)
+  approachForging,     // boolean — a fresh forge is in flight
+  onLoadApproach,      // fn(text) — load this channel's approach draft into the composer
+  onRegenerateApproach, // fn() — force a fresh forge (all channels)
   }) {
   const [aiOpen, setAiOpen] = useState(false);
   const taRefInternal = useRef(null);
@@ -168,17 +173,34 @@ export default function UnifiedChatComposer({
   };
 
   return (
-    <div style={css("position:relative;")}>
+    <div className="glass-card" style={{ ...css("position:relative; border-radius:14px; padding:12px 14px 10px;"), borderTopColor: accent + '40', boxShadow: '0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px ' + accent + '15, inset 0 1px 0 rgba(255,255,255,0.08)' }}>
       {/* Meta Business Templates panel — business WhatsApp only, toggled by the toolbar icon */}
       {composerType === 'Chat' && streamFilter === 'business' && chatTemplatesOpen && (
         <div style={css("margin-bottom:8px;")}>
           <ChatTemplatePanel landlordId={landlordId} phone={phone} onClose={onToggleChatTemplates} />
         </div>
       )}
+      {/* Channel header strip */}
+      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:7px; border-bottom:1px solid " + accent + "22;")}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: '0 0 8px ' + accent + '80', flex: 'none' }} />
+        <span style={css("font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:" + accent + "; font-family:'Inter',sans-serif;")}>{composerType === 'Chat' ? 'WhatsApp' : composerType === 'Telegram' ? 'Telegram' : 'SMS'}</span>
+        {channelDisabled && <span style={css("font-size:9px; color:rgba(244,63,94,0.7); margin-left:auto; font-family:'Inter',sans-serif;")}>unavailable</span>}
+      </div>
 
       {channelDisabled && (
         <div style={css("margin-top:6px; padding:6px 10px; border-radius:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); font-size:10.5px; color:#fca5a5;")}>⚠ {disabledHint || 'Channel not configured'}</div>
       )}
+
+      {/* Approach Forge — this channel's auto-forged draft, one tap to load (never auto-sent).
+          ALWAYS shown when a draft exists — channel availability gates SENDING, never the draft. */}
+      <ApproachDraftStrip
+        channel={tplChannel}
+        drafts={approachDrafts}
+        forging={approachForging}
+        onLoad={(d) => onLoadApproach && onLoadApproach(d.body_native || '')}
+        onRegenerate={onRegenerateApproach}
+        accent={accent}
+      />
 
       {/* Pending attachment chip */}
       {attachment && (

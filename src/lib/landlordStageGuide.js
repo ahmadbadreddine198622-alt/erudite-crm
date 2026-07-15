@@ -8,21 +8,21 @@ export const PHASES = [
     key: 'win_mandate',
     name: 'Win the Mandate',
     purpose: 'Relationship — earn trust and sign the mandate.',
-    color: '#C9A24B', // gold
+    color: '#C6A15B', // gold (WIN)
     stages: ['initial_contact', 'attempted_to_contact', 'price_discovery', 'listing_commitment', 'form_a_initiation', 'form_a_signing'],
   },
   {
     key: 'build_listing',
     name: 'Build the Listing',
     purpose: 'Operations — documents, media and a live, compliant listing.',
-    color: '#5a93e0', // blue
+    color: '#7FA3C9', // slate-blue (BUILD)
     stages: ['owner_documents', 'photos_videos', 'photographer_scheduling', 'listing_creation', 'internal_verification', 'listing_publication', 'final_confirmation'],
   },
   {
     key: 'sell_unit',
     name: 'Sell the Unit',
     purpose: 'Marketing & close — drive offers and transfer the deal.',
-    color: '#3fb98a', // emerald
+    color: '#93B49B', // sage (SELL)
     stages: ['marketing_agents', 'marketing_network', 'open_house', 'client_blast', 'deal_closed'],
   },
 ];

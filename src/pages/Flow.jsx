@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { toast } from 'sonner';
 import SessionQueue from '@/components/flow/SessionQueue';
 import UnifiedThread from '@/components/flow/UnifiedThread';
@@ -55,7 +56,7 @@ export default function Flow() {
     setTotals({ handled: 0, snoozed: 0, escalated: 0 });
     try {
       // Fetch landlords
-      const landlords = await base44.entities.Landlord.list('-created_date', 200).catch(() => []);
+      const landlords = await fetchAllRecords(base44.entities.Landlord, '-created_date').catch(() => []);
 
       // Fetch recent messages across all channels to determine unanswered status
       const [messages, imessages, tgrams, emails] = await Promise.all([

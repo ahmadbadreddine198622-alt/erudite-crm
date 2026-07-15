@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { Lock, Loader2, CheckCircle, XCircle, Swords } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { GOLD, GOLD_LITE, pageWrap, card, goldStrip, serif, label, rankPill } from '@/lib/academyStyles';
 
 function QuizQuestion({ q, index }) {
@@ -82,15 +83,29 @@ export default function TheDojo() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Current week header */}
           <div style={card}>
-            <div style={{ ...serif, fontSize: 48, color: GOLD, lineHeight: 1 }}>{enrollment.current_week}</div>
-            <h2 style={{ ...serif, fontSize: 24, color: GOLD_LITE, margin: '4px 0 6px' }}>{currentPrinciple.name}</h2>
-            {currentPrinciple.tagline && <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>{currentPrinciple.tagline}</p>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ ...serif, fontSize: 48, color: GOLD, lineHeight: 1 }}>{enrollment.current_week}</div>
+                <h2 style={{ ...serif, fontSize: 24, color: GOLD_LITE, margin: '4px 0 6px' }}>{currentPrinciple.name}</h2>
+                {currentPrinciple.tagline && <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>{currentPrinciple.tagline}</p>}
+              </div>
+              <ReadAloudButton
+                text={`${currentPrinciple.name}. ${currentPrinciple.tagline || ''}. ${currentPrinciple.essence || ''} ${currentPrinciple.erudite_lesson || ''}`}
+                title={`Week ${currentPrinciple.week_number}: ${currentPrinciple.name}`}
+              />
+            </div>
           </div>
 
           {/* Daily drills checklist */}
           {currentPrinciple.daily_drills?.length > 0 ? (
             <div style={card}>
-              <p style={label}>Daily Drills</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={label}>Daily Drills</p>
+                <ReadAloudButton
+                  text={`Daily drills. ${currentPrinciple.daily_drills.map((d, i) => `${i + 1}. ${d}`).join(' ')}`}
+                  title={`Week ${currentPrinciple.week_number} — Daily Drills`}
+                />
+              </div>
               {currentPrinciple.daily_drills.map((drill, i) => {
                 const done = !!drillDone[i];
                 return (

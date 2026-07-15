@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import ClaudePresenceIcon from '@/components/ui/ClaudePresenceIcon';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 export default function ClaudeChatSheet({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
@@ -208,6 +209,7 @@ export default function ClaudeChatSheet({ isOpen, onClose }) {
                     className="flex-1 resize-none px-4 py-3 text-sm rounded-xl bg-white/5 border border-white/10 focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20 text-foreground placeholder:text-muted-foreground"
                     style={{ maxHeight: '120px', minHeight: '44px' }}
                   />
+                  <DictationMicButton value={input} onChange={(val) => setInput(val)} />
                   <button
                     onClick={handleSend}
                     disabled={!input.trim() || sendMessageMutation.isPending}

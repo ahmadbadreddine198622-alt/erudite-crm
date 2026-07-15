@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, Upload, ShieldCheck, Loader2, ExternalLink, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const DOC_LABELS = {
   passport: 'Passport',
@@ -154,7 +155,10 @@ function DocRow({ doc, landlordId, onMutated }) {
       )}
 
       {doc.notes && (
-        <p className="text-[10px] text-muted-foreground pl-5 italic">{doc.notes}</p>
+        <div className="flex items-start gap-1.5 pl-5">
+          <p className="text-[10px] text-muted-foreground italic flex-1">{doc.notes}</p>
+          <ReadAloudButton text={doc.notes} title={`Document · ${DOC_LABELS[doc.document_type] || doc.document_type}`} size={20} style={{ flex: 'none', marginTop: -2 }} />
+        </div>
       )}
     </div>
   );

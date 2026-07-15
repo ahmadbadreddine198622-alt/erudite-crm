@@ -5,6 +5,7 @@
 // onChange(patch), commit via onConfirm, dismiss via onCancel.
 
 import React from 'react';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 function css(str) {
   const o = {};
@@ -45,6 +46,9 @@ export default function ComposerConfirmChip({ type, draft, confirmLabel, committ
             <div style={labelStyle}>Note</div>
             <textarea value={draft.body || ''} onChange={(e) => onChange({ body: e.target.value })} rows={4}
               style={{ ...fieldStyle, resize: 'vertical', minHeight: 80, lineHeight: 1.5 }} />
+            <div style={css("margin-top:5px;")}>
+              <DictationMicButton value={draft.body || ''} onChange={(val) => onChange({ body: val })} />
+            </div>
             {Array.isArray(draft.action_items) && draft.action_items.length > 0 && (
               <div style={css("margin-top:7px; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);")}>
                 <div style={{ ...labelStyle, marginBottom: 5 }}>Action items — also create as tasks?</div>

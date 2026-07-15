@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { fetchAllRecords } from '@/api/fetchAll';
 import { Brain, Network, Zap, Users, Home, Building, MessageCircle, TrendingUp, AlertCircle, CheckCircle2, Clock, RefreshCw, Sparkles, Link2, Search, Filter, Calendar } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -212,7 +213,7 @@ export default function AISyncHub() {
   // Fetch all entities
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-sync'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 200),
+    queryFn: () => fetchAllRecords(base44.entities.Lead, '-created_date'),
     staleTime: 60000,
   });
 
@@ -224,7 +225,7 @@ export default function AISyncHub() {
 
   const { data: landlords = [] } = useQuery({
     queryKey: ['landlords-sync'],
-    queryFn: () => base44.entities.Landlord.list('-created_date', 200),
+    queryFn: () => fetchAllRecords(base44.entities.Landlord, '-created_date'),
     staleTime: 60000,
   });
 

@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Calendar, Phone, Video, MapPin, ChevronDown, Plus, Clock, Users, UserCircle2 } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 function css(str) {
   const o = {};
@@ -178,7 +179,10 @@ function AppointmentCard({ item }) {
             </div>
           )}
           {item.notes && (
-            <div style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); white-space:pre-wrap; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);")}>{item.notes}</div>
+            <div style={css("display:flex; align-items:flex-start; gap:6px; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.6); white-space:pre-wrap; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);")}>
+              <div style={css("flex:1;")}>{item.notes}</div>
+              <ReadAloudButton text={item.notes} title={`${meta.label} · ${item.title}`} size={20} style={{ flex: 'none', marginTop: 2 }} />
+            </div>
           )}
         </div>
       )}

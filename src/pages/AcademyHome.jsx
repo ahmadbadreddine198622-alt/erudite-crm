@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Flame, Loader2, ChevronRight } from 'lucide-react';
 import AcademyNav from '@/components/academy/AcademyNav';
 import AcademyIngestBar from '@/components/academy/AcademyIngestBar';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import { CHAMBERS } from '@/lib/academyChambers';
 import { GOLD, GOLD_LITE, pageWrap, card, serif, label, goldBtn, rankPill } from '@/lib/academyStyles';
 
@@ -94,7 +95,12 @@ export default function AcademyHome() {
           <>
             <div style={{ ...serif, fontSize: 52, color: GOLD, lineHeight: 1, marginTop: 6 }}>{enrollment.current_week}</div>
             <h1 style={{ ...serif, fontSize: 28, color: GOLD_LITE, margin: '4px 0 6px' }}>{currentPrinciple.name}</h1>
-            {currentPrinciple.tagline && <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 15 }}>{currentPrinciple.tagline}</p>}
+            {currentPrinciple.tagline && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', fontSize: 15, flex: 1 }}>{currentPrinciple.tagline}</p>
+                <ReadAloudButton text={currentPrinciple.tagline} title={`Principle ${enrollment.current_week}: ${currentPrinciple.name}`} />
+              </div>
+            )}
             {currentPrinciple.rank_title && <span style={{ ...rankPill, marginTop: 8, display: 'inline-flex' }}>{currentPrinciple.rank_title}</span>}
 
             {/* Streak */}

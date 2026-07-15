@@ -1,0 +1,58 @@
+{
+  "name": "BrainEvalRun",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "Landlord the eval ran against \u2014 or '__report__' for a harness summary row."
+    },
+    "run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the orchestrator eval run (or harness report) started."
+    },
+    "tier": {
+      "type": "string",
+      "description": "Tier the eval run resolved to (cold | full | delta) \u2014 empty on report rows."
+    },
+    "triggered_by": {
+      "type": "string",
+      "description": "Who fired the eval (eval_harness | manual)."
+    },
+    "payload": {
+      "type": "object",
+      "description": "BRAIN V4 P10: for landlord rows \u2014 the orchestrator's full eval_mode envelope {ok, eval_mode, tier, model, result, telemetry, context}, exactly what a live run would have persisted, written ONLY in eval_mode (the CRM itself is untouched). Exists because function-to-function calls are cut by the platform gateway (~120s) while full runs take longer \u2014 brainEvalHarness reads the payload here instead of trusting the HTTP response. For '__report__' rows \u2014 the harness's own {summary, results} verdict."
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Stamped by brainEvalHarness once this row has been evaluated (landlord rows only)."
+    }
+  },
+  "required": [
+    "landlord_id",
+    "run_at"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

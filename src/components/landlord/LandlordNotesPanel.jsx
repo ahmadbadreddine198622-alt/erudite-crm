@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { Pin, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
+import WritingField from '@/components/shared/WritingField';
 
 const pinStyle = { color: 'hsl(38 92% 55%)' };
 
@@ -56,7 +58,7 @@ function NoteCard({ note, onPin, onEdit, onDelete }) {
       {/* Body */}
       {editing ? (
         <div className="space-y-1.5">
-          <textarea
+          <WritingField
             value={body}
             onChange={e => setBody(e.target.value)}
             autoFocus
@@ -74,7 +76,10 @@ function NoteCard({ note, onPin, onEdit, onDelete }) {
           </div>
         </div>
       ) : (
-        <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.8)' }}>{note.body}</p>
+        <div className="flex items-start gap-1.5">
+          <p className="text-xs leading-relaxed whitespace-pre-wrap flex-1" style={{ color: 'rgba(255,255,255,0.8)' }}>{note.body}</p>
+          <SpeechifyPlayer text={note.body} size={11} color="rgba(255,255,255,0.55)" />
+        </div>
       )}
     </div>
   );
@@ -152,14 +157,16 @@ export default function LandlordNotesPanel({ landlord }) {
 
       {/* Quick note input */}
       <div className="flex items-center gap-2 pt-1">
-        <textarea
+        <WritingField
           value={newNote}
           onChange={e => setNewNote(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Quick note… (Enter to save, Shift+Enter for newline)"
           rows={2}
-          className="flex-1 px-3 py-2 text-xs rounded-lg resize-none"
+          className="px-3 py-2 text-xs rounded-lg resize-none"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+          landlordId={landlord?.id}
+          channel="note"
         />
         {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
       </div>

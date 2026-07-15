@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 export default function OfferFormDialog({ onClose, onCreated, prefillLeadId, prefillLeadName }) {
   const [form, setForm] = useState({
@@ -203,11 +204,11 @@ export default function OfferFormDialog({ onClose, onCreated, prefillLeadId, pre
           {/* Notes */}
           <div>
             <label className="text-xs font-medium text-[#374151] block mb-1">Notes</label>
-            <textarea
+            <WritingField
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
               placeholder="Terms, conditions, special requests…"
-              className="w-full text-sm px-3 py-2 rounded-lg border border-[#E5E7EB] focus:outline-none focus:border-indigo-400 min-h-[72px] resize-none"
+              className="text-sm px-3 py-2 rounded-lg border border-[#E5E7EB] focus:outline-none focus:border-indigo-400 min-h-[72px] resize-none"
             />
           </div>
         </div>

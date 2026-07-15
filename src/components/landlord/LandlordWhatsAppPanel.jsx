@@ -2,19 +2,30 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Send, Loader2, Building2, User, Bot, Zap, Check, CheckCheck, RefreshCw, FileText } from 'lucide-react';
+import { Send, Loader2, Building2, User, Bot, Zap, Check, CheckCheck, RefreshCw, FileText, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import TemplatesModal from '@/components/whatsapp/TemplatesModal';
+import { useCurrentUser } from '@/lib/useCurrentUser';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 function toDigits(raw) { return String(raw || '').replace(/\D/g, ''); }
 const fmt = (ts) => { try { return ts ? format(new Date(ts), 'd MMM, HH:mm') : ''; } catch { return ''; } };
 
+const SHARED_EMAILS = ['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com'];
+
 export default function LandlordWhatsAppPanel({ landlord }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState('business');
+  const { user } = useCurrentUser();
+  const isAuthorizedShared = SHARED_EMAILS.includes((user?.email || '').toLowerCase());
+  const hasOwnLine = !!(user?.whatsapp_instance);
+  // Agents with their own WhatsApp line default to "My Line" — the backend
+  // records their messages on the 'agent' channel. Defaulting to 'business'
+  // makes their sends invisible (wrong channel tab) and blocks templates (403).
+  const defaultChannel = (!isAuthorizedShared && hasOwnLine) ? 'agent' : 'business';
+  const [channel, setChannel] = useState(defaultChannel);
   const [text, setText] = useState('');
   const [smartReplies, setSmartReplies] = useState([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
@@ -25,17 +36,20 @@ export default function LandlordWhatsAppPanel({ landlord }) {
   const phone = toDigits(landlord?.phone);
   const phoneE164 = phone ? '+' + phone : null;
 
-  // Agent channels — each maps to an Evolution instance
+  // Agent channels — each maps to an Evolution instance. "My Line" (agent) is
+  // for non-Ahmad agents who configured their own WhatsApp in Profile.
   const CHANNELS = [
     { id: 'business',  label: 'Business',  phone: '+971 58 280 6000', color: 'emerald', icon: '🏢', isEvo: false },
     { id: 'personal',  label: 'Ahmad',     phone: '+971 58 180 6000', color: 'blue',    icon: '👤', isEvo: true },
     { id: 'malik',     label: 'Malik',     phone: '+971 52 987 1277', color: 'purple',  icon: '👤', isEvo: true },
+    { id: 'agent',     label: 'My Line',   phone: user?.whatsapp_number || '', color: 'amber', icon: '📱', isEvo: true },
   ];
 
   const CHANNEL_COLORS = {
     emerald: { active: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400', pill: 'text-emerald-400' },
     blue:    { active: 'bg-blue-500/15 border-blue-500/40 text-blue-400',          pill: 'text-blue-400' },
     purple:  { active: 'bg-purple-500/15 border-purple-500/40 text-purple-400',    pill: 'text-purple-400' },
+    amber:   { active: 'bg-amber-500/15 border-amber-500/40 text-amber-400',       pill: 'text-amber-400' },
   };
   const inactive = 'border-white/15 text-muted-foreground hover:bg-white/8';
 
@@ -157,22 +171,28 @@ export default function LandlordWhatsAppPanel({ landlord }) {
     <div className="flex flex-col h-[500px]">
       {/* Channel tabs */}
       <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        {CHANNELS.map(({ id, label, phone, color, icon }) => {
+        {CHANNELS.filter(c => {
+          if (c.id === 'agent') return !isAuthorizedShared && hasOwnLine;
+          if (c.id === 'business' || c.id === 'personal' || c.id === 'malik') return isAuthorizedShared;
+          return true;
+        }).map(({ id, label, phone, color, icon }) => {
           const colors = CHANNEL_COLORS[color];
+          const displayPhone = id === 'agent' ? (user?.whatsapp_number || '') : phone;
           return (
             <button
               key={id}
               onClick={() => { setChannel(id); setSmartReplies([]); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${channel === id ? colors.active : inactive}`}
-              title={phone}
+              title={displayPhone || label}
             >
               <span>{icon}</span> {label}
-              <span className="text-[9px] opacity-60">{phone}</span>
+              {displayPhone && <span className="text-[9px] opacity-60">{displayPhone}</span>}
             </button>
           );
         })}
         <div className="ml-auto flex gap-1">
-          {/* Templates icon */}
+          {/* Templates icon — business/Meta templates only work for authorized shared users */}
+          {isAuthorizedShared && (
           <button
             onClick={() => setShowTemplates(true)}
             title={`Templates${displayTemplates.length > 0 ? ` (${displayTemplates.length})` : ''}`}
@@ -180,6 +200,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
           >
             <FileText className="w-3.5 h-3.5" />
           </button>
+          )}
           {/* Refresh icon */}
           <button
             onClick={() => refetch()}
@@ -255,35 +276,25 @@ export default function LandlordWhatsAppPanel({ landlord }) {
       )}
 
       {/* Composer */}
-      <form onSubmit={handleSend} className="pt-2 border-t border-white/10">
-        <div className="flex gap-2 items-end">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={phoneE164
-              ? `Message via ${CHANNELS.find(c => c.id === channel)?.label}… (Enter to send)`
-              : 'No phone number on file'}
-            disabled={!phoneE164 || sendMutation.isPending}
-            rows={1}
-            className="flex-1 text-sm resize-none min-h-[36px]"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim() || !phoneE164 || sendMutation.isPending}
-            title="Send message"
-            className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg transition-all border"
-            style={{
-              background: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.08)' : 'linear-gradient(180deg, hsl(38 92% 52%), hsl(38 92% 46%))',
-              color: !text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.4)' : '#1a1205',
-              border: `1px solid ${!text.trim() || sendMutation.isPending ? 'rgba(255,255,255,0.1)' : 'hsl(38 92% 50% / 0.5)'}`,
-              cursor: !text.trim() || sendMutation.isPending ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {sendMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          </button>
-        </div>
+      <div className="pt-2 border-t border-white/10">
+        <ModernComposerField
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onSend={handleSend}
+          sending={sendMutation.isPending}
+          sendDisabled={!phoneE164}
+          placeholder={phoneE164
+            ? `Message via ${CHANNELS.find(c => c.id === channel)?.label}… (Enter to send)`
+            : 'No phone number on file'}
+          channel="whatsapp"
+          accent="#10b981"
+          voiceEnabled={true}
+          landlordId={landlord?.id}
+          landlordContext={{ name: landlord?.full_name_en || landlord?.full_name || '', unit: landlord?.unit_reference || '', project: landlord?.project_name || '', asking: landlord?.asking_price_aed || '', agentName: landlord?.assigned_agent_email || '' }}
+          targetLanguage={landlord?.preferred_language}
+          minHeight={36}
+        />
         {(() => {
           const ch = CHANNELS.find(c => c.id === channel);
           const pillColor = CHANNEL_COLORS[ch?.color]?.pill || 'text-muted-foreground';
@@ -294,7 +305,7 @@ export default function LandlordWhatsAppPanel({ landlord }) {
             </p>
           );
         })()}
-      </form>
+      </div>
 
       <TemplatesModal
         open={showTemplates}

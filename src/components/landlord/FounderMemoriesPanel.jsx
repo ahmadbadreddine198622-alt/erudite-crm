@@ -11,6 +11,7 @@
 
 import React, { useState } from 'react';
 import { Crown, ChevronDown, Brain } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 function css(str) {
   const o = {};
@@ -114,7 +115,10 @@ export default function FounderMemoriesPanel({ directives = [], comments = [], c
                   )}
                   <span style={css("font-size:8.5px; color:rgba(255,255,255,0.3); margin-left:auto;")}>{fmtDate(m.date)}</span>
                 </div>
-                <p style={css("font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.9); margin:0; white-space:pre-wrap;")}>{m.text}</p>
+                <div style={css("display:flex; align-items:flex-start; gap:5px;")}>
+                  <p style={css("flex:1; font-size:11.5px; line-height:1.5; color:rgba(255,255,255,0.9); margin:0; white-space:pre-wrap;")}>{m.text}</p>
+                  <SpeechifyPlayer text={m.text} size={11} color={meta.color} style={{ flex: 'none', marginTop: 0 }} />
+                </div>
                 <div style={css("font-size:9px; color:rgba(255,255,255,0.35); margin-top:4px;")}>by {m.author}</div>
                 {isDir && m.agentResponse && (
                   <p style={css("font-size:10px; color:rgba(255,255,255,0.5); margin:3px 0 0; font-style:italic;")}>↳ {m.acknowledgedBy}: “{m.agentResponse}”</p>

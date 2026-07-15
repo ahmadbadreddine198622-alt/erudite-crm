@@ -47,6 +47,15 @@
     "bb_guid": {
       "type": "string",
       "description": "BlueBubbles message GUID for dedup/status updates"
+    },
+    "instance": {
+      "type": "string",
+      "enum": [
+        "bb1",
+        "bb2"
+      ],
+      "default": "bb1",
+      "description": "Which BlueBubbles server this message was sent/received through. bb1 = Erudite Main (primary server), bb2 = Operations Line (second server). Existing records and any code path that doesn't specify it are treated as bb1."
     }
   },
   "required": [

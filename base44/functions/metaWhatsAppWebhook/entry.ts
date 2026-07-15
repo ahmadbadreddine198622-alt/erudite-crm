@@ -221,6 +221,17 @@ Deno.serve(async (req) => {
                 }
               }
               svc.functions.invoke('analyzeLandlordConversation', { landlord_id: landlordId }).catch(() => {});
+
+              // BRAIN V4 P3 LEARN: inbound reply → outcome ledger (non-fatal). This Meta path
+              // never reaches routeWhatsAppMessage, so the hook lives here independently.
+              svc.functions.invoke('recordOutcomeEvent', {
+                landlord_id: landlordId,
+                kind: 'reply_received',
+                channel: 'whatsapp',
+                source_ref: waMessageId ? `wa:${waMessageId}` : '',
+                text: bodyText || '',
+                responded_at: timestamp,
+              }).catch(() => {});
             }
 
             // ── Background: enrich + routing (fire-and-forget) ───────────────

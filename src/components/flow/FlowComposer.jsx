@@ -17,6 +17,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { MessageCircle, Send, Mail, MessageSquare, Loader2, ChevronDown } from 'lucide-react';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const CHANNELS = [
   { key: 'whatsapp', icon: MessageCircle, color: '#25D366', label: 'WhatsApp', waChannel: 'personal' },
@@ -213,6 +214,7 @@ export default function FlowComposer({ landlord, thread, onSent, aiDraftFields }
           placeholder={`Send via ${activeChannel.label}…`}
           rows={1}
           style={css("flex:1; resize:none; min-height:38px; max-height:120px; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); font-size:13px; font-family:'Inter',sans-serif; line-height:1.5; outline:none; overflow-y:auto;")} />
+        <DictationMicButton value={text} onChange={(val) => setText(val)} />
         <button type="button" onClick={handleSend} disabled={!text.trim() || sending}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 10,

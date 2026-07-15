@@ -20,14 +20,18 @@ export default function GoogleWorkspaceConnectBanner({ variant = 'card', hideWhe
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
 
+  const [errorDetail, setErrorDetail] = useState(null);
+
   const checkConnection = async () => {
     try {
       const res = await base44.functions.invoke('checkGoogleWorkspaceConnection', {});
       setConnected(res.data?.connected === true);
       setEmail(res.data?.email || null);
+      setErrorDetail(res.data?.error_detail || null);
     } catch {
       setConnected(false);
       setEmail(null);
+      setErrorDetail(null);
     } finally {
       setLoading(false);
     }
@@ -139,12 +143,17 @@ export default function GoogleWorkspaceConnectBanner({ variant = 'card', hideWhe
         <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Gmail</span>
         <span className="flex items-center gap-1.5"><HardDrive className="w-3.5 h-3.5" /> Drive</span>
       </div>
-      <div className="pl-16">
+      <div className="pl-16 space-y-2">
         <Button onClick={handleConnect} disabled={connecting}
           className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
           <Calendar className="w-4 h-4" />
           {connecting ? 'Connecting…' : 'Connect Google Account'}
         </Button>
+        {errorDetail && (
+          <p className="text-xs text-amber-500 dark:text-amber-400">
+            Connection check failed: {errorDetail}
+          </p>
+        )}
       </div>
     </div>
   );

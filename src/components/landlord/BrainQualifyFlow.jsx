@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { QUESTION_BANK } from './qualifyQuestionBank';
 import BrainCoachSection from './BrainCoachSection';
 import QuickDumpBar from './QuickDumpBar';
+import WritingField from '@/components/shared/WritingField';
 import {
   Brain, Loader2, ChevronLeft, ChevronRight, CheckCircle2,
   PhoneCall, ChevronDown, ChevronUp, Lightbulb, SkipForward,
@@ -300,13 +301,15 @@ export default function BrainQualifyFlow({ form, set, setForm, landlord, aiKeys,
         <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
           Agent Notes
         </label>
-        <textarea
+        <WritingField
           value={form.agent_notes || ''}
           onChange={e => set('agent_notes', e.target.value)}
           placeholder="Internal notes, observations, strategy…"
           rows={2}
           className="w-full px-3 py-2 rounded-lg text-xs resize-none"
           style={inputStyle}
+          landlordId={landlord?.id}
+          channel="note"
         />
       </div>
 

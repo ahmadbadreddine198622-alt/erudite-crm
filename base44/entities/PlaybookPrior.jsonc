@@ -1,0 +1,76 @@
+{
+  "name": "PlaybookPrior",
+  "type": "object",
+  "properties": {
+    "bucket_key": {
+      "type": "string",
+      "description": "Composite idempotency key: archetype|project|nationality_bucket|channel|angle \u2014 compileBrainPriors upserts by this key"
+    },
+    "landlord_archetype": {
+      "type": "string",
+      "description": "Cohort dimension: landlord archetype ('any' when aggregated across archetypes)"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Cohort dimension: normalized project name ('any' when aggregated across projects)"
+    },
+    "nationality_bucket": {
+      "type": "string",
+      "description": "Cohort dimension: coarse nationality bucket (e.g. russian_cis, gcc, south_asia, western_europe, east_asia, other, any)"
+    },
+    "channel": {
+      "type": "string",
+      "description": "whatsapp | imessage | telegram | sms | email | call | any"
+    },
+    "angle_used": {
+      "type": "string",
+      "description": "Forge angle (value_drop, direct_principal, ...) or 'any'"
+    },
+    "attempts": {
+      "type": "number",
+      "description": "draft_sent count in this bucket"
+    },
+    "replies": {
+      "type": "number",
+      "description": "reply_received count attributed to this bucket"
+    },
+    "reply_rate": {
+      "type": "number",
+      "description": "replies / attempts (0-1)"
+    },
+    "median_latency_hours": {
+      "type": "number",
+      "description": "Median hours from outbound to reply, replies only"
+    },
+    "mandates": {
+      "type": "number",
+      "description": "mandate_signed count among landlords touched in this bucket"
+    },
+    "best_hour_dubai": {
+      "type": "number",
+      "description": "Reply-weighted best send hour (0-23 Asia/Dubai), null when sample too thin"
+    },
+    "sample_size": {
+      "type": "number",
+      "description": "Total events considered (n) \u2014 priors with n<8 are low_confidence"
+    },
+    "low_confidence": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when sample_size < 8 \u2014 the brain must say so when citing this prior"
+    },
+    "compiled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When compileBrainPriors last rebuilt this row"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes (max 1000 chars)",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "bucket_key"
+  ]
+}

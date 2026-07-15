@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { FileText, Search, Filter, FileSignature, Loader2, PenLine, ExternalLink, ChevronRight, ChevronLeft, Trash2, Info, X, Upload, AlertTriangle, Download, IdCard, Square, CheckSquare } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAllLandlords } from '@/api/sharedData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,10 +38,10 @@ const MANUAL_FIELDS = [
 export default function LeaseAgreement() {
   const queryClient = useQueryClient();
 
-  const { data: landlords = [], isLoading } = useQuery({
-    queryKey: ['landlords-lease'],
-    queryFn: () => base44.entities.Landlord.list('-created_date', 100),
-  });
+  // Shared ['landlords','all'] cache (src/api/sharedData.js) — replaces the
+  // page-private 'landlords-lease' copy of the same full table. Same
+  // '-created_date' order as before.
+  const { data: landlords = [], isLoading } = useAllLandlords();
 
   const { data: checklistItems = [] } = useQuery({
     queryKey: ['checklist-lease-pdfs'],
@@ -85,7 +86,6 @@ export default function LeaseAgreement() {
       } else {
         toast.success('Lease Brokerage Agreement sent for signature');
       }
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       setManualForLandlord(null);
     },
@@ -132,7 +132,6 @@ export default function LeaseAgreement() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Landlord.update(id, { lease_agreement_status: null }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success('Agreement removed');
     },
@@ -166,7 +165,6 @@ export default function LeaseAgreement() {
     },
     onSuccess: (count) => {
       setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success(`${count} agreement${count > 1 ? 's' : ''} removed`);
     },
@@ -396,7 +394,6 @@ export default function LeaseAgreement() {
       return landlord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success('Draft agreement created from ID');
       setIdImportReviewOpen(false);
@@ -491,7 +488,7 @@ export default function LeaseAgreement() {
       return updateRes;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
+      queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success('ID details saved ✓');
       setIdReviewOpen(false);
       setIdExtracted(null);
@@ -578,7 +575,6 @@ export default function LeaseAgreement() {
       return landlord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success('Draft agreement created from Title Deed');
       setDeedReviewOpen(false);
@@ -627,7 +623,6 @@ export default function LeaseAgreement() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords-lease'] });
       queryClient.invalidateQueries({ queryKey: ['landlords'] });
       toast.success('Draft agreement created');
       setManualCreateOpen(false);

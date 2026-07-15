@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Users, Plus, Crown, ShieldCheck, ShieldAlert, Shield, RefreshCw, X, Loader2, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import WritingField from '@/components/shared/WritingField';
 
 const INFLUENCE_CONFIG = {
   decision_maker: { color: 'bg-amber-500',   border: 'border-amber-500/50',   label: 'Decision Maker', icon: Crown,       text: 'text-amber-400' },
@@ -93,13 +94,15 @@ function AddStakeholderModal({ landlordId, onClose, onSuccess }) {
           </div>
           <div>
             <label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Notes (optional)</label>
-            <textarea
+            <WritingField
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Any context about this person…"
               rows={2}
               className="w-full px-3 py-1.5 text-xs rounded-lg resize-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
+              landlordId={landlordId}
+              channel="note"
             />
           </div>
         </div>

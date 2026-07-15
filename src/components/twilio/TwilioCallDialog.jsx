@@ -20,7 +20,7 @@ export default function TwilioCallDialog({ lead, landlord, contact, phoneOverrid
   const [elapsed, setElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [muted, setMuted] = useState(false);
-  const [copilotOn, setCopilotOn] = useState(true); // 🎙 Live Call Copilot (landlord calls)
+  const [copilotOn, setCopilotOn] = useState(false); // 🎙 Live Call Copilot (landlord calls)
 
   const deviceRef = useRef(null);
   const callRef = useRef(null);

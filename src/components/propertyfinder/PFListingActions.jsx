@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const GOLD = '#c9a85c';
 const RED = '#f87171';
@@ -130,8 +131,8 @@ function EmailDialog({ listing, onClose }) {
           ))}
           <div>
             <label style={{ display: 'block', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>Message</label>
-            <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.9)', fontSize: 13, outline: 'none', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box' }} />
+            <WritingField value={body} onChange={e => setBody(e.target.value)} rows={9}
+              style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.9)', fontSize: 13, outline: 'none', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box' }} />
           </div>
         </div>
         <div style={{ padding: '12px 20px', display: 'flex', gap: 8, borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>

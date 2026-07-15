@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, StickyNote, ChevronDown, ChevronUp } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 
 const GOLD = '#d4af37';
 
@@ -126,20 +127,25 @@ export default function PersistentNotesPanel({ landlordId, notes = [], onSaveNot
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.1)',
           }}>
-            <textarea
-              ref={inputRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Quick note… (Enter to save)"
-              rows={1}
-              style={{
-                flex: 1, resize: 'none', minHeight: 28, maxHeight: 100,
-                border: 'none', outline: 'none', background: 'transparent',
-                color: 'rgba(255,255,255,0.9)', fontSize: 12,
-                fontFamily: "'Inter',sans-serif", lineHeight: 1.4,
-              }}
-            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <WritingField
+                inputRef={inputRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Quick note… (Enter to save)"
+                rows={1}
+                minHeight={28}
+                style={{
+                  resize: 'none', maxHeight: 100,
+                  border: 'none', outline: 'none', background: 'transparent',
+                  color: 'rgba(255,255,255,0.9)', fontSize: 12,
+                  fontFamily: "'Inter',sans-serif", lineHeight: 1.4,
+                }}
+                landlordId={landlordId}
+                channel="note"
+              />
+            </div>
             <button
               onClick={handleSend}
               disabled={!text.trim() || saving}

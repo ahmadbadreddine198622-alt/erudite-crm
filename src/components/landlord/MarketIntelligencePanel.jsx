@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import MarketDistribution from './MarketDistribution';
 
-export default function MarketIntelligencePanel({ landlordProperty, unitReference, projectName }) {
+export default function MarketIntelligencePanel({ landlordProperty, unitReference, projectName, unitLayout, askingPriceAed }) {
   const lp = landlordProperty;
 
   // Find the most recent transaction for this exact unit
@@ -22,17 +24,20 @@ export default function MarketIntelligencePanel({ landlordProperty, unitReferenc
     enabled: !!projectName && !!unitReference,
     staleTime: 5 * 60 * 1000,
   });
-  if (!lp?.ai_estimated_value_aed) return null;
+  const hasValuation = !!lp?.ai_estimated_value_aed;
+  const hasProject = !!projectName;
+  if (!hasValuation && !hasProject) return null;
 
   const bars = ['high', 'medium', 'low'];
+  const conf = lp?.ai_valuation_confidence;
   const barColor = (level) => {
-    if (lp.ai_valuation_confidence === 'high') return '#34d399';
-    if (lp.ai_valuation_confidence === 'medium' && level !== 'high') return 'hsl(38 92% 55%)';
-    if (lp.ai_valuation_confidence === 'low' && level === 'low') return 'rgba(255,255,255,0.4)';
+    if (conf === 'high') return '#34d399';
+    if (conf === 'medium' && level !== 'high') return 'hsl(38 92% 55%)';
+    if (conf === 'low' && level === 'low') return 'rgba(255,255,255,0.4)';
     return 'rgba(255,255,255,0.12)';
   };
-  const valueColor = lp.ai_valuation_confidence === 'high' ? '#34d399'
-    : lp.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 55%)'
+  const valueColor = conf === 'high' ? '#34d399'
+    : conf === 'medium' ? 'hsl(38 92% 55%)'
     : 'rgba(255,255,255,0.5)';
 
   return (
@@ -56,7 +61,13 @@ export default function MarketIntelligencePanel({ landlordProperty, unitReferenc
         )}
       </div>
 
+      {/* Market Distribution — live transaction analytics (above the AI valuation number) */}
+      {hasProject && (
+        <MarketDistribution projectName={projectName} unitLayout={unitLayout} askingPriceAed={askingPriceAed} />
+      )}
+
       {/* Numbers */}
+      {hasValuation && (
       <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)', boxShadow: '0 0 16px rgba(52,211,153,0.08)' }}>
           <p className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color: 'rgba(52,211,153,0.55)' }}>Est. Value</p>
@@ -84,6 +95,7 @@ export default function MarketIntelligencePanel({ landlordProperty, unitReferenc
           </div>
         </div>
       </div>
+      )}
 
       {/* Exact-unit last sale — highlighted anchor for the call */}
       {exactUnitSale && (
@@ -125,9 +137,12 @@ export default function MarketIntelligencePanel({ landlordProperty, unitReferenc
       {/* Basis — agent's call script */}
       {lp.ai_valuation_basis && (
         <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(52,211,153,0.15)' }}>
-          <p className="text-[11px] leading-relaxed font-medium" style={{ color: 'rgba(52,211,153,0.8)' }}>
-            {lp.ai_valuation_basis}
-          </p>
+          <div className="flex items-start gap-1.5">
+            <p className="text-[11px] leading-relaxed font-medium flex-1" style={{ color: 'rgba(52,211,153,0.8)' }}>
+              {lp.ai_valuation_basis}
+            </p>
+            <SpeechifyPlayer text={lp.ai_valuation_basis} size={10} color="rgba(52,211,153,0.6)" />
+          </div>
         </div>
       )}
     </div>

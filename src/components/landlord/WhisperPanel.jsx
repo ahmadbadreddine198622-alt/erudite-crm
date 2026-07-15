@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, AlertTriangle, AlertCircle, Info, X, Pause, Play } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const TIER_STYLES = {
   info:     { bg: 'bg-blue-50 border-blue-200',     text: 'text-blue-900',    icon: Info },
@@ -96,7 +97,10 @@ export default function WhisperPanel({ landlord, recentMessages = [], pollInterv
             <div key={i} className={`p-2.5 rounded-lg border ${style.bg} flex items-start gap-2`}>
               <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${style.text}`} />
               <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium ${style.text}`}>{w.text}</p>
+                <div className="flex items-start gap-1.5">
+                  <p className={`text-xs font-medium flex-1 ${style.text}`}>{w.text}</p>
+                  <SpeechifyPlayer text={w.text} size={10} color="rgba(255,255,255,0.5)" />
+                </div>
                 {w.action && (
                   <button className={`mt-1 text-[10px] underline ${style.text} hover:no-underline`}>
                     {w.action}

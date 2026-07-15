@@ -1,6 +1,8 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Pencil, Trash2, Loader2, CheckSquare, Users, AlignLeft } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const CATEGORY_LABEL = { deal: 'Deal', reference: 'Reference', personal: 'Personal', idea: 'Idea', other: 'Other' };
 const CATEGORY_CLS   = { deal: 'jewel-gold', reference: 'jewel-blue', personal: 'jewel-purple', idea: 'jewel-emerald', other: 'jewel-slate' };
@@ -36,7 +38,10 @@ export default function NoteDetailSheet({ note, onClose, onEdit, onDelete, onAna
 
         {/* Raw body */}
         <Section icon={<AlignLeft className="w-4 h-4" />} title="Note">
-          <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">{note?.body || '—'}</p>
+          <div className="flex items-start gap-2">
+            <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed flex-1">{note?.body || '—'}</p>
+            <SpeechifyPlayer text={note?.body || ''} size={12} color="rgba(255,255,255,0.55)" />
+          </div>
         </Section>
 
         {/* Analyze button */}
@@ -54,11 +59,17 @@ export default function NoteDetailSheet({ note, onClose, onEdit, onDelete, onAna
         {hasAI && (
           <>
             <Section icon={<AlignLeft className="w-4 h-4 gold-text" />} title="AI Summary" accent>
-              <p className="text-sm text-white/80 leading-relaxed">{note.ai_summary}</p>
+              <div className="flex items-start gap-2">
+                <p className="text-sm text-white/80 leading-relaxed flex-1">{note.ai_summary}</p>
+                <SpeechifyPlayer text={note.ai_summary} size={12} color="hsl(38 92% 60%)" />
+              </div>
             </Section>
 
             {note.ai_action_items?.length > 0 && (
               <Section icon={<CheckSquare className="w-4 h-4 gold-text" />} title="Action Items" accent>
+                <div className="flex justify-end mb-1">
+                  <ReadAloudButton text={note.ai_action_items.map((item, i) => `${i + 1}. ${item}`).join('. ')} title={`Actions: ${note.title}`} size={12} />
+                </div>
                 <ul className="space-y-1.5">
                   {note.ai_action_items.map((item, i) => (
                     <li key={i} className="flex gap-2 text-sm text-white/80">

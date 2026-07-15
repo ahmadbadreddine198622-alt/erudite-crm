@@ -137,8 +137,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, landlord_id, handles: [], imessage_handle: '', imessage_status: 'unknown', imessage_resolved_at: resolvedAt });
     }
 
-    const serverUrl = (Deno.env.get('BLUEBUBBLES_SERVER_URL') || '').replace(/\/+$/, '');
-    const password = Deno.env.get('BLUEBUBBLES_PASSWORD') || '';
+    // Route to the correct BlueBubbles server by caller (Ahmad → primary, others → secondary).
+    const AHMAD_EMAILS = new Set(['ahmad@erudite-estate.com', 'ahmad.badreddine198622@gmail.com']);
+    const isAhmad = AHMAD_EMAILS.has(String(user.email || '').toLowerCase());
+    const serverUrl = (Deno.env.get(isAhmad ? 'BLUEBUBBLES_SERVER_URL' : 'BB2_URL') || '').replace(/\/+$/, '');
+    const password = Deno.env.get(isAhmad ? 'BLUEBUBBLES_PASSWORD' : 'BB2_PASSWORD') || '';
 
     // Relay not configured → record candidates as unknown rather than failing.
     if (!serverUrl || !password) {

@@ -12,6 +12,7 @@ import {
   MessageSquare, ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
+import DictationMicButton from '@/components/shared/DictationMicButton';
 
 const QUICK_ACTIONS = [
   { id: 'pipeline_insights', label: 'Pipeline Health Report', icon: TrendingUp, color: 'text-blue-600', desc: 'Full AI analysis of your pipeline' },
@@ -349,6 +350,7 @@ export default function ClaudeAI() {
               rows={1}
               disabled={loading}
             />
+            <DictationMicButton value={input} onChange={setInput} size={16} style={{ marginBottom: 8 }} />
             <Button
               onClick={() => {
                 if (loading && abortController) {

@@ -3,6 +3,7 @@
 // like a classic CRM activity timeline.
 import React from 'react';
 import { Phone, Mail, MessageCircle, Upload, CheckSquare, Calendar, FileText, RefreshCw } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const GOLD = '#C9A24B';
 
@@ -51,10 +52,13 @@ function TimelineRow({ item, isLast }) {
       </div>
       <div style={{ flex: 1, minWidth: 0, paddingBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.9)', fontFamily: "'Inter',sans-serif" }}>{item.title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.9)', fontFamily: "'Inter',sans-serif" }}>
+            <span>{item.title}</span>
+            {!item.subtitle && <SpeechifyPlayer text={item.title} size={10} color="rgba(255,255,255,0.4)" style={{ flex: 'none' }} />}
+          </div>
           <span style={{ flex: 'none', fontSize: 10.5, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{fmtHour(item.ts)}</span>
         </div>
-        {item.subtitle && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{item.subtitle}</div>}
+        {item.subtitle && <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}><span style={{ flex: 1 }}>{item.subtitle}</span><SpeechifyPlayer text={`${item.title}. ${item.subtitle}`} size={10} color="rgba(255,255,255,0.4)" style={{ flex: 'none' }} /></div>}
         {item.by && (
           <span style={{ display: 'inline-flex', alignItems: 'center', marginTop: 4, padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: GOLD, background: 'rgba(201,162,75,0.12)', border: '1px solid rgba(201,162,75,0.25)' }}>
             by {item.by}

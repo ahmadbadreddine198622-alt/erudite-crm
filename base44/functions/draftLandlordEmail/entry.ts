@@ -22,7 +22,7 @@ const CHANNEL_GUIDANCE = {
     needsSubject: false,
     // iMessage is a chat bubble, not an email — much shorter, no subject, no greeting block.
     formatRule: `CHANNEL IS iMESSAGE (a text-message bubble, NOT an email). FORMAT — STRICT:
-- Write VERY SHORT — 2 to 4 sentences, roughly 30-70 words, never more than ~480 characters. It must read like a personal text from a senior principal, not an email.
+- Write VERY SHORT — 2 to 4 sentences, roughly 30-70 words, never more than ~480 characters. It must read like a personal text from a senior professional, not an email.
 - Do NOT write a subject line, a salutation block, or an email-style sign-off. You may open with the owner's first name only (e.g. "Hi Ahmed,") if it reads naturally as a text.
 - Plain text only. No markdown, no bullet points, no links, no HTML — the channel renders raw text. ONE clear point, then stop.
 - Pick exactly ONE credibility point that fits this mode (not two) — a text has no room to stack facts.`,
@@ -43,7 +43,32 @@ const DRAFT_SCHEMA = {
 
 const AHMAD_LANGUAGES = ['en', 'ar', 'fr', 'ru', 'zh'];
 
-const CREDIBILITY_BLOCK = `ERUDITE CREDIBILITY — the ONLY credibility facts you may use. Each MUST be expressed as an owner-benefit, never a standalone boast. Weave in only what fits this mode; do not list them all.
+// ── WRITER IDENTITY ── drafts are written as the LOGGED-IN USER, in their real CRM position.
+// CEO accounts get Ahmad's first-person CEO voice and personal credentials; every other user
+// writes as themselves (display_name/full_name + User.position), with company strength framed
+// as "we/our brokerage" and the CEO's credentials referenced ONLY in third person. Never mixed.
+const CEO_EMAILS = ['ahmad.badreddine198622@gmail.com', 'ahmad@erudite-estate.com'];
+
+function buildWriter(u) {
+  const email = String(u?.email || '').trim().toLowerCase();
+  const isCEO = CEO_EMAILS.includes(email);
+  const rawName = String(u?.display_name || u?.full_name || '').trim();
+  const name = isCEO ? 'Ahmad Badreddine' : (rawName || 'your Erudite consultant');
+  const firstName = name.split(/\s+/)[0];
+  const position = isCEO ? 'CEO of Erudite Real Estate' : (String(u?.position || '').trim() || 'Property Consultant');
+  return {
+    email, isCEO, name, firstName, position,
+    brn: String(u?.brn || '').trim(),
+    pfUrl: String(u?.pf_profile_url || '').trim(),
+    pfRating: u?.pf_rating || null,
+    pfDeals: u?.pf_deals_count || null,
+    pfDealsLabel: String(u?.pf_deals_value_label || '').trim(),
+  };
+}
+
+function buildCredibilityBlock(w) {
+  if (w.isCEO) {
+    return `ERUDITE CREDIBILITY — the ONLY credibility facts you may use. Each MUST be expressed as an owner-benefit, never a standalone boast. Weave in only what fits this mode; do not list them all.
 - Ahmad Badreddine: SuperAgent on Property Finder, 4.3★ rating, 12+ years in Dubai real estate (since 2014), Dubai BRN 34625, CEO of Erudite Real Estate. Frame as: a senior, accountable principal handling the owner's unit personally.
 - Erudite is a 25-agent brokerage. Frame as: "25 active buyer-handlers working your unit from day one" — never just "we are a big team."
 - Peninsula specialists with a real track record. If a comp reference is supplied in agent inputs, reference THAT specific Peninsula comp. If none is supplied, speak to Peninsula specialization generally — do NOT invent a comp, figure, or transaction.
@@ -56,6 +81,29 @@ VERIFIED PUBLIC FIGURES (an owner can confirm these on the PF profile — safe t
 - Example framing: "a brokerage that has closed 56 deals worth nearly AED 88M is already bringing that buyer demand to your unit."
 
 HARD GUARDRAIL: NEVER use larger or rounder figures (e.g. "200+ deals", "AED 1 billion", "hundreds of clients"). They exceed the publicly shown numbers, so a cross-checking owner sees a mismatch and the claim backfires. Never fabricate or inflate any number, price, date, or transaction. If you are unsure of a fact, leave it out.`;
+  }
+  const brnLine = w.brn ? `- Your own RERA BRN ${w.brn} — you may cite it as your personal accountability anchor.\n` : '';
+  const pfLine = (w.pfRating || w.pfDeals)
+    ? `- Your own Property Finder record${w.pfRating ? `: ${w.pfRating}★` : ''}${w.pfDeals ? `${w.pfRating ? ', ' : ': '}${w.pfDeals} closed deals${w.pfDealsLabel ? ` (${w.pfDealsLabel})` : ''}` : ''} — citable as YOUR personal, checkable track record.\n`
+    : '';
+  const verifyAnchor = w.pfUrl
+    ? `your own Property Finder profile (${w.pfUrl})`
+    : `the CEO's public Property Finder profile (https://www.propertyfinder.ae/en/agent/ahmad-badreddine-206264), referenced explicitly as "our CEO's public profile" — never as your own page`;
+  return `WRITER IDENTITY — you are ${w.name}, ${w.position} at Erudite Real Estate, Dubai (Business Bay). Write in first person as ${w.firstName}: a senior, courteous professional. YOU ARE NOT THE CEO — never present yourself as Ahmad Badreddine, and never claim his personal credentials (his rating, his BRN, his languages, his deal counts) as your own.
+
+ERUDITE CREDIBILITY — the ONLY credibility facts you may use. Each MUST be expressed as an owner-benefit, never a boast. YOUR personal facts stay first person; COMPANY facts are "we / our brokerage"; the CEO's facts stay strictly THIRD person. Weave in only what fits this mode; do not list them all.
+${brnLine}${pfLine}- Erudite Real Estate is a 25-agent Dubai brokerage led by CEO Ahmad Badreddine — SuperAgent on Property Finder, 4.3★, 12+ years in Dubai real estate, BRN 34625. Frame as: the owner's unit is backed by a senior accountable principal AND a full buyer-handling team behind you.
+- "25 active buyer-handlers working your unit from day one" — always "our team", never claimed as your personal team.
+- Peninsula specialists with a real track record. If a comp reference is supplied in agent inputs, reference THAT specific Peninsula comp. If none is supplied, speak to Peninsula specialization generally — do NOT invent a comp, figure, or transaction.
+- Erudite responds within 5 minutes — a company standard; frame as reliability FOR THE OWNER ("we").
+- Verify-me anchor: you MAY include ${verifyAnchor} as a low-key "you are welcome to look us up" line.
+
+VERIFIED PUBLIC FIGURES (company-level framing ONLY — always "a brokerage that has closed…", NEVER "I have closed…"):
+- 56 closed deals, AED 87.9M total deals value, 56 listings for sale + 17 for rent currently live.
+
+- Do NOT claim to personally speak the owner's language. If genuinely helpful you may say our team serves clients in English, Arabic, French, Russian and Mandarin — company-level only.
+HARD GUARDRAIL: NEVER use larger or rounder figures (e.g. "200+ deals", "AED 1 billion", "hundreds of clients"). They exceed the publicly shown numbers, so a cross-checking owner sees a mismatch and the claim backfires. Never fabricate or inflate any number, price, date, or transaction. If you are unsure of a fact, leave it out.`;
+}
 
 const MODE_GUIDANCE = {
   asset_proof: `MODE: asset_proof (safe default). OPEN by demonstrating exact, specific knowledge of the owner's unit — name the project and unit reference and (only if genuinely known) bed/size context — so the owner immediately sees this is about THEIR specific asset, not a blast. Make NO buyer claim. Intent: prove you actually know and follow this unit, and that a senior principal is paying attention to it.`,
@@ -105,6 +153,8 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    const writer = buildWriter(user);
+    const credibilityBlock = buildCredibilityBlock(writer);
 
     const body = await req.json();
     const { landlord_id, mode, agent_inputs = {}, tone = 'senior_courteous', psychology = null, channel = 'email' } = body || {};
@@ -205,9 +255,9 @@ Deno.serve(async (req) => {
     const ahmadSpeaksOwnerLang = AHMAD_LANGUAGES.includes(lang);
 
     const channelNoun = channel === 'imessage' ? 'iMessage (a personal text message)' : 'email';
-    const systemPrompt = `You are Ahmad Badreddine, CEO of Erudite Real Estate in Dubai, drafting a personal, standout ${channelNoun} to a property OWNER (landlord). You write like a senior, courteous principal — concise, specific, never salesy, never a template.
+    const systemPrompt = `You are ${writer.name}, ${writer.position}${writer.isCEO ? '' : ' at Erudite Real Estate'} in Dubai, drafting a personal, standout ${channelNoun} to a property OWNER (landlord). You write like a senior, courteous ${writer.isCEO ? 'principal' : 'professional'} — concise, specific, never salesy, never a template.
 
-${CREDIBILITY_BLOCK}
+${credibilityBlock}
 
 GLOBAL RULES:
 - Address the owner by their English full name (or first name for an iMessage, if more natural).
@@ -248,7 +298,7 @@ OWNER & UNIT — full profile (use these real facts; never invent):
 - Currently listed with another broker: ${safe.is_currently_listed_with_others ? 'YES' : 'no/unknown'}
 - Owner archetype (context for tone only, do not name it back to them): ${safe.landlord_archetype || 'unknown'}
 - Owner's preferred language code (write the body in this): ${lang}
-- Ahmad personally speaks this owner's language: ${ahmadSpeaksOwnerLang ? 'YES — you may make direct-in-their-language a trust/benefit point' : 'no — do not claim to speak this language'}
+- ${writer.isCEO ? `Ahmad personally speaks this owner's language: ${ahmadSpeaksOwnerLang ? 'YES — you may make direct-in-their-language a trust/benefit point' : 'no — do not claim to speak this language'}` : `Do NOT claim to personally speak the owner's language — company-level language capability only, and only if genuinely helpful`}
 
 AI RELATIONSHIP INTELLIGENCE (use to calibrate tone and avoid repeating past mistakes):
 - AI rolling summary of the relationship: ${safe.ai_rolling_summary || '(none yet)'}

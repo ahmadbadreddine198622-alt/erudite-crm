@@ -18,6 +18,7 @@ import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { playSentSound, SendFlash } from '@/components/landlord/sendFeedback';
+import WritingField from '@/components/shared/WritingField';
 
 // Single point of truth for which brain parses the text. Repoint to a v3 brain in one line.
 const BRAIN_FN = 'scribeBrain';
@@ -133,12 +134,14 @@ export default function AppointmentComposer({ landlordId, propertyId, agentEmail
         <span style={css("font-size:8.5px; font-weight:600; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.45);")}>Type it in plain words</span>
       </div>
 
-      <textarea
+      <WritingField
         value={text}
         onChange={(e) => { setText(e.target.value); if (pending) setPending(null); }}
         rows={2}
         placeholder='e.g. "Owner meeting Thursday 4pm for 30 min"'
         style={{ ...fieldStyle, resize: 'vertical', minHeight: 54, marginBottom: 8 }}
+        landlordId={landlordId}
+        channel="appointment"
       />
 
       {!pending && (

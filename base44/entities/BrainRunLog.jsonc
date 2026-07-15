@@ -1,0 +1,80 @@
+{
+  "name": "BrainRunLog",
+  "type": "object",
+  "properties": {
+    "landlord_id": {
+      "type": "string",
+      "description": "FK to Landlord"
+    },
+    "run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the orchestrator run started"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "full",
+        "cold",
+        "delta",
+        "council"
+      ],
+      "description": "Which brain path ran (council rows log the second adversarial call of a full run)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id used"
+    },
+    "tokens_in": {
+      "type": "number",
+      "description": "Input tokens (summed across the agent-loop turns of this run)"
+    },
+    "tokens_out": {
+      "type": "number",
+      "description": "Output tokens (summed across the agent-loop turns of this run)"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Wall-clock duration of the run"
+    },
+    "tool_calls": {
+      "type": "number",
+      "description": "How many investigation tool calls the agent loop made (cap 6)"
+    },
+    "tools_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Names of the investigation tools invoked, in order"
+    },
+    "escalated": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when a delta run decided escalate_full and a full run was chained"
+    },
+    "council": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when THE COUNCIL convened during this run"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message when the run failed (empty on success)"
+    },
+    "triggered_by": {
+      "type": "string",
+      "description": "What woke the brain: card_open | inbound_message | nudge_note | nudge_task | nudge_followup | appointment_booked | stage_change | qualification | heartbeat | backfill | manual | eval_harness"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes (max 1000 chars)",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "landlord_id",
+    "run_at",
+    "tier"
+  ]
+}

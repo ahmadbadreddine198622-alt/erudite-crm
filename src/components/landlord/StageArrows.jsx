@@ -5,7 +5,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { prevStage, nextStage, getCaptureStatus, STAGE_GUIDE, STAGE_ORDER } from '@/lib/landlordStageGuide';
+import { prevStage, nextStage, getCaptureStatus, STAGE_GUIDE } from '@/lib/landlordStageGuide';
+
+const GOLD = '#C6A15B';
+const NAME = '#E9EDF6';
+const HAIR2 = 'rgba(255,255,255,0.12)';
 
 const stageLabel = (s) => STAGE_GUIDE[s]?.title || s?.replace(/_/g, ' ') || s;
 
@@ -16,7 +20,7 @@ export default function StageArrows({ landlord, onStageChange }) {
   const prev = prevStage(landlord.stage);
   const next = nextStage(landlord.stage);
 
-  // Forward readiness mirrors the card's green/amber completeness dot.
+  // Forward readiness mirrors the card's completeness dot.
   const capture = getCaptureStatus(landlord, landlord.stage);
   const ready = capture.complete;
 
@@ -41,12 +45,15 @@ export default function StageArrows({ landlord, onStageChange }) {
     move(prev);
   };
 
-  const btnBase = {
-    width: 24, height: 24, borderRadius: 999, display: 'flex',
+  // 20px ghost hairline circles. Ready (forward) gets a subtle gold tint.
+  const btnBase = (isReady) => ({
+    width: 20, height: 20, borderRadius: 999, display: 'flex',
     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-    background: '#0B1F3A', border: '1px solid rgba(201,162,75,0.35)',
-    transition: 'all 0.15s ease', padding: 0,
-  };
+    background: 'transparent',
+    border: `1px solid ${isReady ? 'rgba(198,161,91,0.4)' : HAIR2}`,
+    transition: 'border-color 150ms ease, color 150ms ease',
+    padding: 0,
+  });
 
   return (
     <>
@@ -57,11 +64,11 @@ export default function StageArrows({ landlord, onStageChange }) {
             onClick={handleBack}
             title={`Back to ${stageLabel(prev)}`}
             aria-label={`Back to ${stageLabel(prev)}`}
-            style={btnBase}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#C9A24B'; e.currentTarget.style.borderColor = '#C9A24B'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#0B1F3A'; e.currentTarget.style.borderColor = 'rgba(201,162,75,0.35)'; }}
+            style={btnBase(false)}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = HAIR2; }}
           >
-            <ChevronLeft className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.85)' }} />
+            <ChevronLeft className="w-3 h-3" strokeWidth={1.5} style={{ color: 'rgba(233,237,246,0.6)' }} />
           </button>
         )}
         {next && (
@@ -70,11 +77,11 @@ export default function StageArrows({ landlord, onStageChange }) {
             onClick={handleForward}
             title={ready ? `Advance to ${stageLabel(next)}` : `Not ready — missing: ${capture.missing.join(', ')}`}
             aria-label={`Advance to ${stageLabel(next)}`}
-            style={{ ...btnBase, borderColor: ready ? 'rgba(201,162,75,0.6)' : 'rgba(201,162,75,0.25)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#C9A24B'; e.currentTarget.style.borderColor = '#C9A24B'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#0B1F3A'; e.currentTarget.style.borderColor = ready ? 'rgba(201,162,75,0.6)' : 'rgba(201,162,75,0.25)'; }}
+            style={btnBase(ready)}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(198,161,91,0.6)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = ready ? 'rgba(198,161,91,0.4)' : HAIR2; }}
           >
-            <ChevronRight className="w-3.5 h-3.5" style={{ color: ready ? '#C9A24B' : 'rgba(201,162,75,0.5)' }} />
+            <ChevronRight className="w-3 h-3" strokeWidth={1.5} style={{ color: ready ? GOLD : 'rgba(198,161,91,0.5)' }} />
           </button>
         )}
       </div>
@@ -91,7 +98,7 @@ export default function StageArrows({ landlord, onStageChange }) {
             <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.stopPropagation(); move(next); }}
-              style={{ background: '#C9A24B', color: '#0B1F3A' }}
+              style={{ background: GOLD, color: '#0B1020' }}
             >
               Move anyway
             </AlertDialogAction>

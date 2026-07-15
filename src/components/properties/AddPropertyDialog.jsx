@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Upload, X } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 
 const initialForm = {
   title: '', description: '', property_type: 'apartment', listing_type: 'sale',
@@ -82,7 +83,7 @@ export default function AddPropertyDialog({ open, onClose }) {
           </div>
           <div>
             <Label>Description</Label>
-            <Textarea value={form.description} onChange={set('description')} placeholder="Property description..." rows={3} />
+            <WritingField value={form.description} onChange={set('description')} placeholder="Property description..." rows={3} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

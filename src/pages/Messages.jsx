@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { useAllLandlords } from '@/api/sharedData';
 import { format } from 'date-fns';
 import { Search, MessageSquare, ArrowDownLeft, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -19,11 +20,10 @@ export default function Messages() {
     queryKey: ['messages-all'],
     queryFn: () => base44.entities.Message.list('-timestamp', 1000),
   });
-  // landlords loaded once to resolve landlord_id -> name (no relation expand on the entity)
-  const { data: landlords = [] } = useQuery({
-    queryKey: ['landlords-for-messages'],
-    queryFn: () => base44.entities.Landlord.list('-updated_date', 2000),
-  });
+  // landlords loaded once to resolve landlord_id -> name (no relation expand on the entity).
+  // Uses the shared ['landlords','all'] cache (src/api/sharedData.js) — order is
+  // irrelevant here (id -> record map), so the shared '-created_date' sort is fine.
+  const { data: landlords = [] } = useAllLandlords();
 
   const landlordById = useMemo(() => {
     const m = {};

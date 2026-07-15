@@ -38,6 +38,24 @@
       "type": "string",
       "description": "Optional description or notes about this landlord task (max 1000 chars)",
       "maxLength": 1000
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "human",
+        "aurora"
+      ],
+      "default": "human",
+      "description": "BRAIN V4 P6 (ACT): who created this task. 'aurora' rows are brain proposals materialized by landlordOrchestrator; 'human' rows are user-created. Aurora NEVER sends anything \u2014 tasks are internal work items only."
+    },
+    "proposal_status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "approved",
+        "dismissed"
+      ],
+      "description": "BRAIN V4 P6 (ACT): lifecycle of an origin='aurora' proposal. 'proposed' renders in the Aurora-proposes strip; approve/dismiss writes an OutcomeEvent (proposal_approved / proposal_dismissed) so the brain LEARNS which proposals earn trust. Dismissing also marks the row done so task queues stay clean. Absent on human rows."
     }
   },
   "required": [

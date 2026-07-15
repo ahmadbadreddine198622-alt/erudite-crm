@@ -8,16 +8,20 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import IMessageBadge from '@/components/landlord/IMessageBadge';
 import WhatsAppBadge from '@/components/landlord/WhatsAppBadge';
+import TelegramBadge from '@/components/landlord/TelegramBadge';
 import StraightDivider from '@/components/landlord/StraightDivider';
-import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2 } from 'lucide-react';
+import { Download, Phone, PhoneCall, Mail, MessageCircle, Plus, X, Loader2, Video } from 'lucide-react';
 import TwilioCallDialog from '@/components/twilio/TwilioCallDialog';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import IMessageCheckIcon from '@/components/landlord/IMessageCheckIcon';
+import TelegramCheckIcon from '@/components/landlord/TelegramCheckIcon';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
+import useHasWhatsApp from '@/hooks/useHasWhatsApp';
+import CopyButton from '@/components/shared/CopyButton';
 
-const GOLD = '#C9A24B';
+const GOLD = '#C6A15B';
 
 // ── tiny formatters ──────────────────────────────────────────────────────────
 const fmtAED = (n) => {
@@ -135,11 +139,14 @@ function ContactRow({ icon: Icon, value, label, href }) {
 // Shared pill icon-button used inline next to a phone/email — fully rounded to match the
 // channel pill design (call, aircall, message icons).
 function ChIcon({ href, title, color, bg, border, children, size = 26 }) {
+  // Only use target="_blank" for http/https links; custom schemes (tel:, facetime:, aircall:, mailto:) must NOT use it,
+  // otherwise the browser opens a blank tab and fails to hand off to the external app.
+  const isWeb = href && /^https?:\/\//i.test(href);
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={isWeb ? '_blank' : undefined}
+      rel={isWeb ? 'noopener noreferrer' : undefined}
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -176,21 +183,36 @@ function ChPill({ icon, label, color, bg, border, href, onClick }) {
 // Combined row for ONE phone number — the number itself on the left, and the channel pills
 // (WhatsApp, iMessage, Call, Aircall, Twilio, Vapi) sitting right next to it on the right.
 function PhoneContactRow({ phone, landlord, landlordId, handles }) {
+  const { status: waStatus } = useHasWhatsApp(phone);
   if (!phone) return null;
   const digits = phone.replace(/[^0-9]/g, '');
   const cleanTel = phone.replace(/[\s\-()]/g, '');
+  const copyPhone = (e) => {
+    e.preventDefault();
+    if (navigator.clipboard) navigator.clipboard.writeText(phone).then(() => toast.success('Phone copied')).catch(() => {});
+  };
+  const waMeta = waStatus === 'yes'
+    ? { color: '#4ade80', bg: 'rgba(37,211,102,0.2)', border: 'rgba(37,211,102,0.45)', icon: <MessageCircle size={12} />, title: `On WhatsApp — open chat ${phone}` }
+    : waStatus === 'no'
+    ? { color: 'rgba(255,255,255,0.4)', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.25)', icon: <X size={11} />, title: 'Not on WhatsApp' }
+    : { color: '#4ade80', bg: 'rgba(37,211,102,0.14)', border: 'rgba(37,211,102,0.3)', icon: waStatus === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={12} />, title: `WhatsApp ${phone}` };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
-      <a href={`tel:${phone}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{phone}</a>
+      <span onClick={copyPhone} title="Click to copy" style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none', cursor: 'pointer' }}>{phone}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
-        <ChIcon href={`https://wa.me/${digits}`} title={`WhatsApp ${phone}`} color="#4ade80" bg="rgba(37,211,102,0.14)" border="rgba(37,211,102,0.3)" size={26}>
-          <MessageCircle size={12} />
+        <CopyButton value={phone} label="Phone" size={14} />
+        <ChIcon href={waStatus === 'no' ? undefined : `https://wa.me/${digits}`} title={waMeta.title} color={waMeta.color} bg={waMeta.bg} border={waMeta.border} size={26}>
+          {waMeta.icon}
         </ChIcon>
         <IMessageCheckIcon address={phone} landlordId={landlordId} handles={handles} />
-        <ChIcon href={`tel:${phone}`} title={`Call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
+        <TelegramCheckIcon landlord={landlord} phone={phone} />
+        <ChIcon href={`tel:${phone}`} title={`Local call ${phone}`} color="#60a5fa" bg="rgba(59,130,246,0.14)" border="rgba(59,130,246,0.3)">
           <Phone size={12} />
         </ChIcon>
-        <ChIcon href={`tel:${cleanTel}`} title={`Aircall: Call ${phone}`} color="#00beff" bg="rgba(0,190,255,0.14)" border="rgba(0,190,255,0.3)">
+        <ChIcon href={`facetime:${cleanTel}`} title={`FaceTime ${phone}`} color="#8a64b2" bg="rgba(138,100,178,0.14)" border="rgba(138,100,178,0.3)">
+          <Video size={12} />
+        </ChIcon>
+        <ChIcon href={`aircall://${cleanTel}`} title={`Aircall: Call ${phone}`} color="#00beff" bg="rgba(0,190,255,0.14)" border="rgba(0,190,255,0.3)">
           <PhoneCall size={12} />
         </ChIcon>
         <TwilioCallDialog landlord={landlord} phoneOverride={phone}>
@@ -205,10 +227,18 @@ function PhoneContactRow({ phone, landlord, landlordId, handles }) {
 // Combined row for ONE email — the address on the left, iMessage check + mail icon on the right.
 function EmailContactRow({ email, landlordId, handles }) {
   if (!email) return null;
+  const copyEmail = (e) => {
+    e.preventDefault();
+    if (navigator.clipboard) navigator.clipboard.writeText(email).then(() => toast.success('Email copied')).catch(() => {});
+  };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'nowrap' }}>
-      <a href={`mailto:${email}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none' }}>{email}</a>
+      <span onClick={copyEmail} title="Click to copy" style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.92)', textDecoration: 'none', cursor: 'pointer' }}>{email}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
+        <CopyButton value={email} label="Email" size={14} />
+        <ChIcon href={`facetime:${email}`} title={`FaceTime ${email}`} color="#8a64b2" bg="rgba(138,100,178,0.14)" border="rgba(138,100,178,0.3)">
+          <Video size={12} />
+        </ChIcon>
         <ChIcon href={`mailto:${email}`} title={`Email ${email}`} color="hsl(38 92% 62%)" bg="hsl(38 92% 50% / 0.14)" border="hsl(38 92% 50% / 0.3)">
           <Mail size={12} />
         </ChIcon>
@@ -217,7 +247,7 @@ function EmailContactRow({ email, landlordId, handles }) {
   );
 }
 
-const addPillStyle = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: 'rgba(201,162,75,0.1)', border: '1px dashed rgba(201,162,75,0.4)', color: GOLD };
+const addPillStyle = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: 'rgba(198,161,91,0.1)', border: '1px dashed rgba(198,161,91,0.4)', color: GOLD };
 const addBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 9px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' };
 const cancelBtnStyle = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 6px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' };
 const smallInputStyle = { fontSize: 11, padding: '4px 8px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' };
@@ -356,16 +386,16 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
     <div
       style={{
         borderRadius: 16,
-        background: 'linear-gradient(135deg, rgba(201,162,75,0.08), rgba(11,31,58,0.95))',
-        border: '1px solid rgba(201,162,75,0.25)',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
+        background: '#111A33',
+        border: '1px solid rgba(198,161,91,0.25)',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
         padding: '16px 18px',
         animation: 'ld-rise 0.4s cubic-bezier(0.22,1,0.36,1) both',
       }}
     >
       {/* TIER 1 — Identity */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: GOLD, background: 'linear-gradient(135deg, rgba(201,162,75,0.18), rgba(201,162,75,0.08))', border: '1px solid rgba(201,162,75,0.4)', boxShadow: '0 4px 12px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+        <div style={{ flex: 'none', width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: GOLD, background: 'linear-gradient(135deg, rgba(198,161,91,0.18), rgba(198,161,91,0.08))', border: '1px solid rgba(198,161,91,0.4)', boxShadow: '0 4px 12px rgba(198,161,91,0.15), inset 0 1px 0 rgba(255,255,255,0.1)', overflow: 'hidden' }}>
           {photoUrl ? (
             <img src={photoUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
           ) : null}
@@ -373,7 +403,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
         <div style={{ flex: 1, minWidth: 0, marginTop: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 22, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(201,162,75,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
+            <h1 style={{ margin: 0, fontFamily: "'Cormorant Garamond','Playfair Display',serif", fontWeight: 600, fontSize: 22, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(198,161,91,0.85))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', lineHeight: 1.05 }}>{name}</h1>
             {flag && <span style={{ fontSize: 18, lineHeight: 1 }} title={L.nationality}>{flag}</span>}
             {lang && <Pill color="rgba(255,255,255,0.85)">{lang}</Pill>}
             {(has(L.phone) || has(L.email) || has(name)) && (
@@ -406,8 +436,8 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
       {/* TIER 2 — Property + price (more vibrant), sits tight under the name */}
       {/* Property details — always-visible compact grid */}
       <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {/* Row 1: beds · baths · sqft · building · unit */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>
+        {/* Row 1: beds · baths · sqft · building · unit — bordered unit-information block */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'rgba(255,255,255,0.85)', padding: '8px 12px', borderRadius: 9, background: 'rgba(198,161,91,0.06)', border: '1px solid rgba(198,161,91,0.25)' }}>
           {[beds, baths, sqft, projectName, has(unitRef) ? `Unit ${unitRef}` : null]
             .filter(has)
             .map((part, i, arr) => (
@@ -420,7 +450,7 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
         </div>
         {/* Row 2: price strip — asking · psf · reserve */}
         {(askingFull || psf || reserve) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '6px 10px', borderRadius: 9, background: 'rgba(201,162,75,0.06)', border: '1px solid rgba(201,162,75,0.18)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '6px 10px', borderRadius: 9, background: 'rgba(198,161,91,0.06)', border: '1px solid rgba(198,161,91,0.18)' }}>
             {askingFull && (
               <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}>
                 <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>Asking</span>
@@ -548,8 +578,10 @@ export default function LandlordIdentityHeader({ landlord, unit, imessageCheckin
                     handles={waHandles}
                   />
                   {waCheckedShort && <span style={{ color: 'rgba(255,255,255,0.4)' }}>checked {waCheckedShort}</span>}
-                </>
-              )}
+                  <Dot />
+                  <TelegramBadge landlord={L} />
+                  </>
+                  )}
             </div>
           )}
         </div>

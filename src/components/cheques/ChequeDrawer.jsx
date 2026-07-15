@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { format, isValid } from 'date-fns';
 import { X, Edit2, Save, Trash2, Loader2, ImageIcon, ExternalLink, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const STATUS_OPTS = ['received', 'deposited', 'cleared', 'bounced', 'returned', 'cancelled', 'replaced'];
 const ALL_PURPOSE_OPTS = ['commission', 'rent', 'deposit', 'service_charge', 'booking', 'dld_fee', 'managers', 'other'];
@@ -235,7 +236,7 @@ export default function ChequeDrawer({ cheque, onClose, onUpdated, onDeleted }) 
                 <div><label className="cr-lbl">Agent Email</label><input value={editForm.assigned_agent_email} onChange={ef('assigned_agent_email')} className="cr-inp" placeholder="agent@…" /></div>
                 <div className="col-span-2"><label className="cr-lbl">Received By Email</label><input value={editForm.received_by_email} onChange={ef('received_by_email')} className="cr-inp" placeholder="admin@…" /></div>
               </div>
-              <div><label className="cr-lbl">Notes</label><textarea value={editForm.notes} onChange={ef('notes')} rows={3} className="cr-inp resize-none" /></div>
+              <div><label className="cr-lbl">Notes</label><WritingField value={editForm.notes} onChange={ef('notes')} rows={3} className="cr-inp resize-none" /></div>
             </section>
           )}
 

@@ -9,8 +9,8 @@ export default function AircallButton({ phone, name, iconOnly = false, size = 's
 
   // Normalize phone: strip spaces/dashes/parens
   const normalized = phone.replace(/[\s\-()]/g, '');
-  // tel: protocol is intercepted by Aircall's Chrome extension to auto-dial
-  const aircallUrl = `tel:${normalized}`;
+  // aircall:// protocol opens the Aircall app directly and places the call through Aircall
+  const aircallUrl = `aircall://${normalized}`;
 
   return (
     <a

@@ -82,6 +82,16 @@ Deno.serve(async (req) => {
     const batchSize = (typeof body.batch_size === 'number' && body.batch_size > 0) ? Math.floor(body.batch_size) : 15;
     const maxLandlords = (typeof body.max_landlords === 'number' && body.max_landlords > 0) ? Math.floor(body.max_landlords) : 500;
 
+    // BRAIN V4 P6 (ACT): with brain_autonomy 'propose'/'act_scheduling' the Law's follow-ups are
+    // stamped as Aurora proposals (origin='aurora'), so they surface in the Aurora-proposes strip
+    // and every approve/dismiss becomes an OutcomeEvent the brain learns from. 'off' keeps the
+    // pre-V4 plain-followup behavior. NOTHING here sends anything — it only schedules.
+    const settingsRows = await svc.entities.CompanySettings.list('-created_date', 1).catch(() => []);
+    const autonomy = settingsRows?.[0]?.brain_autonomy || 'off';
+    const auroraStamp = (autonomy === 'propose' || autonomy === 'act_scheduling')
+      ? { origin: 'aurora', proposal_status: autonomy === 'act_scheduling' ? 'approved' : 'proposed' }
+      : {};
+
     // 1. Active landlords with an assigned agent, not deal_closed.
     const all = await svc.entities.Landlord.list('-updated_date', 5000);
     const candidates = (all || []).filter((l) =>
@@ -179,6 +189,9 @@ Deno.serve(async (req) => {
           priority: ll.ai_strike_now === true ? 'high' : 'normal',
           agent_email: agent,
           created_from_ai: true,
+          ai_source: ll.is_currently_listed_with_others === true ? 'unsold_competitor_watch_30'
+            : (EARLY_STAGES.has(ll.stage) ? 'rule5_day2_value_drop' : 'law14_nurture'),
+          ...auroraStamp,
         });
 
         perAgentCount[agent] = (perAgentCount[agent] || 0) + 1;

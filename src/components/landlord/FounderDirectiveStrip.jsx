@@ -17,8 +17,10 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { Crown, ChevronDown, Plus, X, Check, Edit3, History, Loader2, Flag } from 'lucide-react';
 import FounderBossVoiceButton from './FounderBossVoiceButton';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import WritingField from '@/components/shared/WritingField';
 
-const GOLD = '#C9A24B';
+const GOLD = '#C6A15B';
 
 function css(str) {
   const o = {};
@@ -49,7 +51,7 @@ function fmtShortDate(d) {
 
 const PRIORITY_META = {
   critical: { label: 'CRITICAL', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.4)' },
-  high: { label: 'HIGH', color: GOLD, bg: 'rgba(201,162,75,0.12)', border: 'rgba(201,162,75,0.4)' },
+  high: { label: 'HIGH', color: GOLD, bg: 'rgba(198,161,91,0.12)', border: 'rgba(198,161,91,0.4)' },
   normal: { label: 'NORMAL', color: '#93c5fd', bg: 'rgba(147,197,253,0.1)', border: 'rgba(147,197,253,0.3)' },
 };
 
@@ -278,8 +280,8 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
     return (
       <div style={css("flex:none; margin:0 0 6px;")}>
         <div style={css(
-          "border-radius:12px; border:1px solid " + (prio?.border || 'rgba(201,162,75,0.4)') + "; " +
-          "background:linear-gradient(135deg, rgba(201,162,75,0.06), rgba(255,255,255,0.02)); " +
+          "border-radius:12px; border:1px solid " + (prio?.border || 'rgba(198,161,91,0.4)') + "; " +
+          "background:linear-gradient(135deg, rgba(198,161,91,0.06), rgba(255,255,255,0.02)); " +
           "padding:10px 14px; display:flex; flex-direction:column; gap:4px;"
         )}>
           {/* Header row */}
@@ -295,7 +297,10 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
                   <span style={css("font-size:8px; font-weight:600; padding:1px 6px; border-radius:99px; color:#34d399; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-family:'Inter',sans-serif;")}>Acknowledged</span>
                 )}
               </div>
-              <p style={css("font-size:12px; line-height:1.45; color:rgba(255,255,255,0.9); margin:0; font-family:'Inter',sans-serif;")}>{activeDirective.directive_text}</p>
+              <div style={css("display:flex; align-items:flex-start; gap:6px;")}>
+                <p style={css("flex:1; font-size:12px; line-height:1.45; color:rgba(255,255,255,0.9); margin:0; font-family:'Inter',sans-serif;")}>{activeDirective.directive_text}</p>
+                <SpeechifyPlayer text={activeDirective.directive_text} size={13} color="#C9A24B" style={{ marginTop: 0, flex: 'none' }} />
+              </div>
               <div style={css("display:flex; align-items:center; gap:8px; margin-top:4px; font-size:9px; color:rgba(255,255,255,0.35); font-family:'Inter',sans-serif;")}>
                 <span>Issued by {activeDirective.created_by_name || activeDirective.created_by_email || 'founder'}</span>
                 <span>·</span>
@@ -385,7 +390,7 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
   if (activeDirective && editMode && isAdmin) {
     return (
       <div style={css("flex:none; margin:0 0 6px;")}>
-        <div style={css("border-radius:12px; border:1px solid rgba(201,162,75,0.35); background:rgba(201,162,75,0.04); padding:10px 14px; display:flex; flex-direction:column; gap:6px;")}>
+        <div style={css("border-radius:12px; border:1px solid rgba(198,161,91,0.35); background:rgba(198,161,91,0.04); padding:10px 14px; display:flex; flex-direction:column; gap:6px;")}>
           <div style={css("display:flex; align-items:center; gap:6px;")}>
             <Crown size={14} style={{ color: GOLD }} />
             <span style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:" + GOLD + "; font-family:'Inter',sans-serif;")}>Edit Founder Directive</span>
@@ -393,12 +398,14 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
               <X size={13} />
             </button>
           </div>
-          <textarea
+          <WritingField
             value={draftText}
             onChange={(e) => setDraftText(e.target.value)}
             rows={2}
             placeholder="Directive text…"
             style={css("width:100%; padding:6px 10px; border-radius:8px; font-size:12px; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.08); outline:none; resize:vertical; min-height:44px;")}
+            landlordId={landlordId}
+            channel="directive"
           />
           <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
             <FounderBossVoiceButton
@@ -435,7 +442,7 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
       return (
         <div style={css("flex:none; margin:0 0 6px;")}>
           <button onClick={() => { setCreateOpen(true); setDraftPriority('high'); }}
-            style={css("display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:8px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(201,162,75,0.04); color:rgba(201,162,75,0.7); border:1px solid rgba(201,162,75,0.15);")}>
+            style={css("display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:8px; font-size:10px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; background:rgba(198,161,91,0.04); color:rgba(198,161,91,0.7); border:1px solid rgba(198,161,91,0.15);")}>
             <Plus size={12} /> Founder Directive
           </button>
           {renderLens()}
@@ -444,7 +451,7 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
     }
     return (
       <div style={css("flex:none; margin:0 0 6px;")}>
-        <div style={css("border-radius:12px; border:1px solid rgba(201,162,75,0.25); background:rgba(201,162,75,0.03); padding:10px 14px; display:flex; flex-direction:column; gap:6px;")}>
+        <div style={css("border-radius:12px; border:1px solid rgba(198,161,91,0.25); background:rgba(198,161,91,0.03); padding:10px 14px; display:flex; flex-direction:column; gap:6px;")}>
           <div style={css("display:flex; align-items:center; gap:6px;")}>
             <Crown size={14} style={{ color: GOLD }} />
             <span style={css("font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:" + GOLD + "; font-family:'Inter',sans-serif;")}>New Founder Directive</span>
@@ -452,12 +459,14 @@ export default function FounderDirectiveStrip({ landlordId, landlord, currentUse
               <X size={13} />
             </button>
           </div>
-          <textarea
+          <WritingField
             value={draftText}
             onChange={(e) => setDraftText(e.target.value)}
             rows={2}
             placeholder="What must the agent prioritize for this landlord?"
             style={css("width:100%; padding:6px 10px; border-radius:8px; font-size:12px; font-family:'Inter',sans-serif; background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.08); outline:none; resize:vertical; min-height:44px;")}
+            landlordId={landlordId}
+            channel="directive"
           />
           <div style={css("display:flex; align-items:center; gap:6px; flex-wrap:wrap;")}>
             <FounderBossVoiceButton

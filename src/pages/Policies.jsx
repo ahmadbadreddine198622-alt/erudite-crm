@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Shield, ChevronRight, CheckCircle2, Clock, ArrowLeft, Users, AlertTriangle, FileText, Search } from 'lucide-react';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 
@@ -86,7 +87,10 @@ function PolicyDetail({ policy, onBack, currentUser, acknowledgments, onAcknowle
           {policy.version && <span className="text-xs font-mono text-white/40">{policy.version}</span>}
         </div>
 
-        <h1 className="text-2xl font-display font-semibold text-white/95">{policy.title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-display font-semibold text-white/95">{policy.title}</h1>
+          {policy.body && <ReadAloudButton text={policy.body} title={`Policy: ${policy.title}`} />}
+        </div>
 
         {policy.effective_date && (
           <p className="text-sm text-white/40">Effective: {format(new Date(policy.effective_date), 'dd MMMM yyyy')}</p>

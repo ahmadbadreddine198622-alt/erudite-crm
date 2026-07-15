@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
+import WritingField from '@/components/shared/WritingField';
 import { toast } from 'sonner';
 
 export default function TermsAndConditionsDialog({ open, onClose, contractId }) {
@@ -134,7 +135,7 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground block mb-1">English</Label>
-                    <Textarea
+                    <WritingField
                       placeholder="Enter term in English..."
                       value={term.term_en || ''}
                       onChange={(e) => updateTerm(idx, 'term_en', e.target.value)}
@@ -144,7 +145,7 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
 
                   <div>
                     <Label className="text-xs text-muted-foreground block mb-1">Arabic</Label>
-                    <Textarea
+                    <WritingField
                       placeholder="Enter term in Arabic..."
                       value={term.term_ar || ''}
                       onChange={(e) => updateTerm(idx, 'term_ar', e.target.value)}
@@ -162,7 +163,7 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground block mb-1">English</Label>
-                <Textarea
+                <WritingField
                   placeholder="Enter addendum in English..."
                   value={addendumEn}
                   onChange={(e) => setAddendumEn(e.target.value)}
@@ -171,7 +172,7 @@ export default function TermsAndConditionsDialog({ open, onClose, contractId }) 
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground block mb-1">Arabic</Label>
-                <Textarea
+                <WritingField
                   placeholder="Enter addendum in Arabic..."
                   value={addendumAr}
                   onChange={(e) => setAddendumAr(e.target.value)}

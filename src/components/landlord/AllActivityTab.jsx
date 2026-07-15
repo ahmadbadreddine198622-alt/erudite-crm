@@ -16,6 +16,8 @@ import { ChevronDown, Sparkles, Loader2, CornerUpLeft } from 'lucide-react';
 import ActivityCommentThread from './ActivityCommentThread';
 import FounderMemoriesPanel from './FounderMemoriesPanel';
 import { base44 } from '@/api/base44Client';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
+import HighlightedText from '@/components/shared/HighlightedText';
 import { toast } from 'sonner';
 
 function css(str) {
@@ -345,9 +347,10 @@ ${timeline}`,
         return (
           <React.Fragment key={item.key}>
             <div style={css("border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); overflow:hidden; transition:border-color 0.12s ease;")}>
+              <div style={css("width:100%; display:flex; align-items:flex-start; gap:6px; padding:10px 12px;")}>
               <button
                 onClick={() => toggleItem(item.key, hasBody)}
-                style={css("width:100%; display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:none; border:none; cursor:" + (hasBody ? 'pointer' : 'default') + "; text-align:left; font-family:'Inter',sans-serif;")}
+                style={css("flex:1; display:flex; align-items:flex-start; gap:10px; background:none; border:none; cursor:" + (hasBody ? 'pointer' : 'default') + "; text-align:left; font-family:'Inter',sans-serif;")}
               >
                 {/* Channel/kind icon */}
                 <span style={{
@@ -393,10 +396,14 @@ ${timeline}`,
                   <ChevronDown size={14} style={{ flex: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '8px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 )}
               </button>
+              {hasBody && (
+                <ReadAloudButton text={item.body} title={`${item.channelLabel} · ${item.direction || item.title}${item.sender ? ' · ' + item.sender : ''}`} size={20} style={{ flex: 'none', marginTop: 5 }} />
+              )}
+              </div>
               {/* Expanded body — tinted with the channel color for instant identification */}
               {isOpen && hasBody && (
                 <div style={{ margin: '0 8px 8px 52px', padding: '9px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.82)', whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', background: item.iconBg, borderLeft: '3px solid ' + item.iconColor }}>
-                  {item.body}
+                  <HighlightedText text={item.body} title={`${item.channelLabel} · ${item.direction || item.title}${item.sender ? ' · ' + item.sender : ''}`} />
                 </div>
               )}
               {/* Founder coaching comments — always visible, distinct color */}

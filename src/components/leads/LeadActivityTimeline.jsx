@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 
 const TYPE_CONFIG = {
   note:              { icon: StickyNote,      color: 'text-amber-500',   bg: 'bg-amber-500/10',   label: 'Note' },
@@ -38,17 +39,22 @@ function TimelineItem({ activity }) {
       </div>
       <div className="flex-1 pb-4 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium leading-tight">{activity.title}</p>
+          <p className="text-sm font-medium leading-tight flex-1">{activity.title}</p>
+          {!activity.body && <SpeechifyPlayer text={activity.title} size={10} color="rgba(255,255,255,0.4)" />}
           <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
             {ts ? formatDistanceToNow(ts, { addSuffix: true }) : ''}
           </span>
         </div>
         {activity.body && (
-          <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{activity.body}</p>
+          <div className="flex items-start gap-1.5 mt-1">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap flex-1">{activity.body}</p>
+            <SpeechifyPlayer text={activity.body} size={10} color="rgba(255,255,255,0.4)" />
+          </div>
         )}
         {activity.result && (
-          <div className="mt-1.5 text-xs px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-            <span className="font-semibold">Result: </span>{activity.result}
+          <div className="mt-1.5 text-xs px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-start gap-1.5">
+            <span className="flex-1"><span className="font-semibold">Result: </span>{activity.result}</span>
+            <SpeechifyPlayer text={`Result: ${activity.result}`} size={10} color="rgba(255,255,255,0.4)" />
           </div>
         )}
         {activity.completed && activity.completed_at && (

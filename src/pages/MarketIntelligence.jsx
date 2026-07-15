@@ -9,6 +9,7 @@ import EruditeEmptyState from '@/components/erudite/EruditeEmptyState';
 import EruditeButton from '@/components/erudite/EruditeButton';
 import { LineChart, MapPin, Building2, CheckCircle2, AlertCircle, Loader2, TrendingUp, BarChart2, FileText } from 'lucide-react';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 const STATUS_STYLE = {
   analyzed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
@@ -24,6 +25,47 @@ function fmt(n, decimals = 0) {
 function fmtM(n) {
   if (n == null) return '—';
   return `AED ${(n / 1e6).toFixed(2)}M`;
+}
+
+const TYPE_ROWS = [['studio', 'Studio'], ['1br', '1BR'], ['2br', '2BR'], ['3br', '3BR'], ['4plus', '4+BR']];
+const medN = (a) => {
+  const x = a.filter(v => typeof v === 'number' && isFinite(v)).sort((p, q) => p - q);
+  if (!x.length) return null;
+  const m = Math.floor(x.length / 2);
+  return x.length % 2 ? x[m] : Math.round((x[m - 1] + x[m]) / 2);
+};
+
+// Per-type breakdown for an analyzed report — studio is studio, 1BR is 1BR, 2BR is 2BR.
+function TypeBreakdown({ reportId }) {
+  const { data: txs = [] } = useQuery({
+    queryKey: ['market_report_txs', reportId],
+    queryFn: () => base44.entities.MarketTransaction.filter({ market_report_id: reportId }, '-transaction_date', 500).catch(() => []),
+    enabled: !!reportId,
+  });
+  const clean = (txs || []).filter(t => !t.is_outlier && t.price_per_sqft);
+  const rows = TYPE_ROWS.map(([k, label]) => {
+    const g = clean.filter(t => t.bedrooms === k);
+    if (!g.length) return null;
+    const pre = g.filter(t => !t.is_post_event).map(t => t.price_per_sqft);
+    const post = g.filter(t => t.is_post_event).map(t => t.price_per_sqft);
+    return { label, n: g.length, psf: medN(g.map(t => t.price_per_sqft)), price: medN(g.map(t => t.price_aed)), pre: pre.length ? medN(pre) : null, post: post.length ? medN(post) : null };
+  }).filter(Boolean);
+  if (!rows.length) return null;
+  return (
+    <div className="mb-3">
+      <p className="text-[9px] uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>By unit type — never blended</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {rows.map(r => (
+          <div key={r.label} className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{r.label} · {r.n} deeds</p>
+            <p className="text-sm font-bold tabular-nums" style={{ color: 'hsl(38 92% 55%)' }}>{r.psf ? `AED ${r.psf.toLocaleString()}/sqft` : '—'}</p>
+            {r.price != null && <p className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.5)' }}>{`AED ${(r.price / 1e6).toFixed(2)}M median`}</p>}
+            {r.pre != null && r.post != null && <p className="text-[9px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{`pre/post event ${r.pre.toLocaleString()}→${r.post.toLocaleString()}`}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function MarketIntelligence() {
@@ -176,9 +218,14 @@ export default function MarketIntelligence() {
                     </div>
                   )}
 
+                  {report.status === 'analyzed' && <TypeBreakdown reportId={report.id} />}
+
                   {/* Analysis summary */}
                   {report.analysis_summary && (
                     <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center justify-end mb-1">
+                        <ReadAloudButton text={report.analysis_summary} title={`Report: ${report.project_name}`} size={12} />
+                      </div>
                       <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         {report.analysis_summary}
                       </p>

@@ -25,6 +25,8 @@ import WhatsAppPanel from '@/components/contacts/WhatsAppPanel';
 import WhatsAppPopup from '@/components/whatsapp/WhatsAppPopup';
 import VapiCallDialog from '@/components/vapi/VapiCallDialog';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
+import CopyButton from '@/components/shared/CopyButton';
+import WritingField from '@/components/shared/WritingField';
 
 const PROJECT_LAYERS = [
   { id: 'peninsula-three', label: 'Peninsula Three' },
@@ -348,6 +350,7 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                   placeholder="+971 50 000 0000"
                   className="h-7 text-xs font-mono flex-1"
                 />
+                <CopyButton value={p.number} label="Phone" size={13} className="text-[#9CA3AF] hover:text-indigo-500" />
                 {p.is_primary && <span className="text-[9px] text-[#9CA3AF] shrink-0">primary</span>}
                 <button onClick={() => removePhone(i)} className="text-[#9CA3AF] hover:text-red-400 transition-colors">
                   <X className="w-3 h-3" />
@@ -381,6 +384,7 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                   placeholder="email@example.com"
                   className="h-7 text-xs flex-1"
                 />
+                <CopyButton value={e.address} label="Email" size={13} className="text-[#9CA3AF] hover:text-indigo-500" />
                 <button onClick={() => removeEmail(i)} className="text-[#9CA3AF] hover:text-red-400 transition-colors">
                   <X className="w-3 h-3" />
                 </button>
@@ -523,7 +527,7 @@ export default function ContactDetailPanel({ contactId, onClose }) {
 
         {/* Notes */}
         <Section title="Notes" icon={Edit3}>
-          <Textarea
+          <WritingField
             value={draft.notes || ''}
             onChange={e => set('notes', e.target.value)}
             placeholder="Add notes about this contact…"

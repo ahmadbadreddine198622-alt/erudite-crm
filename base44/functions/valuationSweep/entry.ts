@@ -24,6 +24,20 @@ const STALE_DAYS = 60;
 const MAX_UNITS_PER_RUN = 200;
 const AREA_TOLERANCE = 0.15; // ±15%
 
+// Map a Landlord.unit_layout ("1BHK", "2BHK", "Studio", ...) to the bedrooms type used on
+// MarketTransaction records ("1br", "2br", "studio", ...). Lets the sweep value a unit by
+// its stored layout when its own stack has no comps (e.g. Peninsula 5 / D1 / D2 duplexes).
+const LAYOUT_TO_TYPE = {
+  STUDIO: 'studio', '1BHK': '1br', '2BHK': '2br', '3BHK': '3br', '4BHK': '4plus',
+  '1BR': '1br', '2BR': '2br', '3BR': '3br', '4BR': '4plus',
+  // "1 Bedroom" / "2 Bedroom" style layouts (uppercased + whitespace-stripped)
+  // used by the Peninsula 1 owner import — without these keys the layout
+  // fallback silently fails for that tower.
+  '1BEDROOM': '1br', '2BEDROOM': '2br', '3BEDROOM': '3br', '4BEDROOM': '4plus',
+  STUDIOAPARTMENT: 'studio',
+  PENTHOUSE: '4plus', DUPLEX: '4plus',
+};
+
 // ── Utilities ────────────────────────────────────────────────────────────────
 
 function num(v) {
@@ -93,7 +107,7 @@ function normalizeUnit(raw) {
 
 // ── Valuation computation (exact formula from analyzeDXBReport) ──────────────
 
-function computeValuation({ comps, subjectBedrooms, subjectArea, subjectStatus, areaSource }) {
+function computeValuation({ comps, subjectBedrooms, subjectArea, subjectStatus, areaSource, subjectStack }) {
   if (!subjectBedrooms) return null;
 
   // Comps of same bedrooms, with a valid price_per_sqft
@@ -119,12 +133,14 @@ function computeValuation({ comps, subjectBedrooms, subjectArea, subjectStatus, 
   }
 
   // Weight: 1 base, +3 if is_post_event, +1 if within 90 days (non-post),
-  // +2 if sale_status matches subject, else max(1, w−1)
+  // +2 if same stack as the subject (last 2 digits of unit number), +2 if sale_status
+  // matches subject, else max(1, w−1)
   const cutoff90 = Date.now() - 90 * 86400000;
   const compWeight = (t) => {
     let w = 1;
     if (t.is_post_event === true) w += 3;
     else if (t.transaction_date && new Date(t.transaction_date).getTime() >= cutoff90) w += 1;
+    if (subjectStack && normalizeUnit(t.unit_number).slice(-2) === subjectStack) w += 2;
     if (subjectStatus && t.sale_status) {
       if (t.sale_status === subjectStatus) w += 2;
       else w = Math.max(1, w - 1);
@@ -199,9 +215,10 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().slice(0, 10);
 
     // ── Load all data upfront (single round-trip per entity) ──
-    const [allTx, allLandlords, allLPs, allProperties] = await Promise.all([
+    // Landlords are fetched per-project inside the loop (unbounded) — a single bulk list is
+    // capped at 5000 and misses landlords outside that window (e.g. Peninsula 5 / D1 / D2).
+    const [allTx, allLPs, allProperties] = await Promise.all([
       svc.entities.MarketTransaction.list('-transaction_date', 5000),
-      svc.entities.Landlord.list('-created_date', 5000),
       svc.entities.LandlordProperty.list('-created_date', 5000),
       svc.entities.Property.list('-created_date', 5000),
     ]);
@@ -288,12 +305,11 @@ Deno.serve(async (req) => {
         .filter((ts) => !isNaN(ts))
         .reduce((mx, ts) => Math.max(mx, ts), 0);
 
-      // 3. Find matching landlords for this project (non-terminal stages)
-      const projectLandlords = allLandlords.filter(
-        (l) =>
-          normalizeProjectName(l.project_name) === normProject &&
-          !TERMINAL_STAGES.includes(l.stage)
-      );
+      // 3. Find matching landlords for this project. Fetch directly by the comp group's
+      // original project_name so the sweep is NOT bounded by a bulk-list cap — every
+      // landlord in the project reaches the sweep (Peninsula 5 / D1 / D2 included).
+      const projectLandlords = (await svc.entities.Landlord.filter({ project_name: group.originalName }, '-created_date', 2000).catch(() => []))
+        .filter((l) => !TERMINAL_STAGES.includes(l.stage));
 
       for (const landlord of projectLandlords) {
         landlordsScanned++;
@@ -375,7 +391,10 @@ Deno.serve(async (req) => {
               break;
             }
 
-            // Resolve subject bedrooms + area
+            // Resolve subject bedrooms + area. Preference order: exact DLD unit match →
+            // floor-stack profile → stored unit_layout (type) with median same-type area.
+            // The unit_layout fallback is how Peninsula 5 / D1 / D2 duplexes (thin or
+            // switching stacks) get valued — same-type comps only, area never mixed.
             let subjectBedrooms = null;
             let subjectArea = null;
             let areaSource = 'unknown';
@@ -392,10 +411,44 @@ Deno.serve(async (req) => {
                 subjectBedrooms = stack.bedrooms;
                 subjectArea = stack.area;
                 areaSource = 'floor-stack profile';
-              } else {
-                skippedUnknownStack++;
-                continue;
               }
+            }
+
+            // Stored unit_layout OVERRIDES a conflicting floor-stack guess. Prefixed
+            // units (e.g. Peninsula 1 waterfront "WF-104B") collide with tower stacks
+            // after digit normalization — the owner's recorded layout is more reliable
+            // than the stack heuristic. Exact DLD unit matches still win.
+            const storedLayoutType = LAYOUT_TO_TYPE[String(landlord.unit_layout || '').toUpperCase().replace(/\s/g, '')] || null;
+            if (storedLayoutType && subjectBedrooms && storedLayoutType !== subjectBedrooms && areaSource === 'floor-stack profile') {
+              subjectBedrooms = storedLayoutType;
+              subjectArea = null; // resolved below via median same-type area
+              areaSource = 'unit_layout type (overrode conflicting floor-stack profile)';
+            }
+
+            // Fallback to the stored unit_layout when bedrooms are still unknown.
+            if (!subjectBedrooms) {
+              const layoutType = LAYOUT_TO_TYPE[String(landlord.unit_layout || '').toUpperCase().replace(/\s/g, '')] || null;
+              if (layoutType) {
+                subjectBedrooms = layoutType;
+                areaSource = areaSource === 'unknown' ? 'unit_layout type' : areaSource + ' + unit_layout type';
+              }
+            }
+
+            // Median same-type area when the unit's own area is unknown.
+            if (subjectBedrooms && subjectArea == null) {
+              const sameTypeAreas = dedupedComps
+                .filter((t) => t.bedrooms === subjectBedrooms)
+                .map((t) => num(t.area_sqft))
+                .filter((a) => a != null && a > 0);
+              if (sameTypeAreas.length) {
+                subjectArea = median(sameTypeAreas);
+                areaSource = areaSource === 'unknown' ? 'median same-type area' : areaSource + ' + median same-type area';
+              }
+            }
+
+            if (!subjectBedrooms) {
+              skippedUnknownStack++;
+              continue;
             }
 
             // Subject status: 'ready' unless matching LP has is_off_plan=true
@@ -405,13 +458,14 @@ Deno.serve(async (req) => {
               subjectStatus = 'offplan';
             }
 
-            // 5. Compute valuation
+            // 5. Compute valuation (same-stack comps weighted higher)
             const valuation = computeValuation({
               comps: dedupedComps,
               subjectBedrooms,
               subjectArea,
               subjectStatus,
               areaSource,
+              subjectStack: unitRef.slice(-2),
             });
 
             if (!valuation) {

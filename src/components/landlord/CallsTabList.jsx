@@ -92,7 +92,51 @@ function InlinePlayer({ url }) {
   );
 }
 
+function TranscriptPanel({ existing, state, onTranscribe }) {
+  const transcript = existing || state?.transcript || '';
+  const loading = state?.loading;
+  const error = state?.error;
+  return (
+    <div style={css('margin-top:8px; border-radius:10px; background:#1a1a1a; border:1px solid rgba(255,255,255,0.06); overflow:hidden;')}>
+      {!transcript && !loading && !error && (
+        <div style={css('padding:10px 12px;')}>
+          <button onClick={onTranscribe} style={css('display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:7px; border:1px solid hsl(38 92% 50% / 0.4); background:rgba(212,175,55,0.12); color:hsl(38 92% 60%); font-size:11px; font-weight:700; cursor:pointer;')}>
+            ✨ Transcribe recording
+          </button>
+        </div>
+      )}
+      {loading && <div style={css('padding:10px 12px;')}><span style={css('font-size:11px; color:hsl(38 92% 62%);')}>Transcribing…</span></div>}
+      {error && <div style={css('padding:10px 12px;')}><span style={css('font-size:11px; color:#f87171;')}>⚠ {error}</span></div>}
+      {transcript && (
+        <div>
+          {/* Private Bank header bar */}
+          <div style={css('display:flex; align-items:center; gap:7px; padding:7px 12px; background:#33334d; border-bottom:1px solid rgba(255,255,255,0.06);')}>
+            <span style={css('display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; background:#3b5bdb; color:#ffffff; font-size:9.5px; font-weight:700; letter-spacing:0.04em;')}>Transcript</span>
+            <span style={css('font-size:11px; font-weight:600; color:#e0e0e0;')}>Reading</span>
+            {state?.transcript && <span style={css('font-size:9px; color:rgba(255,255,255,0.4); margin-left:auto;')}>· just now</span>}
+          </div>
+          <p style={css('font-size:12px; line-height:1.6; color:#e0e0e0; margin:0; padding:10px 12px; white-space:pre-wrap; background:#1a1a1a;')}>{transcript}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CallsTabList({ calls = [] }) {
+  const [tr, setTr] = useState({});
+  const transcribe = async (call) => {
+    const callId = call?.callId;
+    if (!callId) return;
+    setTr((s) => ({ ...s, [callId]: { loading: true } }));
+    try {
+      const res = await base44.functions.invoke('transcribeCallRecording', { call_id: callId, entity: call.entityType });
+      const d = res?.data ?? res;
+      if (d?.error) setTr((s) => ({ ...s, [callId]: { error: d.error } }));
+      else setTr((s) => ({ ...s, [callId]: { transcript: d.transcript || '' } }));
+    } catch (e) {
+      setTr((s) => ({ ...s, [callId]: { error: e?.message || 'Transcription failed' } }));
+    }
+  };
   return (
     <div style={css('display:flex; flex-direction:column; gap:8px;')}>
       {calls.map((c, i) => {
@@ -117,6 +161,13 @@ export default function CallsTabList({ calls = [] }) {
               <span style={css('flex:none; font-size:12px; font-weight:600; color:rgba(255,255,255,0.6);')}>{c.dur}</span>
             </div>
             {c.recording && c.recordingUrl && <InlinePlayer url={c.recordingUrl} />}
+            {c.callId && c.recording && (
+              <TranscriptPanel
+                existing={c.transcript || ''}
+                state={tr[c.callId] || {}}
+                onTranscribe={() => transcribe(c)}
+              />
+            )}
           </div>
         );
       })}

@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GeneratePDFButton, ViewPDFLink } from './TaxInvoicePDF';
+import WritingField from '@/components/shared/WritingField';
 
 const STATUS_COLORS = {
   draft: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
@@ -450,8 +451,8 @@ export default function InvoiceManager() {
 
             <div className="space-y-1">
               <Label>Notes / Remarks <span className="text-muted-foreground">(optional)</span></Label>
-              <textarea
-                className="w-full min-h-[72px] rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-none"
+              <WritingField
+                className="min-h-[72px] rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-none"
                 placeholder="Any remarks to appear on the invoice PDF…"
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}

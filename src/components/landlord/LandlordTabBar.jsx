@@ -11,6 +11,8 @@
 //   analyzing  (bool)   — disables Analyse button while true
 
 import React from 'react';
+import { Pause, Play, X, Loader2, Volume2 } from 'lucide-react';
+import { useReadAloud } from '@/lib/ReadAloudContext';
 
 const TABS = [
   { key: 'Activity',    label: 'Activity' },
@@ -25,6 +27,47 @@ const TABS = [
   { key: 'Appointment', label: 'Appointments' },
   { key: 'Documents',   label: 'Documents' },
 ];
+
+function TTSControl() {
+  const { isPlaying, isPaused, isLoading, pause, resume, stop, currentTrack } = useReadAloud();
+  if (!isPlaying || !currentTrack) return null;
+  const showPause = !isPaused && !isLoading;
+  const showResume = isPaused && !isLoading;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 'none', marginLeft: 8 }}>
+      <button
+        type="button"
+        onClick={() => (isPaused ? resume() : pause())}
+        aria-label={isPaused ? 'Resume' : 'Pause'}
+        title={isPaused ? 'Resume TTS' : 'Pause TTS'}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          color: 'rgba(255,255,255,0.9)',
+        }}
+      >
+        {isLoading ? <Loader2 size={14} className="animate-spin" /> : showPause ? <Pause size={14} style={{ fill: 'currentColor' }} strokeWidth={0} /> : showResume ? <Play size={14} style={{ fill: 'currentColor' }} strokeWidth={0} /> : <Volume2 size={14} />}
+      </button>
+      <button
+        type="button"
+        onClick={stop}
+        aria-label="Stop"
+        title="Stop TTS"
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 26, height: 26, borderRadius: 7, cursor: 'pointer',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          color: 'rgba(255,255,255,0.6)',
+        }}
+      >
+        <X size={13} />
+      </button>
+    </div>
+  );
+}
 
 export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzing }) {
   return (
@@ -69,7 +112,7 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
                 padding: '10px 14px',
                 background: 'none',
                 border: 'none',
-                borderBottom: active ? '2px solid #EAB308' : '2px solid transparent',
+                borderBottom: active ? '2px solid rgba(255,255,255,0.9)' : '2px solid transparent',
                 color: active ? '#FFFFFF' : '#858992',
                 fontSize: 12.5,
                 fontWeight: active ? 700 : 500,
@@ -85,6 +128,8 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
           );
         })}
       </div>
+      {/* TTS pause/play control — visible on every tab while audio is playing */}
+      <TTSControl />
       {/* Analyse button — right-aligned */}
       {onAnalyse && (
         <button
@@ -101,9 +146,9 @@ export default function LandlordTabBar({ activeTab, onSelect, onAnalyse, analyzi
             fontWeight: 600,
             cursor: analyzing ? 'not-allowed' : 'pointer',
             fontFamily: "'Inter',sans-serif",
-            background: 'rgba(212,175,55,0.12)',
-            border: '1px solid rgba(212,175,55,0.35)',
-            color: '#d4af37',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            color: 'rgba(255,255,255,0.85)',
             opacity: analyzing ? 0.5 : 1,
             marginLeft: 8,
           }}

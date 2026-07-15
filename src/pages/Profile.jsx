@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { User, Mail, Phone, Save, Shield, Upload, Camera, Trash2, AlertTriangle, FileSignature, Bell, Plus, Clock } from 'lucide-react';
 import GoogleWorkspaceConnectBanner from '@/components/settings/GoogleWorkspaceConnectBanner';
+import VoiceAudioSettings from '@/components/settings/VoiceAudioSettings';
 import ReactQuill from 'react-quill';
 
 export default function Profile() {
@@ -533,6 +534,9 @@ export default function Profile() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Voice & Audio Settings */}
+        <VoiceAudioSettings />
 
         {/* Google Workspace Connection */}
         <GoogleWorkspaceConnectBanner />

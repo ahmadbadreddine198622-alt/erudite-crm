@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 const nanoid = (n = 8) => Math.random().toString(36).slice(2, 2 + n);
 
 function parseTasksFromText(text) {
@@ -125,7 +126,7 @@ export default function ImportTasksPanel({ onClose, existingTasks }) {
                   <li>Paste below — one task per line</li>
                 </ol>
               </div>
-              <Textarea
+              <WritingField
                 value={pastedText}
                 onChange={e => setPastedText(e.target.value)}
                 placeholder={`Paste your tasks here, one per line:\n\nI need to follow up with the buyer\nCall Ahmad about unit 2209\nSchedule viewing for Marina Gate\n...`}

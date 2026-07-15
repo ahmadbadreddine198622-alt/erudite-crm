@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Plus, Upload, Loader2, Check, MapPin, Building2, AlertCircle, Pencil, Search, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import WritingField from '@/components/shared/WritingField';
 
 const GOLD = '#c9a85c';
 
@@ -642,15 +643,15 @@ export default function PFAddListingDialog({ onClose, onCreated, editListing = n
                 <GlassInput value={form.title_ar} onChange={set('title_ar')} placeholder="العنوان بالعربية" />
               </FIELD>
               <FIELD label="Description (English)">
-                <textarea value={form.description} onChange={set('description')} rows={5}
+                <WritingField value={form.description} onChange={set('description')} rows={5}
                   placeholder="Full property description for the portal listing…"
-                  style={{ ...INPUT_STYLE, width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+                  style={{ ...INPUT_STYLE, padding: '10px 12px', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
               </FIELD>
               <FIELD label="Description (Arabic)">
-                <textarea value={form.description_ar} onChange={set('description_ar')} rows={3}
+                <WritingField value={form.description_ar} onChange={set('description_ar')} rows={3}
                   placeholder="الوصف بالعربية…"
                   dir="rtl"
-                  style={{ ...INPUT_STYLE, width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+                  style={{ ...INPUT_STYLE, padding: '10px 12px', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
               </FIELD>
             </div>
           </div>

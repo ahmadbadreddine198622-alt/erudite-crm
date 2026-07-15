@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, AlertTriangle, Target, Brain, ArrowRight } from 'lucide-react';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -149,7 +150,10 @@ export default function AIInsightsDashboard() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate" style={{ color: 'rgba(255,255,255,0.95)' }}>{insight.title}</p>
-                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>{insight.subtitle}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs truncate flex-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{insight.subtitle}</p>
+                  <SpeechifyPlayer text={`${insight.title}. ${insight.subtitle}`} size={10} color="rgba(255,255,255,0.4)" />
+                </div>
               </div>
             </div>
             <Button

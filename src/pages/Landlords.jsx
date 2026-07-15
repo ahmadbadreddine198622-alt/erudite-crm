@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Plus, Filter, Upload, Clock, TrendingUp, DollarSign, FileCheck, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered } from 'lucide-react';
+import { Building2, Plus, Upload, DollarSign, Video, UserCheck, Trash2, Users, Search, X, FileSignature, FileText, ListOrdered, KeyRound, ChevronDown, Database } from 'lucide-react';
+import { PB, champagneInk } from '@/lib/pbTokens';
+import AuroraPulseChips from '@/components/landlord/AuroraPulseChips';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import ProjectIntelStrip from '@/components/landlord/ProjectIntelStrip';
 import ProjectSelectorWithUpload from '@/components/landlord/ProjectSelectorWithUpload';
@@ -27,6 +29,7 @@ import ImportOwnersDialog from '@/components/landlord/ImportOwnersDialog';
 import ScheduleVirtualViewingDialog from '@/components/shared/ScheduleVirtualViewingDialog';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import MarketReportUploadDialog from '@/components/landlord/MarketReportUploadDialog';
+import HandoverUpcomingDialog from '@/components/landlord/HandoverUpcomingDialog';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import LockedLeadQueue from '@/components/outreach/LockedLeadQueue';
 
@@ -52,6 +55,76 @@ const LDC = {
   rr13:   '13px',
   rr18:   '18px',
 };
+
+// ── Ghost header controls — one uniform hairline language for the Private Bank × Light bar.
+// Presentation only; they forward onClick/onChange/value exactly like the controls they replace.
+function GhostButton({ onClick, icon: Icon, label, active, showLabel = true }) {
+  const [h, setH] = useState(false);
+  const style = {
+    height: 32,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '0 10px',
+    borderRadius: 10,
+    background: active ? 'rgba(198,161,91,0.08)' : 'transparent',
+    border: `1px solid ${active ? 'rgba(198,161,91,0.4)' : PB.HAIR2}`,
+    color: active ? PB.GOLD : h ? PB.NAME : PB.SLATE,
+    fontSize: 12,
+    whiteSpace: 'nowrap',
+    flex: 'none',
+    transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      className="shrink-0"
+      style={style}
+    >
+      <Icon className="w-3.5 h-3.5" strokeWidth={1.5} style={{ flex: 'none' }} />
+      {showLabel && <span className="hidden xl:inline">{label}</span>}
+    </button>
+  );
+}
+
+function GhostSelect({ value, onChange, active, width = 140, children }) {
+  const [h, setH] = useState(false);
+  const style = {
+    height: 32,
+    padding: '0 26px 0 10px',
+    borderRadius: 10,
+    background: 'transparent',
+    border: `1px solid ${active ? 'rgba(198,161,91,0.35)' : h ? 'rgba(255,255,255,0.16)' : PB.HAIR2}`,
+    color: active ? PB.GOLD : h ? PB.NAME : PB.SLATE,
+    fontSize: 12,
+    whiteSpace: 'nowrap',
+    flex: 'none',
+    minWidth: width,
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    cursor: 'pointer',
+    transition: 'border-color 150ms ease, color 150ms ease',
+  };
+  return (
+    <div className="relative shrink-0" style={{ minWidth: width }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onMouseEnter={() => setH(true)}
+        onMouseLeave={() => setH(false)}
+        style={style}
+        className="w-full"
+      >
+        {children}
+      </select>
+      {active && <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', width: 5, height: 5, borderRadius: 999, background: PB.GOLD, flex: 'none', pointerEvents: 'none' }} />}
+      <ChevronDown className="pointer-events-none" strokeWidth={1.5} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: active ? PB.GOLD : PB.SLATE }} />
+    </div>
+  );
+}
 
 const STAGES = [
   'initial_contact',
@@ -105,6 +178,7 @@ export default function Landlords() {
   const [showVirtualViewing, setShowVirtualViewing] = useState(false);
   const [showFormADialog, setShowFormADialog] = useState(false);
   const [showMarketReportDialog, setShowMarketReportDialog] = useState(false);
+  const [showHandoverDialog, setShowHandoverDialog] = useState(false);
   const [showQueuePanel, setShowQueuePanel] = useState(false);
   const [filterAgent, setFilterAgent] = useState('');
   const [filterArchetype, setFilterArchetype] = useState('');
@@ -128,6 +202,11 @@ export default function Landlords() {
   const [filterHandover, setFilterHandover] = useState('');
   const [filterUnitLayout, setFilterUnitLayout] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  // Sourced pool — untouched DLD-import rows (never analysed, never scored, no mandate) stay
+  // OUT of the working pipeline by default so a 10k-row import can't drown the board.
+  // The toggle (or any active search) brings them back.
+  const [showSourcedPool, setShowSourcedPool] = useState(false);
+  const [pulseFilter, setPulseFilter] = useState(null); // null | 'strike' | 'law14' | 'hot'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkAgentEmail, setBulkAgentEmail] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -143,8 +222,41 @@ export default function Landlords() {
   // explicitly, so freshness on user actions is unaffected. Values follow the codebase convention:
   // board data ~30s, slow-moving reference data ~minutes.
   const { data: landlords = [], isLoading } = useQuery({
-    queryKey: ['landlords'],
-    queryFn: () => base44.entities.Landlord.list('-updated_date', 1000),
+    queryKey: ['landlords', currentUser?.email, !!safePermissions.view_all_landlords],
+    queryFn: async () => {
+      // Load every landlord the caller may see via the paginated loadAllLandlords
+      // backend function. The user-scoped list() silently caps results per call and
+      // the platform forbids $lt/$gt cursors on built-in fields, so client-side
+      // pagination truncated the board (e.g. only ~9 of 556 Peninsula 2 records).
+      // The function uses asServiceRole (which honors limit + skip) to page the
+      // full table and enforces the same access control server-side. It returns one
+      // small page at a time (+ hasMore), so we loop and accumulate every page.
+      const all = [];
+      const limit = 1000;
+      const MAX_PAGES = 40; // hard guard so a misbehaving hasMore can never loop forever
+      const PARALLEL = 5;   // pages fetched concurrently — 10k+ rows arrive in ~3 round trips, not 11
+      const fetchPage = async (skip) => {
+        const res = await base44.functions.invoke('loadAllLandlords', { skip, limit });
+        const data = res?.data ?? res;
+        return { page: data?.landlords || [], hasMore: !!data?.hasMore };
+      };
+      // Page 0 alone first (small tables finish here), then the rest in parallel rounds.
+      // Pages are contiguous, so the LAST page of a round says whether more exist beyond it.
+      let { page, hasMore } = await fetchPage(0);
+      all.push(...page);
+      let fetched = 1;
+      while (hasMore && fetched < MAX_PAGES) {
+        const count = Math.min(PARALLEL, MAX_PAGES - fetched);
+        const round = await Promise.all(
+          Array.from({ length: count }, (_, i) => fetchPage((fetched + i) * limit))
+        );
+        round.forEach(r => all.push(...r.page));
+        hasMore = round[round.length - 1].hasMore;
+        fetched += count;
+      }
+      return all;
+    },
+    enabled: !userLoading,
     staleTime: 30_000,
   });
 
@@ -237,27 +349,60 @@ export default function Landlords() {
     [projects, filterProject],
   );
 
-  // Role-based isolation
+  // Role-based isolation — RLS already filters server-side, but this is a safety net
+  // that also includes co-agent and listing manager assignments.
   const visibleLandlords = useMemo(() => {
     if (!currentUser || safePermissions.view_all_landlords) return landlords;
-    return landlords.filter(l => l.assigned_agent_email && l.assigned_agent_email === currentUser.email);
+    const email = currentUser.email;
+    return landlords.filter(l =>
+      l.assigned_agent_email === email ||
+      l.listing_manager_email === email ||
+      l.co_agent_email === email
+    );
   }, [landlords, currentUser, safePermissions.view_all_landlords]);
 
-  // Unique unit_layout values from visible landlords (for the filter dropdown)
+  // Untouched DLD import: sourced via dld_lookup, still in initial_contact, never analysed by
+  // the brain and carrying no scores or mandate — i.e. nobody has worked this record yet.
+  const isUntouchedImport = (l) =>
+    l.source === 'dld_lookup' &&
+    l.stage === 'initial_contact' &&
+    !l.ai_processed_at &&
+    !l.last_orchestrator_run_at &&
+    !l.trust_score &&
+    (!l.mandate_status || l.mandate_status === 'none');
+
+  const workingBook = useMemo(() => visibleLandlords.filter(l => !isUntouchedImport(l)), [visibleLandlords]);
+  const sourcedPoolCount = visibleLandlords.length - workingBook.length;
+
+  // Lead counts per project (and the unassigned bucket) — shown as badges in the project
+  // dropdown. Counted over the full visible book so the number stays meaningful regardless of
+  // the active search/filter (which only narrows the board, not how many leads exist there).
+  const projectLeadCounts = useMemo(() => {
+    const counts = { __all: visibleLandlords.length, __unassigned: 0 };
+    visibleLandlords.forEach((l) => {
+      if (!l.project_id) counts.__unassigned += 1;
+      else counts[l.project_id] = (counts[l.project_id] || 0) + 1;
+    });
+    return counts;
+  }, [visibleLandlords]);
+  // Search overrides the pool toggle — finding an imported owner by name must always work.
+  const boardLandlords = (showSourcedPool || searchQuery.trim()) ? visibleLandlords : workingBook;
+
+  // Unique unit_layout values from board landlords (for the filter dropdown)
   const unitLayoutOptions = useMemo(() => {
     const set = new Set();
-    visibleLandlords.forEach(l => { if (l.unit_layout) set.add(l.unit_layout); });
+    boardLandlords.forEach(l => { if (l.unit_layout) set.add(l.unit_layout); });
     return Array.from(set).sort();
-  }, [visibleLandlords]);
+  }, [boardLandlords]);
 
   // Group by stage
   const stageGroups = useMemo(() => {
     const grouped = {};
     STAGES.forEach(stage => {
-      grouped[stage] = visibleLandlords.filter(l => l.stage === stage);
+      grouped[stage] = boardLandlords.filter(l => l.stage === stage);
     });
     return grouped;
-  }, [visibleLandlords]);
+  }, [boardLandlords]);
 
   // Apply filters
   const filteredGroups = useMemo(() => {
@@ -302,11 +447,12 @@ export default function Landlords() {
     return result;
   }, [stageGroups, filterAgent, filterArchetype, filterProject, filterFloor, filterLayout, filterLanguage, filterAssignment, filterHandover, filterUnitLayout, searchQuery, landlordPropertyMap]);
 
-  // Calculate metrics
-  const totalPipeline = visibleLandlords.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
-  const mandateCount = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed').length;
+  // Calculate metrics — over the WORKING book only: untouched imports carry no commission,
+  // no mandates, and would otherwise flood the stalled-leads count.
+  const totalPipeline = workingBook.reduce((sum, l) => sum + (l.estimated_commission_aed || 0), 0);
+  const mandateCount = workingBook.filter(l => l.mandate_status === 'form_a_signed').length;
   const now = new Date();
-  const mandatesThisMonth = visibleLandlords.filter(l => {
+  const mandatesThisMonth = workingBook.filter(l => {
     if (!l.mandate_signed_at) return false;
     const signedDate = new Date(l.mandate_signed_at);
     const monthAgo = new Date();
@@ -314,7 +460,7 @@ export default function Landlords() {
     return signedDate >= monthAgo;
   }).length;
   const avgDaysToFormA = (() => {
-    const withFormA = visibleLandlords.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
+    const withFormA = workingBook.filter(l => l.mandate_status === 'form_a_signed' && l.created_date && l.mandate_signed_at);
     if (withFormA.length === 0) return 0;
     const totalDays = withFormA.reduce((sum, l) => {
       const created = new Date(l.created_date).getTime();
@@ -323,7 +469,7 @@ export default function Landlords() {
     }, 0);
     return Math.round(totalDays / withFormA.length);
   })();
-  const stalledLeads = visibleLandlords.filter(l => {
+  const stalledLeads = workingBook.filter(l => {
     if (!l.created_date) return false;
     const daysSinceCreation = (now - new Date(l.created_date).getTime()) / (1000 * 60 * 60 * 24);
     return daysSinceCreation > 21 && l.stage !== 'listing_publication';
@@ -363,14 +509,30 @@ export default function Landlords() {
       }
       toast.error('Failed to move landlord — reverting.');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['landlords'] });
-    },
+    // No onSettled invalidate: a blanket ['landlords'] invalidate refetched the ENTIRE
+    // multi-page board after every single drag. The optimistic update already matches the
+    // state the server accepted, and onError above reverts failed moves.
   });
 
   const handleStageChange = (payload) => updateStageMutation.mutate(payload);
 
   const allFilteredLandlords = useMemo(() => Object.values(filteredGroups).flat(), [filteredGroups]);
+
+  // Aurora Pulse quick-filter — narrows the board to just the brain-flagged subset.
+  // Applied AFTER the normal filters, over the already-loaded records (no new queries).
+  const pulsePredicate = (l) => {
+    if (pulseFilter === 'strike') return !!l.ai_strike_now;
+    if (pulseFilter === 'law14') return l.days_in_stage != null && l.days_in_stage >= 14
+      && l.stage !== 'listing_publication' && l.stage !== 'deal_closed';
+    if (pulseFilter === 'hot') return l.mandate_win_probability != null && l.mandate_win_probability >= 0.7;
+    return true;
+  };
+  const pulseFilteredGroups = useMemo(() => {
+    if (!pulseFilter) return filteredGroups;
+    const out = {};
+    STAGES.forEach((s) => { out[s] = filteredGroups[s].filter(pulsePredicate); });
+    return out;
+  }, [filteredGroups, pulseFilter]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -445,107 +607,104 @@ export default function Landlords() {
       style={{ background: LDC.bodyBg }}
       id="ldc-landlords"
     >
-      {/* Header — single slim sticky toolbar row. Everything compact, vertically centered,
-          so the pipeline columns start right beneath it. Wraps to a second compact row only if needed. */}
-      <div className="shrink-0 sticky top-0 z-20 pt-1.5 pb-1" style={{ paddingLeft: '4rem', paddingRight: '0.5rem' }}>
-        <div className="flex items-center gap-3 flex-nowrap overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {/* Title + icon */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{ border: '1px solid rgba(201,162,75,.45)', boxShadow: '0 0 20px rgba(201,162,75,.22), inset 0 0 14px rgba(255,255,255,.06)',
-                background: 'radial-gradient(130% 130% at 30% 18%, rgba(201,162,75,.18), transparent 64%)' }}>
-              <Building2 className="w-4 h-4" style={{ color: LDC.gold }} />
+      {/* Header — Private Bank × Light. One hairline bar on #0E1428, tightened height. */}
+      <div
+        className="shrink-0 sticky top-0 z-20"
+        style={{ paddingLeft: '4rem', paddingRight: '0.5rem', paddingTop: 6, paddingBottom: 6, background: PB.CARD, borderBottom: `1px solid ${PB.HAIR}` }}
+      >
+        {/* ── Row 1 — Command bar ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto" style={{ scrollbarWidth: 'none', minHeight: 32 }}>
+          {/* Wordmark */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ border: `1px solid ${PB.GOLD}66`, boxShadow: '0 0 14px rgba(198,161,91,0.18)', background: `radial-gradient(130% 130% at 30% 18%, ${PB.GOLD}22, transparent 64%)` }}>
+              <Building2 className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: PB.GOLD }} />
             </div>
-            <h1 className="text-lg whitespace-nowrap" style={{ fontFamily: "'Cormorant',serif", fontWeight: 700, color: LDC.ink }}>Landlord Pipeline</h1>
+            <h1 className="text-base whitespace-nowrap" style={{ fontFamily: "'Cormorant',serif", fontWeight: 700, color: PB.NAME, letterSpacing: '0.01em' }}>Landlord Pipeline</h1>
           </div>
 
-          {/* Inline commission stat — icon + value, no card */}
-          <div className="flex items-center gap-1.5 shrink-0 px-2.5 h-9 rounded-md"
-            style={{ background: 'rgba(201,162,75,.1)', border: '1px solid rgba(201,162,75,.25)', boxShadow: '0 0 12px rgba(201,162,75,.08)' }}>
-            <DollarSign className="w-3.5 h-3.5" style={{ color: LDC.gold }} />
-            <span className="text-sm font-bold tabular-nums gold-text" style={{ color: LDC.gold }}>
+          {/* AED total — champagne ink inside a ghost gold-hairline chip */}
+          <div className="flex items-center gap-1.5 shrink-0 px-2.5 rounded-md" style={{ height: 32, background: 'transparent', border: `1px solid ${PB.GOLD}59` }}>
+            <DollarSign className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: PB.GOLD, flex: 'none' }} />
+            <span className="text-sm font-bold" style={champagneInk}>
               {totalPipeline >= 1_000_000 ? `AED ${(totalPipeline / 1_000_000).toFixed(1)}M` : totalPipeline >= 1_000 ? `AED ${(totalPipeline / 1_000).toFixed(0)}K` : `AED ${totalPipeline}`}
             </span>
           </div>
 
-          {/* My Lead Queue */}
+          {/* My Lead Queue — ghost */}
           <button
             onClick={() => setShowQueuePanel(p => !p)}
-            className="flex items-center gap-1.5 text-xs px-2.5 h-9 rounded-md transition-colors shrink-0 whitespace-nowrap"
-            style={{ background: showQueuePanel ? 'rgba(201,162,75,.12)' : 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', color: showQueuePanel ? LDC.gold : 'rgba(255,255,255,.7)' }}
+            className="flex items-center gap-1.5 text-xs px-2.5 rounded-md shrink-0 whitespace-nowrap"
+            style={{
+              height: 32,
+              background: showQueuePanel ? 'rgba(198,161,91,0.08)' : 'transparent',
+              border: `1px solid ${showQueuePanel ? 'rgba(198,161,91,0.4)' : PB.HAIR2}`,
+              color: showQueuePanel ? PB.GOLD : PB.SLATE,
+              transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+            }}
           >
-            <ListOrdered className="w-3.5 h-3.5" />
-            My Lead Queue
+            <ListOrdered className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <span className="hidden md:inline">My Lead Queue</span>
           </button>
 
-          {/* Search — flexible width, fills the middle */}
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          {/* Search — ghost hairline, 30% gold focus ring */}
+          <div className="relative flex-1 min-w-[160px]" style={{ height: 32 }}>
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" strokeWidth={1.5} style={{ color: PB.SLATE }} />
             <input
               type="text"
               placeholder="Search name, unit, phone, email, project…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-8 h-9 text-xs rounded-md"
-              style={{ background: 'rgba(255,255,255,.033)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', outline: 'none' }}
+              className="w-full pl-8 pr-8 h-8 text-xs rounded-md"
+              style={{ background: 'transparent', border: `1px solid ${PB.HAIR2}`, color: PB.NAME, outline: 'none', transition: 'border-color 150ms ease, box-shadow 150ms ease' }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(198,161,91,0.3)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(198,161,91,0.14)'; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = PB.HAIR2; e.currentTarget.style.boxShadow = 'none'; }}
             />
             {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
+              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 transition-colors" style={{ color: PB.SLATE }}>
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             )}
           </div>
 
-          {/* Select all + agent filter */}
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none shrink-0 whitespace-nowrap">
+          {/* Select all — ghost */}
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none shrink-0 whitespace-nowrap" style={{ color: PB.SLATE }}>
             <input
               type="checkbox"
               checked={allFilteredLandlords.length > 0 && selectedIds.size === allFilteredLandlords.length}
               onChange={toggleSelectAll}
-              className="w-4 h-4 accent-amber-500 rounded"
+              className="w-3.5 h-3.5 accent-amber-500 rounded"
             />
-            Select all ({allFilteredLandlords.length})
+            <span className="tabular-nums">({allFilteredLandlords.length})</span>
           </label>
+
+          {/* Agent filter (row 1) — ghost */}
           {safePermissions.view_all_landlords && users.length > 0 && (
-            <select
-              value={filterAgent}
-              onChange={(e) => setFilterAgent(e.target.value)}
-              className="h-9 px-3 text-xs rounded-md shrink-0"
-              style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
-            >
+            <GhostSelect value={filterAgent} onChange={setFilterAgent} active={!!filterAgent} width={128}>
               <option value="">All Agents</option>
-              {users.map(u => (
-                <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
-              ))}
-            </select>
+              {users.map(u => (<option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>))}
+            </GhostSelect>
           )}
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 h-9">
-              <Upload className="w-4 h-4" />
-              <span className="hidden xl:inline">Import</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowVirtualViewing(true)} className="gap-2 h-9">
-              <Video className="w-4 h-4" />
-              <span className="hidden xl:inline">Virtual</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowFormADialog(true)} className="gap-2 h-9">
-              <FileSignature className="w-4 h-4 text-amber-400" />
-              <span className="hidden xl:inline">Form A</span>
-            </Button>
-            <Button variant="outline" onClick={() => setShowMarketReportDialog(true)} className="gap-2 h-9">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span className="hidden xl:inline">Report</span>
-            </Button>
-            <Button onClick={() => setShowNewDialog(true)} className="gap-2 h-9"
-              style={{ background: 'linear-gradient(135deg, #c9a24b, #b08c2e)', color: '#0a0e1a', border: '1px solid rgba(201,162,75,.5)', boxShadow: '0 0 16px rgba(201,162,75,.4)' }}>
-              <Plus className="w-4 h-4" />
+          {/* Action buttons — uniform ghost, +New is the only filled button */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <GhostButton onClick={() => setShowImportDialog(true)} icon={Upload} label="Import" />
+            <GhostButton onClick={() => setShowVirtualViewing(true)} icon={Video} label="Virtual" />
+            <GhostButton onClick={() => setShowFormADialog(true)} icon={FileSignature} label="Form A" />
+            <GhostButton onClick={() => setShowMarketReportDialog(true)} icon={FileText} label="Report" />
+            {safePermissions.view_all_landlords && (
+              <GhostButton onClick={() => setShowHandoverDialog(true)} icon={KeyRound} label="Handover" />
+            )}
+            <button
+              onClick={() => setShowNewDialog(true)}
+              className="flex items-center gap-1.5 text-xs px-3 rounded-md shrink-0 whitespace-nowrap font-semibold"
+              style={{ height: 32, background: PB.CHAMPAGNE, color: PB.BASE, border: `1px solid ${PB.GOLD}80`, boxShadow: '0 4px 16px rgba(198,161,91,0.35)', transition: 'transform 150ms ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
               <span className="hidden xl:inline">New</span>
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -556,20 +715,20 @@ export default function Landlords() {
           </div>
         )}
 
-        {/* Filters + Bulk Actions — second compact row: filters in a centered scroll track · count pill hard right */}
-        <div className="flex items-center gap-3 w-full mt-1">
+        {/* ── Row 2 — Filter rail ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 w-full mt-1.5">
           {selectedIds.size > 0 ? (
             <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-              style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.35)' }}
+              className="flex items-center gap-2 px-3 rounded-md"
+              style={{ height: 32, background: PB.WELL, border: `1px solid ${PB.HAIR}` }}
             >
-              <UserCheck className="w-3.5 h-3.5 text-accent shrink-0" />
-              <span className="text-xs font-semibold text-accent whitespace-nowrap">{selectedIds.size} selected</span>
+              <UserCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} style={{ color: PB.GOLD }} />
+              <span className="text-xs font-semibold whitespace-nowrap" style={{ color: PB.NAME }}>{selectedIds.size} selected</span>
               <select
                 value={bulkAgentEmail}
                 onChange={e => setBulkAgentEmail(e.target.value)}
-                className="px-2 py-1 text-xs rounded-lg"
-                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.9)', minWidth: 130 }}
+                className="px-2 py-1 text-xs rounded-md"
+                style={{ background: 'transparent', border: `1px solid ${PB.HAIR2}`, color: PB.NAME, minWidth: 130 }}
               >
                 <option value="">Select agent…</option>
                 {users.map(u => (
@@ -596,150 +755,117 @@ export default function Landlords() {
               </Button>
               <button
                 onClick={() => setSelectedIds(new Set())}
-                className="text-xs opacity-60 hover:opacity-100 transition-opacity px-1"
+                className="text-xs px-1 transition-colors"
+                style={{ color: PB.SLATE }}
               >
                 ✕
               </button>
             </div>
           ) : (
             <>
-              {/* Centered filter track — scrolls horizontally on narrow viewports, stays one line */}
+              {/* Filter track — identical ghost hairline pills, scrolls on narrow viewports */}
               <div className="filter-track flex-1 min-w-0 flex items-center gap-2 overflow-x-auto">
                 {safePermissions.view_all_landlords && users.length > 0 && (
-                  <select
-                    value={filterAgent}
-                    onChange={(e) => setFilterAgent(e.target.value)}
-                    className="h-9 px-3 text-xs rounded-md shrink-0"
-                    style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)', minWidth: 140 }}
-                  >
+                  <GhostSelect value={filterAgent} onChange={setFilterAgent} active={!!filterAgent} width={128}>
                     <option value="">All Agents</option>
-                    {users.map(u => (
-                      <option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>
-                    ))}
-                  </select>
+                    {users.map(u => (<option key={u.id} value={u.email}>{u.display_name || u.full_name || u.email}</option>))}
+                  </GhostSelect>
                 )}
-                <select
-                  value={filterArchetype}
-                  onChange={(e) => setFilterArchetype(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                <GhostSelect value={filterArchetype} onChange={setFilterArchetype} active={!!filterArchetype} width={132}>
                   <option value="">All Archetypes</option>
                   <option value="professional_investor">Professional Investor</option>
                   <option value="individual_end_user_relocating">Individual Relocating</option>
                   <option value="first_time_seller">First Time Seller</option>
                   <option value="portfolio_optimizer">Portfolio Optimizer</option>
-                </select>
+                </GhostSelect>
                 <div className="shrink-0">
                   <ProjectSelectorWithUpload
                     value={filterProject}
                     onChange={(val) => setFilterProject(val || '')}
                     projects={projects}
+                    counts={projectLeadCounts}
                   />
                 </div>
-                <select
-                  value={filterFloor}
-                  onChange={(e) => setFilterFloor(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)' }}
-                >
+                <GhostSelect value={filterFloor} onChange={setFilterFloor} active={!!filterFloor} width={112}>
                   <option value="">All Floors</option>
                   <option value="1-10">Floors 1–10</option>
                   <option value="11-20">Floors 11–20</option>
                   <option value="21+">Floors 21+</option>
-                </select>
-                <select
-                  value={filterLayout}
-                  onChange={(e) => setFilterLayout(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                </GhostSelect>
+                <GhostSelect value={filterLayout} onChange={setFilterLayout} active={!!filterLayout} width={116}>
                   <option value="">All Layouts</option>
                   <option value="Studio">Studio</option>
                   <option value="1BR">1BR</option>
                   <option value="2BR">2BR</option>
                   <option value="3BR">3BR</option>
                   <option value="4BR+">4BR+</option>
-                </select>
-                <select
-                  value={filterHandover}
-                  onChange={(e) => setFilterHandover(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                </GhostSelect>
+                <GhostSelect value={filterHandover} onChange={setFilterHandover} active={!!filterHandover} width={124}>
                   <option value="">All Handover</option>
                   <option value="Handed Over">Handed Over</option>
                   <option value="Not Handed Over">Not Handed Over</option>
-                </select>
-                <select
-                  value={filterUnitLayout}
-                  onChange={(e) => setFilterUnitLayout(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                </GhostSelect>
+                <GhostSelect value={filterUnitLayout} onChange={setFilterUnitLayout} active={!!filterUnitLayout} width={128}>
                   <option value="">All Unit Layouts</option>
-                  {unitLayoutOptions.map(layout => (
-                    <option key={layout} value={layout}>{layout}</option>
-                  ))}
-                </select>
-                <select
-                  value={filterLanguage}
-                  onChange={(e) => setFilterLanguage(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                  {unitLayoutOptions.map(layout => (<option key={layout} value={layout}>{layout}</option>))}
+                </GhostSelect>
+                <GhostSelect value={filterLanguage} onChange={setFilterLanguage} active={!!filterLanguage} width={116}>
                   <option value="">All Languages</option>
                   <option value="en">English</option>
                   <option value="ar">Arabic</option>
                   <option value="ru">Russian</option>
                   <option value="zh">Chinese</option>
                   <option value="hi">Hindi</option>
-                </select>
-                <select
-                  value={filterAssignment}
-                  onChange={(e) => setFilterAssignment(e.target.value)}
-                  className="h-9 px-3 text-xs rounded-md shrink-0"
-                  style={{ background: 'rgba(255,255,255,.035)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.9)' }}
-                >
+                </GhostSelect>
+                <GhostSelect value={filterAssignment} onChange={setFilterAssignment} active={!!filterAssignment} width={128}>
                   <option value="">All Assignments</option>
                   <option value="unassigned">Unassigned</option>
                   <option value="assigned">Assigned</option>
-                </select>
+                </GhostSelect>
                 {(filterFloor || filterLayout || filterLanguage || filterAssignment || filterHandover || filterUnitLayout || searchQuery) && (
                   <button
                     onClick={() => { setFilterFloor(''); setFilterLayout(''); setFilterLanguage(''); setFilterAssignment(''); setFilterHandover(''); setFilterUnitLayout(''); setSearchQuery(''); }}
-                    className="h-9 text-xs px-2.5 rounded-md transition-opacity opacity-70 hover:opacity-100 shrink-0 whitespace-nowrap"
-                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+                    className="text-xs px-2.5 rounded-md shrink-0 whitespace-nowrap"
+                    style={{ height: 32, border: `1px solid ${PB.HAIR2}`, color: PB.SLATE, background: 'transparent', transition: 'color 150ms ease, border-color 150ms ease' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = PB.NAME; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = PB.SLATE; e.currentTarget.style.borderColor = PB.HAIR2; }}
                   >
                     Clear filters
                   </button>
                 )}
               </div>
 
-              {/* Count pill — pinned hard right */}
+              {/* Sourced pool toggle — ghost stat chip */}
+              {sourcedPoolCount > 0 && (
+                <button
+                  onClick={() => setShowSourcedPool(p => !p)}
+                  className="flex items-center gap-1.5 px-2.5 rounded-md text-xs font-semibold shrink-0 ml-auto whitespace-nowrap"
+                  style={{
+                    height: 32,
+                    background: showSourcedPool ? 'rgba(198,161,91,0.08)' : 'transparent',
+                    border: `1px solid ${showSourcedPool ? 'rgba(198,161,91,0.4)' : PB.HAIR2}`,
+                    color: showSourcedPool ? PB.GOLD : PB.SLATE,
+                    transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+                  }}
+                  title={showSourcedPool ? 'Hide untouched DLD imports from the board' : 'Show untouched DLD imports on the board (search always includes them)'}
+                >
+                  <Database className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <span className="tabular-nums">{sourcedPoolCount.toLocaleString()}</span>
+                  <span className="hidden lg:inline">{showSourcedPool ? 'Hide sourced pool' : 'Sourced pool'}</span>
+                </button>
+              )}
+
+              {/* Count pill — ghost stat chip, near-white tabular count */}
               <div
-                className="flex items-center gap-1.5 px-3 h-9 rounded-md text-xs font-semibold shrink-0 ml-auto"
-                style={{ background: 'rgba(201,162,75,.12)', border: '1px solid rgba(201,162,75,.25)', color: LDC.gold }}
+                className="flex items-center gap-1.5 px-2.5 rounded-md text-xs font-semibold shrink-0"
+                style={{ height: 32, background: 'transparent', border: `1px solid ${PB.HAIR2}`, color: PB.SLATE, marginLeft: sourcedPoolCount > 0 ? undefined : 'auto' }}
               >
-                <Users className="w-3.5 h-3.5" />
-                {allFilteredLandlords.length} landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
+                <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <span className="tabular-nums" style={{ color: PB.NAME }}>{allFilteredLandlords.length}</span>
+                landlord{allFilteredLandlords.length !== 1 ? 's' : ''}
               </div>
             </>
           )}
-        </div>
-
-        {/* Curved "valley" divider — full width, dip centered, fades to transparent at both ends */}
-        <div className="w-full mt-1 -mb-1 pointer-events-none" aria-hidden="true">
-          <svg viewBox="0 0 1200 24" preserveAspectRatio="none" className="w-full h-2 block">
-            <defs>
-              <linearGradient id="valley-fade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#c9a24b" stopOpacity="0" />
-                <stop offset="50%" stopColor="#c9a24b" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#c9a24b" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d="M0 4 Q 600 28 1200 4" fill="none" stroke="url(#valley-fade)" strokeWidth="1.5" />
-          </svg>
         </div>
       </div>
 
@@ -752,6 +878,11 @@ export default function Landlords() {
             landlordPropertyMap={landlordPropertyMap}
             properties={properties}
             landlordProperties={landlordProperties}
+            projectId={filterProject}
+            projectName={selectedProject?.name}
+            isAdmin={!!safePermissions.view_all_landlords}
+            activePulse={pulseFilter}
+            onPulseFilter={setPulseFilter}
           />
         </div>
       )}
@@ -772,7 +903,7 @@ export default function Landlords() {
         <KanbanBoard
           stages={STAGES}
           stageLabels={STAGE_LABELS}
-          stageGroups={filteredGroups}
+          stageGroups={pulseFilteredGroups}
           selectedLandlordId={null}
           onSelectLandlord={(id) => navigate(`/landlord/${id}`)}
           onStageChange={handleStageChange}
@@ -853,6 +984,9 @@ export default function Landlords() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upcoming Handover — admin only */}
+      <HandoverUpcomingDialog open={showHandoverDialog} onOpenChange={setShowHandoverDialog} />
     </div>
   );
 }

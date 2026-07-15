@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import WritingField from '@/components/shared/WritingField';
 
 const NODE_TYPES = [
   { value: 'send_message', label: '💬 Send Message', color: 'border-blue-400 bg-blue-500/5' },
@@ -55,7 +56,7 @@ export default function WorkflowNodeEditor({ node, onChange, allNodes }) {
       {node.type === 'send_message' && (
         <div>
           <Label className="text-xs text-muted-foreground">Message Text</Label>
-          <Textarea
+          <WritingField
             value={node.config?.message || ''}
             onChange={e => updateConfig('message', e.target.value)}
             placeholder="Hello {name}, thanks for reaching out! Use {name}, {phone}, {agent} as variables."
@@ -69,7 +70,7 @@ export default function WorkflowNodeEditor({ node, onChange, allNodes }) {
         <div className="space-y-2">
           <div>
             <Label className="text-xs text-muted-foreground">AI System Prompt</Label>
-            <Textarea
+            <WritingField
               value={node.config?.prompt || ''}
               onChange={e => updateConfig('prompt', e.target.value)}
               placeholder="You are a helpful real estate assistant for Erudite Property. Be professional and concise. Answer the user's query about our properties in Dubai."

@@ -10,6 +10,8 @@ import {
   Calendar, CheckCircle2, ArrowRight, Clock, Flame, Target, Building2
 } from 'lucide-react';
 import { isToday, isPast, isAfter, subDays, differenceInDays, format } from 'date-fns';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import ReadAloudButton from '@/components/shared/ReadAloudButton';
 
 export default function DailyBriefing() {
   const [expanded, setExpanded] = useState(true);
@@ -172,6 +174,12 @@ export default function DailyBriefing() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ReadAloudButton
+            text={`${greeting}. ${items.map(it => it.label + '. ' + it.sub).join(' ')}`}
+            title="Daily Briefing"
+            size={14}
+            color="rgba(255,255,255,0.7)"
+          />
           {urgentCount > 0 && (
             <Badge className="bg-red-500 text-white border-0 text-xs">
               {urgentCount} urgent
@@ -207,7 +215,10 @@ export default function DailyBriefing() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-primary-foreground text-sm font-medium leading-snug">{item.label}</p>
-                      <p className="text-primary-foreground/50 text-xs mt-0.5 truncate">{item.sub}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-primary-foreground/50 text-xs mt-0.5 truncate flex-1">{item.sub}</p>
+                        <SpeechifyPlayer text={`${item.label}. ${item.sub}`} size={9} color="rgba(255,255,255,0.4)" />
+                      </div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-primary-foreground/30 shrink-0 mt-1" />
                   </div>

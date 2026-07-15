@@ -7,6 +7,7 @@ import { Loader2, Send, Sparkles, MessageCircle, Building2, User, ExternalLink }
 import ChatThread from './ChatThread';
 import TagsEditor from './TagsEditor';
 import { normalizePhoneNumber } from '@/lib/phoneUtils';
+import ModernComposerField from '@/components/landlord/ModernComposerField';
 
 /**
  * LeadWhatsAppTab — shows Business and Personal WhatsApp conversations for a lead
@@ -196,29 +197,19 @@ export default function LeadWhatsAppTab({ lead }) {
           </div>
 
           {/* Reply box */}
-          <div className="p-2 border-t flex gap-2 items-end shrink-0"
-            style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-            <Textarea
+          <div className="p-2 border-t shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            <ModernComposerField
               value={reply}
               onChange={e => setReply(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              onSend={handleSend}
+              sending={sendMutation.isPending}
               placeholder={`Reply via ${activeChannel} WhatsApp…`}
-              className="min-h-[44px] max-h-24 text-sm resize-none"
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
+              channel="whatsapp"
+              accent={activeChannel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 50%)'}
+              voiceEnabled={true}
+              minHeight={44}
             />
-            <Button
-              size="icon"
-              className="shrink-0 h-9 w-9 text-white"
-              style={{ background: activeChannel === 'business' ? 'hsl(152 69% 40%)' : 'hsl(217 91% 50%)' }}
-              onClick={handleSend}
-              disabled={!reply.trim() || sendMutation.isPending}
-            >
-              {sendMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            </Button>
           </div>
         </div>
       )}

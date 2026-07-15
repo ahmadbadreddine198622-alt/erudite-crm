@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/lib/useCurrentUser';
 import { toast } from 'sonner';
 import { Loader2, Plus, Sparkles, X, Users, Calendar } from 'lucide-react';
 import { GOLD, GOLD_LITE, card, serif, label, goldBtn, outlineBtn, input, rankPill } from '@/lib/academyStyles';
+import WritingField from '@/components/shared/WritingField';
 
 export default function CouncilMastermind() {
   const { user } = useCurrentUser();
@@ -158,23 +159,23 @@ export default function CouncilMastermind() {
                 {agendaLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Generate Agenda
               </button>
             </div>
-            <textarea value={form.agenda} onChange={e => set('agenda', e.target.value)} rows={6} placeholder="Agenda will appear here when generated, or write your own..." style={{ ...input, resize: 'vertical', lineHeight: 1.5 }} />
+            <WritingField value={form.agenda} onChange={e => set('agenda', e.target.value)} rows={6} placeholder="Agenda will appear here when generated, or write your own..." style={{ ...input, resize: 'vertical', lineHeight: 1.5 }} />
           </div>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ flex: '1 1 200px' }}>
               <label style={{ ...label, display: 'block', marginBottom: 5 }}>Wins</label>
-              <textarea value={form.wins} onChange={e => set('wins', e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
+              <WritingField value={form.wins} onChange={e => set('wins', e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
             </div>
             <div style={{ flex: '1 1 200px' }}>
               <label style={{ ...label, display: 'block', marginBottom: 5 }}>Commitments</label>
-              <textarea value={form.commitments} onChange={e => set('commitments', e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
+              <WritingField value={form.commitments} onChange={e => set('commitments', e.target.value)} rows={3} style={{ ...input, resize: 'vertical' }} />
             </div>
           </div>
 
           <div style={{ marginBottom: 12 }}>
             <label style={{ ...label, display: 'block', marginBottom: 5 }}>Notes</label>
-            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} style={{ ...input, resize: 'vertical' }} />
+            <WritingField value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} style={{ ...input, resize: 'vertical' }} />
           </div>
 
           <button onClick={handleSave} style={goldBtn}>Create Session</button>

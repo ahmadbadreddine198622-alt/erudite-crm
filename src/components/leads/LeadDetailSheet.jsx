@@ -44,6 +44,8 @@ import IntentToggle from '@/components/leads/IntentToggle';
 import AppointmentComposer from '@/components/leads/AppointmentComposer';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
 import EmailComposeButton from '@/components/shared/EmailComposeButton';
+import SpeechifyPlayer from '@/components/academy/SpeechifyPlayer';
+import CopyButton from '@/components/shared/CopyButton';
 
 export default function LeadDetailSheet({ lead, open, onClose }) {
   const { getPhotoForPhone } = usePhotoByPhone();
@@ -338,24 +340,30 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                       <Phone className="w-4 h-4 text-accent shrink-0" />
                       <span className="text-foreground">{lead.phone}</span>
                     </div>
-                    <UniversalWhatsAppAction
-                      phone={lead.phone}
-                      name={lead.full_name}
-                      leadId={lead.id}
-                      size="sm"
-                      disabled={lead.do_not_contact}
-                      disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
-                    />
+                    <div className="flex items-center gap-1">
+                      <CopyButton value={lead.phone} label="Phone" size={14} />
+                      <UniversalWhatsAppAction
+                        phone={lead.phone}
+                        name={lead.full_name}
+                        leadId={lead.id}
+                        size="sm"
+                        disabled={lead.do_not_contact}
+                        disabledReason={lead.do_not_contact ? 'Lead is opted out of contact' : undefined}
+                      />
+                    </div>
                   </div>
                 )}
                 <div>
                   <label className="text-[10px] font-medium text-muted-foreground">Email</label>
-                  <Input
-                    defaultValue={lead.email || ''}
-                    placeholder="email@example.com"
-                    className="mt-1 h-9 text-sm"
-                    onBlur={(e) => { if (e.target.value !== (lead.email || '')) updateMutation.mutate({ email: e.target.value }); }}
-                  />
+                  <div className="flex items-center gap-1 mt-1">
+                    <Input
+                      defaultValue={lead.email || ''}
+                      placeholder="email@example.com"
+                      className="h-9 text-sm flex-1"
+                      onBlur={(e) => { if (e.target.value !== (lead.email || '')) updateMutation.mutate({ email: e.target.value }); }}
+                    />
+                    <CopyButton value={lead.email} label="Email" size={16} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -556,7 +564,10 @@ export default function LeadDetailSheet({ lead, open, onClose }) {
                       <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{act.title}</p>
+                      <div className="flex items-start gap-1.5">
+                        <p className="text-sm font-medium flex-1">{act.title}</p>
+                        <SpeechifyPlayer text={`${act.title}. ${act.description || ''}`} size={10} color="rgba(255,255,255,0.4)" />
+                      </div>
                       {act.description && <p className="text-xs text-muted-foreground mt-0.5">{act.description}</p>}
                       <p className="text-[10px] text-muted-foreground mt-1">
                         {act.created_date && format(new Date(act.created_date), 'MMM d, h:mm a')}

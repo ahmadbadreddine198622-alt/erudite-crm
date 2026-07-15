@@ -440,6 +440,24 @@ Deno.serve(async (req) => {
         status: conversation.status === 'resolved' ? 'open' : (conversation.status || 'open'),
       });
     }
+
+    // BRAIN V4 P3 LEARN: record the send in the outcome ledger (non-fatal, never blocks the send).
+    // recordOutcomeEvent handles idempotency, draft-angle attribution, and enrichment.
+    if (landlord_id) {
+      try {
+        await svc.functions.invoke('recordOutcomeEvent', {
+          landlord_id,
+          kind: 'draft_sent',
+          channel: 'whatsapp',
+          source_ref: message?.id ? `WhatsAppMessage:${message.id}` : (waId ? `wa:${waId}` : ''),
+          text: String(text || ''),
+          sent_at: new Date().toISOString(),
+          writer_email: user.email,
+          ai_source: body.created_from_ai === true ? (body.ai_source || null) : null,
+          ai_draft_text: body.created_from_ai === true ? (body.ai_draft_text || null) : null,
+        }).catch(() => {});
+      } catch (_) { /* ledger must never break a send */ }
+    }
   } catch (e) {
     return Response.json({
       status: 'sent_but_not_recorded',

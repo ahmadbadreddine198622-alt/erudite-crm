@@ -3,13 +3,14 @@
 // src/pages/LandlordDetailPage.jsx  (replace everything that's there).
 // No other files needed. The /landlord/:id route already points here.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { buildLandlordStream } from '@/lib/buildLandlordStream';
+import LandlordStreamBubble from '@/components/landlord/LandlordStreamBubble';
 import FormAUploadDialog from '@/components/landlord/FormAUploadDialog';
 import DocumentUploader from '@/components/landlord/DocumentUploader';
 import ListingManagerAssignDialog from '@/components/landlord/ListingManagerAssignDialog';
@@ -19,9 +20,12 @@ import DocumentsTab from '@/components/landlord/DocumentsTab';
 import CallsTabList from '@/components/landlord/CallsTabList';
 import MandateDrawer from '@/components/landlord/MandateDrawer';
 import ContactEvaluation from '@/components/landlord/ContactEvaluation';
+import P3CallScript from '@/components/landlord/P3CallScript';
 import ListingManagerStrip from '@/components/landlord/ListingManagerStrip';
 import CallQualificationTab from '@/components/landlord/CallQualificationTab';
 import AIIntelligenceCard from '@/components/landlord/AIIntelligenceCard';
+import AuroraProposalsStrip from '@/components/landlord/AuroraProposalsStrip';
+import AICallScript from '@/components/landlord/AICallScript';
 import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
@@ -44,6 +48,7 @@ import HubSpotActivityList from '@/components/landlord/HubSpotActivityList';
 import EmailList from '@/components/landlord/EmailList';
 import AllActivityTab from '@/components/landlord/AllActivityTab';
 import { LANDLORD_STAGE_LABELS as _STAGE_LABELS, LANDLORD_STAGE_KEYS as _STAGE_KEYS } from '@/lib/landlordStages';
+import { fmtAED, fmtPSF, parseP3UnitRef, P3_TYPE_LABEL, inferP3UnitType, medianNum, deriveDeedValuation, buildP3CallScript, fmtStamp, tsOf, safe, latest, PIPELINE_STAGES, temperatureFromRapport } from '@/lib/p3CallScript';
 import LandlordTabBar from '@/components/landlord/LandlordTabBar';
 import LandlordMockTabs from '@/components/landlord/LandlordMockTabs';
 import AppointmentBookingDialog from '@/components/appointments/AppointmentBookingDialog';
@@ -145,7 +150,7 @@ class LandlordDetail extends React.Component {
       aiTasksCollapsed: true,
       aiFollowupsCollapsed: true,
       aiIntelligenceCollapsed: true,
-      imessageChecking: false,
+      imessageChecking: false, whatsappChecking: false,
       telegramJustSent: false,
       // Shared composerBrain parse→confirm→commit flow (Note/Task/Follow-up). composerParsing
       // shows the "parsing…" send state; composerDraft holds the confirmable { type, draft,
@@ -206,29 +211,22 @@ class LandlordDetail extends React.Component {
   // Resolves ALL of the landlord's iMessage handles (phones + emails) and the primary one,
   // via resolveLandlordIMessage — not just the single primary phone.
   checkIMessage = async ()=>{
-    const L = this.cur();
-    if(!L || this._imessageChecking) return;
-    this._imessageChecking = true;
+    const L = this.cur(); if(!L || this._imessageChecking) return; this._imessageChecking = true;
     this.setState({ imessageChecking:true });
     try {
-      const res = await base44.functions.invoke('resolveLandlordIMessage', { landlord_id: L.id });
-      const data = res?.data ?? res;
-      const status = data?.imessage_status || 'error';
+      const data = (await base44.functions.invoke('resolveLandlordIMessage', { landlord_id: L.id }))?.data ?? {};
       const resolvedAt = data?.imessage_resolved_at || new Date().toISOString();
-      const handles = Array.isArray(data?.handles) ? data.handles : [];
-      const handle = data?.imessage_handle || '';
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:status, imessageCheckedAt:resolvedAt, imessageResolvedAt:resolvedAt, imessageHandles:handles, imessageHandle:handle} : l),
-        imessageChecking:false,
-      }));
+      this.setState(s=>({ imessageChecking:false, landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:data?.imessage_status||'error', imessageCheckedAt:resolvedAt, imessageResolvedAt:resolvedAt, imessageHandles:Array.isArray(data?.handles)?data.handles:[], imessageHandle:data?.imessage_handle||''} : l) }));
     } catch(e){
-      this.setState(s=>({
-        landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:'error', imessageCheckedAt:new Date().toISOString()} : l),
-        imessageChecking:false,
-      }));
-    } finally {
-      this._imessageChecking = false;
-    }
+      this.setState(s=>({ imessageChecking:false, landlords: s.landlords.map(l=> l.id===L.id ? {...l, imessageStatus:'error', imessageCheckedAt:new Date().toISOString()} : l) }));
+    } finally { this._imessageChecking = false; }
+  };
+  checkWhatsApp = async ()=>{
+    const L = this.cur(); if(!L || this._whatsappChecking) return; this._whatsappChecking = true;
+    this.setState({ whatsappChecking:true });
+    try { await base44.functions.invoke('checkLandlordWhatsApp', { landlord_id: L.id }); if(this.props.onAnalysed) await this.props.onAnalysed(); }
+    catch(e){ toast.error('WhatsApp check failed: ' + (e?.message || 'unknown error')); }
+    finally { this.setState({ whatsappChecking:false }); this._whatsappChecking = false; }
   };
   componentDidUpdate(prevProps, prevState){
     // Sync landlords when prop array changes OR when current landlord data changes
@@ -340,10 +338,9 @@ class LandlordDetail extends React.Component {
   // Emptying the box after an AI draft was loaded means the agent is starting over — drop the
   // AI provenance (note OR task) so a freshly typed entry is correctly recorded as from-scratch.
   onComposerInput = (e)=>{
-    const v=e.target.value;
-    const ta=e.target;
-    ta.style.height='auto';
-    ta.style.height=Math.min(200, Math.max(96, ta.scrollHeight))+'px';
+    const v = e?.target?.value ?? (typeof e === 'string' ? e : '');
+    const ta = e?.target;
+    if (ta && ta.style) { ta.style.height='auto'; ta.style.height=Math.min(200, Math.max(96, ta.scrollHeight||96))+'px'; }
     this.setState(s=> (v==='' && (s.noteAiSource || s.taskAiSource || s.followupAiSource || s.messageAiSource)) ? { composerText:v, noteAiSource:null, noteAiDraft:null, taskAiSource:null, taskTitleDraft:null, followupAiSource:null, followupDraft:null, messageAiSource:null, messageAiDraft:null } : { composerText:v });
   };
   autoGrowComposer = ()=>{
@@ -830,25 +827,21 @@ class LandlordDetail extends React.Component {
     const L = this.cur();
     if(!L || this._telegramSending) return;
     this._telegramSending = true;
-    const attachment = this.state.composerAttachment||null; this.setState({ telegramSending:true });
+    this.setState({ telegramSending:true });
     try {
-      const res = await base44.functions.invoke('sendTelegram', { landlord_id: L.id, text, attachment_url: attachment?.file_url, attachment_name: attachment?.file_name, attachment_media_type: attachment?.media_type });
+      // Calls sendTelegramMessage — creates a TelegramMessage (outbound) on success.
+      // The 5s polling on telegramMessages reconciles the optimistic stream entry.
+      const res = await base44.functions.invoke('sendTelegramMessage', { landlord_id: L.id, body: text });
       const data = res?.data ?? res;
-      // Graceful fallback: landlord hasn't started a chat with the bot → offer WhatsApp instead.
-      if (data?.fallback === 'whatsapp' || (data?.error && /no telegram chat/i.test(data.error))) {
-        toast.error('No Telegram chat for this landlord — they must message the bot first.');
-        this._telegramSending = false;
-        this.setState({ telegramSending:false });
-        return;
-      }
       if (data?.error) throw new Error(data.error);
-      // Multi-sensory confirmation: sound + Telegram-blue flash overlay + toast (matches iMessage).
+      // Multi-sensory confirmation: sound + Telegram-blue flash overlay + toast.
       playSentSound();
       if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
       this.setState({ telegramJustSent:true });
       if (this._telegramFlashTimer) clearTimeout(this._telegramFlashTimer);
       this._telegramFlashTimer = setTimeout(()=> this.setState({ telegramJustSent:false }), 1700);
       toast.success('Sent ✓');
+      // Optimistic stream entry — the real TelegramMessage record arrives via polling.
       const order = Date.now();
       const item = { t:'msg', dir:'out', mtype:'text', channel:'telegram', text, time:'Just now', order };
       this.setState(s=>({
@@ -983,6 +976,12 @@ class LandlordDetail extends React.Component {
       scoreTrend: L.scoreTrend || null,
       dealThesis: L.aiDealThesis || '',
       openQuestions: arr(L.aiOpenQuestions),
+      // BRAIN V4 (CORTEX): confidence bands, leverage unknown, Why? traces, campaign, council.
+      confidence: L.aiConfidence || null,
+      leverageUnknown: L.aiLeverageUnknown || '',
+      reasoningTrace: arr(L.aiReasoningTrace),
+      campaignPlan: L.aiCampaignPlan || null,
+      council: L.aiCouncil || null,
     };
 
     const sorted=[...L.stream].sort((a,b)=>(a.order||0)-(b.order||0));
@@ -993,6 +992,8 @@ class LandlordDetail extends React.Component {
       : filterMode==='telegram' ? sorted.filter(s => s.channel==='telegram')
       : sorted.filter(s => s.t==='act' || s.wa===filterMode);
     const analyzeError=S.analyzeError || '';
+    // Show the iMessage server instance on bubbles only when this conversation uses bb2.
+    const imessageHasBB2 = sorted.some(s => s.channel === 'imessage' && (s.instance || 'bb1') === 'bb2');
     const stream=filtered.map((s,idx)=>{
       if(s.t==='msg'){
         const out = s.dir==='out';
@@ -1008,6 +1009,8 @@ class LandlordDetail extends React.Component {
             color: s.channel==='email' ? 'hsl(38 92% 62%)' : s.channel==='imessage' ? '#60a5fa' : s.channel==='telegram' ? '#29b6f6' : (s.wa==='personal' ? '#93c5fd' : s.wa==='agent' ? '#2dd4bf' : '#4ade80'),
             background: s.channel==='email' ? 'hsl(38 92% 50% / 0.12)' : s.channel==='imessage' ? 'rgba(10,132,255,0.14)' : s.channel==='telegram' ? 'rgba(41,182,246,0.14)' : (s.wa==='personal' ? 'rgba(59,130,246,0.14)' : s.wa==='agent' ? 'rgba(45,212,191,0.14)' : 'rgba(37,211,102,0.12)'),
             padding:'1px 5px', borderRadius:'4px' },
+          imessageInstance: s.channel==='imessage' ? (s.instance || 'bb1') : null,
+          showInstanceLabel: imessageHasBB2 && s.channel==='imessage',
           rowStyle:{ display:'flex', justifyContent: out?'flex-end':'flex-start' },
           bubbleStyle:{ maxWidth:'96%', padding:'10px 13px', borderRadius: out?'14px 14px 4px 14px':'14px 14px 14px 4px', background: out?'hsl(38 92% 50% / 0.12)':'rgba(255,255,255,0.05)', border:'1px solid '+(out?'hsl(38 92% 50% / 0.28)':'rgba(255,255,255,0.1)') },
           senderStyle:{ fontSize:'10px', fontWeight:700, letterSpacing:'0.03em', textTransform:'uppercase', color: out?'hsl(38 92% 58%)':'rgba(255,255,255,0.45)' },
@@ -1275,9 +1278,7 @@ class LandlordDetail extends React.Component {
             <style>{`@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.7;transform:scale(0.95);}}`}</style>
             {/* Left: back + breadcrumbs trail */}
             <div style={css("display:flex; align-items:center; gap:8px;")}>
-              <button onClick={this.onBack} title="Back" style={css("flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid rgba(204,170,102,0.2); background:rgba(38,35,34,0.95); cursor:pointer;")}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccaa66" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-              </button>
+              <button onClick={this.onBack} title="Go back to previous page" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 14px; border-radius:8px; border:1px solid rgba(79,106,180,0.55); background:#4F6AB4; color:#F0F0F0; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 12px rgba(79,106,180,0.25);")}>← Go Back</button>
               {/* Breadcrumb: Landlords › [Name] */}
               <div style={css("display:flex; align-items:center; gap:7px;")}>
                 <button onClick={()=>this.onNavigate('/landlords')} style={css("font-size:12px; font-weight:500; color:rgba(255,255,255,0.5); background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; padding:2px 0;")}>
@@ -1332,10 +1333,6 @@ class LandlordDetail extends React.Component {
                   <Users size={14} style={{ color: '#93a4c4' }} /> Assign Listing Manager
                 </button>
               )}
-              {/* Go Back — navigates to previous page */}
-              <button onClick={this.onBack} title="Go back to previous page" style={css("flex:none; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 14px; border-radius:8px; border:1px solid rgba(96,165,250,0.35); background:rgba(96,165,250,0.1); color:#93c5fd; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;")}>
-                ← Go Back
-              </button>
             </div>
           </div>
 
@@ -1526,47 +1523,7 @@ class LandlordDetail extends React.Component {
                   </div>
                 )}
                 {tabStream.map((s)=> s.isMsg ? (
-                  <div key={s.key} style={s.rowStyle}>
-                    <div style={s.bubbleStyle}>
-                      <div style={css("display:flex; align-items:center; gap:6px; margin-bottom:5px;")}>
-                        <span style={s.senderStyle}>{s.sender}</span>
-                        <span style={s.channelStyle}>{s.channel}</span>
-                      </div>
-
-                      {s.isText && (
-                        <div style={css("font-size:14px; line-height:1.5; color:rgba(255,255,255,0.9);")}>{s.text}</div>
-                      )}
-
-                      {s.isVoice && (
-                        <React.Fragment>
-                          <div style={css("display:flex; align-items:center; gap:9px; margin-bottom:8px;")}>
-                            <span style={css("flex:none; width:28px; height:28px; border-radius:50%; background:hsl(38 92% 50% / 0.2); display:flex; align-items:center; justify-content:center; color:hsl(38 92% 60%);")}>▶</span>
-                            <span style={css("display:flex; align-items:center; gap:2px; height:20px;")}>{s.waveform}</span>
-                            <span style={css("font-size:10.5px; color:rgba(255,255,255,0.45);")}>{s.duration}</span>
-                          </div>
-                          <div style={css("display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:3px;")}>Transcript · {s.transcriptLang}</div>
-                          <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{s.transcript}</div>
-                          <div style={css("margin-top:7px; padding-top:7px; border-top:1px dashed rgba(255,255,255,0.14);")}>
-                            <span style={css("display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:hsl(38 92% 58%); margin-bottom:3px;")}>EN translation · Whisper</span>
-                            <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.7); font-style:italic;")}>{s.translation}</div>
-                          </div>
-                        </React.Fragment>
-                      )}
-
-                      {s.isMedia && (
-                        <React.Fragment>
-                          {s.mediaUrl ? (
-                            <a href={s.mediaUrl} target="_blank" rel="noopener noreferrer" style={css("display:block; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); margin-bottom:6px;")}>
-                              <img src={s.mediaUrl} alt={s.mediaLabel||'media'} loading="lazy" style={css("display:block; max-width:100%; max-height:240px; object-fit:cover;")} />
-                            </a>
-                          ) : null}
-                          {s.text ? <div style={css("font-size:12.5px; line-height:1.5; color:rgba(255,255,255,0.82);")}>{s.text}</div> : null}
-                        </React.Fragment>
-                      )}
-
-                      <div style={s.timeStyle}>{s.time}</div>
-                    </div>
-                  </div>
+                  <LandlordStreamBubble key={s.key} s={s} />
                 ) : (
                   <div key={s.key} style={css("display:flex; align-items:flex-start; gap:11px; padding:2px 4px;")}>
                     <span style={s.actIconStyle}>{s.actIcon}</span>
@@ -1710,6 +1667,9 @@ class LandlordDetail extends React.Component {
                     landlordId={L.id}
                     toEmail={L.email}
                     allEmails={Array.isArray(this.props.rawLandlord?.additional_emails) ? this.props.rawLandlord.additional_emails : (Array.isArray(L.additionalEmails) ? L.additionalEmails : [])}
+                    approachDrafts={this.props.approachDrafts}
+                    approachForging={this.props.approachForging}
+                    onRegenerateApproach={this.props.onRegenerateApproach}
                     onLogged={({ subject, body })=>{
                       tickOutreachStep('email_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
@@ -1725,6 +1685,7 @@ class LandlordDetail extends React.Component {
                     propertyId={L.unit && L.unit.propertyId}
                     agentEmail={L.agentEmail}
                     onBooked={({ when, type })=>{
+                      base44.functions.invoke('landlordOrchestrator', { landlord_id: L.id }).catch(()=>{}); // new appointment → wake the V3 brain
                       const order = Date.now();
                       const item = { t:'act', kind:'appointment', title:'Appointment booked · ' + (type || 'meeting'), body: when, time:'Just now', order };
                       this.setState(s=>({ landlords: s.landlords.map(l=> l.id===s.currentId ? {...l, stream:[...l.stream, item]} : l) }), ()=>this.scrollBottom());
@@ -1736,6 +1697,9 @@ class LandlordDetail extends React.Component {
                     landlordId={L.id}
                     imessageStatus={this.props.rawLandlord?.imessage_status || L.imessageStatus || 'unknown'}
                     imessageHandles={this.props.rawLandlord?.imessage_handles || L.imessageHandles || L.imessage_handles || []}
+                    approachDrafts={this.props.approachDrafts}
+                    approachForging={this.props.approachForging}
+                    onRegenerateApproach={this.props.onRegenerateApproach}
                     onSent={({ text })=>{
                       tickOutreachStep('imessage_sent', L).then(()=> this.props.onOutreachChanged && this.props.onOutreachChanged()); // auto-tick today's outreach sequence
                       const order = Date.now();
@@ -1745,6 +1709,26 @@ class LandlordDetail extends React.Component {
                     onFallback={(text)=>{ this.setState({ composerType:'Chat', composerText:text }); }}
                   />
                 )}
+                {effComposer === 'Telegram' && (() => {
+                  const rl = this.props.rawLandlord || {};
+                  const hasTgContact = !!(rl.telegram_chat_id || rl.phone || rl.telegram_username);
+                  if (!hasTgContact) return null; // disabledHint handles the "no contact" case
+                  const session = this.props.telegramSession;
+                  if (!session) {
+                    return (
+                      <div style={css("margin-bottom:8px; padding:8px 12px; border-radius:9px; background:rgba(41,182,246,0.08); border:1px solid rgba(41,182,246,0.28); font-size:11px; color:#4fc3f7; display:flex; align-items:center; gap:7px;")}>
+                        <span>✈ Sending from company Telegram (Erudite)</span>
+                        <a href="/telegram-settings" onClick={(e)=>{ e.preventDefault(); this.onNavigate('/telegram-settings'); }} style={css("color:#29b6f6; text-decoration:underline; cursor:pointer; font-weight:600;")}>Connect your number →</a>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={css("margin-bottom:8px; padding:8px 12px; border-radius:9px; background:rgba(41,182,246,0.06); border:1px solid rgba(41,182,246,0.22); font-size:11px; color:#4fc3f7; display:flex; align-items:center; gap:7px;")}>
+                      <span style={css("width:6px; height:6px; border-radius:50%; background:#29b6f6; box-shadow:0 0 7px rgba(41,182,246,0.6); flex:none;")} />
+                      <span>Sending as: {session.phone || session.label || session.telegram_username || 'connected'}</span>
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const ct = effComposer;
                   const isChatTab = ct === 'Chat' || ct === 'Telegram' || ct === 'SMS' || ct === 'Activity';
@@ -1752,9 +1736,9 @@ class LandlordDetail extends React.Component {
                   const tplChannel = ct === 'Chat' || ct === 'Activity' ? 'whatsapp' : ct === 'Telegram' ? 'telegram' : 'sms';
                   const sending = ct === 'Chat' || ct === 'Activity' ? this.state.chatSending : ct === 'Telegram' ? this.state.telegramSending : false;
                   const waDisabled = (ct === 'Chat' || ct === 'Activity') && (!this.props.currentUser?.whatsapp_instance && this.props.currentUser?.role !== 'admin');
-                  const tgDisabled = ct === 'Telegram' && !(this.props.rawLandlord?.telegram_chat_id);
+                  const tgDisabled = ct === 'Telegram' && !(this.props.rawLandlord?.telegram_chat_id || this.props.rawLandlord?.phone || this.props.rawLandlord?.telegram_username);
                   const channelDisabled = waDisabled || tgDisabled;
-                  const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram chat — the landlord must message the bot first' : '';
+                  const disabledHint = waDisabled ? 'Configure your WhatsApp line in Profile' : tgDisabled ? 'No Telegram contact info for this landlord' : '';
                   return (
                     <UnifiedChatComposer
                       composerType={ct}
@@ -1774,6 +1758,10 @@ class LandlordDetail extends React.Component {
                       })}
                       aiSuggestedMessages={ct === 'Chat' ? L.aiSuggestedMessages : []}
                       onPickSuggested={(text)=> this.setState({ composerText: text, messageAiSource: 'landlordOrchestrator.ai_suggested_messages', messageAiDraft: text })}
+                      approachDrafts={this.props.approachDrafts}
+                      approachForging={this.props.approachForging}
+                      onLoadApproach={(text)=> this.setState({ composerText: text, messageAiSource: 'forgeApproachDrafts', messageAiDraft: text })}
+                      onRegenerateApproach={this.props.onRegenerateApproach}
                       attachment={this.state.composerAttachment}
                       onAttachmentChange={(a)=> this.setState({ composerAttachment: a })}
                       chatTemplatesOpen={this.state.chatTemplatesOpen}
@@ -1811,8 +1799,16 @@ class LandlordDetail extends React.Component {
                 landlord={this.props.rawLandlord}
                 unit={this.props.rawProperty}
                 landlordId={this.state.currentId}
-                imessageChecking={this.state.imessageChecking}
-                onCheckIMessage={this.checkIMessage}
+                imessageChecking={this.state.imessageChecking} whatsappChecking={this.state.whatsappChecking}
+                onCheckIMessage={this.checkIMessage} onCheckWhatsApp={this.checkWhatsApp}
+              />
+
+              {/* BRAIN V4 P6 (ACT): Aurora-proposes strip — approve keeps, dismiss teaches */}
+              <AuroraProposalsStrip
+                proposals={this.props.auroraProposals}
+                busyId={this.props.proposalBusyId}
+                onApprove={(p) => this.props.onProposalAction && this.props.onProposalAction(p, 'approved')}
+                onDismiss={(p) => this.props.onProposalAction && this.props.onProposalAction(p, 'dismissed')}
               />
 
               <AIIntelligenceCard
@@ -1823,7 +1819,16 @@ class LandlordDetail extends React.Component {
                 onToggle={this.onToggleAIIntelligence}
               >
                 <ContactEvaluation valuation={vm.valuation} comps={vm.market?.comps} askingPrice={fmtAED(this.props.rawLandlord?.asking_price_aed)} propertyName={(this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) ? (this.props.rawLandlord?.project_name || this.props.rawProperty?.building_name) : null} />
+                <P3CallScript script={L.evalScript} />
               </AIIntelligenceCard>
+
+              <AICallScript
+                landlordId={this.state.currentId}
+                aiCallScript={this.props.rawLandlord?.ai_call_script || null}
+                aiCallScriptAt={this.props.rawLandlord?.ai_call_script_at || null}
+                aiProcessedAt={this.props.rawLandlord?.ai_processed_at || null}
+                onGenerated={this.props.onAnalysed}
+              />
 
               <LandlordMockTabs
                 landlordId={this.state.currentId}
@@ -1869,6 +1874,9 @@ class LandlordDetail extends React.Component {
                 assignedAgentEmail={L.agentEmail}
                 phone={L.phone}
                 whatsapp={L.whatsapp}
+                users={this.props.allUsers}
+                landlordId={this.state.currentId}
+                onAssigned={this.props.onAnalysed}
               />
               <MediaPanel media={vm.media} />
 
@@ -1910,42 +1918,7 @@ const STAGE_KEYS = [
 
 /* ---- small helpers ---- */
 const initialsOf = (name) => String(name || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
-const fmtAED = (n) => {
-if (n == null || isNaN(n)) return '—';
-if (n >= 1_000_000) return 'AED ' + (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
-if (n >= 1_000) return 'AED ' + Math.round(n / 1_000) + 'K';
-return 'AED ' + n;
-};
-const fmtPSF = (n) => {
-if (n == null || isNaN(n)) return '';
-return 'AED ' + Math.round(n).toLocaleString() + '/sqft';
-};
-const fmtStamp = (ts) => {
-  if (!ts) return '';
-  const d = new Date(ts); if (isNaN(d)) return String(ts);
-  return d.toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-};
-const tsOf = (x) => { const d = new Date(x); return isNaN(d) ? 0 : d.getTime(); };
-/* Run a queryFn that may reference an entity that doesn't exist yet — never throw. */
-const safe = async (fn) => { try { return (await fn()) || []; } catch { return []; } };
-const latest = (arr, dateKey) => {
-  if (!arr || !arr.length) return null;
-  return [...arr].sort((a, b) => tsOf(b[dateKey] || b.created_date) - tsOf(a[dateKey] || a.created_date))[0];
-};
-
-// Full stage enum from Landlord entity schema (17 values)
-const PIPELINE_STAGES = [
-  'initial_contact','attempted_to_contact','price_discovery','listing_commitment','form_a_initiation','form_a_signing',
-  'owner_documents','photos_videos','photographer_scheduling','listing_creation','internal_verification',
-  'listing_publication','final_confirmation','marketing_agents','marketing_network','open_house',
-  'client_blast','deal_closed',
-];
-
-function temperatureFromRapport(rapport) {
-  if (rapport === 'champion' || rapport === 'trust_established') return 'hot';
-  if (rapport === 'warming' || rapport === 'rapport_built') return 'warm';
-  return 'cold';
-}
+// P3 valuation + call-script engine and shared helpers now live in @/lib/p3CallScript.
 
 export default function LandlordDetailPage() {
   const { id } = useParams();
@@ -1960,6 +1933,52 @@ export default function LandlordDetailPage() {
   const [mediaInputs, setMediaInputs] = useState({});
 
   const { data: L, isLoading, refetch: refetchLandlord } = useQ(['landlord', id], () => base44.entities.Landlord.get(id), { enabled: !!id });
+
+  // ── APPROACH FORGE ── every time a landlord card is opened, auto-forge one fresh draft
+  // script per telecommunication channel (email / WhatsApp / Telegram / SMS / iMessage) from
+  // the full intelligence stack. Drafts land in each composer's draft section — NEVER sent
+  // automatically. Debounce + activity-awareness live in the backend (forgeApproachDrafts);
+  // the Regenerate button on any strip forces a fresh, different forge for all channels.
+  const [approachForging, setApproachForging] = useState(false);
+  const approachForgedFor = useRef(null);
+  useEffect(() => {
+    if (!id || !L?.id || approachForgedFor.current === id) return;
+    approachForgedFor.current = id;
+    (async () => {
+      try {
+        setApproachForging(!L.ai_approach_drafts); // shimmer only when nothing is on file yet
+        // 1) Wake the V3 brain first. Its smart debounce runs the full re-analysis ONLY when the
+        //    output is stale or NEW tasks/notes/follow-ups/appointments/activity exist — every new
+        //    record on this landlord flows into the brain before anything is drafted.
+        let brainRan = false;
+        try {
+          const bres = await base44.functions.invoke('landlordOrchestrator', { landlord_id: id });
+          const bdata = bres?.data ?? bres;
+          brainRan = !!bdata && !bdata.skipped && !bdata.error;
+          if (brainRan) { await refetchLandlord(); queryClient.invalidateQueries({ queryKey: ['landlords'] }); }
+        } catch (_) { /* brain refresh is best-effort */ }
+        // 2) Forge the channel drafts from the freshest brain output; a brain re-run forces a
+        //    fresh forge so every draft reflects the information the brain has NOW.
+        const res = await base44.functions.invoke('forgeApproachDrafts', { landlord_id: id, force: brainRan });
+        const data = res?.data ?? res;
+        if (data?.forged) await refetchLandlord();
+      } catch (_) { /* non-fatal — the card works fine without fresh drafts */ }
+      finally { setApproachForging(false); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, L?.id]);
+  const regenerateApproach = async () => {
+    if (!id || approachForging) return;
+    setApproachForging(true);
+    try {
+      const res = await base44.functions.invoke('forgeApproachDrafts', { landlord_id: id, force: true });
+      const data = res?.data ?? res;
+      if (data?.forged) { await refetchLandlord(); toast.success('Fresh approach forged — all channels updated'); }
+      else if (data?.error) toast.error('Approach forge failed: ' + data.error);
+    } catch (e) {
+      toast.error('Approach forge failed: ' + (e?.message || 'unknown error'));
+    } finally { setApproachForging(false); }
+  };
 
   // After any change that mutates this landlord (stage move, analysis, appointment),
   // refresh both this page's record AND the Landlords list cache so the pipeline
@@ -1990,11 +2009,13 @@ export default function LandlordDetailPage() {
   const { data: landlordProperties = [] } = useQ(['landlord_properties', id], () => safe(() => base44.entities.LandlordProperty.filter({ landlord_id: id }, '-created_date', 10)), { enabled: !!id });
   const lp = landlordProperties[0] || {};
   const { data: prop = {} } = useQ(['property', lp.property_id], () => base44.entities.Property.get(lp.property_id), { enabled: !!lp.property_id });
-  // Fetch MarketTransaction comparables for the building/community
-  const { data: marketComps = [] } = useQ(['market_comps', prop?.building_name || prop?.location], () => safe(() => {
-    const query = prop?.building_name ? { project_name: prop.building_name } : prop?.location ? { project_name: prop.location } : {};
-    return base44.entities.MarketTransaction.filter(query, '-transaction_date', 10);
-  }), { enabled: !!(prop?.building_name || prop?.location) });
+  // Fetch MarketTransaction comparables for the building/community. Falls back to the
+  // landlord's own project_name when no linked Property exists (e.g. Peninsula 3 records),
+  // and fetches enough rows for the deed-based stack valuation.
+  const compsProject = prop?.building_name || prop?.location || L?.project_name || null;
+  const { data: marketComps = [] } = useQ(['market_comps', compsProject], () => safe(() =>
+    base44.entities.MarketTransaction.filter({ project_name: compsProject }, '-transaction_date', 300)
+  ), { enabled: !!compsProject });
   // Fetch DocumentChecklistItem records for this landlord
   const { data: docItems = [] } = useQ(['landlord_docs', id], () => safe(() => base44.entities.DocumentChecklistItem.filter({ landlord_id: id }, '-created_date', 50)), { enabled: !!id });
   // V3 Phase 2 (REMEMBER): append-only score history written by the orchestrator (P0). Read-only
@@ -2070,12 +2091,47 @@ export default function LandlordDetailPage() {
   // Telegram messages for the stream — sent/received via the Telegram Bot API, matched by landlord_id
   const { data: telegramMessages = [] } = useQ(['telegram_messages', id], () => safe(() => base44.entities.TelegramMessage.filter({ landlord_id: id }, '-sent_at', 200)), { enabled: !!id, refetchInterval: 5000, refetchOnWindowFocus: true });
 
+  // Current user's connected Telegram session — powers the "Sending as:" / "Sending from company Telegram" notice
+  const { data: telegramSessions = [] } = useQ(['telegram_session', currentUser?.email], () => safe(() => base44.entities.TelegramSession.filter({ agent_email: currentUser?.email, status: 'connected' }, '-updated_date', 1)), { enabled: !!currentUser?.email, refetchInterval: 30000 });
+  const telegramSession = Array.isArray(telegramSessions) ? telegramSessions[0] || null : null;
+
   // LandlordNote records — historical notes with author + timestamp for the Notes tab.
   const { data: notes = [] } = useQ(['landlord_notes', id], () => safe(() => base44.entities.LandlordNote.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
   // LandlordTask records — historical tasks with assignee + due date for the Tasks tab.
   const { data: tasks = [] } = useQ(['landlord_tasks', id], () => safe(() => base44.entities.LandlordTask.filter({ landlord_id: id }, '-created_date', 100)), { enabled: !!id });
   // LandlordAppointment records — historical follow-ups with channel + datetime for the Follow-up tab.
   const { data: followups = [] } = useQ(['landlord_followups', id], () => safe(() => base44.entities.LandlordAppointment.filter({ landlord_id: id }, '-datetime', 100)), { enabled: !!id });
+
+  // BRAIN V4 P6 (ACT): live Aurora proposals — origin='aurora' rows awaiting a human verdict on
+  // the Aurora-proposes strip. Approve/dismiss writes the verdict to the Outcome Ledger so the
+  // brain learns which proposals earn trust. Nothing here sends anything to the landlord.
+  const { data: proposedFups = [], refetch: refetchProposedFups } = useQ(['aurora_proposals_fup', id], () => safe(() => base44.entities.Followup.filter({ landlord_id: id, origin: 'aurora', proposal_status: 'proposed', status: 'pending' }, '-created_date', 10)), { enabled: !!id, refetchInterval: 30000 });
+  const { data: proposedTasks = [], refetch: refetchProposedTasks } = useQ(['aurora_proposals_task', id], () => safe(() => base44.entities.LandlordTask.filter({ landlord_id: id, origin: 'aurora', proposal_status: 'proposed', done: false }, '-created_date', 10)), { enabled: !!id, refetchInterval: 30000 });
+  const [proposalBusyId, setProposalBusyId] = useState(null);
+  const auroraProposals = [
+    ...(Array.isArray(proposedFups) ? proposedFups : []).map(r => ({ ...r, type: 'followup' })),
+    ...(Array.isArray(proposedTasks) ? proposedTasks : []).map(r => ({ ...r, type: 'task' })),
+  ];
+  const handleProposalAction = async (p, verdict) => {
+    setProposalBusyId(p.id);
+    try {
+      if (p.type === 'task') {
+        await base44.entities.LandlordTask.update(p.id, verdict === 'approved' ? { proposal_status: 'approved' } : { proposal_status: 'dismissed', done: true });
+      } else {
+        await base44.entities.Followup.update(p.id, verdict === 'approved' ? { proposal_status: 'approved' } : { proposal_status: 'dismissed', status: 'cancelled' });
+      }
+      // The verdict IS the training signal — it lands in the Outcome Ledger (P3 LEARN).
+      base44.functions.invoke('recordOutcomeEvent', {
+        landlord_id: id,
+        kind: verdict === 'approved' ? 'proposal_approved' : 'proposal_dismissed',
+        source_ref: `proposal:${p.id}`,
+        template_key: p.ai_source || null,
+        description: `${p.type}: ${p.title || ''}`.slice(0, 200),
+      }).catch(() => {});
+    } catch (e) { console.error('proposal action failed:', e); }
+    setProposalBusyId(null);
+    refetchProposedFups(); refetchProposedTasks();
+  };
 
   // WhatsApp messages for the stream — match by phone (to_number OR from_number), trying +/- variants
   const { data: waStreamMessages = [] } = useQ(['wa_stream_msgs', phone], async () => {
@@ -2222,11 +2278,23 @@ export default function LandlordDetailPage() {
     landlordEmail, L, resolveUserName, resolveAgentByPhone, deriveWaChannel, tsOf,
   });
 
+  // Inferred P3 unit type (Studio/1BR/2BR) from the unit's own stack deed history —
+  // shown right next to the unit number. Never guessed: stays hidden when the deeds
+  // cannot establish the type.
+  const p3CleanComps = marketComps.filter(t => !t.is_outlier);
+  const p3Unit = parseP3UnitRef(L?.unit_reference);
+  const storedLayoutRaw = String(L?.unit_layout || '').toUpperCase().replace(/\s/g, '');
+  const STORED_TYPE_MAP = { STUDIO: 'studio', '1BHK': '1br', '2BHK': '2br', '3BHK': '3br', '1BR': '1br', '2BR': '2br', '3BR': '3br' };
+  const p3UnitType = STORED_TYPE_MAP[storedLayoutRaw] || inferP3UnitType(p3Unit, p3CleanComps);
+  const p3TypeChip = storedLayoutRaw === 'STUDIO' ? 'Studio'
+    : STORED_TYPE_MAP[storedLayoutRaw] ? `${storedLayoutRaw[0]}BR`
+    : storedLayoutRaw ? String(L.unit_layout)
+    : (p3UnitType ? (P3_TYPE_LABEL[p3UnitType] || p3UnitType) : null);
   const unit = {
-    label: prop.unit_no || L.unit_reference || '—',
+    label: `${prop.unit_no || L.unit_reference || '—'}${p3TypeChip ? ` · ${p3TypeChip}` : ''}`,
     building: prop.building_name || L.project_name || '—',
     area: prop.location || L.project_name || '—',
-    beds: prop.bedrooms != null ? `${prop.bedrooms} Bed` : '—',
+    beds: prop.bedrooms != null ? `${prop.bedrooms} Bed` : (p3TypeChip || '—'),
     baths: prop.bathrooms != null ? `${prop.bathrooms} Bath` : '—',
     sqft: prop.area_sqft ? `${prop.area_sqft} sqft` : '—',
     view: prop.view || '—',
@@ -2247,6 +2315,13 @@ export default function LandlordDetailPage() {
   const aiDealThesis = (typeof L.ai_deal_thesis === 'string' && L.ai_deal_thesis.trim()) ? L.ai_deal_thesis.trim() : null;
   const aiOpenQuestions = deriveOpenQuestions(L.ai_open_questions);
   const scoreTrend = deriveScoreTrend(scoreSnapshots);
+  // BRAIN V4 (CORTEX): confidence bands, highest-leverage unknown, reasoning trace,
+  // campaign plan, council verdict — all degrade to null/[] until populated.
+  const aiConfidence = (L.ai_confidence && typeof L.ai_confidence === 'object') ? L.ai_confidence : null;
+  const aiLeverageUnknown = (typeof L.ai_highest_leverage_unknown === 'string' && L.ai_highest_leverage_unknown.trim()) ? L.ai_highest_leverage_unknown.trim() : null;
+  const aiReasoningTrace = Array.isArray(L.ai_reasoning_trace) ? L.ai_reasoning_trace.filter(t => t && t.claim) : [];
+  const aiCampaignPlan = (L.ai_campaign_plan && typeof L.ai_campaign_plan === 'object' && Array.isArray(L.ai_campaign_plan.touches)) ? L.ai_campaign_plan : null;
+  const aiCouncil = (L.ai_council && typeof L.ai_council === 'object' && L.ai_council.verdict) ? L.ai_council : null;
 
   // Map media/photography fields from Landlord entity (verbatim field names)
   const media = {
@@ -2267,9 +2342,29 @@ export default function LandlordDetailPage() {
       background: lp.ai_valuation_confidence === 'high' ? 'rgba(16,185,129,0.14)' : lp.ai_valuation_confidence === 'medium' ? 'hsl(38 92% 50% / 0.16)' : 'rgba(239,68,68,0.16)' },
     basis: lp.ai_valuation_basis || '',
     updatedAt: lp.ai_valuation_updated_at ? new Date(lp.ai_valuation_updated_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '',
-  } : null;
-  // Map comparables from MarketTransaction
-  const comps = marketComps.slice(0, 5).map(t => ({
+  } : deriveDeedValuation(L, marketComps);
+  // Map comparables from MarketTransaction — TYPE-PURE: only deeds of this unit's own type
+  // (studio vs 1BR vs 2BR are never mixed; p3UnitType computed above with the unit header).
+  // Falls back to same-stack, then all, only when the type cannot be established.
+  const compsPool = p3UnitType
+    ? p3CleanComps.filter(t => t.bedrooms === p3UnitType)
+    : (p3Unit ? p3CleanComps.filter(t => String(t.unit_number || '').endsWith(`-${p3Unit.stack}`)) : p3CleanComps);
+  // Type trend chip for the comparables header — this unit's own type only.
+  const p3TrendLabel = (() => {
+    if (!p3UnitType || !compsPool.length) return '';
+    const label = P3_TYPE_LABEL[p3UnitType] || p3UnitType;
+    const pre = compsPool.filter(t => !t.is_post_event).map(t => t.price_per_sqft).filter(Boolean);
+    const post = compsPool.filter(t => t.is_post_event).map(t => t.price_per_sqft).filter(Boolean);
+    const gains = compsPool.map(t => (/capital gain ([+-]\d+)%/.exec(t.description || '') || [])[1]).filter(v => v != null).map(Number);
+    const gm = gains.length ? gains.slice().sort((a, b) => a - b)[Math.floor(gains.length / 2)] : null;
+    const parts = [`${label} · ${compsPool.length} deeds`];
+    if (pre.length && post.length) parts.push(`${medianNum(pre)}→${medianNum(post)} psf post-Feb`);
+    if (gm != null) parts.push(`median gain ${gm >= 0 ? '+' : ''}${gm}%`);
+    return parts.join(' · ');
+  })();
+  // Per-landlord evaluation + call script — deterministic, personalized, type-pure.
+  const evalScript = buildP3CallScript({ L, prop, lp, p3Unit, p3UnitType, compsPool, valuation });
+  const comps = (compsPool.length ? compsPool : p3CleanComps).slice(0, 5).map(t => ({
     ref: t.unit_number ? `Unit ${t.unit_number}` : '—',
     note: `${t.bedrooms} · ${t.sale_status === 'ready' ? 'Ready' : 'Offplan'} · ${new Date(t.transaction_date).toLocaleDateString('en-GB', { month:'short', year:'2-digit' })}`,
     price: fmtAED(t.price_aed),
@@ -2426,6 +2521,12 @@ export default function LandlordDetailPage() {
   aiDealThesis,
   aiOpenQuestions,
   scoreTrend,
+  // BRAIN V4 (CORTEX)
+  aiConfidence,
+  aiLeverageUnknown,
+  aiReasoningTrace,
+  aiCampaignPlan,
+  aiCouncil,
   aiObjections,
   hasCompetition,
   competitionText,
@@ -2438,11 +2539,12 @@ export default function LandlordDetailPage() {
   // Legacy fields for backward compat
   nextBest: aiNextBestAction ? { show: true, action: aiNextBestAction.action, reasoning: aiNextBestAction.reasoning, priority: aiNextBestAction.priority } : null,
   valuation,
+  evalScript,
   qualification: qualificationData,
   scores,
   ai: null,
   signals: hasStrikeNow ? { strikeNow: hasStrikeNow, strikeKicker, strikeText, strikeAccent: '#fca5a5' } : null,
-  market: comps.length ? { comps, trendLabel: '', trendStyle: { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
+  market: comps.length ? { comps, trendLabel: p3TrendLabel, trendStyle: p3TrendLabel ? { display:'inline-flex', alignItems:'center', padding:'4px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:700, background:'rgba(212,175,55,0.13)', border:'1px solid rgba(212,175,55,0.35)', color:'#e8cf7a' } : { display:'none' } } : { comps: [], trendLabel: '', trendStyle: { display:'none' } },
   battle: null,
   calls,
   offers: [],
@@ -2458,7 +2560,7 @@ export default function LandlordDetailPage() {
 
   return (
     <React.Fragment>
-      <LandlordDetail
+      <LandlordDetail key={mapped.id}
         landlords={[mapped]}
         rawLandlord={L}
         rawProperty={prop}
@@ -2485,15 +2587,23 @@ export default function LandlordDetailPage() {
         onNavigate={navigate}
         formAContracts={formAContracts}
         currentUser={currentUser} resolveAgentByPhone={resolveAgentByPhone}
+        allUsers={allUsers}
         isAdmin={isAdmin}
         canCoach={canCoach}
         comments={activityComments}
         directives={directives}
+        telegramSession={telegramSession}
+        approachDrafts={L?.ai_approach_drafts || null}
+        approachForging={approachForging}
+        onRegenerateApproach={regenerateApproach}
         taskTemplates={taskTemplates}
         followupTemplates={followupTemplates}
         onOutreachChanged={refetchOutreach}
         onAnalysed={handleAnalysed}
         onCallReportSaved={handleCallReportSaved}
+        auroraProposals={auroraProposals}
+        proposalBusyId={proposalBusyId}
+        onProposalAction={handleProposalAction}
         />
       <FormAUploadDialog
         open={formADialogOpen}
