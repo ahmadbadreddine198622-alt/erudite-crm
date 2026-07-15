@@ -28,6 +28,7 @@ import AuroraProposalsStrip from '@/components/landlord/AuroraProposalsStrip';
 import AICallScript from '@/components/landlord/AICallScript';
 import MandateDossierCard from '@/components/landlord/MandateDossierCard';
 import LandlordIdentityHeader from '@/components/landlord/LandlordIdentityHeader';
+import UnitIntelligence from '@/components/landlord/UnitIntelligence';
 import EmailComposer from '@/components/landlord/EmailComposer';
 import IMessageComposer from '@/components/landlord/IMessageComposer';
 import AppointmentComposer from '@/components/landlord/AppointmentComposer';
@@ -1540,6 +1541,8 @@ class LandlordDetail extends React.Component {
                 onApprove={(p) => this.props.onProposalAction && this.props.onProposalAction(p, 'approved')}
                 onDismiss={(p) => this.props.onProposalAction && this.props.onProposalAction(p, 'dismissed')}
               />
+
+              <UnitIntelligence landlord={this.props.rawLandlord || {}} onUpdate={this.props.onAnalysed} />
 
               <AIIntelligenceCard
                 ai={ai}

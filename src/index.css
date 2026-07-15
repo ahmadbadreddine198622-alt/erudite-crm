@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -325,6 +325,21 @@ div[id*="Base44"] {
   background: rgba(255,255,255,0.07);
   border-color: hsl(38 92% 50% / 0.5);
   box-shadow: 0 0 0 2px hsl(38 92% 50% / 0.12);
+}
+
+/* ─── Buyer vCard entrance + responsive layout ─── */
+@keyframes ld-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bv-body { display: flex; }
+.bv-left { width: 35%; border-right: 1px solid rgba(255,255,255,0.07); }
+.bv-right { width: 65%; }
+@media (max-width: 820px) {
+  .bv-body { flex-direction: column; }
+  .bv-left, .bv-right { width: 100%; }
+  .bv-left { border-right: none; }
+  .bv-topbar { flex-wrap: nowrap; overflow-x: auto; }
 }
 
 /* ─── Section Divider ─── */

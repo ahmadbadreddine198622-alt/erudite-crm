@@ -129,6 +129,7 @@ const TheMentor = lazy(() => import('@/pages/TheMentor'));
 const TelegramSettings = lazy(() => import('@/pages/TelegramSettings'));
 const OwnerRegistryImport = lazy(() => import('@/pages/OwnerRegistryImport'));
 const TrainingVideos = lazy(() => import('@/pages/TrainingVideos'));
+const BuyerVCard = lazy(() => import('@/pages/BuyerVCard'));
 
 // Lightweight fallback shown while a route chunk downloads (usually <300ms).
 const PageLoader = () => (
@@ -195,6 +196,7 @@ const AuthenticatedApp = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/landlords" element={<Landlords />} />
         <Route path="/landlord/:id" element={<LandlordDetailPage />} />
+        <Route path="/buyer/:id" element={<BuyerVCard />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/meta-ads-leads" element={<MetaAdsLeads />} />
         <Route path="/whatsapp-hub" element={<WhatsAppHub />} />

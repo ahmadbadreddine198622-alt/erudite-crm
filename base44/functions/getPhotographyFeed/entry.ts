@@ -10,14 +10,20 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Tasks assigned to THIS logged-in user (the photographer).
+    // Tasks assigned to THIS logged-in user (the photographer) — user-scoped,
+    // so the photographer only ever sees tasks explicitly assigned to them.
     const tasks = await base44.entities.PhotographyTask.filter({
       assigned_photographer_email: user.email,
     });
 
-    // Preload landlords + properties to join (small data set).
-    const landlords = await base44.entities.Landlord.list();
-    const properties = await base44.entities.LandlordProperty.list();
+    // Landlord + LandlordProperty are joined with the SERVICE ROLE because the
+    // Landlord RLS only admits the assigned agent / listing manager / co-agent —
+    // NOT the photographer. A user-scoped list() therefore returns [] for Dari
+    // and the V-Card renders "Unknown Owner" with no project/unit/access info.
+    // The PhotographyTask assignment above is the authorization gate; this join
+    // only reads the safe operational fields surfaced in the feed below.
+    const landlords = await base44.asServiceRole.entities.Landlord.list();
+    const properties = await base44.asServiceRole.entities.LandlordProperty.list();
 
     const feed = tasks.map((task) => {
       const ll = landlords.find((l) => l.id === task.landlord_id) || {};

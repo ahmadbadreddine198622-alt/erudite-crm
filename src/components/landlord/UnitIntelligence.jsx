@@ -227,18 +227,18 @@ function FloorPlateSchematic({ floorPlate, highlightPos }) {
 
 export default function UnitIntelligence({ landlord, onUpdate, compact = false }) {
   const { data: unitPlan, isLoading: loadingPlan } = useQuery({
-    queryKey: ['unit-plan', landlord.unit_plan_id, landlord.unit_plan_code],
+    queryKey: ['unit-plan', landlord?.unit_plan_id, landlord?.unit_plan_code],
     queryFn: async () => {
       if (landlord.unit_plan_id) {
         try { return await base44.entities.UnitPlan.get(landlord.unit_plan_id); } catch { /* fall through */ }
       }
-      if (landlord.unit_plan_code) {
+      if (landlord?.unit_plan_code) {
         const rows = await base44.entities.UnitPlan.filter({ plan_code: landlord.unit_plan_code });
         return rows?.[0] || null;
       }
       return null;
     },
-    enabled: !!landlord.unit_plan_code,
+    enabled: !!landlord?.unit_plan_code,
   });
 
   const bandKey = unitPlan?.band_key;
@@ -261,7 +261,7 @@ export default function UnitIntelligence({ landlord, onUpdate, compact = false }
     : '';
 
   // Render nothing unless the linking field is set
-  if (!landlord.unit_plan_code) return null;
+  if (!landlord?.unit_plan_code) return null;
   if (loadingPlan) {
     return (
       <div className="flex items-center gap-2 text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
