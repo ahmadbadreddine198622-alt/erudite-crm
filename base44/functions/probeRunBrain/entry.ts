@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * probeRunBrain — diagnostics: run landlordOrchestrator through the SAME service-role
- * cross-invoke path the webhooks/nudge crons use (the orchestrator requires an authenticated
- * caller, so a bare curl cannot reach it on a private app). Admin-or-scheduled only.
- * Forwards a whitelisted body and returns the orchestrator's response verbatim.
+ * probeRunBrain — diagnostics: run landlordOrchestrator OR buyerOrchestrator through the SAME
+ * service-role cross-invoke path the webhooks/nudge crons use (both orchestrators require an
+ * authenticated caller, so a bare curl cannot reach them on a private app). Admin-or-scheduled
+ * only. Forwards a whitelisted body and returns the orchestrator's response verbatim.
  */
 Deno.serve(async (req) => {
   try {
@@ -15,9 +15,11 @@ Deno.serve(async (req) => {
     const svc = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));
-    if (!body.landlord_id) return Response.json({ error: 'landlord_id required' }, { status: 400 });
+    const target = body.target === 'buyerOrchestrator' ? 'buyerOrchestrator' : 'landlordOrchestrator';
+    const idField = target === 'buyerOrchestrator' ? 'lead_id' : 'landlord_id';
+    if (!body[idField]) return Response.json({ error: `${idField} required` }, { status: 400 });
     const payload = {
-      landlord_id: String(body.landlord_id),
+      [idField]: String(body[idField]),
       force: body.force === true,
       tier: ['full', 'cold'].includes(body.tier) ? body.tier : 'full',
       force_cold: body.force_cold === true,
@@ -26,7 +28,7 @@ Deno.serve(async (req) => {
       triggered_by: typeof body.triggered_by === 'string' ? body.triggered_by.slice(0, 60) : 'manual',
     };
     const started = Date.now();
-    const res = await svc.functions.invoke('landlordOrchestrator', payload);
+    const res = await svc.functions.invoke(target, payload);
     return Response.json({ elapsed_ms: Date.now() - started, orchestrator: res?.data ?? res });
   } catch (error) {
     console.error('probeRunBrain error:', error);

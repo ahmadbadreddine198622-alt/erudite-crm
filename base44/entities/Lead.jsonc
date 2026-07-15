@@ -797,6 +797,80 @@
     "linked_pf_listing_id": {
       "type": "string",
       "description": "FK to PFListing record id \u2014 set when a PF buyer-lead is matched to the listing it came from"
+    },
+    "ai_strike_now": {
+      "type": "boolean",
+      "description": "BUYER BRAIN V1: hot signals + matched inventory + finance readiness aligned - act NOW. Written by buyerOrchestrator (recommend-only; a human still makes every touch)."
+    },
+    "ai_momentum": {
+      "type": "string",
+      "description": "BUYER BRAIN V1: conversation momentum - accelerating | steady | slowing | stalled. Written by buyerOrchestrator."
+    },
+    "ai_deal_thesis": {
+      "type": "string",
+      "description": "BUYER BRAIN V1: the persistent strategic narrative for winning this buyer - where the deal is going and how we close it. EVOLVES across runs (prior value is fed back in); distinct from ai_rolling_summary (tactical current-state)."
+    },
+    "ai_lead_score_rationale": {
+      "type": "string",
+      "description": "BUYER BRAIN V1: one-line rationale for ai_lead_score. Written by buyerOrchestrator."
+    },
+    "ai_conversion_rationale": {
+      "type": "string",
+      "description": "BUYER BRAIN V1: one-line rationale for ai_conversion_probability. Written by buyerOrchestrator."
+    },
+    "estimated_commission_aed": {
+      "type": "number",
+      "description": "BUYER BRAIN V1: commission expectation computed in CODE from a real basis ONLY (linked Deal.commission_value, or an accepted Offer amount when a written convention exists). Never model-invented; absent when no real basis exists."
+    },
+    "ai_suggested_messages": {
+      "type": "array",
+      "description": "BUYER BRAIN V1: 2-3 send-ready drafts advancing the next best action, in the lead's preferred_language, voiced per the identity engine (CEO voice only for CEO emails). Suggestions only - a human presses Send. Written by buyerOrchestrator.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "language": { "type": "string" },
+          "channel": { "type": "string", "enum": ["whatsapp", "call", "email", "sms"] },
+          "tone": { "type": "string" },
+          "intent": { "type": "string" },
+          "mode": { "type": "string", "enum": ["reply", "cold_open"] },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "ai_suggested_tasks": {
+      "type": "array",
+      "description": "BUYER BRAIN V1: AI-ranked shortlist of next tasks (max 5), most important first, keyed by the buyer task taxonomy in buyerOrchestrator. State-aware - never re-suggests an open Reminder.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template_key": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "ai_suggested_followups": {
+      "type": "array",
+      "description": "BUYER BRAIN V1: AI-suggested time-based follow-ups (max 4) on the buyer cadence (day2 matched-listing drop, day5 call, day9 voice note, day14 market snapshot, monthly nurture). Quiet-hours-safe suggestions only.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template_key": { "type": "string" },
+          "when_offset_days": { "type": "number" },
+          "suggested_hour": { "type": "number" },
+          "channel": { "type": "string", "enum": ["whatsapp", "call", "email", "sms"] },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "ai_approach_drafts": {
+      "type": "object",
+      "description": "BUYER BRAIN V1: multi-channel approach drafts forged for the logged-in agent (mirrors Landlord.ai_approach_drafts - forged_for identity stamp, forged_at, model). Populated by the buyer-side forge (B1); drafts only, never auto-sent."
+    },
+    "ai_approach_drafts_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "BUYER BRAIN V1: when ai_approach_drafts was last forged."
     }
   },
   "required": [
