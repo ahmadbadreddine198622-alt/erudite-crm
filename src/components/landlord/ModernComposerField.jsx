@@ -62,6 +62,7 @@ export default function ModernComposerField({
   targetLanguage,                 // landlord's preferred language code (e.g. 'hi', 'ar', 'ru', 'zh') — enables bidirectional editing
   landlordContext,                // { name, unit, project, asking, agentName } — grounds the magic reshape in the unit + project
   landlordId,                     // landlord entity ID — for V2 magic reshape backend call
+  leadId,                         // lead entity ID — BUYER BRAIN V1 B4e: magic reshape routes to magicReshapeLead
   channel,                        // 'imessage' | 'whatsapp' | 'telegram' | 'sms' | 'email' — context for the backend
   children,                       // left-cluster toolbar icons (templates / AI / attach / emoji)
   inputRef, minHeight = 72,
@@ -154,11 +155,11 @@ export default function ModernComposerField({
     const src = String(value || '').trim();
     if (!src) { toast.error('Nothing to reshape'); return; }
     if (magicBusy) return;
-    if (!landlordId) { toast.error('No landlord selected'); return; }
+    if (!leadId && !landlordId) { toast.error('No contact selected'); return; }
     setMagicBusy(true);
     try {
-      const res = await base44.functions.invoke('magicReshapeV2', {
-        landlord_id: landlordId,
+      const res = await base44.functions.invoke(leadId ? 'magicReshapeLead' : 'magicReshapeV2', {
+        ...(leadId ? { lead_id: leadId } : { landlord_id: landlordId }),
         text: src,
         channel: channel || 'unknown',
         angle_index: magicAngleIdx.current,
@@ -250,6 +251,7 @@ export default function ModernComposerField({
         placeholder={placeholder}
         minHeight={minHeight}
         landlordId={landlordId}
+        leadId={leadId}
         channel={channel}
         landlordContext={landlordContext}
         targetLanguage={targetLanguage}

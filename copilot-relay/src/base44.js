@@ -31,8 +31,8 @@ async function post(fn, body) {
  * rolling summary, valuation, founder directive, Cardone stage, and the
  * 14 Brain Qualify questions with field keys.
  */
-export function fetchContextPack({ call_log_id, landlord_id, agent_email }) {
-  return post("copilotContextPack", { call_log_id, landlord_id, agent_email });
+export function fetchContextPack({ call_log_id, landlord_id, lead_id, agent_email }) {
+  return post("copilotContextPack", { call_log_id, landlord_id, lead_id, agent_email });
 }
 
 /** Ship the finished call back to the CRM. */

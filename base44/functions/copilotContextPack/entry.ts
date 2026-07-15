@@ -26,6 +26,33 @@ const QUALIFY_QUESTIONS = [
   { field_key: 'followup_date', question: 'When should we follow up?', type: 'date' },
 ];
 
+// ── BUYER BRAIN V1 B4b — buyer/tenant question bank (field keys KEEP IN SYNC with
+// buyerBrainQualify's whitelist: live qualify_updates map straight onto Lead fields). ──
+const BUYER_QUALIFY_QUESTIONS = [
+  { field_key: 'intent', question: 'Are you looking to buy, or to rent?', type: 'choice', options: ['buyer', 'tenant'] },
+  { field_key: 'budget_max', question: "What budget do you have in mind? (RENT track: that's ANNUAL rent)", type: 'number' },
+  { field_key: 'budget_min', question: 'Is there a floor to the range you are considering?', type: 'number' },
+  { field_key: 'financing_method', question: 'Cash or mortgage — do you have a pre-approval?', type: 'choice', options: ['cash', 'mortgage', 'installments', 'mixed', 'unknown'] },
+  { field_key: 'bedrooms_min', question: 'How many bedrooms do you need?', type: 'number' },
+  { field_key: 'bedrooms_max', question: 'Up to how many bedrooms would you consider?', type: 'number' },
+  { field_key: 'preferred_locations', question: 'Which areas are you focused on?', type: 'text' },
+  { field_key: 'move_in_timeline', question: 'When do you want to move / complete?', type: 'choice', options: ['immediate', '1_month', '3_months', '6_months', '12_months', 'flexible', 'investor_no_move_in'] },
+  { field_key: 'cheques_count', question: '(RENT) How many cheques would you prefer to pay in?', type: 'number' },
+  { field_key: 'transaction_type', question: 'Is this to live in, a second home, or an investment?', type: 'choice', options: ['primary_residence', 'second_home', 'investment', 'short_term_rental', 'commercial'] },
+];
+
+// Buyer-side play per pipeline stage (twin of CARDONE_STAGE_PLAYS, buyer flavor).
+const BUYER_STAGE_PLAYS = {
+  intake_clarify: 'INTAKE: one question decides everything — buy or rent? Then budget band and area. Goal: routed to the right track with a number.',
+  contact_identity: 'FIRST CONTACT: respond like they are your only client. Capture name, nationality, and what they are actually hunting. Goal: identity + intent locked.',
+  new_tenant_lead: 'NEW TENANT: money is ANNUAL RENT. Get budget/yr, move-in date, cheque preference. Goal: qualified tenant with a viewing path.',
+  financial_qualification: 'QUALIFICATION: cash vs mortgage changes everything. Ask for the pre-approval or proof-of-funds naturally — frame as unlocking better units. Goal: budget confirmed with evidence.',
+  unit_matching: 'MATCHING: present a controlled shortlist of 3, never a firehose. Every listing named must be REAL (from the inventory pack). Goal: two units they want to see.',
+  viewing: 'VIEWING: lock a specific slot on this call. Scarcity is real when the pack shows it. Goal: a viewing on the calendar.',
+  objection_offer: 'OFFER: objections are buying signals. Anchor on market facts from the pack, never argue. Goal: a number they would sign at.',
+  default: 'ADVANCE THE SEARCH: one clear commitment before hanging up — a viewing slot, a shortlist yes/no, a document. Follow up one more time than any competitor would.',
+};
+
 // Grant Cardone play per pipeline stage — compact context the live brain leans on.
 const CARDONE_STAGE_PLAYS = {
   initial_contact: 'FIRST CONTACT: dominate the opening. Give value in 20 seconds (a real DLD data point), earn 3 more minutes. Goal: motivation + one commitment.',
@@ -46,15 +73,124 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const sr = base44.asServiceRole;
     const body = await req.json().catch(() => ({}));
-    const { call_log_id, landlord_id, agent_email } = body;
+    const { call_log_id, landlord_id, lead_id, agent_email } = body;
 
     const pack = {
       call_log_id: call_log_id || null,
       landlord_id: landlord_id || null,
+      lead_id: lead_id || null,
       agent_email: agent_email || null,
       generated_at: new Date().toISOString(),
       qualify_questions: QUALIFY_QUESTIONS,
     };
+
+    // ── BUYER BRAIN V1 B4b — lead-aware pack: when a lead_id is on the call, the live
+    // copilot speaks buyer/tenant (lead dossier + INVENTORY PACK + buyer question bank),
+    // not landlord. SEPARATE BRAINS: no Landlord reads on this branch. ──
+    if (lead_id) {
+      pack.qualify_questions = BUYER_QUALIFY_QUESTIONS;
+      const lead = await sr.entities.Lead.get(lead_id).catch(() => null);
+      if (!lead) {
+        pack.warning = `lead ${lead_id} not found`;
+        return Response.json(pack);
+      }
+      const isRent = lead.intent === 'tenant';
+      pack.mode = 'buyer';
+      pack.lead = {
+        name: lead.full_name || null,
+        preferred_language: lead.preferred_language || null,
+        nationality: lead.nationality || null,
+        residence_country: lead.residence_country || null,
+        intent: lead.intent || 'unknown',
+        track_law: isRent
+          ? 'RENT TRACK: every money figure is ANNUAL RENT (AED/year); cheque count matters; move-in date drives urgency. Never talk purchase/ROI.'
+          : lead.intent === 'buyer' ? 'SALE TRACK: budget is purchase capital; financing (cash vs mortgage) is the core qualification axis.' : 'TRACK UNKNOWN: clarify buy vs rent FIRST.',
+        stage: lead.stage || null,
+        source: lead.source || null,
+        budget_min: lead.budget_min ?? null,
+        budget_max: lead.budget_max ?? null,
+        bedrooms_min: lead.bedrooms_min ?? null,
+        bedrooms_max: lead.bedrooms_max ?? null,
+        preferred_locations: lead.preferred_locations || [],
+        move_in_timeline: lead.move_in_timeline || null,
+        cheques_count: lead.cheques_count ?? null,
+        financing_method: lead.financing_method || lead.financing_type || null,
+        lead_score: lead.ai_lead_score ?? null,
+        conversion_probability: lead.ai_conversion_probability ?? null,
+        momentum: lead.ai_momentum || null,
+        red_flags: lead.ai_red_flags || null,
+        buying_signals: Array.isArray(lead.ai_buying_signals) ? lead.ai_buying_signals : [],
+      };
+      pack.deal_thesis = lead.ai_deal_thesis || null;
+      pack.next_best_action = Array.isArray(lead.ai_next_best_actions) && lead.ai_next_best_actions[0] ? lead.ai_next_best_actions[0] : null;
+      pack.rolling_summary = lead.ai_rolling_summary || null;
+      pack.coaching_for_agent = lead.ai_coaching_for_agent || null;
+      pack.cardone_stage_play = BUYER_STAGE_PLAYS[lead.stage] || BUYER_STAGE_PLAYS.default;
+
+      // INVENTORY PACK — KEEP IN SYNC with buyerOrchestrator's gatherInventoryPack scoring
+      // (compact top 5): live suggestions may name ONLY these real listings.
+      try {
+        const listingType = isRent ? 'rent' : 'sale';
+        const rows = await sr.entities.PFListing.filter({ status: 'active', listing_type: listingType }, '-published_at', 200).catch(() => []);
+        const budgetMin = (typeof lead.budget_min === 'number' && lead.budget_min > 0) ? lead.budget_min : null;
+        const budgetMax = (typeof lead.budget_max === 'number' && lead.budget_max > 0) ? lead.budget_max : null;
+        const locs = (Array.isArray(lead.preferred_locations) ? lead.preferred_locations : []).map((l) => String(l).toLowerCase());
+        const scored = (Array.isArray(rows) ? rows : []).map((r) => {
+          let score = 0;
+          const price = typeof r.price === 'number' ? r.price : null;
+          if (price && budgetMax) {
+            if (price >= (budgetMin ?? budgetMax * 0.5) * 0.8 && price <= budgetMax * 1.15) score += 3;
+            else if (price <= budgetMax * 1.4) score += 1;
+          }
+          const loc = String(r.location || r.community || '').toLowerCase();
+          if (locs.length && loc && locs.some((l) => loc.includes(l) || l.includes(loc))) score += 2;
+          const beds = r.bedrooms;
+          if (beds != null && lead.bedrooms_min != null && lead.bedrooms_max != null) {
+            const b = Number(String(beds).replace(/\D/g, '') || 0);
+            if (b >= lead.bedrooms_min && b <= lead.bedrooms_max) score += 2;
+          }
+          return { r, score };
+        }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 5);
+        if (scored.length) {
+          pack.inventory = scored.map(({ r }) => ({
+            title: r.title || r.building_name || 'Listing',
+            location: r.location || r.community || null,
+            bedrooms: r.bedrooms ?? null,
+            price_aed: typeof r.price === 'number' ? r.price : null,
+            per: isRent ? 'year' : 'sale',
+            ref: r.reference_number || null,
+          }));
+        }
+      } catch (_) { /* non-fatal */ }
+
+      // Active Founder's Directive (lead-side twin).
+      try {
+        const directives = await sr.entities.LeadDirective.filter(
+          { lead_id, type: 'founder_directive', status: 'active' }, '-created_date', 3
+        );
+        if (directives?.length) {
+          pack.founder_directive = directives.map(d => ({
+            text: d.directive_text, priority: d.priority || 'normal',
+          }));
+        }
+      } catch (_) { /* non-fatal */ }
+
+      // Brand voice (shared, compact).
+      try {
+        const voices = await sr.entities.BrandVoice.filter({ is_active: true }, '-version', 1);
+        const v = voices?.[0];
+        if (v) {
+          pack.brand_voice = {
+            name: v.name,
+            charter_excerpt: (v.charter_text || '').slice(0, 900),
+            banned_patterns: v.banned_patterns || [],
+          };
+        }
+      } catch (_) { /* non-fatal */ }
+
+      console.log(`[copilotContextPack] served BUYER pack for lead=${lead_id} call=${call_log_id}`);
+      return Response.json(pack);
+    }
 
     if (!landlord_id) {
       pack.warning = 'no landlord_id — generic coaching only';
@@ -83,6 +219,13 @@ Deno.serve(async (req) => {
       mandate_status: L.mandate_status || null,
       asking_price_aed: L.asking_price_aed ?? null,
       unit: L.unit || L.unit_reference || null,
+      unit_plan_code: L.unit_plan_code || null,
+      unit_layout: L.unit_layout || null,
+      unit_total_sqft: L.unit_total_sqft ?? null,
+      unit_floor: L.unit_floor ?? null,
+      unit_view: L.unit_view || null,
+      unit_view_source: L.unit_view_source || null,
+      unit_view_note: (L.unit_view && L.unit_view_source !== 'agent_verified') ? 'View is per developer plan — do NOT state it as verified fact on the live call; say "the plan shows".' : null,
       project: L.project_name || null,
       days_in_stage: L.days_in_stage ?? null,
       competing_brokers_count: L.competing_brokers_count ?? null,

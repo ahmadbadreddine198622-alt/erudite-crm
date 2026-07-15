@@ -123,6 +123,13 @@ Deno.serve(async (req) => {
         notes: status === 'missed' ? 'Missed call' : ''
       });
 
+      // BUYER BRAIN V1 B4c — post-call debrief for lead-matched completed calls:
+      // rolling-summary delta + follow-up proposals (origin='aurora', human verdict in the
+      // LCC strip). Fire-and-forget, non-fatal: the webhook must never block on it.
+      if (lead?.id && status !== 'missed') {
+        base44.asServiceRole.functions.invoke('leadPostCallDebrief', { lead_id: lead.id }).catch(() => {});
+      }
+
       console.log('Logged Aircall activity for lead:', lead.id);
     }
 

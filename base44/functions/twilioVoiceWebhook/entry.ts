@@ -283,6 +283,7 @@ Deno.serve(async (req) => {
     const copilotOn = (formParams.get('copilot') || url.searchParams.get('copilot')) === 'true';
     const copilotCallLogId = formParams.get('call_log_id') || '';
     const copilotLandlordId = formParams.get('landlord_id') || '';
+    const copilotLeadId = formParams.get('lead_id') || '';   // BUYER BRAIN V1 B4b — buyer-mode copilot
     const copilotAgentEmail = formParams.get('agent_email') || '';
 
     console.log(`[twilioVoiceWebhook] dial: to=${to} callSid=${callSid} copilot=${copilotOn} logId=${copilotCallLogId}`);
@@ -316,7 +317,7 @@ Deno.serve(async (req) => {
       }
       // Stream is attached to the browser (agent) leg: Twilio 'inbound' = agent mic,
       // 'outbound' = landlord audio. inbound_speaker tells the relay how to map speakers.
-      copilotStreamXml = `\n  <Start>\n    <Stream url="${relayWs}/twilio" track="both_tracks">\n      <Parameter name="call_log_id" value="${copilotCallLogId}" />\n      <Parameter name="landlord_id" value="${copilotLandlordId}" />\n      <Parameter name="agent_email" value="${copilotAgentEmail}" />\n      <Parameter name="inbound_speaker" value="agent" />\n    </Stream>\n  </Start>`;
+      copilotStreamXml = `\n  <Start>\n    <Stream url="${relayWs}/twilio" track="both_tracks">\n      <Parameter name="call_log_id" value="${copilotCallLogId}" />\n      <Parameter name="landlord_id" value="${copilotLandlordId}" />\n      <Parameter name="lead_id" value="${copilotLeadId}" />\n      <Parameter name="agent_email" value="${copilotAgentEmail}" />\n      <Parameter name="inbound_speaker" value="agent" />\n    </Stream>\n  </Start>`;
       console.log(`[twilioVoiceWebhook] copilot stream attached → ${relayWs}/twilio (log=${copilotCallLogId})`);
     }
 

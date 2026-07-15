@@ -1,0 +1,62 @@
+{
+  "name": "BuyerSweepLog",
+  "type": "object",
+  "properties": {
+    "run_group": {
+      "type": "string",
+      "description": "Sweep run identifier - all rows from one backfillBuyerBrain campaign share it (e.g. b2_pilot_20260715)."
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Lead processed by this attempt."
+    },
+    "lead_name": {
+      "type": "string",
+      "description": "Cached lead name for readable reports."
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "full",
+        "cold"
+      ],
+      "description": "Effective tier the orchestrator ran (from its response - engagement-wins routing may upgrade a requested cold to full)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id the orchestrator used."
+    },
+    "input_tokens": {
+      "type": "number"
+    },
+    "output_tokens": {
+      "type": "number"
+    },
+    "est_cost_usd": {
+      "type": "number",
+      "description": "Computed in CODE from measured tokens x published per-MTok pricing (Opus 4.8 $5/$25, Haiku 4.5 $1/$5)."
+    },
+    "duration_ms": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "failed"
+      ]
+    },
+    "error": {
+      "type": "string"
+    },
+    "triggered_by": {
+      "type": "string",
+      "description": "Sweep trigger tag forwarded to the orchestrator (shows up in LeadScoreSnapshot descriptions too)."
+    }
+  },
+  "required": [
+    "run_group",
+    "lead_id",
+    "status"
+  ]
+}

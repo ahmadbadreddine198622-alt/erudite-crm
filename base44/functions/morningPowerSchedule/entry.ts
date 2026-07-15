@@ -62,7 +62,7 @@ function agentDisplayName(email, nameMap) {
 
 // ─── Digest composition ───
 
-function composeDigest({ agentName, subjectDate, doctrineQueue, topFollowups, landlordNames, strikeLandlords, touchCount, pendingDirectives }) {
+function composeDigest({ agentName, subjectDate, doctrineQueue, topFollowups, landlordNames, strikeLandlords, touchCount, pendingDirectives, buyerStrikeLeads = [], buyerQueue = [], buyerDirectives = [] }) {
   const sections = [];
 
   // 0. FOUNDER DIRECTIVES WAITING
@@ -117,6 +117,36 @@ function composeDigest({ agentName, subjectDate, doctrineQueue, topFollowups, la
       }
     </div>
   `);
+
+  // 2.5 BUYER PIPELINE (BUYER BRAIN V1 B3) — strike-now leads, due lead follow-ups,
+  // and pending lead directives. Rendered only when the agent has buyer items.
+  if (buyerStrikeLeads.length || buyerQueue.length || buyerDirectives.length) {
+    const money = (l) => {
+      if (!l.budget_min && !l.budget_max) return '';
+      const fmt = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n);
+      const per = l.intent === 'tenant' ? '/yr' : '';
+      return ` · AED ${fmt(l.budget_min || 0)}–${fmt(l.budget_max || 0)}${per}`;
+    };
+    sections.push(`
+    <div style="margin-bottom:24px;">
+      <h3 style="font-family:Arial,Helvetica,sans-serif;color:#C5A059;font-size:15px;margin:0 0 8px;">🏠 BUYER PIPELINE (${buyerStrikeLeads.length + buyerQueue.length + buyerDirectives.length})</h3>
+      ${buyerDirectives.length ? buyerDirectives.map(item => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:4px 0;padding:6px 10px;border-radius:6px;background:rgba(201,162,75,0.06);border-left:3px solid #C5A059;">
+              👑 <strong>${esc(item.lead.full_name || 'Unknown lead')}</strong>: ${esc(String(item.directive.directive_text || '').slice(0, 80))}${String(item.directive.directive_text || '').length > 80 ? '…' : ''}
+            </div>`).join('') : ''}
+      ${buyerStrikeLeads.length ? buyerStrikeLeads.map(l => {
+        const nba = Array.isArray(l.ai_next_best_actions) && l.ai_next_best_actions[0] ? l.ai_next_best_actions[0] : null;
+        const nbaText = nba ? `${nba.action || ''}${nba.reasoning ? ' — ' + String(nba.reasoning).slice(0, 90) : ''}` : '';
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:4px 0;padding:6px 10px;border-radius:6px;background:rgba(239,68,68,0.06);border-left:3px solid #ef4444;">
+              ⚡ <strong>${esc(l.full_name || 'Unknown')}</strong>${esc(money(l))}${l.intent === 'tenant' ? ' · RENT' : ''}${nbaText ? '<br><span style="color:#666;">→ ' + esc(nbaText) + '</span>' : ''}
+            </div>`;
+      }).join('') : ''}
+      ${buyerQueue.length ? buyerQueue.slice(0, 5).map(r => `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:4px 0;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,0.04);border-left:3px solid #C5A059;">
+              <strong>${esc(r.lead_name || 'Lead')}</strong>: ${esc(r.title || 'follow up')}${r.origin === 'aurora' ? ' <span style="color:#C5A059;">· Aurora</span>' : ''}
+            </div>`).join('') : ''}
+      ${buyerQueue.length > 5 ? `<p style="font-family:Arial,Helvetica,sans-serif;color:#888;font-size:12px;margin:6px 0 0;">+${buyerQueue.length - 5} more lead follow-ups…</p>` : ''}
+    </div>
+  `);
+  }
 
   // 3. TIME × ACTIONS
   const diff = touchCount - DAILY_TOUCH_TARGET;
@@ -203,6 +233,9 @@ Deno.serve(async (req) => {
       tgs,
       ems,
       activeDirectives,
+      leads,
+      pendingReminders,
+      activeLeadDirectives,
     ] = await Promise.all([
       svc.entities.Landlord.list('-updated_date', 5000),
       svc.entities.Followup.filter({ status: 'pending' }, '-scheduled_at', 5000),
@@ -212,6 +245,10 @@ Deno.serve(async (req) => {
       svc.entities.TelegramMessage.filter({ direction: 'outbound' }, '-sent_at', 1000),
       svc.entities.Email.filter({ direction: 'outbound' }, '-received_at', 1000),
       svc.entities.LandlordDirective.filter({ status: 'active' }, '-created_date', 5000),
+      // BUYER BRAIN V1 B3 — buyer-side inputs (all degrade-safe).
+      svc.entities.Lead.list('-updated_date', 5000).catch(() => []),
+      svc.entities.Reminder.filter({ status: 'pending' }, '-created_date', 3000).catch(() => []),
+      svc.entities.LeadDirective.filter({ status: 'active' }, '-created_date', 1000).catch(() => []),
     ]);
 
     // ─── Build agent name map ───
@@ -220,11 +257,15 @@ Deno.serve(async (req) => {
       if (u.email) nameMap[u.email.toLowerCase()] = u.full_name || u.email;
     });
 
-    // ─── Extract distinct agent emails from active landlords ───
+    // ─── Extract distinct agent emails from active landlords + active leads ───
     const activeLandlords = (landlords || []).filter(
       l => l && l.assigned_agent_email && !TERMINAL_STAGES.includes(l.stage)
     );
+    const activeLeads = (leads || []).filter(
+      l => l && l.assigned_agent_email && l.status === 'active'
+    );
     const agentEmailSet = new Set(activeLandlords.map(l => l.assigned_agent_email));
+    activeLeads.forEach(l => agentEmailSet.add(l.assigned_agent_email));
     const agentEmails = [...agentEmailSet].slice(0, AGENT_CAP);
 
     // ─── Build landlord lookup map (for followup name resolution + strike-now) ───
@@ -286,6 +327,40 @@ Deno.serve(async (req) => {
       }
     });
 
+    // ─── BUYER BRAIN V1 B3: per-agent buyer maps ───
+    const leadById = {};
+    activeLeads.forEach(l => { if (l.id) leadById[l.id] = l; });
+    // Strike-now leads per agent.
+    const leadStrikeByAgent = {};
+    activeLeads.forEach(l => {
+      if (!l.ai_strike_now) return;
+      const k = l.assigned_agent_email.toLowerCase();
+      if (!leadStrikeByAgent[k]) leadStrikeByAgent[k] = [];
+      leadStrikeByAgent[k].push(l);
+    });
+    // Lead follow-ups (Reminders) due today or overdue, keyed by assigned agent.
+    const leadRemindersByAgent = {};
+    (pendingReminders || []).forEach(r => {
+      if (!r.lead_id) return;
+      const ts = tsOf(r, ['due_date']);
+      if (ts <= 0 || ts > todayEnd) return;
+      const agentEmail = r.assigned_to || (leadById[r.lead_id] ? leadById[r.lead_id].assigned_agent_email : null);
+      if (!agentEmail) return;
+      const k = agentEmail.toLowerCase();
+      if (!leadRemindersByAgent[k]) leadRemindersByAgent[k] = [];
+      leadRemindersByAgent[k].push(r);
+    });
+    // Pending lead directives per agent.
+    const leadDirectiveByAgent = {};
+    (activeLeadDirectives || []).forEach(d => {
+      if (!d.lead_id) return;
+      const lead = leadById[d.lead_id];
+      if (!lead) return;
+      const k = lead.assigned_agent_email.toLowerCase();
+      if (!leadDirectiveByAgent[k]) leadDirectiveByAgent[k] = [];
+      leadDirectiveByAgent[k].push({ lead, directive: d });
+    });
+
     // ─── Process each agent ───
     const digests = [];
 
@@ -300,9 +375,13 @@ Deno.serve(async (req) => {
       const strikeLandlords = (strikeByAgent[agentKey] || []).slice(0, 5);
       const touchCount = touchCounts[agentKey] || 0;
       const pendingDirectives = (directiveByAgent[agentKey] || []).slice(0, 10);
+      const buyerStrikeLeads = (leadStrikeByAgent[agentKey] || []).slice(0, 5);
+      const buyerQueue = (leadRemindersByAgent[agentKey] || []).sort((a, b) => tsOf(a, ['due_date']) - tsOf(b, ['due_date']));
+      const buyerDirectives = (leadDirectiveByAgent[agentKey] || []).slice(0, 10);
 
-      // Skip agents with zero items in all sections.
-      if (doctrineQueue.length === 0 && strikeLandlords.length === 0 && touchCount === 0 && pendingDirectives.length === 0) {
+      // Skip agents with zero items in all sections (landlord AND buyer).
+      if (doctrineQueue.length === 0 && strikeLandlords.length === 0 && touchCount === 0 && pendingDirectives.length === 0
+        && buyerStrikeLeads.length === 0 && buyerQueue.length === 0 && buyerDirectives.length === 0) {
         continue;
       }
 
@@ -327,6 +406,9 @@ Deno.serve(async (req) => {
         strikeLandlords,
         touchCount,
         pendingDirectives,
+        buyerStrikeLeads,
+        buyerQueue,
+        buyerDirectives,
       });
 
       digests.push({ agent_email: agentEmail, ...digest.summary });

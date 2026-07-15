@@ -539,7 +539,7 @@ Deno.serve(async (req) => {
     const [
       waMsgs, evoMsgs, iMsgs, tgMsgs, emails, callLogs, aircalls,
       notes, reminders, leadActivities, activities, offers, deals, closingDeals,
-      snapshots, brandVoice, linkedPF, projectRec
+      snapshots, brandVoice, linkedPF, projectRec, leadDirectives
     ] = await Promise.all([
       waByPhone(),
       svc.entities.Message.filter({ lead_id }, '-timestamp', 40).catch(() => []),
@@ -559,6 +559,7 @@ Deno.serve(async (req) => {
       svc.entities.BrandVoice.filter({ is_active: true }, '-updated_date', 1).then(r => r?.[0]).catch(() => null),
       lead.linked_pf_listing_id ? svc.entities.PFListing.get(lead.linked_pf_listing_id).catch(() => null) : Promise.resolve(null),
       lead.project_id ? svc.entities.Project.get(lead.project_id).catch(() => null) : Promise.resolve(null),
+      svc.entities.LeadDirective.filter({ lead_id }, '-created_date', 10).catch(() => []),
     ]);
 
     // ── Conversation digest (chronological, all channels merged) ──
@@ -635,6 +636,17 @@ Deno.serve(async (req) => {
 
     const voiceBlock = brandVoice?.charter_text ? `\nBRAND VOICE CHARTER (every draft obeys):\n${String(brandVoice.charter_text).slice(0, 1200)}\n` : '';
 
+    // ── FOUNDER'S DIRECTIVE (B4d) — KEEP IN SYNC with landlordOrchestrator's directiveBlock
+    // phrasing: top authority over every strategic output (never over the no-fabrication law).
+    const activeDirective = (Array.isArray(leadDirectives) ? leadDirectives : [])
+      .find(d => d && d.type !== 'frank_comment' && (d.status === 'active' || d.status === 'acknowledged'));
+    const directiveBlock = activeDirective ? `
+FOUNDER DIRECTIVE — this overrides all other strategic considerations; every next-best-action, coaching note, and suggested message must align with it.
+Priority: ${activeDirective.priority || 'normal'}
+Directive: ${String(activeDirective.directive_text || '').slice(0, 1000)}
+Issued by: ${activeDirective.created_by_name || activeDirective.created_by_email || 'founder'} on ${fmtD(activeDirective.created_date)}
+` : '';
+
     // ── Dossier ──
     const q = lead.qualification || {};
     const dossier = `LEAD DOSSIER
@@ -660,7 +672,7 @@ ${doctrineViolation ? '⚠ DOCTRINE VIOLATION: no scheduled next touch and ≥14
     const system = `You are BUYER AURORA — the buyer-side intelligence brain of Erudite Real Estate, Dubai. You read EVERYTHING on one lead and produce calibrated scores, a living strategy, and concrete next moves that a HUMAN agent executes.
 ${DOCTRINE_RULES}
 ${identityBlock}
-${voiceBlock}
+${voiceBlock}${directiveBlock}
 HARD GUARDRAILS:
 - NO FABRICATION: only figures present in the packs/dossier exist. An invented listing, comp, or number is a catastrophe. Thin data ⇒ low/neutral scores + "insufficient_contact_data" in ai_red_flags.
 - Scores are CALIBRATED to evidence depth, never performative.

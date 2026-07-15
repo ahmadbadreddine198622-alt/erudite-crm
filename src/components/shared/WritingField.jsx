@@ -33,6 +33,7 @@ export default function WritingField({
   placeholder, rows, minHeight,
   disabled, className, style, dir,
   landlordId, channel, landlordContext,
+  leadId,                      // BUYER BRAIN V1 B4e — magic reshape for leads (magicReshapeLead)
   targetLanguage,
   toolbarLeftExtra,            // extra icons rendered after dictation (e.g. templates / AI / save / emoji)
   toolbarRightExtra,           // right-aligned controls (e.g. word count + Clear + Send)
@@ -109,16 +110,17 @@ export default function WritingField({
     }, 1000);
   };
 
-  // Magic reshape V2 — each click rewrites using the backend magicReshapeV2.
+  // Magic reshape — each click rewrites using the backend (magicReshapeLead when a lead
+  // is on the composer, magicReshapeV2 for landlords — BUYER BRAIN V1 B4e channel parity).
   const runMagic = async () => {
     const src = String(value || '').trim();
     if (!src) { toast.error('Nothing to reshape'); return; }
     if (magicBusy) return;
-    if (!landlordId) { toast.error('No landlord selected'); return; }
+    if (!leadId && !landlordId) { toast.error('No contact selected'); return; }
     setMagicBusy(true);
     try {
-      const res = await base44.functions.invoke('magicReshapeV2', {
-        landlord_id: landlordId,
+      const res = await base44.functions.invoke(leadId ? 'magicReshapeLead' : 'magicReshapeV2', {
+        ...(leadId ? { lead_id: leadId } : { landlord_id: landlordId }),
         text: src,
         channel: channel || 'unknown',
         angle_index: magicAngleIdx.current,
@@ -256,8 +258,8 @@ export default function WritingField({
       {/* Slim toolbar — left cluster (magic / translate / tone / dictation + extra) · right cluster (extra controls) */}
       <div style={css("display:flex; align-items:center; gap:4px; margin-top:5px; justify-content:space-between;")}>
         <div style={css("display:flex; align-items:center; gap:3px;")}>
-        {/* Magic reshape — only when landlordId is provided */}
-        {landlordId && (
+        {/* Magic reshape — when a landlord OR lead is on the composer */}
+        {(landlordId || leadId) && (
           <button type="button" onClick={runMagic} disabled={magicBusy || !hasContent}
             title="Magic reshape — rewrite with a fresh, powerful angle"
             className="flex items-center justify-center w-7 h-7 rounded-md transition-all border"

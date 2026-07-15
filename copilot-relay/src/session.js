@@ -23,6 +23,7 @@ export class CallSession {
     this.callSid = callSid;
     this.callLogId = customParameters.call_log_id || `unknown-${streamSid}`;
     this.landlordId = customParameters.landlord_id || null;
+    this.leadId = customParameters.lead_id || null;   // BUYER BRAIN V1 B4b — buyer-mode copilot
     this.agentEmail = customParameters.agent_email || null;
     // Who is on Twilio's "inbound" track depends on which leg the <Stream> is
     // attached to. Browser-SDK calls attach it to the agent leg (inbound = agent
@@ -85,6 +86,7 @@ export class CallSession {
       this.contextPack = await fetchContextPack({
         call_log_id: this.callLogId,
         landlord_id: this.landlordId,
+        lead_id: this.leadId,
         agent_email: this.agentEmail,
       });
       this.log("context pack loaded");

@@ -161,6 +161,21 @@ only — never to leads. Respect quiet hours.
 - **B2 — SWEEP**: `backfillBuyerBrain` daemon (KEEP-IN-SYNC blocks marked), tiered batch
   over the classified lead base; watch cost; report counts.
 - **B3 — MORNING**: buyer section in `morningPowerSchedule`.
+- **B4 — FULL BRAIN PARITY** (CEO directive, 15 Jul: "borrow every brain from the landlord
+  card"). Twin the REMAINING landlord AI subsystems for leads — borrow, don't rebuild:
+  shared modules/components over copies; KEEP-IN-SYNC blocks where copying is unavoidable.
+  (a) BRAIN QUALIFY — twin the landlord live-call auto-fill: call transcript → proposed
+  Lead field updates (budget, beds, timeline, finance, move-in, cheques), human confirms
+  before write. (b) LIVE CALL COPILOT buyer mode — the deployed copilot relay gains a
+  lead-aware context pack (lead dossier + INVENTORY PACK) so live suggestions speak
+  buyer/tenant, not landlord. (c) POST-CALL DEBRIEF for leads — after each CallLog/
+  AircallCall: rolling-summary delta + suggested followups as aurora proposals. (d)
+  FOUNDER'S DIRECTIVE for leads — generalize LandlordDirective (target_type) or add
+  LeadDirective; gold strip on Lead Command Center; injected into the buyerOrchestrator
+  dossier with top authority. (e) CHANNEL COMPLETENESS — verify every AI feature (drafts,
+  gloss, translate, tone) fires on ALL channels: WhatsApp, iMessage, Telegram, SMS, Email
+  — full parity with the landlord card. Same covenant throughout: no auto-sends, no stage
+  writes, schema dual-write, degrade-safe, identity engine.
 - **LATER (not now)**: LEARN/ACT (P3/P4) inherit from the landlord V4 build once it ships;
   keep the code structured so the same patterns drop in. The landlord↔buyer bridge is a
   separate future project — do not start it.

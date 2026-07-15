@@ -27,7 +27,9 @@ import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { STAGES, getStagesForIntent } from '@/lib/pipeline';
 import InlineKaraokeBody from '@/components/shared/InlineKaraokeBody';
 import BuyerCallScript from '@/components/buyer/BuyerCallScript';
+import BuyerMandateDossierCard from '@/components/buyer/BuyerMandateDossierCard';
 import AuroraProposalsStrip from '@/components/landlord/AuroraProposalsStrip';
+import LeadDirectiveStrip from '@/components/buyer/LeadDirectiveStrip';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function phoneVariants(phone) {
@@ -353,6 +355,50 @@ export default function LeadCommandCenter() {
     finally { setProposalBusyId(null); }
   };
 
+  // ── BRAIN QUALIFY (B4a) — transcript → proposed Lead field updates; the human
+  // clicking Apply IS the confirmation (the write happens here, client-side). ──
+  const [qualifyBusy, setQualifyBusy] = useState(false);
+  const [qualifyResult, setQualifyResult] = useState(null);
+  const [applyingField, setApplyingField] = useState(null);
+  const handleBrainQualify = async () => {
+    if (qualifyBusy) return;
+    setQualifyBusy(true);
+    try {
+      const res = await base44.functions.invoke('buyerBrainQualify', { lead_id: id });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      setQualifyResult(data);
+      if (!data?.proposed_updates?.length) toast.info('Call analysed — no new field values to propose.');
+    } catch (e) { toast.error('Brain Qualify: ' + (e?.message || 'unknown')); }
+    finally { setQualifyBusy(false); }
+  };
+  const handleApplyQualify = async (p) => {
+    setApplyingField(p.field_key);
+    try {
+      await base44.entities.Lead.update(id, { [p.field_key]: p.value });
+      setQualifyResult((q) => q ? { ...q, proposed_updates: q.proposed_updates.filter((x) => x.field_key !== p.field_key) } : q);
+      await refetchLead();
+      toast.success(`${p.field_key.replace(/_/g, ' ')} updated`);
+    } catch (e) { toast.error('Apply failed: ' + (e?.message || 'unknown')); }
+    finally { setApplyingField(null); }
+  };
+
+  // ── POST-CALL DEBRIEF (B4c) — rolling-summary delta + aurora follow-up proposals. ──
+  const [debriefBusy, setDebriefBusy] = useState(false);
+  const handleDebrief = async () => {
+    if (debriefBusy) return;
+    setDebriefBusy(true);
+    try {
+      const res = await base44.functions.invoke('leadPostCallDebrief', { lead_id: id });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      await refetchLead();
+      queryClient.invalidateQueries({ queryKey: ['lead_aurora_proposals', id] });
+      toast.success(`Call debriefed${data?.proposals_created?.length ? ` · ${data.proposals_created.length} follow-up proposal(s)` : ''}`);
+    } catch (e) { toast.error('Debrief: ' + (e?.message || 'unknown')); }
+    finally { setDebriefBusy(false); }
+  };
+
   // ── Brain suggestion quick-adds (B1) — a HUMAN clicking Add IS the approval. ──
   const [addingSuggestion, setAddingSuggestion] = useState(null);
   const handleAddSuggestedTask = async (t, idx) => {
@@ -642,6 +688,9 @@ export default function LeadCommandCenter() {
       <div className="flex-1 min-h-0 flex" style={{ overflow: 'hidden' }}>
         {/* LEFT panel — info */}
         <div className="shrink-0 overflow-y-auto" style={{ width: 320, background: PB.CARD, borderRight: `1px solid ${HAIR}`, padding: 12 }}>
+          {/* Founder's Directive — gold strip, top authority (B4d) */}
+          <LeadDirectiveStrip leadId={id} currentUser={currentUser} isAdmin={currentUser?.role === 'admin'} />
+
           {/* Contact details */}
           <Section title="Contact">
             <ContactRow icon={Phone} label="Phone" value={lead.phone} />
@@ -880,6 +929,56 @@ export default function LeadCommandCenter() {
             )}
           </Section>
 
+          {/* Brain Qualify + Post-call Debrief (B4a/B4c) — call intelligence to fields/proposals */}
+          <Section title="Call Intelligence">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={handleBrainQualify}
+                disabled={qualifyBusy}
+                title="Extract proposed field updates from the last call transcript — you confirm each before it writes"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.1)', color: GOLD, fontSize: 9.5, fontWeight: 600, cursor: qualifyBusy ? 'not-allowed' : 'pointer', opacity: qualifyBusy ? 0.5 : 1 }}
+              >
+                {qualifyBusy ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} />} Brain Qualify
+              </button>
+              <button
+                onClick={handleDebrief}
+                disabled={debriefBusy}
+                title="Debrief the last call: dated summary delta + follow-up proposals for your verdict"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 99, border: `1px solid ${HAIR2}`, background: 'transparent', color: SLATE, fontSize: 9.5, fontWeight: 600, cursor: debriefBusy ? 'not-allowed' : 'pointer', opacity: debriefBusy ? 0.5 : 1 }}
+              >
+                {debriefBusy ? <Loader2 size={10} className="animate-spin" /> : <Phone size={10} />} Debrief Last Call
+              </button>
+            </div>
+            {qualifyResult?.call_summary && (
+              <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.6)', marginTop: 6, lineHeight: 1.4 }}>{qualifyResult.call_summary}</p>
+            )}
+            {qualifyResult?.proposed_updates?.length > 0 && (
+              <div className="mt-2">
+                <span style={{ fontSize: 10, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Proposed Updates — you confirm each</span>
+                {qualifyResult.proposed_updates.map((p, i) => (
+                  <div key={i} className="mt-1.5 p-2 rounded-md flex items-start gap-2" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span style={{ fontSize: 11, fontWeight: 600, color: NAME, textTransform: 'capitalize' }}>{p.field_key.replace(/_/g, ' ')}</span>
+                        <Chip style={{ fontSize: 8.5, padding: '1px 6px', color: GOLD, borderColor: 'rgba(198,161,91,0.35)' }}>{Array.isArray(p.value) ? p.value.join(', ') : String(p.value)}</Chip>
+                        {p.current != null && <span style={{ fontSize: 9, color: SLATE }}>was: {Array.isArray(p.current) ? p.current.join(', ') : String(p.current)}</span>}
+                      </div>
+                      {p.quote && <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2, lineHeight: 1.4, fontStyle: 'italic' }}>“{p.quote}”</p>}
+                    </div>
+                    <button
+                      onClick={() => handleApplyQualify(p)}
+                      disabled={applyingField === p.field_key}
+                      title="Apply this update to the lead"
+                      style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.1)', color: GOLD, fontSize: 9.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {applyingField === p.field_key ? <Loader2 size={9} className="animate-spin" /> : <CheckCircle2 size={9} />} Apply
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
           {/* AI Call Script — forged from the brain's analysis (B1.5b) */}
           <BuyerCallScript
             leadId={id}
@@ -887,6 +986,12 @@ export default function LeadCommandCenter() {
             aiCallScriptAt={lead.ai_call_script_at}
             aiProcessedAt={lead.ai_processed_at}
             onGenerated={refetchLead}
+          />
+
+          {/* Mandate Dossier for this unit — shows the buyer why deal with Erudite (read-only) */}
+          <BuyerMandateDossierCard
+            unitReference={lead.unit_reference}
+            projectName={lead.project_name || project?.name}
           />
 
           {/* Internal notes */}
@@ -963,7 +1068,7 @@ export default function LeadCommandCenter() {
                 .filter((m) => m && m.text && (m.channel === composerTab || (composerTab === 'whatsapp' && !m.channel)))
                 .slice(0, 2);
               if (!draft?.body_native && !suggested.length && !draftsForging) return null;
-              const useDraft = (text, subject) => {
+              const loadDraft = (text, subject) => {
                 setComposerText(text || '');
                 if (composerTab === 'email' && subject != null) setEmailSubject(subject);
               };
@@ -1006,7 +1111,7 @@ export default function LeadCommandCenter() {
                         )}
                       </div>
                       <button
-                        onClick={() => useDraft(draft.body_native, draft.subject)}
+                        onClick={() => loadDraft(draft.body_native, draft.subject)}
                         title="Load this draft into the composer"
                         style={{ flex: 'none', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.45)', background: 'rgba(198,161,91,0.12)', color: GOLD, fontSize: 9.5, fontWeight: 700, cursor: 'pointer' }}
                       >
@@ -1024,7 +1129,7 @@ export default function LeadCommandCenter() {
                         <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.text}</p>
                       </div>
                       <button
-                        onClick={() => useDraft(m.text)}
+                        onClick={() => loadDraft(m.text)}
                         title="Load this suggestion into the composer"
                         style={{ flex: 'none', padding: '4px 10px', borderRadius: 99, border: `1px solid ${HAIR2}`, background: 'transparent', color: SLATE, fontSize: 9.5, fontWeight: 700, cursor: 'pointer' }}
                       >
@@ -1055,7 +1160,7 @@ export default function LeadCommandCenter() {
                 sendLabel="Send"
                 accent={PB.CHAMPAGNE}
                 targetLanguage={lead.preferred_language}
-                landlordId={id}
+                leadId={id}
                 channel={tplChannel}
                 landlordContext={{ name: lead.full_name || '', unit: lead.unit_reference || '', project: lead.project_name || '', asking: lead.budget_max || '', agentName: currentUser?.email || '' }}
                 minHeight={44}
@@ -1093,6 +1198,7 @@ export default function LeadCommandCenter() {
                     placeholder={`Compose ${composerTab === 'note' ? 'a note' : composerTab === 'task' ? 'a task' : 'call notes'}…`}
                     minHeight={38}
                     channel={composerTab}
+                    leadId={id}
                     targetLanguage={lead.preferred_language}
                   />
                 </div>
