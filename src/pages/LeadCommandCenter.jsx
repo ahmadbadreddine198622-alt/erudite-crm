@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, Mail, MessageCircle, Send, Trash2, Building2, User, MapPin,
   DollarSign, Zap, Flame, AlertTriangle, TrendingUp, FileText, Calendar, Plus,
-  CheckCircle2, Clock, Loader2, ExternalLink, Bell, Save,
+  CheckCircle2, Clock, Loader2, ExternalLink, Bell, Save, Sparkles, RefreshCw,
 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { usePhotoByPhone } from '@/lib/usePhotoByPhone';
@@ -26,6 +26,8 @@ import ReadAloudButton from '@/components/shared/ReadAloudButton';
 import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import { STAGES, getStagesForIntent } from '@/lib/pipeline';
 import InlineKaraokeBody from '@/components/shared/InlineKaraokeBody';
+import BuyerCallScript from '@/components/buyer/BuyerCallScript';
+import AuroraProposalsStrip from '@/components/landlord/AuroraProposalsStrip';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function phoneVariants(phone) {
@@ -200,6 +202,55 @@ export default function LeadCommandCenter() {
   const email = lead?.email;
   const score = leadScore(lead);
 
+  // ── BUYER BRAIN ON-OPEN TRIGGER (B1.5a) — mirrors LandlordDetailPage: wake the brain
+  // (the backend's own debounce decides whether it actually runs), then forge the channel
+  // drafts (force only when the brain just ran). Once per visit per lead id. ──
+  const brainWokeFor = useRef(null);
+  const [brainRunning, setBrainRunning] = useState(false);
+  const [draftsForging, setDraftsForging] = useState(false);
+  useEffect(() => {
+    if (!id || !lead?.id || brainWokeFor.current === id) return;
+    brainWokeFor.current = id;
+    (async () => {
+      let brainRan = false;
+      try {
+        setBrainRunning(!lead.ai_processed_at);
+        const bres = await base44.functions.invoke('buyerOrchestrator', { lead_id: id });
+        const bdata = bres?.data ?? bres;
+        brainRan = !!bdata && !bdata.skipped && !bdata.error;
+        if (brainRan) await refetchLead();
+      } catch (_) { /* brain wake is best-effort — the page never blocks on it */ }
+      setBrainRunning(false);
+      try {
+        setDraftsForging(!lead.ai_approach_drafts);
+        const res = await base44.functions.invoke('forgeBuyerApproachDrafts', { lead_id: id, force: brainRan });
+        const data = res?.data ?? res;
+        if (data?.forged) await refetchLead();
+      } catch (_) { /* drafts are best-effort */ }
+      setDraftsForging(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, lead?.id]);
+
+  // Manual re-analyse (force) — the button in the AI Intelligence header.
+  const handleAnalyseNow = async () => {
+    if (!id || brainRunning) return;
+    setBrainRunning(true);
+    try {
+      const res = await base44.functions.invoke('buyerOrchestrator', { lead_id: id, force: true });
+      const data = res?.data ?? res;
+      if (data?.error) throw new Error(data.error);
+      await refetchLead();
+      toast.success('Analysis refreshed');
+      try {
+        setDraftsForging(true);
+        await base44.functions.invoke('forgeBuyerApproachDrafts', { lead_id: id, force: true });
+        await refetchLead();
+      } finally { setDraftsForging(false); }
+    } catch (e) { toast.error('Analysis failed: ' + (e?.message || 'unknown')); }
+    finally { setBrainRunning(false); }
+  };
+
   // ── Load all related entities (degrade-safe) ──
   const { data: allUsers = [] } = useQ(['all_users_for_names_lead'], () => safe(() => base44.entities.User.list()));
   const resolveUserName = (em) => {
@@ -275,6 +326,69 @@ export default function LeadCommandCenter() {
 
   // Reminders by lead_id (serves as tasks + follow-ups)
   const { data: reminders = [] } = useQ(['lead_reminders', id], () => safe(() => base44.entities.Reminder.filter({ lead_id: id }, '-created_date', 100)), { enabled: !!id });
+
+  // ── AURORA PROPOSALS (B1) — materialized buyer-brain proposals awaiting a human verdict.
+  // (Mirrors the landlord Followup/LandlordTask aurora rows; buyer side lives on Reminder.) ──
+  const { data: auroraReminders = [] } = useQ(
+    ['lead_aurora_proposals', id],
+    () => safe(() => base44.entities.Reminder.filter({ lead_id: id, origin: 'aurora', proposal_status: 'proposed', status: 'pending' }, '-created_date', 20)),
+    { enabled: !!id, refetchInterval: 30000 },
+  );
+  const auroraProposals = useMemo(() => (auroraReminders || []).map((r) => ({
+    ...r,
+    type: r.type === 'follow_up' ? 'followup' : 'task',
+    scheduled_at: r.due_date,
+  })), [auroraReminders]);
+  const [proposalBusyId, setProposalBusyId] = useState(null);
+  const handleProposalAction = async (p, verdict) => {
+    setProposalBusyId(p.id);
+    try {
+      await base44.entities.Reminder.update(p.id, verdict === 'approved'
+        ? { proposal_status: 'approved' }
+        : { proposal_status: 'dismissed', status: 'cancelled' });
+      queryClient.invalidateQueries({ queryKey: ['lead_aurora_proposals', id] });
+      queryClient.invalidateQueries({ queryKey: ['lead_reminders', id] });
+      toast.success(verdict === 'approved' ? 'Proposal approved' : 'Proposal dismissed');
+    } catch (e) { toast.error('Proposal update failed: ' + (e?.message || 'unknown')); }
+    finally { setProposalBusyId(null); }
+  };
+
+  // ── Brain suggestion quick-adds (B1) — a HUMAN clicking Add IS the approval. ──
+  const [addingSuggestion, setAddingSuggestion] = useState(null);
+  const handleAddSuggestedTask = async (t, idx) => {
+    setAddingSuggestion(`task_${idx}`);
+    try {
+      await base44.entities.Reminder.create({
+        lead_id: id, lead_name: lead?.full_name || '',
+        title: (t.template_key || 'task').replace(/_/g, ' '),
+        notes: t.reason || '', type: 'task', status: 'pending',
+        assigned_to: lead?.assigned_agent_email || currentUser?.email || '',
+        origin: 'aurora', proposal_status: 'approved', ai_source: t.template_key || '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['lead_reminders', id] });
+      toast.success('Task added');
+    } catch (e) { toast.error('Task add failed: ' + (e?.message || 'unknown')); }
+    finally { setAddingSuggestion(null); }
+  };
+  const handleAddSuggestedFollowup = async (f, idx) => {
+    setAddingSuggestion(`fu_${idx}`);
+    try {
+      const due = new Date();
+      due.setDate(due.getDate() + (Number(f.when_offset_days) || 1));
+      due.setHours(Math.min(21, Math.max(9, Number(f.suggested_hour) || 10)), 0, 0, 0);
+      await base44.entities.Reminder.create({
+        lead_id: id, lead_name: lead?.full_name || '',
+        title: `${(f.template_key || 'follow up').replace(/_/g, ' ')}${f.channel ? ` (${f.channel})` : ''}`,
+        notes: f.reason || '', type: 'follow_up', status: 'pending',
+        due_date: due.toISOString(),
+        assigned_to: lead?.assigned_agent_email || currentUser?.email || '',
+        origin: 'aurora', proposal_status: 'approved', ai_source: f.template_key || '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['lead_reminders', id] });
+      toast.success('Follow-up scheduled');
+    } catch (e) { toast.error('Follow-up add failed: ' + (e?.message || 'unknown')); }
+    finally { setAddingSuggestion(null); }
+  };
 
   // Projects for name lookup
   const { data: projects = [] } = useQ(['projects_lead', id], () => safe(() => base44.entities.Project.list('name', 200)));
@@ -539,27 +653,67 @@ export default function LeadCommandCenter() {
             <ContactRow icon={User} label="Agent" value={lead.assigned_agent_email?.split('@')[0] || 'Unassigned'} />
           </Section>
 
-          {/* Budget & Requirements */}
-          {(lead.budget_min != null || lead.budget_max != null || lead.financing_method || lead.bedrooms_min != null || lead.preferred_locations?.length) ? (
+          {/* Budget & Requirements — RENT TRACK: money is ANNUAL RENT, move-in drives urgency */}
+          {(lead.budget_min != null || lead.budget_max != null || lead.financing_method || lead.bedrooms_min != null || lead.preferred_locations?.length || lead.move_in_timeline || lead.cheques_count) ? (
             <Section title="Budget & Requirements">
               {(lead.budget_min != null || lead.budget_max != null) && (
                 <div className="mb-2">
-                  <span style={{ fontSize: 10, color: SLATE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Budget</span>
+                  <span style={{ fontSize: 10, color: SLATE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{lead.intent === 'tenant' ? 'Annual Rent Budget' : 'Budget'}</span>
                   <p style={{ fontSize: 14, fontWeight: 600, color: NAME, fontVariantNumeric: 'tabular-nums' }}>
                     {lead.budget_min != null && lead.budget_max != null ? `${formatAEDCompact(lead.budget_min)} – ${formatAEDCompact(lead.budget_max)}`
                       : lead.budget_max != null ? `Up to ${formatAEDCompact(lead.budget_max)}`
-                      : formatAEDCompact(lead.budget_min || 0)}
+                      : formatAEDCompact(lead.budget_min || 0)}{lead.intent === 'tenant' ? '/yr' : ''}
                   </p>
                 </div>
               )}
-              {lead.financing_method && <Chip>{lead.financing_method}</Chip>}
-              {(lead.bedrooms_min != null || lead.bedrooms_max != null) && <Chip>{lead.bedrooms_min != null && lead.bedrooms_max != null ? `${lead.bedrooms_min}–${lead.bedrooms_max} BR` : `${lead.bedrooms_min || lead.bedrooms_max} BR`}</Chip>}
+              <div className="flex flex-wrap gap-1">
+                {lead.financing_method && lead.intent !== 'tenant' && <Chip>{lead.financing_method}</Chip>}
+                {(lead.bedrooms_min != null || lead.bedrooms_max != null) && <Chip>{lead.bedrooms_min != null && lead.bedrooms_max != null ? `${lead.bedrooms_min}–${lead.bedrooms_max} BR` : `${lead.bedrooms_min || lead.bedrooms_max} BR`}</Chip>}
+                {lead.intent === 'tenant' && lead.cheques_count && <Chip title="Preferred number of rent cheques per year">{`${lead.cheques_count} cheques`}</Chip>}
+                {lead.move_in_timeline && <Chip title="Move-in timeline" style={lead.intent === 'tenant' ? { color: GOLD, borderColor: 'rgba(198,161,91,0.35)' } : undefined}>{`Move-in: ${String(lead.move_in_timeline).replace(/_/g, ' ')}`}</Chip>}
+              </div>
               {lead.preferred_locations?.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{lead.preferred_locations.map((l) => <Chip key={l}>{l}</Chip>)}</div>}
             </Section>
           ) : null}
 
           {/* AI Intelligence */}
           <Section title="AI Intelligence">
+            {/* Brain status + manual re-analyse (the on-open trigger already woke the brain) */}
+            <div className="flex items-center gap-2 mb-2">
+              {brainRunning ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, fontSize: 9, fontWeight: 600, background: 'rgba(198,161,91,0.12)', border: '1px solid rgba(198,161,91,0.3)', color: GOLD }}>
+                  <RefreshCw size={9} className="animate-spin" /> Analysing…
+                </span>
+              ) : (
+                <span style={{ fontSize: 9, color: SLATE }}>
+                  {lead.ai_processed_at ? `Analysed ${new Date(lead.ai_processed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date(lead.ai_processed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Not analysed yet'}
+                </span>
+              )}
+              <button
+                onClick={handleAnalyseNow}
+                disabled={brainRunning}
+                title="Force a fresh brain run"
+                style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.1)', color: GOLD, fontSize: 9, fontWeight: 600, cursor: brainRunning ? 'not-allowed' : 'pointer', opacity: brainRunning ? 0.5 : 1 }}
+              >
+                <Sparkles size={9} /> Analyse
+              </button>
+            </div>
+
+            {/* STRIKE NOW — hot signals + matched inventory + finance readiness aligned */}
+            {lead.ai_strike_now && (
+              <div className="mb-3 p-2.5 rounded-md" style={{ background: 'rgba(198,161,91,0.12)', border: '1px solid rgba(198,161,91,0.45)' }}>
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5" strokeWidth={1.5} style={{ color: GOLD }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: GOLD }}>Strike Now</span>
+                  {lead.ai_momentum && <Chip style={{ color: GOLD, borderColor: 'rgba(198,161,91,0.35)' }}>{lead.ai_momentum}</Chip>}
+                </div>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.4 }}>The brain sees hot signals, matched inventory and finance readiness aligned — act today.</p>
+              </div>
+            )}
+            {!lead.ai_strike_now && lead.ai_momentum && (
+              <div className="mb-2"><Chip title="Momentum read from the last brain run">{`Momentum: ${lead.ai_momentum}`}</Chip></div>
+            )}
+
             {/* Lead score */}
             <div className="flex items-center gap-3 mb-3">
               <ScoreRing score={score ?? 0} size={48}>
@@ -573,10 +727,16 @@ export default function LeadCommandCenter() {
                 {lead.ai_score_trend && <span style={{ fontSize: 10, color: lead.ai_score_trend === 'rising' ? '#34d399' : lead.ai_score_trend === 'falling' ? CLARET_TEXT : SLATE }}>{lead.ai_score_trend === 'rising' ? '↑' : lead.ai_score_trend === 'falling' ? '↓' : '→'} {lead.ai_score_trend}</span>}
               </div>
             </div>
+            {lead.ai_lead_score_rationale && (
+              <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', marginTop: -6, marginBottom: 10, lineHeight: 1.4 }}>{lead.ai_lead_score_rationale}</p>
+            )}
 
             {/* Conversion probability */}
             {lead.ai_conversion_probability != null && (
               <StatBar label="Conversion Probability" value={Math.round(lead.ai_conversion_probability * 100)} suffix="%" color={lead.ai_conversion_probability >= 0.7 ? GOLD : SLATE} />
+            )}
+            {lead.ai_conversion_rationale && (
+              <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', marginTop: -4, marginBottom: 10, lineHeight: 1.4 }}>{lead.ai_conversion_rationale}</p>
             )}
 
             {/* Churn prediction */}
@@ -592,8 +752,16 @@ export default function LeadCommandCenter() {
             {/* Deal value */}
             {lead.deal_value_aed > 0 && (
               <div className="mb-2">
-                <span style={{ fontSize: 10, color: SLATE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Deal Value</span>
-                <p style={{ ...champagneInk, fontSize: 16, fontWeight: 700 }}>{formatAEDCompact(lead.deal_value_aed)}</p>
+                <span style={{ fontSize: 10, color: SLATE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Deal Value{lead.intent === 'tenant' ? ' · Annual Rent' : ''}</span>
+                <p style={{ ...champagneInk, fontSize: 16, fontWeight: 700 }}>{formatAEDCompact(lead.deal_value_aed)}{lead.intent === 'tenant' ? '/yr' : ''}</p>
+              </div>
+            )}
+
+            {/* Estimated commission — computed in CODE from a real basis (linked deals) only */}
+            {lead.estimated_commission_aed > 0 && (
+              <div className="mb-2">
+                <span style={{ fontSize: 10, color: SLATE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Est. Commission</span>
+                <p style={{ ...champagneInk, fontSize: 14, fontWeight: 700 }}>{formatAEDCompact(lead.estimated_commission_aed)}</p>
               </div>
             )}
 
@@ -602,6 +770,14 @@ export default function LeadCommandCenter() {
               <div className="mt-2 p-2.5 rounded-md" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
                 <span style={{ fontSize: 10, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>AI Summary</span>
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 4, lineHeight: 1.5 }}>{lead.ai_rolling_summary}</p>
+              </div>
+            )}
+
+            {/* Deal thesis — the brain's living strategy for this lead */}
+            {lead.ai_deal_thesis && (
+              <div className="mt-2 p-2.5 rounded-md" style={{ background: 'rgba(198,161,91,0.05)', border: '1px solid rgba(198,161,91,0.22)' }}>
+                <span style={{ fontSize: 10, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Deal Thesis</span>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)', marginTop: 4, lineHeight: 1.5 }}>{lead.ai_deal_thesis}</p>
               </div>
             )}
 
@@ -653,7 +829,65 @@ export default function LeadCommandCenter() {
                 {lead.ai_persona.persona_summary && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2, lineHeight: 1.4 }}>{lead.ai_persona.persona_summary}</p>}
               </div>
             )}
+
+            {/* Suggested tasks — one click adds a Reminder (the human click IS the approval) */}
+            {Array.isArray(lead.ai_suggested_tasks) && lead.ai_suggested_tasks.length > 0 && (
+              <div className="mt-2">
+                <span style={{ fontSize: 10, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Suggested Tasks</span>
+                {lead.ai_suggested_tasks.slice(0, 4).map((t, i) => (
+                  <div key={i} className="mt-1.5 p-2 rounded-md flex items-start gap-2" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: NAME, textTransform: 'capitalize' }}>{(t.template_key || 'task').replace(/_/g, ' ')}</span>
+                      {t.reason && <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.6)', marginTop: 2, lineHeight: 1.4 }}>{t.reason}</p>}
+                    </div>
+                    <button
+                      onClick={() => handleAddSuggestedTask(t, i)}
+                      disabled={addingSuggestion === `task_${i}`}
+                      title="Add as a task"
+                      style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.1)', color: GOLD, fontSize: 9.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {addingSuggestion === `task_${i}` ? <Loader2 size={9} className="animate-spin" /> : <Plus size={9} />} Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Suggested follow-ups — one click schedules a Reminder at the suggested slot */}
+            {Array.isArray(lead.ai_suggested_followups) && lead.ai_suggested_followups.length > 0 && (
+              <div className="mt-2">
+                <span style={{ fontSize: 10, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Suggested Follow-ups</span>
+                {lead.ai_suggested_followups.slice(0, 4).map((f, i) => (
+                  <div key={i} className="mt-1.5 p-2 rounded-md flex items-start gap-2" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span style={{ fontSize: 11, fontWeight: 600, color: NAME, textTransform: 'capitalize' }}>{(f.template_key || 'follow up').replace(/_/g, ' ')}</span>
+                        <Chip style={{ fontSize: 8.5, padding: '1px 6px' }}>{`D+${f.when_offset_days ?? 1} · ${String(f.suggested_hour ?? 10).padStart(2, '0')}:00${f.channel ? ' · ' + f.channel : ''}`}</Chip>
+                      </div>
+                      {f.reason && <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.6)', marginTop: 2, lineHeight: 1.4 }}>{f.reason}</p>}
+                    </div>
+                    <button
+                      onClick={() => handleAddSuggestedFollowup(f, i)}
+                      disabled={addingSuggestion === `fu_${i}`}
+                      title="Schedule this follow-up"
+                      style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.4)', background: 'rgba(198,161,91,0.1)', color: GOLD, fontSize: 9.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {addingSuggestion === `fu_${i}` ? <Loader2 size={9} className="animate-spin" /> : <Calendar size={9} />} Schedule
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
+
+          {/* AI Call Script — forged from the brain's analysis (B1.5b) */}
+          <BuyerCallScript
+            leadId={id}
+            aiCallScript={lead.ai_call_script}
+            aiCallScriptAt={lead.ai_call_script_at}
+            aiProcessedAt={lead.ai_processed_at}
+            onGenerated={refetchLead}
+          />
 
           {/* Internal notes */}
           {lead.notes && (
@@ -667,6 +901,18 @@ export default function LeadCommandCenter() {
 
         {/* CENTER — stream + composer */}
         <div className="flex-1 min-w-0 flex flex-col" style={{ background: PB.BASE }}>
+          {/* Aurora proposals — materialized brain proposals awaiting a human verdict (B1) */}
+          {auroraProposals.length > 0 && (
+            <div className="shrink-0 px-3 pt-2">
+              <AuroraProposalsStrip
+                proposals={auroraProposals}
+                onApprove={(p) => handleProposalAction(p, 'approved')}
+                onDismiss={(p) => handleProposalAction(p, 'dismissed')}
+                busyId={proposalBusyId}
+              />
+            </div>
+          )}
+
           {/* Stream filter tabs */}
           <div className="shrink-0 flex items-center gap-1 px-3 py-2 overflow-x-auto" style={{ borderBottom: `1px solid ${HAIR}` }}>
             {STREAM_FILTERS.map((f) => {
@@ -707,6 +953,88 @@ export default function LeadCommandCenter() {
                 );
               })}
             </div>
+
+            {/* AI drafts for the active channel (B1) — forged by the buyer approach forge;
+                the agent reviews, edits, and presses Send. Never auto-sent. */}
+            {isConversationTab && (() => {
+              const drafts = lead.ai_approach_drafts;
+              const draft = drafts && typeof drafts === 'object' ? drafts[composerTab] : null;
+              const suggested = (Array.isArray(lead.ai_suggested_messages) ? lead.ai_suggested_messages : [])
+                .filter((m) => m && m.text && (m.channel === composerTab || (composerTab === 'whatsapp' && !m.channel)))
+                .slice(0, 2);
+              if (!draft?.body_native && !suggested.length && !draftsForging) return null;
+              const useDraft = (text, subject) => {
+                setComposerText(text || '');
+                if (composerTab === 'email' && subject != null) setEmailSubject(subject);
+              };
+              return (
+                <div className="mb-2 p-2 rounded-md" style={{ background: 'rgba(198,161,91,0.04)', border: '1px solid rgba(198,161,91,0.18)' }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles size={10} style={{ color: GOLD }} />
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: GOLD }}>AI Drafts</span>
+                    {drafts?.angle_used && <Chip style={{ fontSize: 8.5, padding: '1px 6px' }}>{String(drafts.angle_used).replace(/_/g, ' ')}</Chip>}
+                    {drafts?.mode && <Chip style={{ fontSize: 8.5, padding: '1px 6px' }}>{drafts.mode}</Chip>}
+                    {draftsForging && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, color: GOLD }}>
+                        <RefreshCw size={9} className="animate-spin" /> Forging…
+                      </span>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (draftsForging) return;
+                        setDraftsForging(true);
+                        try {
+                          await base44.functions.invoke('forgeBuyerApproachDrafts', { lead_id: id, force: true });
+                          await refetchLead();
+                          toast.success('Drafts re-forged');
+                        } catch (e) { toast.error('Forge failed: ' + (e?.message || 'unknown')); }
+                        finally { setDraftsForging(false); }
+                      }}
+                      title="Re-forge the drafts with a fresh angle"
+                      style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.35)', background: 'transparent', color: GOLD, fontSize: 8.5, fontWeight: 600, cursor: draftsForging ? 'not-allowed' : 'pointer', opacity: draftsForging ? 0.5 : 1 }}
+                    >
+                      <RefreshCw size={8} className={draftsForging ? 'animate-spin' : undefined} /> Regenerate
+                    </button>
+                  </div>
+                  {draft?.body_native && (
+                    <div className="flex items-start gap-2 p-2 rounded-md" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {composerTab === 'email' && draft.subject && <div style={{ fontSize: 11, fontWeight: 600, color: NAME, marginBottom: 2 }}>{draft.subject}</div>}
+                        <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{draft.body_native}</p>
+                        {draft.body_english_gloss && draft.body_english_gloss !== draft.body_native && (
+                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 3, lineHeight: 1.4, fontStyle: 'italic' }}>{draft.body_english_gloss}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => useDraft(draft.body_native, draft.subject)}
+                        title="Load this draft into the composer"
+                        style={{ flex: 'none', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(198,161,91,0.45)', background: 'rgba(198,161,91,0.12)', color: GOLD, fontSize: 9.5, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Use
+                      </button>
+                    </div>
+                  )}
+                  {suggested.map((m, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 rounded-md mt-1.5" style={{ background: WELL, border: `1px solid ${HAIR}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center gap-1 mb-1 flex-wrap">
+                          {m.mode && <Chip style={{ fontSize: 8, padding: '1px 5px' }}>{m.mode.replace(/_/g, ' ')}</Chip>}
+                          {m.tone && <Chip style={{ fontSize: 8, padding: '1px 5px' }}>{m.tone}</Chip>}
+                        </div>
+                        <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.text}</p>
+                      </div>
+                      <button
+                        onClick={() => useDraft(m.text)}
+                        title="Load this suggestion into the composer"
+                        style={{ flex: 'none', padding: '4px 10px', borderRadius: 99, border: `1px solid ${HAIR2}`, background: 'transparent', color: SLATE, fontSize: 9.5, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Use
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Email subject (email tab only) */}
             {composerTab === 'email' && (

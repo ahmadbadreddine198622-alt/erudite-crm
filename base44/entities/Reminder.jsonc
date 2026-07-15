@@ -43,7 +43,8 @@
         "contract_renewal",
         "payment_due",
         "document_expiry",
-        "custom"
+        "custom",
+        "task"
       ],
       "default": "custom"
     },
@@ -162,6 +163,28 @@
     "ai_agent_notes": {
       "type": "string",
       "description": "Notes or reasoning from the AI agent"
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "human",
+        "aurora"
+      ],
+      "default": "human",
+      "description": "BUYER BRAIN V1 (B1): 'aurora' rows are buyer-brain proposals. Mirrors Followup.origin on the landlord side."
+    },
+    "proposal_status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "approved",
+        "dismissed"
+      ],
+      "description": "BUYER BRAIN V1 (B1): proposal lifecycle. 'proposed' renders in the Lead Command Center Aurora strip; a HUMAN approves or dismisses - the brain never acts alone."
+    },
+    "ai_source": {
+      "type": "string",
+      "description": "BUYER BRAIN V1 (B1): the brain template_key this proposal came from (e.g. day5_checkin_call)."
     }
   },
   "required": [

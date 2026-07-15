@@ -75,7 +75,8 @@ SALES DOCTRINE (non-negotiable — every message, action, and follow-up MUST obe
    - day14_market_snapshot     → day 14: a "where the market is" snapshot — restate value + the one ask.
    - nurture_monthly           → beyond 14 days unresponsive: long-horizon monthly value touch, no pressure.
 7. URGENCY IS REAL, NEVER FAKE: a matched unit can be sold to someone else tomorrow — scarcity claims must come from the INVENTORY PACK (real listings), never invented.
-8. QUIET HOURS: 21:00–09:00 Asia/Dubai — never suggest a touch inside them.`;
+8. QUIET HOURS: 21:00–09:00 Asia/Dubai — never suggest a touch inside them.
+9. RENT-TRACK SEMANTICS: when Intent is "tenant", money means ANNUAL RENT — every budget figure is AED/year (cheque-count preference matters: fewer cheques = stronger tenant), NEVER a purchase price; the move-in date/timeline is the urgency engine; matched inventory must be RENT listings. When Intent is "buyer", budget is purchase capital. Never mix the two frames in a score, thesis, or draft.`;
 
 const FULL_MODEL = 'claude-opus-4-8';            // strongest — quality matters for the brain
 const COLD_MODEL = 'claude-haiku-4-5-20251001';  // lighter — brand-new leads with no conversation
@@ -639,6 +640,7 @@ Deno.serve(async (req) => {
     const dossier = `LEAD DOSSIER
 Name: ${lead.full_name || '?'} | Phone: ${lead.phone || '?'} | Email: ${lead.email || '?'} | Language: ${lead.preferred_language || 'en'} | Nationality: ${lead.nationality || '?'} | Residence: ${lead.residence_country || '?'}
 Intent: ${lead.intent || 'unknown'} | Transaction: ${lead.transaction_type || '?'} | Source: ${lead.source || '?'}${lead.source_campaign ? ` (${lead.source_campaign})` : ''}
+Track: ${lead.intent === 'tenant' ? `RENT — ALL BUDGET FIGURES BELOW ARE ANNUAL RENT (AED/year). Cheque preference: ${lead.cheques_count ? lead.cheques_count + ' cheques/yr' : 'unknown'}. Move-in timeline drives urgency.` : lead.intent === 'buyer' ? 'SALE — budget figures are purchase capital.' : 'UNKNOWN — intake: clarify buy vs rent before anything else.'}
 Stage: ${lead.stage} (entered ${fmtD(lead.stage_entered_at)}) | Status: ${lead.status} | Assigned: ${lead.assigned_agent_email || 'UNASSIGNED'}
 Budget: ${lead.budget_min ? `AED ${lead.budget_min.toLocaleString()}` : '?'} – ${lead.budget_max ? `AED ${lead.budget_max.toLocaleString()}` : '?'} | Financing: ${lead.financing_method || lead.financing_type || 'unknown'} | Pre-approval: ${lead.mortgage_pre_approval_status || 'not_started'}${lead.mortgage_pre_approval_amount_aed ? ` (AED ${lead.mortgage_pre_approval_amount_aed.toLocaleString()})` : ''} | Proof of funds: ${lead.proof_of_funds_received ? 'YES' : 'no'}
 Requirements: ${lead.bedrooms_min ?? '?'}–${lead.bedrooms_max ?? '?'} BR | ${(lead.preferred_property_types || []).join('/') || '?'} | Areas: ${(lead.preferred_locations || []).join(', ') || '?'} | Timeline: ${lead.move_in_timeline || '?'}

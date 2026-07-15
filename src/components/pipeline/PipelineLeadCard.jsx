@@ -7,7 +7,7 @@ import SendToClosingButton from '@/components/closing/SendToClosingButton';
 import IntentToggle from '@/components/leads/IntentToggle';
 import {
   PB, champagneInk, isAtRisk, daysInStage, isHot, hasSignals, leadScore,
-  formatDealValue, formatAEDCompact, nextStepFor,
+  formatDealValue, formatLeadMoney, formatAEDCompact, nextStepFor,
 } from '@/lib/buyerPipelineTokens';
 
 // One chip language — hairline ghost chip. Differentiate by text, not color.
@@ -325,8 +325,8 @@ function PipelineLeadCard({ lead, listing, isDragging, onClick, users = [], onAs
       {/* Money + agent + L-score row — deal value in champagne gradient ink. */}
       <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ borderTop: `1px solid ${PB.HAIR}`, paddingTop: '0.4rem' }}>
         {lead.deal_value_aed > 0 && (
-          <span className="text-[11px] font-bold" style={champagneInk}>
-            {formatDealValue(lead.deal_value_aed)}
+          <span className="text-[11px] font-bold" style={champagneInk} title={lead.intent === 'tenant' ? 'Annual rent' : 'Deal value'}>
+            {formatLeadMoney(lead, lead.deal_value_aed)}
           </span>
         )}
         {score != null && (

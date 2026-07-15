@@ -34,9 +34,14 @@ export const champagneInk = {
 
 // AT RISK: churn ≥ 0.6 OR stale beyond the stage's critical_hours threshold.
 // Reuses the existing health-threshold computation from PipelineLeadCard — no new day counts.
+// ai_churn_prediction is an object ({probability, risk_level}) on brain-written leads and a
+// bare number on legacy rows — support both.
 export function isAtRisk(lead) {
   if (!lead) return false;
-  if ((lead.ai_churn_prediction || 0) >= 0.6) return true;
+  const churn = typeof lead.ai_churn_prediction === 'number'
+    ? lead.ai_churn_prediction
+    : (lead.ai_churn_prediction?.probability || 0);
+  if (churn >= 0.6) return true;
   const meta = STAGES[lead.stage];
   const thresholds = (meta && meta.health_thresholds) || DEFAULT_HEALTH_THRESHOLDS;
   if (!lead.stage_entered_at) return false;
@@ -81,6 +86,13 @@ export function formatDealValue(val) {
   }
   if (val >= 1_000) return `AED ${Math.round(val / 1_000)}K`;
   return `AED ${val}`;
+}
+
+// RENT-TRACK SEMANTICS (B1.5c): on the rent track money is ANNUAL RENT — label it /yr.
+export function formatLeadMoney(lead, val) {
+  const base = formatDealValue(val);
+  if (!base) return '';
+  return lead?.intent === 'tenant' ? `${base}/yr` : base;
 }
 
 export function formatAEDCompact(n) {

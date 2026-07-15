@@ -235,6 +235,12 @@
         "investor_no_move_in"
       ]
     },
+    "cheques_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12,
+      "description": "RENT TRACK: the tenant's preferred number of rent cheques per year (1, 2, 4, 6, 12). On the rent track budget figures are ANNUAL RENT."
+    },
     "preferred_locations": {
       "type": "array",
       "items": {
@@ -871,6 +877,15 @@
       "type": "string",
       "format": "date-time",
       "description": "BUYER BRAIN V1: when ai_approach_drafts was last forged."
+    },
+    "ai_call_script": {
+      "type": "object",
+      "description": "BUYER BRAIN V1 (B1.5): forged buyer call script (opener, discovery questions, value hooks from the inventory pack, objection handlers, the ask, close, cheat sheet). Written by generateBuyerCallScript; mirrors Landlord.ai_call_script."
+    },
+    "ai_call_script_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "BUYER BRAIN V1 (B1.5): when ai_call_script was last forged."
     }
   },
   "required": [
