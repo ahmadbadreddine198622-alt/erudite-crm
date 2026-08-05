@@ -76,12 +76,8 @@
     },
     "channel": {
       "type": "string",
-      "enum": [
-        "business",
-        "personal"
-      ],
       "default": "personal",
-      "description": "Which WhatsApp channel: business (erudite / Meta Cloud / +971582806000) or personal (erudite_whatsapp / Baileys / +971581806000)"
+      "description": "Which channel this unified-stream message belongs to. WhatsApp instance channels: business (erudite / Meta Cloud / +971582806000), personal (erudite_whatsapp / Baileys / +971581806000), agent (per-agent Evolution instance). Other messaging channels mirrored into this stream: telegram, imessage, email, sms, whatsapp. NOTE: not a fixed enum — new WhatsApp agent instances and channels are added over time, so this stays a free-form string (was previously enum-restricted to business/personal, which silently rejected telegram/imessage/email mirror writes)."
     },
     "instance_name": {
       "type": "string",
