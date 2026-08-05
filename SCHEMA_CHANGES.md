@@ -101,3 +101,24 @@ Rate-limit/queue state (4.4) is handled in-function; no schema change required.
 | `last_inbound_at` | string (date-time) | most recent inbound across channels |
 | `details_json` | string | raw fetchInstances summary |
 | `alert_sent` | boolean (default `false`) | |
+
+---
+
+## PHASE 6 — Telegram fix (unified stream mirror)
+
+### `Message.channel` — REMOVE the enum restriction (make it a free-form string)
+**Bug:** `channel` was enum-restricted to `business` \| `personal`. `sendTelegram` and
+`telegramWebhook` mirror every Telegram message into the unified `Message` stream with
+`channel: "telegram"` — a value outside that enum, so Base44 **rejected the write**. Because
+the mirror is wrapped in a best-effort `try/catch`, it failed silently: Telegram conversations
+never landed in `Message`, so `landlordOrchestrator` (which reads `Message`) never saw them.
+The same silent drop hit `imessage`, `email`, and the per-agent `agent` channel.
+
+**Fix:** drop the `enum` on `Message.channel`, keep it a `string` (default `personal`). In the
+Base44 entity editor, edit the `channel` field and clear its allowed-values list. Known values
+now written to this field: `business`, `personal`, `agent`, `whatsapp`, `telegram`, `imessage`,
+`email`, `sms`. Leave it open — new WhatsApp agent instances add channel values over time.
+
+> Apply this schema change **before** relying on Telegram/iMessage/email appearing in the
+> unified `Message` stream or in `landlordOrchestrator` analysis. No data migration needed —
+> existing `business`/`personal` rows stay valid.
